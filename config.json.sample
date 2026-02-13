@@ -1,0 +1,22 @@
+{
+  "jira": {
+    "baseUrl": "https://api.atlassian.com/ex/jira",
+    "cloudId": "<your-jira-cloud-id>",
+    "project": "DF",
+    "jql": [
+      "project = DF AND summary ~ \"Ralph\" AND status = \"New\" ORDER BY created ASC"
+    ],
+    "pollIntervalMs": 60000,
+    "inProgressTransitionId": "141",
+    "readyForReviewTransitionId": "91"
+  },
+  "ralph": {
+    "devcontainerConfig": ".ralph/devcontainer.json",
+    "agentName": "ralph",
+    "timeoutMs": 1800000
+  },
+  "output": {
+    "logDir": "./output/logs",
+    "handoffDir": "./output/handoffs"
+  }
+}
