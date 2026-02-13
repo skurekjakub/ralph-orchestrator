@@ -3,6 +3,7 @@ import { Box, Text, useApp } from "ink";
 import { StatusPanel } from "./StatusPanel.js";
 import { QueuePanel } from "./QueuePanel.js";
 import { HistoryPanel } from "./HistoryPanel.js";
+import { LogPanel } from "./LogPanel.js";
 import type { OrchestratorState } from "../orchestrator.js";
 import type { Orchestrator } from "../orchestrator.js";
 
@@ -56,12 +57,23 @@ export function App({ orchestrator }: AppProps): React.ReactElement {
       </Text>
 
       <StatusPanel state={state} />
+
+      <Box marginTop={1}>
+        <Text dimColor>{'─'.repeat(50)}</Text>
+      </Box>
+
       <QueuePanel state={state} />
       <HistoryPanel completed={state.completedToday} />
 
       <Box marginTop={1}>
+        <Text dimColor>{'─'.repeat(50)}</Text>
+      </Box>
+
+      <LogPanel logs={state.logs} />
+
+      <Box marginTop={1}>
         <Text dimColor>
-          Logs: ./output/logs/    Ctrl+C to stop
+          Output: ./output/logs/ │ Press Ctrl+C to stop
         </Text>
       </Box>
     </Box>

@@ -27,9 +27,10 @@ describe("JiraPoller", () => {
       baseUrl: "https://api.atlassian.com/ex/jira",
       cloudId: "test-cloud-id",
       project: "DF",
-      jql: 'project = DF',
+      jql: ['project = DF'],
       pollIntervalMs: 1000,
       inProgressTransitionId: "141",
+      readyForReviewTransitionId: "91",
     };
 
     callback = vi.fn();
@@ -52,7 +53,7 @@ describe("JiraPoller", () => {
     // Wait for the immediate async poll
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(mockClient.searchIssues).toHaveBeenCalledWith(config.jql);
+    expect(mockClient.searchIssues).toHaveBeenCalledWith(config.jql[0]);
     expect(callback).toHaveBeenCalledWith([makeIssue("DF-1")]);
 
     poller.stop();

@@ -6,9 +6,10 @@ const mockConfig: JiraConfig = {
   baseUrl: "https://api.atlassian.com/ex/jira",
   cloudId: "test-cloud-id",
   project: "DF",
-  jql: 'project = DF AND summary ~ "Ralph"',
+  jql: ['project = DF AND summary ~ "Ralph"'],
   pollIntervalMs: 60000,
   inProgressTransitionId: "141",
+  readyForReviewTransitionId: "91",
 };
 
 describe("JiraClient", () => {
