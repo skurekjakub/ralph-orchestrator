@@ -6,8 +6,10 @@ interface StatusPanelProps {
   state: OrchestratorState;
 }
 
+/** Braille spinner frames for the WORKING state animation. */
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+/** Displays current status, active issue, and elapsed time with an animated spinner. */
 export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
   const [frame, setFrame] = useState(0);
 

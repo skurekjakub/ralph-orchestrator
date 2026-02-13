@@ -1,18 +1,38 @@
+/** Raw result from a `devcontainer exec` call (exit code, captured output, timeout flag). */
 export interface ContainerExecResult {
+  /** Process exit code (0 = success). */
   exitCode: number;
+  /** Captured standard output. */
   stdout: string;
+  /** Captured standard error. */
   stderr: string;
+  /** True if the process was killed because it exceeded the configured timeout. */
   timedOut: boolean;
 }
 
+/**
+ * Enriched result returned by {@link ContainerManager.execute}.
+ *
+ * Includes the raw exec output plus parsed metadata (PR URL, agent-reported
+ * status) and paths to locally-saved log files.
+ */
 export interface RalphResult {
+  /** JIRA issue key (e.g. `DF-2759`). */
   issueKey: string;
+  /** Final task status — may come from the agent's structured output block or be inferred from the exit code. */
   status: "completed" | "partial" | "blocked" | "error";
+  /** Wall-clock duration in milliseconds. */
   durationMs: number;
+  /** Copilot CLI process exit code. */
   exitCode: number;
+  /** Full captured stdout from the copilot session. */
   stdout: string;
+  /** Full captured stderr from the copilot session. */
   stderr: string;
+  /** Local path to the handoff file, if one was saved. */
   handoffPath?: string;
+  /** Local path to the audit JSONL log collected from the container. */
   auditLogPath?: string;
+  /** ADO pull request URL parsed from the agent's structured output. */
   prUrl?: string;
 }

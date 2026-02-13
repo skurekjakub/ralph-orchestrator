@@ -6,6 +6,7 @@ interface QueuePanelProps {
   state: OrchestratorState;
 }
 
+/** Displays the current task queue (issue keys and summaries, or "empty"). */
 export function QueuePanel({ state }: QueuePanelProps): React.ReactElement {
   return (
     <Box flexDirection="column" marginTop={1}>

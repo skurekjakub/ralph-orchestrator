@@ -274,4 +274,41 @@ describe("ContainerManager copilot CLI args", () => {
       expect(source).toContain(`\`${envVar}=`);
     }
   });
+
+  it("includes --hooks-config flag for audit logging", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/container/manager.ts"),
+      "utf-8"
+    );
+
+    expect(source).toContain('"--hooks-config"');
+    expect(source).toContain("ralph-audit.json");
+  });
+
+  it("uses --remove-orphans in docker compose down", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/container/manager.ts"),
+      "utf-8"
+    );
+
+    expect(source).toContain('"--remove-orphans"');
+  });
+
+  it("streams build output to logger", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/container/manager.ts"),
+      "utf-8"
+    );
+
+    // start() method should pipe stdout/stderr with [build] prefix
+    expect(source).toContain("[build]");
+    expect(source).toContain("proc.stdout");
+    expect(source).toContain("proc.stderr");
+  });
 });

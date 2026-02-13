@@ -13,17 +13,22 @@ async function main(): Promise<void> {
     React.createElement(App, { orchestrator })
   );
 
-  // Handle graceful shutdown
-  const shutdown = () => {
-    orchestrator.stop();
-    setTimeout(() => {
+  // Handle graceful shutdown (Ctrl+C or SIGTERM)
+  let shuttingDown = false;
+  const shutdown = async () => {
+    if (shuttingDown) {
+      // Second signal — force exit
       unmount();
-      process.exit(0);
-    }, 2000);
+      process.exit(1);
+    }
+    shuttingDown = true;
+    await orchestrator.shutdown();
+    unmount();
+    process.exit(0);
   };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => { shutdown(); });
+  process.on("SIGTERM", () => { shutdown(); });
 
   // Start the orchestrator loop (blocks until stopped)
   try {

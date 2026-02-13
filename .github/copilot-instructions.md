@@ -11,7 +11,7 @@ JIRA poller → in-memory queue → container lifecycle → log collection
                                        ↓
                               ralph meta-agent (subagents: tech-writer, reviewer)
                                        ↓
-                              git push + ADO PR via MCP
+                              git push + ADO PR via REST API
 ```
 
 **One task at a time.** The orchestrator processes a single JIRA issue before moving to the next.
@@ -103,6 +103,12 @@ This orchestrator drives the Ralph devcontainer which lives in the `kentico-docs
 
 After each task, the orchestrator collects:
 - `output/logs/<key>-<timestamp>.jsonl` — Full audit trail from hooks
+- `output/logs/<key>-<timestamp>-copilot.log` — Full Copilot CLI stdout/stderr
 - `output/logs/<key>-<timestamp>-summary.json` — Execution metadata
+- `output/logs/activity-YYYY-MM-DD.jsonl` — Persistent activity log (all sessions, never truncated)
 
 Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
+
+## Agent Workflow Rules
+
+**After completing any task, always use `ask_questions` to prompt for the next task.** See `.github/copilot-agent-instructions.md` for details. This is mandatory — never end a turn without it.

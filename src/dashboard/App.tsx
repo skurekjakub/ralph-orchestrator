@@ -7,10 +7,15 @@ import { LogPanel } from "./LogPanel.js";
 import type { OrchestratorState } from "../orchestrator.js";
 import type { Orchestrator } from "../orchestrator.js";
 
+/** Props for the root Ink dashboard. */
 interface AppProps {
   orchestrator: Orchestrator;
 }
 
+/**
+ * Root Ink component — subscribes to orchestrator state changes and renders
+ * the terminal dashboard (status, queue, history, activity log).
+ */
 export function App({ orchestrator }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [state, setState] = useState<OrchestratorState>(

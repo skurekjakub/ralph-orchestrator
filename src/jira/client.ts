@@ -1,10 +1,21 @@
 import type { JiraConfig } from "../config.js";
 import type { JiraIssue, JiraSearchResponse } from "./types.js";
 
+/**
+ * Lightweight JIRA REST API v3 client for Atlassian Cloud.
+ *
+ * Uses native `fetch` with Basic auth (`email:apiToken`). No JIRA SDK dependency.
+ * Cloud endpoint: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`.
+ */
 export class JiraClient {
   private baseUrl: string;
   private authHeader: string;
 
+  /**
+   * @param config JIRA connection settings (base URL, cloud ID).
+   * @param email Atlassian account email for Basic auth.
+   * @param apiToken API token from id.atlassian.com.
+   */
   constructor(
     config: JiraConfig,
     private email: string,
@@ -18,6 +29,10 @@ export class JiraClient {
       Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
   }
 
+  /**
+   * Send a request to the JIRA REST API.
+   * @throws Error if the response status is not 2xx.
+   */
   private async request<T>(
     method: string,
     path: string,
@@ -47,7 +62,7 @@ export class JiraClient {
     return res.json() as Promise<T>;
   }
 
-  /** Search issues using JQL */
+  /** Search issues using JQL (v3 /search/jql endpoint) */
   async searchIssues(jql: string, maxResults = 20): Promise<JiraIssue[]> {
     const params = new URLSearchParams({
       jql,
@@ -56,7 +71,7 @@ export class JiraClient {
     });
     const data = await this.request<JiraSearchResponse>(
       "GET",
-      `/rest/api/3/search?${params}`
+      `/rest/api/3/search/jql?${params}`
     );
     return data.issues;
   }

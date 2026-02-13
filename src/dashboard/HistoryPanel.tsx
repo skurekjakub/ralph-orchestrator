@@ -6,6 +6,7 @@ interface HistoryPanelProps {
   completed: CompletedTask[];
 }
 
+/** Shows today’s completed tasks with status icons, duration, and PR links. */
 export function HistoryPanel({ completed }: HistoryPanelProps): React.ReactElement {
   const statusIcon = (status: CompletedTask["status"]): string => {
     switch (status) {

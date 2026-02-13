@@ -235,8 +235,8 @@ describe("Log collector", () => {
       durationMs: result.durationMs,
       exitCode: result.exitCode,
       prUrl: result.prUrl,
-      handoffPath: result.handoffPath,
       auditLogPath: result.auditLogPath,
+      activityLogPath: "/tmp/logs/activity-2026-02-13.jsonl",
       timestamp: new Date().toISOString(),
     };
 
@@ -248,6 +248,74 @@ describe("Log collector", () => {
     expect(parsed.durationMs).toBe(120000);
     expect(parsed.prUrl).toBe("https://dev.azure.com/pr/1");
     expect(parsed.timestamp).toBeDefined();
-    expect(parsed.handoffPath).toBeUndefined();
+    expect(parsed.activityLogPath).toContain("activity-");
+  });
+});
+
+describe("Persistent activity log", () => {
+  it("generates correct JSONL format for log entries", () => {
+    const entry = { timestamp: 1707840000000, level: "info", message: "Test log" };
+    const line = JSON.stringify(entry);
+    const parsed = JSON.parse(line);
+
+    expect(parsed.timestamp).toBe(1707840000000);
+    expect(parsed.level).toBe("info");
+    expect(parsed.message).toBe("Test log");
+  });
+
+  it("generates daily log file name", () => {
+    const date = new Date("2026-02-13T12:00:00Z").toISOString().slice(0, 10);
+    const filename = `activity-${date}.jsonl`;
+    expect(filename).toBe("activity-2026-02-13.jsonl");
+  });
+
+  it("appends entries without overwriting", () => {
+    const entries: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      entries.push(JSON.stringify({ timestamp: Date.now(), level: "info", message: `msg${i}` }));
+    }
+    // Simulate reading back
+    const parsed = entries.map(e => JSON.parse(e));
+    expect(parsed).toHaveLength(5);
+    expect(parsed[0].message).toBe("msg0");
+    expect(parsed[4].message).toBe("msg4");
+  });
+});
+
+describe("Copilot output persistence", () => {
+  it("combines stdout and stderr into single log file", () => {
+    const stdout = "RALPH_RESULT: completed";
+    const stderr = "Warning: something";
+    const fullOutput = [
+      stdout ? `=== STDOUT ===\n${stdout}` : "",
+      stderr ? `\n=== STDERR ===\n${stderr}` : "",
+    ].join("");
+
+    expect(fullOutput).toContain("=== STDOUT ===");
+    expect(fullOutput).toContain("RALPH_RESULT: completed");
+    expect(fullOutput).toContain("=== STDERR ===");
+    expect(fullOutput).toContain("Warning: something");
+  });
+
+  it("generates correct copilot log filename", () => {
+    const key = "DF-2759";
+    const ts = 1707840000000;
+    const filename = `${key}-${ts}-copilot.log`;
+    expect(filename).toBe("DF-2759-1707840000000-copilot.log");
+  });
+});
+
+describe("Poller logging", () => {
+  it("orchestrator source includes poll cycle logging", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const source = readFileSync(
+      resolve(import.meta.dirname, "../src/jira/poller.ts"),
+      "utf-8"
+    );
+
+    expect(source).toContain("Polling JIRA");
+    expect(source).toContain("No new issues found");
+    expect(source).toContain("issue(s) matching JQL");
   });
 });

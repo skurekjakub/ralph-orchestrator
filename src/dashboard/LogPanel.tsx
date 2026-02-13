@@ -4,9 +4,11 @@ import type { LogEntry } from "../orchestrator.js";
 
 interface LogPanelProps {
   logs: readonly LogEntry[];
+  /** Maximum number of recent log lines to display. Defaults to 15. */
   maxLines?: number;
 }
 
+/** Scrolling activity log panel with color-coded severity (green/yellow/red). */
 export function LogPanel({ logs, maxLines = 15 }: LogPanelProps): React.ReactElement {
   const visible = logs.slice(-maxLines);
 

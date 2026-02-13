@@ -1,10 +1,18 @@
 import type { JiraIssue } from "./jira/types.js";
 
+/** Lightweight reference to a queued JIRA issue (key + summary only). */
 export interface JiraIssueRef {
   key: string;
   summary: string;
 }
 
+/**
+ * In-memory FIFO task queue with deduplication.
+ *
+ * Issues are deduplicated by key — once an issue has been enqueued (or marked
+ * processed), it will not be added again even if the poller returns it in a
+ * subsequent cycle. Call {@link resetSeen} to clear the dedup set.
+ */
 export class TaskQueue {
   private queue: JiraIssue[] = [];
   private seen = new Set<string>();
