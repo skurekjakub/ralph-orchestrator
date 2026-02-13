@@ -1,0 +1,11 @@
+# Ralph Orchestrator runtime
+node_modules/
+dist/
+output/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db
