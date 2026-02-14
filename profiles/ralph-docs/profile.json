@@ -1,0 +1,30 @@
+{
+  "repo": "~/repositories/kentico-docs-jekyll",
+  "cli": "copilot",
+  "timeoutMs": 3600000,
+  "transitions": {
+    "inProgressId": "141",
+    "readyForReviewId": "91",
+    "revisionId": "141"
+  },
+  "variants": [
+    {
+      "agent": "ralph",
+      "match": {
+        "projects": ["DF"],
+        "keywords": ["RalphDf"],
+        "statuses": ["New", "To Do"],
+        "revisionStatuses": ["Defect Found"]
+      }
+    },
+    {
+      "agent": "ralph",
+      "match": { 
+        "projects": ["DOC"],
+        "keywords": ["RalphDocs"],
+        "statuses": ["To Do"],
+        "revisionStatuses": ["Defect Found"]
+      }
+    }
+  ]
+}

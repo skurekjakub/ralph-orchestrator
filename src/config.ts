@@ -1,41 +1,13 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve, join } from "node:path";
 import { z } from "zod";
 import "dotenv/config";
 import { buildJqlFromProfiles } from "./jira/jql-builder.js";
 import { resolvePath } from "./util/path.js";
 
 // ---------------------------------------------------------------------------
-// Zod schemas for config.json
+// Zod schemas for config.json (global settings only)
 // ---------------------------------------------------------------------------
-
-const profileMatchSchema = z.object({
-  projects: z.array(z.string()).default([]),
-  keywords: z.array(z.string()).default([]),
-  statuses: z.array(z.string()).default([]),
-  revisionStatuses: z.array(z.string()).default([]),
-});
-
-const profileTransitionsSchema = z.object({
-  inProgressId: z.string().min(1, "transitions.inProgressId is required"),
-  readyForReviewId: z.string().min(1, "transitions.readyForReviewId is required"),
-  revisionId: z.string().optional(),
-});
-
-const rawProfileSchema = z.object({
-  id: z.string().min(1, "Profile id must not be empty"),
-  repo: z.string().min(1, "Profile repo path must not be empty"),
-  composeFile: z.string().optional(),
-  agent: z.string().default("ralph"),
-  cli: z.enum(["copilot", "claude"]).default("copilot"),
-  model: z.string().optional(),
-  timeoutMs: z.number().positive().default(1_800_000),
-  setupScript: z.string().default("/usr/local/bin/setup.sh"),
-  auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
-  composeProjectLabel: z.string().default("ralph-sandbox"),
-  match: profileMatchSchema,
-  transitions: profileTransitionsSchema,
-});
 
 const rawJiraSchema = z.object({
   baseUrl: z.string().url("jira.baseUrl must be a valid URL"),
@@ -55,9 +27,44 @@ const rawDashboardSchema = z.object({
 
 const configFileSchema = z.object({
   jira: rawJiraSchema,
-  profiles: z.array(rawProfileSchema).min(1, "At least one agent profile must be defined"),
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
+});
+
+// ---------------------------------------------------------------------------
+// Zod schemas for profiles/*/profile.json
+// ---------------------------------------------------------------------------
+
+const profileMatchSchema = z.object({
+  projects: z.array(z.string()).default([]),
+  keywords: z.array(z.string()).default([]),
+  statuses: z.array(z.string()).default([]),
+  revisionStatuses: z.array(z.string()).default([]),
+  commentTrigger: z.string().optional(),
+});
+
+const profileTransitionsSchema = z.object({
+  inProgressId: z.string().min(1, "transitions.inProgressId is required"),
+  readyForReviewId: z.string().min(1, "transitions.readyForReviewId is required"),
+  revisionId: z.string().optional(),
+});
+
+const variantSchema = z.object({
+  agent: z.string().min(1, "variant agent must not be empty"),
+  model: z.string().optional(),
+  match: profileMatchSchema,
+});
+
+const profileFileSchema = z.object({
+  repo: z.string().min(1, "Profile repo path must not be empty"),
+  cli: z.enum(["copilot", "claude"]).default("copilot"),
+  model: z.string().optional(),
+  timeoutMs: z.number().positive().default(1_800_000),
+  setupScript: z.string().default("/usr/local/bin/setup.sh"),
+  auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
+  composeProjectLabel: z.string().default("ralph-sandbox"),
+  transitions: profileTransitionsSchema,
+  variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });
 
 // ---------------------------------------------------------------------------
@@ -77,6 +84,8 @@ export interface ProfileMatch {
   statuses: string[];
   /** Statuses that trigger a revision workflow (e.g. "Defect Found"). Issues in these statuses bypass queue dedup. */
   revisionStatuses: string[];
+  /** When set, at least one comment on the issue must contain this string (case-insensitive) for the variant to match. */
+  commentTrigger?: string;
 }
 
 /** JIRA transition IDs for this profile's workflow. */
@@ -141,8 +150,84 @@ export interface AppConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Path resolution
+// Profile discovery
 // ---------------------------------------------------------------------------
+
+/**
+ * Discover and load all profile.json files from `profiles/` subdirectories.
+ *
+ * Each `profiles/<id>/profile.json` is validated with Zod, then "exploded"
+ * into one {@link AgentProfile} per variant. The `id` is derived from the
+ * directory name; `composeFile` is `profiles/<id>/docker-compose.yml`.
+ */
+function loadProfiles(profilesDir: string): AgentProfile[] {
+  let dirs: string[];
+  try {
+    dirs = readdirSync(profilesDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    throw new Error(`Cannot read profiles directory: ${profilesDir}`);
+  }
+
+  if (dirs.length === 0) {
+    throw new Error(`No profile directories found in ${profilesDir}`);
+  }
+
+  const profiles: AgentProfile[] = [];
+
+  for (const dirName of dirs) {
+    const profileJsonPath = join(profilesDir, dirName, "profile.json");
+    let rawJson: unknown;
+    try {
+      rawJson = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
+    } catch (err) {
+      throw new Error(
+        `Failed to read ${profileJsonPath}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+
+    const parsed = profileFileSchema.parse(rawJson);
+    const profileId = dirName;
+
+    for (let vi = 0; vi < parsed.variants.length; vi++) {
+      const variant = parsed.variants[vi];
+      const statusSet = new Set(variant.match.statuses.map((s) => s.toLowerCase()));
+      const overlap = variant.match.revisionStatuses.filter((s) => statusSet.has(s.toLowerCase()));
+      if (overlap.length > 0) {
+        throw new Error(
+          `Profile "${profileId}" variant "${variant.agent}": statuses and revisionStatuses must not overlap — found in both: ${overlap.join(", ")}`
+        );
+      }
+
+      profiles.push({
+        id: profileId,
+        repoPath: resolvePath(parsed.repo),
+        composeFile: `profiles/${profileId}/docker-compose.yml`,
+        agentName: variant.agent,
+        cli: parsed.cli,
+        model: variant.model ?? parsed.model,
+        timeoutMs: parsed.timeoutMs,
+        setupScript: parsed.setupScript,
+        auditLogPath: parsed.auditLogPath,
+        composeProjectLabel: parsed.composeProjectLabel,
+        match: {
+          projects: variant.match.projects,
+          keywords: variant.match.keywords,
+          statuses: variant.match.statuses,
+          revisionStatuses: variant.match.revisionStatuses,
+        },
+        transitions: {
+          inProgressId: parsed.transitions.inProgressId,
+          readyForReviewId: parsed.transitions.readyForReviewId,
+          revisionId: parsed.transitions.revisionId,
+        },
+      });
+    }
+  }
+
+  return profiles;
+}
 
 // ---------------------------------------------------------------------------
 // Config loader
@@ -199,45 +284,8 @@ export function loadConfig(): AppConfig {
     intervalMs: parsed.dashboard?.intervalMs ?? 30_000,
   };
 
-  const profiles: AgentProfile[] = parsed.profiles.map((p) => ({
-    id: p.id,
-    repoPath: resolvePath(p.repo),
-    composeFile: p.composeFile ?? `profiles/${p.id}/docker-compose.yml`,
-    agentName: p.agent,
-    cli: p.cli,
-    model: p.model,
-    timeoutMs: p.timeoutMs,
-    setupScript: p.setupScript,
-    auditLogPath: p.auditLogPath,
-    composeProjectLabel: p.composeProjectLabel,
-    match: {
-      projects: p.match.projects,
-      keywords: p.match.keywords,
-      statuses: p.match.statuses,
-      revisionStatuses: p.match.revisionStatuses,
-    },
-    transitions: {
-      inProgressId: p.transitions.inProgressId,
-      readyForReviewId: p.transitions.readyForReviewId,
-      revisionId: p.transitions.revisionId,
-    },
-  }));
-
-  const ids = new Set<string>();
-  for (const p of profiles) {
-    if (ids.has(p.id)) {
-      throw new Error(`Duplicate profile ID: ${p.id}`);
-    }
-    ids.add(p.id);
-
-    const statusSet = new Set(p.match.statuses.map((s) => s.toLowerCase()));
-    const overlap = p.match.revisionStatuses.filter((s) => statusSet.has(s.toLowerCase()));
-    if (overlap.length > 0) {
-      throw new Error(
-        `Profile "${p.id}": statuses and revisionStatuses must not overlap — found in both: ${overlap.join(", ")}`
-      );
-    }
-  }
+  const profilesDir = resolve(process.cwd(), "profiles");
+  const profiles = loadProfiles(profilesDir);
 
   const jql = buildJqlFromProfiles(profiles);
 

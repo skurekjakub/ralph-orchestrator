@@ -29,6 +29,7 @@ services:
       - ./agents/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro
       - ./agents/ralph.tech-writer.agent.md:/workspace/.github/agents/ralph.tech-writer.agent.md:ro
       - ./agents/ralph.reviewer.agent.md:/workspace/.github/agents/ralph.reviewer.agent.md:ro
+      - ./resources/ralph-revisions.md:/workspace/.github/resources/ralph-revisions.md:ro
       # Shared hook scripts + audit config
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
       - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro

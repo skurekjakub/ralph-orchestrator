@@ -22,32 +22,73 @@ deliver a branch + pull request against `main` in Azure DevOps. Read .github/cop
 | `JIRA_PAT` / `JIRA_EMAIL` | JIRA API access |
 | `JIRA_BASE_URL` / `JIRA_CLOUD_ID` | JIRA cloud instance |
 
-## Phase 1 — Greet & understand the task
+## Workflow routing
 
-1. Post a greeting comment to the JIRA issue acknowledging you've started:
+- If your prompt starts with `Mode: REVISION` → follow the [Revision Workflow](../resources/ralph-revisions.md) instead of the phases below
+- Otherwise → continue with the Standard Workflow (Phase 1–8)
+
+---
+
+# Standard Workflow
+
+## JIRA Comment API
 
 ```bash
 ISSUE_KEY="<from prompt>"
 JIRA_API="https://api.atlassian.com/ex/jira/${JIRA_CLOUD_ID}/rest/api/3"
 
-curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
+curl -s --http1.1 -u "${JIRA_EMAIL}:${JIRA_PAT}" \
   -H "Content-Type: application/json" \
   -X POST "${JIRA_API}/issue/${ISSUE_KEY}/comment" \
-  -d '{
-    "body": {
-      "version": 1,
-      "type": "doc",
-      "content": [{
-        "type": "paragraph",
-        "content": [{
-          "type": "text",
-          "text": "<placeholder: suitableEmoji> <placeholder: Introduce yourself and give some suitable greeting. Inspire yourself by the issue content. Show grit and determination!>"
-        }]
-      }]
-    }
-  }'
+  -d '<ADF JSON body>'
 ```
 
+Comments use **Atlassian Document Format (ADF)**. Build the body freely
+
+<details><summary>Example — heading + bold/link paragraph + bullet list</summary>
+
+```json
+{
+  "body": {
+    "version": 1,
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": { "level": 3 },
+        "content": [{ "type": "text", "text": "Task Complete" }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "emoji", "attrs": { "shortName": ":rocket:", "text": "🚀" } },
+          { "type": "text", "text": " Changes pushed to " },
+          { "type": "text", "text": "ralph/df-1234", "marks": [{ "type": "strong" }] },
+          { "type": "text", "text": " — " },
+          { "type": "text", "text": "view PR", "marks": [{ "type": "link", "attrs": { "href": "https://dev.azure.com/..." } }] }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Added validation rules" }] }] },
+          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Fixed test failures" }] }] }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+Format comments as you see fit — use headings, lists, bold, links, emoji, code blocks, etc. Make them informative and scannable.
+
+---
+
+## Phase 1 — Greet & understand the task
+
+1. Post a greeting comment on the JIRA issue. Introduce yourself, acknowledge the task, and show some personality. Use rich ADF formatting.
 2. Read the JIRA issue (key, summary, description) from your prompt
 3. **Delegate analysis to the `ralph-analyst` sub-agent** — pass the full JIRA issue details (key, summary, description) and let it research the codebase and suggest an implementation path. Review its analysis before proceeding.
 4. Plan your approach based on the analyst's suggestions (you have final authority — adjust the plan as needed)
@@ -170,11 +211,7 @@ curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
 
 ### Post completion comment
 
-The comment should contain:
-
-- A detailed breakdown of the changes and anything you find important to note. Reference the handoff if too long. Use as many paragraphs as necessary. Mood based on how successful you were with the task.
-- Link to the pull request
-- handoff file section references for more detilas
+Post a rich ADF comment on the JIRA issue. Include whatever you think is useful — changes summary, PR link, test results, caveats, follow-ups. Use headings, bullet lists, bold, links, code blocks, emoji — format it so a reviewer can scan it quickly.
 
 ## Phase 8 — Report results
 

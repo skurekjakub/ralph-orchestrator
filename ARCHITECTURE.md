@@ -86,23 +86,25 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 
 Orchestrates the full container lifecycle, delegating to specialized components:
 
-- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Builds the process environment (all secrets, JIRA config, Anthropic API key), spawns compose commands (`up`, `exec`, `down`), and enforces timeouts.
-- **CopilotExecutor** (`src/container/copilot-executor.ts`) — Executes `copilot --agent <name> --model <model> --experimental --yolo -p <prompt>` inside the container. Streams stdout/stderr with `[copilot]` prefix.
-- **ClaudeCodeExecutor** (`src/container/claude-code-executor.ts`) — Executes `claude -p <prompt> --dangerously-skip-permissions [--model <model>]` inside the container. Streams stdout/stderr with `[claude]` prefix.
+- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Builds the process environment (all secrets, JIRA config, Anthropic API key, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`), spawns compose commands (`up`, `exec`, `down`), and enforces timeouts.
+- **CopilotExecutor** (`src/container/copilot-executor.ts`) — Executes `copilot --agent <name> --model <model> --experimental --yolo --share <path> -p <prompt>` inside the container. The `--share` flag exports a full session transcript.
+- **ClaudeCodeExecutor** (`src/container/claude-code-executor.ts`) — Executes `claude -p <prompt> --dangerously-skip-permissions [--model <model>]` inside the container.
+- **StreamCapture** (`src/container/stream-capture.ts`) — Shared line-buffered streaming capture for child processes. Used by both executors and container build/setup to pipe stdout/stderr to the logger with a tag prefix (e.g. `[copilot]`, `[build]`).
 
 **CLI selection:** The manager picks the executor based on the profile's `cli` preference (`"copilot"` or `"claude"`, default: `"copilot"`). If the preferred CLI's credential is missing (`GH_TOKEN` for Copilot, `ANTHROPIC_API_KEY` for Claude), it falls back to the other. If neither credential is available, it throws.
 
 | Method | Action |
 |---|---|
-| `start()` | `docker compose up -d --build` + setup script |
+| `start()` | `docker compose up -d --build` + setup script (both streamed) |
 | `execute()` | Runs the selected CLI agent, parses result block |
 | `collectLogs()` | `docker compose exec cat <auditLogPath>` → `output/logs/` |
+| `collectTranscript()` | Copies session transcript from container → `output/logs/` |
 | `cleanLogs()` | `docker compose exec rm -rf` the audit log dir |
 | `stop()` | `docker compose down --volumes --remove-orphans` |
 | `checkPrerequisites()` | `docker info` (verifies Docker is running) |
 
 Env vars are injected into the compose process environment (not via `-e` flags):
-`GH_TOKEN`, `ADO_PAT_DOCS`, `ADO_MCP_AUTH_TOKEN`, `ADO_PAT_XPERIENCE`, `JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_URL`, `JIRA_CLOUD_ID`, `ANTHROPIC_API_KEY`
+`GH_TOKEN`, `ADO_PAT_DOCS`, `ADO_MCP_AUTH_TOKEN`, `ADO_PAT_XPERIENCE`, `JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_URL`, `JIRA_CLOUD_ID`, `ANTHROPIC_API_KEY`, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`
 
 ### Orchestrator (`src/orchestrator.ts`)
 
@@ -122,17 +124,20 @@ Main loop: poll → dequeue → match profile → process → repeat.
 | 6 | Run setup script | Fatal |
 | 7 | Clean previous audit logs | Non-critical |
 | 8 | Execute agent CLI (stream output) | Captures exit code, timeout, stdout/stderr |
-| 9 | Save full CLI stdout/stderr to disk | Non-critical |
-| 10 | Collect audit logs from container | Non-critical |
+| 9 | Collect audit logs from container | Non-critical |
+| 10 | Collect session transcript from container | Non-critical |
 | 11 | Save execution summary | Non-critical |
-| 12 | Track completion | Always |
-| 13 | Stop container (finally) | Warn on failure, force-rm fallback |
-| 14 | Transition to "Ready for Review" (finally) | Retry 3×, warn on failure |
+| 12 | Attach session transcript to JIRA | Non-critical |
+| 13 | Track completion | Always |
+| 14 | Stop container (finally) | Warn on failure, force-rm fallback |
+| 15 | Transition to "Ready for Review" (finally) | Retry 3×, warn on failure |
 
 **State management:**
 - Exposes `OrchestratorState` via callback for the Ink dashboard
 - Maintains a 50-line ring buffer of `LogEntry` records for the Ink panel
 - Every log entry is also appended to `output/logs/activity-YYYY-MM-DD.log` (persistent, never truncated)
+- Container output is also appended to `output/logs/container-YYYY-MM-DD.log`
+- Per-task streaming logs are written to `output/logs/<key>-<timestamp>.log` (container output only, real-time)
 - All components route logs through a shared `Logger` interface
 - Graceful shutdown via `shutdown()` — stops poller, kills active container, cleans up
 
@@ -140,8 +145,10 @@ Main loop: poll → dequeue → match profile → process → repeat.
 
 - Saves execution metadata as `<key>-<timestamp>-summary.json`
 - Audit trail stored as `<key>-<timestamp>.jsonl` (from hooks inside container)
-- Full CLI stdout/stderr saved as `<key>-<timestamp>-copilot.log`
-- Persistent activity log at `activity-YYYY-MM-DD.log` (managed by the Orchestrator)
+- Session transcript saved as `<key>-<timestamp>-transcript.md` (from `--share` flag)
+- Per-task streaming log at `<key>-<timestamp>.log` (real-time container output)
+- Persistent activity log at `activity-YYYY-MM-DD.log` (managed by ActivityLog)
+- Persistent container log at `container-YYYY-MM-DD.log` (managed by ActivityLog)
 
 ### Status Dashboard (`ralph-dashboard/`)
 
@@ -161,25 +168,41 @@ Separate Next.js app deployed to Vercel. See [ralph-dashboard/README.md](ralph-d
 | `HistoryPanel` | Completed tasks with status icons and duration |
 | `LogPanel` | Scrolling activity log (15 lines) with timestamps and color-coded levels |
 
-## External: Ralph Agent System
+## Profile Infrastructure
 
-Lives in target repos (e.g. `kentico-docs-jekyll`) under `.ralph/` and `.github/agents/`:
+All Docker, agent, and hook infrastructure is centralized in the orchestrator repo. Target repos contain no Ralph-specific files.
 
 ```
-<target-repo>/
-├── .ralph/
-│   ├── docker-compose.yml     # App (Ubuntu) + DB (MSSQL) services
-│   ├── Dockerfile             # Ruby, Node, .NET, Docker-in-Docker, test deps
-│   ├── setup.sh               # Runs after container start — gems, npm, CLI login
-│   └── hooks/                 # Copilot CLI hooks for audit logging
-├── .github/
-│   ├── agents/
-│   │   ├── ralph.agent.md             # Meta-agent (orchestrates sub-agents)
-│   │   ├── ralph.tech-writer.agent.md # Writes documentation changes
-│   │   └── ralph.reviewer.agent.md    # Reviews changes for quality
-│   └── hooks/
-│       └── ralph-audit.json           # Hook config for session logging
+<orchestrator-repo>/
+├── profiles/
+│   ├── ralph-docs/
+│   │   ├── profile.json                 # Profile config: repo, cli, variants, transitions
+│   │   ├── Dockerfile                   # Container image (Ruby, Node, .NET, etc.)
+│   │   ├── docker-compose.yml           # Services, volumes, env vars
+│   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
+│   │   └── agents/
+│   │       ├── ralph.agent.md           # Meta-agent (orchestrates sub-agents)
+│   │       ├── ralph.tech-writer.agent.md
+│   │       └── ralph.reviewer.agent.md
+│   └── ralph-vscode/
+│       ├── profile.json
+│       ├── Dockerfile
+│       ├── docker-compose.yml
+│       ├── setup.sh
+│       └── agents/
+│           ├── ralph.agent.md
+│           └── ralph.analyst.agent.md   # Analysis sub-agent (read-only, Sonnet)
+├── shared/
+│   └── hooks/                           # Copilot CLI audit hooks (shared)
+│       ├── log-*.sh                     # Hook scripts for session logging
+│       └── ralph-audit.json             # Hook configuration
 ```
+
+Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Agent files are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+
+Currently configured target repos:
+- `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
+- `kentico-docs-autocomplete-vscode` — VS Code extension (profile: `ralph-vscode`)
 
 ### Agent Phases (inside container)
 
@@ -201,7 +224,7 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
 
 ## Configuration
 
-### `config.json`
+### `config.json` (Global Settings)
 
 ```json
 {
@@ -210,28 +233,6 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
     "cloudId": "<cloud-guid>",
     "pollIntervalMs": 60000
   },
-  "profiles": [
-    {
-      "id": "ralph-docs",
-      "repo": "~/repositories/kentico-docs-jekyll",
-      "composeFile": ".ralph/docker-compose.yml",
-      "agent": "ralph",
-      "cli": "copilot",
-      "model": "claude-opus-4.6",
-      "timeoutMs": 1800000,
-      "match": {
-        "projects": ["DF"],
-        "keywords": [],
-        "statuses": ["New", "To Do"],
-        "revisionStatuses": ["Defect Found"]
-      },
-      "transitions": {
-        "inProgressId": "141",
-        "readyForReviewId": "91",
-        "revisionId": "151"
-      }
-    }
-  ],
   "output": {
     "logDir": "./output/logs",
     "handoffDir": "./output/handoffs"
@@ -243,17 +244,45 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
 }
 ```
 
-**Profile matching rules:**
+### `profiles/<id>/profile.json` (Per-Profile)
+
+```json
+{
+  "repo": "~/repositories/kentico-docs-jekyll",
+  "cli": "copilot",
+  "model": "claude-opus-4.6",
+  "timeoutMs": 3600000,
+  "transitions": {
+    "inProgressId": "141",
+    "readyForReviewId": "91",
+    "revisionId": "151"
+  },
+  "variants": [
+    {
+      "agent": "ralph",
+      "match": {
+        "projects": ["DF"],
+        "keywords": [],
+        "statuses": ["New", "To Do"],
+        "revisionStatuses": ["Defect Found"]
+      }
+    }
+  ]
+}
+```
+
+**Variant matching:**
+- Each variant has its own `match` rules and `agent` name
+- Variants are evaluated in order, across all profiles; first match wins
 - `match.projects` — issue project key must be in this array
 - `match.keywords` — matched case-insensitively against the issue summary; empty = catch-all
 - `match.statuses` — issue status must be in this array (case-insensitive); empty = match all
 - `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. "Defect Found")
-- First matching profile wins (order matters)
 - No match = issue skipped with warning
 
 **CLI selection:**
 - `cli` — `"copilot"` (default) or `"claude"` — which CLI to use for agent execution
-- `model` — optional model override (each CLI has its own default)
+- `model` — optional model override (profile-level default, overridable per-variant)
 - Falls back to the other CLI if the preferred one's credential is missing
 
 **Dashboard configuration:**
@@ -274,10 +303,13 @@ See `.env.example` for all required variables.
 4. **Orchestrator owns lifecycle** — JIRA transitions, container start/stop, and log collection stay in the orchestrator for reliability.
 5. **No JIRA SDK** — Native `fetch` against REST API v3 keeps dependencies minimal and avoids OAuth complexity (uses Basic auth with API tokens).
 6. **Docker compose directly** — Containers are managed via `docker compose` commands. No devcontainer CLI. Env vars are injected into the compose process environment.
-7. **Dual CLI support** — Profiles can use either Copilot CLI (`copilot --agent --model --yolo`) or Claude Code CLI (`claude -p --dangerously-skip-permissions`). The orchestrator selects at runtime based on profile preference and available credentials, with automatic fallback.
+7. **Dual CLI support** — Profiles can use either Copilot CLI (`copilot --agent --model --yolo --share`) or Claude Code CLI (`claude -p --dangerously-skip-permissions`). The orchestrator selects at runtime based on profile preference and available credentials, with automatic fallback.
 8. **Logger interface** — All components accept a `Logger` for centralized log routing through the orchestrator's ring buffer to the Ink dashboard.
 9. **Persistent activity log** — Every log entry is appended to `activity-YYYY-MM-DD.log` so the full session history survives ring buffer eviction and restarts.
-10. **Build and exec streaming** — Container build progress and CLI output are streamed to the activity log in real-time, not buffered until completion.
-11. **Profile-based routing** — Each profile binds a repo + compose file + agent name + CLI preference to JIRA matching rules (project key + summary keywords + statuses). This allows the same orchestrator instance to drive different agents across different repositories. Profiles are evaluated in order; the first match wins; empty keywords act as a catch-all.
+10. **Build and exec streaming** — Container build progress, setup script output, and CLI output are streamed to the activity log in real-time via the shared `StreamCapture` class.
+11. **Profile variants** — Each profile can have multiple variants with different agent names and match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `AgentProfile[]` at load time.
 12. **Heartbeat sender** — Optional fire-and-forget heartbeat to a status dashboard. Controlled by `dashboard.enabled` in config. Each orchestrator generates a UUID on startup so multiple instances can report to the same dashboard.
 13. **JIRA field extraction** — Custom field parsing (ADF, `{value}` wrappers, strings) is separated into `JiraFieldExtractor` for testability and reuse outside `buildPrompt()`.
+14. **Centralized infrastructure** — All Docker, agent, and hook files live in the orchestrator repo under `profiles/` and `shared/`. Target repos contain no Ralph-specific files. Compose files use overlay file mounts to inject agent definitions into containers without modifying the host repo.
+15. **Session transcripts** — Copilot CLI's `--share` flag exports a full session transcript (conversation, tool calls, reasoning). The orchestrator collects it from the container and attaches it to the JIRA issue for auditability.
+16. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.

@@ -37,17 +37,52 @@ Authorization: Basic base64("${JIRA_EMAIL}:${JIRA_PAT}")
 ### Adding a comment to the JIRA issue
 
 ```bash
-curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
+curl -s --http1.1 -u "${JIRA_EMAIL}:${JIRA_PAT}" \
   -H "Content-Type: application/json" \
   -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/3/issue/${JIRA_KEY}/comment" \
-  -d '{
-    "body": {
-      "version": 1,
-      "type": "doc",
-      "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Your comment text here" }] }]
-    }
-  }'
+  -d '<ADF JSON body>'
 ```
+
+Comments use **Atlassian Document Format (ADF)**. Build the body freely
+
+<details><summary>Example — heading + bold/link paragraph + bullet list</summary>
+
+```json
+{
+  "body": {
+    "version": 1,
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": { "level": 3 },
+        "content": [{ "type": "text", "text": "Task Complete" }]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          { "type": "emoji", "attrs": { "shortName": ":rocket:", "text": "🚀" } },
+          { "type": "text", "text": " Changes pushed to " },
+          { "type": "text", "text": "ralph/df-1234", "marks": [{ "type": "strong" }] },
+          { "type": "text", "text": " — " },
+          { "type": "text", "text": "view PR", "marks": [{ "type": "link", "attrs": { "href": "https://dev.azure.com/..." } }] }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Added validation rules" }] }] },
+          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Fixed test failures" }] }] }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+Format comments as you see fit — use headings, lists, bold, links, emoji, code blocks, etc. Make them informative and scannable.
 
 ### Attaching a file to the JIRA issue
 
@@ -229,21 +264,7 @@ curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
   -F "file=@resources/chats/<jira-key>/handoff.md"
 ```
 
-3. **Post a completion comment on the JIRA issue** summarizing what was done:
-
-```
-🤖 <intro informing that you're done - inject some levity if you were successful>
-
-**Status:** <completed|partial|blocked>
-**Branch:** ralph/<jira-key>-<short-slug>
-**Pull Request:** <ADO PR URL or "PR creation failed — branch pushed, create manually">
-
-**Summary:** <2-3 sentence summary of changes made>
-
-See the attached handoff.md for full details, decisions made, and suggested next steps.
-```
-
-Use the JIRA comment API shown in "JIRA Communication" above. Format the comment body as ADF (Atlassian Document Format).
+3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich ADF formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
 ### Phase 8: Exit
 

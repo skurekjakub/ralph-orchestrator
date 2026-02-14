@@ -25,23 +25,24 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 | `src/orchestrator.ts` | Main loop: dequeue → profile routing → JIRA transition → container exec → collect results |
 | `src/orchestrator-types.ts` | Types for orchestrator state, log entries, and completed tasks |
 | `src/queue.ts` | In-memory FIFO queue with deduplication (revision-aware) |
-| `src/config.ts` | Loads `config.json` + `.env` secrets |
+| `src/config.ts` | Loads `config.json` (global settings) + `profiles/*/profile.json` (agent profiles) + `.env` secrets |
 | `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
-| `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition, attachments) |
+| `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition, attachments — both download and upload) |
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
 | `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, keywords, statuses, revisionStatuses) |
 | `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
-| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs, stop); CLI selection |
-| `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection) |
-| `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, process tracking) |
+| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs/transcript, stop); CLI selection |
+| `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection including `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH`) |
+| `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, `--share` transcript export) |
 | `src/container/claude-code-executor.ts` | Claude Code CLI execution inside containers (streaming, timeout, process tracking) |
+| `src/container/stream-capture.ts` | Shared line-buffered streaming capture for child processes (used by both executors and container build/setup) |
 | `src/container/types.ts` | Container types (CliExecutor interface, ContainerExecResult, RalphResult, CliType) |
 | `src/container/prompt.ts` | Builds CLI prompt from JIRA issue fields; embeds revision context (comments + handoff) |
 | `src/container/result-parser.ts` | Parses structured result blocks from CLI stdout |
-| `src/services/activity-log.ts` | Persistent activity log writer (append-only JSONL to disk) |
+| `src/services/activity-log.ts` | Persistent activity log writer — daily aggregate logs + per-task streaming logs |
 | `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
 | `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/keyword/status; returns `{ profile, isRevision }` |
-| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result collection → error/review transitions |
+| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection → error/review transitions |
 | `src/logs/collector.ts` | Saves execution summaries to `output/` |
 | `src/util/path.ts` | Shared path resolution utility |
 | `src/validate.ts` | Config validation (profile overlaps, compose file existence) |
@@ -80,30 +81,35 @@ No piping to `head` or `tail` — always show full output.
 
 ## Configuration
 
-- `config.json` — Runtime config (polling interval, agent profiles with match rules and CLI preference, dashboard toggle). JQL queries are auto-generated from profile match rules by `src/jira/jql-builder.ts`
+- `config.json` — Global settings (JIRA connection, polling interval, output paths, dashboard toggle)
+- `profiles/*/profile.json` — Per-profile config with agent variants, repo path, CLI preference, and match rules
 - `.env` — Secrets (JIRA token/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret)
 - See `.env.example` for required variables
 - See `CONFIGURATION.md` for the full configuration reference
 
 ### Agent Profiles
 
-The `profiles` array in `config.json` maps JIRA issues to repos/agents. Each profile has:
-- `id` — unique identifier
+Each profile directory under `profiles/` contains a `profile.json` that maps JIRA issues to a repo and agent configuration. Profiles are auto-discovered at startup.
+
+**Profile-level fields** (shared by all variants):
 - `repo` — path to the target repository
-- `composeFile` — path to docker-compose.yml relative to orchestrator root (defaults to `profiles/<id>/docker-compose.yml`)
-- `agent` — Copilot CLI agent name (used with Copilot CLI)
-- `cli` — `"copilot"` (default) or `"claude"` — which CLI to use for agent execution. Falls back to the other CLI if the preferred one's credential is missing.
-- `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default)
+- `cli` — `"copilot"` (default) or `"claude"` — which CLI to use. Falls back to the other CLI if the preferred one's credential is missing.
+- `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default). Can be overridden per-variant.
 - `timeoutMs` — execution timeout
-- `match.projects` — JIRA project keys to match
-- `match.keywords` — keywords matched case-insensitively against issue summary (empty = catch-all)
-- `match.statuses` — only match issues in these JIRA statuses (empty = any status)
-- `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. `["Defect Found"]`). Issues in these statuses bypass queue dedup so they can be re-processed. Must not overlap with `match.statuses`.
 - `transitions.inProgressId` — JIRA transition ID to move an issue to "In Progress"
 - `transitions.readyForReviewId` — JIRA transition ID to move an issue to "Ready for Review"
 - `transitions.revisionId` — (optional) transition ID for revision pickup; falls back to `inProgressId`
 
-Profiles are evaluated in order; first match wins. Unmatched issues are skipped.
+**Variant-level fields** (each variant expands into a separate routing entry):
+- `agent` — Copilot CLI agent name
+- `model` — optional model override (overrides profile-level)
+- `match.projects` — JIRA project keys to match
+- `match.keywords` — keywords matched case-insensitively against issue summary (empty = catch-all)
+- `match.statuses` — only match issues in these JIRA statuses (empty = any status)
+- `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. `["Defect Found"]`). Must not overlap with `match.statuses`.
+- `match.commentTrigger` — (optional) when set, at least one JIRA comment must contain this string (case-insensitive) for the variant to match. Comments are fetched on-demand only for candidates that pass all other filters.
+
+Variants are evaluated in order (across all profiles); first match wins. Unmatched issues are skipped.
 
 ### Dashboard
 
@@ -145,6 +151,7 @@ All Docker and agent infrastructure is centralized in the orchestrator repo. Tar
 ```
 profiles/
   <profile-id>/
+    profile.json        — Profile config: repo, cli, variants, transitions
     Dockerfile          — Container image definition
     docker-compose.yml  — Services, env vars, volume mounts
     setup.sh            — Post-create setup script (CLI installs, git config)
@@ -155,7 +162,7 @@ shared/
     ralph-audit.json    — Hook configuration
 ```
 
-Compose files use `TARGET_REPO_PATH` (injected by ComposeClient) to mount the target repo at `/workspace`. Agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
 
 Currently configured target repos:
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
@@ -186,12 +193,14 @@ When a JIRA issue is in a `revisionStatuses` status (e.g. "Defect Found"), the o
 ## Output
 
 After each task, the orchestrator collects:
+- `output/logs/<key>-<timestamp>.log` — Per-task streaming log (container output in real-time)
 - `output/logs/<key>-<timestamp>.jsonl` — Full audit trail from hooks
-- `output/logs/<key>-<timestamp>-copilot.log` — Full CLI stdout/stderr
+- `output/logs/<key>-<timestamp>-transcript.md` — Copilot CLI session transcript (via `--share`)
 - `output/logs/<key>-<timestamp>-summary.json` — Execution metadata
 - `output/logs/activity-YYYY-MM-DD.log` — Persistent activity log (all sessions, never truncated)
+- `output/logs/container-YYYY-MM-DD.log` — Persistent container output log (all sessions)
 
-Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
+Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
 
 ## Agent Workflow Rules
 

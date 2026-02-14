@@ -15,25 +15,25 @@ Your prompt already contains:
 
 ### Revision Phase 2: Find Existing PR & Branch
 
-1. **Find the existing branch** matching the pattern `ralph/<jira-key>-*`:
+1. **Find the existing branch** matching the pattern `ralph/<jira-key>`:
    ```bash
    git fetch origin
-   git branch -r | grep "ralph/<jira-key>"
+   git branch -r | grep "ralph/${ISSUE_KEY,,}"
    ```
 2. **Switch to the existing branch** (do NOT create a new one):
    ```bash
-   git checkout ralph/<jira-key>-<slug>
-   git pull origin ralph/<jira-key>-<slug>
+   git checkout "ralph/${ISSUE_KEY,,}"
+   git pull origin "ralph/${ISSUE_KEY,,}"
    ```
 3. **Find the existing PR** via the Azure DevOps REST API:
    ```bash
    ADO_ORG="KenticoCustomerSuccess"
    ADO_PROJECT="CustomerEducation"
-   ADO_REPO="kentico-docs-jekyll"
+   ADO_REPO="kentico-docs-autocomplete-vscode"
 
    curl -s --http1.1 \
      -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \
-     "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests?searchCriteria.sourceRefName=refs/heads/ralph/<jira-key>-<slug>&api-version=7.1"
+     "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests?searchCriteria.sourceRefName=refs/heads/ralph/${ISSUE_KEY,,}&api-version=7.1"
    ```
 4. **Read ALL PR review threads** to understand inline feedback:
    ```bash
@@ -44,31 +44,30 @@ Your prompt already contains:
 
 ### Revision Phase 3: Implement Fixes
 
-Delegate to the **ralph-tech-writer** sub-agent:
-- Pass the **original task description**, the **reviewer feedback** (from JIRA comments and PR threads), and the **previous handoff** so the tech-writer has full context
-- Instruct the tech-writer that this is a **revision** — it should fix the specific issues raised, not restart from scratch
-- The tech-writer must validate the build with `npm run build` after changes
+Work directly on the existing branch. This is a single-agent workflow — no sub-agent delegation.
 
-### Revision Phase 4: Review (Optional)
+1. Review the PR feedback threads and JIRA comments to build a clear list of what needs changing
+2. Optionally **delegate analysis to `ralph-analyst`** if the feedback requires understanding unfamiliar parts of the codebase
+3. Make the requested changes — fix specific issues raised, do NOT restart from scratch
+4. Validate with `npm run build` and `npm run lint` after changes
+5. Run `npm run test:xvfb` — if tests pass, great. If display errors persist, proceed with build+lint passing
 
-If the changes are substantial, delegate to the **ralph-reviewer** sub-agent for a quick check. For minor fixes (typos, small corrections), skip the review and proceed directly.
-
-### Revision Phase 5: Commit, Push & Respond to PR
+### Revision Phase 4: Commit, Push & Respond to PR
 
 1. Stage and commit changes:
    ```bash
    git add -A
-   git commit -m "docs(<jira-key>): address review feedback"
+   git commit -m "ralph/${ISSUE_KEY,,}: address review feedback"
    ```
 2. Push to the **existing branch** (not a new one):
    ```bash
-   git push origin ralph/<jira-key>-<slug>
+   git push origin "ralph/${ISSUE_KEY,,}"
    ```
 3. **Respond to PR review threads** — for each comment thread that you addressed, post a reply:
    ```bash
    python3 -c "
    import json
-   data = {'content': 'Fixed — <brief explanation of what was changed>', 'parentCommentId': 0, 'commentType': 1}
+   data = {'content': 'Fixed — <brief explanation>', 'parentCommentId': 0, 'commentType': 1}
    print(json.dumps(data))
    " > /tmp/thread_reply.json
 
@@ -79,23 +78,26 @@ If the changes are substantial, delegate to the **ralph-reviewer** sub-agent for
      -d @/tmp/thread_reply.json
    ```
 
-### Revision Phase 6: Update Handoff & Report
+### Revision Phase 5: Update Handoff & Report
 
-1. **Update the handoff file** at `resources/chats/<jira-key>/handoff.md` — add a "Revision" section at the top documenting what feedback was addressed and what changed
-2. **Attach the updated handoff** to the JIRA issue (same JIRA attachments API as standard workflow)
-3. **Post a completion comment** on the JIRA issue summarizing what was changed and linking to the PR
+1. **Create an updated `handoff.md`** — add a "Revision" section at the top documenting what feedback was addressed and what changed
+2. **Attach the updated handoff** to the JIRA issue:
+   ```bash
+   curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
+     -H "X-Atlassian-Token: no-check" \
+     -X POST "${JIRA_API}/issue/${ISSUE_KEY}/attachments" \
+     -F "file=@handoff.md"
+   ```
+3. **Post a completion comment** on the JIRA issue summarizing revision changes, linking to the PR, and referencing the updated handoff
 
-### Revision Phase 7: Exit
+### Revision Phase 6: Exit
 
-Same exit block format as the standard workflow:
+Output the standard result block:
 
 ```
 ===RALPH_RESULT_START===
-JIRA_KEY: <key>
 STATUS: <completed|partial|blocked>
-BRANCH: ralph/<jira-key>-<slug>
 PR_URL: <full ADO PR URL>
-HANDOFF: resources/chats/<jira-key>/handoff.md
 SUMMARY: <one-line description of revision changes>
 ===RALPH_RESULT_END===
 ```

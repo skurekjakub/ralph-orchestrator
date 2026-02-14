@@ -1,0 +1,21 @@
+{
+  "repo": "~/repositories/kentico-docs-autocomplete-vscode",
+  "cli": "copilot",
+  "timeoutMs": 3600000,
+  "transitions": {
+    "inProgressId": "51",
+    "readyForReviewId": "91",
+    "revisionId": "51"
+  },
+  "variants": [
+    {
+      "agent": "ralph",
+      "match": {
+        "projects": ["DOC"],
+        "keywords": ["RalphAutocomplete"],
+        "statuses": ["To Do"],
+        "revisionStatuses": ["Defect Found"]
+      }
+    }
+  ]
+}

@@ -5,8 +5,9 @@ This document covers all configuration options for the Ralph Orchestrator.
 ## Quick Start
 
 1. Copy `.env.example` to `.env` and fill in your credentials
-2. Edit `config.json` with your JIRA cloud ID and agent profiles
-3. Run `npm run dev` to start in development mode
+2. Edit `config.json` with your JIRA cloud ID and global settings
+3. Configure agent profiles in `profiles/*/profile.json`
+4. Run `npm run dev` to start in development mode
 
 ## Environment Variables (`.env`)
 
@@ -32,11 +33,12 @@ Secrets and credentials live in `.env`. Never commit this file.
 ```json
 {
   "jira": { ... },
-  "profiles": [ ... ],
   "output": { ... },
   "dashboard": { ... }
 }
 ```
+
+Agent profiles are configured separately in `profiles/*/profile.json`, not in `config.json`.
 
 ### JIRA Settings
 
@@ -56,65 +58,85 @@ Secrets and credentials live in `.env`. Never commit this file.
 
 **Finding your Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
 
-### Agent Profiles
+### Agent Profiles (`profiles/*/profile.json`)
 
-Profiles define how JIRA issues map to repositories and agent configurations. The `profiles` array is evaluated in order — the first matching profile wins.
+Profiles define how JIRA issues map to repositories and agent configurations. Each profile lives in its own directory under `profiles/` and is auto-discovered at startup.
 
-```json
-"profiles": [
-  {
-    "id": "ralph-docs",
-    "repo": "~/repositories/kentico-docs-jekyll",
-    "composeFile": "profiles/ralph-docs/docker-compose.yml",
-    "agent": "ralph",
-    "cli": "copilot",
-    "model": "claude-opus-4.6",
-    "timeoutMs": 1800000,
-    "setupScript": "/usr/local/bin/setup.sh",
-    "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
-    "composeProjectLabel": "ralph-sandbox",
-    "match": {
-      "projects": ["DF"],
-      "keywords": [],
-      "statuses": ["New", "To Do"],
-      "revisionStatuses": ["Defect Found"]
-    },
-    "transitions": {
-      "inProgressId": "141",
-      "readyForReviewId": "91",
-      "revisionId": "151"
-    }
-  }
-]
+```
+profiles/
+  ralph-docs/
+    profile.json          — Profile configuration
+    Dockerfile            — Container image
+    docker-compose.yml    — Services, volumes, env vars
+    setup.sh              — Post-create setup script
+    agents/               — Agent definition files (.md)
+  ralph-vscode/
+    profile.json
+    ...
 ```
 
-#### Profile Fields
+#### `profile.json` Schema
+
+```json
+{
+  "repo": "~/repositories/kentico-docs-jekyll",
+  "cli": "copilot",
+  "model": "claude-opus-4.6",
+  "timeoutMs": 3600000,
+  "setupScript": "/usr/local/bin/setup.sh",
+  "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
+  "composeProjectLabel": "ralph-sandbox",
+  "transitions": {
+    "inProgressId": "141",
+    "readyForReviewId": "91",
+    "revisionId": "151"
+  },
+  "variants": [
+    {
+      "agent": "ralph.docs",
+      "match": { "projects": ["DOCS"], "keywords": ["RalphDocs"], "statuses": ["To Do"] }
+    },
+    {
+      "agent": "ralph",
+      "match": { "projects": ["DF"], "keywords": ["Ralph"], "statuses": ["New", "To Do"], "revisionStatuses": ["Defect Found"] }
+    }
+  ]
+}
+```
+
+#### Profile-Level Fields
 
 | Field | Description | Default |
 |---|---|---|
-| `id` | Unique identifier for the profile | — (required) |
 | `repo` | Path to the target repository. Supports `~` expansion. | — (required) |
-| `composeFile` | Path to `docker-compose.yml` relative to orchestrator root | `"profiles/<id>/docker-compose.yml"` |
-| `agent` | Agent name passed to Copilot CLI (`--agent`). Not used by Claude Code. | `"ralph"` |
 | `cli` | Which CLI to use: `"copilot"` or `"claude"` | `"copilot"` |
-| `model` | Model override. Copilot uses GitHub model IDs (e.g. `claude-opus-4.6`), Claude Code uses Anthropic IDs (e.g. `claude-sonnet-4-20250514`). When omitted, each CLI uses its own default. | — (optional) |
+| `model` | Model override (profile-level default for all variants). Copilot uses GitHub model IDs (e.g. `claude-opus-4.6`), Claude Code uses Anthropic IDs. | — (optional) |
 | `timeoutMs` | Maximum execution time in milliseconds | `1800000` (30 min) |
 | `setupScript` | Absolute path to the setup script inside the container | `"/usr/local/bin/setup.sh"` |
 | `auditLogPath` | Absolute path to the audit JSONL log inside the container | `"/workspace/.ralph/logs/audit.jsonl"` |
 | `composeProjectLabel` | Docker compose project label used for container lookup | `"ralph-sandbox"` |
 
-#### Match Rules
+The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`.
+
+#### Variants
+
+Each profile has a `variants` array. Each variant is a separate routing entry that maps JIRA matching rules to an agent name.
 
 | Field | Description |
 |---|---|
-| `match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
-| `match.keywords` | Keywords matched case-insensitively against the issue summary. Empty array `[]` = catch-all for any summary. |
-| `match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any status. |
-| `match.revisionStatuses` | Statuses that trigger the revision workflow (e.g. `["Defect Found"]`). Issues in these statuses bypass queue dedup and are re-processed with revision context. **Must not overlap with `statuses`.** |
+| `variant.agent` | Agent name passed to Copilot CLI (`--agent`). Not used by Claude Code. |
+| `variant.model` | Optional model override (overrides the profile-level `model`). |
+| `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
+| `variant.match.keywords` | Keywords matched case-insensitively against the issue summary. Empty `[]` = catch-all. |
+| `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
+| `variant.match.revisionStatuses` | Statuses that trigger the revision workflow. Must not overlap with `statuses`. |
+| `variant.match.commentTrigger` | Optional trigger string. When set, at least one JIRA comment must contain this string (case-insensitive substring match) for the variant to match. Comments are only fetched for candidates that already pass project/status/keyword filters. |
 
-**Matching order:** Profiles are evaluated top-to-bottom. The first profile whose rules match the issue wins. If no profile matches, the issue is skipped with a warning.
+**Matching order:** Variants are evaluated in order, across all profiles. The first match wins. If no variant matches, the issue is skipped with a warning.
 
 **Catch-all pattern:** To match all issues in a project regardless of summary, use `"keywords": []`.
+
+**Comment trigger:** Use `commentTrigger` when you want issues to be picked up only after a human explicitly requests it (e.g. `"commentTrigger": "@ralph"`). The trigger combines with all other filters — it's an additional AND condition, not a replacement.
 
 #### Transitions
 
@@ -178,9 +200,9 @@ The dashboard requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env`. If `ena
 
 Multiple orchestrator instances can report to the same dashboard — each generates a unique agent ID on startup.
 
-## Example Configuration
+## Example Configurations
 
-### Single Profile (Copilot CLI)
+### `config.json` (Global Settings)
 
 ```json
 {
@@ -189,91 +211,90 @@ Multiple orchestrator instances can report to the same dashboard — each genera
     "cloudId": "abc123-def456",
     "pollIntervalMs": 60000
   },
-  "profiles": [
-    {
-      "id": "ralph-docs",
-      "repo": "~/repositories/kentico-docs-jekyll",
-      "agent": "ralph",
-      "timeoutMs": 1800000,
-      "match": {
-        "projects": ["DF"],
-        "keywords": [],
-        "statuses": ["New", "To Do"],
-        "revisionStatuses": ["Defect Found"]
-      },
-      "transitions": {
-        "inProgressId": "141",
-        "readyForReviewId": "91",
-        "revisionId": "151"
-      }
-    }
-  ],
   "output": { "logDir": "./output/logs", "handoffDir": "./output/handoffs" },
   "dashboard": { "enabled": false }
 }
 ```
 
-### Multiple Profiles (Mixed CLIs)
+### Single Profile, Single Variant
 
+`profiles/ralph-docs/profile.json`:
 ```json
 {
-  "jira": {
-    "baseUrl": "https://api.atlassian.com/ex/jira",
-    "cloudId": "abc123-def456",
-    "pollIntervalMs": 60000
+  "repo": "~/repositories/kentico-docs-jekyll",
+  "timeoutMs": 1800000,
+  "transitions": {
+    "inProgressId": "141",
+    "readyForReviewId": "91",
+    "revisionId": "151"
   },
-  "profiles": [
+  "variants": [
     {
-      "id": "ralph-vscode",
-      "repo": "~/repositories/kentico-docs-autocomplete-vscode",
       "agent": "ralph",
-      "cli": "claude",
-      "timeoutMs": 1800000,
-      "match": {
-        "projects": ["DF"],
-        "keywords": ["RalphVSCode"],
-        "statuses": ["New", "To Do"]
-      },
-      "transitions": {
-        "inProgressId": "51",
-        "readyForReviewId": "91"
-      }
-    },
-    {
-      "id": "ralph-docs",
-      "repo": "~/repositories/kentico-docs-jekyll",
-      "agent": "ralph",
-      "cli": "copilot",
-      "timeoutMs": 1800000,
       "match": {
         "projects": ["DF"],
         "keywords": [],
         "statuses": ["New", "To Do"],
         "revisionStatuses": ["Defect Found"]
-      },
-      "transitions": {
-        "inProgressId": "141",
-        "readyForReviewId": "91",
-        "revisionId": "151"
       }
     }
-  ],
-  "output": { "logDir": "./output/logs", "handoffDir": "./output/handoffs" },
-  "dashboard": { "enabled": true, "intervalMs": 30000 }
+  ]
 }
 ```
 
-In this setup:
-- Issues with "RalphVSCode" in the summary use Claude Code CLI against the VS Code extension repo
-- All other DF issues fall through to the docs repo with Copilot CLI (catch-all via empty `keywords`)
+### Multiple Variants in One Profile
+
+`profiles/ralph-docs/profile.json`:
+```json
+{
+  "repo": "~/repositories/kentico-docs-jekyll",
+  "cli": "copilot",
+  "timeoutMs": 3600000,
+  "transitions": {
+    "inProgressId": "141",
+    "readyForReviewId": "91",
+    "revisionId": "141"
+  },
+  "variants": [
+    {
+      "agent": "ralph.docs",
+      "match": { "projects": ["DOCS"], "keywords": ["RalphDocs"], "statuses": ["To Do"] }
+    },
+    {
+      "agent": "ralph",
+      "match": { "projects": ["DF"], "keywords": ["Ralph"], "statuses": ["New", "To Do"], "revisionStatuses": ["Defect Found"] }
+    }
+  ]
+}
+```
+
+In this setup, the same Docker infrastructure serves both variants. Issues with "RalphDocs" in the summary use the `ralph.docs` agent; all other `DF` issues with "Ralph" fall through to the `ralph` agent.
+
+### Multiple Profiles (Mixed CLIs)
+
+`profiles/ralph-vscode/profile.json`:
+```json
+{
+  "repo": "~/repositories/kentico-docs-autocomplete-vscode",
+  "cli": "claude",
+  "timeoutMs": 1800000,
+  "transitions": { "inProgressId": "51", "readyForReviewId": "91" },
+  "variants": [
+    { "agent": "ralph", "match": { "projects": ["DOC"], "keywords": ["RalphAutocomplete"] } }
+  ]
+}
+```
+
+Runs Claude Code CLI for the VS Code extension repo, while `ralph-docs` uses Copilot CLI.
 
 ## Validation
 
 The orchestrator validates the configuration on startup:
 
-- **Required fields:** `jira.cloudId`, `profiles` (at least one), `JIRA_PAT`, `JIRA_EMAIL`
+- **Required fields:** `jira.cloudId`, at least one profile directory with valid `profile.json`, `JIRA_PAT`, `JIRA_EMAIL`
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
-- **Profile integrity:** Unique IDs, non-overlapping `statuses` and `revisionStatuses`, compose file existence
+- **Profile integrity:** Non-overlapping `statuses` and `revisionStatuses` within each variant, valid `repo` paths
 - **Transition IDs:** Must be valid numeric strings
+- **Profiles auto-discovered** from `profiles/*/profile.json` — the profile `id` is derived from the directory name
 
 Invalid configuration causes the orchestrator to exit with a descriptive error message.

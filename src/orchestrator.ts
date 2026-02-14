@@ -8,6 +8,8 @@ import { TaskQueue } from "./queue.js";
 import { LogCollector } from "./logs/collector.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
+import type { CommentFetcher } from "./services/profile-router.js";
+import { extractAdfText } from "./jira/field-extractor.js";
 import { TaskRunner } from "./services/task-runner.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
 import { ContainerManager } from "./container/manager.js";
@@ -60,7 +62,14 @@ export class Orchestrator {
     const logger = this.activityLog.createLogger();
     const containerLogger = this.activityLog.createContainerLogger();
 
-    this.router = new ProfileRouter(config.profiles);
+    const commentFetcher: CommentFetcher = async (issueKey) => {
+      const comments = await this.jiraClient.getComments(issueKey);
+      return comments.map((c) => {
+        return typeof c.body === "string" ? c.body : extractAdfText(c.body);
+      });
+    };
+
+    this.router = new ProfileRouter(config.profiles, commentFetcher);
 
     this.jiraClient = new JiraClient(
       config.jira,
@@ -189,7 +198,7 @@ export class Orchestrator {
 
     this.log(`Picked up ${issue.key}: ${issue.fields.summary}`);
 
-    const matchResult = this.router.match(issue);
+    const matchResult = await this.router.match(issue);
     if (!matchResult) {
       this.warn(`No matching profile for ${issue.key} -- skipping`);
       this.resetTaskState(issue.key);
@@ -299,10 +308,10 @@ export class Orchestrator {
     this.emitState();
   }
 
-  private onIssuesFound(issues: JiraIssue[]): void {
+  private async onIssuesFound(issues: JiraIssue[]): Promise<void> {
     let added = 0;
     for (const issue of issues) {
-      const matchResult = this.router.match(issue);
+      const matchResult = await this.router.match(issue);
       const isRevision = matchResult?.isRevision ?? false;
       if (this.queue.enqueue(issue, isRevision)) {
         added++;

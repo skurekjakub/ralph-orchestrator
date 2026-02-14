@@ -10,7 +10,7 @@ import { makeProfile, makeIssue, makeConfig } from "./helpers.js";
 
 describe("Orchestrator core integration", () => {
   describe("queue + profile routing pipeline", () => {
-    it("dequeues issues and routes them to the correct profile", () => {
+    it("dequeues issues and routes them to the correct profile", async () => {
       const docsProfile = makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["docs"], statuses: [], revisionStatuses: [] } });
       const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DF"], keywords: ["vscode", "extension"], statuses: [], revisionStatuses: [] } });
       const router = new ProfileRouter([docsProfile, vscodeProfile]);
@@ -20,15 +20,15 @@ describe("Orchestrator core integration", () => {
       queue.enqueue(makeIssue("DF-200", "Fix vscode autocomplete"));
 
       const issue1 = queue.dequeue()!;
-      const route1 = router.match(issue1);
+      const route1 = await router.match(issue1);
       expect(route1?.profile.id).toBe("ralph-docs");
 
       const issue2 = queue.dequeue()!;
-      const route2 = router.match(issue2);
+      const route2 = await router.match(issue2);
       expect(route2?.profile.id).toBe("ralph-vscode");
     });
 
-    it("skips issues that match no profile", () => {
+    it("skips issues that match no profile", async () => {
       const profile = makeProfile({ match: { projects: ["OTHER"], keywords: [], statuses: [], revisionStatuses: [] } });
       const router = new ProfileRouter([profile]);
 
@@ -36,18 +36,18 @@ describe("Orchestrator core integration", () => {
       queue.enqueue(makeIssue("DF-100", "Some issue"));
 
       const issue = queue.dequeue()!;
-      const route = router.match(issue);
+      const route = await router.match(issue);
       expect(route).toBeNull();
     });
 
-    it("handles revision routing correctly", () => {
+    it("handles revision routing correctly", async () => {
       const profile = makeProfile({
         match: { projects: ["DF"], keywords: [], statuses: ["New"], revisionStatuses: ["Defect Found"] },
       });
       const router = new ProfileRouter([profile]);
 
       const revisionIssue = makeIssue("DF-300", "Fix defect", "Defect Found");
-      const route = router.match(revisionIssue);
+      const route = await router.match(revisionIssue);
       expect(route?.isRevision).toBe(true);
     });
   });

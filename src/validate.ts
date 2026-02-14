@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { resolve, join } from "node:path";
 import { resolvePath } from "./util/path.js";
 
 interface ValidationResult {
@@ -100,17 +100,52 @@ function validateConfigFile(errors: string[], warnings: string[]): void {
     errors.push("config.json: jira.cloudId is required");
   }
 
-  const profiles = raw.profiles;
-  if (!Array.isArray(profiles) || profiles.length === 0) {
-    errors.push("config.json: at least one agent profile must be defined in the profiles array");
+  validateProfiles(errors, warnings);
+}
+
+function validateProfiles(errors: string[], warnings: string[]): void {
+  const profilesDir = resolve(process.cwd(), "profiles");
+
+  if (!existsSync(profilesDir)) {
+    errors.push(
+      `profiles/ directory not found at ${profilesDir}\n` +
+      `  Create profile directories under profiles/ with a profile.json in each`
+    );
     return;
   }
 
-  for (let i = 0; i < profiles.length; i++) {
-    const p = profiles[i];
-    const prefix = `config.json: profiles[${i}]`;
+  let dirs: string[];
+  try {
+    dirs = readdirSync(profilesDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    errors.push(`Cannot read profiles directory: ${profilesDir}`);
+    return;
+  }
 
-    if (!p.id) errors.push(`${prefix}: id is required`);
+  if (dirs.length === 0) {
+    errors.push(`No profile directories found in ${profilesDir}`);
+    return;
+  }
+
+  for (const dirName of dirs) {
+    const profileJsonPath = join(profilesDir, dirName, "profile.json");
+    const prefix = `profiles/${dirName}`;
+
+    if (!existsSync(profileJsonPath)) {
+      errors.push(`${prefix}: profile.json not found`);
+      continue;
+    }
+
+    let p: any;
+    try {
+      p = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
+    } catch (e) {
+      errors.push(`${prefix}: profile.json is not valid JSON: ${e instanceof Error ? e.message : String(e)}`);
+      continue;
+    }
+
     if (!p.repo) {
       errors.push(`${prefix}: repo path is required`);
     } else {
@@ -118,21 +153,17 @@ function validateConfigFile(errors: string[], warnings: string[]): void {
       if (!existsSync(repoPath)) {
         errors.push(
           `${prefix}: repo path does not exist: ${repoPath}\n` +
-          `  Clone the repository or update the path in config.json`
+          `  Clone the repository or update the path in profile.json`
         );
       }
     }
 
-    const composePath = resolve(process.cwd(), p.composeFile ?? `profiles/${p.id}/docker-compose.yml`);
+    const composePath = resolve(process.cwd(), `profiles/${dirName}/docker-compose.yml`);
     if (!existsSync(composePath)) {
       errors.push(
-        `${prefix}: compose file does not exist: ${composePath}\n` +
-        `  Create the profile directory or set composeFile in the profile config`
+        `${prefix}: docker-compose.yml not found\n` +
+        `  Create profiles/${dirName}/docker-compose.yml`
       );
-    }
-
-    if (!p.match?.projects?.length) {
-      warnings.push(`${prefix}: no match.projects defined — this profile won't match any issues`);
     }
 
     if (!p.transitions?.inProgressId) {
@@ -142,14 +173,33 @@ function validateConfigFile(errors: string[], warnings: string[]): void {
       errors.push(`${prefix}: transitions.readyForReviewId is required`);
     }
 
-    const statuses = new Set((p.match?.statuses ?? []).map((s: string) => s.toLowerCase()));
-    const revisionStatuses: string[] = p.match?.revisionStatuses ?? [];
-    const overlap = revisionStatuses.filter((s: string) => statuses.has(s.toLowerCase()));
-    if (overlap.length > 0) {
-      errors.push(
-        `${prefix}: statuses and revisionStatuses must not overlap — ` +
-        `found in both: ${overlap.join(", ")}`
-      );
+    const variants = p.variants;
+    if (!Array.isArray(variants) || variants.length === 0) {
+      errors.push(`${prefix}: at least one variant is required`);
+      continue;
+    }
+
+    for (let i = 0; i < variants.length; i++) {
+      const v = variants[i];
+      const vPrefix = `${prefix}/variants[${i}]`;
+
+      if (!v.agent) {
+        errors.push(`${vPrefix}: agent name is required`);
+      }
+
+      if (!v.match?.projects?.length) {
+        warnings.push(`${vPrefix}: no match.projects defined — this variant won't match any issues`);
+      }
+
+      const statuses = new Set((v.match?.statuses ?? []).map((s: string) => s.toLowerCase()));
+      const revisionStatuses: string[] = v.match?.revisionStatuses ?? [];
+      const overlap = revisionStatuses.filter((s: string) => statuses.has(s.toLowerCase()));
+      if (overlap.length > 0) {
+        errors.push(
+          `${vPrefix}: statuses and revisionStatuses must not overlap — ` +
+          `found in both: ${overlap.join(", ")}`
+        );
+      }
     }
   }
 }

@@ -1,24 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig } from "../src/config.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 vi.mock("node:fs", async () => {
   const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
-  return { ...actual, readFileSync: vi.fn(actual.readFileSync) };
+  return {
+    ...actual,
+    readFileSync: vi.fn(actual.readFileSync),
+    readdirSync: vi.fn(actual.readdirSync),
+  };
 });
 
-const VALID_CONFIG = JSON.stringify({
+const VALID_GLOBAL_CONFIG = JSON.stringify({
   jira: {
     baseUrl: "https://api.atlassian.com/ex/jira",
     cloudId: "test-cloud-id",
     pollIntervalMs: 60000,
   },
-  profiles: [{
-    id: "ralph-docs",
-    repo: "/tmp/test-repo",
-    match: { projects: ["DF"] },
-    transitions: { inProgressId: "141", readyForReviewId: "91" },
-  }],
+});
+
+const VALID_PROFILE = JSON.stringify({
+  repo: "/tmp/test-repo",
+  transitions: { inProgressId: "141", readyForReviewId: "91" },
+  variants: [
+    {
+      agent: "ralph",
+      match: { projects: ["DF"] },
+    },
+  ],
 });
 
 function setRequiredEnv() {
@@ -43,11 +52,35 @@ function restoreEnv() {
   }
 }
 
+/** Stub profile discovery with a single profile directory containing the given profile.json content. */
+function stubProfiles(profileContent: string = VALID_PROFILE, dirName = "test-profile") {
+  vi.mocked(readdirSync).mockReturnValue([
+    { name: dirName, isDirectory: () => true } as unknown as ReturnType<typeof readdirSync>[0],
+  ] as ReturnType<typeof readdirSync>);
+
+  vi.mocked(readFileSync).mockImplementation(((path: string) => {
+    if (path.endsWith("config.json")) return VALID_GLOBAL_CONFIG;
+    if (path.endsWith("profile.json")) return profileContent;
+    throw new Error(`Unexpected readFileSync call: ${path}`);
+  }) as typeof readFileSync);
+}
+
 describe("loadConfig", () => {
   beforeEach(() => {
     saveEnv();
     vi.mocked(readFileSync).mockReset();
-    vi.mocked(readFileSync).mockReturnValue(VALID_CONFIG);
+    vi.mocked(readdirSync).mockReset();
+
+    vi.mocked(readFileSync).mockReturnValue(VALID_GLOBAL_CONFIG);
+    vi.mocked(readdirSync).mockReturnValue([
+      { name: "ralph-docs", isDirectory: () => true } as unknown as ReturnType<typeof readdirSync>[0],
+    ] as ReturnType<typeof readdirSync>);
+
+    vi.mocked(readFileSync).mockImplementation(((path: string) => {
+      if (path.endsWith("config.json")) return VALID_GLOBAL_CONFIG;
+      if (path.endsWith("profile.json")) return VALID_PROFILE;
+      throw new Error(`Unexpected readFileSync: ${path}`);
+    }) as typeof readFileSync);
   });
 
   afterEach(() => {
@@ -69,7 +102,7 @@ describe("loadConfig", () => {
     expect(() => loadConfig()).toThrow("GH_TOKEN");
   });
 
-  it("loads config successfully with profiles", () => {
+  it("loads config with profiles from profiles/ directory", () => {
     setRequiredEnv();
 
     const config = loadConfig();
@@ -77,45 +110,40 @@ describe("loadConfig", () => {
     expect(config.profiles.length).toBeGreaterThan(0);
     expect(config.profiles[0].id).toBe("ralph-docs");
     expect(config.profiles[0].repoPath).toBe("/tmp/test-repo");
+    expect(config.profiles[0].agentName).toBe("ralph");
     expect(config.profiles[0].match).toBeDefined();
     expect(config.secrets.jiraPat).toBe("jira-token");
     expect(config.secrets.ghToken).toBe("gh-token");
     expect(config.secrets.adoPatDocs).toBe("ado-token");
   });
 
-  it("Zod rejects config with missing required fields", () => {
+  it("throws when no profile directories exist", () => {
     setRequiredEnv();
+    vi.mocked(readdirSync).mockReturnValue([] as unknown as ReturnType<typeof readdirSync>);
 
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-      jira: { baseUrl: "https://api.atlassian.com/ex/jira", cloudId: "abc" },
-      profiles: [],
-    }));
-
-    expect(() => loadConfig()).toThrow("At least one agent profile");
+    expect(() => loadConfig()).toThrow("No profile directories found");
   });
 
   it("Zod rejects config with invalid jira.baseUrl", () => {
     setRequiredEnv();
 
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-      jira: { baseUrl: "not-a-url", cloudId: "abc" },
-      profiles: [{ id: "test", repo: "/tmp/test", match: { projects: ["X"] }, transitions: { inProgressId: "1", readyForReviewId: "2" } }],
-    }));
+    vi.mocked(readFileSync).mockImplementation(((path: string) => {
+      if (path.endsWith("config.json")) return JSON.stringify({
+        jira: { baseUrl: "not-a-url", cloudId: "abc" },
+      });
+      if (path.endsWith("profile.json")) return VALID_PROFILE;
+      throw new Error(`Unexpected: ${path}`);
+    }) as typeof readFileSync);
 
     expect(() => loadConfig()).toThrow("baseUrl");
   });
 
   it("resolves ~ in profile repo paths", () => {
     setRequiredEnv();
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-      jira: { baseUrl: "https://api.atlassian.com/ex/jira", cloudId: "abc" },
-      profiles: [{
-        id: "test",
-        repo: "~/repositories/test",
-        match: { projects: ["DF"] },
-        transitions: { inProgressId: "1", readyForReviewId: "2" },
-      }],
+    stubProfiles(JSON.stringify({
+      repo: "~/repositories/test",
+      transitions: { inProgressId: "1", readyForReviewId: "2" },
+      variants: [{ agent: "ralph", match: { projects: ["DF"] } }],
     }));
 
     const config = loadConfig();
@@ -126,23 +154,42 @@ describe("loadConfig", () => {
     }
   });
 
-  it("rejects profiles with overlapping statuses and revisionStatuses", () => {
+  it("rejects variants with overlapping statuses and revisionStatuses", () => {
     setRequiredEnv();
-
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-      jira: { baseUrl: "https://api.atlassian.com/ex/jira", cloudId: "abc" },
-      profiles: [{
-        id: "test",
-        repo: "/tmp/test",
+    stubProfiles(JSON.stringify({
+      repo: "/tmp/test",
+      transitions: { inProgressId: "1", readyForReviewId: "2" },
+      variants: [{
+        agent: "ralph",
         match: {
           projects: ["DF"],
           statuses: ["New", "To Do"],
           revisionStatuses: ["To Do"],
         },
-        transitions: { inProgressId: "1", readyForReviewId: "2" },
       }],
     }));
 
     expect(() => loadConfig()).toThrow("statuses and revisionStatuses must not overlap");
+  });
+
+  it("explodes multiple variants into separate profiles", () => {
+    setRequiredEnv();
+    stubProfiles(JSON.stringify({
+      repo: "/tmp/test",
+      transitions: { inProgressId: "1", readyForReviewId: "2" },
+      variants: [
+        { agent: "ralph.docs", match: { projects: ["DOCS"], keywords: ["RalphDocs"] } },
+        { agent: "ralph", match: { projects: ["DF"], keywords: ["Ralph"] } },
+      ],
+    }));
+
+    const config = loadConfig();
+
+    expect(config.profiles).toHaveLength(2);
+    expect(config.profiles[0].agentName).toBe("ralph.docs");
+    expect(config.profiles[0].match.projects).toEqual(["DOCS"]);
+    expect(config.profiles[1].agentName).toBe("ralph");
+    expect(config.profiles[1].match.projects).toEqual(["DF"]);
+    expect(config.profiles[0].id).toBe(config.profiles[1].id);
   });
 });

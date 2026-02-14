@@ -34,7 +34,7 @@ export function makeProfile(
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
     composeProjectLabel: "ralph-sandbox",
-    match: { projects: ["DF"], keywords: [], statuses: [], revisionStatuses: [] },
+    match: { projects: ["DF"], keywords: [], statuses: [], revisionStatuses: [], commentTrigger: undefined },
     transitions: { inProgressId: "141", readyForReviewId: "91" },
     ...overrides,
   };

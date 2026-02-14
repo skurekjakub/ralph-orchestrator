@@ -4,38 +4,6 @@
     "cloudId": "<your-jira-cloud-id>",
     "pollIntervalMs": 60000
   },
-  "profiles": [
-    {
-      "id": "ralph-docs",
-      "repo": "~/repositories/kentico-docs-jekyll",
-      "agent": "ralph",
-      "timeoutMs": 1800000,
-      "match": {
-        "projects": ["DF"],
-        "keywords": ["Ralph"],
-        "statuses": ["New"]
-      },
-      "transitions": {
-        "inProgressId": "141",
-        "readyForReviewId": "91"
-      }
-    },
-    {
-      "id": "ralph-vscode",
-      "repo": "~/repositories/kentico-docs-autocomplete-vscode",
-      "agent": "ralph",
-      "timeoutMs": 1800000,
-      "match": {
-        "projects": ["DOC"],
-        "keywords": ["RalphVsCode"],
-        "statuses": ["To Do"]
-      },
-      "transitions": {
-        "inProgressId": "51",
-        "readyForReviewId": "91"
-      }
-    }
-  ],
   "dashboard": {
     "enabled": false,
     "intervalMs": 30000

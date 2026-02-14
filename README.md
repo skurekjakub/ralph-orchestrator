@@ -33,7 +33,19 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    | `DASHBOARD_URL` | Ralph status dashboard URL | Optional |
    | `DASHBOARD_SECRET` | Shared secret for dashboard auth | Optional |
 
-3. Edit `config.json` — fill in your JIRA cloud ID and configure agent profiles.
+3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`:
+   ```bash
+   # Example: profiles/ralph-docs/profile.json
+   {
+     "repo": "~/repositories/kentico-docs-jekyll",
+     "cli": "copilot",
+     "timeoutMs": 3600000,
+     "transitions": { "inProgressId": "141", "readyForReviewId": "91" },
+     "variants": [
+       { "agent": "ralph", "match": { "projects": ["DF"], "keywords": ["Ralph"] } }
+     ]
+   }
+   ```
 
    See [CONFIGURATION.md](CONFIGURATION.md) for the full configuration reference.
 
@@ -99,7 +111,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 
 1. **Polls JIRA** every 60s for issues matching JQL queries auto-generated from profile match rules
 2. **Enqueues** discovered issues (deduplicates across queries and poll cycles)
-3. **Routes to a profile** — matches the issue's project key, summary keywords, and status against configured profiles (first match wins; unmatched issues are skipped)
+3. **Routes to a profile** — matches the issue's project key, summary keywords, and status against profile variants (first match wins; unmatched issues are skipped)
 4. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
@@ -107,10 +119,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
    - Runs the setup script inside the container
    - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
    - Ralph creates a branch, runs the tech-writer → reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
-6. **Saves** CLI stdout/stderr and audit logs to `output/logs/`
-7. **Stops** the container and cleans up volumes
-8. **Transitions** the issue to "Ready for Review"
-9. **Resumes** polling for the next task
+6. **Saves** audit logs, per-task streaming log, and session transcript to `output/logs/`
+7. **Attaches** the session transcript to the JIRA issue
+8. **Stops** the container and cleans up volumes
+9. **Transitions** the issue to "Ready for Review"
+10. **Resumes** polling for the next task
 
 ## Responsibility Split
 
@@ -125,7 +138,8 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Post completion comment on JIRA | Ralph (inside container) |
 | Attach handoff.md to JIRA issue | Ralph (inside container) |
 | Transition to "Ready for Review" | Orchestrator |
-| Collect audit logs + save CLI output | Orchestrator |
+| Collect audit logs + transcript, save to disk | Orchestrator |
+| Attach session transcript to JIRA issue | Orchestrator |
 
 ## Output
 
@@ -134,13 +148,15 @@ After each task, the orchestrator saves:
 ```
 output/
 └── logs/
+    ├── DF-2704-1707840000000.log             # Per-task streaming log (real-time container output)
     ├── DF-2704-1707840000000.jsonl           # Audit trail from hooks
-    ├── DF-2704-1707840000000-copilot.log     # Full Copilot CLI stdout/stderr
+    ├── DF-2704-1707840000000-transcript.md   # Copilot CLI session transcript
     ├── DF-2704-1707840000000-summary.json    # Execution metadata
-    └── activity-2026-02-13.log             # Persistent activity log (all sessions, append-only)
+    ├── activity-2026-02-13.log               # Persistent activity log (all sessions)
+    └── container-2026-02-13.log              # Persistent container output log
 ```
 
-The activity log (`activity-YYYY-MM-DD.log`) persists across tasks and restarts — every log entry from the Ink dashboard is appended here. Handoff files are attached to the JIRA issue by Ralph directly.
+The per-task log (`<key>-<timestamp>.log`) streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) persists across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 
 ## Architecture
 
