@@ -10,7 +10,7 @@ import type { Logger } from "../logger.js";
 export interface HeartbeatPayload {
   /** Unique agent ID — UUID generated fresh on every orchestrator startup. */
   agentId: string;
-  status: "idle" | "working" | "building" | "polling";
+  status: "idle" | "working" | "building" | "polling" | "stopped";
   queueSize: number;
   currentTask: string | null;
   currentTaskStartedAt: string | null;

@@ -20,30 +20,6 @@ export interface IssueContext {
 }
 
 /**
- * Extract plain text from an ADF (Atlassian Document Format) node tree.
- *
- * Recursively walks `content` arrays and concatenates all `text` node values,
- * joining paragraphs/blocks with newlines.
- */
-export function extractAdfText(node: unknown): string {
-  if (!node || typeof node !== "object") return "";
-  const n = node as Record<string, unknown>;
-
-  if (n.type === "text" && typeof n.text === "string") return n.text;
-
-  if (Array.isArray(n.content)) {
-    const parts = (n.content as unknown[]).map(extractAdfText).filter(Boolean);
-    const blockTypes = new Set(["paragraph", "heading", "bulletList", "orderedList", "listItem", "codeBlock", "blockquote"]);
-    if (typeof n.type === "string" && blockTypes.has(n.type)) {
-      return parts.join("") + "\n";
-    }
-    return parts.join("");
-  }
-
-  return "";
-}
-
-/**
  * Build the Copilot CLI prompt from a JIRA issue.
  *
  * Includes: key, summary, description (ADF serialized as JSON), labels,

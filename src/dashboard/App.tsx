@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, useApp } from "ink";
+import { Box, Text } from "ink";
 import { StatusPanel } from "./StatusPanel.js";
 import { QueuePanel } from "./QueuePanel.js";
 import { HistoryPanel } from "./HistoryPanel.js";
 import { LogPanel } from "./LogPanel.js";
-import type { OrchestratorState } from "../orchestrator.js";
+import type { OrchestratorState } from "../orchestrator-types.js";
 import type { Orchestrator } from "../orchestrator.js";
 
 /** Props for the root Ink dashboard. */
@@ -17,7 +17,6 @@ interface AppProps {
  * the terminal dashboard (status, queue, history, activity log).
  */
 export function App({ orchestrator }: AppProps): React.ReactElement {
-  const { exit } = useApp();
   const [state, setState] = useState<OrchestratorState>(
     orchestrator.getState()
   );
@@ -32,22 +31,6 @@ export function App({ orchestrator }: AppProps): React.ReactElement {
 
     return () => clearInterval(timer);
   }, [orchestrator]);
-
-  // Handle Ctrl+C
-  useEffect(() => {
-    const handler = () => {
-      orchestrator.stop();
-      setTimeout(() => exit(), 1000);
-    };
-
-    process.on("SIGINT", handler);
-    process.on("SIGTERM", handler);
-
-    return () => {
-      process.removeListener("SIGINT", handler);
-      process.removeListener("SIGTERM", handler);
-    };
-  }, [orchestrator, exit]);
 
   return (
     <Box

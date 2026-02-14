@@ -117,6 +117,7 @@ Each orchestrator generates a fresh UUID on startup (the agent ID). Multiple orc
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
 - Copilot CLI inside the container always uses `--model claude-opus-4.6`
+- NEVER REEXPORT, update original imports instead
 
 ### Comments
 

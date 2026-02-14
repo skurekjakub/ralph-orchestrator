@@ -3,7 +3,7 @@ import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult } from "../container/types.js";
 import type { IssueContext } from "../container/prompt.js";
 import type { Logger } from "../logger.js";
-import { extractAdfText } from "../container/prompt.js";
+import { extractAdfText } from "../jira/field-extractor.js";
 import { JiraClient } from "../jira/client.js";
 import { ContainerManager } from "../container/manager.js";
 import { LogCollector } from "../logs/collector.js";

@@ -1,4 +1,4 @@
-import type { LogEntry } from "../orchestrator.js";
+import type { LogEntry } from "../orchestrator-types.js";
 import type { Logger } from "../logger.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { JiraIssue } from "../src/jira/types.js";
-import { buildPrompt, extractAdfText } from "../src/container/prompt.js";
+import { buildPrompt } from "../src/container/prompt.js";
+import { extractAdfText } from "../src/jira/field-extractor.js";
 import type { IssueContext } from "../src/container/prompt.js";
 
 // ── Prompt building tests ────────────────────────────────
@@ -165,7 +166,7 @@ describe("Prompt building", () => {
     };
 
     const prompt = buildPrompt(issue);
-    expect(prompt).toContain("How can we make this page more helpful?: First paragraph. More text.Second paragraph.");
+    expect(prompt).toContain("How can we make this page more helpful?: First paragraph. More text.\nSecond paragraph.");
   });
 
   it("handles string feedback value", () => {

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import "dotenv/config";
 import { buildJqlFromProfiles } from "./jira/jql-builder.js";
+import { resolvePath } from "./util/path.js";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for config.json
@@ -27,6 +28,9 @@ const rawProfileSchema = z.object({
   composeFile: z.string().default(".ralph/docker-compose.yml"),
   agent: z.string().default("ralph"),
   timeoutMs: z.number().positive().default(1_800_000),
+  setupScript: z.string().default("/usr/local/bin/setup.sh"),
+  auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
+  composeProjectLabel: z.string().default("ralph-sandbox"),
   match: profileMatchSchema,
   transitions: profileTransitionsSchema,
 });
@@ -90,6 +94,12 @@ export interface AgentProfile {
   composeFile: string;
   agentName: string;
   timeoutMs: number;
+  /** Absolute path to the setup script inside the container. */
+  setupScript: string;
+  /** Absolute path to the audit JSONL log inside the container. */
+  auditLogPath: string;
+  /** Docker compose project label for container lookup. */
+  composeProjectLabel: string;
   match: ProfileMatch;
   transitions: ProfileTransitions;
 }
@@ -125,13 +135,6 @@ export interface AppConfig {
 // ---------------------------------------------------------------------------
 // Path resolution
 // ---------------------------------------------------------------------------
-
-function resolvePath(rawPath: string): string {
-  const cleaned = rawPath.replace(/^["']|["']$/g, "");
-  return cleaned.startsWith("~/")
-    ? resolve(process.env.HOME ?? "/root", cleaned.slice(2))
-    : resolve(cleaned);
-}
 
 // ---------------------------------------------------------------------------
 // Config loader
@@ -193,6 +196,9 @@ export function loadConfig(): AppConfig {
     composeFile: p.composeFile,
     agentName: p.agent,
     timeoutMs: p.timeoutMs,
+    setupScript: p.setupScript,
+    auditLogPath: p.auditLogPath,
+    composeProjectLabel: p.composeProjectLabel,
     match: {
       projects: p.match.projects,
       keywords: p.match.keywords,

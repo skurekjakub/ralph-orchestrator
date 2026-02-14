@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolvePath } from "./util/path.js";
 
 interface ValidationResult {
   ok: boolean;
@@ -155,13 +156,6 @@ async function validateDocker(errors: string[]): Promise<void> {
       "  Start Docker Desktop or the Docker daemon before running the orchestrator"
     );
   }
-}
-
-function resolvePath(rawPath: string): string {
-  const cleaned = rawPath.replace(/^["']|["']$/g, "");
-  return cleaned.startsWith("~/")
-    ? resolve(process.env.HOME ?? "/root", cleaned.slice(2))
-    : resolve(cleaned);
 }
 
 function parseEnvFile(content: string): Record<string, string> {

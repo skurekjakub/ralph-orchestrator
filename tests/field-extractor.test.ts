@@ -92,7 +92,7 @@ describe("extractAdfText", () => {
         },
       ],
     };
-    expect(extractAdfText(adf)).toBe("Hello world");
+    expect(extractAdfText(adf)).toBe("Hello world\n");
   });
 
   it("returns empty string for null/undefined", () => {

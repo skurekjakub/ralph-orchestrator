@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { CompletedTask } from "../orchestrator.js";
+import type { CompletedTask } from "../orchestrator-types.js";
 
 interface HistoryPanelProps {
   completed: CompletedTask[];

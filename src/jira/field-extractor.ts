@@ -90,16 +90,30 @@ export class JiraFieldExtractor {
   }
 }
 
+const ADF_BLOCK_TYPES = new Set([
+  "paragraph", "heading", "bulletList", "orderedList",
+  "listItem", "codeBlock", "blockquote",
+]);
+
 /**
- * Extract plain text from an ADF (Atlassian Document Format) node.
- * Recursively walks the tree and concatenates all `text` nodes.
+ * Extract plain text from an ADF (Atlassian Document Format) node tree.
+ *
+ * Recursively walks `content` arrays and concatenates all `text` node values,
+ * joining block-level nodes (paragraphs, headings, lists, etc.) with newlines.
  */
 export function extractAdfText(node: unknown): string {
   if (!node || typeof node !== "object") return "";
   const n = node as Record<string, unknown>;
+
   if (n.type === "text" && typeof n.text === "string") return n.text;
+
   if (Array.isArray(n.content)) {
-    return n.content.map(extractAdfText).join("");
+    const parts = (n.content as unknown[]).map(extractAdfText).filter(Boolean);
+    if (typeof n.type === "string" && ADF_BLOCK_TYPES.has(n.type)) {
+      return parts.join("") + "\n";
+    }
+    return parts.join("");
   }
+
   return "";
 }

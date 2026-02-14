@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { OrchestratorState } from "../orchestrator.js";
+import type { OrchestratorState } from "../orchestrator-types.js";
 
 interface QueuePanelProps {
   state: OrchestratorState;

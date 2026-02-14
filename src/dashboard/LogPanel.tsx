@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { LogEntry } from "../orchestrator.js";
+import type { LogEntry } from "../orchestrator-types.js";
 
 interface LogPanelProps {
   logs: readonly LogEntry[];

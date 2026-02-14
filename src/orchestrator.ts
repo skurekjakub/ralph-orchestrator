@@ -13,9 +13,7 @@ import { HeartbeatSender } from "./services/heartbeat.js";
 import { ContainerManager } from "./container/manager.js";
 import { sleep } from "./retry.js";
 import type { JiraIssue } from "./jira/types.js";
-import type { OrchestratorState, CompletedTask, LogEntry } from "./orchestrator-types.js";
-
-export type { OrchestratorState, CompletedTask, LogEntry };
+import type { OrchestratorState, CompletedTask } from "./orchestrator-types.js";
 
 /**
  * Main orchestration loop.
@@ -335,8 +333,8 @@ export class Orchestrator {
     const lastCompleted = this.completedToday.at(-1);
     return {
       agentId: this.agentId,
-      status: (!this.running ? "idle" : this.busy ? "working" : "polling") as
-        "idle" | "working" | "building" | "polling",
+      status: (!this.running ? "stopped" : this.busy ? "working" : "polling") as
+        "idle" | "working" | "building" | "polling" | "stopped",
       queueSize: this.queue.size,
       currentTask: this.currentIssue?.key ?? null,
       currentTaskStartedAt: this.workStartedAt

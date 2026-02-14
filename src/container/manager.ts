@@ -33,6 +33,7 @@ export class ContainerManager {
   private readonly executor: CopilotExecutor;
   private readonly outputConfig: OutputConfig;
   private readonly logger: Logger;
+  private readonly profile: AgentProfile;
 
   /**
    * @param profile Agent profile with repo, compose file, agent name, and timeout.
@@ -41,6 +42,7 @@ export class ContainerManager {
    * @param containerLogger Logger for copilot output streaming. Falls back to `logger`.
    */
   constructor(profile: AgentProfile, appConfig: AppConfig, logger?: Logger, containerLogger?: Logger) {
+    this.profile = profile;
     this.outputConfig = appConfig.output;
     this.logger = logger ?? consoleLogger;
 
@@ -96,7 +98,7 @@ export class ContainerManager {
     this.logger.info("Containers started");
 
     this.logger.info("Running setup script...");
-    await this.compose.exec(["--user", "vscode", "app", "/usr/local/bin/setup.sh"]);
+    await this.compose.exec(["--user", "vscode", "app", this.profile.setupScript]);
     this.logger.info("Setup complete");
   }
 
@@ -149,7 +151,7 @@ export class ContainerManager {
 
     try {
       const result = await this.compose.exec([
-        "app", "cat", "/workspace/.ralph/logs/audit.jsonl",
+        "app", "cat", this.profile.auditLogPath,
       ]);
 
       const { writeFileSync } = await import("node:fs");
@@ -175,7 +177,7 @@ export class ContainerManager {
       await this.compose.compose(["down", "--volumes", "--remove-orphans"]);
     } catch {
       this.logger.warn("Graceful stop failed, forcing docker rm...");
-      const name = await this.compose.getContainerName("ralph-sandbox", "app").catch(() => null);
+      const name = await this.compose.getContainerName(this.profile.composeProjectLabel, "app").catch(() => null);
       if (name) {
         await execa("docker", ["rm", "-f", name]).catch(() => {});
       }
@@ -186,8 +188,9 @@ export class ContainerManager {
 
   /** Delete the audit log directory inside the container to prepare for the next run. */
   async cleanLogs(): Promise<void> {
+    const logDir = this.profile.auditLogPath.substring(0, this.profile.auditLogPath.lastIndexOf("/") + 1);
     try {
-      await this.compose.exec(["app", "rm", "-rf", "/workspace/.ralph/logs/"]);
+      await this.compose.exec(["app", "rm", "-rf", logDir]);
     } catch {
       // non-critical
     }
