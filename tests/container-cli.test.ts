@@ -11,7 +11,7 @@ async function readSource(relPath: string): Promise<string> {
 }
 
 describe("Copilot CLI args", () => {
-  it("includes --model claude-opus-4.6", async () => {
+  it("includes --model with configurable default", async () => {
     const source = await readSource("../src/container/copilot-executor.ts");
     expect(source).toContain('"--model"');
     expect(source).toContain('"claude-opus-4.6"');
@@ -21,6 +21,19 @@ describe("Copilot CLI args", () => {
     const source = await readSource("../src/container/copilot-executor.ts");
     expect(source).toContain('"--yolo"');
     expect(source).toContain('"--experimental"');
+  });
+});
+
+describe("Claude Code CLI args", () => {
+  it("includes --dangerously-skip-permissions flag", async () => {
+    const source = await readSource("../src/container/claude-code-executor.ts");
+    expect(source).toContain('"--dangerously-skip-permissions"');
+  });
+
+  it("supports optional --model flag", async () => {
+    const source = await readSource("../src/container/claude-code-executor.ts");
+    expect(source).toContain('"--model"');
+    expect(source).toContain("profile.model");
   });
 });
 
@@ -36,10 +49,26 @@ describe("Compose environment", () => {
       "JIRA_EMAIL",
       "JIRA_BASE_URL",
       "JIRA_CLOUD_ID",
+      "ANTHROPIC_API_KEY",
     ];
     for (const envVar of requiredEnvVars) {
       expect(source).toContain(envVar);
     }
+  });
+});
+
+describe("CLI selection", () => {
+  it("manager supports both copilot and claude executors", async () => {
+    const source = await readSource("../src/container/manager.ts");
+    expect(source).toContain("CopilotExecutor");
+    expect(source).toContain("ClaudeCodeExecutor");
+    expect(source).toContain("selectExecutor");
+  });
+
+  it("falls back when preferred CLI credential is missing", async () => {
+    const source = await readSource("../src/container/manager.ts");
+    expect(source).toContain("falling back to Copilot CLI");
+    expect(source).toContain("falling back to Claude Code CLI");
   });
 });
 
@@ -51,10 +80,9 @@ describe("Docker compose options", () => {
 });
 
 describe("Build streaming", () => {
-  it("streams build output to logger with [build] prefix", async () => {
+  it("streams build and setup output via streamProcess helper", async () => {
     const source = await readSource("../src/container/manager.ts");
-    expect(source).toContain("[build]");
-    expect(source).toContain("proc.stdout");
-    expect(source).toContain("proc.stderr");
+    expect(source).toContain('streamProcess(proc, this.logger, "build")');
+    expect(source).toContain('streamProcess(setupProc, this.logger, "setup")');
   });
 });

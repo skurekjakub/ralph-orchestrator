@@ -19,8 +19,8 @@ describe("Persistent activity log", () => {
 
   it("generates daily log file name", () => {
     const date = new Date("2026-02-13T12:00:00Z").toISOString().slice(0, 10);
-    const filename = `activity-${date}.jsonl`;
-    expect(filename).toBe("activity-2026-02-13.jsonl");
+    const filename = `activity-${date}.log`;
+    expect(filename).toBe("activity-2026-02-13.log");
   });
 
   it("appends entries without overwriting", () => {
@@ -78,7 +78,7 @@ describe("Log collector", () => {
       exitCode: result.exitCode,
       prUrl: result.prUrl,
       auditLogPath: result.auditLogPath,
-      activityLogPath: "/tmp/logs/activity-2026-02-13.jsonl",
+      activityLogPath: "/tmp/logs/activity-2026-02-13.log",
       timestamp: new Date().toISOString(),
     };
 

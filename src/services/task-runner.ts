@@ -8,8 +8,6 @@ import { JiraClient } from "../jira/client.js";
 import { ContainerManager } from "../container/manager.js";
 import { LogCollector } from "../logs/collector.js";
 import { withRetry } from "../retry.js";
-import { appendFileSync } from "node:fs";
-import { join } from "node:path";
 
 /**
  * Processes a single JIRA issue end-to-end:
@@ -142,8 +140,6 @@ export class TaskRunner {
         );
       }
 
-      this.saveCopilotOutput(issue.key, result);
-
       this.logger.info("Collecting audit logs from container...");
       result.auditLogPath =
         (await container.collectLogs(issue.key)) ?? undefined;
@@ -218,23 +214,6 @@ export class TaskRunner {
       this.logger.warn(
         `Failed to transition ${issueKey} to Ready for Review: ${err instanceof Error ? err.message : String(err)}`
       );
-    }
-  }
-
-  private saveCopilotOutput(issueKey: string, result: RalphResult): void {
-    const copilotLogPath = join(
-      this.config.output.logDir,
-      `${issueKey}-${Date.now()}-copilot.log`
-    );
-    try {
-      const fullOutput = [
-        result.stdout ? `=== STDOUT ===\n${result.stdout}` : "",
-        result.stderr ? `\n=== STDERR ===\n${result.stderr}` : "",
-      ].join("");
-      appendFileSync(copilotLogPath, fullOutput);
-      this.logger.info(`Copilot output saved: ${copilotLogPath}`);
-    } catch {
-      this.logger.warn("Failed to save copilot output to disk");
     }
   }
 

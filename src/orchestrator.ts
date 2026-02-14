@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { execa } from "execa";
 import type { AppConfig, AgentProfile } from "./config.js";
 import { JiraClient } from "./jira/client.js";
@@ -207,6 +207,7 @@ export class Orchestrator {
     );
 
     try {
+      this.activityLog.startTaskLog(issue.key);
       const { result, container } = await this.taskRunner.run(issue, profile, isRevision);
       this.activeContainer = container;
 
@@ -242,6 +243,7 @@ export class Orchestrator {
 
       await this.taskRunner.postErrorComment(issue.key, errorMsg);
     } finally {
+      this.activityLog.endTaskLog();
       await this.teardownContainer(profile);
       this.resetTaskState(issue.key);
     }
@@ -271,7 +273,7 @@ export class Orchestrator {
     }
 
     // Fallback: raw docker compose down using the profile's compose file
-    const composeFile = join(profile.repoPath, profile.composeFile);
+    const composeFile = resolve(process.cwd(), profile.composeFile);
     try {
       await execa("docker", [
         "compose", "-f", composeFile,

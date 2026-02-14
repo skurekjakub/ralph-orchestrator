@@ -5,15 +5,17 @@ import type { Logger } from "../logger.js";
 import type { ComposeClient } from "./compose-client.js";
 
 /**
- * Executes the Copilot CLI agent inside a running container.
+ * Executes the Claude Code CLI inside a running container.
+ *
+ * Invocation: `claude -p <prompt> --dangerously-skip-permissions [--model <model>]`
  *
  * Handles:
- * - Building the `docker compose exec` command with the right flags
+ * - Building the `docker compose exec` command with Claude Code flags
  * - Streaming stdout/stderr to the container logger in real-time
  * - Timeout enforcement and error recovery
  * - Active process tracking for graceful shutdown
  */
-export class CopilotExecutor implements CliExecutor {
+export class ClaudeCodeExecutor implements CliExecutor {
   private activeProcess: ResultPromise | null = null;
 
   constructor(
@@ -22,7 +24,7 @@ export class CopilotExecutor implements CliExecutor {
     private readonly containerLogger: Logger,
   ) {}
 
-  /** Kill the active copilot process if one is running. */
+  /** Kill the active claude process if one is running. */
   killActive(): void {
     if (this.activeProcess) {
       try {
@@ -35,24 +37,25 @@ export class CopilotExecutor implements CliExecutor {
   }
 
   /**
-   * Execute the Copilot CLI with the given prompt.
+   * Execute Claude Code CLI with the given prompt.
    *
-   * Streams stdout/stderr to the container logger with `[copilot]` prefix.
+   * Streams stdout/stderr to the container logger with `[claude]` prefix.
    *
-   * @param prompt The fully-built prompt string to pass to the Copilot CLI.
+   * @param prompt The fully-built prompt string to pass to Claude Code.
    * @returns Raw {@link ContainerExecResult} with exit code and captured output.
    */
   async run(prompt: string): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
       "app",
-      "copilot",
-      "--agent", this.profile.agentName,
-      "--model", this.profile.model ?? "claude-opus-4.6",
-      "--experimental",
-      "--yolo",
+      "claude",
       "-p", prompt,
+      "--dangerously-skip-permissions",
     ];
+
+    if (this.profile.model) {
+      args.push("--model", this.profile.model);
+    }
 
     try {
       this.activeProcess = this.compose.execWithTimeout(
@@ -74,7 +77,7 @@ export class CopilotExecutor implements CliExecutor {
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed) {
-              this.containerLogger.info(`[copilot] ${trimmed}`);
+              this.containerLogger.info(`[claude] ${trimmed}`);
             }
           }
         });
@@ -91,7 +94,7 @@ export class CopilotExecutor implements CliExecutor {
           for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed) {
-              this.containerLogger.warn(`[copilot] ${trimmed}`);
+              this.containerLogger.warn(`[claude] ${trimmed}`);
             }
           }
         });

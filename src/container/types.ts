@@ -10,6 +10,22 @@ export interface ContainerExecResult {
   timedOut: boolean;
 }
 
+/** Which CLI tool to use for agent execution inside the container. */
+export type CliType = "copilot" | "claude";
+
+/**
+ * Common interface for CLI executors (Copilot CLI, Claude Code CLI).
+ *
+ * Each implementation translates a prompt into the appropriate CLI invocation
+ * inside the container, handles streaming, timeout, and process lifecycle.
+ */
+export interface CliExecutor {
+  /** Execute the agent CLI with the given prompt. */
+  run(prompt: string): Promise<ContainerExecResult>;
+  /** Kill the active process if running (for graceful shutdown). */
+  killActive(): void;
+}
+
 /**
  * Enriched result returned by {@link ContainerManager.execute}.
  *

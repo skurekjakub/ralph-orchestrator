@@ -8,7 +8,6 @@
     {
       "id": "ralph-docs",
       "repo": "~/repositories/kentico-docs-jekyll",
-      "composeFile": ".ralph/docker-compose.yml",
       "agent": "ralph",
       "timeoutMs": 1800000,
       "match": {
@@ -24,7 +23,6 @@
     {
       "id": "ralph-vscode",
       "repo": "~/repositories/kentico-docs-autocomplete-vscode",
-      "composeFile": ".ralph/docker-compose.yml",
       "agent": "ralph",
       "timeoutMs": 1800000,
       "match": {

@@ -7,7 +7,8 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ```
 JIRA poller → in-memory queue → container lifecycle → log collection
                                        ↓
-                              docker compose exec copilot
+                              docker compose exec <cli>
+                                  (copilot | claude)
                                        ↓
                               ralph meta-agent (subagents: tech-writer, reviewer)
                                        ↓
@@ -30,16 +31,21 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
 | `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, keywords, statuses, revisionStatuses) |
 | `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
-| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs, stop) |
+| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs, stop); CLI selection |
 | `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection) |
 | `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, process tracking) |
-| `src/container/prompt.ts` | Builds Copilot CLI prompt from JIRA issue fields; embeds revision context (comments + handoff) |
-| `src/container/result-parser.ts` | Parses structured result blocks from Copilot CLI stdout |
+| `src/container/claude-code-executor.ts` | Claude Code CLI execution inside containers (streaming, timeout, process tracking) |
+| `src/container/types.ts` | Container types (CliExecutor interface, ContainerExecResult, RalphResult, CliType) |
+| `src/container/prompt.ts` | Builds CLI prompt from JIRA issue fields; embeds revision context (comments + handoff) |
+| `src/container/result-parser.ts` | Parses structured result blocks from CLI stdout |
 | `src/services/activity-log.ts` | Persistent activity log writer (append-only JSONL to disk) |
 | `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
 | `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/keyword/status; returns `{ profile, isRevision }` |
 | `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result collection → error/review transitions |
 | `src/logs/collector.ts` | Saves execution summaries to `output/` |
+| `src/util/path.ts` | Shared path resolution utility |
+| `src/validate.ts` | Config validation (profile overlaps, compose file existence) |
+| `src/retry.ts` | Generic retry with exponential backoff |
 | `src/dashboard/*.tsx` | Ink (React for terminal) dashboard components (App, StatusPanel, QueuePanel, HistoryPanel, LogPanel) |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 
@@ -54,36 +60,40 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 ## Docker Compose
 
 Containers are managed via `docker compose` directly — no devcontainer CLI.
+All Docker infrastructure (Dockerfiles, compose files, setup scripts, agent definitions) lives in the orchestrator repo under `profiles/<profile-id>/`. Target repos are mounted at `/workspace` via `TARGET_REPO_PATH`.
 
 ```bash
-# Starting the containers
-docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml up -d --build 2>&1
+# Starting the containers (compose file is in the orchestrator repo)
+docker compose -f profiles/ralph-docs/docker-compose.yml up -d --build 2>&1
 
 # Running the setup script
-docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml exec --user vscode app /usr/local/bin/setup.sh 2>&1
+docker compose -f profiles/ralph-docs/docker-compose.yml exec --user vscode app /usr/local/bin/setup.sh 2>&1
 
 # Executing a command inside the container
-docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml exec --user vscode app <command>
+docker compose -f profiles/ralph-docs/docker-compose.yml exec --user vscode app <command>
 
 # Stopping the containers
-docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml down --volumes --remove-orphans
+docker compose -f profiles/ralph-docs/docker-compose.yml down --volumes --remove-orphans
 ```
 
 No piping to `head` or `tail` — always show full output.
 
 ## Configuration
 
-- `config.json` — Runtime config (polling interval, agent profiles with match rules, dashboard toggle). JQL queries are auto-generated from profile match rules by `src/jira/jql-builder.ts`
-- `.env` — Secrets (JIRA token/email, GitHub PAT, ADO PATs, dashboard URL/secret)
+- `config.json` — Runtime config (polling interval, agent profiles with match rules and CLI preference, dashboard toggle). JQL queries are auto-generated from profile match rules by `src/jira/jql-builder.ts`
+- `.env` — Secrets (JIRA token/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret)
 - See `.env.example` for required variables
+- See `CONFIGURATION.md` for the full configuration reference
 
 ### Agent Profiles
 
 The `profiles` array in `config.json` maps JIRA issues to repos/agents. Each profile has:
 - `id` — unique identifier
 - `repo` — path to the target repository
-- `composeFile` — relative path to the docker-compose.yml within the repo
-- `agent` — Copilot CLI agent name
+- `composeFile` — path to docker-compose.yml relative to orchestrator root (defaults to `profiles/<id>/docker-compose.yml`)
+- `agent` — Copilot CLI agent name (used with Copilot CLI)
+- `cli` — `"copilot"` (default) or `"claude"` — which CLI to use for agent execution. Falls back to the other CLI if the preferred one's credential is missing.
+- `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default)
 - `timeoutMs` — execution timeout
 - `match.projects` — JIRA project keys to match
 - `match.keywords` — keywords matched case-insensitively against issue summary (empty = catch-all)
@@ -116,7 +126,8 @@ Each orchestrator generates a fresh UUID on startup (the agent ID). Multiple orc
 - `execa` v9 for all subprocess management
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
-- Copilot CLI inside the container always uses `--model claude-opus-4.6`
+- Copilot CLI defaults to `--model claude-opus-4.6` (configurable via profile `model`)
+- Claude Code CLI uses `--dangerously-skip-permissions` (model configurable via profile `model`)
 - NEVER REEXPORT, update original imports instead
 
 ### Comments
@@ -127,16 +138,28 @@ Each orchestrator generates a fresh UUID on startup (the agent ID). Multiple orc
 - Section-separator comments (`// --- Section name ---`) are unnecessary when the code structure is self-evident.
 - JSDoc on public interfaces, types, classes, and methods is encouraged.
 
-## The Ralph Ecosystem (external repo)
+## Profile Infrastructure
 
-This orchestrator drives the Ralph container setup which lives in the `kentico-docs-jekyll` repo under `.ralph/`. Key pieces there:
+All Docker and agent infrastructure is centralized in the orchestrator repo. Target repos contain no Ralph-specific files.
 
-- **`.ralph/`** — Docker compose, Dockerfile, setup scripts
-- **`.ralph/hooks/`** — Copilot CLI hooks that log all agent activity to `.ralph/logs/audit.jsonl`
-- **`.github/agents/ralph.agent.md`** — Meta-agent (orchestrates tech-writer + reviewer; standard + revision workflows)
-- **`.github/agents/ralph.tech-writer.agent.md`** — Autonomous tech-writer sub-agent (supports revision mode)
-- **`.github/agents/ralph.reviewer.agent.md`** — Autonomous reviewer sub-agent (supports revision review mode)
-- **`.github/hooks/ralph-audit.json`** — Hook config for Copilot CLI session logging
+```
+profiles/
+  <profile-id>/
+    Dockerfile          — Container image definition
+    docker-compose.yml  — Services, env vars, volume mounts
+    setup.sh            — Post-create setup script (CLI installs, git config)
+    agents/             — Copilot CLI agent definitions (.md files)
+shared/
+  hooks/                — Copilot CLI audit hooks (shared across all profiles)
+    log-*.sh            — Hook scripts for session logging
+    ralph-audit.json    — Hook configuration
+```
+
+Compose files use `TARGET_REPO_PATH` (injected by ComposeClient) to mount the target repo at `/workspace`. Agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+
+Currently configured target repos:
+- `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
+- `kentico-docs-autocomplete-vscode` — VS Code extension (profile: `ralph-vscode`)
 
 ## JIRA Integration
 
@@ -164,9 +187,9 @@ When a JIRA issue is in a `revisionStatuses` status (e.g. "Defect Found"), the o
 
 After each task, the orchestrator collects:
 - `output/logs/<key>-<timestamp>.jsonl` — Full audit trail from hooks
-- `output/logs/<key>-<timestamp>-copilot.log` — Full Copilot CLI stdout/stderr
+- `output/logs/<key>-<timestamp>-copilot.log` — Full CLI stdout/stderr
 - `output/logs/<key>-<timestamp>-summary.json` — Execution metadata
-- `output/logs/activity-YYYY-MM-DD.jsonl` — Persistent activity log (all sessions, never truncated)
+- `output/logs/activity-YYYY-MM-DD.log` — Persistent activity log (all sessions, never truncated)
 
 Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
 

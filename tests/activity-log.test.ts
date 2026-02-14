@@ -47,27 +47,22 @@ describe("ActivityLog", () => {
     expect(log.entries[2].message).toBe("d");
   });
 
-  it("persists orchestrator entries to activity JSONL file", () => {
+  it("persists orchestrator entries to activity log file", () => {
     const log = new ActivityLog(logDir);
     log.push("info", "test-message");
-    const content = readFileSync(log.activityFilePath, "utf-8");
-    const parsed = JSON.parse(content.trim());
-    expect(parsed.message).toBe("test-message");
-    expect(parsed.level).toBe("info");
-    expect(parsed.source).toBe("orchestrator");
+    const content = readFileSync(log.activityFilePath, "utf-8").trim();
+    expect(content).toMatch(/\[INFO\] test-message$/);
   });
 
-  it("persists container entries to separate container JSONL file", () => {
+  it("persists container entries to separate container log file", () => {
     const log = new ActivityLog(logDir);
     log.push("info", "container-msg", "container");
 
-    // Container file should be next to the activity file with a different name
     const date = new Date().toISOString().slice(0, 10);
-    const containerFile = join(logDir, `container-${date}.jsonl`);
+    const containerFile = join(logDir, `container-${date}.log`);
     expect(existsSync(containerFile)).toBe(true);
-    const parsed = JSON.parse(readFileSync(containerFile, "utf-8").trim());
-    expect(parsed.message).toBe("container-msg");
-    expect(parsed.source).toBe("container");
+    const content = readFileSync(containerFile, "utf-8").trim();
+    expect(content).toMatch(/\[INFO\] container-msg$/);
   });
 
   it("calls onChange callback on every push", () => {
@@ -113,5 +108,22 @@ describe("ActivityLog", () => {
     const after = Date.now();
     expect(log.entries[0].timestamp).toBeGreaterThanOrEqual(before);
     expect(log.entries[0].timestamp).toBeLessThanOrEqual(after);
+  });
+
+  it("streams only container entries to per-task log file", () => {
+    const log = new ActivityLog(logDir);
+    const taskFile = log.startTaskLog("DF-1234");
+    log.push("info", "orchestrator msg");
+    log.push("warn", "container msg", "container");
+    log.push("info", "polling noise");
+    log.push("error", "container error", "container");
+    log.endTaskLog();
+    log.push("info", "after task -- not in task file");
+
+    expect(existsSync(taskFile)).toBe(true);
+    const lines = readFileSync(taskFile, "utf-8").trim().split("\n");
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/\[WARN\] container msg$/);
+    expect(lines[1]).toMatch(/\[ERR \] container error$/);
   });
 });

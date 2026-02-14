@@ -1,0 +1,34 @@
+name: ralph-sandbox-vscode
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      GH_TOKEN: "${GH_TOKEN}"
+      ADO_PAT_DOCS: "${ADO_PAT_DOCS}"
+      ADO_MCP_AUTH_TOKEN: "${ADO_PAT_DOCS}"
+      JIRA_PAT: "${JIRA_PAT}"
+      JIRA_EMAIL: "${JIRA_EMAIL}"
+      JIRA_BASE_URL: "${JIRA_BASE_URL}"
+      JIRA_CLOUD_ID: "${JIRA_CLOUD_ID}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      CLAUDE_CODE_DISABLE_AUTOUPDATER: "1"
+      CLAUDE_CODE_DISABLE_COST_WARNINGS: "1"
+    shm_size: 1gb
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Target repo workspace
+      - ${TARGET_REPO_PATH}:/workspace
+      # Ralph agent definitions (individual file mounts — preserves non-Ralph agents)
+      - ./agents/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro
+      - ./agents/ralph.analyst.agent.md:/workspace/.github/agents/ralph.analyst.agent.md:ro
+      # Shared hook scripts + audit config
+      - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
+      - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
+    command: sleep infinity
+
+networks:
+  default:
+    name: devcontainer-ralph-vscode-network

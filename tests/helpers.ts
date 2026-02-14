@@ -27,8 +27,9 @@ export function makeProfile(
   return {
     id: "ralph-default",
     repoPath: "/tmp/test-repo",
-    composeFile: ".ralph/docker-compose.yml",
+    composeFile: "profiles/ralph-default/docker-compose.yml",
     agentName: "ralph",
+    cli: "copilot" as const,
     timeoutMs: 1800000,
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
@@ -65,6 +66,7 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
       adoPatXperience: "test-ado-xp-pat",
       jiraPat: "test-jira-pat",
       jiraEmail: "test@test.com",
+      anthropicApiKey: "",
     },
   };
 }

@@ -25,8 +25,10 @@ const profileTransitionsSchema = z.object({
 const rawProfileSchema = z.object({
   id: z.string().min(1, "Profile id must not be empty"),
   repo: z.string().min(1, "Profile repo path must not be empty"),
-  composeFile: z.string().default(".ralph/docker-compose.yml"),
+  composeFile: z.string().optional(),
   agent: z.string().default("ralph"),
+  cli: z.enum(["copilot", "claude"]).default("copilot"),
+  model: z.string().optional(),
   timeoutMs: z.number().positive().default(1_800_000),
   setupScript: z.string().default("/usr/local/bin/setup.sh"),
   auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
@@ -90,9 +92,13 @@ export interface ProfileTransitions {
 export interface AgentProfile {
   id: string;
   repoPath: string;
-  /** Relative path to docker-compose.yml within the repo. */
+  /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
   composeFile: string;
   agentName: string;
+  /** Which CLI to use for agent execution. */
+  cli: "copilot" | "claude";
+  /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
+  model?: string;
   timeoutMs: number;
   /** Absolute path to the setup script inside the container. */
   setupScript: string;
@@ -115,6 +121,8 @@ export interface SecretsConfig {
   adoPatXperience: string;
   jiraPat: string;
   jiraEmail: string;
+  /** Anthropic API key for Claude Code CLI. Optional — only needed when a profile uses `cli: "claude"`. */
+  anthropicApiKey: string;
 }
 
 export interface DashboardConfig {
@@ -179,6 +187,7 @@ export function loadConfig(): AppConfig {
     adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
     jiraPat,
     jiraEmail,
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
   };
 
   const dashboardUrl = process.env.DASHBOARD_URL ?? "";
@@ -193,8 +202,10 @@ export function loadConfig(): AppConfig {
   const profiles: AgentProfile[] = parsed.profiles.map((p) => ({
     id: p.id,
     repoPath: resolvePath(p.repo),
-    composeFile: p.composeFile,
+    composeFile: p.composeFile ?? `profiles/${p.id}/docker-compose.yml`,
     agentName: p.agent,
+    cli: p.cli,
+    model: p.model,
     timeoutMs: p.timeoutMs,
     setupScript: p.setupScript,
     auditLogPath: p.auditLogPath,

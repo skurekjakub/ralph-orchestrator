@@ -44,10 +44,10 @@ export function App({ orchestrator }: AppProps): React.ReactElement {
         🤖 Ralph Orchestrator
       </Text>
 
+      <StatusPanel state={state} />
+
       <LogPanel title="Container Output" logs={state.containerLogs} maxLines={12} />
       <LogPanel title="Orchestrator Log" logs={state.orchestratorLogs} maxLines={6} />
-
-      <StatusPanel state={state} />
 
       <Box marginTop={1}>
         <Text dimColor>{'─'.repeat(50)}</Text>

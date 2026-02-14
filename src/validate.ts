@@ -123,6 +123,14 @@ function validateConfigFile(errors: string[], warnings: string[]): void {
       }
     }
 
+    const composePath = resolve(process.cwd(), p.composeFile ?? `profiles/${p.id}/docker-compose.yml`);
+    if (!existsSync(composePath)) {
+      errors.push(
+        `${prefix}: compose file does not exist: ${composePath}\n` +
+        `  Create the profile directory or set composeFile in the profile config`
+      );
+    }
+
     if (!p.match?.projects?.length) {
       warnings.push(`${prefix}: no match.projects defined — this profile won't match any issues`);
     }

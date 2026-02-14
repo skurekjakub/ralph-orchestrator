@@ -1,13 +1,16 @@
 import { execa } from "execa";
+import { resolve } from "node:path";
 import type { SecretsConfig } from "../config.js";
 
 /**
- * Configuration for the compose client — JIRA and secrets needed as env vars.
+ * Configuration for the compose client — JIRA config, secrets, and target repo path.
  */
 export interface ComposeEnvConfig {
   secrets: SecretsConfig;
   jiraBaseUrl: string;
   jiraCloudId: string;
+  /** Absolute path to the target repository on the host (mounted as /workspace in the container). */
+  targetRepoPath: string;
 }
 
 /**
@@ -30,6 +33,8 @@ export class ComposeClient {
   ) {
     this.env = {
       ...process.env as Record<string, string>,
+      TARGET_REPO_PATH: envConfig.targetRepoPath,
+      SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
       GH_TOKEN: envConfig.secrets.ghToken,
       ADO_PAT_DOCS: envConfig.secrets.adoPatDocs,
       ADO_MCP_AUTH_TOKEN: envConfig.secrets.adoPatDocs,
@@ -38,6 +43,9 @@ export class ComposeClient {
       JIRA_EMAIL: envConfig.secrets.jiraEmail,
       JIRA_BASE_URL: envConfig.jiraBaseUrl,
       JIRA_CLOUD_ID: envConfig.jiraCloudId,
+      ANTHROPIC_API_KEY: envConfig.secrets.anthropicApiKey,
+      CLAUDE_CODE_DISABLE_AUTOUPDATER: "1",
+      CLAUDE_CODE_DISABLE_COST_WARNINGS: "1",
     };
   }
 
