@@ -49,6 +49,8 @@ export interface RalphResult {
   handoffPath?: string;
   /** Local path to the audit JSONL log collected from the container. */
   auditLogPath?: string;
+  /** Local path to the Copilot session transcript (Markdown). */
+  transcriptPath?: string;
   /** ADO pull request URL parsed from the agent's structured output. */
   prUrl?: string;
 }

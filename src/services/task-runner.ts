@@ -150,6 +150,17 @@ export class TaskRunner {
         this.logger.warn("No audit logs found in container");
       }
 
+      this.logger.info("Collecting session transcript...");
+      result.transcriptPath =
+        (await container.collectTranscript(issue.key)) ?? undefined;
+
+      if (result.transcriptPath) {
+        this.logger.info(`Transcript saved: ${result.transcriptPath}`);
+        await this.attachTranscript(issue.key, result.transcriptPath);
+      } else {
+        this.logger.warn("No session transcript available");
+      }
+
       this.logCollector.saveExecutionSummary(result);
       this.logger.info("Execution summary saved");
 
@@ -264,6 +275,24 @@ export class TaskRunner {
         `Failed to download handoff.md: ${err instanceof Error ? err.message : String(err)}`
       );
       return null;
+    }
+  }
+
+  /** Attach the session transcript to JIRA as `session-transcript.md`. */
+  private async attachTranscript(issueKey: string, localPath: string): Promise<void> {
+    try {
+      const { readFileSync } = await import("node:fs");
+      const content = readFileSync(localPath, "utf-8");
+      await withRetry(
+        () => this.jiraClient.addAttachment(issueKey, "session-transcript.md", content),
+        `attach transcript to ${issueKey}`,
+        this.logger,
+      );
+      this.logger.info(`Session transcript attached to ${issueKey}`);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to attach transcript to ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 }

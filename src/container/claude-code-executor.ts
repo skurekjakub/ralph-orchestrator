@@ -3,6 +3,7 @@ import type { AgentProfile } from "../config.js";
 import type { ContainerExecResult, CliExecutor } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { ComposeClient } from "./compose-client.js";
+import { StreamCapture } from "./stream-capture.js";
 
 /**
  * Executes the Claude Code CLI inside a running container.
@@ -63,50 +64,15 @@ export class ClaudeCodeExecutor implements CliExecutor {
         this.profile.timeoutMs,
       ) as ResultPromise;
 
-      const stdoutChunks: string[] = [];
-      const stderrChunks: string[] = [];
-
-      if (this.activeProcess.stdout) {
-        let stdoutBuffer = "";
-        this.activeProcess.stdout.on("data", (chunk: Buffer | string) => {
-          const text = String(chunk);
-          stdoutChunks.push(text);
-          stdoutBuffer += text;
-          const lines = stdoutBuffer.split("\n");
-          stdoutBuffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) {
-              this.containerLogger.info(`[claude] ${trimmed}`);
-            }
-          }
-        });
-      }
-
-      if (this.activeProcess.stderr) {
-        let stderrBuffer = "";
-        this.activeProcess.stderr.on("data", (chunk: Buffer | string) => {
-          const text = String(chunk);
-          stderrChunks.push(text);
-          stderrBuffer += text;
-          const lines = stderrBuffer.split("\n");
-          stderrBuffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) {
-              this.containerLogger.warn(`[claude] ${trimmed}`);
-            }
-          }
-        });
-      }
+      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "claude");
 
       const result = await this.activeProcess;
       this.activeProcess = null;
 
       return {
         exitCode: result.exitCode ?? 0,
-        stdout: stdoutChunks.join(""),
-        stderr: stderrChunks.join(""),
+        stdout: capture.stdout,
+        stderr: capture.stderr,
         timedOut: false,
       };
     } catch (err: unknown) {

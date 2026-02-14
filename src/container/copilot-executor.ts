@@ -3,6 +3,7 @@ import type { AgentProfile } from "../config.js";
 import type { ContainerExecResult, CliExecutor } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { ComposeClient } from "./compose-client.js";
+import { StreamCapture } from "./stream-capture.js";
 
 /**
  * Executes the Copilot CLI agent inside a running container.
@@ -42,6 +43,9 @@ export class CopilotExecutor implements CliExecutor {
    * @param prompt The fully-built prompt string to pass to the Copilot CLI.
    * @returns Raw {@link ContainerExecResult} with exit code and captured output.
    */
+  /** Path inside the container where the session transcript is saved. */
+  static readonly TRANSCRIPT_PATH = "/workspace/.ralph/logs/session-transcript.md";
+
   async run(prompt: string): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
@@ -51,6 +55,7 @@ export class CopilotExecutor implements CliExecutor {
       "--model", this.profile.model ?? "claude-opus-4.6",
       "--experimental",
       "--yolo",
+      "--share", CopilotExecutor.TRANSCRIPT_PATH,
       "-p", prompt,
     ];
 
@@ -60,50 +65,15 @@ export class CopilotExecutor implements CliExecutor {
         this.profile.timeoutMs,
       ) as ResultPromise;
 
-      const stdoutChunks: string[] = [];
-      const stderrChunks: string[] = [];
-
-      if (this.activeProcess.stdout) {
-        let stdoutBuffer = "";
-        this.activeProcess.stdout.on("data", (chunk: Buffer | string) => {
-          const text = String(chunk);
-          stdoutChunks.push(text);
-          stdoutBuffer += text;
-          const lines = stdoutBuffer.split("\n");
-          stdoutBuffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) {
-              this.containerLogger.info(`[copilot] ${trimmed}`);
-            }
-          }
-        });
-      }
-
-      if (this.activeProcess.stderr) {
-        let stderrBuffer = "";
-        this.activeProcess.stderr.on("data", (chunk: Buffer | string) => {
-          const text = String(chunk);
-          stderrChunks.push(text);
-          stderrBuffer += text;
-          const lines = stderrBuffer.split("\n");
-          stderrBuffer = lines.pop() ?? "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed) {
-              this.containerLogger.warn(`[copilot] ${trimmed}`);
-            }
-          }
-        });
-      }
+      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "copilot");
 
       const result = await this.activeProcess;
       this.activeProcess = null;
 
       return {
         exitCode: result.exitCode ?? 0,
-        stdout: stdoutChunks.join(""),
-        stderr: stderrChunks.join(""),
+        stdout: capture.stdout,
+        stderr: capture.stderr,
         timedOut: false,
       };
     } catch (err: unknown) {

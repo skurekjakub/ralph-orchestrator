@@ -22,6 +22,12 @@ describe("Copilot CLI args", () => {
     expect(source).toContain('"--yolo"');
     expect(source).toContain('"--experimental"');
   });
+
+  it("includes --share flag for session transcript export", async () => {
+    const source = await readSource("../src/container/copilot-executor.ts");
+    expect(source).toContain('"--share"');
+    expect(source).toContain("TRANSCRIPT_PATH");
+  });
 });
 
 describe("Claude Code CLI args", () => {
@@ -80,9 +86,9 @@ describe("Docker compose options", () => {
 });
 
 describe("Build streaming", () => {
-  it("streams build and setup output via streamProcess helper", async () => {
+  it("streams build and setup output via StreamCapture", async () => {
     const source = await readSource("../src/container/manager.ts");
-    expect(source).toContain('streamProcess(proc, this.logger, "build")');
-    expect(source).toContain('streamProcess(setupProc, this.logger, "setup")');
+    expect(source).toContain('new StreamCapture(proc, this.logger, "build")');
+    expect(source).toContain('new StreamCapture(setupProc, this.logger, "setup")');
   });
 });

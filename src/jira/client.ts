@@ -140,4 +140,35 @@ export class JiraClient {
     }
     return res.text();
   }
+
+  /**
+   * Upload a file as an attachment to a JIRA issue.
+   *
+   * Uses the multipart/form-data upload endpoint.
+   *
+   * @param key JIRA issue key (e.g. `DF-2759`).
+   * @param filename Display name for the attachment.
+   * @param content File content as a string.
+   */
+  async addAttachment(key: string, filename: string, content: string): Promise<void> {
+    const blob = new Blob([content], { type: "application/octet-stream" });
+    const form = new FormData();
+    form.append("file", blob, filename);
+
+    const res = await fetch(`${this.baseUrl}/rest/api/3/issue/${key}/attachments`, {
+      method: "POST",
+      headers: {
+        Authorization: this.authHeader,
+        "X-Atlassian-Token": "no-check",
+      },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `Failed to upload attachment: ${res.status} ${res.statusText} — ${text}`
+      );
+    }
+  }
 }
