@@ -60,6 +60,12 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
             </Text>
             <Text> — {state.currentIssue.summary}</Text>
           </Box>
+          {state.currentProfile && (
+            <Box>
+              <Text bold>Profile: </Text>
+              <Text color="magenta">{state.currentProfile}</Text>
+            </Box>
+          )}
           {elapsedStr && (
             <Box>
               <Text bold>Elapsed: </Text>

@@ -42,6 +42,7 @@ export function HistoryPanel({ completed }: HistoryPanelProps): React.ReactEleme
               {"  "}
               {statusIcon(task.status)} {task.key} — {task.summary} (
               {formatDuration(task.durationMs)})
+              {task.profileId ? ` [${task.profileId}]` : ""}
             </Text>
           </Box>
         ))

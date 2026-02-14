@@ -2,18 +2,45 @@
   "jira": {
     "baseUrl": "https://api.atlassian.com/ex/jira",
     "cloudId": "<your-jira-cloud-id>",
-    "project": "DF",
-    "jql": [
-      "project = DF AND summary ~ \"Ralph\" AND status = \"New\" ORDER BY created ASC"
-    ],
-    "pollIntervalMs": 60000,
-    "inProgressTransitionId": "141",
-    "readyForReviewTransitionId": "91"
+    "pollIntervalMs": 60000
   },
-  "ralph": {
-    "devcontainerConfig": ".ralph/devcontainer.json",
-    "agentName": "ralph",
-    "timeoutMs": 1800000
+  "profiles": [
+    {
+      "id": "ralph-docs",
+      "repo": "~/repositories/kentico-docs-jekyll",
+      "composeFile": ".ralph/docker-compose.yml",
+      "agent": "ralph",
+      "timeoutMs": 1800000,
+      "match": {
+        "projects": ["DF"],
+        "keywords": ["Ralph"],
+        "statuses": ["New"]
+      },
+      "transitions": {
+        "inProgressId": "141",
+        "readyForReviewId": "91"
+      }
+    },
+    {
+      "id": "ralph-vscode",
+      "repo": "~/repositories/kentico-docs-autocomplete-vscode",
+      "composeFile": ".ralph/docker-compose.yml",
+      "agent": "ralph",
+      "timeoutMs": 1800000,
+      "match": {
+        "projects": ["DOC"],
+        "keywords": ["RalphVsCode"],
+        "statuses": ["To Do"]
+      },
+      "transitions": {
+        "inProgressId": "51",
+        "readyForReviewId": "91"
+      }
+    }
+  ],
+  "dashboard": {
+    "enabled": false,
+    "intervalMs": 30000
   },
   "output": {
     "logDir": "./output/logs",

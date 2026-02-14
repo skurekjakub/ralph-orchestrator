@@ -5,11 +5,8 @@ import type { JiraConfig } from "../src/config.js";
 const mockConfig: JiraConfig = {
   baseUrl: "https://api.atlassian.com/ex/jira",
   cloudId: "test-cloud-id",
-  project: "DF",
   jql: ['project = DF AND summary ~ "Ralph"'],
   pollIntervalMs: 60000,
-  inProgressTransitionId: "141",
-  readyForReviewTransitionId: "91",
 };
 
 describe("JiraClient", () => {
@@ -32,7 +29,7 @@ describe("JiraClient", () => {
         issues: [
           {
             key: "DF-1",
-            fields: { summary: "Test", status: { name: "New" } },
+            fields: { summary: "Test", status: { name: "New" }, created: "2026-01-01T00:00:00.000+0000" },
           },
         ],
         total: 1,

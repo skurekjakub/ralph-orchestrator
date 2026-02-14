@@ -73,6 +73,9 @@ export class JiraPoller {
       }
 
       if (allIssues.length > 0) {
+        allIssues.sort((a, b) =>
+          a.fields.created.localeCompare(b.fields.created)
+        );
         this.logger.info(`Found ${allIssues.length} issue(s) matching JQL`);
         this.onIssuesFound(allIssues);
       } else {

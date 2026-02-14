@@ -1,5 +1,11 @@
 import type { JiraConfig } from "../config.js";
-import type { JiraIssue, JiraSearchResponse } from "./types.js";
+import type {
+  JiraIssue,
+  JiraSearchResponse,
+  JiraComment,
+  JiraCommentResponse,
+  JiraAttachment,
+} from "./types.js";
 
 /**
  * Lightweight JIRA REST API v3 client for Atlassian Cloud.
@@ -76,11 +82,6 @@ export class JiraClient {
     return data.issues;
   }
 
-  /** Get a single issue with full details */
-  async getIssue(key: string): Promise<JiraIssue> {
-    return this.request<JiraIssue>("GET", `/rest/api/3/issue/${key}`);
-  }
-
   /** Add a comment to an issue */
   async addComment(key: string, bodyText: string): Promise<void> {
     await this.request("POST", `/rest/api/3/issue/${key}/comment`, {
@@ -102,5 +103,41 @@ export class JiraClient {
     await this.request("POST", `/rest/api/3/issue/${key}/transitions`, {
       transition: { id: transitionId },
     });
+  }
+
+  /** Fetch all comments on an issue, ordered by creation date (oldest first). */
+  async getComments(key: string): Promise<JiraComment[]> {
+    const data = await this.request<JiraCommentResponse>(
+      "GET",
+      `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=100`
+    );
+    return data.comments;
+  }
+
+  /** List attachments on an issue (from the issue's fields). */
+  async getAttachments(key: string): Promise<JiraAttachment[]> {
+    const data = await this.request<{ fields: { attachment: JiraAttachment[] } }>(
+      "GET",
+      `/rest/api/3/issue/${key}?fields=attachment`
+    );
+    return data.fields.attachment ?? [];
+  }
+
+  /**
+   * Download an attachment's content as a UTF-8 string.
+   *
+   * JIRA attachment `content` URLs point to a different domain
+   * (e.g. `https://<site>.atlassian.net/...`) so we use the full URL directly.
+   */
+  async downloadAttachment(contentUrl: string): Promise<string> {
+    const res = await fetch(contentUrl, {
+      headers: { Authorization: this.authHeader },
+    });
+    if (!res.ok) {
+      throw new Error(
+        `Failed to download attachment: ${res.status} ${res.statusText}`
+      );
+    }
+    return res.text();
   }
 }

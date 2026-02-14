@@ -1,4 +1,4 @@
-/** Raw result from a `devcontainer exec` call (exit code, captured output, timeout flag). */
+/** Raw result from a `docker compose exec` call (exit code, captured output, timeout flag). */
 export interface ContainerExecResult {
   /** Process exit code (0 = success). */
   exitCode: number;

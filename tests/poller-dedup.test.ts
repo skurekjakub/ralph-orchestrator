@@ -1,16 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { JiraPoller } from "../src/jira/poller.js";
 import type { JiraClient } from "../src/jira/client.js";
 import type { JiraConfig } from "../src/config.js";
 import type { JiraIssue } from "../src/jira/types.js";
 import type { Logger } from "../src/logger.js";
-
-function makeIssue(key: string): JiraIssue {
-  return {
-    key,
-    fields: { summary: `Issue ${key}`, status: { name: "New" } },
-  };
-}
+import { makeIssue } from "./helpers.js";
 
 describe("JiraPoller multi-JQL deduplication", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
@@ -28,19 +22,12 @@ describe("JiraPoller multi-JQL deduplication", () => {
     vi.useRealTimers();
   });
 
-  function afterAll(fn: () => void) {
-    // vitest afterAll is available globally
-  }
-
   it("deduplicates issues across multiple JQL queries", async () => {
     const config: JiraConfig = {
       baseUrl: "https://api.atlassian.com/ex/jira",
       cloudId: "test-cloud-id",
-      project: "DF",
       jql: ["query-1", "query-2"],
       pollIntervalMs: 1000,
-      inProgressTransitionId: "141",
-      readyForReviewTransitionId: "91",
     };
 
     // Both queries return DF-1, second also returns DF-2
@@ -75,11 +62,8 @@ describe("JiraPoller multi-JQL deduplication", () => {
     const config: JiraConfig = {
       baseUrl: "https://api.atlassian.com/ex/jira",
       cloudId: "test-cloud-id",
-      project: "DF",
       jql: ["query-1", "query-2"],
       pollIntervalMs: 1000,
-      inProgressTransitionId: "141",
-      readyForReviewTransitionId: "91",
     };
 
     mockClient.searchIssues.mockResolvedValue([]);

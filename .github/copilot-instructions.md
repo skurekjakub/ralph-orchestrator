@@ -1,13 +1,13 @@
 ## Project Overview
 
-Ralph Orchestrator is a standalone Node.js + TypeScript application that autonomously processes documentation tasks. It polls JIRA for issues, spins up the Ralph devcontainer, runs an AI meta-agent inside it, and collects results.
+Ralph Orchestrator is a standalone Node.js + TypeScript application that autonomously processes documentation tasks. It polls JIRA for issues, starts Docker containers, runs an AI meta-agent inside them, and collects results.
 
 ## Architecture
 
 ```
 JIRA poller → in-memory queue → container lifecycle → log collection
                                        ↓
-                              devcontainer exec copilot
+                              docker compose exec copilot
                                        ↓
                               ralph meta-agent (subagents: tech-writer, reviewer)
                                        ↓
@@ -21,15 +21,27 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 | File | Purpose |
 |---|---|
 | `src/index.tsx` | Entry point — wires orchestrator + Ink terminal dashboard |
-| `src/orchestrator.ts` | Main loop: dequeue → JIRA transition → container exec → collect results |
-| `src/queue.ts` | In-memory FIFO queue with deduplication |
+| `src/orchestrator.ts` | Main loop: dequeue → profile routing → JIRA transition → container exec → collect results |
+| `src/orchestrator-types.ts` | Types for orchestrator state, log entries, and completed tasks |
+| `src/queue.ts` | In-memory FIFO queue with deduplication (revision-aware) |
 | `src/config.ts` | Loads `config.json` + `.env` secrets |
 | `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
-| `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition) |
+| `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition, attachments) |
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
-| `src/container/manager.ts` | Devcontainer lifecycle (start, exec, collect logs, stop) |
+| `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, keywords, statuses, revisionStatuses) |
+| `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
+| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs, stop) |
+| `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection) |
+| `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, process tracking) |
+| `src/container/prompt.ts` | Builds Copilot CLI prompt from JIRA issue fields; embeds revision context (comments + handoff) |
+| `src/container/result-parser.ts` | Parses structured result blocks from Copilot CLI stdout |
+| `src/services/activity-log.ts` | Persistent activity log writer (append-only JSONL to disk) |
+| `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
+| `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/keyword/status; returns `{ profile, isRevision }` |
+| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result collection → error/review transitions |
 | `src/logs/collector.ts` | Saves execution summaries to `output/` |
 | `src/dashboard/*.tsx` | Ink (React for terminal) dashboard components (App, StatusPanel, QueuePanel, HistoryPanel, LogPanel) |
+| `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 
 ## Commands
 
@@ -39,65 +51,113 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 - `npm test` — Run tests (vitest)
 - `npm run lint` — Type-check without emitting
 
-## devcontainer work 
+## Docker Compose
 
-Always interact with the devcontainer via the CLI — never call `docker compose` or `docker exec` directly (except for teardown, since the CLI has no `down` command, and `docker info` for prerequisite checks).
-
-Always invoke the devcontainer CLI via `npx` so that the local `@devcontainers/cli` package is used (it's a devDependency). Never assume a global installation.
+Containers are managed via `docker compose` directly — no devcontainer CLI.
 
 ```bash
-# Starting the container
-npx @devcontainers/cli up --workspace-folder ~/repositories/kentico-docs-jekyll --config ~/repositories/kentico-docs-jekyll/.ralph/devcontainer.json 2>&1
+# Starting the containers
+docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml up -d --build 2>&1
 
-# Rebuilding from scratch
-npx @devcontainers/cli up --workspace-folder ~/repositories/kentico-docs-jekyll --config ~/repositories/kentico-docs-jekyll/.ralph/devcontainer.json --build-no-cache --remove-existing-container 2>&1
+# Running the setup script
+docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml exec --user vscode app /usr/local/bin/setup.sh 2>&1
 
 # Executing a command inside the container
-npx @devcontainers/cli exec --workspace-folder ~/repositories/kentico-docs-jekyll --config ~/repositories/kentico-docs-jekyll/.ralph/devcontainer.json -- <command>
+docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml exec --user vscode app <command>
 
-# Stopping the container (no CLI equivalent — use docker compose directly)
-docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml down --volumes
+# Stopping the containers
+docker compose -f ~/repositories/kentico-docs-jekyll/.ralph/docker-compose.yml down --volumes --remove-orphans
 ```
 
 No piping to `head` or `tail` — always show full output.
 
 ## Configuration
 
-- `config.json` — Runtime config (JQL query, polling interval, timeouts)
-- `.env` — Secrets (JIRA token/email, GitHub PAT, ADO PATs, path to Ralph repo)
+- `config.json` — Runtime config (polling interval, agent profiles with match rules, dashboard toggle). JQL queries are auto-generated from profile match rules by `src/jira/jql-builder.ts`
+- `.env` — Secrets (JIRA token/email, GitHub PAT, ADO PATs, dashboard URL/secret)
 - See `.env.example` for required variables
+
+### Agent Profiles
+
+The `profiles` array in `config.json` maps JIRA issues to repos/agents. Each profile has:
+- `id` — unique identifier
+- `repo` — path to the target repository
+- `composeFile` — relative path to the docker-compose.yml within the repo
+- `agent` — Copilot CLI agent name
+- `timeoutMs` — execution timeout
+- `match.projects` — JIRA project keys to match
+- `match.keywords` — keywords matched case-insensitively against issue summary (empty = catch-all)
+- `match.statuses` — only match issues in these JIRA statuses (empty = any status)
+- `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. `["Defect Found"]`). Issues in these statuses bypass queue dedup so they can be re-processed. Must not overlap with `match.statuses`.
+- `transitions.inProgressId` — JIRA transition ID to move an issue to "In Progress"
+- `transitions.readyForReviewId` — JIRA transition ID to move an issue to "Ready for Review"
+- `transitions.revisionId` — (optional) transition ID for revision pickup; falls back to `inProgressId`
+
+Profiles are evaluated in order; first match wins. Unmatched issues are skipped.
+
+### Dashboard
+
+The `dashboard` section in `config.json` controls heartbeat reporting to the Vercel status dashboard:
+- `enabled` — set to `false` to disable heartbeat sending entirely (no network calls)
+- `intervalMs` — heartbeat interval in milliseconds (default: 30000)
+
+The dashboard uses **Upstash Redis** (added via the Vercel Marketplace integration) for state storage. Env vars `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are auto-populated by the integration.
+
+Also requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env`. If `enabled` is false or the env vars are missing, no heartbeats are sent.
+
+Each orchestrator generates a fresh UUID on startup (the agent ID). Multiple orchestrators can report to the same dashboard — each gets its own card. Agents are auto-removed after 24h of no heartbeats.
 
 ## Conventions
 
 - ESM-only (`"type": "module"` in package.json)
 - All imports use `.js` extensions (NodeNext module resolution)
 - No JIRA SDK — uses native `fetch` against REST API v3 (cloud endpoint: `api.atlassian.com/ex/jira/{cloudId}`)
-- Devcontainer CLI invoked via `npx @devcontainers/cli` (local dep, not global)
+- Docker compose for container management — no devcontainer CLI
 - `execa` v9 for all subprocess management
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
 - Copilot CLI inside the container always uses `--model claude-opus-4.6`
 
+### Comments
+
+- Only add comments that explain **why** something works a certain way, or document non-obvious behavior and edge cases.
+- Never add comments that restate what the code already says (e.g., `// increment counter` above `counter++`).
+- Never add comments about previous behavior, iterations, or changelog-style notes (e.g., `// was X, now Y`, `// changed from`).
+- Section-separator comments (`// --- Section name ---`) are unnecessary when the code structure is self-evident.
+- JSDoc on public interfaces, types, classes, and methods is encouraged.
+
 ## The Ralph Ecosystem (external repo)
 
-This orchestrator drives the Ralph devcontainer which lives in the `kentico-docs-jekyll` repo under `.ralph/`. Key pieces there:
+This orchestrator drives the Ralph container setup which lives in the `kentico-docs-jekyll` repo under `.ralph/`. Key pieces there:
 
-- **`.ralph/`** — Devcontainer config, docker-compose, setup scripts
+- **`.ralph/`** — Docker compose, Dockerfile, setup scripts
 - **`.ralph/hooks/`** — Copilot CLI hooks that log all agent activity to `.ralph/logs/audit.jsonl`
-- **`.github/agents/autonomous/ralph.agent.md`** — Meta-agent (orchestrates tech-writer + reviewer)
-- **`.github/agents/autonomous/ralph.tech-writer.agent.md`** — Autonomous tech-writer sub-agent
-- **`.github/agents/autonomous/ralph.reviewer.agent.md`** — Autonomous reviewer sub-agent
+- **`.github/agents/ralph.agent.md`** — Meta-agent (orchestrates tech-writer + reviewer; standard + revision workflows)
+- **`.github/agents/ralph.tech-writer.agent.md`** — Autonomous tech-writer sub-agent (supports revision mode)
+- **`.github/agents/ralph.reviewer.agent.md`** — Autonomous reviewer sub-agent (supports revision review mode)
 - **`.github/hooks/ralph-audit.json`** — Hook config for Copilot CLI session logging
 
 ## JIRA Integration
 
 - Project: **DF**
-- JQL filter: `jql` array in `config.json` — multiple queries supported, results deduplicated by issue key
+- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — multiple queries supported, results deduplicated by issue key. Both `statuses` and `revisionStatuses` are included in JQL filters.
 - On pickup: orchestrator transitions to "In Progress" + posts a start comment
+- On revision pickup: orchestrator transitions from revision status (e.g. \"Defect Found\") to \"In Progress\" using profile `transitions.revisionId` (falls back to `transitions.inProgressId`), fetches all JIRA comments + latest `handoff.md` attachment, embeds them in the prompt
 - On completion: **Ralph itself** posts a completion comment + attaches the handoff file to the JIRA issue
+- On error: orchestrator posts an error comment; the issue stays in "In Progress" for human review
 - Auth: Basic (`email:apiToken`)
 - API base: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`
 - Search endpoint: `/rest/api/3/search/jql` (the old `/search` is deprecated)
+
+### Revision Workflow
+
+When a JIRA issue is in a `revisionStatuses` status (e.g. "Defect Found"), the orchestrator:
+1. Matches the profile with `isRevision=true` (via `ProfileRouter`)
+2. Bypasses queue dedup so the issue can be re-processed
+3. Fetches all JIRA comments (ADF → plain text) and downloads the latest `handoff.md` attachment
+4. Builds a revision-aware prompt with `Mode: REVISION` header, embedded comments, and handoff content
+5. The agent follows its Revision Workflow instead of the Standard Workflow
+6. After completion, the orchestrator transitions to "Ready for Review" as usual
 
 ## Output
 

@@ -1,103 +1,68 @@
-import type { AppConfig } from "./config.js";
+import { randomUUID } from "node:crypto";
+import { join } from "node:path";
+import { execa } from "execa";
+import type { AppConfig, AgentProfile } from "./config.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraPoller } from "./jira/poller.js";
 import { TaskQueue } from "./queue.js";
-import { ContainerManager } from "./container/manager.js";
 import { LogCollector } from "./logs/collector.js";
+import { ActivityLog } from "./services/activity-log.js";
+import { ProfileRouter } from "./services/profile-router.js";
+import { TaskRunner } from "./services/task-runner.js";
+import { HeartbeatSender } from "./services/heartbeat.js";
+import { ContainerManager } from "./container/manager.js";
+import { sleep } from "./retry.js";
 import type { JiraIssue } from "./jira/types.js";
-import type { RalphResult } from "./container/types.js";
-import type { Logger } from "./logger.js";
-import { appendFileSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import type { OrchestratorState, CompletedTask, LogEntry } from "./orchestrator-types.js";
 
-/** Snapshot of the orchestrator's current state, pushed to the Ink dashboard on every change. */
-export interface OrchestratorState {
-  /** Current lifecycle phase. */
-  status: "idle" | "polling" | "working" | "stopping";
-  /** The JIRA issue currently being processed, or null if idle. */
-  currentIssue: { key: string; summary: string } | null;
-  /** Unix timestamp when the current task started, or null if idle. */
-  startedAt: number | null;
-  /** Tasks completed during this orchestrator session. */
-  completedToday: CompletedTask[];
-  /** Number of issues waiting in the queue. */
-  queueSize: number;
-  /** Read-only snapshot of queued issue keys and summaries. */
-  queueItems: readonly { key: string; summary: string }[];
-  /** Ring buffer of the last {@link Orchestrator.MAX_LOG_LINES} log entries (for the Ink panel). */
-  logs: readonly LogEntry[];
-}
-
-/** A single log entry stored in the ring buffer and persisted to the activity JSONL file. */
-export interface LogEntry {
-  /** Unix timestamp in milliseconds. */
-  timestamp: number;
-  /** Severity level. */
-  level: "info" | "warn" | "error";
-  /** Human-readable log message. */
-  message: string;
-}
-
-/** Record of a completed task, displayed in the Ink HistoryPanel. */
-export interface CompletedTask {
-  /** JIRA issue key (e.g. `DF-2759`). */
-  key: string;
-  /** JIRA issue summary / title. */
-  summary: string;
-  /** Final status reported by the Ralph agent or inferred from exit code. */
-  status: RalphResult["status"];
-  /** Total wall-clock time from container start to exec completion. */
-  durationMs: number;
-  /** ADO pull request URL, if one was created. */
-  prUrl?: string;
-}
+export type { OrchestratorState, CompletedTask, LogEntry };
 
 /**
  * Main orchestration loop.
  *
- * Wires together the JIRA poller, in-memory task queue, devcontainer lifecycle,
- * and log collection. Processes one JIRA issue at a time:
+ * Wires together the JIRA poller, profile router, task runner, and activity log.
+ * Processes one JIRA issue at a time:
  *
- * 1. Transition issue to "In Progress" and post a start comment
- * 2. Spin up the Ralph devcontainer
- * 3. Execute the Copilot CLI agent inside it
- * 4. Collect logs and save execution summary
- * 5. Transition issue to "Ready for Review"
- * 6. Tear down the container
+ * 1. Poll JIRA -> enqueue matching issues
+ * 2. Dequeue -> route to matching profile
+ * 3. Delegate to TaskRunner (transitions, container, agent, logs)
+ * 4. Track completion and emit state updates
  *
- * All activity is streamed to an Ink terminal dashboard and persisted to
- * `output/logs/activity-YYYY-MM-DD.jsonl`.
+ * All heavy lifting is delegated to focused services:
+ * - {@link ActivityLog} -- ring buffer + persistent JSONL
+ * - {@link ProfileRouter} -- issue -> profile matching
+ * - {@link TaskRunner} -- single-issue pipeline
+ * - {@link ContainerManager} -- container lifecycle
  */
 export class Orchestrator {
   private jiraClient: JiraClient;
   private poller: JiraPoller;
   private queue: TaskQueue;
-  private container: ContainerManager;
-  private logCollector: LogCollector;
+  private activityLog: ActivityLog;
+  private router: ProfileRouter;
+  private taskRunner: TaskRunner;
+  private heartbeat: HeartbeatSender | null = null;
 
   private busy = false;
   private running = false;
+  /** Unique ID for this orchestrator session — fresh UUID on every startup. */
+  private readonly agentId = randomUUID();
   private currentIssue: JiraIssue | null = null;
+  private currentProfileId: string | null = null;
+  private currentProfile: AgentProfile | null = null;
+  private activeContainer: ContainerManager | null = null;
   private workStartedAt: number | null = null;
   private completedToday: CompletedTask[] = [];
   private stateCallback: ((state: OrchestratorState) => void) | null = null;
-  private logBuffer: LogEntry[] = [];
-  private logFilePath: string;
-  private static readonly MAX_LOG_LINES = 50;
 
   constructor(private config: AppConfig) {
-    // Set up persistent activity log file
-    const logDir = resolve(process.cwd(), config.output.logDir);
-    mkdirSync(logDir, { recursive: true });
-    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    this.logFilePath = join(logDir, `activity-${date}.jsonl`);
+    this.activityLog = new ActivityLog(config.output.logDir);
+    this.activityLog.onLogChange(() => this.emitState());
 
-    // Build a Logger that routes through our log buffer
-    const logger: Logger = {
-      info: (msg) => this.log(msg),
-      warn: (msg) => this.warn(msg),
-      error: (msg) => this.logError(msg),
-    };
+    const logger = this.activityLog.createLogger();
+    const containerLogger = this.activityLog.createContainerLogger();
+
+    this.router = new ProfileRouter(config.profiles);
 
     this.jiraClient = new JiraClient(
       config.jira,
@@ -106,8 +71,6 @@ export class Orchestrator {
     );
 
     this.queue = new TaskQueue();
-    this.container = new ContainerManager(config, logger);
-    this.logCollector = new LogCollector(config.output);
 
     this.poller = new JiraPoller(
       this.jiraClient,
@@ -115,14 +78,26 @@ export class Orchestrator {
       (issues) => this.onIssuesFound(issues),
       logger
     );
+
+    const logCollector = new LogCollector(config.output);
+    this.taskRunner = new TaskRunner(config, this.jiraClient, logCollector, logger, containerLogger);
+
+    if (config.dashboard.enabled) {
+      this.heartbeat = new HeartbeatSender(
+        config.dashboard.url,
+        config.dashboard.secret,
+        config.dashboard.intervalMs,
+        logger,
+      );
+    }
   }
 
-  /** Subscribe to state changes for the dashboard */
+  /** Subscribe to state changes for the Ink dashboard. */
   onStateChange(callback: (state: OrchestratorState) => void): void {
     this.stateCallback = callback;
   }
 
-  /** Get current state snapshot */
+  /** Get current state snapshot. */
   getState(): OrchestratorState {
     return {
       status: !this.running
@@ -136,50 +111,35 @@ export class Orchestrator {
             summary: this.currentIssue.fields.summary,
           }
         : null,
+      currentProfile: this.currentProfileId,
       startedAt: this.workStartedAt,
       completedToday: [...this.completedToday],
       queueSize: this.queue.size,
       queueItems: this.queue.items,
-      logs: [...this.logBuffer],
+      logs: this.activityLog.entries,
+      orchestratorLogs: this.activityLog.entries.filter((e) => e.source !== "container"),
+      containerLogs: this.activityLog.entries.filter((e) => e.source === "container"),
+      profileIds: this.router.profileIds,
     };
   }
 
-  private log(message: string): void {
-    this.pushLog("info", message);
-  }
-
-  private warn(message: string): void {
-    this.pushLog("warn", message);
-  }
-
-  private logError(message: string): void {
-    this.pushLog("error", message);
-  }
-
-  private pushLog(level: LogEntry["level"], message: string): void {
-    const entry: LogEntry = { timestamp: Date.now(), level, message };
-    this.logBuffer.push(entry);
-    if (this.logBuffer.length > Orchestrator.MAX_LOG_LINES) {
-      this.logBuffer.shift();
-    }
-    // Persist every log entry to disk (append-only JSONL)
-    try {
-      appendFileSync(this.logFilePath, JSON.stringify(entry) + "\n");
-    } catch {
-      // non-critical — don't let log file errors break the orchestrator
-    }
-    this.emitState();
-  }
-
-  /** Start the orchestrator loop */
+  /** Start the orchestrator loop. */
   async start(): Promise<void> {
     this.running = true;
     this.poller.start();
+
+    if (this.heartbeat) {
+      this.heartbeat.start(() => this.getHeartbeatPayload());
+      this.log("Dashboard heartbeat enabled");
+    }
+
     this.emitState();
 
-    this.log("Orchestrator started — polling JIRA for new tasks");
-    this.log(`Poll interval: ${this.config.jira.pollIntervalMs / 1000}s | Timeout: ${this.config.ralph.timeoutMs / 1000}s`);
+    this.log("Orchestrator started -- polling JIRA for new tasks");
+    this.log(`Agent ID: ${this.agentId}`);
+    this.log(`Poll interval: ${this.config.jira.pollIntervalMs / 1000}s`);
     this.log(`JQL queries: ${this.config.jira.jql.length}`);
+    this.log(`Agent profiles: ${this.router.profileIds.join(", ")}`);
 
     while (this.running) {
       if (this.busy) {
@@ -200,31 +160,29 @@ export class Orchestrator {
     this.log("Orchestrator stopped");
   }
 
-  /** Gracefully stop the orchestrator */
+  /** Signal the main loop to stop after the current iteration. */
   stop(): void {
     this.running = false;
     this.emitState();
   }
 
-  /** Full graceful shutdown — stops poller, waits for current task, cleans up container */
+  /** Full graceful shutdown -- stops poller, kills container if busy, cleans up. */
   async shutdown(): Promise<void> {
     this.log("Shutting down gracefully...");
     this.running = false;
     this.poller.stop();
+    this.heartbeat?.stop();
     this.emitState();
 
-    if (this.busy) {
-      this.log("Task in progress — stopping container...");
-      await this.container.stop()
-        .then(() => this.log("Container stopped"))
-        .catch((err) => {
-          this.warn(`Failed to stop container during shutdown: ${err instanceof Error ? err.message : String(err)}`);
-        });
+    if (this.busy && this.currentProfile) {
+      this.log("Task in progress -- stopping container...");
+      await this.teardownContainer(this.currentProfile);
     }
 
     this.log("Shutdown complete");
   }
 
+  /** Process a single issue: route -> run -> track. */
   private async processIssue(issue: JiraIssue): Promise<void> {
     this.busy = true;
     this.currentIssue = issue;
@@ -233,140 +191,124 @@ export class Orchestrator {
 
     this.log(`Picked up ${issue.key}: ${issue.fields.summary}`);
 
+    const matchResult = this.router.match(issue);
+    if (!matchResult) {
+      this.warn(`No matching profile for ${issue.key} -- skipping`);
+      this.resetTaskState(issue.key);
+      return;
+    }
+
+    const { profile, isRevision } = matchResult;
+    this.currentProfileId = profile.id;
+    this.currentProfile = profile;
+    this.emitState();
+    this.log(
+      `Matched profile: ${profile.id} (repo: ${profile.repoPath}, agent: ${profile.agentName})${
+        isRevision ? " [REVISION]" : ""
+      }`
+    );
+
     try {
-      // 1. Transition to In Progress (with retry)
-      this.log(`Transitioning ${issue.key} to In Progress (id=${this.config.jira.inProgressTransitionId})...`);
-      await this.withRetry(
-        () => this.jiraClient.transitionIssue(issue.key, this.config.jira.inProgressTransitionId),
-        `transition ${issue.key}`
-      )
-        .then(() => this.log(`${issue.key} transitioned to In Progress`))
-        .catch((err) => {
-          this.warn(`Failed to transition ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`);
-        });
+      const { result, container } = await this.taskRunner.run(issue, profile, isRevision);
+      this.activeContainer = container;
 
-      // 2. Comment on JIRA (with retry)
-      this.log(`Posting start comment on ${issue.key}...`);
-      await this.withRetry(
-        () => this.jiraClient.addComment(
-          issue.key,
-          `🤖 Ralph is starting work on this issue.\nBranch: ralph/${issue.key.toLowerCase()}`
-        ),
-        `comment on ${issue.key}`
-      )
-        .then(() => this.log(`Start comment posted on ${issue.key}`))
-        .catch((err) => {
-          this.warn(`Failed to comment on ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`);
-        });
-
-      // 3. Start the container
-      await this.container.start();
-
-      // 4. Verify container health
-      this.log("Verifying container health...");
-      await this.container.checkPrerequisites();
-
-      // 5. Clean previous logs
-      this.log("Cleaning previous audit logs...");
-      await this.container.cleanLogs();
-
-      // 6. Execute Ralph
-      const timeoutSec = Math.round(this.config.ralph.timeoutMs / 1000);
-      this.log(`Executing Ralph agent for ${issue.key} (timeout: ${timeoutSec}s)...`);
-      const result = await this.container.execute(issue);
-      this.log(`Ralph finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`);
-
-      if (result.prUrl) {
-        this.log(`PR created: ${result.prUrl}`);
-      }
-
-      if (result.status === "partial") {
-        this.warn(`${issue.key} completed with partial status — check handoff for details`);
-      }
-
-      // 7. Save full copilot stdout/stderr to disk
-      const copilotLogPath = join(this.config.output.logDir, `${issue.key}-${Date.now()}-copilot.log`);
-      try {
-        const fullOutput = [
-          result.stdout ? `=== STDOUT ===\n${result.stdout}` : "",
-          result.stderr ? `\n=== STDERR ===\n${result.stderr}` : "",
-        ].join("");
-        appendFileSync(copilotLogPath, fullOutput);
-        this.log(`Copilot output saved: ${copilotLogPath}`);
-      } catch {
-        this.warn("Failed to save copilot output to disk");
-      }
-
-      // 8. Collect audit logs (handoff is attached to JIRA by Ralph directly)
-      this.log("Collecting audit logs from container...");
-      result.auditLogPath =
-        (await this.container.collectLogs(issue.key)) ?? undefined;
-
-      if (result.auditLogPath) {
-        this.log(`Audit logs saved: ${result.auditLogPath}`);
-      } else {
-        this.warn("No audit logs found in container");
-      }
-
-      // 9. Save execution summary
-      this.logCollector.saveExecutionSummary(result, this.logFilePath);
-      this.log("Execution summary saved");
-
-      // 9. Track completion (Ralph posts its own JIRA comment with summary + PR link)
       this.completedToday.push({
         key: issue.key,
         summary: issue.fields.summary,
+        profileId: profile.id,
         status: result.status,
-        durationMs: result.durationMs,
+        durationMs: result.durationMs || Date.now() - (this.workStartedAt ?? Date.now()),
         prUrl: result.prUrl,
+        completedAt: Date.now(),
       });
 
-      this.log(`✓ ${issue.key} completed: ${result.status} (${Math.round(result.durationMs / 1000)}s)`);
+      this.log(
+        `Done ${issue.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`
+      );
+
+      if (result.status === "completed" || result.status === "partial") {
+        await this.taskRunner.transitionToReview(issue.key, profile);
+      }
     } catch (err) {
-      this.logError(`Error processing ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logError(`Error processing ${issue.key}: ${errorMsg}`);
 
       this.completedToday.push({
         key: issue.key,
         summary: issue.fields.summary,
+        profileId: profile.id,
         status: "error",
         durationMs: Date.now() - (this.workStartedAt ?? Date.now()),
+        completedAt: Date.now(),
       });
+
+      await this.taskRunner.postErrorComment(issue.key, errorMsg);
     } finally {
-      // 10. Stop the container
-      this.log("Stopping devcontainer...");
-      await this.container.stop()
-        .then(() => this.log("Devcontainer stopped"))
-        .catch((err) => {
-          this.warn(`Failed to stop container: ${err instanceof Error ? err.message : String(err)}`);
-        });
-
-      // 11. Transition to "Ready for Review" (regardless of outcome — human needs to check)
-      if (this.config.jira.readyForReviewTransitionId) {
-        this.log(`Transitioning ${issue.key} to Ready for Review...`);
-        await this.withRetry(
-          () => this.jiraClient.transitionIssue(issue.key, this.config.jira.readyForReviewTransitionId),
-          `transition ${issue.key} to Ready for Review`
-        )
-          .then(() => this.log(`${issue.key} moved to Ready for Review`))
-          .catch((err) => {
-            this.warn(`Failed to transition ${issue.key} to Ready for Review: ${err instanceof Error ? err.message : String(err)}`);
-          });
-      }
-
-      this.busy = false;
-      this.currentIssue = null;
-      this.workStartedAt = null;
-      this.queue.markProcessed(issue.key);
-      this.emitState();
+      await this.teardownContainer(profile);
+      this.resetTaskState(issue.key);
     }
+  }
+
+  /**
+   * Guarantee container teardown regardless of how the task ended.
+   *
+   * First tries a graceful `container.stop()` via the active container reference.
+   * If that fails or wasn't available, falls back to a raw `docker compose down`
+   * using the profile's compose file path — this catches containers that were
+   * started but never returned to the orchestrator (e.g. crash during setup).
+   */
+  private async teardownContainer(profile: AgentProfile): Promise<void> {
+    this.log("Stopping containers...");
+
+    if (this.activeContainer) {
+      try {
+        await this.activeContainer.stop();
+        this.log("Containers stopped");
+        return;
+      } catch (err) {
+        this.warn(
+          `Graceful stop failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    // Fallback: raw docker compose down using the profile's compose file
+    const composeFile = join(profile.repoPath, profile.composeFile);
+    try {
+      await execa("docker", [
+        "compose", "-f", composeFile,
+        "down", "--volumes", "--remove-orphans",
+      ]);
+      this.log("Containers stopped (fallback)");
+    } catch (err) {
+      this.warn(
+        `Fallback teardown failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  /** Reset all per-task state and emit an update. */
+  private resetTaskState(issueKey: string): void {
+    this.busy = false;
+    this.currentIssue = null;
+    this.currentProfileId = null;
+    this.currentProfile = null;
+    this.activeContainer = null;
+    this.workStartedAt = null;
+    this.queue.markProcessed(issueKey);
+    this.emitState();
   }
 
   private onIssuesFound(issues: JiraIssue[]): void {
     let added = 0;
     for (const issue of issues) {
-      if (this.queue.enqueue(issue)) {
+      const matchResult = this.router.match(issue);
+      const isRevision = matchResult?.isRevision ?? false;
+      if (this.queue.enqueue(issue, isRevision)) {
         added++;
-        this.log(`Enqueued ${issue.key}: ${issue.fields.summary}`);
+        this.log(
+          `Enqueued ${issue.key}: ${issue.fields.summary}${isRevision ? " [revision]" : ""}`
+        );
       }
     }
     if (added > 0) {
@@ -378,35 +320,34 @@ export class Orchestrator {
     this.stateCallback?.(this.getState());
   }
 
-  /** Retry an async operation up to `attempts` times with exponential backoff */
-  private async withRetry<T>(
-    fn: () => Promise<T>,
-    label: string,
-    attempts = 3,
-    delayMs = 2000
-  ): Promise<T> {
-    for (let i = 1; i <= attempts; i++) {
-      try {
-        return await fn();
-      } catch (err) {
-        if (i === attempts) throw err;
-        const wait = delayMs * i;
-        this.warn(`${label} failed (attempt ${i}/${attempts}), retrying in ${wait}ms...`);
-        await sleep(wait);
-      }
-    }
-    throw new Error("unreachable");
+  private log(message: string): void {
+    this.activityLog.push("info", message);
   }
-}
+  private warn(message: string): void {
+    this.activityLog.push("warn", message);
+  }
+  private logError(message: string): void {
+    this.activityLog.push("error", message);
+  }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes === 0) return `${remainingSeconds}s`;
-  return `${minutes}m ${remainingSeconds}s`;
+  /** Build the heartbeat payload from current state. */
+  private getHeartbeatPayload() {
+    const lastCompleted = this.completedToday.at(-1);
+    return {
+      agentId: this.agentId,
+      status: (!this.running ? "idle" : this.busy ? "working" : "polling") as
+        "idle" | "working" | "building" | "polling",
+      queueSize: this.queue.size,
+      currentTask: this.currentIssue?.key ?? null,
+      currentTaskStartedAt: this.workStartedAt
+        ? new Date(this.workStartedAt).toISOString()
+        : null,
+      profileId: this.currentProfileId,
+      totalProcessed: this.completedToday.length,
+      lastCompletedTask: lastCompleted?.key ?? null,
+      lastCompletedAt: lastCompleted?.completedAt
+        ? new Date(lastCompleted.completedAt).toISOString()
+        : null,
+    };
+  }
 }

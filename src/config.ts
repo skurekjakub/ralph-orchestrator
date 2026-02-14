@@ -1,87 +1,162 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { z } from "zod";
 import "dotenv/config";
+import { buildJqlFromProfiles } from "./jira/jql-builder.js";
 
-/** JIRA Cloud connection and polling settings. */
+// ---------------------------------------------------------------------------
+// Zod schemas for config.json
+// ---------------------------------------------------------------------------
+
+const profileMatchSchema = z.object({
+  projects: z.array(z.string()).default([]),
+  keywords: z.array(z.string()).default([]),
+  statuses: z.array(z.string()).default([]),
+  revisionStatuses: z.array(z.string()).default([]),
+});
+
+const profileTransitionsSchema = z.object({
+  inProgressId: z.string().min(1, "transitions.inProgressId is required"),
+  readyForReviewId: z.string().min(1, "transitions.readyForReviewId is required"),
+  revisionId: z.string().optional(),
+});
+
+const rawProfileSchema = z.object({
+  id: z.string().min(1, "Profile id must not be empty"),
+  repo: z.string().min(1, "Profile repo path must not be empty"),
+  composeFile: z.string().default(".ralph/docker-compose.yml"),
+  agent: z.string().default("ralph"),
+  timeoutMs: z.number().positive().default(1_800_000),
+  match: profileMatchSchema,
+  transitions: profileTransitionsSchema,
+});
+
+const rawJiraSchema = z.object({
+  baseUrl: z.string().url("jira.baseUrl must be a valid URL"),
+  cloudId: z.string().min(1, "jira.cloudId must not be empty"),
+  pollIntervalMs: z.number().positive().default(60_000),
+});
+
+const rawOutputSchema = z.object({
+  logDir: z.string().default("./output/logs"),
+  handoffDir: z.string().default("./output/handoffs"),
+}).optional();
+
+const rawDashboardSchema = z.object({
+  enabled: z.boolean().default(true),
+  intervalMs: z.number().positive().default(30_000),
+}).optional();
+
+const configFileSchema = z.object({
+  jira: rawJiraSchema,
+  profiles: z.array(rawProfileSchema).min(1, "At least one agent profile must be defined"),
+  output: rawOutputSchema,
+  dashboard: rawDashboardSchema,
+});
+
+// ---------------------------------------------------------------------------
+// Runtime types (post-resolution)
+// ---------------------------------------------------------------------------
+
 export interface JiraConfig {
-  /** Base URL for the Atlassian Cloud JIRA REST API (e.g. `https://api.atlassian.com/ex/jira`). */
   baseUrl: string;
-  /** JIRA Cloud instance ID (the UUID after `/ex/jira/` in API URLs). */
   cloudId: string;
-  /** JIRA project key (e.g. `DF`). */
-  project: string;
-  /** One or more JQL queries to poll for issues. Results are deduplicated by key. */
   jql: string[];
-  /** Polling interval in milliseconds. Defaults to 60 000 (1 minute). */
   pollIntervalMs: number;
-  /** JIRA transition ID to move an issue to "In Progress". */
-  inProgressTransitionId: string;
-  /** JIRA transition ID to move an issue to "Ready for Review" after completion. */
-  readyForReviewTransitionId: string;
 }
 
-/** Ralph devcontainer and agent execution settings. */
-export interface RalphConfig {
-  /** Absolute path to the local clone of the kentico-docs-jekyll repository. */
+export interface ProfileMatch {
+  projects: string[];
+  keywords: string[];
+  statuses: string[];
+  /** Statuses that trigger a revision workflow (e.g. "Defect Found"). Issues in these statuses bypass queue dedup. */
+  revisionStatuses: string[];
+}
+
+/** JIRA transition IDs for this profile's workflow. */
+export interface ProfileTransitions {
+  /** Transition ID to move an issue to "In Progress". */
+  inProgressId: string;
+  /** Transition ID to move an issue to "Ready for Review". */
+  readyForReviewId: string;
+  /** Transition ID for moving a revision issue (e.g. "Defect Found") to "In Progress". Falls back to `inProgressId`. */
+  revisionId?: string;
+}
+
+export interface AgentProfile {
+  id: string;
   repoPath: string;
-  /** Relative path from repoPath to the devcontainer.json (e.g. `.ralph/devcontainer.json`). */
-  devcontainerConfig: string;
-  /** Name of the Copilot CLI agent to invoke (e.g. `ralph`). */
+  /** Relative path to docker-compose.yml within the repo. */
+  composeFile: string;
   agentName: string;
-  /** Maximum time in milliseconds to wait for a single Ralph execution. Defaults to 1 800 000 (30 min). */
   timeoutMs: number;
+  match: ProfileMatch;
+  transitions: ProfileTransitions;
 }
 
-/** Filesystem paths for orchestrator output. */
 export interface OutputConfig {
-  /** Directory for audit logs, copilot output, execution summaries, and activity logs. */
   logDir: string;
-  /** Directory for handoff files (currently unused — Ralph attaches directly to JIRA). */
   handoffDir: string;
 }
 
-/** Top-level application configuration combining static config.json and .env secrets. */
-export interface AppConfig {
-  jira: JiraConfig;
-  ralph: RalphConfig;
-  output: OutputConfig;
-  /** Sensitive credentials loaded from environment variables. */
-  secrets: {
-    /** GitHub PAT with "Copilot Requests" permission for the Copilot CLI. */
-    ghToken: string;
-    /** Azure DevOps PAT for the docs repo (KenticoCustomerSuccess org). */
-    adoPatDocs: string;
-    /** Azure DevOps PAT for the Xperience repo (kenticoxperience org). Optional. */
-    adoPatXperience: string;
-    /** JIRA API token from id.atlassian.com. */
-    jiraPat: string;
-    /** Email address associated with the JIRA API token. */
-    jiraEmail: string;
-  };
+export interface SecretsConfig {
+  ghToken: string;
+  adoPatDocs: string;
+  adoPatXperience: string;
+  jiraPat: string;
+  jiraEmail: string;
 }
 
+export interface DashboardConfig {
+  enabled: boolean;
+  url: string;
+  secret: string;
+  intervalMs: number;
+}
+
+export interface AppConfig {
+  jira: JiraConfig;
+  profiles: AgentProfile[];
+  output: OutputConfig;
+  dashboard: DashboardConfig;
+  secrets: SecretsConfig;
+}
+
+// ---------------------------------------------------------------------------
+// Path resolution
+// ---------------------------------------------------------------------------
+
+function resolvePath(rawPath: string): string {
+  const cleaned = rawPath.replace(/^["']|["']$/g, "");
+  return cleaned.startsWith("~/")
+    ? resolve(process.env.HOME ?? "/root", cleaned.slice(2))
+    : resolve(cleaned);
+}
+
+// ---------------------------------------------------------------------------
+// Config loader
+// ---------------------------------------------------------------------------
+
 /**
- * Load and validate configuration from `config.json` (static settings) and `.env` (secrets).
+ * Load and validate configuration from `config.json` (Zod-validated) and `.env` (secrets).
  *
- * Strips surrounding quotes from RALPH_REPO_PATH and expands `~` to the home directory.
- * Throws if any required environment variable is missing.
- *
- * @returns Fully resolved {@link AppConfig} ready for use by the Orchestrator.
+ * Resolves all repo paths (expands `~`, strips quotes).
+ * Throws a descriptive {@link ZodError} if config.json has invalid structure,
+ * or a plain {@link Error} for missing environment variables.
  */
 export function loadConfig(): AppConfig {
   const configPath = resolve(process.cwd(), "config.json");
-  const raw = JSON.parse(readFileSync(configPath, "utf-8"));
 
-  const repoPath = process.env.RALPH_REPO_PATH;
-  if (!repoPath) {
-    throw new Error("RALPH_REPO_PATH must be set in .env");
+  let rawJson: unknown;
+  try {
+    rawJson = JSON.parse(readFileSync(configPath, "utf-8"));
+  } catch (err) {
+    throw new Error(
+      `Failed to read config.json at ${configPath}: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
-  // Strip surrounding quotes (dotenv doesn't remove them) and expand ~ to home dir
-  const cleanPath = repoPath.replace(/^["']|["']$/g, "");
-  const resolvedRepoPath = cleanPath.startsWith("~/")
-    ? resolve(process.env.HOME ?? "/root", cleanPath.slice(2))
-    : resolve(cleanPath);
+  const parsed = configFileSchema.parse(rawJson);
 
   const jiraPat = process.env.JIRA_PAT;
   const jiraEmail = process.env.JIRA_EMAIL;
@@ -91,40 +166,77 @@ export function loadConfig(): AppConfig {
 
   const ghToken = process.env.GH_TOKEN;
   const adoPatDocs = process.env.ADO_PAT_DOCS;
-  const adoPatXperience = process.env.ADO_PAT_XPERIENCE;
   if (!ghToken || !adoPatDocs) {
     throw new Error("GH_TOKEN and ADO_PAT_DOCS must be set in .env");
   }
 
+  const secrets: SecretsConfig = {
+    ghToken,
+    adoPatDocs,
+    adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
+    jiraPat,
+    jiraEmail,
+  };
+
+  const dashboardUrl = process.env.DASHBOARD_URL ?? "";
+  const dashboardSecret = process.env.DASHBOARD_SECRET ?? "";
+  const dashboard: DashboardConfig = {
+    enabled: (parsed.dashboard?.enabled ?? true) && !!dashboardUrl && !!dashboardSecret,
+    url: dashboardUrl,
+    secret: dashboardSecret,
+    intervalMs: parsed.dashboard?.intervalMs ?? 30_000,
+  };
+
+  const profiles: AgentProfile[] = parsed.profiles.map((p) => ({
+    id: p.id,
+    repoPath: resolvePath(p.repo),
+    composeFile: p.composeFile,
+    agentName: p.agent,
+    timeoutMs: p.timeoutMs,
+    match: {
+      projects: p.match.projects,
+      keywords: p.match.keywords,
+      statuses: p.match.statuses,
+      revisionStatuses: p.match.revisionStatuses,
+    },
+    transitions: {
+      inProgressId: p.transitions.inProgressId,
+      readyForReviewId: p.transitions.readyForReviewId,
+      revisionId: p.transitions.revisionId,
+    },
+  }));
+
+  const ids = new Set<string>();
+  for (const p of profiles) {
+    if (ids.has(p.id)) {
+      throw new Error(`Duplicate profile ID: ${p.id}`);
+    }
+    ids.add(p.id);
+
+    const statusSet = new Set(p.match.statuses.map((s) => s.toLowerCase()));
+    const overlap = p.match.revisionStatuses.filter((s) => statusSet.has(s.toLowerCase()));
+    if (overlap.length > 0) {
+      throw new Error(
+        `Profile "${p.id}": statuses and revisionStatuses must not overlap — found in both: ${overlap.join(", ")}`
+      );
+    }
+  }
+
+  const jql = buildJqlFromProfiles(profiles);
+
   return {
     jira: {
-      baseUrl: raw.jira.baseUrl,
-      cloudId: raw.jira.cloudId,
-      project: raw.jira.project,
-      jql: raw.jira.jql,
-      pollIntervalMs: raw.jira.pollIntervalMs ?? 60_000,
-      inProgressTransitionId: raw.jira.inProgressTransitionId,
-      readyForReviewTransitionId: raw.jira.readyForReviewTransitionId,
+      baseUrl: parsed.jira.baseUrl,
+      cloudId: parsed.jira.cloudId,
+      jql,
+      pollIntervalMs: parsed.jira.pollIntervalMs,
     },
-    ralph: {
-      repoPath: resolvedRepoPath,
-      devcontainerConfig: raw.ralph.devcontainerConfig,
-      agentName: raw.ralph.agentName ?? "ralph",
-      timeoutMs: raw.ralph.timeoutMs ?? 1_800_000,
-    },
+    profiles,
     output: {
-      logDir: resolve(process.cwd(), raw.output.logDir ?? "./output/logs"),
-      handoffDir: resolve(
-        process.cwd(),
-        raw.output.handoffDir ?? "./output/handoffs"
-      ),
+      logDir: resolve(process.cwd(), parsed.output?.logDir ?? "./output/logs"),
+      handoffDir: resolve(process.cwd(), parsed.output?.handoffDir ?? "./output/handoffs"),
     },
-    secrets: {
-      ghToken,
-      adoPatDocs,
-      adoPatXperience: adoPatXperience ?? "",
-      jiraPat,
-      jiraEmail,
-    },
+    dashboard,
+    secrets,
   };
 }

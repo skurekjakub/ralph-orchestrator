@@ -23,6 +23,8 @@ export interface JiraIssue {
     };
     labels?: string[];
     components?: Array<{ name: string }>;
+    /** ISO-8601 creation timestamp (e.g. `2026-01-15T10:30:00.000+0000`). */
+    created: string;
     /** Catch-all for custom fields (acceptance criteria, story points, etc.). */
     [key: string]: unknown;
   };
@@ -34,4 +36,28 @@ export interface JiraSearchResponse {
   total: number;
   maxResults: number;
   startAt: number;
+}
+
+/** A single JIRA issue comment from the `/rest/api/3/issue/{key}/comment` endpoint. */
+export interface JiraComment {
+  id: string;
+  author: { displayName: string };
+  /** ADF body — extract text for prompt inclusion. */
+  body: unknown;
+  created: string;
+}
+
+/** Paginated comment response from the JIRA REST API. */
+export interface JiraCommentResponse {
+  comments: JiraComment[];
+  total: number;
+}
+
+/** A single JIRA attachment from the issue's `fields.attachment` array. */
+export interface JiraAttachment {
+  id: string;
+  filename: string;
+  /** Direct download URL (requires auth). */
+  content: string;
+  created: string;
 }

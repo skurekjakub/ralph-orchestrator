@@ -1,16 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TaskQueue } from "../src/queue.js";
-import type { JiraIssue } from "../src/jira/types.js";
-
-function makeIssue(key: string, summary = "Test issue"): JiraIssue {
-  return {
-    key,
-    fields: {
-      summary,
-      status: { name: "New" },
-    },
-  };
-}
+import { makeIssue } from "./helpers.js";
 
 describe("TaskQueue", () => {
   it("enqueues and dequeues in FIFO order", () => {
@@ -80,6 +70,27 @@ describe("TaskQueue", () => {
 
     q.resetSeen();
     expect(q.enqueue(makeIssue("DF-1"))).toBe(true);
+    expect(q.size).toBe(1);
+  });
+
+  it("revision flag bypasses seen set for re-enqueue", () => {
+    const q = new TaskQueue();
+    q.enqueue(makeIssue("DF-1"));
+    q.dequeue();
+    q.markProcessed("DF-1");
+
+    // Without revision flag — blocked by seen set
+    expect(q.enqueue(makeIssue("DF-1"))).toBe(false);
+    // With revision flag — bypasses seen set
+    expect(q.enqueue(makeIssue("DF-1"), true)).toBe(true);
+    expect(q.size).toBe(1);
+  });
+
+  it("revision re-enqueue does not duplicate if already in queue", () => {
+    const q = new TaskQueue();
+    expect(q.enqueue(makeIssue("DF-1"), true)).toBe(true);
+    // Second revision enqueue clears seen then re-adds — but key is immediately re-seen
+    expect(q.enqueue(makeIssue("DF-1"), true)).toBe(false);
     expect(q.size).toBe(1);
   });
 });

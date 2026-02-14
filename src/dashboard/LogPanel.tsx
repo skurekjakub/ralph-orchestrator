@@ -4,12 +4,14 @@ import type { LogEntry } from "../orchestrator.js";
 
 interface LogPanelProps {
   logs: readonly LogEntry[];
+  /** Title shown at the top of the panel. Defaults to "Activity Log". */
+  title?: string;
   /** Maximum number of recent log lines to display. Defaults to 15. */
   maxLines?: number;
 }
 
 /** Scrolling activity log panel with color-coded severity (green/yellow/red). */
-export function LogPanel({ logs, maxLines = 15 }: LogPanelProps): React.ReactElement {
+export function LogPanel({ logs, title = "Activity Log", maxLines = 15 }: LogPanelProps): React.ReactElement {
   const visible = logs.slice(-maxLines);
 
   const levelColor = (level: LogEntry["level"]): string => {
@@ -48,7 +50,7 @@ export function LogPanel({ logs, maxLines = 15 }: LogPanelProps): React.ReactEle
       paddingX={1}
       height={maxLines + 2}
     >
-      <Text bold>Activity Log</Text>
+      <Text bold>{title}</Text>
       {visible.length === 0 ? (
         <Text dimColor>  Waiting for activity...</Text>
       ) : (

@@ -3,12 +3,17 @@ import { render } from "ink";
 import { App } from "./dashboard/App.js";
 import { loadConfig } from "./config.js";
 import { Orchestrator } from "./orchestrator.js";
+import { validatePrerequisites, printValidationResults } from "./validate.js";
 
 async function main(): Promise<void> {
+  const validation = await validatePrerequisites();
+  if (!printValidationResults(validation)) {
+    process.exit(1);
+  }
+
   const config = loadConfig();
   const orchestrator = new Orchestrator(config);
 
-  // Render the Ink dashboard
   const { unmount } = render(
     React.createElement(App, { orchestrator })
   );

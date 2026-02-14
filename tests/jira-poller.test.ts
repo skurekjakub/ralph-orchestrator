@@ -3,13 +3,7 @@ import { JiraPoller } from "../src/jira/poller.js";
 import type { JiraClient } from "../src/jira/client.js";
 import type { JiraConfig } from "../src/config.js";
 import type { JiraIssue } from "../src/jira/types.js";
-
-function makeIssue(key: string): JiraIssue {
-  return {
-    key,
-    fields: { summary: `Issue ${key}`, status: { name: "New" } },
-  };
-}
+import { makeIssue } from "./helpers.js";
 
 describe("JiraPoller", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
@@ -26,11 +20,8 @@ describe("JiraPoller", () => {
     config = {
       baseUrl: "https://api.atlassian.com/ex/jira",
       cloudId: "test-cloud-id",
-      project: "DF",
       jql: ['project = DF'],
       pollIntervalMs: 1000,
-      inProgressTransitionId: "141",
-      readyForReviewTransitionId: "91",
     };
 
     callback = vi.fn();
@@ -137,6 +128,34 @@ describe("JiraPoller", () => {
     expect(consoleSpy).toHaveBeenCalled();
 
     consoleSpy.mockRestore();
+    poller.stop();
+  });
+
+  it("sorts issues by creation date across multiple JQL queries", async () => {
+    const newer: JiraIssue = {
+      key: "DOC-1",
+      fields: { summary: "Newer", status: { name: "New" }, created: "2026-02-01T00:00:00.000+0000" },
+    };
+    const older: JiraIssue = {
+      key: "DF-5",
+      fields: { summary: "Older", status: { name: "New" }, created: "2025-06-15T00:00:00.000+0000" },
+    };
+
+    config.jql = ["query1", "query2"];
+    mockClient.searchIssues
+      .mockResolvedValueOnce([newer])
+      .mockResolvedValueOnce([older]);
+
+    const poller = new JiraPoller(
+      mockClient as unknown as JiraClient,
+      config,
+      callback,
+    );
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(callback).toHaveBeenCalledWith([older, newer]);
+
     poller.stop();
   });
 });
