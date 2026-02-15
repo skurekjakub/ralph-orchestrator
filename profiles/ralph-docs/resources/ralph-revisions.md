@@ -44,10 +44,11 @@ Your prompt already contains:
 
 ### Revision Phase 3: Implement Fixes
 
-Delegate to the **ralph-tech-writer** sub-agent:
-- Pass the **original task description**, the **reviewer feedback** (from JIRA comments and PR threads), and the **previous handoff** so the tech-writer has full context
-- Instruct the tech-writer that this is a **revision** — it should fix the specific issues raised, not restart from scratch
-- The tech-writer must validate the build with `npm run build` after changes
+Fix the specific issues raised by the reviewer — do NOT restart from scratch:
+
+1. **Address each feedback item** from the JIRA comments and PR threads
+2. **Preserve previous decisions** unless explicitly contradicted by feedback
+3. **Validate the build** with `npm run build` after each change
 
 ### Revision Phase 4: Review (Optional)
 

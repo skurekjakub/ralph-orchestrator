@@ -33,8 +33,9 @@ describe("JiraClient", () => {
           },
         ],
         total: 1,
-        maxResults: 20,
+        maxResults: 100,
         startAt: 0,
+        isLast: true,
       };
 
       vi.stubGlobal(
@@ -55,6 +56,39 @@ describe("JiraClient", () => {
 
       expect(issues).toHaveLength(1);
       expect(issues[0].key).toBe("DF-1");
+    });
+
+    it("auto-paginates using nextPageToken", async () => {
+      const page1 = {
+        issues: [{ key: "DF-1", fields: { summary: "A", status: { name: "New" }, created: "2026-01-01T00:00:00Z" } }],
+        total: 2,
+        maxResults: 1,
+        startAt: 0,
+        isLast: false,
+        nextPageToken: "tok-page2",
+      };
+      const page2 = {
+        issues: [{ key: "DF-2", fields: { summary: "B", status: { name: "New" }, created: "2026-01-02T00:00:00Z" } }],
+        total: 2,
+        maxResults: 1,
+        startAt: 1,
+        isLast: true,
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn()
+          .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+          .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) }),
+      );
+
+      const issues = await client.searchIssues("project = DF", 1);
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      const url2 = vi.mocked(fetch).mock.calls[1][0] as string;
+      expect(url2).toContain("nextPageToken=tok-page2");
+      expect(issues).toHaveLength(2);
+      expect(issues.map((i) => i.key)).toEqual(["DF-1", "DF-2"]);
     });
 
     it("throws on HTTP error", async () => {

@@ -213,6 +213,33 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(ops[0].status).toBe(OperationStatus.Completed);
   });
 
+  it("posts error comment when agent returns error status without throwing", async () => {
+    const issue = makeIssue("DF-150", "Agent CLI fails");
+    const deps = buildMockDeps({
+      issues: [issue],
+      comments: {
+        "DF-150": [makeComment("C1", "@docs handle this")],
+      },
+      taskResult: { status: "error", exitCode: 1, stderr: "No such agent: ralph" },
+    });
+
+    const orchestrator = new Orchestrator(deps);
+
+    await runUntil(orchestrator, () =>
+      orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    expect(deps.taskRunner.postErrorComment).toHaveBeenCalledWith(
+      "DF-150",
+      "No such agent: ralph",
+    );
+    expect(deps.taskRunner.transitionAfterAgent).not.toHaveBeenCalled();
+
+    const ops = deps.ledger.getOperations("DF-150");
+    expect(ops[0].status).toBe(OperationStatus.Completed);
+    expect(ops[0].resultStatus).toBe("error");
+  });
+
   it("handles task runner errors gracefully", async () => {
     const issue = makeIssue("DF-200", "Broken task");
     const deps = buildMockDeps({

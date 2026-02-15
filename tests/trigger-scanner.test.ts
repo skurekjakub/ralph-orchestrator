@@ -255,4 +255,146 @@ describe("TriggerScanner", () => {
     expect(planned).toBe(2);
     expect(client.getComments).toHaveBeenCalledTimes(2);
   });
+
+  it("logs scan summary with stats", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "@go now"),
+    ]);
+    const logger: Logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const scanner = new TriggerScanner(client, router, ledger, logger);
+
+    await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    const summaryCall = (logger.info as any).mock.calls.find((c: any[]) =>
+      c[0].startsWith("Trigger scan:")
+    );
+    expect(summaryCall).toBeDefined();
+    expect(summaryCall[0]).toContain("1 issues");
+    expect(summaryCall[0]).toContain("1 scanned");
+    expect(summaryCall[0]).toContain("0 unchanged");
+    expect(summaryCall[0]).toContain("1 planned");
+    expect(summaryCall[0]).toContain("1 API calls");
+  });
+
+  it("skips issues whose updated timestamp has not changed since last scan", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "no trigger here"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const issueV1 = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+
+    // First scan — fetches comments
+    await scanner.scan([issueV1], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+
+    client.getComments.mockClear();
+
+    // Second scan with same updated timestamp — skips comment fetch
+    await scanner.scan([issueV1], [profile]);
+    expect(client.getComments).not.toHaveBeenCalled();
+  });
+
+  it("re-scans issues whose updated timestamp changed", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "nothing relevant"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    await scanner.scan(
+      [makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z")],
+      [profile],
+    );
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+
+    client.getComments.mockClear();
+    client.getComments.mockResolvedValue([makeComment("C2", "@go now")]);
+
+    // Issue updated (new comment added in JIRA)
+    await scanner.scan(
+      [makeIssue("DF-100", "Test", "New", "2026-02-15T10:05:00Z")],
+      [profile],
+    );
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("always scans issues without an updated field", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "no trigger"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const issueNoUpdated = makeIssue("DF-100");
+
+    await scanner.scan([issueNoUpdated], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+
+    client.getComments.mockClear();
+
+    // Without updated field, never cached — always fetches
+    await scanner.scan([issueNoUpdated], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("clearCache forces re-scan of all issues", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "no trigger")]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+
+    await scanner.scan([issue], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+
+    client.getComments.mockClear();
+    scanner.clearCache();
+
+    await scanner.scan([issue], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cache issues that matched no profiles", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DOC"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient();
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+
+    // Issue project DF doesn't match profile project DOC — no comments fetched
+    await scanner.scan([issue], [profile]);
+    expect(client.getComments).not.toHaveBeenCalled();
+
+    // If later a profile is added for DF, the issue must be scanned
+    const profile2 = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router2 = new ProfileRouter([profile2]);
+    const client2 = makeJiraClient([makeComment("C1", "@go")]);
+    const scanner2 = new TriggerScanner(client2, router2, ledger, silentLogger);
+
+    const planned = await scanner2.scan([issue], [profile2]);
+    expect(planned).toBe(1);
+  });
 });

@@ -118,8 +118,7 @@ describe("Poller logging", () => {
       "utf-8"
     );
 
-    expect(source).toContain("Polling JIRA");
-    expect(source).toContain("No new issues found");
-    expect(source).toContain("issue(s) matching JQL");
+    expect(source).toContain("Polling");
+    expect(source).toContain("candidate issues");
   });
 });

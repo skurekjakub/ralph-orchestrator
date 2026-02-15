@@ -172,12 +172,24 @@ function validateProfiles(errors: string[], warnings: string[]): void {
       continue;
     }
 
+    const agentsDir = join(profilesDir, dirName, "agents");
+    const agentFiles = existsSync(agentsDir)
+      ? readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md"))
+      : [];
+    const availableAgents = agentFiles.map((f) => f.replace(".agent.md", ""));
+
     for (let i = 0; i < variants.length; i++) {
       const v = variants[i];
       const vPrefix = `${prefix}/variants[${i}]`;
 
       if (!v.agent) {
         errors.push(`${vPrefix}: agent name is required`);
+      } else if (agentFiles.length > 0 && !availableAgents.includes(v.agent)) {
+        errors.push(
+          `${vPrefix}: agent "${v.agent}" not found in ${prefix}/agents/\n` +
+          `  Available agents: ${availableAgents.join(", ")}\n` +
+          `  Agent files use the pattern: <name>.agent.md`
+        );
       }
 
       if (!v.match?.projects?.length) {
@@ -187,6 +199,39 @@ function validateProfiles(errors: string[], warnings: string[]): void {
       if (!v.match?.commentTrigger) {
         errors.push(`${vPrefix}: match.commentTrigger is required`);
       }
+    }
+
+    validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);
+  }
+}
+
+/**
+ * Verify that every .agent.md file in the agents/ directory has a matching
+ * volume mount in docker-compose.yml sourcing from agents/.build/<filename>.
+ */
+function validateAgentMounts(
+  composePath: string,
+  agentsDir: string,
+  agentFiles: string[],
+  prefix: string,
+  errors: string[],
+): void {
+  if (!existsSync(composePath) || agentFiles.length === 0) return;
+
+  let composeContent: string;
+  try {
+    composeContent = readFileSync(composePath, "utf-8");
+  } catch {
+    return;
+  }
+
+  for (const agentFile of agentFiles) {
+    const expectedMount = `./agents/.build/${agentFile}`;
+    if (!composeContent.includes(expectedMount)) {
+      errors.push(
+        `${prefix}: agent file "${agentFile}" has no volume mount in docker-compose.yml\n` +
+        `  Add a mount: ${expectedMount}:/workspace/.github/agents/${agentFile}:ro`
+      );
     }
   }
 }

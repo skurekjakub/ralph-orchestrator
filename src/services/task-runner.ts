@@ -73,7 +73,7 @@ export class TaskRunner {
       }
 
       this.logger.info(`Posting start comment on ${issue.key}...`);
-      const startMessage = OrchestratorComments.start(profile.agentName, profile.id);
+      const startMessage = OrchestratorComments.start(profile.displayName, profile.id);
       await withRetry(
         () =>
           this.jiraClient.addComment(
@@ -118,7 +118,7 @@ export class TaskRunner {
 
       const timeoutSec = Math.round(profile.timeoutMs / 1000);
       this.logger.info(
-        `Executing ${profile.agentName} agent for ${issue.key} (timeout: ${timeoutSec}s)...`
+        `Executing ${profile.displayName} agent for ${issue.key} (timeout: ${timeoutSec}s)...`
       );
       const result = await container.execute(issue, issueContext);
       this.logger.info(

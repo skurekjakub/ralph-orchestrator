@@ -212,7 +212,7 @@ export class Orchestrator {
         .addComment(
           issueKey,
           OrchestratorComments.staleStatus(
-            profile.agentName,
+            profile.displayName,
             issue.fields.status.name,
           ),
         )
@@ -236,7 +236,7 @@ export class Orchestrator {
       if (!result.ok) {
         const comment =
           profile.failureComment ??
-          `[Ralph-Orchestrator] ${profile.agentName} can't proceed: ${result.reason}`;
+          `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
         this.deps.ledger.transition(
           issueKey,
           operation.id,
@@ -295,6 +295,11 @@ export class Orchestrator {
 
       if (result.status === "completed" || result.status === "partial") {
         await this.deps.taskRunner.transitionAfterAgent(issue.key, profile);
+      } else if (result.status === "error" || result.status === "blocked") {
+        await this.deps.taskRunner.postErrorComment(
+          issue.key,
+          result.stderr || `Agent finished with status: ${result.status}`,
+        );
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);

@@ -25,6 +25,8 @@ export interface JiraIssue {
     components?: Array<{ name: string }>;
     /** ISO-8601 creation timestamp (e.g. `2026-01-15T10:30:00.000+0000`). */
     created: string;
+    /** ISO-8601 last-updated timestamp (set on any field/comment/transition change). */
+    updated?: string;
     /** Catch-all for custom fields (acceptance criteria, story points, etc.). */
     [key: string]: unknown;
   };
@@ -36,6 +38,10 @@ export interface JiraSearchResponse {
   total: number;
   maxResults: number;
   startAt: number;
+  /** Token-based pagination cursor (v3 search/jql endpoint). */
+  nextPageToken?: string;
+  /** Whether this is the last page of results. */
+  isLast?: boolean;
 }
 
 /** A single JIRA issue comment from the `/rest/api/3/issue/{key}/comment` endpoint. */

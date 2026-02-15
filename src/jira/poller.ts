@@ -86,12 +86,11 @@ export class JiraPoller {
         allIssues.sort((a, b) =>
           a.fields.created.localeCompare(b.fields.created)
         );
-        this.logger.info(`Found ${allIssues.length} issue(s) matching JQL`);
         this.buffer.push(...allIssues);
         this.issuesCallback?.();
-      } else {
-        this.logger.info("No new issues found");
       }
+
+      this.logger.info(`Polling for Ralph requests... ${allIssues.length} candidate issues`);
     } catch (err) {
       this.logger.error(`JIRA poll failed: ${err instanceof Error ? err.message : String(err)}`);
     }

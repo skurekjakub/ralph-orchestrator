@@ -13,10 +13,16 @@ export function makeIssue(
   key: string,
   summary = `Test issue ${key}`,
   status = "New",
+  updated?: string,
 ): JiraIssue {
   return {
     key,
-    fields: { summary, status: { name: status }, created: "2026-01-01T00:00:00.000+0000" },
+    fields: {
+      summary,
+      status: { name: status },
+      created: "2026-01-01T00:00:00.000+0000",
+      ...(updated !== undefined ? { updated } : {}),
+    },
   };
 }
 
@@ -29,6 +35,7 @@ export function makeProfile(
     repoPath: "/tmp/test-repo",
     composeFile: "profiles/ralph-default/docker-compose.yml",
     agentName: "ralph",
+    displayName: "ralph",
     cli: "copilot" as const,
     timeoutMs: 1800000,
     setupScript: "/usr/local/bin/setup.sh",

@@ -40,9 +40,13 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      "repo": "~/repositories/kentico-docs-jekyll",
      "cli": "copilot",
      "timeoutMs": 3600000,
-     "transitions": { "inProgressId": "141", "readyForReviewId": "91" },
+     "beforeAgent": { "transitionId": "141" },
+     "afterAgent": { "transitionId": "91" },
      "variants": [
-       { "agent": "ralph", "match": { "projects": ["DF"], "keywords": ["Ralph"] } }
+       {
+         "agent": "ralph.ralph",
+         "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
+       }
      ]
    }
    ```
@@ -90,8 +94,8 @@ The Ink terminal dashboard shows real-time status including container build prog
 │    ✅ DF-2704 — Custom modules (12m 14s)                 │
 │  ──────────────────────────────────────────────────────  │
 │  Orchestrator Log                                        │
-│  14:31:10 · Polling JIRA (1 queries)...                 │
-│  14:31:10 · Found 2 issue(s) matching JQL               │
+│  14:31:10 · Polling for Ralph requests... 42 candidate   │
+│             issues                                       │
 │  14:31:10 · Enqueued DF-2759: Add troubleshooting tips  │
 │  14:31:10 · Picked up DF-2759                           │
 │  14:31:11 · Using Copilot CLI (profile preference)      │
@@ -109,16 +113,17 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 
 ## How It Works
 
-1. **Polls JIRA** every 60s for issues matching JQL queries auto-generated from profile match rules
-2. **Enqueues** discovered issues (deduplicates across queries and poll cycles)
-3. **Routes to a profile** — matches the issue's project key, summary keywords, and status against profile variants (first match wins; unmatched issues are skipped)
-4. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
+1. **Polls JIRA** every 60s for issues matching JQL queries auto-generated from profile match rules. Auto-paginates to fetch all results (no truncation).
+2. **Scans comments** for trigger strings (`commentTrigger`) on matching issues. Uses cached `updated` timestamps to skip unchanged issues — only issues with new JIRA activity trigger API calls.
+3. **Plans operations** in the persistent ledger — each trigger comment is consumed exactly once per variant.
+4. **Routes to a profile** — matches the issue's project key and status against profile variants. Unmatched issues are skipped.
+5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` for the matched profile's repo
    - Runs the setup script inside the container
    - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
-   - Ralph creates a branch, runs the tech-writer → reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
+   - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
 6. **Saves** audit logs, per-task streaming log, and session transcript to `output/logs/`
 7. **Attaches** the session transcript to the JIRA issue
 8. **Stops** the container and cleans up volumes

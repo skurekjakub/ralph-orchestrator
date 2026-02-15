@@ -9,23 +9,23 @@ const PREFIX = "[Ralph-Orchestrator]";
 
 export const OrchestratorComments = {
   /** Posted when a trigger comment is discovered and an operation is queued. */
-  ack(agentName: string): string {
-    return `${PREFIX} 🤖 Got it! Queueing ${agentName} for this issue...`;
+  ack(displayName: string): string {
+    return `${PREFIX} 🤖 Got it! Queueing ${displayName} for this issue...`;
   },
 
   /** Posted when the agent starts working on an issue. */
-  start(agentName: string, profileId: string): string {
-    return `${PREFIX} 🤖 ${agentName} is starting work on this issue.\nProfile: ${profileId}`;
+  start(displayName: string, profileId: string): string {
+    return `${PREFIX} 🤖 ${displayName} is starting work on this issue.\nProfile: ${profileId}`;
   },
 
   /** Posted when a crashed operation is recovered on startup. */
-  crashRecovery(agentName: string): string {
-    return `${PREFIX} 🤖 ${agentName} crashed during the previous session. Re-trigger to retry.`;
+  crashRecovery(displayName: string): string {
+    return `${PREFIX} 🤖 ${displayName} crashed during the previous session. Re-trigger to retry.`;
   },
 
   /** Posted when the issue's status changed between planning and execution. */
-  staleStatus(agentName: string, currentStatus: string): string {
-    return `${PREFIX} 🤖 ${agentName} can't work on this issue anymore — status changed to "${currentStatus}".`;
+  staleStatus(displayName: string, currentStatus: string): string {
+    return `${PREFIX} 🤖 ${displayName} can't work on this issue anymore — status changed to "${currentStatus}".`;
   },
 
   /** Posted when the agent encounters an unrecoverable error. */

@@ -10,7 +10,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
                               docker compose exec <cli>
                                   (copilot | claude)
                                        ↓
-                              ralph meta-agent (subagents: tech-writer, reviewer)
+                              ralph meta-agent (subagents: researcher, reviewer)
                                        ↓
                               git push + ADO PR via REST API
 ```
@@ -30,7 +30,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
 | `src/config.ts` | Loads `config.json` (global settings) + `profiles/*/profile.json` (agent profiles) + `.env` secrets |
 | `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
-| `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition, attachments — both download and upload) |
+| `src/jira/client.ts` | JIRA REST API v3 client (search with auto-pagination, comment, transition, attachments — both download and upload) |
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
 | `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, statuses) |
 | `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
@@ -47,13 +47,13 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
 | `src/services/orchestrator-comments.ts` | Centralized JIRA comment templates for orchestrator messages |
 | `src/services/preflight.ts` | Named preflight check registry — validates prerequisites before agent execution |
-| `src/services/trigger-scanner.ts` | Scans issue comments for trigger strings, plans operations in the ledger, posts ack comments |
+| `src/services/trigger-scanner.ts` | Scans issue comments for trigger strings, plans operations in the ledger, posts ack comments. Caches `updated` timestamps to skip unchanged issues. |
 | `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/status; validates state before execution |
 | `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
 | `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection |
 | `src/logs/collector.ts` | Saves execution summaries to `output/` |
 | `src/util/path.ts` | Shared path resolution utility |
-| `src/validate.ts` | Config validation (profile overlaps, compose file existence) |
+| `src/validate.ts` | Config validation (profile overlaps, compose file existence, agent name verification against `.agent.md` files) |
 | `src/retry.ts` | Generic retry with exponential backoff |
 | `src/dashboard/*.tsx` | Ink (React for terminal) dashboard components (App, StatusPanel, QueuePanel, HistoryPanel, LogPanel) |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
@@ -108,13 +108,15 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 - `afterAgent.transitionId` — JIRA transition ID applied after successful execution (e.g. "Ready for Review")
 
 **Variant-level fields** (each variant expands into a separate routing entry):
-- `agent` — Copilot CLI agent name
+- `agent` — Copilot CLI agent name (must match `<name>.agent.md` file in the profile's `agents/` directory)
 - `model` — optional model override (overrides profile-level)
 - `match.projects` — JIRA project keys to match
 - `match.statuses` — only match issues in these JIRA statuses (empty = any status)
 - `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant. Required for all variants.
 
 Variants are evaluated in order (across all profiles). The orchestrator scans all comments on matching issues and plans operations for each unconsumed trigger.
+
+The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs (e.g. `ralph`).
 
 ### Dashboard
 
@@ -180,8 +182,8 @@ Currently configured target repos:
 
 ## JIRA Integration
 
-- Project: **DF**
-- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — uses projects + statuses, results deduplicated by issue key.
+- Projects: **DF**, **DOC**
+- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — uses projects + statuses, results deduplicated by issue key. Search auto-paginates (100 per page) to fetch all matching issues.
 - **Comment-triggered:** The poller discovers issues via JQL, then the orchestrator scans each issue's comments for `commentTrigger` matches. Unconsumed triggers are planned in the operation ledger.
 - On trigger discovery: posts an ack comment ("🤖 Got it! Queueing [agent]...")
 - On pickup: applies `beforeAgent` transition (if configured) + runs the agent

@@ -27,11 +27,12 @@ services:
       - ${TARGET_REPO_PATH}:/workspace
       # Ralph agent definitions (resolved from templates by the orchestrator)
       - ./agents/.build/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro
-      - ./agents/.build/ralph.tech-writer.agent.md:/workspace/.github/agents/ralph.tech-writer.agent.md:ro
-      - ./agents/.build/ralph.reviewer.agent.md:/workspace/.github/agents/ralph.reviewer.agent.md:ro
+      - ./agents/.build/ralph.ralph-researcher.agent.md:/workspace/.github/agents/ralph.ralph-researcher.agent.md:ro
+      - ./agents/.build/ralph.ralph-reviewer.agent.md:/workspace/.github/agents/ralph.ralph-reviewer.agent.md:ro
       - ./agents/.build/ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro
-      # Ralph resource files - TODO make this go away
-      - ./resources/ralph-revisions.md:/workspace/.github/resources/ralph-revisions.md:ro
+      - ./agents/.build/ralph.malph-investigator.agent.md:/workspace/.github/agents/ralph.malph-investigator.agent.md:ro
+      # Ralph resource files - mounted to gitignored folder
+      - ./resources/ralph-revisions.md:/workspace/resources/chats/ralph-revisions.md:ro
       # Shared hook scripts + audit config
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
       - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro

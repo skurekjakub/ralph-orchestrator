@@ -68,18 +68,35 @@ export class JiraClient {
     return res.json() as Promise<T>;
   }
 
-  /** Search issues using JQL (v3 /search/jql endpoint) */
-  async searchIssues(jql: string, maxResults = 20): Promise<JiraIssue[]> {
-    const params = new URLSearchParams({
-      jql,
-      maxResults: String(maxResults),
-      fields: "*all",
-    });
-    const data = await this.request<JiraSearchResponse>(
-      "GET",
-      `/rest/api/3/search/jql?${params}`
-    );
-    return data.issues;
+  /**
+   * Search issues using JQL (v3 /search/jql endpoint).
+   *
+   * Auto-paginates using `nextPageToken` until all matching issues are fetched.
+   * Uses 100 results per page to balance response size and API calls.
+   */
+  async searchIssues(jql: string, pageSize = 100): Promise<JiraIssue[]> {
+    const allIssues: JiraIssue[] = [];
+    let nextPageToken: string | undefined;
+
+    do {
+      const params = new URLSearchParams({
+        jql,
+        maxResults: String(pageSize),
+        fields: "*all",
+      });
+      if (nextPageToken) {
+        params.set("nextPageToken", nextPageToken);
+      }
+
+      const data = await this.request<JiraSearchResponse>(
+        "GET",
+        `/rest/api/3/search/jql?${params}`,
+      );
+      allIssues.push(...data.issues);
+      nextPageToken = data.isLast === false ? data.nextPageToken : undefined;
+    } while (nextPageToken);
+
+    return allIssues;
   }
 
   /** Add a comment to an issue */

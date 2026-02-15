@@ -48,7 +48,7 @@ export function LogPanel({ logs, title = "Activity Log", maxLines = 15 }: LogPan
       borderStyle="single"
       borderColor="gray"
       paddingX={1}
-      height={maxLines + 2}
+      height={maxLines + 3}
     >
       <Text bold>{title}</Text>
       {visible.length === 0 ? (

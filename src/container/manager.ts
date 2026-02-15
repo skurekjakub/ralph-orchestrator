@@ -239,11 +239,18 @@ export class ContainerManager {
     this.logger.info("Containers stopped");
   }
 
-  /** Delete the audit log directory inside the container to prepare for the next run. */
+  /**
+   * Delete the audit log directory inside the container and recreate it.
+   *
+   * The directory must exist before agent execution because the Copilot CLI
+   * `--share` flag writes the session transcript there. Without the directory,
+   * the export fails with ENOENT.
+   */
   async cleanLogs(): Promise<void> {
     const logDir = this.profile.auditLogPath.substring(0, this.profile.auditLogPath.lastIndexOf("/") + 1);
     try {
       await this.compose.exec(["app", "rm", "-rf", logDir]);
+      await this.compose.exec(["--user", "vscode", "app", "mkdir", "-p", logDir]);
     } catch {
       // non-critical
     }

@@ -81,6 +81,7 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 - Basic auth: `base64(email:apiToken)`
 - API base: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`
 - Endpoints: `search/jql`, `issue/{key}`, `issue/{key}/comment`, `issue/{key}/transitions`
+- `searchIssues()` auto-paginates using `nextPageToken` (100 per page) to fetch all matching issues
 - No SDK dependency
 
 ### Container Manager (`src/container/manager.ts`)
@@ -114,6 +115,8 @@ Main loop: poll → scan triggers → execute pending operations → repeat.
 **Dependency injection:** The `createOrchestratorDeps()` factory builds all service instances from config. The orchestrator constructor receives an `OrchestratorDeps` bag — services can be replaced with mocks in tests.
 
 **Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each profile's trigger string, and plans unconsumed triggers as pending operations in the ledger. An ack comment is posted for each new trigger.
+
+The scanner caches each issue's `updated` timestamp between cycles. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
 
 **Processing a single operation:**
 
@@ -176,7 +179,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
 │   │   └── agents/
 │   │       ├── ralph.ralph.agent.md     # Meta-agent template (with include markers)
-│   │       ├── ralph.tech-writer.agent.md
+│   │       ├── ralph.ralph-researcher.agent.md  # Research sub-agent (docs + source code)
 │   │       ├── ralph.reviewer.agent.md
 │   │       ├── ralph.malph.agent.md     # Review agent template (observer)
 │   │       └── .build/                  # Resolved agent files (generated, gitignored)
@@ -187,7 +190,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       ├── setup.sh
 │       └── agents/
 │           ├── ralph.ralph.agent.md
-│           ├── ralph.analyst.agent.md   # Analysis sub-agent (read-only, Sonnet)
+│           ├── ralph.ralph-analyst.agent.md  # Analysis sub-agent (read-only, Sonnet)
 │           ├── ralph.malph.agent.md     # Review agent template (observer)
 │           └── .build/                  # Resolved agent files (generated, gitignored)
 ├── shared/
@@ -196,6 +199,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   └── ralph-audit.json             # Hook configuration
 │   └── agent-includes/                  # Shared partial files for agent templates
 │       └── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
+│       └── ado-api.md                   # ADO REST API patterns (PR creation, threads)
 ```
 
 Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` reads agent templates, replaces markers with content from `shared/agent-includes/`, and writes resolved files to `agents/.build/`. Compose files mount from `.build/` — the templates are the source of truth.
@@ -209,9 +213,10 @@ Currently configured target repos:
 ### Agent Phases (inside container)
 
 1. **Setup** — Parse JIRA issue, `git checkout master && git pull`, create branch
-2. **Write** — Delegate to tech-writer sub-agent
-3. **Build** — Validate with `npm run build`
-4. **Review** — Delegate to reviewer sub-agent
+2. **Research** — Delegate to researcher sub-agent (explores docs + Xperience source code)
+3. **Write** — Meta-agent implements documentation changes directly
+4. **Build** — Validate with `npm run build`
+5. **Review** — Delegate to reviewer sub-agent
 5. **Revise** — Apply reviewer feedback (up to 2 cycles)
 6. **PR** — Push branch and create ADO pull request via REST API
 7. **Handoff** — Write handoff.md, attach to JIRA, post completion comment
@@ -254,19 +259,15 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
   "cli": "copilot",
   "model": "claude-opus-4.6",
   "timeoutMs": 3600000,
-  "transitions": {
-    "inProgressId": "141",
-    "readyForReviewId": "91",
-    "revisionId": "151"
-  },
+  "beforeAgent": { "transitionId": "141" },
+  "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph",
+      "agent": "ralph.ralph",
       "match": {
         "projects": ["DF"],
-        "keywords": [],
         "statuses": ["New", "To Do"],
-        "revisionStatuses": ["Defect Found"]
+        "commentTrigger": "@RalphDf"
       }
     }
   ]
@@ -275,12 +276,12 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
 
 **Variant matching:**
 - Each variant has its own `match` rules and `agent` name
-- Variants are evaluated in order, across all profiles; first match wins
+- Variants are evaluated in order, across all profiles; all matching triggers are planned
 - `match.projects` — issue project key must be in this array
-- `match.keywords` — matched case-insensitively against the issue summary; empty = catch-all
 - `match.statuses` — issue status must be in this array (case-insensitive); empty = match all
-- `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. "Defect Found")
-- No match = issue skipped with warning
+- `match.commentTrigger` — trigger string that must appear in a JIRA comment (case-insensitive)
+- Agent names must match `.agent.md` files in the profile's `agents/` directory (validated at startup)
+- No match = issue skipped
 
 **CLI selection:**
 - `cli` — `"copilot"` (default) or `"claude"` — which CLI to use for agent execution

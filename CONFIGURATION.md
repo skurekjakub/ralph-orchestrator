@@ -90,8 +90,8 @@ profiles/
   "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph",
-      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDocs" }
+      "agent": "ralph.ralph",
+      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
     }
   ]
 }
@@ -117,7 +117,7 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 
 | Field | Description |
 |---|---|
-| `variant.agent` | Agent name passed to Copilot CLI (`--agent`). Not used by Claude Code. |
+| `variant.agent` | Agent name passed to Copilot CLI (`--agent`). Must match a `<name>.agent.md` file in the profile's `agents/` directory (validated at startup). Not used by Claude Code. |
 | `variant.model` | Optional model override (overrides the profile-level `model`). |
 | `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
@@ -231,11 +231,11 @@ Multiple orchestrator instances can report to the same dashboard — each genera
   "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph",
+      "agent": "ralph.ralph",
       "match": {
         "projects": ["DF"],
         "statuses": ["New", "To Do"],
-        "commentTrigger": "@Ralph"
+        "commentTrigger": "@RalphDf"
       }
     }
   ]
@@ -254,18 +254,18 @@ Multiple orchestrator instances can report to the same dashboard — each genera
   "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph",
-      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@Ralph" }
+      "agent": "ralph.ralph",
+      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
     },
     {
-      "agent": "malph",
+      "agent": "ralph.malph",
       "match": { "projects": ["DF"], "statuses": ["Ready for Review"], "commentTrigger": "@Malph" }
     }
   ]
 }
 ```
 
-In this setup, the same Docker infrastructure serves both variants. Comments with `@Ralph` trigger the writer agent on "New"/"To Do" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
+In this setup, the same Docker infrastructure serves both variants. Comments with `@RalphDf` trigger the writer agent on "New"/"To Do" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
 
 ### Multiple Profiles (Mixed CLIs)
 
@@ -278,7 +278,7 @@ In this setup, the same Docker infrastructure serves both variants. Comments wit
   "beforeAgent": { "transitionId": "51" },
   "afterAgent": { "transitionId": "91" },
   "variants": [
-    { "agent": "ralph", "match": { "projects": ["DOC"], "commentTrigger": "@Ralph" } }
+    { "agent": "ralph.ralph", "match": { "projects": ["DOC"], "commentTrigger": "@RalphAutocomplete" } }
   ]
 }
 ```
@@ -291,7 +291,7 @@ The orchestrator validates the configuration on startup:
 
 - **Required fields:** `jira.cloudId`, at least one profile directory with valid `profile.json`, `JIRA_PAT`, `JIRA_EMAIL`
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
-- **Profile integrity:** Valid `repo` paths, unique `commentTrigger` values
+- **Profile integrity:** Valid `repo` paths, agent names match `.agent.md` files in each profile's `agents/` directory, unique `commentTrigger` values
 - **Transition IDs:** Must be valid numeric strings
 - **Profiles auto-discovered** from `profiles/*/profile.json` — the profile `id` is derived from the directory name
 

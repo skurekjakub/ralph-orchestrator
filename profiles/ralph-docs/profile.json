@@ -4,7 +4,7 @@
   "timeoutMs": 3600000,
   "variants": [
     {
-      "agent": "ralph",
+      "agent": "ralph.ralph",
       "match": {
         "projects": ["DF"],
         "statuses": ["New", "To Do", "Defect Found"],
@@ -14,7 +14,7 @@
       "afterAgent": { "transitionId": "91" }
     },
     {
-      "agent": "ralph",
+      "agent": "ralph.ralph",
       "match": {
         "projects": ["DOC"],
         "statuses": ["To Do", "Defect Found"],
@@ -24,7 +24,7 @@
       "afterAgent": { "transitionId": "91" }
     },
     {
-      "agent": "malph",
+      "agent": "ralph.malph",
       "match": {
         "projects": ["DF", "DOC"],
         "statuses": ["Ready for Review"],

@@ -94,7 +94,10 @@ export interface AgentProfile {
   repoPath: string;
   /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
   composeFile: string;
+  /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). Used as the `--agent` argument. */
   agentName: string;
+  /** Human-friendly agent name for JIRA comments and logs (strips `ralph.` prefix). */
+  displayName: string;
   /** Which CLI to use for agent execution. */
   cli: "copilot" | "claude";
   /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
@@ -196,6 +199,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         repoPath: resolvePath(parsed.repo),
         composeFile: `profiles/${profileId}/docker-compose.yml`,
         agentName: variant.agent,
+        displayName: variant.agent.replace(/^ralph\./, ""),
         cli: parsed.cli,
         model: variant.model ?? parsed.model,
         timeoutMs: parsed.timeoutMs,
