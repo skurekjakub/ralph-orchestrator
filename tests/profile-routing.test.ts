@@ -11,68 +11,40 @@ function matchProfile(
 }
 
 describe("Profile routing", () => {
-  it("matches issue to profile by keyword", async () => {
+  it("matches issue to profile by project", async () => {
     const profiles = [
-      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["RalphDocs"] } }),
-      makeProfile({ id: "ralph-vscode", match: { projects: ["DF"], keywords: ["RalphVsCode"] } }),
+      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" } }),
+      makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } }),
     ];
-    const issue = makeIssue("DF-100", "RalphDocs: Update API reference");
+    const issue = makeIssue("DF-100", "Update API reference");
     expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
-  });
-
-  it("matches case-insensitively", async () => {
-    const profiles = [
-      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["RalphDocs"] } }),
-    ];
-    const issue = makeIssue("DF-100", "ralphdocs: some task");
-    expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
-  });
-
-  it("falls through to catch-all profile (empty keywords)", async () => {
-    const profiles = [
-      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["RalphDocs"] } }),
-      makeProfile({ id: "ralph-default", match: { projects: ["DF"], keywords: [] } }),
-    ];
-    const issue = makeIssue("DF-100", "Some untagged issue");
-    expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-default");
   });
 
   it("returns null when no profile matches project", async () => {
     const profiles = [
-      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: [] } }),
+      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" } }),
     ];
-    const issue = makeIssue("XP-100", "RalphDocs: wrong project");
+    const issue = makeIssue("XP-100", "wrong project");
     expect(await matchProfile(issue, profiles)).toBeNull();
   });
 
   it("first matching profile wins (order matters)", async () => {
     const profiles = [
-      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["RalphDocs"] } }),
-      makeProfile({ id: "ralph-default", match: { projects: ["DF"], keywords: [] } }),
+      makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" } }),
+      makeProfile({ id: "ralph-default", match: { projects: ["DF"], statuses: [], commentTrigger: "@default" } }),
     ];
-    const issue = makeIssue("DF-100", "RalphDocs: should match first");
+    const issue = makeIssue("DF-100", "should match first");
     expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
   });
 
-  it("matches multiple keywords (any match wins)", async () => {
-    const profiles = [
-      makeProfile({
-        id: "ralph-multi",
-        match: { projects: ["DF"], keywords: ["RalphDocs", "RalphAPI"] },
-      }),
-    ];
-    const issue = makeIssue("DF-100", "RalphAPI: new endpoint docs");
-    expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-multi");
-  });
-
-  it("returns isRevision=false for normal status matches", async () => {
+  it("always returns isRevision=false", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: ["New"] },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
       }),
     ];
-    const result = await matchProfile(makeIssue("DF-1", "Ralph: docs", "New"), profiles);
+    const result = await matchProfile(makeIssue("DF-1", "docs", "New"), profiles);
     expect(result?.isRevision).toBe(false);
   });
 
@@ -90,10 +62,10 @@ describe("Profile status filtering", () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: ["New"] },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
       }),
     ];
-    const issue = makeIssue("DF-100", "Ralph: update docs", "New");
+    const issue = makeIssue("DF-100", "update docs", "New");
     expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
   });
 
@@ -101,21 +73,21 @@ describe("Profile status filtering", () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: ["New"] },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
       }),
     ];
-    const issue = makeIssue("DF-100", "Ralph: update docs", "In Progress");
+    const issue = makeIssue("DF-100", "update docs", "In Progress");
     expect(await matchProfile(issue, profiles)).toBeNull();
   });
 
-  it("skips status filter when statuses and revisionStatuses are both empty", async () => {
+  it("skips status filter when statuses is empty", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: [] },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
-    const issue = makeIssue("DF-100", "Ralph: update docs", "In Progress");
+    const issue = makeIssue("DF-100", "update docs", "In Progress");
     expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
   });
 
@@ -123,97 +95,41 @@ describe("Profile status filtering", () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: ["New", "TODO"] },
+        match: { projects: ["DF"], statuses: ["New", "TODO"], commentTrigger: "@ralph" },
       }),
     ];
-    expect((await matchProfile(makeIssue("DF-1", "Ralph: x", "New"), profiles))?.profile.id).toBe("ralph-docs");
-    expect((await matchProfile(makeIssue("DF-2", "Ralph: y", "TODO"), profiles))?.profile.id).toBe("ralph-docs");
-    expect(await matchProfile(makeIssue("DF-3", "Ralph: z", "Done"), profiles)).toBeNull();
+    expect((await matchProfile(makeIssue("DF-1", "x", "New"), profiles))?.profile.id).toBe("ralph-docs");
+    expect((await matchProfile(makeIssue("DF-2", "y", "TODO"), profiles))?.profile.id).toBe("ralph-docs");
+    expect(await matchProfile(makeIssue("DF-3", "z", "Done"), profiles)).toBeNull();
   });
 
   it("routes to different profiles based on status and project", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], keywords: ["Ralph"], statuses: ["New"] },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@docs" },
       }),
       makeProfile({
         id: "ralph-vscode",
-        match: { projects: ["DOC"], keywords: ["RalphVsCode"], statuses: ["TODO"] },
+        match: { projects: ["DOC"], statuses: ["TODO"], commentTrigger: "@vscode" },
       }),
     ];
 
-    expect((await matchProfile(makeIssue("DF-1", "Ralph: docs", "New"), profiles))?.profile.id).toBe("ralph-docs");
-    expect((await matchProfile(makeIssue("DOC-1", "RalphVsCode: ext", "TODO"), profiles))?.profile.id).toBe("ralph-vscode");
-    expect(await matchProfile(makeIssue("DOC-1", "RalphVsCode: ext", "New"), profiles)).toBeNull();
-    expect(await matchProfile(makeIssue("DF-1", "Ralph: docs", "TODO"), profiles)).toBeNull();
+    expect((await matchProfile(makeIssue("DF-1", "docs", "New"), profiles))?.profile.id).toBe("ralph-docs");
+    expect((await matchProfile(makeIssue("DOC-1", "ext", "TODO"), profiles))?.profile.id).toBe("ralph-vscode");
+    expect(await matchProfile(makeIssue("DOC-1", "ext", "New"), profiles)).toBeNull();
+    expect(await matchProfile(makeIssue("DF-1", "docs", "TODO"), profiles)).toBeNull();
   });
-});
 
-describe("Revision status routing", () => {
-  it("matches issue in revisionStatuses and sets isRevision=true", async () => {
+  it("matches status case-insensitively", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: {
-          projects: ["DF"],
-          keywords: ["Ralph"],
-          statuses: ["New"],
-          revisionStatuses: ["Defect Found"],
-        },
+        match: { projects: ["DF"], statuses: ["Defect Found"], commentTrigger: "@ralph" },
       }),
     ];
-    const result = await matchProfile(makeIssue("DF-1", "Ralph: docs", "Defect Found"), profiles);
+    const result = await matchProfile(makeIssue("DF-1", "docs", "defect found"), profiles);
     expect(result?.profile.id).toBe("ralph-docs");
-    expect(result?.isRevision).toBe(true);
-  });
-
-  it("does not match when status is neither in statuses nor revisionStatuses", async () => {
-    const profiles = [
-      makeProfile({
-        id: "ralph-docs",
-        match: {
-          projects: ["DF"],
-          keywords: ["Ralph"],
-          statuses: ["New"],
-          revisionStatuses: ["Defect Found"],
-        },
-      }),
-    ];
-    expect(await matchProfile(makeIssue("DF-1", "Ralph: docs", "In Progress"), profiles)).toBeNull();
-  });
-
-  it("matches case-insensitively on revisionStatuses", async () => {
-    const profiles = [
-      makeProfile({
-        id: "ralph-docs",
-        match: {
-          projects: ["DF"],
-          keywords: [],
-          statuses: [],
-          revisionStatuses: ["Defect Found"],
-        },
-      }),
-    ];
-    const result = await matchProfile(makeIssue("DF-1", "Ralph: docs", "defect found"), profiles);
-    expect(result?.profile.id).toBe("ralph-docs");
-    expect(result?.isRevision).toBe(true);
-  });
-
-  it("prefers statuses over revisionStatuses when both match", async () => {
-    const profiles = [
-      makeProfile({
-        id: "ralph-docs",
-        match: {
-          projects: ["DF"],
-          keywords: [],
-          statuses: ["Special"],
-          revisionStatuses: ["Special"],
-        },
-      }),
-    ];
-    const result = await matchProfile(makeIssue("DF-1", "Ralph: docs", "Special"), profiles);
-    expect(result?.isRevision).toBe(false);
   });
 });
 
@@ -232,7 +148,7 @@ describe("Comment trigger matching", () => {
     const profiles = [
       makeProfile({
         id: "ralph-triggered",
-        match: { projects: ["DF"], keywords: [], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
     const result = await matchWithComments(
@@ -247,7 +163,7 @@ describe("Comment trigger matching", () => {
     const profiles = [
       makeProfile({
         id: "ralph-triggered",
-        match: { projects: ["DF"], keywords: [], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
     const result = await matchWithComments(
@@ -262,7 +178,7 @@ describe("Comment trigger matching", () => {
     const profiles = [
       makeProfile({
         id: "ralph-triggered",
-        match: { projects: ["DF"], keywords: [], commentTrigger: "@Ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@Ralph" },
       }),
     ];
     const result = await matchWithComments(
@@ -273,21 +189,21 @@ describe("Comment trigger matching", () => {
     expect(result?.profile.id).toBe("ralph-triggered");
   });
 
-  it("falls through to non-triggered variant when trigger not found", async () => {
+  it("falls through to next variant when trigger not found", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-triggered",
-        match: { projects: ["DF"], keywords: ["docs"], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
       makeProfile({
         id: "ralph-catchall",
-        match: { projects: ["DF"], keywords: ["docs"] },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@catchall" },
       }),
     ];
     const result = await matchWithComments(
-      makeIssue("DF-1", "Update docs please"),
+      makeIssue("DF-1", "Some issue"),
       profiles,
-      ["No trigger here"],
+      ["@catchall handle this"],
     );
     expect(result?.profile.id).toBe("ralph-catchall");
   });
@@ -296,7 +212,7 @@ describe("Comment trigger matching", () => {
     const profiles = [
       makeProfile({
         id: "ralph-triggered",
-        match: { projects: ["DF"], keywords: [], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
     const result = await new ProfileRouter(profiles).match(makeIssue("DF-1", "Some issue"));
@@ -312,11 +228,11 @@ describe("Comment trigger matching", () => {
     const profiles = [
       makeProfile({
         id: "ralph-a",
-        match: { projects: ["DF"], keywords: ["nope"], commentTrigger: "@ralph" },
+        match: { projects: ["DOC"], statuses: [], commentTrigger: "@ralph" },
       }),
       makeProfile({
         id: "ralph-b",
-        match: { projects: ["DF"], keywords: [], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
     const result = await new ProfileRouter(profiles, fetcher).match(
@@ -326,13 +242,12 @@ describe("Comment trigger matching", () => {
     expect(fetchCount).toBe(1);
   });
 
-  it("combines commentTrigger with status and keyword filters", async () => {
+  it("combines commentTrigger with status filters", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-full",
         match: {
           projects: ["DF"],
-          keywords: ["docs"],
           statuses: ["New"],
           commentTrigger: "@ralph",
         },

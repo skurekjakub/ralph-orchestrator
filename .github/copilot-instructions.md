@@ -5,7 +5,7 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Architecture
 
 ```
-JIRA poller → in-memory queue → container lifecycle → log collection
+JIRA poller → comment discovery → operation ledger → container lifecycle → log collection
                                        ↓
                               docker compose exec <cli>
                                   (copilot | claude)
@@ -15,21 +15,23 @@ JIRA poller → in-memory queue → container lifecycle → log collection
                               git push + ADO PR via REST API
 ```
 
-**One task at a time.** The orchestrator processes a single JIRA issue before moving to the next.
+**Comment-driven.** All agent invocations are triggered by JIRA comments matching a `commentTrigger` string. The orchestrator polls JIRA for issues, scans their comments for triggers, plans operations in a persistent ledger, and executes them one at a time.
+
+**One task at a time.** The orchestrator processes a single operation before moving to the next.
 
 ## Key Components
 
 | File | Purpose |
 |---|---|
 | `src/index.tsx` | Entry point — wires orchestrator + Ink terminal dashboard |
-| `src/orchestrator.ts` | Main loop: dequeue → profile routing → JIRA transition → container exec → collect results |
+| `src/orchestrator.ts` | Main loop: comment discovery → ledger planning → execution → result recording |
 | `src/orchestrator-types.ts` | Types for orchestrator state, log entries, and completed tasks |
-| `src/queue.ts` | In-memory FIFO queue with deduplication (revision-aware) |
+| `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
 | `src/config.ts` | Loads `config.json` (global settings) + `profiles/*/profile.json` (agent profiles) + `.env` secrets |
 | `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
 | `src/jira/client.ts` | JIRA REST API v3 client (search, comment, transition, attachments — both download and upload) |
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
-| `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, keywords, statuses, revisionStatuses) |
+| `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, statuses) |
 | `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
 | `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs/transcript, stop); CLI selection |
 | `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection including `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH`) |
@@ -41,8 +43,9 @@ JIRA poller → in-memory queue → container lifecycle → log collection
 | `src/container/result-parser.ts` | Parses structured result blocks from CLI stdout |
 | `src/services/activity-log.ts` | Persistent activity log writer — daily aggregate logs + per-task streaming logs |
 | `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
-| `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/keyword/status; returns `{ profile, isRevision }` |
-| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection → error/review transitions |
+| `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/status; validates state before execution |
+| `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
+| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection |
 | `src/logs/collector.ts` | Saves execution summaries to `output/` |
 | `src/util/path.ts` | Shared path resolution utility |
 | `src/validate.ts` | Config validation (profile overlaps, compose file existence) |
@@ -96,20 +99,17 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 - `cli` — `"copilot"` (default) or `"claude"` — which CLI to use. Falls back to the other CLI if the preferred one's credential is missing.
 - `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default). Can be overridden per-variant.
 - `timeoutMs` — execution timeout
-- `transitions.inProgressId` — JIRA transition ID to move an issue to "In Progress"
-- `transitions.readyForReviewId` — JIRA transition ID to move an issue to "Ready for Review"
-- `transitions.revisionId` — (optional) transition ID for revision pickup; falls back to `inProgressId`
+- `beforeAgent.transitionId` — JIRA transition ID applied before agent execution (e.g. "In Progress")
+- `afterAgent.transitionId` — JIRA transition ID applied after successful execution (e.g. "Ready for Review")
 
 **Variant-level fields** (each variant expands into a separate routing entry):
 - `agent` — Copilot CLI agent name
 - `model` — optional model override (overrides profile-level)
 - `match.projects` — JIRA project keys to match
-- `match.keywords` — keywords matched case-insensitively against issue summary (empty = catch-all)
 - `match.statuses` — only match issues in these JIRA statuses (empty = any status)
-- `match.revisionStatuses` — statuses that trigger a revision workflow (e.g. `["Defect Found"]`). Must not overlap with `match.statuses`.
-- `match.commentTrigger` — (optional) when set, at least one JIRA comment must contain this string (case-insensitive) for the variant to match. Comments are fetched on-demand only for candidates that pass all other filters.
+- `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant. Required for all variants.
 
-Variants are evaluated in order (across all profiles); first match wins. Unmatched issues are skipped.
+Variants are evaluated in order (across all profiles). The orchestrator scans all comments on matching issues and plans operations for each unconsumed trigger.
 
 ### Dashboard
 
@@ -171,24 +171,30 @@ Currently configured target repos:
 ## JIRA Integration
 
 - Project: **DF**
-- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — multiple queries supported, results deduplicated by issue key. Both `statuses` and `revisionStatuses` are included in JQL filters.
-- On pickup: orchestrator transitions to "In Progress" + posts a start comment
-- On revision pickup: orchestrator transitions from revision status (e.g. \"Defect Found\") to \"In Progress\" using profile `transitions.revisionId` (falls back to `transitions.inProgressId`), fetches all JIRA comments + latest `handoff.md` attachment, embeds them in the prompt
-- On completion: **Ralph itself** posts a completion comment + attaches the handoff file to the JIRA issue
-- On error: orchestrator posts an error comment; the issue stays in "In Progress" for human review
+- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — uses projects + statuses, results deduplicated by issue key.
+- **Comment-triggered:** The poller discovers issues via JQL, then the orchestrator scans each issue's comments for `commentTrigger` matches. Unconsumed triggers are planned in the operation ledger.
+- On trigger discovery: posts an ack comment ("🤖 Got it! Queueing [agent]...")
+- On pickup: applies `beforeAgent` transition (if configured) + runs the agent
+- On completion: applies `afterAgent` transition (if configured); **Ralph itself** posts a completion comment + attaches the handoff file
+- On error: orchestrator posts an error comment; records error in the ledger
 - Auth: Basic (`email:apiToken`)
 - API base: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`
 - Search endpoint: `/rest/api/3/search/jql` (the old `/search` is deprecated)
 
-### Revision Workflow
+### Operation Ledger
 
-When a JIRA issue is in a `revisionStatuses` status (e.g. "Defect Found"), the orchestrator:
-1. Matches the profile with `isRevision=true` (via `ProfileRouter`)
-2. Bypasses queue dedup so the issue can be re-processed
-3. Fetches all JIRA comments (ADF → plain text) and downloads the latest `handoff.md` attachment
-4. Builds a revision-aware prompt with `Mode: REVISION` header, embedded comments, and handoff content
-5. The agent follows its Revision Workflow instead of the Standard Workflow
-6. After completion, the orchestrator transitions to "Ready for Review" as usual
+The orchestrator maintains a persistent operation ledger (`output/logs/history/<issueKey>.json`) that tracks every agent invocation through its lifecycle:
+
+```
+pending → active → completed | error
+              ↗
+rejected (invalid state, conflict, preflight fail)
+```
+
+- **Comment-trigger dedup:** Each trigger comment is consumed exactly once per variant. Repeated triggers on the same comment are ignored.
+- **Crash recovery:** On startup, any `active` operations from a previous session are marked as `error`, and a recovery comment is posted to JIRA.
+- **State re-validation:** Before executing a pending operation, the orchestrator re-fetches the issue to verify it's still in a valid status. If not, the operation is rejected.
+- **Pending operations survive restart:** They're persisted on disk and resumed after recovery.
 
 ## Output
 
@@ -199,6 +205,7 @@ After each task, the orchestrator collects:
 - `output/logs/<key>-<timestamp>-summary.json` — Execution metadata
 - `output/logs/activity-YYYY-MM-DD.log` — Persistent activity log (all sessions, never truncated)
 - `output/logs/container-YYYY-MM-DD.log` — Persistent container output log (all sessions)
+- `output/logs/history/<issueKey>.json` — Operation ledger per issue (lifecycle, dedup, audit trail)
 
 Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
 

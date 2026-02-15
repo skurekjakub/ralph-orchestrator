@@ -21,11 +21,12 @@ const VALID_GLOBAL_CONFIG = JSON.stringify({
 
 const VALID_PROFILE = JSON.stringify({
   repo: "/tmp/test-repo",
-  transitions: { inProgressId: "141", readyForReviewId: "91" },
   variants: [
     {
       agent: "ralph",
-      match: { projects: ["DF"] },
+      match: { projects: ["DF"], commentTrigger: "@ralph" },
+      beforeAgent: { transitionId: "141" },
+      afterAgent: { transitionId: "91" },
     },
   ],
 });
@@ -142,8 +143,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "~/repositories/test",
-      transitions: { inProgressId: "1", readyForReviewId: "2" },
-      variants: [{ agent: "ralph", match: { projects: ["DF"] } }],
+      variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } }],
     }));
 
     const config = loadConfig();
@@ -154,32 +154,29 @@ describe("loadConfig", () => {
     }
   });
 
-  it("rejects variants with overlapping statuses and revisionStatuses", () => {
+  it("rejects variants with missing commentTrigger", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "/tmp/test",
-      transitions: { inProgressId: "1", readyForReviewId: "2" },
       variants: [{
         agent: "ralph",
         match: {
           projects: ["DF"],
-          statuses: ["New", "To Do"],
-          revisionStatuses: ["To Do"],
+          statuses: ["New"],
         },
       }],
     }));
 
-    expect(() => loadConfig()).toThrow("statuses and revisionStatuses must not overlap");
+    expect(() => loadConfig()).toThrow("commentTrigger");
   });
 
   it("explodes multiple variants into separate profiles", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "/tmp/test",
-      transitions: { inProgressId: "1", readyForReviewId: "2" },
       variants: [
-        { agent: "ralph.docs", match: { projects: ["DOCS"], keywords: ["RalphDocs"] } },
-        { agent: "ralph", match: { projects: ["DF"], keywords: ["Ralph"] } },
+        { agent: "ralph.docs", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } },
+        { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@Ralph" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } },
       ],
     }));
 

@@ -86,19 +86,12 @@ profiles/
   "setupScript": "/usr/local/bin/setup.sh",
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
   "composeProjectLabel": "ralph-sandbox",
-  "transitions": {
-    "inProgressId": "141",
-    "readyForReviewId": "91",
-    "revisionId": "151"
-  },
+  "beforeAgent": { "transitionId": "141" },
+  "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph.docs",
-      "match": { "projects": ["DOCS"], "keywords": ["RalphDocs"], "statuses": ["To Do"] }
-    },
-    {
       "agent": "ralph",
-      "match": { "projects": ["DF"], "keywords": ["Ralph"], "statuses": ["New", "To Do"], "revisionStatuses": ["Defect Found"] }
+      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDocs" }
     }
   ]
 }
@@ -127,30 +120,41 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.agent` | Agent name passed to Copilot CLI (`--agent`). Not used by Claude Code. |
 | `variant.model` | Optional model override (overrides the profile-level `model`). |
 | `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
-| `variant.match.keywords` | Keywords matched case-insensitively against the issue summary. Empty `[]` = catch-all. |
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
-| `variant.match.revisionStatuses` | Statuses that trigger the revision workflow. Must not overlap with `statuses`. |
-| `variant.match.commentTrigger` | Optional trigger string. When set, at least one JIRA comment must contain this string (case-insensitive substring match) for the variant to match. Comments are only fetched for candidates that already pass project/status/keyword filters. |
+| `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive substring match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. |
 
-**Matching order:** Variants are evaluated in order, across all profiles. The first match wins. If no variant matches, the issue is skipped with a warning.
+**Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
-**Catch-all pattern:** To match all issues in a project regardless of summary, use `"keywords": []`.
-
-**Comment trigger:** Use `commentTrigger` when you want issues to be picked up only after a human explicitly requests it (e.g. `"commentTrigger": "@ralph"`). The trigger combines with all other filters — it's an additional AND condition, not a replacement.
+**Comment trigger dedup:** Each trigger comment is consumed exactly once per variant. The orchestrator tracks consumed comment IDs in the operation ledger. Repeated triggers on the same comment are ignored. Post a new trigger comment to request another invocation.
 
 #### Transitions
 
 | Field | Description |
 |---|---|
-| `transitions.inProgressId` | JIRA transition ID to move the issue to "In Progress" |
-| `transitions.readyForReviewId` | JIRA transition ID to move the issue to "Ready for Review" |
-| `transitions.revisionId` | Transition ID for revision pickup. Falls back to `inProgressId` if not set. |
+| `beforeAgent.transitionId` | JIRA transition ID applied before the agent runs (e.g. "In Progress") |
+| `afterAgent.transitionId` | JIRA transition ID applied after successful completion (e.g. "Ready for Review") |
+
+Both are optional — omit or leave empty (`{}`) to skip transitions (useful for observer agents that don't change issue state).
 
 **Finding transition IDs:** Use the JIRA REST API:
 ```bash
 curl -u "$JIRA_EMAIL:$JIRA_PAT" \
   "https://api.atlassian.com/ex/jira/<cloudId>/rest/api/3/issue/<issue-key>/transitions"
 ```
+
+#### Operation Ledger
+
+The orchestrator tracks every agent invocation in a persistent per-issue JSON file at `output/logs/history/<issueKey>.json`. Operations go through lifecycle states:
+
+```
+pending → active → completed | error
+                ↗
+rejected (invalid state, preflight fail)
+```
+
+- **Crash recovery:** On startup, `active` operations are marked as `error` and a recovery comment is posted to JIRA.
+- **Pending operations survive restart:** They're persisted on disk and resumed after recovery.
+- **State re-validation:** Before executing, the orchestrator re-fetches the issue to verify it's still in a valid status.
 
 #### CLI Selection
 

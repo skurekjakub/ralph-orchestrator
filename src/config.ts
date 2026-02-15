@@ -37,22 +37,22 @@ const configFileSchema = z.object({
 
 const profileMatchSchema = z.object({
   projects: z.array(z.string()).default([]),
-  keywords: z.array(z.string()).default([]),
   statuses: z.array(z.string()).default([]),
-  revisionStatuses: z.array(z.string()).default([]),
-  commentTrigger: z.string().optional(),
+  commentTrigger: z.string().min(1, "match.commentTrigger is required"),
 });
 
-const profileTransitionsSchema = z.object({
-  inProgressId: z.string().min(1, "transitions.inProgressId is required"),
-  readyForReviewId: z.string().min(1, "transitions.readyForReviewId is required"),
-  revisionId: z.string().optional(),
-});
+const agentTransitionSchema = z.object({
+  transitionId: z.string().optional(),
+}).default({});
 
 const variantSchema = z.object({
   agent: z.string().min(1, "variant agent must not be empty"),
   model: z.string().optional(),
   match: profileMatchSchema,
+  beforeAgent: agentTransitionSchema,
+  afterAgent: agentTransitionSchema,
+  preflight: z.string().optional(),
+  failureComment: z.string().optional(),
 });
 
 const profileFileSchema = z.object({
@@ -63,7 +63,6 @@ const profileFileSchema = z.object({
   setupScript: z.string().default("/usr/local/bin/setup.sh"),
   auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
   composeProjectLabel: z.string().default("ralph-sandbox"),
-  transitions: profileTransitionsSchema,
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });
 
@@ -80,22 +79,14 @@ export interface JiraConfig {
 
 export interface ProfileMatch {
   projects: string[];
-  keywords: string[];
   statuses: string[];
-  /** Statuses that trigger a revision workflow (e.g. "Defect Found"). Issues in these statuses bypass queue dedup. */
-  revisionStatuses: string[];
-  /** When set, at least one comment on the issue must contain this string (case-insensitive) for the variant to match. */
-  commentTrigger?: string;
+  /** Comment trigger string — at least one comment must contain this (case-insensitive) for the variant to match. */
+  commentTrigger: string;
 }
 
-/** JIRA transition IDs for this profile's workflow. */
-export interface ProfileTransitions {
-  /** Transition ID to move an issue to "In Progress". */
-  inProgressId: string;
-  /** Transition ID to move an issue to "Ready for Review". */
-  readyForReviewId: string;
-  /** Transition ID for moving a revision issue (e.g. "Defect Found") to "In Progress". Falls back to `inProgressId`. */
-  revisionId?: string;
+/** Optional JIRA transition to execute before or after agent work. Empty = no transition (observer). */
+export interface AgentTransition {
+  transitionId?: string;
 }
 
 export interface AgentProfile {
@@ -116,7 +107,14 @@ export interface AgentProfile {
   /** Docker compose project label for container lookup. */
   composeProjectLabel: string;
   match: ProfileMatch;
-  transitions: ProfileTransitions;
+  /** JIRA transition to execute before agent work. Empty = no transition. */
+  beforeAgent: AgentTransition;
+  /** JIRA transition to execute after agent work. Empty = no transition. */
+  afterAgent: AgentTransition;
+  /** Named preflight check to run before agent invocation. If it fails, the agent is not invoked. */
+  preflight?: string;
+  /** JIRA comment posted when preflight fails. Falls back to a generic message. */
+  failureComment?: string;
 }
 
 export interface OutputConfig {
@@ -192,13 +190,6 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
 
     for (let vi = 0; vi < parsed.variants.length; vi++) {
       const variant = parsed.variants[vi];
-      const statusSet = new Set(variant.match.statuses.map((s) => s.toLowerCase()));
-      const overlap = variant.match.revisionStatuses.filter((s) => statusSet.has(s.toLowerCase()));
-      if (overlap.length > 0) {
-        throw new Error(
-          `Profile "${profileId}" variant "${variant.agent}": statuses and revisionStatuses must not overlap — found in both: ${overlap.join(", ")}`
-        );
-      }
 
       profiles.push({
         id: profileId,
@@ -213,15 +204,13 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         composeProjectLabel: parsed.composeProjectLabel,
         match: {
           projects: variant.match.projects,
-          keywords: variant.match.keywords,
           statuses: variant.match.statuses,
-          revisionStatuses: variant.match.revisionStatuses,
+          commentTrigger: variant.match.commentTrigger,
         },
-        transitions: {
-          inProgressId: parsed.transitions.inProgressId,
-          readyForReviewId: parsed.transitions.readyForReviewId,
-          revisionId: parsed.transitions.revisionId,
-        },
+        beforeAgent: variant.beforeAgent,
+        afterAgent: variant.afterAgent,
+        preflight: variant.preflight,
+        failureComment: variant.failureComment,
       });
     }
   }

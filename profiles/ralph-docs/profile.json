@@ -2,28 +2,33 @@
   "repo": "~/repositories/kentico-docs-jekyll",
   "cli": "copilot",
   "timeoutMs": 3600000,
-  "transitions": {
-    "inProgressId": "141",
-    "readyForReviewId": "91",
-    "revisionId": "141"
-  },
   "variants": [
     {
       "agent": "ralph",
       "match": {
         "projects": ["DF"],
-        "keywords": ["RalphDf"],
-        "statuses": ["New", "To Do"],
-        "revisionStatuses": ["Defect Found"]
-      }
+        "statuses": ["New", "To Do", "Defect Found"],
+        "commentTrigger": "@RalphDf"
+      },
+      "beforeAgent": { "transitionId": "141" },
+      "afterAgent": { "transitionId": "91" }
     },
     {
       "agent": "ralph",
-      "match": { 
+      "match": {
         "projects": ["DOC"],
-        "keywords": ["RalphDocs"],
-        "statuses": ["To Do"],
-        "revisionStatuses": ["Defect Found"]
+        "statuses": ["To Do", "Defect Found"],
+        "commentTrigger": "@RalphDocs"
+      },
+      "beforeAgent": { "transitionId": "141" },
+      "afterAgent": { "transitionId": "91" }
+    },
+    {
+      "agent": "malph",
+      "match": {
+        "projects": ["DF", "DOC"],
+        "statuses": ["Ready for Review"],
+        "commentTrigger": "@Malph"
       }
     }
   ]

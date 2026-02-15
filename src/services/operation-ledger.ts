@@ -1,0 +1,287 @@
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  readdirSync,
+} from "node:fs";
+import { join, dirname } from "node:path";
+import { randomUUID } from "node:crypto";
+
+/** Operation lifecycle state. */
+export enum OperationStatus {
+  Pending = "pending",
+  Active = "active",
+  Completed = "completed",
+  Error = "error",
+  Rejected = "rejected",
+}
+
+/** A single recorded agent operation on a JIRA issue. */
+export interface Operation {
+  /** Unique operation ID. */
+  id: string;
+  /** Composite variant identifier: `<profileId>:<agentName>`. */
+  variant: string;
+  /** The JIRA comment ID that triggered this operation. */
+  triggerCommentId: string;
+  /** ISO 8601 timestamp of the JIRA comment that triggered this operation. */
+  commentTimestamp: string;
+  /** ISO 8601 timestamp when the orchestrator discovered this trigger. */
+  discoveredAt: string;
+  /** Current lifecycle state. */
+  status: OperationStatus;
+  /** ISO 8601 timestamp when the operation reached a terminal state. */
+  completedAt?: string;
+  /** Human-readable reason for `rejected` or `error` status. */
+  reason?: string;
+  /** Result status from the agent (e.g. "completed", "partial"). Only set on terminal states. */
+  resultStatus?: string;
+}
+
+/** On-disk structure for a single issue's operation history. */
+interface LedgerFile {
+  operations: Operation[];
+}
+
+/**
+ * Persistent per-issue operation history.
+ *
+ * Each issue gets a JSON file in `<historyDir>/<issueKey>.json` that tracks
+ * every agent invocation through its lifecycle:
+ *
+ * ```
+ * pending → active → completed | error
+ *                ↗
+ * rejected (invalid state, conflict, preflight fail)
+ * ```
+ *
+ * Used for:
+ * - **Comment-trigger dedup:** Which trigger comments have been consumed?
+ * - **Lifecycle tracking:** What's pending? What's active?
+ * - **Crash recovery:** Find active operations on startup and mark as error.
+ * - **Audit trail:** Full history of agent operations per issue.
+ *
+ * Writes are atomic (write to temp file, then rename) to avoid corruption.
+ */
+export class OperationLedger {
+  constructor(private historyDir: string) {
+    if (!existsSync(historyDir)) {
+      mkdirSync(historyDir, { recursive: true });
+    }
+  }
+
+  /**
+   * Plan a new operation (record as `pending`).
+   * Returns the operation ID.
+   */
+  plan(
+    issueKey: string,
+    opts: {
+      variant: string;
+      triggerCommentId: string;
+      commentTimestamp: string;
+    },
+  ): string {
+    const op: Operation = {
+      id: randomUUID(),
+      variant: opts.variant,
+      triggerCommentId: opts.triggerCommentId,
+      commentTimestamp: opts.commentTimestamp,
+      discoveredAt: new Date().toISOString(),
+      status: OperationStatus.Pending,
+    };
+    const ledger = this.read(issueKey);
+    ledger.operations.push(op);
+    this.write(issueKey, ledger);
+    return op.id;
+  }
+
+  /**
+   * Reject a trigger comment immediately (no agent invocation).
+   * Records a `rejected` operation in the ledger.
+   */
+  reject(
+    issueKey: string,
+    opts: {
+      variant: string;
+      triggerCommentId: string;
+      commentTimestamp: string;
+      reason: string;
+    },
+  ): void {
+    const op: Operation = {
+      id: randomUUID(),
+      variant: opts.variant,
+      triggerCommentId: opts.triggerCommentId,
+      commentTimestamp: opts.commentTimestamp,
+      discoveredAt: new Date().toISOString(),
+      status: OperationStatus.Rejected,
+      completedAt: new Date().toISOString(),
+      reason: opts.reason,
+    };
+    const ledger = this.read(issueKey);
+    ledger.operations.push(op);
+    this.write(issueKey, ledger);
+  }
+
+  /** Transition an operation to a new status. */
+  transition(
+    issueKey: string,
+    operationId: string,
+    to: OperationStatus,
+    extra?: {
+      reason?: string;
+      resultStatus?: string;
+    },
+  ): void {
+    const ledger = this.read(issueKey);
+    const op = ledger.operations.find((o) => o.id === operationId);
+    if (!op) return;
+
+    op.status = to;
+    if (
+      to === OperationStatus.Completed ||
+      to === OperationStatus.Error ||
+      to === OperationStatus.Rejected
+    ) {
+      op.completedAt = new Date().toISOString();
+    }
+    if (extra?.reason) op.reason = extra.reason;
+    if (extra?.resultStatus) op.resultStatus = extra.resultStatus;
+    this.write(issueKey, ledger);
+  }
+
+  /** Get all operations recorded for an issue. */
+  getOperations(issueKey: string): readonly Operation[] {
+    return this.read(issueKey).operations;
+  }
+
+  /** Get all pending operations for an issue, sorted by comment timestamp. */
+  getPending(issueKey: string): readonly Operation[] {
+    return this.read(issueKey)
+      .operations.filter((op) => op.status === OperationStatus.Pending)
+      .sort((a, b) => a.commentTimestamp.localeCompare(b.commentTimestamp));
+  }
+
+  /** Get the active operation for an issue (at most one). */
+  getActive(issueKey: string): Operation | undefined {
+    return this.read(issueKey).operations.find(
+      (op) => op.status === OperationStatus.Active,
+    );
+  }
+
+  /** Check if a specific trigger comment has already been consumed by a variant. */
+  isConsumed(
+    issueKey: string,
+    variant: string,
+    triggerCommentId: string,
+  ): boolean {
+    return this.read(issueKey).operations.some(
+      (op) =>
+        op.variant === variant && op.triggerCommentId === triggerCommentId,
+    );
+  }
+
+  /** Get all consumed trigger comment IDs for a variant on an issue. */
+  getConsumedTriggerIds(issueKey: string, variant: string): Set<string> {
+    const ids = new Set<string>();
+    for (const op of this.read(issueKey).operations) {
+      if (op.variant === variant && op.triggerCommentId) {
+        ids.add(op.triggerCommentId);
+      }
+    }
+    return ids;
+  }
+
+  /** Check if any operation on this issue is active or pending. */
+  hasPendingOrActive(issueKey: string): boolean {
+    return this.read(issueKey).operations.some(
+      (op) =>
+        op.status === OperationStatus.Pending ||
+        op.status === OperationStatus.Active,
+    );
+  }
+
+  /**
+   * Crash recovery: find all active operations across all issue ledgers,
+   * mark them as `error`, and return the affected issue keys + operation details.
+   */
+  recoverActiveOperations(): Array<{ issueKey: string; operation: Operation }> {
+    const recovered: Array<{ issueKey: string; operation: Operation }> = [];
+
+    if (!existsSync(this.historyDir)) return recovered;
+
+    const files = readdirSync(this.historyDir).filter((f) =>
+      f.endsWith(".json"),
+    );
+    for (const file of files) {
+      const issueKey = file.replace(".json", "");
+      const ledger = this.read(issueKey);
+      let changed = false;
+
+      for (const op of ledger.operations) {
+        if (op.status === OperationStatus.Active) {
+          op.status = OperationStatus.Error;
+          op.completedAt = new Date().toISOString();
+          op.reason = "Orchestrator restarted while operation was active";
+          recovered.push({ issueKey, operation: { ...op } });
+          changed = true;
+        }
+      }
+
+      if (changed) this.write(issueKey, ledger);
+    }
+
+    return recovered;
+  }
+
+  /**
+   * Get all pending operations across all issue ledgers, sorted by comment timestamp.
+   * Used on startup to resume pending work after restart.
+   */
+  getAllPending(): Array<{ issueKey: string; operation: Operation }> {
+    const pending: Array<{ issueKey: string; operation: Operation }> = [];
+
+    if (!existsSync(this.historyDir)) return pending;
+
+    const files = readdirSync(this.historyDir).filter((f) =>
+      f.endsWith(".json"),
+    );
+    for (const file of files) {
+      const issueKey = file.replace(".json", "");
+      for (const op of this.getPending(issueKey)) {
+        pending.push({ issueKey, operation: op });
+      }
+    }
+
+    return pending.sort((a, b) =>
+      a.operation.commentTimestamp.localeCompare(b.operation.commentTimestamp),
+    );
+  }
+
+  private filePath(issueKey: string): string {
+    return join(this.historyDir, `${issueKey}.json`);
+  }
+
+  private read(issueKey: string): LedgerFile {
+    const path = this.filePath(issueKey);
+    if (!existsSync(path)) return { operations: [] };
+    try {
+      return JSON.parse(readFileSync(path, "utf-8")) as LedgerFile;
+    } catch {
+      return { operations: [] };
+    }
+  }
+
+  private write(issueKey: string, ledger: LedgerFile): void {
+    const path = this.filePath(issueKey);
+    const dir = dirname(path);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+    const tmp = `${path}.tmp`;
+    writeFileSync(tmp, JSON.stringify(ledger, null, 2) + "\n", "utf-8");
+    renameSync(tmp, path);
+  }
+}

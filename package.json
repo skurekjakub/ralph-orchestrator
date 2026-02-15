@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.tsx",
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "start": "npm run validate && npm run build && node dist/index.js",
     "validate": "tsx scripts/validate.ts",
     "setup": "npm install && npm run validate",

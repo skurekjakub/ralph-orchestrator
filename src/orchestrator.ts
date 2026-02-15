@@ -4,18 +4,27 @@ import { execa } from "execa";
 import type { AppConfig, AgentProfile } from "./config.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraPoller } from "./jira/poller.js";
-import { TaskQueue } from "./queue.js";
 import { LogCollector } from "./logs/collector.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
-import type { CommentFetcher } from "./services/profile-router.js";
 import { extractAdfText } from "./jira/field-extractor.js";
 import { TaskRunner } from "./services/task-runner.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
+import { OperationLedger, OperationStatus } from "./services/operation-ledger.js";
+import type { Operation } from "./services/operation-ledger.js";
+import { OrchestratorComments } from "./services/orchestrator-comments.js";
 import { ContainerManager } from "./container/manager.js";
 import { sleep } from "./retry.js";
-import type { JiraIssue } from "./jira/types.js";
+import type { JiraIssue, JiraComment } from "./jira/types.js";
 import type { OrchestratorState, CompletedTask } from "./orchestrator-types.js";
+
+/** Flattened trigger: one trigger comment matched to one variant. */
+interface DiscoveredTrigger {
+  issue: JiraIssue;
+  profile: AgentProfile;
+  comment: JiraComment;
+  commentText: string;
+}
 
 /**
  * Main orchestration loop.
@@ -37,11 +46,14 @@ import type { OrchestratorState, CompletedTask } from "./orchestrator-types.js";
 export class Orchestrator {
   private jiraClient: JiraClient;
   private poller: JiraPoller;
-  private queue: TaskQueue;
   private activityLog: ActivityLog;
   private router: ProfileRouter;
   private taskRunner: TaskRunner;
+  private ledger: OperationLedger;
   private heartbeat: HeartbeatSender | null = null;
+
+  /** Issues discovered in the latest poll cycle, awaiting comment scanning. */
+  private discoveredIssues: JiraIssue[] = [];
 
   private busy = false;
   private running = false;
@@ -62,22 +74,13 @@ export class Orchestrator {
     const logger = this.activityLog.createLogger();
     const containerLogger = this.activityLog.createContainerLogger();
 
-    const commentFetcher: CommentFetcher = async (issueKey) => {
-      const comments = await this.jiraClient.getComments(issueKey);
-      return comments.map((c) => {
-        return typeof c.body === "string" ? c.body : extractAdfText(c.body);
-      });
-    };
-
-    this.router = new ProfileRouter(config.profiles, commentFetcher);
+    this.router = new ProfileRouter(config.profiles);
 
     this.jiraClient = new JiraClient(
       config.jira,
       config.secrets.jiraEmail,
       config.secrets.jiraPat
     );
-
-    this.queue = new TaskQueue();
 
     this.poller = new JiraPoller(
       this.jiraClient,
@@ -88,6 +91,7 @@ export class Orchestrator {
 
     const logCollector = new LogCollector(config.output);
     this.taskRunner = new TaskRunner(config, this.jiraClient, logCollector, logger, containerLogger);
+    this.ledger = new OperationLedger(join(config.output.logDir, "history"));
 
     if (config.dashboard.enabled) {
       this.heartbeat = new HeartbeatSender(
@@ -106,6 +110,7 @@ export class Orchestrator {
 
   /** Get current state snapshot. */
   getState(): OrchestratorState {
+    const pendingOps = this.ledger.getAllPending();
     return {
       status: !this.running
         ? "stopping"
@@ -121,8 +126,11 @@ export class Orchestrator {
       currentProfile: this.currentProfileId,
       startedAt: this.workStartedAt,
       completedToday: [...this.completedToday],
-      queueSize: this.queue.size,
-      queueItems: this.queue.items,
+      queueSize: pendingOps.length,
+      queueItems: pendingOps.map((p) => ({
+        key: p.issueKey,
+        summary: p.operation.variant,
+      })),
       logs: this.activityLog.entries,
       orchestratorLogs: this.activityLog.entries.filter((e) => e.source !== "container"),
       containerLogs: this.activityLog.entries.filter((e) => e.source === "container"),
@@ -148,19 +156,36 @@ export class Orchestrator {
     this.log(`JQL queries: ${this.config.jira.jql.length}`);
     this.log(`Agent profiles: ${this.router.profileIds.join(", ")}`);
 
+    const recovered = this.ledger.recoverActiveOperations();
+    for (const { issueKey, operation } of recovered) {
+      this.warn(
+        `Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`
+      );
+      await this.jiraClient.addComment(
+        issueKey,
+        OrchestratorComments.crashRecovery(operation.variant.split(":")[1])
+      ).catch(() => {});
+    }
+
     while (this.running) {
       if (this.busy) {
         await sleep(5000);
         continue;
       }
 
-      const issue = this.queue.dequeue();
-      if (!issue) {
+      if (this.discoveredIssues.length > 0) {
+        const issues = this.discoveredIssues.splice(0);
+        await this.scanForTriggers(issues);
+      }
+
+      const pending = this.ledger.getAllPending();
+      if (pending.length === 0) {
         await sleep(5000);
         continue;
       }
 
-      await this.processIssue(issue);
+      const next = pending[0];
+      await this.executeOperation(next.issueKey, next.operation);
     }
 
     this.poller.stop();
@@ -189,35 +214,147 @@ export class Orchestrator {
     this.log("Shutdown complete");
   }
 
-  /** Process a single issue: route -> run -> track. */
-  private async processIssue(issue: JiraIssue): Promise<void> {
-    this.busy = true;
-    this.currentIssue = issue;
-    this.workStartedAt = Date.now();
-    this.emitState();
+  /**
+   * Scan polled issues for trigger comments and plan operations in the ledger.
+   *
+   * For each issue, fetches comments once, then checks each variant's
+   * commentTrigger against the comments. Unconsumed triggers get planned
+   * as pending operations; already-consumed triggers are skipped.
+   */
+  private async scanForTriggers(issues: JiraIssue[]): Promise<void> {
+    let planned = 0;
 
-    this.log(`Picked up ${issue.key}: ${issue.fields.summary}`);
+    for (const issue of issues) {
+      let comments: JiraComment[] | null = null;
 
-    const matchResult = await this.router.match(issue);
-    if (!matchResult) {
-      this.warn(`No matching profile for ${issue.key} -- skipping`);
-      this.resetTaskState(issue.key);
+      for (const profile of this.config.profiles) {
+        const trigger = profile.match.commentTrigger;
+        if (!trigger) continue;
+
+        if (!this.router.matchesProjectAndStatus(issue, profile)) continue;
+
+        if (!comments) {
+          try {
+            comments = await this.jiraClient.getComments(issue.key);
+          } catch (err) {
+            this.warn(
+              `Failed to fetch comments for ${issue.key}: ${err instanceof Error ? err.message : String(err)}`
+            );
+            comments = [];
+          }
+        }
+
+        const variant = `${profile.id}:${profile.agentName}`;
+        const consumedIds = this.ledger.getConsumedTriggerIds(issue.key, variant);
+
+        for (const comment of comments) {
+          if (consumedIds.has(comment.id)) continue;
+
+          const text = typeof comment.body === "string"
+            ? comment.body
+            : extractAdfText(comment.body);
+
+          if (!text.toLowerCase().includes(trigger.toLowerCase())) continue;
+
+          this.ledger.plan(issue.key, {
+            variant,
+            triggerCommentId: comment.id,
+            commentTimestamp: comment.created,
+          });
+
+          planned++;
+          this.log(
+            `Planned ${variant} on ${issue.key} (trigger comment ${comment.id})`
+          );
+
+          await this.jiraClient.addComment(
+            issue.key,
+            OrchestratorComments.ack(profile.agentName)
+          ).catch((err) => {
+            this.warn(`Failed to post ack comment on ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
+          });
+        }
+      }
+    }
+
+    if (planned > 0) this.emitState();
+  }
+
+  /**
+   * Execute a single pending operation: transition → agent → record result.
+   *
+   * Re-validates the issue's current JIRA status before executing — if the
+   * status changed since planning, the operation is rejected.
+   */
+  private async executeOperation(issueKey: string, operation: Operation): Promise<void> {
+    const profile = this.config.profiles.find(
+      (p) => `${p.id}:${p.agentName}` === operation.variant
+    );
+    if (!profile) {
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+        reason: `Profile ${operation.variant} no longer exists`,
+      });
       return;
     }
 
-    const { profile, isRevision } = matchResult;
+    let issue: JiraIssue;
+    try {
+      const results = await this.jiraClient.searchIssues(`key = ${issueKey}`, 1);
+      if (results.length === 0) {
+        this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+          reason: "Issue not found in JIRA",
+        });
+        return;
+      }
+      issue = results[0];
+    } catch (err) {
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+        reason: `Failed to fetch issue: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      return;
+    }
+
+    if (!this.router.matchesProjectAndStatus(issue, profile)) {
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Rejected, {
+        reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
+      });
+      await this.jiraClient.addComment(
+        issueKey,
+        OrchestratorComments.staleStatus(profile.agentName, issue.fields.status.name)
+      ).catch(() => {});
+      return;
+    }
+
+    if (profile.preflight) {
+      const { buildPreflightContext, runPreflight } = await import("./services/preflight.js");
+      const comments = await this.jiraClient.getComments(issueKey).catch(() => []);
+      const ctx = await buildPreflightContext(this.jiraClient, issueKey, comments);
+      const result = runPreflight(profile.preflight, issue, ctx);
+      if (!result.ok) {
+        const comment = profile.failureComment
+          ?? `[Ralph-Orchestrator] ${profile.agentName} can't proceed: ${result.reason}`;
+        this.ledger.transition(issueKey, operation.id, OperationStatus.Rejected, {
+          reason: `preflight:${profile.preflight} — ${result.reason}`,
+        });
+        await this.jiraClient.addComment(issueKey, comment).catch(() => {});
+        this.log(`Preflight failed for ${issue.key} (${profile.preflight}): ${result.reason}`);
+        return;
+      }
+    }
+
+    this.busy = true;
+    this.currentIssue = issue;
     this.currentProfileId = profile.id;
     this.currentProfile = profile;
+    this.workStartedAt = Date.now();
     this.emitState();
-    this.log(
-      `Matched profile: ${profile.id} (repo: ${profile.repoPath}, agent: ${profile.agentName})${
-        isRevision ? " [REVISION]" : ""
-      }`
-    );
+
+    this.log(`Picked up ${issue.key}: ${issue.fields.summary} (${operation.variant})`);
+    this.ledger.transition(issueKey, operation.id, OperationStatus.Active);
 
     try {
       this.activityLog.startTaskLog(issue.key);
-      const { result, container } = await this.taskRunner.run(issue, profile, isRevision);
+      const { result, container } = await this.taskRunner.run(issue, profile);
       this.activeContainer = container;
 
       this.completedToday.push({
@@ -234,8 +371,12 @@ export class Orchestrator {
         `Done ${issue.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`
       );
 
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Completed, {
+        resultStatus: result.status,
+      });
+
       if (result.status === "completed" || result.status === "partial") {
-        await this.taskRunner.transitionToReview(issue.key, profile);
+        await this.taskRunner.transitionAfterAgent(issue.key, profile);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -250,11 +391,15 @@ export class Orchestrator {
         completedAt: Date.now(),
       });
 
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+        reason: errorMsg,
+      });
+
       await this.taskRunner.postErrorComment(issue.key, errorMsg);
     } finally {
       this.activityLog.endTaskLog();
       await this.teardownContainer(profile);
-      this.resetTaskState(issue.key);
+      this.resetTaskState();
     }
   }
 
@@ -297,32 +442,23 @@ export class Orchestrator {
   }
 
   /** Reset all per-task state and emit an update. */
-  private resetTaskState(issueKey: string): void {
+  private resetTaskState(): void {
     this.busy = false;
     this.currentIssue = null;
     this.currentProfileId = null;
     this.currentProfile = null;
     this.activeContainer = null;
     this.workStartedAt = null;
-    this.queue.markProcessed(issueKey);
     this.emitState();
   }
 
+  /**
+   * Poller callback — stashes discovered issues for the main loop to scan.
+   * Comment fetching happens in the main loop (not inside the poller callback)
+   * so we don't block the poller with many sequential API calls.
+   */
   private async onIssuesFound(issues: JiraIssue[]): Promise<void> {
-    let added = 0;
-    for (const issue of issues) {
-      const matchResult = await this.router.match(issue);
-      const isRevision = matchResult?.isRevision ?? false;
-      if (this.queue.enqueue(issue, isRevision)) {
-        added++;
-        this.log(
-          `Enqueued ${issue.key}: ${issue.fields.summary}${isRevision ? " [revision]" : ""}`
-        );
-      }
-    }
-    if (added > 0) {
-      this.emitState();
-    }
+    this.discoveredIssues.push(...issues);
   }
 
   private emitState(): void {
@@ -346,7 +482,7 @@ export class Orchestrator {
       agentId: this.agentId,
       status: (!this.running ? "stopped" : this.busy ? "working" : "polling") as
         "idle" | "working" | "building" | "polling" | "stopped",
-      queueSize: this.queue.size,
+      queueSize: this.ledger.getAllPending().length,
       currentTask: this.currentIssue?.key ?? null,
       currentTaskStartedAt: this.workStartedAt
         ? new Date(this.workStartedAt).toISOString()

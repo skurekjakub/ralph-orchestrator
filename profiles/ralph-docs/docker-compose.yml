@@ -26,9 +26,11 @@ services:
       # Target repo workspace
       - ${TARGET_REPO_PATH}:/workspace
       # Ralph agent definitions (individual file mounts — preserves non-Ralph agents)
-      - ./agents/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro
+      - ./agents/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro
       - ./agents/ralph.tech-writer.agent.md:/workspace/.github/agents/ralph.tech-writer.agent.md:ro
       - ./agents/ralph.reviewer.agent.md:/workspace/.github/agents/ralph.reviewer.agent.md:ro
+      - ./agents/ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro
+      # Ralph resource files - TODO make this go away
       - ./resources/ralph-revisions.md:/workspace/.github/resources/ralph-revisions.md:ro
       # Shared hook scripts + audit config
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro

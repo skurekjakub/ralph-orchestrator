@@ -8,6 +8,7 @@ import { JiraClient } from "../jira/client.js";
 import { ContainerManager } from "../container/manager.js";
 import { LogCollector } from "../logs/collector.js";
 import { withRetry } from "../retry.js";
+import { OrchestratorComments } from "./orchestrator-comments.js";
 
 /**
  * Processes a single JIRA issue end-to-end:
@@ -37,46 +38,42 @@ export class TaskRunner {
    * Run the full pipeline for a single issue + profile combination.
    *
    * @param isRevision When true, fetches JIRA comments and the previous handoff
-   *   attachment to build a revision-aware prompt.
    * @returns The task result (status, duration, PR URL, etc.)
    */
   async run(
     issue: JiraIssue,
     profile: AgentProfile,
-    isRevision = false,
   ): Promise<{ result: RalphResult; container: ContainerManager }> {
     const container = new ContainerManager(profile, this.config, this.logger, this.containerLogger);
 
     try {
-      const transitionId = isRevision
-        ? (profile.transitions.revisionId ?? profile.transitions.inProgressId)
-        : profile.transitions.inProgressId;
+      const beforeTransitionId = profile.beforeAgent?.transitionId;
 
-      this.logger.info(
-        `Transitioning ${issue.key} to In Progress (id=${transitionId})...`
-      );
-      await withRetry(
-        () =>
-          this.jiraClient.transitionIssue(
-            issue.key,
-            transitionId
-          ),
-        `transition ${issue.key}`,
-        this.logger,
-      )
-        .then(() =>
-          this.logger.info(`${issue.key} transitioned to In Progress`)
+      if (beforeTransitionId) {
+        this.logger.info(
+          `Transitioning ${issue.key} (beforeAgent, id=${beforeTransitionId})...`
+        );
+        await withRetry(
+          () =>
+            this.jiraClient.transitionIssue(
+              issue.key,
+              beforeTransitionId
+            ),
+          `transition ${issue.key}`,
+          this.logger,
         )
-        .catch((err) => {
-          this.logger.warn(
-            `Failed to transition ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`
-          );
-        });
+          .then(() =>
+            this.logger.info(`${issue.key} transitioned (beforeAgent)`)
+          )
+          .catch((err) => {
+            this.logger.warn(
+              `Failed to transition ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`
+            );
+          });
+      }
 
       this.logger.info(`Posting start comment on ${issue.key}...`);
-      const startMessage = isRevision
-        ? `🤖 Ralph is starting revision work on this issue.\nProfile: ${profile.id}`
-        : `🤖 Ralph is starting work on this issue.\nProfile: ${profile.id}`;
+      const startMessage = OrchestratorComments.start(profile.agentName, profile.id);
       await withRetry(
         () =>
           this.jiraClient.addComment(
@@ -107,19 +104,17 @@ export class TaskRunner {
       const comments = await this.fetchComments(issue.key);
       this.logger.info(`Found ${comments.length} comments on ${issue.key}`);
 
-      let issueContext: IssueContext = {
-        comments,
-        isRevision,
-      };
+      this.logger.info(`Fetching handoff context for ${issue.key}...`);
+      const handoffContent = await this.fetchHandoff(issue.key);
+      this.logger.info(
+        `Handoff context: ${handoffContent ? "found" : "not found"}`
+      );
 
-      if (isRevision) {
-        this.logger.info(`Fetching revision context for ${issue.key}...`);
-        const handoffContent = await this.fetchHandoff(issue.key);
-        issueContext.handoffContent = handoffContent;
-        this.logger.info(
-          `Revision context: handoff ${handoffContent ? "found" : "not found"}`
-        );
-      }
+      const issueContext: IssueContext = {
+        comments,
+        isRevision: !!handoffContent,
+        handoffContent,
+      };
 
       const timeoutSec = Math.round(profile.timeoutMs / 1000);
       this.logger.info(
@@ -185,13 +180,7 @@ export class TaskRunner {
 
   /** Post an error comment to JIRA when a task fails. */
   async postErrorComment(issueKey: string, error: string): Promise<void> {
-    const message = [
-      `🤖 Ralph encountered an error and could not complete this task.`,
-      ``,
-      `Error: ${error}`,
-      ``,
-      `This issue is still in "In Progress". To retry, move it back to its initial status (e.g. "To Do" or "New") so the agent picks it up again.`,
-    ].join("\n");
+    const message = OrchestratorComments.error(error);
 
     try {
       await withRetry(
@@ -207,23 +196,26 @@ export class TaskRunner {
     }
   }
 
-  /** Transition the issue to "Ready for Review" with retry. */
-  async transitionToReview(issueKey: string, profile: AgentProfile): Promise<void> {
-    this.logger.info(`Transitioning ${issueKey} to Ready for Review...`);
+  /** Execute the afterAgent transition (if configured). */
+  async transitionAfterAgent(issueKey: string, profile: AgentProfile): Promise<void> {
+    const afterTransitionId = profile.afterAgent?.transitionId;
+    if (!afterTransitionId) return;
+
+    this.logger.info(`Transitioning ${issueKey} (afterAgent, id=${afterTransitionId})...`);
     try {
       await withRetry(
         () =>
           this.jiraClient.transitionIssue(
             issueKey,
-            profile.transitions.readyForReviewId
+            afterTransitionId
           ),
-        `transition ${issueKey} to Ready for Review`,
+        `transition ${issueKey} (afterAgent)`,
         this.logger,
       );
-      this.logger.info(`${issueKey} moved to Ready for Review`);
+      this.logger.info(`${issueKey} transitioned (afterAgent)`);
     } catch (err) {
       this.logger.warn(
-        `Failed to transition ${issueKey} to Ready for Review: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to transition ${issueKey} (afterAgent): ${err instanceof Error ? err.message : String(err)}`
       );
     }
   }

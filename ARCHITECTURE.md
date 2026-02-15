@@ -67,12 +67,13 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 - Fires immediately on start, then on interval
 - Accepts a `Logger` for centralized log routing
 
-### Task Queue (`src/queue.ts`)
+### Operation Ledger (`src/services/operation-ledger.ts`)
 
-- In-memory FIFO queue with deduplication
-- `enqueue()` skips issues already queued or recently processed
-- `dequeue()` returns the next unprocessed issue
-- `markProcessed()` tracks completed keys to prevent reprocessing within a session
+- Persistent per-issue JSON files (`output/logs/history/<issueKey>.json`)
+- Tracks every agent invocation through its lifecycle: `pending → active → completed | error | rejected`
+- Comment-trigger dedup: each trigger comment is consumed exactly once per variant
+- Crash recovery: on startup, `active` operations from previous sessions are marked as `error`
+- Pending operations survive restarts — persisted on disk and resumed after recovery
 
 ### JIRA Client (`src/jira/client.ts`)
 
@@ -181,17 +182,19 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── docker-compose.yml           # Services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
 │   │   └── agents/
-│   │       ├── ralph.agent.md           # Meta-agent (orchestrates sub-agents)
+│   │       ├── ralph.ralph.agent.md     # Meta-agent (orchestrates sub-agents)
 │   │       ├── ralph.tech-writer.agent.md
-│   │       └── ralph.reviewer.agent.md
+│   │       ├── ralph.reviewer.agent.md
+│   │       └── ralph.malph.agent.md     # Review agent (observer)
 │   └── ralph-vscode/
 │       ├── profile.json
 │       ├── Dockerfile
 │       ├── docker-compose.yml
 │       ├── setup.sh
 │       └── agents/
-│           ├── ralph.agent.md
-│           └── ralph.analyst.agent.md   # Analysis sub-agent (read-only, Sonnet)
+│           ├── ralph.ralph.agent.md
+│           ├── ralph.analyst.agent.md   # Analysis sub-agent (read-only, Sonnet)
+│           └── ralph.malph.agent.md     # Review agent (observer)
 ├── shared/
 │   └── hooks/                           # Copilot CLI audit hooks (shared)
 │       ├── log-*.sh                     # Hook scripts for session logging

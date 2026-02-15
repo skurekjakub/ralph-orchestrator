@@ -1,54 +1,57 @@
 import { describe, it, expect } from "vitest";
-import { TaskQueue } from "../src/queue.js";
 import { ProfileRouter } from "../src/services/profile-router.js";
 import { makeProfile, makeIssue, makeConfig } from "./helpers.js";
 
 /**
  * Orchestrator integration tests — exercise real logic from the core modules
- * that the orchestrator wires together (queue, profile routing, state management).
+ * that the orchestrator wires together (profile routing, state management, ledger).
  */
 
 describe("Orchestrator core integration", () => {
-  describe("queue + profile routing pipeline", () => {
-    it("dequeues issues and routes them to the correct profile", async () => {
-      const docsProfile = makeProfile({ id: "ralph-docs", match: { projects: ["DF"], keywords: ["docs"], statuses: [], revisionStatuses: [] } });
-      const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DF"], keywords: ["vscode", "extension"], statuses: [], revisionStatuses: [] } });
+  describe("profile routing pipeline", () => {
+    it("routes issues to the correct profile by project", async () => {
+      const docsProfile = makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" } });
+      const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } });
       const router = new ProfileRouter([docsProfile, vscodeProfile]);
 
-      const queue = new TaskQueue();
-      queue.enqueue(makeIssue("DF-100", "Update docs for API"));
-      queue.enqueue(makeIssue("DF-200", "Fix vscode autocomplete"));
-
-      const issue1 = queue.dequeue()!;
+      const issue1 = makeIssue("DF-100", "Update docs for API");
       const route1 = await router.match(issue1);
       expect(route1?.profile.id).toBe("ralph-docs");
 
-      const issue2 = queue.dequeue()!;
+      const issue2 = makeIssue("DOC-200", "Fix vscode autocomplete");
       const route2 = await router.match(issue2);
       expect(route2?.profile.id).toBe("ralph-vscode");
     });
 
     it("skips issues that match no profile", async () => {
-      const profile = makeProfile({ match: { projects: ["OTHER"], keywords: [], statuses: [], revisionStatuses: [] } });
+      const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: "@ralph" } });
       const router = new ProfileRouter([profile]);
 
-      const queue = new TaskQueue();
-      queue.enqueue(makeIssue("DF-100", "Some issue"));
-
-      const issue = queue.dequeue()!;
+      const issue = makeIssue("DF-100", "Some issue");
       const route = await router.match(issue);
       expect(route).toBeNull();
     });
 
-    it("handles revision routing correctly", async () => {
+    it("matches by project and status", async () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], keywords: [], statuses: ["New"], revisionStatuses: ["Defect Found"] },
+        match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: "@ralph" },
       });
       const router = new ProfileRouter([profile]);
 
-      const revisionIssue = makeIssue("DF-300", "Fix defect", "Defect Found");
-      const route = await router.match(revisionIssue);
-      expect(route?.isRevision).toBe(true);
+      const newIssue = makeIssue("DF-300", "New task", "Defect Found");
+      const route = await router.match(newIssue);
+      expect(route?.profile.id).toBe("ralph-default");
+    });
+
+    it("validates project and status via matchesProjectAndStatus", () => {
+      const profile = makeProfile({
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
+      });
+      const router = new ProfileRouter([profile]);
+
+      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "New"), profile)).toBe(true);
+      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "Done"), profile)).toBe(false);
+      expect(router.matchesProjectAndStatus(makeIssue("XO-1", "x", "New"), profile)).toBe(false);
     });
   });
 
@@ -76,8 +79,8 @@ describe("Orchestrator core integration", () => {
     it("config includes all required profile fields", () => {
       const config = makeConfig();
       const profile = config.profiles[0];
-      expect(profile.transitions.inProgressId).toBeTruthy();
-      expect(profile.transitions.readyForReviewId).toBeTruthy();
+      expect(profile.beforeAgent).toBeDefined();
+      expect(profile.afterAgent).toBeDefined();
       expect(profile.setupScript).toBeTruthy();
       expect(profile.auditLogPath).toBeTruthy();
       expect(profile.composeProjectLabel).toBeTruthy();

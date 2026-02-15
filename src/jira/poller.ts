@@ -13,7 +13,7 @@ export type PollCallback = (issues: JiraIssue[]) => void;
  * Fires immediately on {@link start}, then repeats on `pollIntervalMs`.
  * Multiple JQL queries are supported; results are deduplicated by issue key
  * within each poll cycle. The poller does NOT deduplicate across cycles —
- * that’s the {@link TaskQueue}'s job.
+ * that's the {@link OperationLedger}'s job.
  */
 export class JiraPoller {
   private timer: ReturnType<typeof setInterval> | null = null;
