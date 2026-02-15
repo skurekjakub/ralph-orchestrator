@@ -8,7 +8,6 @@ import { makeIssue } from "./helpers.js";
 describe("JiraPoller", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
   let config: JiraConfig;
-  let callback: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -23,8 +22,6 @@ describe("JiraPoller", () => {
       jql: ['project = DF'],
       pollIntervalMs: 1000,
     };
-
-    callback = vi.fn();
   });
 
   afterEach(() => {
@@ -34,35 +31,24 @@ describe("JiraPoller", () => {
   it("polls immediately on start", async () => {
     mockClient.searchIssues.mockResolvedValue([makeIssue("DF-1")]);
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
-
-    // Wait for the immediate async poll
     await vi.advanceTimersByTimeAsync(0);
 
     expect(mockClient.searchIssues).toHaveBeenCalledWith(config.jql[0]);
-    expect(callback).toHaveBeenCalledWith([makeIssue("DF-1")]);
+    expect(poller.drain()).toEqual([makeIssue("DF-1")]);
 
     poller.stop();
   });
 
-  it("does not call back when no issues found", async () => {
+  it("buffer is empty when no issues found", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
-
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(callback).not.toHaveBeenCalled();
+    expect(poller.drain()).toEqual([]);
 
     poller.stop();
   });
@@ -70,22 +56,15 @@ describe("JiraPoller", () => {
   it("polls on interval", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
 
-    // Initial poll
     await vi.advanceTimersByTimeAsync(0);
     expect(mockClient.searchIssues).toHaveBeenCalledTimes(1);
 
-    // After one interval
     await vi.advanceTimersByTimeAsync(1000);
     expect(mockClient.searchIssues).toHaveBeenCalledTimes(2);
 
-    // After another interval
     await vi.advanceTimersByTimeAsync(1000);
     expect(mockClient.searchIssues).toHaveBeenCalledTimes(3);
 
@@ -95,11 +74,7 @@ describe("JiraPoller", () => {
   it("stops polling after stop()", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
 
     await vi.advanceTimersByTimeAsync(0);
@@ -115,16 +90,11 @@ describe("JiraPoller", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockClient.searchIssues.mockRejectedValue(new Error("network error"));
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
-
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(callback).not.toHaveBeenCalled();
+    expect(poller.drain()).toEqual([]);
     expect(consoleSpy).toHaveBeenCalled();
 
     consoleSpy.mockRestore();
@@ -146,15 +116,42 @@ describe("JiraPoller", () => {
       .mockResolvedValueOnce([newer])
       .mockResolvedValueOnce([older]);
 
-    const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
-      config,
-      callback,
-    );
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(callback).toHaveBeenCalledWith([older, newer]);
+    expect(poller.drain()).toEqual([older, newer]);
+
+    poller.stop();
+  });
+
+  it("drain clears the buffer", async () => {
+    mockClient.searchIssues.mockResolvedValue([makeIssue("DF-1")]);
+
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(poller.drain()).toHaveLength(1);
+    expect(poller.drain()).toHaveLength(0);
+
+    poller.stop();
+  });
+
+  it("accumulates issues across multiple poll cycles", async () => {
+    mockClient.searchIssues
+      .mockResolvedValueOnce([makeIssue("DF-1")])
+      .mockResolvedValueOnce([makeIssue("DF-2")]);
+
+    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    poller.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    const drained = poller.drain();
+    expect(drained).toHaveLength(2);
+    expect(drained[0].key).toBe("DF-1");
+    expect(drained[1].key).toBe("DF-2");
 
     poller.stop();
   });

@@ -10,8 +10,8 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 │                      (this repo — Node.js app)                     │
 │                                                                    │
 │  ┌──────────┐    ┌──────────┐    ┌───────────────┐    ┌─────────┐  │
-│  │  JIRA    │───▶│  Task    │───▶│  Container    │───▶│  Log   │  │
-│  │  Poller  │    │  Queue   │    │  Manager      │    │Collector│  │
+│  │  JIRA    │───▶│ Operation│───▶│  Container    │───▶│  Log   │  │
+│  │  Poller  │    │  Ledger  │    │  Manager      │    │Collector│  │
 │  └──────────┘    └──────────┘    └───────┬───────┘    └─────────┘  │
 │       │                                  │                         │
 │       │                          ┌───────┴───────┐                 │
@@ -43,8 +43,8 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Data Flow
 
 ```
-1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Queue (deduped)
-2. Queue ──(dequeue)──▶ Orchestrator ──(profile match)──▶ Profile selected
+1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Comment scan ──▶ Operation Ledger
+2. Ledger ──(next pending)──▶ Orchestrator ──(profile match)──▶ Profile selected
 3. Orchestrator ──(transition + comment)──▶ JIRA Cloud
 4. Orchestrator ──(docker compose up -d --build)──▶ Docker
 5. Orchestrator ──(docker compose exec <cli>)──▶ Container
@@ -109,38 +109,31 @@ Env vars are injected into the compose process environment (not via `-e` flags):
 
 ### Orchestrator (`src/orchestrator.ts`)
 
-Main loop: poll → dequeue → match profile → process → repeat.
+Main loop: poll → scan triggers → execute pending operations → repeat.
 
-**Profile routing:** On dequeue, the orchestrator extracts the issue's project key and summary, then iterates the `profiles` array in order. A profile matches if its `match.projects` includes the project key *and* (its `match.keywords` is empty OR any keyword appears case-insensitively in the summary). First match wins. If no profile matches, the issue is skipped with a warning.
+**Dependency injection:** The `createOrchestratorDeps()` factory builds all service instances from config. The orchestrator constructor receives an `OrchestratorDeps` bag — services can be replaced with mocks in tests.
 
-**Processing a single issue:**
+**Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each profile's trigger string, and plans unconsumed triggers as pending operations in the ledger. An ack comment is posted for each new trigger.
+
+**Processing a single operation:**
 
 | Step | Action | Error handling |
 |---|---|---|
-| 1 | Match issue to a profile (project key + keywords + status) | Skip with warning if no match |
-| 2 | Select CLI (Copilot or Claude Code) based on profile + credentials | Falls back to other CLI; throws if neither available |
-| 3 | Transition JIRA issue to "In Progress" | Retry 3× with backoff, warn on failure |
-| 4 | Post start comment on JIRA | Retry 3×, warn on failure |
+| 1 | Re-validate issue status against profile | Reject if status changed since planning |
+| 2 | Run preflight checks (if configured) | Reject with reason if check fails |
+| 3 | Select CLI (Copilot or Claude Code) based on profile + credentials | Falls back to other CLI; throws if neither available |
+| 4 | Transition JIRA issue (beforeAgent) | Retry 3× with backoff, warn on failure |
 | 5 | Start containers via docker compose (stream build progress) | Fatal — throws to catch block |
 | 6 | Run setup script | Fatal |
-| 7 | Clean previous audit logs | Non-critical |
-| 8 | Execute agent CLI (stream output) | Captures exit code, timeout, stdout/stderr |
-| 9 | Collect audit logs from container | Non-critical |
-| 10 | Collect session transcript from container | Non-critical |
-| 11 | Save execution summary | Non-critical |
-| 12 | Attach session transcript to JIRA | Non-critical |
-| 13 | Track completion | Always |
-| 14 | Stop container (finally) | Warn on failure, force-rm fallback |
-| 15 | Transition to "Ready for Review" (finally) | Retry 3×, warn on failure |
+| 7 | Execute agent CLI (stream output) | Captures exit code, timeout, stdout/stderr |
+| 8 | Collect audit logs + transcript from container | Non-critical |
+| 9 | Save execution summary | Non-critical |
+| 10 | Attach session transcript to JIRA | Non-critical |
+| 11 | Track completion in ledger + observer | Always |
+| 12 | Stop container (finally) | Warn on failure, force-rm fallback |
+| 13 | Transition (afterAgent) | Retry 3×, warn on failure |
 
-**State management:**
-- Exposes `OrchestratorState` via callback for the Ink dashboard
-- Maintains a 50-line ring buffer of `LogEntry` records for the Ink panel
-- Every log entry is also appended to `output/logs/activity-YYYY-MM-DD.log` (persistent, never truncated)
-- Container output is also appended to `output/logs/container-YYYY-MM-DD.log`
-- Per-task streaming logs are written to `output/logs/<key>-<timestamp>.log` (container output only, real-time)
-- All components route logs through a shared `Logger` interface
-- Graceful shutdown via `shutdown()` — stops poller, kills active container, cleans up
+**State observation:** The `OrchestratorObserver` builds state snapshots and heartbeat payloads from live orchestrator data. The Ink dashboard subscribes to it directly (`orchestrator.observer`). This separation keeps state aggregation out of the main orchestration loop.
 
 ### Log Collector (`src/logs/collector.ts`)
 
@@ -182,10 +175,11 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── docker-compose.yml           # Services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
 │   │   └── agents/
-│   │       ├── ralph.ralph.agent.md     # Meta-agent (orchestrates sub-agents)
+│   │       ├── ralph.ralph.agent.md     # Meta-agent template (with include markers)
 │   │       ├── ralph.tech-writer.agent.md
 │   │       ├── ralph.reviewer.agent.md
-│   │       └── ralph.malph.agent.md     # Review agent (observer)
+│   │       ├── ralph.malph.agent.md     # Review agent template (observer)
+│   │       └── .build/                  # Resolved agent files (generated, gitignored)
 │   └── ralph-vscode/
 │       ├── profile.json
 │       ├── Dockerfile
@@ -194,14 +188,19 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       └── agents/
 │           ├── ralph.ralph.agent.md
 │           ├── ralph.analyst.agent.md   # Analysis sub-agent (read-only, Sonnet)
-│           └── ralph.malph.agent.md     # Review agent (observer)
+│           ├── ralph.malph.agent.md     # Review agent template (observer)
+│           └── .build/                  # Resolved agent files (generated, gitignored)
 ├── shared/
-│   └── hooks/                           # Copilot CLI audit hooks (shared)
-│       ├── log-*.sh                     # Hook scripts for session logging
-│       └── ralph-audit.json             # Hook configuration
+│   ├── hooks/                           # Copilot CLI audit hooks (shared)
+│   │   ├── log-*.sh                     # Hook scripts for session logging
+│   │   └── ralph-audit.json             # Hook configuration
+│   └── agent-includes/                  # Shared partial files for agent templates
+│       └── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
 ```
 
-Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Agent files are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` reads agent templates, replaces markers with content from `shared/agent-includes/`, and writes resolved files to `agents/.build/`. Compose files mount from `.build/` — the templates are the source of truth.
+
+Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Resolved agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
 
 Currently configured target repos:
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)

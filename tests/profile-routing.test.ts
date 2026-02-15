@@ -37,7 +37,7 @@ describe("Profile routing", () => {
     expect((await matchProfile(issue, profiles))?.profile.id).toBe("ralph-docs");
   });
 
-  it("always returns isRevision=false", async () => {
+  it("returns the matched profile", async () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
@@ -45,7 +45,7 @@ describe("Profile routing", () => {
       }),
     ];
     const result = await matchProfile(makeIssue("DF-1", "docs", "New"), profiles);
-    expect(result?.isRevision).toBe(false);
+    expect(result?.profile.id).toBe("ralph-docs");
   });
 
   it("includes profileIds in config", () => {

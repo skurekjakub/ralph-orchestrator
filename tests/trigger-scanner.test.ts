@@ -1,0 +1,258 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { TriggerScanner } from "../src/services/trigger-scanner.js";
+import { OperationLedger } from "../src/services/operation-ledger.js";
+import { ProfileRouter } from "../src/services/profile-router.js";
+import { makeProfile, makeIssue } from "./helpers.js";
+import type { JiraComment } from "../src/jira/types.js";
+import type { Logger } from "../src/logger.js";
+
+let tempDir: string;
+let ledger: OperationLedger;
+
+const silentLogger: Logger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+};
+
+function makeComment(id: string, body: string, created = "2026-01-01T00:00:00Z"): JiraComment {
+  return { id, author: { displayName: "Test User" }, body, created };
+}
+
+function makeJiraClient(comments: JiraComment[] = []) {
+  return {
+    getComments: vi.fn().mockResolvedValue(comments),
+    addComment: vi.fn().mockResolvedValue(undefined),
+    searchIssues: vi.fn(),
+    getIssue: vi.fn(),
+    transitionIssue: vi.fn(),
+    getAttachments: vi.fn(),
+    downloadAttachment: vi.fn(),
+  } as any;
+}
+
+beforeEach(() => {
+  tempDir = mkdtempSync(join(tmpdir(), "trigger-scanner-"));
+  ledger = new OperationLedger(tempDir);
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+describe("TriggerScanner", () => {
+  it("plans operations for matching trigger comments", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "Regular comment"),
+      makeComment("C2", "@RalphDocs please handle this"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(1);
+    expect(ledger.getAllPending()).toHaveLength(1);
+    expect(ledger.getAllPending()[0].operation.variant).toBe("ralph-docs:ralph");
+  });
+
+  it("skips already-consumed trigger comments", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+    });
+    const variant = `${profile.id}:${profile.agentName}`;
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "@RalphDocs handle this"),
+    ]);
+
+    ledger.plan("DF-100", { variant, triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(0);
+  });
+
+  it("posts ack comment for each new trigger", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "@docs do it"),
+      makeComment("C2", "@docs again"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(client.addComment).toHaveBeenCalledTimes(2);
+    expect(client.addComment.mock.calls[0][0]).toBe("DF-100");
+  });
+
+  it("skips profiles that don't match the issue project", async () => {
+    const profile = makeProfile({
+      id: "ralph-vscode",
+      match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@vscode go")]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(0);
+    expect(client.getComments).not.toHaveBeenCalled();
+  });
+
+  it("skips profiles that don't match the issue status", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: ["In Progress"], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@go now")]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100", "Task", "New")], [profile]);
+
+    expect(planned).toBe(0);
+  });
+
+  it("fetches comments only once per issue across multiple profiles", async () => {
+    const profile1 = makeProfile({
+      id: "ralph-docs",
+      agentName: "writer",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+    });
+    const profile2 = makeProfile({
+      id: "ralph-review",
+      agentName: "reviewer",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@review" },
+    });
+    const router = new ProfileRouter([profile1, profile2]);
+    const client = makeJiraClient([
+      makeComment("C1", "@docs please"),
+      makeComment("C2", "@review please"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile1, profile2]);
+
+    expect(planned).toBe(2);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("handles comment fetch failure gracefully", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient();
+    client.getComments.mockRejectedValue(new Error("Network error"));
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(0);
+    expect(silentLogger.warn).toHaveBeenCalled();
+  });
+
+  it("handles ack comment failure without aborting", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@go now")]);
+    client.addComment.mockRejectedValue(new Error("Post failed"));
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(1);
+    expect(silentLogger.warn).toHaveBeenCalled();
+  });
+
+  it("handles ADF comment bodies", async () => {
+    const adfBody = {
+      type: "doc",
+      version: 1,
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "@docs please handle this" },
+          ],
+        },
+      ],
+    };
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      { id: "C1", author: { displayName: "User" }, body: adfBody, created: "2026-01-01T00:00:00Z" } as any,
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(1);
+  });
+
+  it("trigger matching is case-insensitive", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([
+      makeComment("C1", "@ralphdocs please handle"),
+    ]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(1);
+  });
+
+  it("returns 0 for empty issue list", async () => {
+    const profile = makeProfile();
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient();
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([], [profile]);
+
+    expect(planned).toBe(0);
+  });
+
+  it("scans multiple issues in a single batch", async () => {
+    const profile = makeProfile({
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient();
+    client.getComments
+      .mockResolvedValueOnce([makeComment("C1", "@go issue 1")])
+      .mockResolvedValueOnce([makeComment("C2", "@go issue 2")]);
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+
+    const planned = await scanner.scan(
+      [makeIssue("DF-100"), makeIssue("DF-200")],
+      [profile],
+    );
+
+    expect(planned).toBe(2);
+    expect(client.getComments).toHaveBeenCalledTimes(2);
+  });
+});

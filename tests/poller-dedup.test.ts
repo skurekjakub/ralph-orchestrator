@@ -8,13 +8,11 @@ import { makeIssue } from "./helpers.js";
 
 describe("JiraPoller multi-JQL deduplication", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
-  let callback: ReturnType<typeof vi.fn>;
   let mockLogger: Logger;
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockClient = { searchIssues: vi.fn() };
-    callback = vi.fn();
     mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   });
 
@@ -38,7 +36,6 @@ describe("JiraPoller multi-JQL deduplication", () => {
     const poller = new JiraPoller(
       mockClient as unknown as JiraClient,
       config,
-      callback,
       mockLogger
     );
     poller.start();
@@ -48,9 +45,7 @@ describe("JiraPoller multi-JQL deduplication", () => {
     expect(mockClient.searchIssues).toHaveBeenCalledWith("query-1");
     expect(mockClient.searchIssues).toHaveBeenCalledWith("query-2");
 
-    // Should get 2 unique issues, not 3
-    expect(callback).toHaveBeenCalledOnce();
-    const issues = callback.mock.calls[0][0] as JiraIssue[];
+    const issues = poller.drain();
     expect(issues).toHaveLength(2);
     expect(issues.map((i: JiraIssue) => i.key)).toEqual(["DF-1", "DF-2"]);
 
@@ -71,13 +66,12 @@ describe("JiraPoller multi-JQL deduplication", () => {
     const poller = new JiraPoller(
       mockClient as unknown as JiraClient,
       config,
-      callback,
       mockLogger
     );
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(callback).not.toHaveBeenCalled();
+    expect(poller.drain()).toEqual([]);
 
     poller.stop();
     vi.useRealTimers();

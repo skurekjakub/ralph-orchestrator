@@ -1,11 +1,9 @@
 import type { AgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 
-/** Result of a profile match, indicating which profile matched and whether the issue is a revision. */
+/** Result of a profile match. */
 export interface ProfileMatchResult {
   profile: AgentProfile;
-  /** True when the issue matched via `revisionStatuses` rather than `statuses`. */
-  isRevision: boolean;
 }
 
 /**
@@ -65,7 +63,7 @@ export class ProfileRouter {
         if (!found) continue;
       }
 
-      return { profile, isRevision: false };
+      return { profile };
     }
 
     return null;

@@ -5,32 +5,32 @@ import { QueuePanel } from "./QueuePanel.js";
 import { HistoryPanel } from "./HistoryPanel.js";
 import { LogPanel } from "./LogPanel.js";
 import type { OrchestratorState } from "../orchestrator-types.js";
-import type { Orchestrator } from "../orchestrator.js";
+import type { OrchestratorObserver } from "../orchestrator-observer.js";
 
 /** Props for the root Ink dashboard. */
 interface AppProps {
-  orchestrator: Orchestrator;
+  observer: OrchestratorObserver;
 }
 
 /**
- * Root Ink component — subscribes to orchestrator state changes and renders
- * the terminal dashboard (status, queue, history, activity log).
+ * Root Ink component — subscribes to orchestrator observer state changes
+ * and renders the terminal dashboard (status, queue, history, activity log).
  */
-export function App({ orchestrator }: AppProps): React.ReactElement {
+export function App({ observer }: AppProps): React.ReactElement {
   const [state, setState] = useState<OrchestratorState>(
-    orchestrator.getState()
+    observer.getState()
   );
 
   useEffect(() => {
-    orchestrator.onStateChange(setState);
+    observer.onStateChange(setState);
 
     // Also refresh every second for the elapsed timer
     const timer = setInterval(() => {
-      setState(orchestrator.getState());
+      setState(observer.getState());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [orchestrator]);
+  }, [observer]);
 
   return (
     <Box

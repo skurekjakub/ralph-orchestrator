@@ -24,8 +24,9 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | File | Purpose |
 |---|---|
 | `src/index.tsx` | Entry point — wires orchestrator + Ink terminal dashboard |
-| `src/orchestrator.ts` | Main loop: comment discovery → ledger planning → execution → result recording |
-| `src/orchestrator-types.ts` | Types for orchestrator state, log entries, and completed tasks |
+| `src/orchestrator.ts` | Main loop: ledger-driven execution → result recording; uses `createOrchestratorDeps()` factory |
+| `src/orchestrator-types.ts` | Types: `OrchestratorState`, `ActiveTask`, `OrchestratorDeps`, `CompletedTask`, `LogEntry` |
+| `src/orchestrator-observer.ts` | Builds state snapshots + heartbeat payloads for the Ink dashboard and status API |
 | `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
 | `src/config.ts` | Loads `config.json` (global settings) + `profiles/*/profile.json` (agent profiles) + `.env` secrets |
 | `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
@@ -33,6 +34,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
 | `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, statuses) |
 | `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
+| `src/container/agent-includes.ts` | Resolves include markers in agent template files at startup |
 | `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs/transcript, stop); CLI selection |
 | `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection including `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH`) |
 | `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, `--share` transcript export) |
@@ -43,6 +45,9 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/container/result-parser.ts` | Parses structured result blocks from CLI stdout |
 | `src/services/activity-log.ts` | Persistent activity log writer — daily aggregate logs + per-task streaming logs |
 | `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
+| `src/services/orchestrator-comments.ts` | Centralized JIRA comment templates for orchestrator messages |
+| `src/services/preflight.ts` | Named preflight check registry — validates prerequisites before agent execution |
+| `src/services/trigger-scanner.ts` | Scans issue comments for trigger strings, plans operations in the ledger, posts ack comments |
 | `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/status; validates state before execution |
 | `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
 | `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection |
@@ -155,12 +160,17 @@ profiles/
     Dockerfile          — Container image definition
     docker-compose.yml  — Services, env vars, volume mounts
     setup.sh            — Post-create setup script (CLI installs, git config)
-    agents/             — Copilot CLI agent definitions (.md files)
+    agents/             — Agent template files (.agent.md with include markers)
+      .build/           — Resolved agent files (generated at startup, gitignored)
 shared/
   hooks/                — Copilot CLI audit hooks (shared across all profiles)
     log-*.sh            — Hook scripts for session logging
     ralph-audit.json    — Hook configuration
+  agent-includes/       — Shared include files for agent templates
+    jira-api.md         — JIRA API curl templates + wiki markup reference
 ```
+
+Agent template files use `<!-- include: name.md -->` markers that are resolved from `shared/agent-includes/` at orchestrator startup. The resolved files are written to `agents/.build/` and mounted into containers. This eliminates duplication of JIRA API instructions across agent files.
 
 Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
 

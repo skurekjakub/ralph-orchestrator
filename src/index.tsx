@@ -3,6 +3,7 @@ import { render } from "ink";
 import { App } from "./dashboard/App.js";
 import { loadConfig } from "./config.js";
 import { Orchestrator } from "./orchestrator.js";
+import { createOrchestratorDeps } from "./orchestrator-factory.js";
 import { validatePrerequisites, printValidationResults } from "./validate.js";
 
 async function main(): Promise<void> {
@@ -12,10 +13,11 @@ async function main(): Promise<void> {
   }
 
   const config = loadConfig();
-  const orchestrator = new Orchestrator(config);
+  const deps = createOrchestratorDeps(config);
+  const orchestrator = new Orchestrator(deps);
 
   const { unmount } = render(
-    React.createElement(App, { orchestrator })
+    React.createElement(App, { observer: orchestrator.observer })
   );
 
   // Handle graceful shutdown (Ctrl+C or SIGTERM)

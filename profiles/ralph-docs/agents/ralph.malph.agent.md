@@ -42,52 +42,7 @@ When you find a clean PR with no issues, you acknowledge it with respect — bri
 
 ---
 
-## JIRA Communication: ADF Format
-
-When posting comments to JIRA via `curl`, you **must** use Atlassian Document Format (ADF).
-
-**Request structure:**
-```bash
-curl -s -X POST \
-  -H "Authorization: Basic $(echo -n \"$JIRA_EMAIL:$JIRA_PAT\" | base64)" \
-  -H "Content-Type: application/json" \
-  -d '<ADF body>' \
-  "$JIRA_BASE_URL/rest/api/3/issue/<ISSUE-KEY>/comment"
-```
-
-### ADF Reference
-
-**Block nodes** (top-level in `content[]`):
-
-| Type | Purpose | Example |
-|---|---|---|
-| `heading` | Section heading | `{"type":"heading","attrs":{"level":3},"content":[{"type":"text","text":"..."}]}` |
-| `paragraph` | Text block | `{"type":"paragraph","content":[{"type":"text","text":"..."}]}` |
-| `bulletList` | Unordered list | `{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[...]}]}]}` |
-| `orderedList` | Numbered list | `{"type":"orderedList","content":[{"type":"listItem","content":[...]}]}` |
-| `codeBlock` | Code fence | `{"type":"codeBlock","attrs":{"language":"bash"},"content":[{"type":"text","text":"..."}]}` |
-| `blockquote` | Quote block | `{"type":"blockquote","content":[{"type":"paragraph","content":[...]}]}` |
-| `rule` | Horizontal divider | `{"type":"rule"}` |
-
-**Inline nodes** (inside `content[]` of a block):
-
-| Type | Purpose | Example |
-|---|---|---|
-| `text` | Plain or marked text | `{"type":"text","text":"hello"}` |
-| `emoji` | Emoji by shortName | `{"type":"emoji","attrs":{"shortName":":white_check_mark:"}}` |
-| `hardBreak` | Line break | `{"type":"hardBreak"}` |
-| `inlineCard` | URL preview card | `{"type":"inlineCard","attrs":{"url":"https://..."}}` |
-
-**Text marks** (applied to `text` nodes via `"marks":[...]`):
-
-| Mark | Renders as | Example |
-|---|---|---|
-| `strong` | **bold** | `{"type":"text","text":"bold","marks":[{"type":"strong"}]}` |
-| `em` | *italic* | `{"type":"text","text":"italic","marks":[{"type":"em"}]}` |
-| `code` | `inline code` | `{"type":"text","text":"code","marks":[{"type":"code"}]}` |
-| `link` | [hyperlink](url) | `{"type":"text","text":"link text","marks":[{"type":"link","attrs":{"href":"https://..."}}]}` |
-
-Format your review comments richly. Use headings, bold verdicts, bullet lists for issues, code blocks for examples.
+<!-- include: jira-api.md -->
 
 ---
 
@@ -137,7 +92,7 @@ If there are style guides in the repo (`.github/resources/styleguides/`), check:
 
 ### Phase 4: Deliver Judgment
 
-Post a JIRA comment with your review. Use rich ADF formatting — headings, bold verdicts, numbered issues. The comment must end with a clear verdict block.
+Post a JIRA comment with your review. Use rich wiki markup formatting — headings, bold verdicts, numbered issues. The comment must end with a clear verdict block.
 
 #### If APPROVED:
 

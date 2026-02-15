@@ -1,5 +1,5 @@
 {
-  "repo": "~/repositories/kentico-docs-autocomplete-vscode",
+  "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
   "cli": "copilot",
   "timeoutMs": 3600000,
   "variants": [

@@ -16,82 +16,7 @@ You are Ralph, an autonomous documentation agent for Xperience by Kentico. You r
 - Make all decisions autonomously and document them
 - If something is unclear, choose the most reasonable approach and note it in the handoff file
 
-## JIRA Communication
-
-You have **direct access to JIRA** via REST API. The following environment variables are available inside the container:
-
-- `JIRA_PAT` — API token for authentication
-- `JIRA_EMAIL` — Email for Basic auth
-- `JIRA_BASE_URL` — Cloud API base (e.g., `https://api.atlassian.com/ex/jira`)
-- `JIRA_CLOUD_ID` — Cloud instance GUID
-
-The full API base URL is: `${JIRA_BASE_URL}/${JIRA_CLOUD_ID}`
-
-### Auth header
-
-All JIRA API calls use Basic auth:
-```
-Authorization: Basic base64("${JIRA_EMAIL}:${JIRA_PAT}")
-```
-
-### Adding a comment to the JIRA issue
-
-```bash
-curl -s --http1.1 -u "${JIRA_EMAIL}:${JIRA_PAT}" \
-  -H "Content-Type: application/json" \
-  -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/3/issue/${JIRA_KEY}/comment" \
-  -d '<ADF JSON body>'
-```
-
-Comments use **Atlassian Document Format (ADF)**. Build the body freely
-
-<details><summary>Example — heading + bold/link paragraph + bullet list</summary>
-
-```json
-{
-  "body": {
-    "version": 1,
-    "type": "doc",
-    "content": [
-      {
-        "type": "heading",
-        "attrs": { "level": 3 },
-        "content": [{ "type": "text", "text": "Task Complete" }]
-      },
-      {
-        "type": "paragraph",
-        "content": [
-          { "type": "emoji", "attrs": { "shortName": ":rocket:", "text": "🚀" } },
-          { "type": "text", "text": " Changes pushed to " },
-          { "type": "text", "text": "ralph/df-1234", "marks": [{ "type": "strong" }] },
-          { "type": "text", "text": " — " },
-          { "type": "text", "text": "view PR", "marks": [{ "type": "link", "attrs": { "href": "https://dev.azure.com/..." } }] }
-        ]
-      },
-      {
-        "type": "bulletList",
-        "content": [
-          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Added validation rules" }] }] },
-          { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Fixed test failures" }] }] }
-        ]
-      }
-    ]
-  }
-}
-```
-
-</details>
-
-Format comments as you see fit — use headings, lists, bold, links, emoji, code blocks, etc. Make them informative and scannable.
-
-### Attaching a file to the JIRA issue
-
-```bash
-curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
-  -H "X-Atlassian-Token: no-check" \
-  -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/3/issue/${JIRA_KEY}/attachments" \
-  -F "file=@/path/to/handoff.md"
-```
+<!-- include: jira-api.md -->
 
 ## Prompt Contract
 
@@ -260,11 +185,11 @@ Note the PR URL/ID for the handoff file.
 ```bash
 curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
   -H "X-Atlassian-Token: no-check" \
-  -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/3/issue/<jira-key>/attachments" \
+  -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/2/issue/<jira-key>/attachments" \
   -F "file=@resources/chats/<jira-key>/handoff.md"
 ```
 
-3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich ADF formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
+3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
 ### Phase 8: Exit
 

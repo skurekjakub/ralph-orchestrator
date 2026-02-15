@@ -166,13 +166,6 @@ function validateProfiles(errors: string[], warnings: string[]): void {
       );
     }
 
-    if (!p.transitions?.inProgressId) {
-      errors.push(`${prefix}: transitions.inProgressId is required`);
-    }
-    if (!p.transitions?.readyForReviewId) {
-      errors.push(`${prefix}: transitions.readyForReviewId is required`);
-    }
-
     const variants = p.variants;
     if (!Array.isArray(variants) || variants.length === 0) {
       errors.push(`${prefix}: at least one variant is required`);
@@ -191,14 +184,8 @@ function validateProfiles(errors: string[], warnings: string[]): void {
         warnings.push(`${vPrefix}: no match.projects defined — this variant won't match any issues`);
       }
 
-      const statuses = new Set((v.match?.statuses ?? []).map((s: string) => s.toLowerCase()));
-      const revisionStatuses: string[] = v.match?.revisionStatuses ?? [];
-      const overlap = revisionStatuses.filter((s: string) => statuses.has(s.toLowerCase()));
-      if (overlap.length > 0) {
-        errors.push(
-          `${vPrefix}: statuses and revisionStatuses must not overlap — ` +
-          `found in both: ${overlap.join(", ")}`
-        );
+      if (!v.match?.commentTrigger) {
+        errors.push(`${vPrefix}: match.commentTrigger is required`);
       }
     }
   }

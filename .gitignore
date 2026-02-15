@@ -3,6 +3,9 @@ node_modules/
 dist/
 output/
 
+# Resolved agent files (generated from templates at startup)
+profiles/**/agents/.build/
+
 # Secrets
 .env
 

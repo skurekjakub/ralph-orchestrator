@@ -66,10 +66,17 @@ interface LedgerFile {
  * Writes are atomic (write to temp file, then rename) to avoid corruption.
  */
 export class OperationLedger {
+  private pendingCallback: (() => void) | null = null;
+
   constructor(private historyDir: string) {
     if (!existsSync(historyDir)) {
       mkdirSync(historyDir, { recursive: true });
     }
+  }
+
+  /** Register a callback invoked whenever a new pending operation is planned. */
+  onPending(callback: () => void): void {
+    this.pendingCallback = callback;
   }
 
   /**
@@ -95,6 +102,7 @@ export class OperationLedger {
     const ledger = this.read(issueKey);
     ledger.operations.push(op);
     this.write(issueKey, ledger);
+    this.pendingCallback?.();
     return op.id;
   }
 

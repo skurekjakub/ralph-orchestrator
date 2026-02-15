@@ -227,19 +227,15 @@ Multiple orchestrator instances can report to the same dashboard — each genera
 {
   "repo": "~/repositories/kentico-docs-jekyll",
   "timeoutMs": 1800000,
-  "transitions": {
-    "inProgressId": "141",
-    "readyForReviewId": "91",
-    "revisionId": "151"
-  },
+  "beforeAgent": { "transitionId": "141" },
+  "afterAgent": { "transitionId": "91" },
   "variants": [
     {
       "agent": "ralph",
       "match": {
         "projects": ["DF"],
-        "keywords": [],
         "statuses": ["New", "To Do"],
-        "revisionStatuses": ["Defect Found"]
+        "commentTrigger": "@Ralph"
       }
     }
   ]
@@ -254,25 +250,22 @@ Multiple orchestrator instances can report to the same dashboard — each genera
   "repo": "~/repositories/kentico-docs-jekyll",
   "cli": "copilot",
   "timeoutMs": 3600000,
-  "transitions": {
-    "inProgressId": "141",
-    "readyForReviewId": "91",
-    "revisionId": "141"
-  },
+  "beforeAgent": { "transitionId": "141" },
+  "afterAgent": { "transitionId": "91" },
   "variants": [
     {
-      "agent": "ralph.docs",
-      "match": { "projects": ["DOCS"], "keywords": ["RalphDocs"], "statuses": ["To Do"] }
+      "agent": "ralph",
+      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@Ralph" }
     },
     {
-      "agent": "ralph",
-      "match": { "projects": ["DF"], "keywords": ["Ralph"], "statuses": ["New", "To Do"], "revisionStatuses": ["Defect Found"] }
+      "agent": "malph",
+      "match": { "projects": ["DF"], "statuses": ["Ready for Review"], "commentTrigger": "@Malph" }
     }
   ]
 }
 ```
 
-In this setup, the same Docker infrastructure serves both variants. Issues with "RalphDocs" in the summary use the `ralph.docs` agent; all other `DF` issues with "Ralph" fall through to the `ralph` agent.
+In this setup, the same Docker infrastructure serves both variants. Comments with `@Ralph` trigger the writer agent on "New"/"To Do" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
 
 ### Multiple Profiles (Mixed CLIs)
 
@@ -282,9 +275,10 @@ In this setup, the same Docker infrastructure serves both variants. Issues with 
   "repo": "~/repositories/kentico-docs-autocomplete-vscode",
   "cli": "claude",
   "timeoutMs": 1800000,
-  "transitions": { "inProgressId": "51", "readyForReviewId": "91" },
+  "beforeAgent": { "transitionId": "51" },
+  "afterAgent": { "transitionId": "91" },
   "variants": [
-    { "agent": "ralph", "match": { "projects": ["DOC"], "keywords": ["RalphAutocomplete"] } }
+    { "agent": "ralph", "match": { "projects": ["DOC"], "commentTrigger": "@Ralph" } }
   ]
 }
 ```
@@ -297,7 +291,7 @@ The orchestrator validates the configuration on startup:
 
 - **Required fields:** `jira.cloudId`, at least one profile directory with valid `profile.json`, `JIRA_PAT`, `JIRA_EMAIL`
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
-- **Profile integrity:** Non-overlapping `statuses` and `revisionStatuses` within each variant, valid `repo` paths
+- **Profile integrity:** Valid `repo` paths, unique `commentTrigger` values
 - **Transition IDs:** Must be valid numeric strings
 - **Profiles auto-discovered** from `profiles/*/profile.json` — the profile `id` is derived from the directory name
 
