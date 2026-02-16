@@ -37,7 +37,12 @@ export class ContainerManager {
   private readonly executor: CliExecutor;
   private readonly outputConfig: OutputConfig;
   private readonly logger: Logger;
+  private readonly containerLogger: Logger;
   private readonly profile: AgentProfile;
+  private tailProcess: ReturnType<typeof import("execa").execa> | null = null;
+
+  /** Optional callback invoked for each line of real-time tool output. */
+  onToolOutput?: (line: string) => void;
 
   /**
    * @param profile Agent profile with repo, compose file, agent name, and timeout.
@@ -49,6 +54,7 @@ export class ContainerManager {
     this.profile = profile;
     this.outputConfig = appConfig.output;
     this.logger = logger ?? consoleLogger;
+    this.containerLogger = containerLogger ?? this.logger;
 
     const composeFilePath = resolve(process.cwd(), profile.composeFile);
     this.compose = new ComposeClient(composeFilePath, {
@@ -108,16 +114,16 @@ export class ContainerManager {
   /** Start the containers and run the setup script. */
   async start(): Promise<void> {
     await this.compose.checkDocker();
-    this.logger.info("Starting containers...");
+    this.logger.info(`Starting containers (compose: ${this.profile.composeFile})...`);
 
     const proc = this.compose.compose(["up", "-d", "--build"]);
-    new StreamCapture(proc, this.logger, "build");
+    new StreamCapture(proc, this.containerLogger, "build");
     await proc;
     this.logger.info("Containers started");
 
     this.logger.info("Running setup script...");
     const setupProc = this.compose.exec(["--user", "vscode", "app", this.profile.setupScript]);
-    new StreamCapture(setupProc, this.logger, "setup");
+    new StreamCapture(setupProc, this.containerLogger, "setup");
     await setupProc;
     this.logger.info("Setup complete");
   }
@@ -216,6 +222,42 @@ export class ContainerManager {
     }
   }
 
+  /** Path to the untruncated tool output log inside the container. */
+  static readonly TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
+
+  /**
+   * Collect the untruncated tool output log from the container.
+   *
+   * Written by the postToolUse hook — contains full stdout/stderr from every
+   * tool call the agent made, without truncation.
+   *
+   * @param issueKey JIRA key used in the output filename.
+   * @returns Local path to the saved log, or null if not available.
+   */
+  async collectToolOutput(issueKey: string): Promise<string | null> {
+    mkdirSync(this.outputConfig.logDir, { recursive: true });
+    const localPath = join(
+      this.outputConfig.logDir,
+      `${issueKey}-${Date.now()}-tool-output.log`
+    );
+
+    try {
+      const result = await this.compose.exec([
+        "app", "cat", ContainerManager.TOOL_OUTPUT_PATH,
+      ]);
+
+      const content = String(result.stdout);
+      if (!content.trim()) return null;
+
+      const { writeFileSync } = await import("node:fs");
+      writeFileSync(localPath, content);
+      return localPath;
+    } catch {
+      this.logger.warn("No tool output log found");
+      return null;
+    }
+  }
+
   /**
    * Tear down all containers and associated resources.
    *
@@ -240,19 +282,66 @@ export class ContainerManager {
   }
 
   /**
-   * Delete the audit log directory inside the container and recreate it.
+   * Delete the audit log directory inside the container and recreate it
+   * with vscode ownership.
    *
-   * The directory must exist before agent execution because the Copilot CLI
-   * `--share` flag writes the session transcript there. Without the directory,
-   * the export fails with ENOENT.
+   * The parent `/workspace/.ralph/` is created by Docker as root (side effect
+   * of the `:ro` hooks volume mount). Without an explicit `mkdir` + `chown`
+   * as root, the vscode user cannot write to `/workspace/.ralph/logs/` and
+   * the Copilot CLI `--share` transcript export fails with ENOENT.
    */
   async cleanLogs(): Promise<void> {
     const logDir = this.profile.auditLogPath.substring(0, this.profile.auditLogPath.lastIndexOf("/") + 1);
     try {
       await this.compose.exec(["app", "rm", "-rf", logDir]);
-      await this.compose.exec(["--user", "vscode", "app", "mkdir", "-p", logDir]);
+      await this.compose.exec(["app", "mkdir", "-p", logDir]);
+      await this.compose.exec(["app", "chown", "vscode:vscode", logDir]);
     } catch {
       // non-critical
+    }
+  }
+
+  /**
+   * Start tailing `/workspace/.ralph/logs/tool-output.log` inside the container.
+   *
+   * Each new line is forwarded to the {@link onToolOutput} callback for
+   * real-time streaming to the local dashboard.
+   */
+  startToolOutputTail(): void {
+    if (!this.onToolOutput) return;
+
+    try {
+      const proc = this.compose.exec([
+        "--user", "vscode", "app",
+        "tail", "-n", "0", "-f", ContainerManager.TOOL_OUTPUT_PATH,
+      ]);
+
+      this.tailProcess = proc;
+      const cb = this.onToolOutput;
+
+      let buffer = "";
+      proc.stdout?.on("data", (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          cb(line);
+        }
+      });
+
+      proc.catch(() => {
+        // tail exits when the container stops — expected
+      });
+    } catch {
+      // non-critical — dashboard just won't get real-time tool output
+    }
+  }
+
+  /** Stop the background tail process if running. */
+  stopToolOutputTail(): void {
+    if (this.tailProcess) {
+      this.tailProcess.kill();
+      this.tailProcess = null;
     }
   }
 }

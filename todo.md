@@ -28,3 +28,10 @@ pass in image attachments from issue
 put jira cloud id to env vars instead of config
 
 pleb ralph - conversation only - gets jsut the context of the JIRA issue
+
+way to completely blacklsit POST to specified URLs from inside the container - second layer of security - what if too loose pat generated for example
+
+local dashboard
+
+- log viewer syntax highlighting - log event type at least
+- 

@@ -8,7 +8,8 @@
       "match": {
         "projects": ["DF"],
         "statuses": ["New", "To Do", "Defect Found"],
-        "commentTrigger": "@RalphDf"
+        "commentTrigger": "@RalphDf",
+        "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": { "transitionId": "141" },
       "afterAgent": { "transitionId": "91" }
@@ -18,9 +19,10 @@
       "match": {
         "projects": ["DOC"],
         "statuses": ["To Do", "Defect Found"],
-        "commentTrigger": "@RalphDocs"
+        "commentTrigger": "@RalphDocs",
+        "revisionStatuses": ["Defect Found"]
       },
-      "beforeAgent": { "transitionId": "141" },
+      "beforeAgent": { "transitionId": "51" },
       "afterAgent": { "transitionId": "91" }
     },
     {

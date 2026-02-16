@@ -13,9 +13,20 @@ TOOL_ARGS=$(echo "$INPUT" | jq -r '.toolArgs // "{}"')
 RESULT_TYPE=$(echo "$INPUT" | jq -r '.toolResult.resultType // "unknown"')
 RESULT_TEXT=$(echo "$INPUT" | jq -r '.toolResult.textResultForLlm // ""')
 
-# Truncate very long results to keep the log manageable
-if [ ${#RESULT_TEXT} -gt 2000 ]; then
-    RESULT_TEXT="${RESULT_TEXT:0:2000}...[truncated]"
+# Write full untruncated tool output to a separate readable log.
+# Format: timestamp + tool name + args + full result, separated by markers.
+TS_HUMAN=$(date -d "@${TIMESTAMP%.*}" "+%H:%M:%S" 2>/dev/null || date "+%H:%M:%S")
+{
+    echo "── ${TS_HUMAN} ${TOOL_NAME} (${RESULT_TYPE}) ──"
+    echo "args: ${TOOL_ARGS}"
+    echo "${RESULT_TEXT}"
+    echo ""
+} >> "$LOG_DIR/tool-output.log"
+
+# Truncate very long results for the structured audit log
+AUDIT_TEXT="$RESULT_TEXT"
+if [ ${#AUDIT_TEXT} -gt 2000 ]; then
+    AUDIT_TEXT="${AUDIT_TEXT:0:2000}...[truncated]"
 fi
 
 jq -n -c \
@@ -25,7 +36,7 @@ jq -n -c \
   --arg tool "$TOOL_NAME" \
   --arg args "$TOOL_ARGS" \
   --arg resultType "$RESULT_TYPE" \
-  --arg resultText "$RESULT_TEXT" \
+  --arg resultText "$AUDIT_TEXT" \
   '{event: $event, timestamp: ($ts | tonumber), session: $session, tool: $tool, args: $args, resultType: $resultType, resultText: $resultText}' \
   >> "$LOG_DIR/audit.jsonl"
 

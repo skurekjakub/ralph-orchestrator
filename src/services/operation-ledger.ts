@@ -22,7 +22,7 @@ export enum OperationStatus {
 export interface Operation {
   /** Unique operation ID. */
   id: string;
-  /** Composite variant identifier: `<profileId>:<agentName>`. */
+  /** Unique variant key: `<profileId>:<agentName>:<commentTrigger>`. */
   variant: string;
   /** The JIRA comment ID that triggered this operation. */
   triggerCommentId: string;

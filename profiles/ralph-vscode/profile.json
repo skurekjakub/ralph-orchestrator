@@ -8,7 +8,8 @@
       "match": {
         "projects": ["DOC"],
         "statuses": ["To Do", "Defect Found"],
-        "commentTrigger": "@RalphAutocomplete"
+        "commentTrigger": "@RalphAutocomplete",
+        "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": { "transitionId": "51" },
       "afterAgent": { "transitionId": "91" }

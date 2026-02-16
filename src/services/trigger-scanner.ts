@@ -6,6 +6,8 @@ import type { AgentProfile } from "../config.js";
 import type { ProfileRouter } from "./profile-router.js";
 import type { OperationLedger } from "./operation-ledger.js";
 import type { Logger } from "../logger.js";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 /**
  * Scans JIRA issue comments for trigger strings and plans operations in the ledger.
@@ -21,6 +23,10 @@ import type { Logger } from "../logger.js";
  * If an issue hasn't been updated since its last scan, comment fetching is
  * skipped entirely. This reduces JIRA API calls from N (all matching issues)
  * to only the issues with new activity.
+ *
+ * The timestamp cache is persisted to disk so it survives orchestrator restarts.
+ * Without persistence, every startup would re-fetch comments for all matching
+ * issues (potentially hundreds of API calls).
  */
 export class TriggerScanner {
   /**
@@ -29,12 +35,19 @@ export class TriggerScanner {
    */
   private lastScanTimestamps = new Map<string, string>();
 
+  /** Path to the on-disk JSON cache file. Null = in-memory only (tests). */
+  private readonly cachePath: string | null;
+
   constructor(
     private jiraClient: JiraClient,
     private router: ProfileRouter,
     private ledger: OperationLedger,
     private logger: Logger,
-  ) {}
+    cachePath?: string,
+  ) {
+    this.cachePath = cachePath ?? null;
+    this.loadCache();
+  }
 
   /**
    * Scan a batch of polled issues for trigger comments.
@@ -71,7 +84,7 @@ export class TriggerScanner {
         }
 
         issueMatchedAnyProfile = true;
-        const variant = `${profile.id}:${profile.agentName}`;
+        const variant = profile.variantKey;
         matchedVariants.push(variant);
 
         if (!comments) {
@@ -139,11 +152,43 @@ export class TriggerScanner {
       `Trigger scan: ${issues.length} issues (${scanned} scanned, ${skipped} unchanged) → ${planned} planned, ${alreadyConsumed} consumed, ${commentsFetched} API calls [${elapsedMs}ms]`
     );
 
+    if (scanned > 0) this.persistCache();
+
     return planned;
   }
 
   /** Clear the scan cache (e.g. for testing). */
   clearCache(): void {
     this.lastScanTimestamps.clear();
+    this.persistCache();
+  }
+
+  /** Load the timestamp cache from disk. Silently ignores missing/corrupt files. */
+  private loadCache(): void {
+    if (!this.cachePath) return;
+    try {
+      const raw = readFileSync(this.cachePath, "utf-8");
+      const data: Record<string, string> = JSON.parse(raw);
+      for (const [key, value] of Object.entries(data)) {
+        if (typeof value === "string") {
+          this.lastScanTimestamps.set(key, value);
+        }
+      }
+      this.logger.info(`Loaded trigger cache: ${this.lastScanTimestamps.size} entries`);
+    } catch {
+      // File doesn't exist yet or is corrupt — start fresh
+    }
+  }
+
+  /** Write the timestamp cache to disk. */
+  private persistCache(): void {
+    if (!this.cachePath) return;
+    try {
+      mkdirSync(dirname(this.cachePath), { recursive: true });
+      const data: Record<string, string> = Object.fromEntries(this.lastScanTimestamps);
+      writeFileSync(this.cachePath, JSON.stringify(data, null, 2));
+    } catch (err) {
+      this.logger.warn(`Failed to persist trigger cache: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 }

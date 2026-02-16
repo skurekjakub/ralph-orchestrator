@@ -122,6 +122,7 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
 | `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive substring match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. |
+| `variant.match.revisionStatuses` | Statuses that indicate a revision task (e.g. `["Defect Found"]`). When the issue is in one of these statuses, the agent follows the revision workflow instead of starting fresh. Empty `[]` = never treat as revision. |
 
 **Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
@@ -234,13 +235,16 @@ Multiple orchestrator instances can report to the same dashboard — each genera
       "agent": "ralph.ralph",
       "match": {
         "projects": ["DF"],
-        "statuses": ["New", "To Do"],
-        "commentTrigger": "@RalphDf"
+        "statuses": ["New", "To Do", "Defect Found"],
+        "commentTrigger": "@RalphDf",
+        "revisionStatuses": ["Defect Found"]
       }
     }
   ]
 }
 ```
+
+When an issue is in "Defect Found" status and triggered, the agent receives a `Mode: REVISION` prompt with the previous handoff content.
 
 ### Multiple Variants in One Profile
 
@@ -250,12 +254,17 @@ Multiple orchestrator instances can report to the same dashboard — each genera
   "repo": "~/repositories/kentico-docs-jekyll",
   "cli": "copilot",
   "timeoutMs": 3600000,
-  "beforeAgent": { "transitionId": "141" },
-  "afterAgent": { "transitionId": "91" },
   "variants": [
     {
       "agent": "ralph.ralph",
-      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
+      "match": {
+        "projects": ["DF"],
+        "statuses": ["New", "To Do", "Defect Found"],
+        "commentTrigger": "@RalphDf",
+        "revisionStatuses": ["Defect Found"]
+      },
+      "beforeAgent": { "transitionId": "141" },
+      "afterAgent": { "transitionId": "91" }
     },
     {
       "agent": "ralph.malph",
@@ -265,7 +274,7 @@ Multiple orchestrator instances can report to the same dashboard — each genera
 }
 ```
 
-In this setup, the same Docker infrastructure serves both variants. Comments with `@RalphDf` trigger the writer agent on "New"/"To Do" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
+In this setup, the same Docker infrastructure serves both variants. Comments with `@RalphDf` trigger the writer agent on "New"/"To Do"/"Defect Found" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
 
 ### Multiple Profiles (Mixed CLIs)
 

@@ -36,7 +36,10 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
     logger,
     containerLogger,
   );
-  const triggerScanner = new TriggerScanner(jiraClient, router, ledger, logger);
+  const triggerScanner = new TriggerScanner(
+    jiraClient, router, ledger, logger,
+    join("output", "cache", "trigger-cache.json"),
+  );
   const heartbeat = config.dashboard.enabled
     ? new HeartbeatSender(
         config.dashboard.url,

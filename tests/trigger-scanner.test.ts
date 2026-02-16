@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { TriggerScanner } from "../src/services/trigger-scanner.js";
 import { OperationLedger } from "../src/services/operation-ledger.js";
 import { ProfileRouter } from "../src/services/profile-router.js";
-import { makeProfile, makeIssue } from "./helpers.js";
+import { makeProfile, makeIssue, makeMatch } from "./helpers.js";
 import type { JiraComment } from "../src/jira/types.js";
 import type { Logger } from "../src/logger.js";
 
@@ -48,7 +48,7 @@ describe("TriggerScanner", () => {
   it("plans operations for matching trigger comments", async () => {
     const profile = makeProfile({
       id: "ralph-docs",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+      match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -61,15 +61,15 @@ describe("TriggerScanner", () => {
 
     expect(planned).toBe(1);
     expect(ledger.getAllPending()).toHaveLength(1);
-    expect(ledger.getAllPending()[0].operation.variant).toBe("ralph-docs:ralph");
+    expect(ledger.getAllPending()[0].operation.variant).toBe("ralph-docs:ralph:@RalphDocs");
   });
 
   it("skips already-consumed trigger comments", async () => {
     const profile = makeProfile({
       id: "ralph-docs",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+      match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
-    const variant = `${profile.id}:${profile.agentName}`;
+    const variant = profile.variantKey;
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
       makeComment("C1", "@RalphDocs handle this"),
@@ -86,7 +86,7 @@ describe("TriggerScanner", () => {
   it("posts ack comment for each new trigger", async () => {
     const profile = makeProfile({
       id: "ralph-docs",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+      match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -104,7 +104,7 @@ describe("TriggerScanner", () => {
   it("skips profiles that don't match the issue project", async () => {
     const profile = makeProfile({
       id: "ralph-vscode",
-      match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" },
+      match: makeMatch({ projects: ["DOC"], commentTrigger: "@vscode" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([makeComment("C1", "@vscode go")]);
@@ -118,7 +118,7 @@ describe("TriggerScanner", () => {
 
   it("skips profiles that don't match the issue status", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: ["In Progress"], commentTrigger: "@go" },
+      match: makeMatch({ statuses: ["In Progress"], commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([makeComment("C1", "@go now")]);
@@ -133,12 +133,12 @@ describe("TriggerScanner", () => {
     const profile1 = makeProfile({
       id: "ralph-docs",
       agentName: "writer",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+      match: makeMatch({ commentTrigger: "@docs" }),
     });
     const profile2 = makeProfile({
       id: "ralph-review",
       agentName: "reviewer",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@review" },
+      match: makeMatch({ commentTrigger: "@review" }),
     });
     const router = new ProfileRouter([profile1, profile2]);
     const client = makeJiraClient([
@@ -155,7 +155,7 @@ describe("TriggerScanner", () => {
 
   it("handles comment fetch failure gracefully", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient();
@@ -170,7 +170,7 @@ describe("TriggerScanner", () => {
 
   it("handles ack comment failure without aborting", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([makeComment("C1", "@go now")]);
@@ -197,7 +197,7 @@ describe("TriggerScanner", () => {
       ],
     };
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+      match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -212,7 +212,7 @@ describe("TriggerScanner", () => {
 
   it("trigger matching is case-insensitive", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@RalphDocs" },
+      match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -238,7 +238,7 @@ describe("TriggerScanner", () => {
 
   it("scans multiple issues in a single batch", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient();
@@ -258,7 +258,7 @@ describe("TriggerScanner", () => {
 
   it("logs scan summary with stats", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -282,7 +282,7 @@ describe("TriggerScanner", () => {
 
   it("skips issues whose updated timestamp has not changed since last scan", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -305,7 +305,7 @@ describe("TriggerScanner", () => {
 
   it("re-scans issues whose updated timestamp changed", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -332,7 +332,7 @@ describe("TriggerScanner", () => {
 
   it("always scans issues without an updated field", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([
@@ -354,7 +354,7 @@ describe("TriggerScanner", () => {
 
   it("clearCache forces re-scan of all issues", async () => {
     const profile = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient([makeComment("C1", "no trigger")]);
@@ -374,7 +374,7 @@ describe("TriggerScanner", () => {
 
   it("does not cache issues that matched no profiles", async () => {
     const profile = makeProfile({
-      match: { projects: ["DOC"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ projects: ["DOC"], commentTrigger: "@go" }),
     });
     const router = new ProfileRouter([profile]);
     const client = makeJiraClient();
@@ -388,7 +388,7 @@ describe("TriggerScanner", () => {
 
     // If later a profile is added for DF, the issue must be scanned
     const profile2 = makeProfile({
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@go" },
+      match: makeMatch({ commentTrigger: "@go" }),
     });
     const router2 = new ProfileRouter([profile2]);
     const client2 = makeJiraClient([makeComment("C1", "@go")]);
@@ -396,5 +396,66 @@ describe("TriggerScanner", () => {
 
     const planned = await scanner2.scan([issue], [profile2]);
     expect(planned).toBe(1);
+  });
+});
+
+describe("TriggerScanner cache persistence", () => {
+  it("persists cache to disk and restores on new instance", async () => {
+    const cachePath = join(tempDir, "trigger-cache.json");
+    const profile = makeProfile({
+      match: makeMatch({ commentTrigger: "@go" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@go")]);
+
+    const scanner1 = new TriggerScanner(client, router, ledger, silentLogger, cachePath);
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    await scanner1.scan([issue], [profile]);
+
+    expect(client.getComments).toHaveBeenCalledTimes(1);
+
+    // Create a new scanner instance loading from the same cache file
+    const client2 = makeJiraClient([makeComment("C1", "@go")]);
+    const scanner2 = new TriggerScanner(client2, router, ledger, silentLogger, cachePath);
+
+    // Same issue, same updated timestamp — should be skipped
+    await scanner2.scan([issue], [profile]);
+    expect(client2.getComments).not.toHaveBeenCalled();
+  });
+
+  it("re-scans issues when updated timestamp changes after cache restore", async () => {
+    const cachePath = join(tempDir, "trigger-cache.json");
+    const profile = makeProfile({
+      match: makeMatch({ commentTrigger: "@go" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@go")]);
+
+    const scanner1 = new TriggerScanner(client, router, ledger, silentLogger, cachePath);
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    await scanner1.scan([issue], [profile]);
+
+    // New instance, but issue has a newer updated timestamp
+    const client2 = makeJiraClient([makeComment("C1", "@go")]);
+    const scanner2 = new TriggerScanner(client2, router, ledger, silentLogger, cachePath);
+
+    const updatedIssue = makeIssue("DF-100", "Test", "New", "2026-02-15T11:00:00Z");
+    await scanner2.scan([updatedIssue], [profile]);
+
+    expect(client2.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("works without cache path (in-memory only)", async () => {
+    const profile = makeProfile({
+      match: makeMatch({ commentTrigger: "@go" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const client = makeJiraClient([makeComment("C1", "@go")]);
+
+    // No cachePath — should not throw, works in-memory only
+    const scanner = new TriggerScanner(client, router, ledger, silentLogger);
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    await scanner.scan([issue], [profile]);
+    expect(client.getComments).toHaveBeenCalledTimes(1);
   });
 });

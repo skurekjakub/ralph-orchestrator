@@ -5,8 +5,18 @@
  * across individual test files.
  */
 
-import type { AppConfig, AgentProfile, DashboardConfig } from "../src/config.js";
+import type { AppConfig, AgentProfile, ProfileMatch } from "../src/config.js";
 import type { JiraIssue } from "../src/jira/types.js";
+
+/** Create a ProfileMatch with sensible defaults. Only `commentTrigger` is typically needed. */
+export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, "commentTrigger">): ProfileMatch {
+  return {
+    projects: ["DF"],
+    statuses: [],
+    revisionStatuses: [],
+    ...overrides,
+  };
+}
 
 /** Create a minimal JiraIssue for testing. */
 export function makeIssue(
@@ -30,21 +40,29 @@ export function makeIssue(
 export function makeProfile(
   overrides: Partial<AgentProfile> = {},
 ): AgentProfile {
+  const id = overrides.id ?? "ralph-default";
+  const agentName = overrides.agentName ?? "ralph";
+  const match = overrides.match ?? { projects: ["DF"], statuses: [], commentTrigger: "@ralph", revisionStatuses: [] };
   return {
-    id: "ralph-default",
+    id,
     repoPath: "/tmp/test-repo",
     composeFile: "profiles/ralph-default/docker-compose.yml",
-    agentName: "ralph",
-    displayName: "ralph",
+    agentName,
+    displayName: agentName.replace(/^ralph\./, ""),
+    variantKey: `${id}:${agentName}:${match.commentTrigger}`,
     cli: "copilot" as const,
     timeoutMs: 1800000,
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
     composeProjectLabel: "ralph-sandbox",
-    match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
+    match,
     beforeAgent: {},
     afterAgent: {},
     ...overrides,
+    // Re-derive variantKey after overrides are applied
+    ...(overrides.variantKey ? {} : {
+      variantKey: `${overrides.id ?? id}:${overrides.agentName ?? agentName}:${(overrides.match ?? match).commentTrigger}`,
+    }),
   };
 }
 

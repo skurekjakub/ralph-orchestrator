@@ -199,6 +199,20 @@ function validateProfiles(errors: string[], warnings: string[]): void {
       if (!v.match?.commentTrigger) {
         errors.push(`${vPrefix}: match.commentTrigger is required`);
       }
+
+      const revisionStatuses: string[] = v.match?.revisionStatuses ?? [];
+      const statuses: string[] = v.match?.statuses ?? [];
+      if (revisionStatuses.length > 0 && statuses.length > 0) {
+        const statusesLower = new Set(statuses.map((s: string) => s.toLowerCase()));
+        for (const rs of revisionStatuses) {
+          if (!statusesLower.has(rs.toLowerCase())) {
+            errors.push(
+              `${vPrefix}: revisionStatuses value "${rs}" is not in statuses [${statuses.join(", ")}]\n` +
+              `  revisionStatuses must be a subset of statuses`
+            );
+          }
+        }
+      }
     }
 
     validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);

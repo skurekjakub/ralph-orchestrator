@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { Orchestrator } from "./orchestrator.js";
 import { createOrchestratorDeps } from "./orchestrator-factory.js";
 import { validatePrerequisites, printValidationResults } from "./validate.js";
+import { DashboardServer } from "./services/dashboard-server.js";
 
 async function main(): Promise<void> {
   const validation = await validatePrerequisites();
@@ -15,6 +16,16 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const deps = createOrchestratorDeps(config);
   const orchestrator = new Orchestrator(deps);
+
+  // Start the local WebSocket dashboard server
+  const dashboardServer = new DashboardServer(
+    orchestrator.observer,
+    deps.logger,
+  );
+  dashboardServer.start();
+
+  // Wire real-time tool output streaming to the dashboard
+  deps.taskRunner.onToolOutput = (line) => dashboardServer.pushToolOutput(line);
 
   const { unmount } = render(
     React.createElement(App, { observer: orchestrator.observer })
@@ -29,6 +40,7 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     shuttingDown = true;
+    dashboardServer.stop();
     await orchestrator.shutdown();
     unmount();
     process.exit(0);

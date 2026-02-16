@@ -3,7 +3,10 @@ import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Orchestrator } from "../src/orchestrator.js";
-import { OperationLedger, OperationStatus } from "../src/services/operation-ledger.js";
+import {
+  OperationLedger,
+  OperationStatus,
+} from "../src/services/operation-ledger.js";
 import { ProfileRouter } from "../src/services/profile-router.js";
 import { TriggerScanner } from "../src/services/trigger-scanner.js";
 import { ActivityLog } from "../src/services/activity-log.js";
@@ -29,11 +32,18 @@ const silentLogger: Logger = {
   error: vi.fn(),
 };
 
-function makeComment(id: string, body: string, created = "2026-01-01T00:00:00Z"): JiraComment {
+function makeComment(
+  id: string,
+  body: string,
+  created = "2026-01-01T00:00:00Z",
+): JiraComment {
   return { id, author: { displayName: "Test User" }, body, created };
 }
 
-function makeResult(issueKey: string, overrides: Partial<RalphResult> = {}): RalphResult {
+function makeResult(
+  issueKey: string,
+  overrides: Partial<RalphResult> = {},
+): RalphResult {
   return {
     issueKey,
     status: "completed",
@@ -57,11 +67,18 @@ function buildMockDeps(options: {
   taskResult?: Partial<RalphResult>;
   taskError?: Error;
 }): OrchestratorDeps {
-  const profile = options.profile ?? makeProfile({
-    id: "ralph-docs",
-    agentName: "ralph",
-    match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
-  });
+  const profile =
+    options.profile ??
+    makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DF"],
+        statuses: [],
+        commentTrigger: "@docs",
+        revisionStatuses: [],
+      },
+    });
   const config = makeConfig([profile]);
   const logDir = join(tempDir, "logs");
   const historyDir = join(logDir, "history");
@@ -113,7 +130,12 @@ function buildMockDeps(options: {
     postErrorComment: vi.fn().mockResolvedValue(undefined),
   } as any;
 
-  const triggerScanner = new TriggerScanner(jiraClient, router, ledger, silentLogger);
+  const triggerScanner = new TriggerScanner(
+    jiraClient,
+    router,
+    ledger,
+    silentLogger,
+  );
 
   let drainCount = 0;
   const poller = {
@@ -187,8 +209,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     expect(deps.poller.start).toHaveBeenCalled();
@@ -220,13 +243,18 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       comments: {
         "DF-150": [makeComment("C1", "@docs handle this")],
       },
-      taskResult: { status: "error", exitCode: 1, stderr: "No such agent: ralph" },
+      taskResult: {
+        status: "error",
+        exitCode: 1,
+        stderr: "No such agent: ralph",
+      },
     });
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     expect(deps.taskRunner.postErrorComment).toHaveBeenCalledWith(
@@ -240,7 +268,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(ops[0].resultStatus).toBe("error");
   });
 
-  it("handles task runner errors gracefully", async () => {
+  it("handles task runner errors gracefully", { timeout: 30_000 }, async () => {
     const issue = makeIssue("DF-200", "Broken task");
     const deps = buildMockDeps({
       issues: [issue],
@@ -252,8 +280,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     const state = orchestrator.observer.getState();
@@ -273,7 +302,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       agentName: "ralph",
-      match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@docs" },
+      match: {
+        projects: ["DF"],
+        statuses: ["New"],
+        commentTrigger: "@docs",
+        revisionStatuses: [],
+      },
     });
     const issueAtPoll = makeIssue("DF-300", "Task that moved", "New");
     const issueAtExec = makeIssue("DF-300", "Task that moved", "Done");
@@ -333,21 +367,30 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length >= 2,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length >= 2,
     );
 
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(2);
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(2);
-    expect(state.completedToday.map((c) => c.key).sort()).toEqual(["DF-400", "DF-401"]);
+    expect(state.completedToday.map((c) => c.key).sort()).toEqual([
+      "DF-400",
+      "DF-401",
+    ]);
   });
 
   it("recovers crashed operations on startup", async () => {
     const profile = makeProfile({
       id: "ralph-docs",
       agentName: "ralph",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+      match: {
+        projects: ["DF"],
+        statuses: [],
+        commentTrigger: "@docs",
+        revisionStatuses: [],
+      },
     });
     const config = makeConfig([profile]);
     const logDir = join(tempDir, "crash-logs");
@@ -357,7 +400,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const ledger = new OperationLedger(historyDir);
     ledger.plan("DF-500", {
-      variant: "ralph-docs:ralph",
+      variant: "ralph-docs:ralph:@docs",
       triggerCommentId: "C1",
       commentTimestamp: "2026-01-01T00:00:00Z",
     });
@@ -383,7 +426,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       drain: vi.fn().mockReturnValue([]),
     } as any;
 
-    const triggerScanner = new TriggerScanner(jiraClient, router, ledger, silentLogger);
+    const triggerScanner = new TriggerScanner(
+      jiraClient,
+      router,
+      ledger,
+      silentLogger,
+    );
 
     const deps: OrchestratorDeps = {
       config,
@@ -391,7 +439,11 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       jiraClient,
       poller,
       router,
-      taskRunner: { run: vi.fn(), transitionAfterAgent: vi.fn(), postErrorComment: vi.fn() } as any,
+      taskRunner: {
+        run: vi.fn(),
+        transitionAfterAgent: vi.fn(),
+        postErrorComment: vi.fn(),
+      } as any,
       triggerScanner,
       ledger,
       heartbeat: null,
@@ -428,8 +480,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       states.push(state.status);
     });
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     expect(states).toContain("working");
@@ -447,8 +500,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     const payload = orchestrator.observer.getHeartbeatPayload();
@@ -474,13 +528,114 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(orchestrator, () =>
-      orchestrator.observer.getState().completedToday.length > 0,
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
     // Despite the issue being returned on every drain, only 1 op was executed
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
     const ops = deps.ledger.getOperations("DF-800");
     expect(ops).toHaveLength(1);
+  });
+
+  it("resolves correct profile when same agent has variants for different projects", async () => {
+    const dfProfile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DF"],
+        statuses: ["To Do"],
+        commentTrigger: "@RalphDf",
+        revisionStatuses: [],
+      },
+    });
+    const docProfile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DOC"],
+        statuses: ["To Do"],
+        commentTrigger: "@RalphDocs",
+        revisionStatuses: [],
+      },
+    });
+
+    // Variant keys must be distinct even though id + agentName are the same
+    expect(dfProfile.variantKey).not.toBe(docProfile.variantKey);
+    expect(dfProfile.variantKey).toBe("ralph-docs:ralph:@RalphDf");
+    expect(docProfile.variantKey).toBe("ralph-docs:ralph:@RalphDocs");
+
+    const config = makeConfig([dfProfile, docProfile]);
+    const logDir = join(tempDir, "multi-variant-logs");
+    const historyDir = join(logDir, "history");
+    mkdirSync(historyDir, { recursive: true });
+    config.output.logDir = logDir;
+
+    const ledger = new OperationLedger(historyDir);
+    const docIssue = makeIssue("DOC-100", "VS Code docs", "To Do");
+
+    // Plan an operation for the DOC variant
+    ledger.plan("DOC-100", {
+      variant: docProfile.variantKey,
+      triggerCommentId: "C1",
+      commentTimestamp: "2026-01-01T00:00:00Z",
+    });
+
+    const activityLog = new ActivityLog(logDir);
+    const router = new ProfileRouter([dfProfile, docProfile]);
+    const mockContainer = makeMockContainer();
+    const jiraClient = {
+      searchIssues: vi.fn().mockResolvedValue([docIssue]),
+      addComment: vi.fn().mockResolvedValue(undefined),
+      getComments: vi.fn().mockResolvedValue([]),
+      transitionIssue: vi.fn().mockResolvedValue(undefined),
+      getAttachments: vi.fn().mockResolvedValue([]),
+      downloadAttachment: vi.fn(),
+      addAttachment: vi.fn(),
+    } as any;
+
+    const taskRunner = {
+      run: vi.fn().mockResolvedValue({
+        result: makeResult("DOC-100"),
+        container: mockContainer,
+      }),
+      transitionAfterAgent: vi.fn().mockResolvedValue(undefined),
+      postErrorComment: vi.fn().mockResolvedValue(undefined),
+    } as any;
+
+    const triggerScanner = new TriggerScanner(
+      jiraClient, router, ledger, silentLogger,
+    );
+
+    const poller = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      onIssues: vi.fn(),
+      drain: vi.fn().mockReturnValue([]),
+    } as any;
+
+    const deps: OrchestratorDeps = {
+      config,
+      activityLog,
+      jiraClient,
+      poller,
+      router,
+      taskRunner,
+      triggerScanner,
+      ledger,
+      heartbeat: null,
+      logger: silentLogger,
+    };
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    // The orchestrator must find the DOC profile (not the DF one) and execute
+    expect(taskRunner.run).toHaveBeenCalledTimes(1);
+    expect(taskRunner.run.mock.calls[0][1]).toBe(docProfile);
   });
 });

@@ -113,6 +113,7 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 - `match.projects` — JIRA project keys to match
 - `match.statuses` — only match issues in these JIRA statuses (empty = any status)
 - `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant. Required for all variants.
+- `match.revisionStatuses` — statuses that indicate a revision task (e.g. `["Defect Found"]`). When the issue is in one of these statuses, the agent receives a `Mode: REVISION` prompt with the previous handoff attachment. Empty = never treat as revision.
 
 Variants are evaluated in order (across all profiles). The orchestrator scans all comments on matching issues and plans operations for each unconsumed trigger.
 

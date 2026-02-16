@@ -266,8 +266,9 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
       "agent": "ralph.ralph",
       "match": {
         "projects": ["DF"],
-        "statuses": ["New", "To Do"],
-        "commentTrigger": "@RalphDf"
+        "statuses": ["New", "To Do", "Defect Found"],
+        "commentTrigger": "@RalphDf",
+        "revisionStatuses": ["Defect Found"]
       }
     }
   ]
@@ -280,6 +281,7 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
 - `match.projects` — issue project key must be in this array
 - `match.statuses` — issue status must be in this array (case-insensitive); empty = match all
 - `match.commentTrigger` — trigger string that must appear in a JIRA comment (case-insensitive)
+- `match.revisionStatuses` — statuses that trigger revision mode (e.g. `["Defect Found"]`); the agent receives `Mode: REVISION` with the previous handoff
 - Agent names must match `.agent.md` files in the profile's `agents/` directory (validated at startup)
 - No match = issue skipped
 

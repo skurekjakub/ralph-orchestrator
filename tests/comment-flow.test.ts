@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { OperationLedger, OperationStatus } from "../src/services/operation-ledger.js";
 import { ProfileRouter } from "../src/services/profile-router.js";
 import { extractAdfText } from "../src/jira/field-extractor.js";
-import { makeProfile, makeIssue } from "./helpers.js";
+import { makeProfile, makeIssue, makeMatch } from "./helpers.js";
 import type { JiraComment } from "../src/jira/types.js";
 
 let tempDir: string;
@@ -34,9 +34,9 @@ describe("Comment-driven orchestration flow", () => {
     it("discovers unconsumed trigger comments", () => {
       const profile = makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@RalphDocs" },
+        match: makeMatch({ statuses: ["New"], commentTrigger: "@RalphDocs" }),
       });
-      const variant = `${profile.id}:${profile.agentName}`;
+      const variant = profile.variantKey;
 
       const comments = [
         makeComment("C1", "Regular comment", "2026-01-01T00:00:00Z"),
@@ -82,16 +82,16 @@ describe("Comment-driven orchestration flow", () => {
       const ralph = makeProfile({
         id: "docs",
         agentName: "ralph",
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@RalphDocs" },
+        match: makeMatch({ statuses: ["New"], commentTrigger: "@RalphDocs" }),
       });
       const malph = makeProfile({
         id: "docs",
         agentName: "malph",
-        match: { projects: ["DF"], statuses: ["Ready for Review"], commentTrigger: "@Malph" },
+        match: makeMatch({ statuses: ["Ready for Review"], commentTrigger: "@Malph" }),
       });
 
-      const ralphVariant = `${ralph.id}:${ralph.agentName}`;
-      const malphVariant = `${malph.id}:${malph.agentName}`;
+      const ralphVariant = ralph.variantKey;
+      const malphVariant = malph.variantKey;
 
       ledger.plan("DF-1", { variant: ralphVariant, triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
       ledger.plan("DF-1", { variant: malphVariant, triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
@@ -105,7 +105,7 @@ describe("Comment-driven orchestration flow", () => {
   describe("status validation before execution", () => {
     it("matchesProjectAndStatus validates before execution", () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
+        match: makeMatch({ statuses: ["New"], commentTrigger: "@ralph" }),
       });
       const router = new ProfileRouter([profile]);
 

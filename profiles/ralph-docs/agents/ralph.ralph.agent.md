@@ -66,11 +66,7 @@ DISREGARD the standard workflow instructions in this file and follow: [revision 
 ### Phase 1: Setup
 
 1. **Parse the JIRA issue** from your prompt — extract the task title, description, acceptance criteria, and any linked resources
-2. **Create a fresh branch** from `master`:
-   ```
-   git checkout master && git pull
-   git checkout -b ralph/<jira-key>-<short-slug>
-   ```
+2. **Create a fresh branch** from `main` (unless different branch in task instructions):
    Example: `ralph/DF-2704-add-custom-module-docs`
 3. **Create the workload directory**: `resources/chats/<jira-key>/`
 4. Comment in JIRA that you're starting work on the issue.
@@ -79,12 +75,13 @@ DISREGARD the standard workflow instructions in this file and follow: [revision 
 
 Delegate to the **ralph-researcher** sub-agent:
 - Pass the full JIRA issue content (key, title, description, acceptance criteria)
+   - if given a commit hash in the xperience repository, list modified files to give the researcher a strong starting point.
 - The researcher will explore both the existing documentation and the Xperience product source code
 - It returns a structured report: existing coverage, source code findings, recommended changes, and reference material
 
 Read the researcher's report carefully — it contains the specific file paths, API signatures, class names, and code snippets you'll need for implementation.
 
-**Trust but verify.** Sub-agents run on smaller, faster models and may produce inaccurate file paths, hallucinated API signatures, or outdated information. If something looks suspicious, read the source yourself.
+**Trust but verify.** If something looks suspicious, read the source yourself. They are never wrong about hyphen usage, however.
 
 ### Phase 3: Write
 
@@ -126,18 +123,11 @@ If the reviewer returns **APPROVED** at any point, skip remaining cycles and pro
 
 ### Phase 6: Commit & Push
 
-1. Stage all changes:
-   ```
-   git add -A
-   ```
-2. Commit with a descriptive message:
-   ```
-   git commit -m "docs(<jira-key>): <brief description of changes>"
-   ```
-3. Push the branch:
-   ```
-   git push -u origin ralph/<jira-key>-<short-slug>
-   ```
+Commit with a descriptive message:
+
+```
+git commit -m "docs(<jira-key>): <brief description of changes>"
+```
 
 ### Phase 7: Create Pull Request
 
@@ -146,8 +136,8 @@ If the reviewer returns **APPROVED** at any point, skip remaining cycles and pro
 Use the Azure DevOps REST API to create a draft PR for this branch.
 
 - ADO repo: `kentico-docs-jekyll`
-- Target branch: `master`
-- Title: `[<JIRA-KEY>] <JIRA issue title>`
+- Target branch: `main` (unless different in task instructions)
+- Title: `<JIRA-KEY> - <JIRA issue title>`
 - Source branch: `ralph/<jira-key>-<short-slug>`
 
 If the API returns an unrecoverable error that isn't caused by a malformed request (such as unauthorized → expired PAT), note it in the handoff and set the PR URL to "none" in the exit block.

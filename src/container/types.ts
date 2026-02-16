@@ -51,6 +51,8 @@ export interface RalphResult {
   auditLogPath?: string;
   /** Local path to the Copilot session transcript (Markdown). */
   transcriptPath?: string;
+  /** Local path to the untruncated tool output log. */
+  toolOutputPath?: string;
   /** ADO pull request URL parsed from the agent's structured output. */
   prUrl?: string;
 }

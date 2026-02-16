@@ -113,7 +113,7 @@ if [ ! "$TF_BUILD" ]; then
             XPERIENCE_CLONE_URL="https://pat:${ADO_PAT_XPERIENCE}@dev.azure.com/kenticoxperience/CMS/_git/xperience"
             echo "📦 Cloning Xperience repository (shallow)..."
             mkdir -p resources/repositories
-            git clone --depth 1 --branch master --single-branch "$XPERIENCE_CLONE_URL" "$XPERIENCE_REPO_PATH"
+            git clone --branch master --single-branch "$XPERIENCE_CLONE_URL" "$XPERIENCE_REPO_PATH"
             echo "✅ Xperience repository cloned (shallow)"
         else
             echo "⚠️  ADO_PAT_XPERIENCE not set, skipping Xperience clone (non-critical)"

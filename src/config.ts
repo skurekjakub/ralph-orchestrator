@@ -39,6 +39,7 @@ const profileMatchSchema = z.object({
   projects: z.array(z.string()).default([]),
   statuses: z.array(z.string()).default([]),
   commentTrigger: z.string().min(1, "match.commentTrigger is required"),
+  revisionStatuses: z.array(z.string()).default([]),
 });
 
 const agentTransitionSchema = z.object({
@@ -82,6 +83,8 @@ export interface ProfileMatch {
   statuses: string[];
   /** Comment trigger string — at least one comment must contain this (case-insensitive) for the variant to match. */
   commentTrigger: string;
+  /** Statuses that indicate a revision task (e.g. "Defect Found"). When the issue is in one of these statuses, the agent follows the revision workflow. */
+  revisionStatuses: string[];
 }
 
 /** Optional JIRA transition to execute before or after agent work. Empty = no transition (observer). */
@@ -98,6 +101,8 @@ export interface AgentProfile {
   agentName: string;
   /** Human-friendly agent name for JIRA comments and logs (strips `ralph.` prefix). */
   displayName: string;
+  /** Unique variant identifier: `<profileId>:<agentName>:<commentTrigger>`. Used for ledger dedup and profile lookup. */
+  variantKey: string;
   /** Which CLI to use for agent execution. */
   cli: "copilot" | "claude";
   /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
@@ -200,6 +205,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         composeFile: `profiles/${profileId}/docker-compose.yml`,
         agentName: variant.agent,
         displayName: variant.agent.replace(/^ralph\./, ""),
+        variantKey: `${profileId}:${variant.agent}:${variant.match.commentTrigger}`,
         cli: parsed.cli,
         model: variant.model ?? parsed.model,
         timeoutMs: parsed.timeoutMs,
@@ -210,6 +216,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
           projects: variant.match.projects,
           statuses: variant.match.statuses,
           commentTrigger: variant.match.commentTrigger,
+          revisionStatuses: variant.match.revisionStatuses,
         },
         beforeAgent: variant.beforeAgent,
         afterAgent: variant.afterAgent,

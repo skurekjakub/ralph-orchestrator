@@ -88,7 +88,7 @@ describe("Docker compose options", () => {
 describe("Build streaming", () => {
   it("streams build and setup output via StreamCapture", async () => {
     const source = await readSource("../src/container/manager.ts");
-    expect(source).toContain('new StreamCapture(proc, this.logger, "build")');
-    expect(source).toContain('new StreamCapture(setupProc, this.logger, "setup")');
+    expect(source).toContain('new StreamCapture(proc, this.containerLogger, "build")');
+    expect(source).toContain('new StreamCapture(setupProc, this.containerLogger, "setup")');
   });
 });

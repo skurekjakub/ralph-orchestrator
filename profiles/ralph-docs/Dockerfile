@@ -12,6 +12,18 @@ ARG PANDOC_VERSION=3.8.3
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ============================================================
+# 0. Locale — Ruby defaults to US-ASCII without this, causing
+#    "invalid byte sequence" errors on UTF-8 content files
+# ============================================================
+RUN apt-get update && apt-get install -y --no-install-recommends locales \
+    && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+
+# ============================================================
 # 1. Core build deps + Playwright system libraries
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \

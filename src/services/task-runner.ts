@@ -34,6 +34,9 @@ export class TaskRunner {
     private containerLogger?: Logger,
   ) {}
 
+  /** Optional callback invoked for each real-time tool output line from the container. */
+  onToolOutput?: (line: string) => void;
+
   /**
    * Run the full pipeline for a single issue + profile combination.
    *
@@ -45,6 +48,9 @@ export class TaskRunner {
     profile: AgentProfile,
   ): Promise<{ result: RalphResult; container: ContainerManager }> {
     const container = new ContainerManager(profile, this.config, this.logger, this.containerLogger);
+    if (this.onToolOutput) {
+      container.onToolOutput = this.onToolOutput;
+    }
 
     try {
       const beforeTransitionId = profile.beforeAgent?.transitionId;
@@ -104,15 +110,24 @@ export class TaskRunner {
       const comments = await this.fetchComments(issue.key);
       this.logger.info(`Found ${comments.length} comments on ${issue.key}`);
 
-      this.logger.info(`Fetching handoff context for ${issue.key}...`);
-      const handoffContent = await this.fetchHandoff(issue.key);
-      this.logger.info(
-        `Handoff context: ${handoffContent ? "found" : "not found"}`
+      const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+      const revisionStatuses = profile.match.revisionStatuses ?? [];
+      const isRevision = revisionStatuses.some(
+        (s) => s.toLowerCase() === issueStatus,
       );
+
+      let handoffContent: string | null = null;
+      if (isRevision) {
+        this.logger.info(`Issue is in revision status ("${issue.fields.status?.name}") — fetching handoff...`);
+        handoffContent = await this.fetchHandoff(issue.key);
+        this.logger.info(
+          `Handoff context: ${handoffContent ? "found" : "not found"}`
+        );
+      }
 
       const issueContext: IssueContext = {
         comments,
-        isRevision: !!handoffContent,
+        isRevision,
         handoffContent,
       };
 
@@ -120,7 +135,9 @@ export class TaskRunner {
       this.logger.info(
         `Executing ${profile.displayName} agent for ${issue.key} (timeout: ${timeoutSec}s)...`
       );
+      container.startToolOutputTail();
       const result = await container.execute(issue, issueContext);
+      container.stopToolOutputTail();
       this.logger.info(
         `Agent finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
       );
@@ -154,6 +171,16 @@ export class TaskRunner {
         await this.attachTranscript(issue.key, result.transcriptPath);
       } else {
         this.logger.warn("No session transcript available");
+      }
+
+      this.logger.info("Collecting tool output log...");
+      result.toolOutputPath =
+        (await container.collectToolOutput(issue.key)) ?? undefined;
+
+      if (result.toolOutputPath) {
+        this.logger.info(`Tool output saved: ${result.toolOutputPath}`);
+      } else {
+        this.logger.warn("No tool output log found");
       }
 
       this.logCollector.saveExecutionSummary(result);

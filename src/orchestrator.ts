@@ -172,9 +172,10 @@ export class Orchestrator {
     operation: Operation,
   ): Promise<void> {
     const profile = this.deps.config.profiles.find(
-      (p) => `${p.id}:${p.agentName}` === operation.variant,
+      (p) => p.variantKey === operation.variant,
     );
     if (!profile) {
+      this.log(`Operation on ${issueKey} failed: profile ${operation.variant} no longer exists`);
       this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
         reason: `Profile ${operation.variant} no longer exists`,
       });
@@ -189,6 +190,7 @@ export class Orchestrator {
         1,
       );
       if (results.length === 0) {
+        this.log(`Operation on ${issueKey} failed: issue not found in JIRA`);
         this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
           reason: "Issue not found in JIRA",
         });
@@ -197,6 +199,7 @@ export class Orchestrator {
       }
       issue = results[0];
     } catch (err) {
+      this.log(`Operation on ${issueKey} failed: ${err instanceof Error ? err.message : String(err)}`);
       this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
         reason: `Failed to fetch issue: ${err instanceof Error ? err.message : String(err)}`,
       });
@@ -205,6 +208,9 @@ export class Orchestrator {
     }
 
     if (!this.deps.router.matchesProjectAndStatus(issue, profile)) {
+      this.log(
+        `Rejected ${issueKey}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
+      );
       this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Rejected, {
         reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
       });
