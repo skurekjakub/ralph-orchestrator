@@ -2,6 +2,7 @@
   "repo": "~/repositories/ralph-repositories/kentico-docs-jekyll",
   "cli": "copilot",
   "timeoutMs": 3600000,
+  "cleanPaths": ["/workspace/resources/chats"],
   "variants": [
     {
       "agent": "ralph.ralph",

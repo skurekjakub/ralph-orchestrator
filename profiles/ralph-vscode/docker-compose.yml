@@ -18,7 +18,6 @@ services:
       CLAUDE_CODE_DISABLE_COST_WARNINGS: "1"
     shm_size: 1gb
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       # Target repo workspace
       - ${TARGET_REPO_PATH}:/workspace
       # Ralph agent definitions (resolved from templates by the orchestrator)
@@ -31,7 +30,11 @@ services:
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
       - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
     command: sleep infinity
+    networks:
+      ralph-internal:
 
 networks:
-  default:
-    name: devcontainer-ralph-vscode-network
+  ralph-internal:
+    internal: true
+  ralph-external:
+    driver: bridge

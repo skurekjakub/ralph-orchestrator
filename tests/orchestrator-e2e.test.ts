@@ -51,6 +51,7 @@ function makeResult(
     exitCode: 0,
     stdout: "Done",
     stderr: "",
+    collectedLogs: {},
     ...overrides,
   };
 }

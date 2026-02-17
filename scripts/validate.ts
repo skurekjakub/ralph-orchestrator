@@ -1,4 +1,4 @@
-import { validatePrerequisites, printValidationResults } from "../src/validate.js";
+import { validatePrerequisites, printValidationResults } from "../src/validate/index.js";
 
 const result = await validatePrerequisites();
 printValidationResults(result);

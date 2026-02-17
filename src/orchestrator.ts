@@ -355,17 +355,38 @@ export class Orchestrator {
       }
     }
 
-    // Fallback: raw docker compose down using the profile's compose file
+    // Fallback: raw docker compose down using the profile's compose file + security overlay.
+    // Must inject the same env vars as ComposeClient — compose files reference
+    // TARGET_REPO_PATH, SHARED_HOOKS_PATH, etc. in volume mounts.
     const composeFile = resolve(process.cwd(), profile.composeFile);
+    const securityOverlay = resolve(process.cwd(), "shared/security/docker-compose.security.yml");
+    const { secrets, jira } = this.deps.config;
     try {
       await execa("docker", [
         "compose",
         "-f",
         composeFile,
+        "-f",
+        securityOverlay,
         "down",
         "--volumes",
         "--remove-orphans",
-      ]);
+      ], {
+        env: {
+          ...process.env as Record<string, string>,
+          TARGET_REPO_PATH: resolve(profile.repoPath),
+          SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
+          SQUID_CONF_PATH: resolve(process.cwd(), "shared/security/squid.conf"),
+          GH_TOKEN: secrets.ghToken,
+          ADO_PAT_DOCS: secrets.adoPatDocs,
+          ADO_PAT_XPERIENCE: secrets.adoPatXperience,
+          JIRA_PAT: secrets.jiraPat,
+          JIRA_EMAIL: secrets.jiraEmail,
+          JIRA_BASE_URL: jira.baseUrl,
+          JIRA_CLOUD_ID: jira.cloudId,
+          ANTHROPIC_API_KEY: secrets.anthropicApiKey,
+        },
+      });
       this.log("Containers stopped (fallback)");
     } catch (err) {
       this.warn(

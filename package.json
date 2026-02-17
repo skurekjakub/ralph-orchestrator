@@ -13,7 +13,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dashboard": "cd dashboard-local && npx vite"
+    "dashboard": "cd dashboard-local && npx vite",
+    "reset-testenv": "tsx scripts/reset-issue.ts"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

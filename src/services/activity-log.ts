@@ -33,7 +33,7 @@ export class ActivityLog {
    */
   constructor(
     logDir: string,
-    private maxLines = 50
+    private maxLines = 500
   ) {
     this.logDir = resolve(process.cwd(), logDir);
     mkdirSync(this.logDir, { recursive: true });

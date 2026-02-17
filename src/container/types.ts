@@ -47,12 +47,11 @@ export interface RalphResult {
   stderr: string;
   /** Local path to the handoff file, if one was saved. */
   handoffPath?: string;
-  /** Local path to the audit JSONL log collected from the container. */
-  auditLogPath?: string;
-  /** Local path to the Copilot session transcript (Markdown). */
-  transcriptPath?: string;
-  /** Local path to the untruncated tool output log. */
-  toolOutputPath?: string;
+  /**
+   * Collected log files keyed by source id (e.g. `"audit"`, `"transcript"`, `"proxy"`).
+   * Values are local filesystem paths. Absent sources are omitted.
+   */
+  collectedLogs: Record<string, string>;
   /** ADO pull request URL parsed from the agent's structured output. */
   prUrl?: string;
 }

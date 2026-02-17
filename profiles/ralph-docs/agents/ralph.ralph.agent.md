@@ -81,6 +81,8 @@ Delegate to the **ralph-researcher** sub-agent:
 
 Read the researcher's report carefully — it contains the specific file paths, API signatures, class names, and code snippets you'll need for implementation.
 
+**Preserve source references.** When the researcher cites specific source code locations (file paths, class names, method signatures), keep track of these. You'll need them in the handoff file and JIRA comment to back your documentation claims with verifiable evidence.
+
 **Trust but verify.** If something looks suspicious, read the source yourself. They are never wrong about hyphen usage, however.
 
 ### Phase 3: Write
@@ -133,6 +135,8 @@ git commit -m "docs(<jira-key>): <brief description of changes>"
 
 <!-- include: ado-api.md -->
 
+<!-- include: ado-pr-format.md -->
+
 Use the Azure DevOps REST API to create a draft PR for this branch.
 
 - ADO repo: `kentico-docs-jekyll`
@@ -163,6 +167,12 @@ Note the PR URL/ID for the handoff file.
 ## Key Decisions Made
 <!-- Every autonomous decision with rationale -->
 
+## Source Code References
+<!-- For any claim derived from exploring the Xperience source code, list the exact location that backs it:
+- Claim: "RFS cannot be nested" → `CMSSolution/ContentTypes/ReusableFieldSchemaValidator.cs:L45` — `ValidateNesting()` throws if parent is already an RFS
+- Claim: "Changes propagate to all content types" → `CMSSolution/ContentTypes/FieldSchemaManager.cs:L120-135` — `PropagateChanges()` iterates all referencing types
+If no source exploration was needed, write "N/A — changes based on JIRA description only" -->
+
 ## Review Status
 <!-- Approved | Approved after N cycles | Not converged after 2 cycles (with details) -->
 
@@ -187,6 +197,13 @@ curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
 
 3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
+   **Source code evidence:** If any documentation claims are based on exploring the Xperience source code, include a "Source References" section in the comment listing the exact file paths and method names that back each claim. This lets reviewers verify your work against the codebase. Example:
+   ```
+   h4. 📋 Source References
+   * _RFS nesting limitation_ → {{ReusableFieldSchemaValidator.cs}} line 45, {{ValidateNesting()}} method
+   * _Propagation behavior_ → {{FieldSchemaManager.cs}} lines 120-135, {{PropagateChanges()}} method
+   ```
+
 ### Phase 9: Exit
 
 Print a final summary to stdout in this **exact format** — the orchestrator parses it:
@@ -202,7 +219,7 @@ SUMMARY: <one-line description of what was done>
 ===RALPH_RESULT_END===
 ```
 
-The orchestrator uses the `===RALPH_RESULT_START===` / `===RALPH_RESULT_END===` markers to extract structured data from the session output. Always include this block as the very last thing you print, even on failure.
+Always include this block as the very last thing you print, even on failure.
 
 ---
 

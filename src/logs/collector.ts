@@ -35,7 +35,7 @@ export class LogCollector {
           durationMs: result.durationMs,
           exitCode: result.exitCode,
           prUrl: result.prUrl,
-          auditLogPath: result.auditLogPath,
+          collectedLogs: result.collectedLogs,
           activityLogPath,
           timestamp: new Date().toISOString(),
         },

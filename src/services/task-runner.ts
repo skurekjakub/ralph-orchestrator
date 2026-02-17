@@ -105,6 +105,9 @@ export class TaskRunner {
 
       this.logger.info("Cleaning previous audit logs...");
       await container.cleanLogs();
+      await container.cleanWorkspacePaths();
+
+      container.registerLogSources(issue.key);
 
       this.logger.info(`Fetching JIRA comments for ${issue.key}...`);
       const comments = await this.fetchComments(issue.key);
@@ -135,9 +138,7 @@ export class TaskRunner {
       this.logger.info(
         `Executing ${profile.displayName} agent for ${issue.key} (timeout: ${timeoutSec}s)...`
       );
-      container.startToolOutputTail();
       const result = await container.execute(issue, issueContext);
-      container.stopToolOutputTail();
       this.logger.info(
         `Agent finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
       );
@@ -152,35 +153,15 @@ export class TaskRunner {
         );
       }
 
-      this.logger.info("Collecting audit logs from container...");
-      result.auditLogPath =
-        (await container.collectLogs(issue.key)) ?? undefined;
-
-      if (result.auditLogPath) {
-        this.logger.info(`Audit logs saved: ${result.auditLogPath}`);
-      } else {
-        this.logger.warn("No audit logs found in container");
+      this.logger.info("Collecting logs from containers...");
+      const collected = await container.logs.collectAll();
+      for (const { id, path } of collected) {
+        if (path) result.collectedLogs[id] = path;
       }
 
-      this.logger.info("Collecting session transcript...");
-      result.transcriptPath =
-        (await container.collectTranscript(issue.key)) ?? undefined;
-
-      if (result.transcriptPath) {
-        this.logger.info(`Transcript saved: ${result.transcriptPath}`);
-        await this.attachTranscript(issue.key, result.transcriptPath);
-      } else {
-        this.logger.warn("No session transcript available");
-      }
-
-      this.logger.info("Collecting tool output log...");
-      result.toolOutputPath =
-        (await container.collectToolOutput(issue.key)) ?? undefined;
-
-      if (result.toolOutputPath) {
-        this.logger.info(`Tool output saved: ${result.toolOutputPath}`);
-      } else {
-        this.logger.warn("No tool output log found");
+      const transcriptPath = result.collectedLogs["transcript"];
+      if (transcriptPath) {
+        await this.attachTranscript(issue.key, transcriptPath, profile.agentName);
       }
 
       this.logCollector.saveExecutionSummary(result);
@@ -199,7 +180,15 @@ export class TaskRunner {
         exitCode: 1,
         stdout: "",
         stderr: err instanceof Error ? err.message : String(err),
+        collectedLogs: {},
       };
+
+      if (container) {
+        const collected = await container.logs.collectAll().catch(() => []);
+        for (const { id, path } of collected) {
+          if (path) errorResult.collectedLogs[id] = path;
+        }
+      }
 
       return { result: errorResult, container };
     }
@@ -297,13 +286,18 @@ export class TaskRunner {
     }
   }
 
-  /** Attach the session transcript to JIRA as `session-transcript.md`. */
-  private async attachTranscript(issueKey: string, localPath: string): Promise<void> {
+  /** Attach the session transcript to JIRA with variant name and date. */
+  private async attachTranscript(issueKey: string, localPath: string, variantName: string): Promise<void> {
     try {
       const { readFileSync } = await import("node:fs");
       const content = readFileSync(localPath, "utf-8");
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const filename = `session-transcript-${variantName}-${dd}-${mm}-${yyyy}.md`;
       await withRetry(
-        () => this.jiraClient.addAttachment(issueKey, "session-transcript.md", content),
+        () => this.jiraClient.addAttachment(issueKey, filename, content),
         `attach transcript to ${issueKey}`,
         this.logger,
       );

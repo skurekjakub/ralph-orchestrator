@@ -20,31 +20,15 @@ The target repository is hosted in Azure DevOps. Use the REST API for pull reque
 
 The repo name and default branch vary per profile — use the values matching your current project.
 
-### Auth header
-
-```bash
--H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)"
-```
-
 ### Creating a pull request
+
+https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-requests/create?view=azure-devops-rest-7.1&tabs=HTTP
 
 ```bash
 ADO_ORG="KenticoCustomerSuccess"
 ADO_PROJECT="CustomerEducation"
 ADO_REPO="<repo-name>"  # e.g. kentico-docs-jekyll
 API_VERSION="7.1"
-
-python3 -c "
-import json
-data = {
-    'sourceRefName': 'refs/heads/<branch>',
-    'targetRefName': 'refs/heads/<default-branch>',
-    'title': '<title>',
-    'description': '<description — NO backticks>',
-    'isDraft': True
-}
-print(json.dumps(data))
-" > /tmp/pr_body.json
 
 PR_RESPONSE=$(curl -s --http1.1 -X POST \
   -H "Content-Type: application/json" \
@@ -55,20 +39,9 @@ PR_RESPONSE=$(curl -s --http1.1 -X POST \
 
 ### Posting a comment on a pull request
 
-Use this to post thread comments on an existing PR (e.g., to respond to review feedback or introduce yourself):
+Use this to post thread comments on an existing PR (e.g., to respond to review feedback or introduce yourself). If need details read https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-request-threads?view=azure-devops-rest-7.1
 
 ```bash
-PR_ID="<pull-request-id>"
-
-python3 -c "
-import json
-data = {
-    'comments': [{'content': '<comment text — wiki/markdown>', 'parentCommentId': 0, 'commentType': 1}],
-    'status': 1
-}
-print(json.dumps(data))
-" > /tmp/pr_comment.json
-
 curl -s --http1.1 -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \

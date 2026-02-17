@@ -40,22 +40,7 @@ RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# 5. Docker CLI + Compose plugin (docker-outside-of-docker)
-# ============================================================
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-        | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) \
-        signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-        https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-        | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y docker-ce-cli docker-compose-plugin \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -f docker && usermod -aG docker vscode
-
-# ============================================================
-# 6. VS Code extension test dependencies (xvfb + Electron native libs)
+# 5. VS Code extension test dependencies (xvfb + Electron native libs)
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
         xvfb libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
@@ -65,11 +50,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# 7. Copy scripts & finalize
+# 6. Copy scripts & finalize
 # ============================================================
 USER root
 COPY --chown=vscode:vscode setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh
+
+# User-writable npm global prefix so setup.sh can install CLIs without sudo
+RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-global
+ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
+ENV PATH="/home/vscode/.npm-global/bin:$PATH"
+
+# Disable sudo for vscode user (prevent privilege escalation inside container)
+RUN rm -f /etc/sudoers.d/vscode 2>/dev/null; \
+    sed -i '/vscode/d' /etc/sudoers
 
 USER vscode
 WORKDIR /workspace

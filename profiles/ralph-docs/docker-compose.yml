@@ -22,7 +22,6 @@ services:
       CLAUDE_CODE_DISABLE_COST_WARNINGS: "1"
     shm_size: 2gb
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       # Target repo workspace
       - ${TARGET_REPO_PATH}:/workspace
       # Ralph agent definitions (resolved from templates by the orchestrator)
@@ -40,7 +39,7 @@ services:
     depends_on:
       - db
     networks:
-      - devcontainer-ralph-network
+      ralph-internal:
 
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -48,12 +47,12 @@ services:
       MSSQL_PID: developer
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Password123!}"
-    ports:
-      - "1455:1433"
+    expose:
+      - "1433"
     volumes:
       - sqlserver-ralph-data:/var/opt/mssql
     networks:
-      - devcontainer-ralph-network
+      ralph-internal:
     healthcheck:
       test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT @@VERSION" || exit 1
       interval: 60s
@@ -65,4 +64,7 @@ volumes:
   sqlserver-ralph-data:
 
 networks:
-  devcontainer-ralph-network:
+  ralph-internal:
+    internal: true
+  ralph-external:
+    driver: bridge

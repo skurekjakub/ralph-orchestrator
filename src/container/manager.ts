@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { resolve } from "node:path";
 import type { AgentProfile, AppConfig, OutputConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, CliExecutor } from "./types.js";
@@ -11,8 +12,8 @@ import { ComposeClient } from "./compose-client.js";
 import { CopilotExecutor } from "./copilot-executor.js";
 import { ClaudeCodeExecutor } from "./claude-code-executor.js";
 import { StreamCapture } from "./stream-capture.js";
-import { mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { ContainerLogCollector, CaptureMode } from "./log-collector.js";
+
 /**
  * Manages the full container lifecycle for a single agent profile using
  * `docker compose` directly.
@@ -29,7 +30,7 @@ import { join, resolve } from "node:path";
  *
  * 1. **start()** — `docker compose up -d` + runs the setup script
  * 2. **execute()** — runs the agent CLI via the selected executor
- * 3. **collectLogs()** — pulls audit JSONL from the container to the local filesystem
+ * 3. **logs.collectAll()** — pulls all log sources from containers to the local filesystem
  * 4. **stop()** — `docker compose down --volumes --remove-orphans`
  */
 export class ContainerManager {
@@ -39,7 +40,9 @@ export class ContainerManager {
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
   private readonly profile: AgentProfile;
-  private tailProcess: ReturnType<typeof import("execa").execa> | null = null;
+
+  /** Per-task log collector — manages streaming and collection for all log sources. */
+  readonly logs: ContainerLogCollector;
 
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
@@ -57,12 +60,19 @@ export class ContainerManager {
     this.containerLogger = containerLogger ?? this.logger;
 
     const composeFilePath = resolve(process.cwd(), profile.composeFile);
-    this.compose = new ComposeClient(composeFilePath, {
+    const securityOverlay = resolve(process.cwd(), "shared/security/docker-compose.security.yml");
+    this.compose = new ComposeClient([composeFilePath, securityOverlay], {
       secrets: appConfig.secrets,
       jiraBaseUrl: appConfig.jira.baseUrl,
       jiraCloudId: appConfig.jira.cloudId,
       targetRepoPath: profile.repoPath,
     });
+
+    this.logs = new ContainerLogCollector(
+      this.compose,
+      this.outputConfig.logDir,
+      this.logger,
+    );
 
     const cliLogger = containerLogger ?? this.logger;
     this.executor = this.selectExecutor(profile, appConfig, cliLogger);
@@ -129,6 +139,54 @@ export class ContainerManager {
   }
 
   /**
+   * Register standard log sources for a task and start streaming.
+   *
+   * Call after {@link start} when containers are running.
+   * Sets up the issue key on the log collector and registers all known log
+   * sources (audit, transcript, tool output, proxy).
+   *
+   * @param issueKey JIRA key used as the filename prefix for all collected logs.
+   */
+  registerLogSources(issueKey: string): void {
+    this.logs.setIssueKey(issueKey);
+
+    this.logs.addSource({
+      id: "audit",
+      service: "app",
+      containerPath: this.profile.auditLogPath,
+      extension: "jsonl",
+      mode: CaptureMode.Collect,
+    });
+
+    this.logs.addSource({
+      id: "transcript",
+      service: "app",
+      containerPath: CopilotExecutor.TRANSCRIPT_PATH,
+      extension: "md",
+      mode: CaptureMode.Collect,
+    });
+
+    this.logs.addSource({
+      id: "tool-output",
+      service: "app",
+      containerPath: ContainerManager.TOOL_OUTPUT_PATH,
+      extension: "log",
+      mode: this.onToolOutput ? CaptureMode.Stream : CaptureMode.Collect,
+      onLine: this.onToolOutput,
+    });
+
+    this.logs.addSource({
+      id: "proxy",
+      service: "egress-proxy",
+      containerPath: "/var/log/squid/access.log",
+      extension: "log",
+      mode: CaptureMode.Collect,
+    });
+
+    this.logs.attach();
+  }
+
+  /**
    * Execute the Ralph Copilot CLI agent inside the running container.
    *
    * Parses the agent's structured `===RALPH_RESULT_START===` block for PR URL
@@ -155,117 +213,24 @@ export class ContainerManager {
       exitCode: result.exitCode,
       stdout: result.stdout,
       stderr: result.stderr,
+      collectedLogs: {},
       prUrl,
     };
-  }
-
-  /**
-   * Collect the audit JSONL log from the container and save it locally.
-   *
-   * Uses `docker compose exec cat` to read the file — must be called before {@link stop}.
-   *
-   * @param issueKey JIRA key used in the output filename.
-   * @returns Local path to the saved JSONL file, or null if collection failed.
-   */
-  async collectLogs(issueKey: string): Promise<string | null> {
-    mkdirSync(this.outputConfig.logDir, { recursive: true });
-    const timestamp = Date.now();
-    const localPath = join(
-      this.outputConfig.logDir,
-      `${issueKey}-${timestamp}.jsonl`
-    );
-
-    try {
-      const result = await this.compose.exec([
-        "app", "cat", this.profile.auditLogPath,
-      ]);
-
-      const { writeFileSync } = await import("node:fs");
-      writeFileSync(localPath, String(result.stdout));
-      return localPath;
-    } catch {
-      this.logger.error("Failed to collect audit logs");
-      return null;
-    }
-  }
-
-  /**
-   * Collect the Copilot session transcript from the container and save it locally.
-   *
-   * The transcript is a Markdown file generated by `--share` — contains the full
-   * conversation with tool calls and model reasoning.
-   *
-   * @param issueKey JIRA key used in the output filename.
-   * @returns Local path to the saved transcript, or null if not available.
-   */
-  async collectTranscript(issueKey: string): Promise<string | null> {
-    mkdirSync(this.outputConfig.logDir, { recursive: true });
-    const localPath = join(
-      this.outputConfig.logDir,
-      `${issueKey}-${Date.now()}-transcript.md`
-    );
-
-    try {
-      const result = await this.compose.exec([
-        "app", "cat", CopilotExecutor.TRANSCRIPT_PATH,
-      ]);
-
-      const content = String(result.stdout);
-      if (!content.trim()) return null;
-
-      const { writeFileSync } = await import("node:fs");
-      writeFileSync(localPath, content);
-      return localPath;
-    } catch {
-      this.logger.warn("No session transcript found");
-      return null;
-    }
   }
 
   /** Path to the untruncated tool output log inside the container. */
   static readonly TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
 
   /**
-   * Collect the untruncated tool output log from the container.
-   *
-   * Written by the postToolUse hook — contains full stdout/stderr from every
-   * tool call the agent made, without truncation.
-   *
-   * @param issueKey JIRA key used in the output filename.
-   * @returns Local path to the saved log, or null if not available.
-   */
-  async collectToolOutput(issueKey: string): Promise<string | null> {
-    mkdirSync(this.outputConfig.logDir, { recursive: true });
-    const localPath = join(
-      this.outputConfig.logDir,
-      `${issueKey}-${Date.now()}-tool-output.log`
-    );
-
-    try {
-      const result = await this.compose.exec([
-        "app", "cat", ContainerManager.TOOL_OUTPUT_PATH,
-      ]);
-
-      const content = String(result.stdout);
-      if (!content.trim()) return null;
-
-      const { writeFileSync } = await import("node:fs");
-      writeFileSync(localPath, content);
-      return localPath;
-    } catch {
-      this.logger.warn("No tool output log found");
-      return null;
-    }
-  }
-
-  /**
    * Tear down all containers and associated resources.
    *
-   * Kills any active copilot process, then runs `docker compose down --volumes --remove-orphans`.
+   * Detaches the log collector, kills any active copilot process, then runs
+   * `docker compose down --volumes --remove-orphans`.
    * Falls back to `docker rm -f` if compose fails.
    */
   async stop(): Promise<void> {
     this.logger.info("Stopping containers...");
+    this.logs.detach();
     this.executor.killActive();
 
     try {
@@ -293,55 +258,32 @@ export class ContainerManager {
   async cleanLogs(): Promise<void> {
     const logDir = this.profile.auditLogPath.substring(0, this.profile.auditLogPath.lastIndexOf("/") + 1);
     try {
-      await this.compose.exec(["app", "rm", "-rf", logDir]);
-      await this.compose.exec(["app", "mkdir", "-p", logDir]);
-      await this.compose.exec(["app", "chown", "vscode:vscode", logDir]);
-    } catch {
-      // non-critical
+      await this.compose.exec(["-T", "--user", "root", "app", "rm", "-rf", logDir]);
+      await this.compose.exec(["-T", "--user", "root", "app", "mkdir", "-p", logDir]);
+      await this.compose.exec(["-T", "--user", "root", "app", "chown", "vscode:vscode", logDir]);
+      this.logger.info(`Logs directory ready: ${logDir}`);
+    } catch (err) {
+      this.logger.warn(`Failed to prepare logs directory: ${err instanceof Error ? err.message : err}`);
     }
   }
 
   /**
-   * Start tailing `/workspace/.ralph/logs/tool-output.log` inside the container.
+   * Delete configured paths inside the container before agent execution.
    *
-   * Each new line is forwarded to the {@link onToolOutput} callback for
-   * real-time streaming to the local dashboard.
+   * Paths from `profile.cleanPaths` are absolute paths inside the container.
+   * Runs as the vscode user — only cleans paths the agent would have created.
    */
-  startToolOutputTail(): void {
-    if (!this.onToolOutput) return;
+  async cleanWorkspacePaths(): Promise<void> {
+    const paths = this.profile.cleanPaths;
+    if (paths.length === 0) return;
 
-    try {
-      const proc = this.compose.exec([
-        "--user", "vscode", "app",
-        "tail", "-n", "0", "-f", ContainerManager.TOOL_OUTPUT_PATH,
-      ]);
-
-      this.tailProcess = proc;
-      const cb = this.onToolOutput;
-
-      let buffer = "";
-      proc.stdout?.on("data", (chunk: Buffer) => {
-        buffer += chunk.toString();
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          cb(line);
-        }
-      });
-
-      proc.catch(() => {
-        // tail exits when the container stops — expected
-      });
-    } catch {
-      // non-critical — dashboard just won't get real-time tool output
-    }
-  }
-
-  /** Stop the background tail process if running. */
-  stopToolOutputTail(): void {
-    if (this.tailProcess) {
-      this.tailProcess.kill();
-      this.tailProcess = null;
+    for (const fullPath of paths) {
+      try {
+        await this.compose.exec(["-T", "--user", "vscode", "app", "rm", "-rf", fullPath]);
+        this.logger.info(`Cleaned: ${fullPath}`);
+      } catch (err) {
+        this.logger.warn(`Failed to clean ${fullPath}: ${err instanceof Error ? err.message : err}`);
+      }
     }
   }
 }

@@ -17,7 +17,7 @@ export interface ComposeEnvConfig {
  * Low-level Docker Compose wrapper.
  *
  * All `docker compose` invocations go through this class, which handles:
- * - Compose file path resolution
+ * - Compose file path resolution (base + security overlay)
  * - Environment variable injection (secrets, JIRA config) into the compose process
  * - The `compose` / `exec` / `down` primitives
  *
@@ -26,15 +26,21 @@ export interface ComposeEnvConfig {
 export class ComposeClient {
   /** Environment variables passed to all `docker compose` commands. */
   private readonly env: Record<string, string>;
+  /** Compose file `-f` args: ["-f", "base.yml", "-f", "security.yml"]. */
+  private readonly fileArgs: string[];
 
   constructor(
-    private readonly composeFilePath: string,
+    composeFilePaths: string | string[],
     envConfig: ComposeEnvConfig,
   ) {
+    const paths = Array.isArray(composeFilePaths) ? composeFilePaths : [composeFilePaths];
+    this.fileArgs = paths.flatMap((p) => ["-f", p]);
+
     this.env = {
       ...process.env as Record<string, string>,
       TARGET_REPO_PATH: envConfig.targetRepoPath,
       SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
+      SQUID_CONF_PATH: resolve(process.cwd(), "shared/security/squid.conf"),
       GH_TOKEN: envConfig.secrets.ghToken,
       ADO_PAT_DOCS: envConfig.secrets.adoPatDocs,
       ADO_MCP_AUTH_TOKEN: envConfig.secrets.adoPatDocs,
@@ -49,17 +55,17 @@ export class ComposeClient {
     };
   }
 
-  /** Run `docker compose -f <file> <args>`. */
+  /** Run `docker compose -f <file...> <args>`. */
   compose(args: string[]) {
-    return execa("docker", ["compose", "-f", this.composeFilePath, ...args], {
+    return execa("docker", ["compose", ...this.fileArgs, ...args], {
       env: this.env,
     });
   }
 
-  /** Run `docker compose -f <file> exec <args>`. */
+  /** Run `docker compose -f <file...> exec <args>`. */
   exec(args: string[]) {
     return execa("docker", [
-      "compose", "-f", this.composeFilePath, "exec", ...args,
+      "compose", ...this.fileArgs, "exec", ...args,
     ], {
       env: this.env,
     });
@@ -72,7 +78,7 @@ export class ComposeClient {
    */
   execWithTimeout(args: string[], timeoutMs: number) {
     return execa("docker", [
-      "compose", "-f", this.composeFilePath, "exec", ...args,
+      "compose", ...this.fileArgs, "exec", ...args,
     ], {
       env: this.env,
       timeout: timeoutMs,

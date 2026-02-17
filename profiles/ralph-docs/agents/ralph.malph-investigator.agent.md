@@ -1,4 +1,3 @@
-```chatagent
 ---
 description: 'Review verification sub-agent — checks technical claims in PR diffs against the Xperience source code'
 model: Claude Opus 4.6 (copilot)
@@ -63,4 +62,3 @@ You receive a list of technical claims from Malph (the reviewer). Your job:
 - **Only verify technical claims** — ignore style, grammar, structure. That's Malph's department.
 - **Be thorough but fast** — verify the key claims (API names, class names, config values), skip trivial ones (prose descriptions)
 - **Include source paths** — for every finding, include the file path in the Xperience source so Malph can reference it
-```

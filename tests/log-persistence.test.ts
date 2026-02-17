@@ -68,7 +68,11 @@ describe("Log collector", () => {
       stdout: "output",
       stderr: "",
       prUrl: "https://dev.azure.com/pr/1",
-      auditLogPath: "/tmp/logs/DF-2704-123.jsonl",
+      collectedLogs: {
+        audit: "/tmp/logs/DF-2704-123-audit.jsonl",
+        transcript: "/tmp/logs/DF-2704-123-transcript.md",
+        proxy: "/tmp/logs/DF-2704-123-proxy.log",
+      },
     };
 
     const summary = {
@@ -77,7 +81,7 @@ describe("Log collector", () => {
       durationMs: result.durationMs,
       exitCode: result.exitCode,
       prUrl: result.prUrl,
-      auditLogPath: result.auditLogPath,
+      collectedLogs: result.collectedLogs,
       activityLogPath: "/tmp/logs/activity-2026-02-13.log",
       timestamp: new Date().toISOString(),
     };

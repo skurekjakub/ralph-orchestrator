@@ -1,0 +1,66 @@
+# Security overlay — merged with each profile's docker-compose.yml
+#
+# Adds:
+# - Squid forward proxy sidecar with domain allowlist
+# - Internal-only network for the agent (no direct internet)
+# - External network for Squid (internet access through proxy only)
+# - Proxy env vars for the agent container
+# - Resource limits (memory, CPU, PIDs)
+# - Security hardening (no-new-privileges, capability drop)
+#
+# Usage (automatic — ComposeClient injects this):
+#   docker compose -f profiles/<id>/docker-compose.yml -f shared/security/docker-compose.security.yml ...
+#
+# The base compose file defines the `app` service. This overlay:
+# - Adds proxy environment variables
+# - Restricts the app to the internal network only
+# - Adds security options and resource limits
+# - Introduces the `egress-proxy` sidecar service
+
+services:
+  egress-proxy:
+    image: ubuntu/squid:latest
+    volumes:
+      - ${SQUID_CONF_PATH}:/etc/squid/squid.conf:ro
+    networks:
+      ralph-internal:
+      ralph-external:
+    healthcheck:
+      test: ["CMD", "squid", "-k", "check"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  app:
+    environment:
+      HTTP_PROXY: "http://egress-proxy:3128"
+      HTTPS_PROXY: "http://egress-proxy:3128"
+      http_proxy: "http://egress-proxy:3128"
+      https_proxy: "http://egress-proxy:3128"
+      NO_PROXY: "localhost,127.0.0.1,db,egress-proxy"
+      no_proxy: "localhost,127.0.0.1,db,egress-proxy"
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+    networks:
+      ralph-internal:
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: "4.0"
+          pids: 500
+        reservations:
+          memory: 2G
+          cpus: "1.0"
+
+networks:
+  ralph-internal:
+    internal: true
+  ralph-external:
+    driver: bridge

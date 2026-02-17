@@ -64,6 +64,8 @@ const profileFileSchema = z.object({
   setupScript: z.string().default("/usr/local/bin/setup.sh"),
   auditLogPath: z.string().default("/workspace/.ralph/logs/audit.jsonl"),
   composeProjectLabel: z.string().default("ralph-sandbox"),
+  /** Paths inside the container (absolute) to delete before each agent run. */
+  cleanPaths: z.array(z.string()).default([]),
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });
 
@@ -114,6 +116,8 @@ export interface AgentProfile {
   auditLogPath: string;
   /** Docker compose project label for container lookup. */
   composeProjectLabel: string;
+  /** Absolute paths inside the container to delete before each agent run. */
+  cleanPaths: string[];
   match: ProfileMatch;
   /** JIRA transition to execute before agent work. Empty = no transition. */
   beforeAgent: AgentTransition;
@@ -212,6 +216,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         setupScript: parsed.setupScript,
         auditLogPath: parsed.auditLogPath,
         composeProjectLabel: parsed.composeProjectLabel,
+        cleanPaths: parsed.cleanPaths,
         match: {
           projects: variant.match.projects,
           statuses: variant.match.statuses,

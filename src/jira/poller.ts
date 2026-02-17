@@ -9,8 +9,9 @@ import { consoleLogger } from "../logger.js";
  *
  * Fires immediately on {@link start}, then repeats on `pollIntervalMs`.
  * Multiple JQL queries are supported; results are deduplicated by issue key
- * within each poll cycle. The poller does NOT deduplicate across cycles —
- * that's the {@link OperationLedger}'s job.
+ * both within and across poll cycles. The buffer always holds the latest
+ * version of each issue (most recent poll wins). Duplicate suppression
+ * across cycles is cosmetic — the {@link OperationLedger} is the real dedup gate.
  *
  * Discovered issues accumulate in an internal buffer. Use {@link drain}
  * to retrieve and clear the buffer from the main loop.
@@ -19,7 +20,7 @@ export class JiraPoller {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
   private logger: Logger;
-  private buffer: JiraIssue[] = [];
+  private buffer = new Map<string, JiraIssue>();
   private issuesCallback: (() => void) | null = null;
 
   /**
@@ -63,7 +64,9 @@ export class JiraPoller {
 
   /** Retrieve and clear all accumulated issues since the last drain. */
   drain(): JiraIssue[] {
-    return this.buffer.splice(0);
+    const issues = [...this.buffer.values()];
+    this.buffer.clear();
+    return issues;
   }
 
   private async poll(): Promise<void> {
@@ -86,7 +89,9 @@ export class JiraPoller {
         allIssues.sort((a, b) =>
           a.fields.created.localeCompare(b.fields.created)
         );
-        this.buffer.push(...allIssues);
+        for (const issue of allIssues) {
+          this.buffer.set(issue.key, issue);
+        }
         this.issuesCallback?.();
       }
 

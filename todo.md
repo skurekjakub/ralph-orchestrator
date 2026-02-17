@@ -31,7 +31,18 @@ pleb ralph - conversation only - gets jsut the context of the JIRA issue
 
 way to completely blacklsit POST to specified URLs from inside the container - second layer of security - what if too loose pat generated for example
 
+if issue has related issues - include basic info like description to the prompt?
+
 local dashboard
 
+
 - log viewer syntax highlighting - log event type at least
-- 
+
+extract malph and ralph profiles
+
+git - given empty folder and told to clone and do everything and then rm -rf when done
+
+smuggle custom mcp tools to the target repo
+- general issue - smuggle artifacts ain and out of container via a unified pipeline
+
+pause the copilto process if observer detects rm and other sus commands being called in the copilot cli

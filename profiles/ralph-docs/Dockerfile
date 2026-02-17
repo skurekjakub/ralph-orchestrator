@@ -88,36 +88,21 @@ RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# 8. Docker CLI + Compose plugin (docker-outside-of-docker)
-# ============================================================
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-        | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) \
-        signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-        https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-        | tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y docker-ce-cli docker-compose-plugin \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -f docker && usermod -aG docker vscode
-
-# ============================================================
-# 9. Pandoc
+# 8. Pandoc
 # ============================================================
 RUN wget -qO /tmp/pandoc.deb \
         "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
     && dpkg -i /tmp/pandoc.deb && rm /tmp/pandoc.deb
 
 # ============================================================
-# 10. Playwright browsers (global install, all engines)
+# 9. Playwright browsers (global install, all engines)
 # ============================================================
 RUN npm install -g playwright@latest \
     && npx playwright install chromium firefox webkit \
     && npx playwright install-deps
 
 # ============================================================
-# 11. RVM + Ruby (as vscode user)
+# 10. RVM + Ruby (as vscode user)
 # ============================================================
 USER vscode
 
@@ -147,11 +132,20 @@ ENV BASH_ENV="/home/vscode/.rvm/scripts/rvm" \
     RUBY_VERSION="ruby-${RUBY_VERSION}"
 
 # ============================================================
-# 12. Copy scripts & finalize
+# 11. Copy scripts & finalize
 # ============================================================
 USER root
 COPY --chown=vscode:vscode setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh
+
+# User-writable npm global prefix so setup.sh can install CLIs without sudo
+RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-global
+ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
+ENV PATH="/home/vscode/.npm-global/bin:$PATH"
+
+# Disable sudo for vscode user (prevent privilege escalation inside container)
+RUN rm -f /etc/sudoers.d/vscode 2>/dev/null; \
+    sed -i '/vscode/d' /etc/sudoers
 
 USER vscode
 WORKDIR /workspace

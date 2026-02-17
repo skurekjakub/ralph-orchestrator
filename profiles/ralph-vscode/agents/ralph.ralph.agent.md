@@ -68,6 +68,7 @@ Work directly on the codebase. This is a VS Code extension project with:
 - Grammar definitions in `grammars/`
 - Extension manifest in `package.json`
 - Tests via VS Code test framework
+- All methods must have proper JSDoc documentation
 
 ### Build validation
 
@@ -101,6 +102,8 @@ git push origin "$BRANCH"
 ## Phase 6 — Create ADO Pull Request (REST API)
 
 <!-- include: ado-api.md -->
+
+<!-- include: ado-pr-format.md -->
 
 Use the REST API template above to create a PR for this branch.
 

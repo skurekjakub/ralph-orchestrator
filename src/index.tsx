@@ -4,7 +4,7 @@ import { App } from "./dashboard/App.js";
 import { loadConfig } from "./config.js";
 import { Orchestrator } from "./orchestrator.js";
 import { createOrchestratorDeps } from "./orchestrator-factory.js";
-import { validatePrerequisites, printValidationResults } from "./validate.js";
+import { validatePrerequisites, printValidationResults } from "./validate/index.js";
 import { DashboardServer } from "./services/dashboard-server.js";
 
 async function main(): Promise<void> {

@@ -27,23 +27,13 @@ else
     echo "⚠️ No package-lock.json found, skipping npm install"
 fi
 
-# ── GitHub Copilot CLI ─────────────────────────────────────
+# ── AI CLIs ────────────────────────────────────────────────
+# Installed at runtime (not in Dockerfile) to always get the latest version.
+# npm global prefix is set to ~/.npm-global in the Dockerfile (user-writable, no sudo needed).
 echo "📦 Installing GitHub Copilot CLI..."
-if command -v copilot &> /dev/null; then
-    echo "ℹ️  Copilot CLI already installed"
-else
-    sudo npm install -g @github/copilot
-    echo "✅ Copilot CLI installed"
-fi
-
-# ── Claude Code CLI ────────────────────────────────────────
+npm install -g @github/copilot
 echo "📦 Installing Claude Code CLI..."
-if command -v claude &> /dev/null; then
-    echo "ℹ️  Claude Code CLI already installed"
-else
-    sudo npm install -g @anthropic-ai/claude-code
-    echo "✅ Claude Code CLI installed"
-fi
+npm install -g @anthropic-ai/claude-code
 
 # Pre-seed Copilot CLI config for headless/autonomous use
 COPILOT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.copilot}"
@@ -83,8 +73,7 @@ echo "📦 Installing Azure DevOps CLI extension..."
 if az extension list --query "[?name=='azure-devops'].name" -o tsv 2>/dev/null | grep -q 'azure-devops'; then
     echo "ℹ️  Azure DevOps CLI extension already installed"
 else
-    az extension add --name azure-devops --yes
-    echo "✅ Azure DevOps CLI extension installed"
+    az extension add --name azure-devops --yes || echo "⚠️  Azure DevOps CLI extension install failed (non-critical)"
 fi
 
 # ── Development config ────────────────────────────────────
@@ -133,3 +122,5 @@ echo "   .NET:    $(dotnet --version 2>/dev/null || echo 'not found')"
 echo "   Bundler: $(bundle --version 2>/dev/null || echo 'not found')"
 echo "   Pandoc:  $(pandoc --version 2>/dev/null | head -1 || echo 'not found')"
 echo ""
+
+git config --global user.email "Wiggum@kentico.com"
