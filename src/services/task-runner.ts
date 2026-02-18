@@ -1,14 +1,13 @@
-import type { AgentProfile, AppConfig } from "../config.js";
+import type { AgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
-import type { RalphResult } from "../container/types.js";
+import type { RalphResult, ContainerManagerFactory } from "../container/types.js";
 import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
-import { extractAdfText } from "../jira/field-extractor.js";
+import { extractAdfText } from "../jira/adf-converter.js";
 import { JiraClient } from "../jira/client.js";
-import { ContainerManager } from "../container/manager.js";
+import type { ContainerManager } from "../container/manager.js";
 import { LogCollector } from "../logs/collector.js";
-import { PromptBuilder } from "../prompt/prompt-builder.js";
 import { withRetry } from "../retry.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 
@@ -29,12 +28,10 @@ import { OrchestratorComments } from "./orchestrator-comments.js";
  */
 export class TaskRunner {
   constructor(
-    private readonly config: AppConfig,
     private readonly jiraClient: JiraClient,
     private readonly logCollector: LogCollector,
-    private readonly promptBuilder: PromptBuilder,
     private readonly logger: Logger,
-    private readonly containerLogger?: Logger,
+    private readonly containerFactory: ContainerManagerFactory,
   ) {}
 
   /** Optional callback invoked for each real-time tool output line from the container. */
@@ -50,7 +47,7 @@ export class TaskRunner {
     issue: JiraIssue,
     profile: AgentProfile,
   ): Promise<{ result: RalphResult; container: ContainerManager }> {
-    const container = new ContainerManager(profile, this.config, this.promptBuilder, this.logger, this.containerLogger);
+    const container = this.containerFactory.create(profile);
     if (this.onToolOutput) {
       container.onToolOutput = this.onToolOutput;
     }

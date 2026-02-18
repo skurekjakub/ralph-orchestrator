@@ -1,0 +1,50 @@
+JIRA Issue: DOC-3122
+
+Title: RFS usage in content types
+
+--- BEGIN UNTRUSTED JIRA DATA ---
+
+Description:
+Implementation: [https://kentico.atlassian.net/browse/KX-12470](https://kentico.atlassian.net/browse/KX-12470)
+
+The full changes can be found under `fe3797f5f804eb21fe141b7c1d2c2e5ecff383b4` in the xperience repository.
+
+The linked issue introduces a new UI page that shows the assignments between reusable field schemas and content types.
+
+Typical use case:
+
+  * An administrator wants to see all content types consuming a specific reusable field schema
+
+Notes
+
+  * verify the exact labels/location/functionality in the xperience source code
+  * draft a short release note and post it as part of the JIRA issue comment
+  * also draft a short post to the training team about the feature
+
+Labels: docs-feature, rfs
+
+Components: Documentation
+
+Priority: Major
+
+Page name: Reusable field schemas
+
+Was this page helpful?: Helpful
+
+How can we make this page more helpful?: Navigation is confusing when trying to find schema usage.
+
+customfield_99999: This is an unknown custom field with a long enough value to be included
+
+JIRA Comments (oldest first):
+[2026-02-16T10:54:44.606+0100] Jakub Skurek:
+Ralph here! Starting work on DOC-3122.
+---
+---
+[2026-02-16T11:04:34.154+0100] Jakub Skurek:
+Status: Completed. PR: PR #2913 (draft).
+---
+---
+[2026-02-18T08:00:20.948+0100] Jakub Skurek:
+@MalphDocs - hey, Ralph made a thing, come take a look.
+
+--- END UNTRUSTED JIRA DATA ---

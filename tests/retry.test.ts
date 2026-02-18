@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { withRetry, sleep } from "../src/retry.js";
+import { createMockLogger } from "./helpers.js";
 
 describe("withRetry", () => {
   it("returns result on first success", async () => {
@@ -28,7 +29,7 @@ describe("withRetry", () => {
   });
 
   it("logs retry warnings via logger", async () => {
-    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const logger = createMockLogger();
     const fn = vi
       .fn()
       .mockRejectedValueOnce(new Error("oops"))

@@ -57,4 +57,8 @@ export enum AuditMode {
 export type AuditMode = "block" | "warn" | "off";
 ```
 
+### Keep classes focused on a single responsibility
+
+Before adding functionality to an existing class or module, consider whether it belongs there. Each class should have one clear purpose. If new logic serves a different concern (e.g., data conversion vs. data extraction), create a dedicated module for it rather than growing an existing one. When reviewing changes, assess the impact on the module's cohesion — if a class is accumulating unrelated methods, split it.
+
 ### Be vigilant about unused imports

@@ -14,5 +14,6 @@
   },
   "promptAudit": {
     "mode": "warn"
-  }
+  },
+  "excludeFields": []
 }

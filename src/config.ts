@@ -8,6 +8,13 @@ import { AuditMode } from "./prompt/prompt-auditor.js";
 import { CliType } from "./container/types.js";
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Default model for Copilot CLI when no profile-level override is set. */
+export const DEFAULT_MODEL = "claude-opus-4.6";
+
+// ---------------------------------------------------------------------------
 // Zod schemas for config.json (global settings only)
 // ---------------------------------------------------------------------------
 
@@ -37,6 +44,8 @@ const configFileSchema = z.object({
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,
+  /** Custom field IDs to exclude from agent prompts (e.g. boilerplate form templates). */
+  excludeFields: z.array(z.string()).default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -171,6 +180,8 @@ export interface AppConfig {
   output: OutputConfig;
   dashboard: DashboardConfig;
   promptAudit: PromptAuditConfig;
+  /** Custom field IDs to exclude from agent prompts. */
+  excludeFields: string[];
   secrets: SecretsConfig;
 }
 
@@ -325,6 +336,7 @@ export function loadConfig(): AppConfig {
     promptAudit: {
       mode: (parsed.promptAudit?.mode ?? AuditMode.Warn) as AuditMode,
     },
+    excludeFields: parsed.excludeFields ?? [],
     secrets,
   };
 }

@@ -8,6 +8,7 @@
  */
 
 import type { JiraIssue } from "../jira/types.js";
+import { JiraIssueParser } from "../jira/issue-parser.js";
 import type { IssueContext } from "./prompt.js";
 import { buildPromptWithSections } from "./prompt.js";
 import {
@@ -45,10 +46,15 @@ export interface BuiltPrompt {
  * ```
  */
 export class PromptBuilder {
+  private readonly parser: JiraIssueParser;
+
   constructor(
     private readonly mode: AuditMode,
     private readonly logger: Logger,
-  ) {}
+    excludeFields: string[] = [],
+  ) {
+    this.parser = new JiraIssueParser(excludeFields);
+  }
 
   /**
    * Build a prompt from a JIRA issue and optional context.
@@ -64,7 +70,8 @@ export class PromptBuilder {
    * @returns The assembled prompt text and audit result.
    */
   build(issue: JiraIssue, context?: IssueContext): BuiltPrompt {
-    const { prompt, sections } = buildPromptWithSections(issue, context);
+    const cleaned = this.parser.parse(issue);
+    const { prompt, sections } = buildPromptWithSections(cleaned, context);
 
     if (this.mode === AuditMode.Off) {
       return { text: prompt, audit: { safe: true, findings: [] } };

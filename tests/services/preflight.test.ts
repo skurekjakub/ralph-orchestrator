@@ -3,26 +3,11 @@ import {
   buildPreflightContext,
   runPreflight,
 } from "../../src/services/preflight.js";
-import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
-
-function makeComment(id: string, body: string, created = "2026-01-01T00:00:00Z"): JiraComment {
-  return { id, author: { displayName: "test" }, body, created };
-}
-
-function makeIssue(key = "DF-1"): JiraIssue {
-  return {
-    key,
-    fields: {
-      summary: "Test issue",
-      status: { name: "Ready for Review" },
-      created: "2026-01-01T00:00:00Z",
-    },
-  };
-}
+import { makeIssue, makeComment, createMockJiraClient } from "../helpers.js";
 
 describe("runPreflight", () => {
   it("returns ok for unknown check names", () => {
-    const result = runPreflight("nonexistent-check", makeIssue(), {
+    const result = runPreflight("nonexistent-check", makeIssue("DF-1"), {
       comments: [],
       handoffContent: null,
       prUrl: null,
@@ -32,7 +17,7 @@ describe("runPreflight", () => {
 
   describe("review-ready check", () => {
     it("fails when no PR URL found", () => {
-      const result = runPreflight("review-ready", makeIssue(), {
+      const result = runPreflight("review-ready", makeIssue("DF-1"), {
         comments: [],
         handoffContent: "some handoff content",
         prUrl: null,
@@ -42,7 +27,7 @@ describe("runPreflight", () => {
     });
 
     it("fails when no handoff attachment", () => {
-      const result = runPreflight("review-ready", makeIssue(), {
+      const result = runPreflight("review-ready", makeIssue("DF-1"), {
         comments: [],
         handoffContent: null,
         prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/123",
@@ -52,7 +37,7 @@ describe("runPreflight", () => {
     });
 
     it("passes when both PR URL and handoff exist", () => {
-      const result = runPreflight("review-ready", makeIssue(), {
+      const result = runPreflight("review-ready", makeIssue("DF-1"), {
         comments: [],
         handoffContent: "## Summary\nDid the work.",
         prUrl: "https://github.com/org/repo/pull/42",
@@ -63,12 +48,7 @@ describe("runPreflight", () => {
 });
 
 describe("buildPreflightContext", () => {
-  const mockJira = {
-    getAttachments: vi.fn(),
-    downloadAttachment: vi.fn(),
-    getComments: vi.fn(),
-    addComment: vi.fn(),
-  };
+  const mockJira = createMockJiraClient();
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -118,7 +98,7 @@ describe("buildPreflightContext", () => {
     ]);
     mockJira.downloadAttachment.mockResolvedValue("## Latest handoff");
 
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", []);
+    await buildPreflightContext(mockJira as any, "DF-1", []);
     expect(mockJira.downloadAttachment).toHaveBeenCalledWith("https://jira/att/2");
   });
 

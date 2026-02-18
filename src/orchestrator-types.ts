@@ -1,4 +1,3 @@
-import type { RalphResult } from "./container/types.js";
 import { TaskStatus } from "./container/types.js";
 import type { AgentProfile, AppConfig } from "./config.js";
 import type { ContainerManager } from "./container/manager.js";

@@ -29,6 +29,14 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     return;
   }
 
+  /** Collected across all profiles for cross-profile trigger uniqueness check. */
+  const allVariants: Array<{
+    profileId: string;
+    variantIndex: number;
+    projects: string[];
+    trigger: string;
+  }> = [];
+
   for (const dirName of dirs) {
     const profileJsonPath = join(profilesDir, dirName, "profile.json");
     const prefix = `profiles/${dirName}`;
@@ -38,6 +46,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       continue;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
     let p: any;
     try {
       p = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
@@ -100,6 +109,15 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
         errors.push(`${vPrefix}: match.commentTrigger is required`);
       }
 
+      if (v.match?.commentTrigger && v.match?.projects?.length) {
+        allVariants.push({
+          profileId: dirName,
+          variantIndex: i,
+          projects: v.match.projects,
+          trigger: v.match.commentTrigger,
+        });
+      }
+
       const revisionStatuses: string[] = v.match?.revisionStatuses ?? [];
       const statuses: string[] = v.match?.statuses ?? [];
       if (revisionStatuses.length > 0 && statuses.length > 0) {
@@ -117,6 +135,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 
     validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);
   }
+
+  validateTriggerUniqueness(allVariants, errors);
 }
 
 /**
@@ -146,6 +166,50 @@ function validateAgentMounts(
         `${prefix}: agent file "${agentFile}" has no volume mount in docker-compose.yml\n` +
         `  Add a mount: ${expectedMount}:/workspace/.github/agents/${agentFile}:ro`
       );
+    }
+  }
+}
+
+export interface VariantTriggerInfo {
+  profileId: string;
+  variantIndex: number;
+  projects: string[];
+  trigger: string;
+}
+
+/**
+ * Verify that no two variants with overlapping projects share a comment
+ * trigger where one is a case-insensitive substring of the other.
+ *
+ * The trigger scanner uses `text.includes(trigger)` (case-insensitive),
+ * so a comment containing `@Malph` would match both `@Malph` and `@Mal`.
+ * If two variants with overlapping projects have such triggers, a single
+ * comment would schedule both — which is almost certainly a config mistake.
+ */
+export function validateTriggerUniqueness(
+  variants: readonly VariantTriggerInfo[],
+  errors: string[],
+): void {
+  for (let i = 0; i < variants.length; i++) {
+    for (let j = i + 1; j < variants.length; j++) {
+      const a = variants[i];
+      const b = variants[j];
+
+      const sharedProjects = a.projects.filter((p) => b.projects.includes(p));
+      if (sharedProjects.length === 0) continue;
+
+      const aLower = a.trigger.toLowerCase();
+      const bLower = b.trigger.toLowerCase();
+
+      if (aLower.includes(bLower) || bLower.includes(aLower)) {
+        const aLabel = `profiles/${a.profileId}/variants[${a.variantIndex}]`;
+        const bLabel = `profiles/${b.profileId}/variants[${b.variantIndex}]`;
+        errors.push(
+          `Ambiguous comment trigger: "${a.trigger}" (${aLabel}) and "${b.trigger}" (${bLabel}) ` +
+          `overlap on projects [${sharedProjects.join(", ")}]\n` +
+          `  A single comment would trigger both variants. Each trigger must be unique across variants that share projects`
+        );
+      }
     }
   }
 }

@@ -18,7 +18,7 @@ describe("JiraClient", () => {
 
   it("constructs correct auth header", () => {
     // The auth header should be "Basic base64(email:token)"
-    const expected = Buffer.from("test@test.com:test-token").toString("base64");
+    const _expected = Buffer.from("test@test.com:test-token").toString("base64");
     // We can verify it indirectly by checking the request
     expect(client).toBeDefined();
   });

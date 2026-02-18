@@ -1,5 +1,6 @@
 import type { JiraIssue } from "../jira/types.js";
 import { JiraFieldExtractor } from "../jira/field-extractor.js";
+import { extractAdfText } from "../jira/adf-converter.js";
 import type { PromptSection } from "./prompt-auditor.js";
 import { PromptSectionSource } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
@@ -88,7 +89,7 @@ export function buildPromptWithSections(
     const rawDesc =
       typeof issue.fields.description === "string"
         ? issue.fields.description
-        : JSON.stringify(issue.fields.description, null, 2);
+        : extractAdfText(issue.fields.description);
     const descStr = normalizeContent(rawDesc);
     untrustedParts.push(`Description:\n${descStr}`);
     sections.push({ source: PromptSectionSource.JiraField, fieldName: "description", content: descStr });

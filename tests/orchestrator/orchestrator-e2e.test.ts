@@ -10,7 +10,7 @@ import {
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
-import { makeProfile, makeIssue, makeConfig } from "../helpers.js";
+import { makeProfile, makeIssue, makeConfig, makeComment, makeResult, createMockLogger } from "../helpers.js";
 import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
@@ -18,7 +18,6 @@ import type { AgentProfile } from "../../src/config.js";
 import type { RalphResult } from "../../src/container/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import type { Logger } from "../../src/logger.js";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -29,35 +28,7 @@ import type { Logger } from "../../src/logger.js";
 
 let tempDir: string;
 
-const silentLogger: Logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
-
-function makeComment(
-  id: string,
-  body: string,
-  created = "2026-01-01T00:00:00Z",
-): JiraComment {
-  return { id, author: { displayName: "Test User" }, body, created };
-}
-
-function makeResult(
-  issueKey: string,
-  overrides: Partial<RalphResult> = {},
-): RalphResult {
-  return {
-    issueKey,
-    status: TaskStatus.Completed,
-    durationMs: 5000,
-    exitCode: 0,
-    stdout: "Done",
-    stderr: "",
-    collectedLogs: {},
-    ...overrides,
-  };
-}
+const silentLogger = createMockLogger();
 
 function makeMockContainer() {
   return { stop: vi.fn().mockResolvedValue(undefined) };

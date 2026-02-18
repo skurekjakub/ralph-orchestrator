@@ -1,4 +1,4 @@
-import { extractAdfText } from "../jira/field-extractor.js";
+import { extractAdfText } from "../jira/adf-converter.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 import type { JiraClient } from "../jira/client.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
@@ -59,7 +59,6 @@ export class TriggerScanner {
     let skipped = 0;
     let commentsFetched = 0;
     let alreadyConsumed = 0;
-    let profileMismatches = 0;
 
     for (const issue of issues) {
       const updated = issue.fields.updated;
@@ -79,7 +78,6 @@ export class TriggerScanner {
         if (!trigger) continue;
 
         if (!this.router.matchesProjectAndStatus(issue, profile)) {
-          profileMismatches++;
           continue;
         }
 

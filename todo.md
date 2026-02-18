@@ -64,6 +64,10 @@ take a look at preflights
 
 test malph
 
+unify validation
+
+check for better source image
+
 investigate root/vscode file/folder rm -f permissions from ContainerWOrkspaceCleaner - Dockerfile creation requiremens/DAC/CHOWN in docker-compose.security? CAP_ADD
 
 structured prompt building aka copilot extension

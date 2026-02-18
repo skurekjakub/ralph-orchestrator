@@ -112,7 +112,7 @@ export class Orchestrator {
           issueKey,
           OrchestratorComments.crashRecovery(operation.variant.split(":")[1]),
         )
-        .catch(() => {});
+        .catch((e) => this.log(`Failed to post crash-recovery comment on ${issueKey}: ${e}`));
     }
 
     while (this.running) {
@@ -224,7 +224,7 @@ export class Orchestrator {
             issue.fields.status.name,
           ),
         )
-        .catch(() => {});
+        .catch((e) => this.log(`Failed to post stale-status comment on ${issueKey}: ${e}`));
       this.emitState();
       return;
     }
@@ -253,7 +253,8 @@ export class Orchestrator {
             reason: `preflight:${profile.preflight} — ${result.reason}`,
           },
         );
-        await this.deps.jiraClient.addComment(issueKey, comment).catch(() => {});
+        await this.deps.jiraClient.addComment(issueKey, comment)
+          .catch((e) => this.log(`Failed to post preflight comment on ${issueKey}: ${e}`));
         this.log(
           `Preflight failed for ${issue.key} (${profile.preflight}): ${result.reason}`,
         );

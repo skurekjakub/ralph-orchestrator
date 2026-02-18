@@ -5,9 +5,8 @@ import { tmpdir } from "node:os";
 import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { extractAdfText } from "../../src/jira/field-extractor.js";
-import { makeProfile, makeIssue, makeMatch } from "../helpers.js";
-import type { JiraComment } from "../../src/jira/types.js";
+import { extractAdfText } from "../../src/jira/adf-converter.js";
+import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
@@ -21,14 +20,6 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-function makeComment(id: string, body: string, created: string): JiraComment {
-  return {
-    id,
-    author: { displayName: "Test User" },
-    body,
-    created,
-  };
-}
 
 describe("Comment-driven orchestration flow", () => {
   describe("trigger discovery", () => {

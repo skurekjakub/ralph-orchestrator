@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { JiraFieldExtractor, extractAdfText } from "../../src/jira/field-extractor.js";
+import { JiraFieldExtractor } from "../../src/jira/field-extractor.js";
+import { extractAdfText } from "../../src/jira/adf-converter.js";
 import { makeIssue } from "../helpers.js";
 
 const extractor = new JiraFieldExtractor();
@@ -92,7 +93,103 @@ describe("extractAdfText", () => {
         },
       ],
     };
-    expect(extractAdfText(adf)).toBe("Hello world\n");
+    expect(extractAdfText(adf)).toBe("Hello world");
+  });
+
+  it("extracts URL from inlineCard nodes", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "See " },
+            { type: "inlineCard", attrs: { url: "https://jira.example.com/browse/DOC-123" } },
+          ],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toContain("https://jira.example.com/browse/DOC-123");
+  });
+
+  it("renders link marks as markdown links", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "click here",
+              marks: [{ type: "link", attrs: { href: "https://example.com" } }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toBe("[click here](https://example.com)");
+  });
+
+  it("renders headings with # prefix", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "My Heading" }],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toBe("## My Heading");
+  });
+
+  it("renders code blocks with fences", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "codeBlock",
+          attrs: { language: "typescript" },
+          content: [{ type: "text", text: "const x = 1;" }],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toBe("``` typescript\nconst x = 1;\n```");
+  });
+
+  it("renders bold and italic marks", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "bold", marks: [{ type: "strong" }] },
+            { type: "text", text: " and " },
+            { type: "text", text: "italic", marks: [{ type: "em" }] },
+          ],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toBe("**bold** and _italic_");
+  });
+
+  it("ignores inlineCard without url", () => {
+    const adf = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "See " },
+            { type: "inlineCard", attrs: {} },
+          ],
+        },
+      ],
+    };
+    expect(extractAdfText(adf)).toBe("See ");
   });
 
   it("returns empty string for null/undefined", () => {

@@ -1,6 +1,6 @@
 import type { JiraClient } from "../jira/client.js";
 import type { JiraComment, JiraIssue } from "../jira/types.js";
-import { extractAdfText } from "../jira/field-extractor.js";
+import { extractAdfText } from "../jira/adf-converter.js";
 
 export type PreflightResult =
   | { ok: true }

@@ -66,10 +66,9 @@ All other domains are blocked. Squid access logs (allowed + denied) are collecte
 | Control | Implementation | Why |
 |---|---|---|
 | No Docker socket | Removed from all compose volume mounts | Prevents container escape via Docker API |
-| No Docker CLI | Removed from Dockerfiles | No way to interact with Docker daemon |
 | No sudo | `sudoers.d/vscode` removed, vscode entry stripped from `/etc/sudoers` | Prevents privilege escalation to root |
 | `cap_drop: ALL` | In security overlay compose file | Drops all Linux capabilities |
-| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts |
+| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts. NOTE: This is mainly to simplify Dockerfile setup requirements for now. Will be revised later. |
 | `no-new-privileges: true` | In security overlay compose file | Prevents setuid/setgid privilege escalation |
 | Resource limits | Memory: 8G, CPU: 4, PIDs: 500 | Prevents resource exhaustion attacks |
 | User-writable npm prefix | `~/.npm-global` set via `NPM_CONFIG_PREFIX` | Allows `npm install -g` without root |

@@ -19,7 +19,7 @@
       "match": {
         "projects": ["DOC"],
         "statuses": ["Ready for Review"],
-        "commentTrigger": "@Malph"
+        "commentTrigger": "@MalphAutocomplete"
       }
     }
   ]

@@ -1,26 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { ContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner.js";
-import type { ComposeClient } from "../../src/container/compose-client.js";
-import type { Logger } from "../../src/logger.js";
-
-function makeMockLogger(): Logger {
-  return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  };
-}
-
-function makeMockCompose(): { compose: ComposeClient; exec: ReturnType<typeof vi.fn> } {
-  const exec = vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
-  return { compose: { exec } as any, exec };
-}
+import { createMockLogger, createMockCompose } from "../helpers.js";
 
 describe("ContainerWorkspaceCleaner", () => {
   describe("cleanLogDirectory", () => {
     it("removes, recreates, and chowns the log directory as root", async () => {
-      const { compose, exec } = makeMockCompose();
-      const logger = makeMockLogger();
+      const { compose, exec } = createMockCompose();
+      const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
       await cleaner.cleanLogDirectory("/workspace/.ralph/logs/session.audit.jsonl");
@@ -33,9 +19,9 @@ describe("ContainerWorkspaceCleaner", () => {
     });
 
     it("warns on failure without throwing", async () => {
-      const { compose, exec } = makeMockCompose();
+      const { compose, exec } = createMockCompose();
       exec.mockRejectedValueOnce(new Error("Permission denied"));
-      const logger = makeMockLogger();
+      const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
       await cleaner.cleanLogDirectory("/workspace/.ralph/logs/audit.jsonl");
@@ -46,8 +32,8 @@ describe("ContainerWorkspaceCleaner", () => {
 
   describe("cleanPaths", () => {
     it("removes each path as root", async () => {
-      const { compose, exec } = makeMockCompose();
-      const logger = makeMockLogger();
+      const { compose, exec } = createMockCompose();
+      const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
       await cleaner.cleanPaths(["/workspace/resources/chats", "/workspace/.tmp"]);
@@ -59,11 +45,11 @@ describe("ContainerWorkspaceCleaner", () => {
     });
 
     it("warns on failure per path without stopping", async () => {
-      const { compose, exec } = makeMockCompose();
+      const { compose, exec } = createMockCompose();
       exec
         .mockRejectedValueOnce(new Error("Permission denied"))
         .mockResolvedValueOnce({ stdout: "", stderr: "" });
-      const logger = makeMockLogger();
+      const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
       await cleaner.cleanPaths(["/workspace/a", "/workspace/b"]);
@@ -73,8 +59,8 @@ describe("ContainerWorkspaceCleaner", () => {
     });
 
     it("does nothing for empty paths array", async () => {
-      const { compose, exec } = makeMockCompose();
-      const logger = makeMockLogger();
+      const { compose, exec } = createMockCompose();
+      const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
       await cleaner.cleanPaths([]);

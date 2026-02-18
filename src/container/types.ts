@@ -29,6 +29,16 @@ export interface CliExecutor {
   killActive(): void;
 }
 
+/**
+ * Factory for creating {@link ContainerManager} instances.
+ *
+ * Injected into {@link TaskRunner} so that container creation can be
+ * mocked in tests without needing a running Docker daemon.
+ */
+export interface ContainerManagerFactory {
+  create(profile: import("../config.js").AgentProfile): import("./manager.js").ContainerManager;
+}
+
 /** Final task status — from the agent's structured output or inferred from exit code. */
 export enum TaskStatus {
   Completed = "completed",

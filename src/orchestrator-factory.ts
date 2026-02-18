@@ -10,6 +10,8 @@ import { TaskRunner } from "./services/task-runner.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
 import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
+import { ContainerManager } from "./container/manager.js";
+import type { ContainerManagerFactory } from "./container/types.js";
 import type { OrchestratorDeps } from "./orchestrator-types.js";
 
 /**
@@ -30,14 +32,15 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   );
   const ledger = new OperationLedger(join(config.output.logDir, "history"));
   const logCollector = new LogCollector(config.output);
-  const promptBuilder = new PromptBuilder(config.promptAudit.mode, logger);
+  const promptBuilder = new PromptBuilder(config.promptAudit.mode, logger, config.excludeFields);
+  const containerFactory: ContainerManagerFactory = {
+    create: (profile) => new ContainerManager(profile, config, promptBuilder, logger, containerLogger),
+  };
   const taskRunner = new TaskRunner(
-    config,
     jiraClient,
     logCollector,
-    promptBuilder,
     logger,
-    containerLogger,
+    containerFactory,
   );
   const triggerScanner = new TriggerScanner(
     jiraClient, router, ledger, logger,

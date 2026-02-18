@@ -14,7 +14,7 @@ describe("Copilot CLI args", () => {
   it("includes --model with configurable default", async () => {
     const source = await readSource("../../src/container/copilot-executor.ts");
     expect(source).toContain('"--model"');
-    expect(source).toContain('"claude-opus-4.6"');
+    expect(source).toContain("DEFAULT_MODEL");
   });
 
   it("includes --yolo and --experimental flags", async () => {

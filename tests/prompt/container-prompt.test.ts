@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { JiraIssue } from "../../src/jira/types.js";
 import { buildPrompt } from "../../src/prompt/prompt.js";
-import { extractAdfText } from "../../src/jira/field-extractor.js";
+import { extractAdfText } from "../../src/jira/adf-converter.js";
 import type { IssueContext } from "../../src/prompt/prompt.js";
 
 // ── Prompt building tests ────────────────────────────────
@@ -35,7 +35,7 @@ describe("Prompt building", () => {
     expect(prompt).toContain("Description:\nSome plain text description");
   });
 
-  it("serializes ADF description as JSON", () => {
+  it("extracts plain text from ADF description", () => {
     const adf = {
       type: "doc",
       version: 1,
@@ -54,9 +54,8 @@ describe("Prompt building", () => {
     };
 
     const prompt = buildPrompt(issue);
-    expect(prompt).toContain("Description:");
-    expect(prompt).toContain('"type": "doc"');
-    expect(prompt).toContain('"text": "Hello"');
+    expect(prompt).toContain("Description:\nHello");
+    expect(prompt).not.toContain('"type": "doc"');
   });
 
   it("includes labels, components, and priority", () => {
@@ -166,7 +165,7 @@ describe("Prompt building", () => {
     };
 
     const prompt = buildPrompt(issue);
-    expect(prompt).toContain("How can we make this page more helpful?: First paragraph. More text.\nSecond paragraph.");
+    expect(prompt).toContain("How can we make this page more helpful?: First paragraph. More text.\n\nSecond paragraph.");
   });
 
   it("handles string feedback value", () => {

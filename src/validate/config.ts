@@ -15,6 +15,7 @@ export function validateConfigFile(collector: ValidationCollector): void {
     return;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
   let raw: any;
   try {
     raw = JSON.parse(readFileSync(configPath, "utf-8"));

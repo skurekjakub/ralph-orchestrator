@@ -5,33 +5,18 @@ import { tmpdir } from "node:os";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { OperationLedger } from "../../src/services/operation-ledger.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeMatch } from "../helpers.js";
+import { makeProfile, makeIssue, makeMatch, makeComment, createMockLogger, createMockJiraClient } from "../helpers.js";
 import type { JiraComment } from "../../src/jira/types.js";
-import type { Logger } from "../../src/logger.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
 
-const silentLogger: Logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
-
-function makeComment(id: string, body: string, created = "2026-01-01T00:00:00Z"): JiraComment {
-  return { id, author: { displayName: "Test User" }, body, created };
-}
+const silentLogger = createMockLogger();
 
 function makeJiraClient(comments: JiraComment[] = []) {
-  return {
+  return createMockJiraClient({
     getComments: vi.fn().mockResolvedValue(comments),
-    addComment: vi.fn().mockResolvedValue(undefined),
-    searchIssues: vi.fn(),
-    getIssue: vi.fn(),
-    transitionIssue: vi.fn(),
-    getAttachments: vi.fn(),
-    downloadAttachment: vi.fn(),
-  } as any;
+  });
 }
 
 beforeEach(() => {
@@ -264,7 +249,7 @@ describe("TriggerScanner", () => {
     const client = makeJiraClient([
       makeComment("C1", "@go now"),
     ]);
-    const logger: Logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const logger = createMockLogger();
     const scanner = new TriggerScanner(client, router, ledger, logger);
 
     await scanner.scan([makeIssue("DF-100")], [profile]);

@@ -20,7 +20,7 @@
       "match": {
         "projects": ["DOC"],
         "statuses": ["To Do", "Defect Found"],
-        "commentTrigger": "@RalphDocs",
+        "commentTrigger": "@Ralph",
         "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": { "transitionId": "51" },

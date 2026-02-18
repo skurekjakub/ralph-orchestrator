@@ -1,5 +1,6 @@
 import { ExecaError, type ResultPromise } from "execa";
 import type { AgentProfile } from "../config.js";
+import { DEFAULT_MODEL } from "../config.js";
 import type { ContainerExecResult, CliExecutor } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { ComposeClient } from "./compose-client.js";
@@ -52,7 +53,7 @@ export class CopilotExecutor implements CliExecutor {
       "app",
       "copilot",
       "--agent", this.profile.agentName,
-      "--model", this.profile.model ?? "claude-opus-4.6",
+      "--model", this.profile.model ?? DEFAULT_MODEL,
       "--experimental",
       "--yolo",
       "--share", CopilotExecutor.TRANSCRIPT_PATH,

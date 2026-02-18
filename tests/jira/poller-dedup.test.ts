@@ -1,22 +1,21 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraPoller } from "../../src/jira/poller.js";
 import type { JiraClient } from "../../src/jira/client.js";
 import type { JiraConfig } from "../../src/config.js";
 import type { JiraIssue } from "../../src/jira/types.js";
-import type { Logger } from "../../src/logger.js";
-import { makeIssue } from "../helpers.js";
+import { makeIssue, createMockLogger } from "../helpers.js";
 
 describe("JiraPoller multi-JQL deduplication", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
-  let mockLogger: Logger;
+  let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockClient = { searchIssues: vi.fn() };
-    mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    mockLogger = createMockLogger();
   });
 
-  afterAll(() => {
+  afterEach(() => {
     vi.useRealTimers();
   });
 
@@ -50,7 +49,6 @@ describe("JiraPoller multi-JQL deduplication", () => {
     expect(issues.map((i: JiraIssue) => i.key)).toEqual(["DF-1", "DF-2"]);
 
     poller.stop();
-    vi.useRealTimers();
   });
 
   it("handles empty results from all JQL queries", async () => {
@@ -74,6 +72,5 @@ describe("JiraPoller multi-JQL deduplication", () => {
     expect(poller.drain()).toEqual([]);
 
     poller.stop();
-    vi.useRealTimers();
   });
 });
