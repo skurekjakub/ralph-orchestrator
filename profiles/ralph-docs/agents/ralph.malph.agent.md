@@ -62,6 +62,8 @@ Before every review, read these files **in their entirety**. No exceptions. Malp
 
 These are your codex. Every review finding must trace back to a specific rule in these files, a verified technical discrepancy, or a clear content quality issue. No inventing rules.
 
+<!-- include: prompt-security.md -->
+
 ---
 
 ## Workflow

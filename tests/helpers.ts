@@ -6,7 +6,9 @@
  */
 
 import type { AppConfig, AgentProfile, ProfileMatch } from "../src/config.js";
+import { CliType } from "../src/container/types.js";
 import type { JiraIssue } from "../src/jira/types.js";
+import { AuditMode } from "../src/prompt/prompt-auditor.js";
 
 /** Create a ProfileMatch with sensible defaults. Only `commentTrigger` is typically needed. */
 export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, "commentTrigger">): ProfileMatch {
@@ -50,7 +52,7 @@ export function makeProfile(
     agentName,
     displayName: agentName.replace(/^ralph\./, ""),
     variantKey: `${id}:${agentName}:${match.commentTrigger}`,
-    cli: "copilot" as const,
+    cli: CliType.Copilot,
     timeoutMs: 1800000,
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
@@ -58,6 +60,7 @@ export function makeProfile(
     match,
     beforeAgent: {},
     afterAgent: {},
+    cleanPaths: [],
     ...overrides,
     // Re-derive variantKey after overrides are applied
     ...(overrides.variantKey ? {} : {
@@ -85,6 +88,9 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
       url: "",
       secret: "",
       intervalMs: 30000,
+    },
+    promptAudit: {
+      mode: AuditMode.Warn,
     },
     secrets: {
       ghToken: "test-gh-token",

@@ -67,12 +67,18 @@ profiles/
   ralph-docs/
     profile.json          — Profile configuration
     Dockerfile            — Container image
-    docker-compose.yml    — Services, volumes, env vars
+    docker-compose.yml    — Base compose: services, volumes, env vars
     setup.sh              — Post-create setup script
     agents/               — Agent definition files (.md)
   ralph-vscode/
     profile.json
     ...
+shared/
+  security/
+    docker-compose.security.yml  — Security overlay (proxy, isolation, limits)
+    squid.conf                   — Domain allowlist for egress proxy
+  hooks/                         — Copilot CLI audit hooks
+  agent-includes/                — Shared include files for agent templates
 ```
 
 #### `profile.json` Schema
@@ -109,7 +115,7 @@ profiles/
 | `auditLogPath` | Absolute path to the audit JSONL log inside the container | `"/workspace/.ralph/logs/audit.jsonl"` |
 | `composeProjectLabel` | Docker compose project label used for container lookup | `"ralph-sandbox"` |
 
-The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`.
+The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml`.
 
 #### Variants
 
@@ -204,6 +210,25 @@ The orchestrator selects which CLI to use based on the profile's `cli` preferenc
 The dashboard requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env`. If `enabled` is `false` or the env vars are missing, no heartbeats are sent.
 
 Multiple orchestrator instances can report to the same dashboard — each generates a unique agent ID on startup.
+
+### Prompt Audit Settings
+
+```json
+"promptAudit": {
+  "mode": "warn"
+}
+```
+
+| Field | Description | Default |
+|---|---|---|
+| `mode` | How the prompt injection auditor handles findings: `"block"`, `"warn"`, or `"off"` | `"warn"` |
+
+**Modes:**
+- `"warn"` — Logs findings to the activity log but allows execution to proceed. Recommended for production to build baseline visibility without blocking legitimate tasks.
+- `"block"` — Logs findings and **blocks execution** when critical patterns are detected (e.g., system instruction overrides, credential probing, prompt format tokens). Warnings still proceed.
+- `"off"` — Disables prompt auditing entirely. Not recommended except for debugging.
+
+The auditor scans untrusted JIRA data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
 
 ## Example Configurations
 
@@ -302,6 +327,8 @@ The orchestrator validates the configuration on startup:
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
 - **Profile integrity:** Valid `repo` paths, agent names match `.agent.md` files in each profile's `agents/` directory, unique `commentTrigger` values
 - **Transition IDs:** Must be valid numeric strings
+- **Security infrastructure:** Security overlay compose file and squid.conf must exist, base compose files must use `ralph-internal` network, no `docker.sock` mounts
+- **Docker daemon:** Must be reachable via `docker info`
 - **Profiles auto-discovered** from `profiles/*/profile.json` — the profile `id` is derived from the directory name
 
 Invalid configuration causes the orchestrator to exit with a descriptive error message.

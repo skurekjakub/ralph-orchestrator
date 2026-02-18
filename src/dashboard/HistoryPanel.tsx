@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { CompletedTask } from "../orchestrator-types.js";
+import { TaskStatus } from "../container/types.js";
 
 interface HistoryPanelProps {
   completed: CompletedTask[];
@@ -10,13 +11,13 @@ interface HistoryPanelProps {
 export function HistoryPanel({ completed }: HistoryPanelProps): React.ReactElement {
   const statusIcon = (status: CompletedTask["status"]): string => {
     switch (status) {
-      case "completed":
+      case TaskStatus.Completed:
         return "✅";
-      case "partial":
+      case TaskStatus.Partial:
         return "⚠️";
-      case "blocked":
+      case TaskStatus.Blocked:
         return "🚫";
-      case "error":
+      case TaskStatus.Error:
         return "❌";
     }
   };

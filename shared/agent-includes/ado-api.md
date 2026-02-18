@@ -39,7 +39,7 @@ PR_RESPONSE=$(curl -s --http1.1 -X POST \
 
 ### Posting a comment on a pull request
 
-Use this to post thread comments on an existing PR (e.g., to respond to review feedback or introduce yourself). If need details read https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-request-threads?view=azure-devops-rest-7.1
+Use this to post thread comments on an existing PR (e.g., to respond to review feedback). If need details read https://learn.microsoft.com/en-us/rest/api/azure/devops/git/pull-request-threads?view=azure-devops-rest-7.1
 
 ```bash
 curl -s --http1.1 -X POST \

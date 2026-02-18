@@ -1,12 +1,14 @@
 import type { AgentProfile, AppConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult } from "../container/types.js";
-import type { IssueContext } from "../container/prompt.js";
+import { TaskStatus } from "../container/types.js";
+import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
 import { extractAdfText } from "../jira/field-extractor.js";
 import { JiraClient } from "../jira/client.js";
 import { ContainerManager } from "../container/manager.js";
 import { LogCollector } from "../logs/collector.js";
+import { PromptBuilder } from "../prompt/prompt-builder.js";
 import { withRetry } from "../retry.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 
@@ -27,11 +29,12 @@ import { OrchestratorComments } from "./orchestrator-comments.js";
  */
 export class TaskRunner {
   constructor(
-    private config: AppConfig,
-    private jiraClient: JiraClient,
-    private logCollector: LogCollector,
-    private logger: Logger,
-    private containerLogger?: Logger,
+    private readonly config: AppConfig,
+    private readonly jiraClient: JiraClient,
+    private readonly logCollector: LogCollector,
+    private readonly promptBuilder: PromptBuilder,
+    private readonly logger: Logger,
+    private readonly containerLogger?: Logger,
   ) {}
 
   /** Optional callback invoked for each real-time tool output line from the container. */
@@ -47,7 +50,7 @@ export class TaskRunner {
     issue: JiraIssue,
     profile: AgentProfile,
   ): Promise<{ result: RalphResult; container: ContainerManager }> {
-    const container = new ContainerManager(profile, this.config, this.logger, this.containerLogger);
+    const container = new ContainerManager(profile, this.config, this.promptBuilder, this.logger, this.containerLogger);
     if (this.onToolOutput) {
       container.onToolOutput = this.onToolOutput;
     }
@@ -104,10 +107,16 @@ export class TaskRunner {
       await container.checkPrerequisites();
 
       this.logger.info("Cleaning previous audit logs...");
-      await container.cleanLogs();
-      await container.cleanWorkspacePaths();
+      await container.cleaner.cleanLogDirectory(profile.auditLogPath);
+      await container.cleaner.cleanPaths(profile.cleanPaths);
 
+      // Register log sources after cleanup but before setup — cleanup deletes
+      // the directory that streaming sources watch, and setup is where squid
+      // proxy failures surface. With sources registered, the error path can
+      // still collectAll (especially proxy logs) before teardown.
       container.registerLogSources(issue.key);
+
+      await container.setup();
 
       this.logger.info(`Fetching JIRA comments for ${issue.key}...`);
       const comments = await this.fetchComments(issue.key);
@@ -147,7 +156,7 @@ export class TaskRunner {
         this.logger.info(`PR created: ${result.prUrl}`);
       }
 
-      if (result.status === "partial") {
+      if (result.status === TaskStatus.Partial) {
         this.logger.warn(
           `${issue.key} completed with partial status — check handoff for details`
         );
@@ -175,7 +184,7 @@ export class TaskRunner {
 
       const errorResult: RalphResult = {
         issueKey: issue.key,
-        status: "error",
+        status: TaskStatus.Error,
         durationMs: 0,
         exitCode: 1,
         stdout: "",

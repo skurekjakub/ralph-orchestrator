@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { OrchestratorState, CompletedTask, ActiveTask, LogEntry } from "./orchestrator-types.js";
+import { OrchestratorStatus, LogSource } from "./orchestrator-types.js";
+import { HeartbeatStatus } from "./services/heartbeat.js";
 
 /** Live data the observer reads from the orchestrator on each state snapshot. */
 export interface ObservableContext {
@@ -56,10 +58,10 @@ export class OrchestratorObserver {
     const task = ctx.activeTask;
     return {
       status: !ctx.running
-        ? "stopping"
+        ? OrchestratorStatus.Stopping
         : task
-          ? "working"
-          : "idle",
+          ? OrchestratorStatus.Working
+          : OrchestratorStatus.Idle,
       currentIssue: task
         ? {
             key: task.issue.key,
@@ -75,8 +77,8 @@ export class OrchestratorObserver {
         summary: p.variant,
       })),
       logs: ctx.logEntries,
-      orchestratorLogs: ctx.logEntries.filter((e) => e.source !== "container"),
-      containerLogs: ctx.logEntries.filter((e) => e.source === "container"),
+      orchestratorLogs: ctx.logEntries.filter((e) => e.source !== LogSource.Container),
+      containerLogs: ctx.logEntries.filter((e) => e.source === LogSource.Container),
       profileIds: ctx.profileIds,
     };
   }
@@ -88,8 +90,7 @@ export class OrchestratorObserver {
     const lastCompleted = this.completedToday.at(-1);
     return {
       agentId: this.agentId,
-      status: (!ctx.running ? "stopped" : task ? "working" : "polling") as
-        "idle" | "working" | "building" | "polling" | "stopped",
+      status: (!ctx.running ? HeartbeatStatus.Stopped : task ? HeartbeatStatus.Working : HeartbeatStatus.Polling),
       queueSize: ctx.pendingOps.length,
       currentTask: task?.issue.key ?? null,
       currentTaskStartedAt: task

@@ -120,11 +120,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
-   - Starts containers via `docker compose up -d --build` for the matched profile's repo
-   - Runs the setup script inside the container
+   - Starts containers via `docker compose up -d --build` (base + security overlay) for the matched profile’s repo
+   - Runs the setup script inside the container (CLI installs, dependency setup)
    - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
    - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
-6. **Saves** audit logs, per-task streaming log, and session transcript to `output/logs/`
+6. **Saves** audit logs, per-task streaming log, session transcript, and **proxy access log** to `output/logs/`
 7. **Attaches** the session transcript to the JIRA issue
 8. **Stops** the container and cleans up volumes
 9. **Transitions** the issue to "Ready for Review"
@@ -143,7 +143,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Post completion comment on JIRA | Ralph (inside container) |
 | Attach handoff.md to JIRA issue | Ralph (inside container) |
 | Transition to "Ready for Review" | Orchestrator |
-| Collect audit logs + transcript, save to disk | Orchestrator |
+| Collect audit logs, transcript, proxy access log, save to disk | Orchestrator |
 | Attach session transcript to JIRA issue | Orchestrator |
 
 ## Output
@@ -154,8 +154,10 @@ After each task, the orchestrator saves:
 output/
 └── logs/
     ├── DF-2704-1707840000000.log             # Per-task streaming log (real-time container output)
-    ├── DF-2704-1707840000000.jsonl           # Audit trail from hooks
+    ├── DF-2704-1707840000000-audit.jsonl     # Audit trail from hooks
     ├── DF-2704-1707840000000-transcript.md   # Copilot CLI session transcript
+    ├── DF-2704-1707840000000-tool-output.log # Untruncated tool output from hooks
+    ├── DF-2704-1707840000000-proxy.log       # Squid proxy access log (allowed/denied domains)
     ├── DF-2704-1707840000000-summary.json    # Execution metadata
     ├── activity-2026-02-13.log               # Persistent activity log (all sessions)
     └── container-2026-02-13.log              # Persistent container output log

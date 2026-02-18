@@ -2,7 +2,7 @@
 
 ## System Overview
 
-Ralph Orchestrator is a standalone Node.js + TypeScript application that autonomously processes documentation tasks. It bridges JIRA (task management) with a container-based AI agent system (execution), supporting both GitHub Copilot CLI and Claude Code CLI.
+Ralph Orchestrator is a standalone Node.js + TypeScript application that autonomously processes documentation tasks. It bridges JIRA (task management) with a security-hardened container-based AI agent system (execution), supporting both GitHub Copilot CLI and Claude Code CLI.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -23,15 +23,15 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 │  └──────────┘              └────┬───┘ └───┬─────┘                  │
 │       │                         └────┬────┘                        │
 │       │                              ▼                             │
-│  ┌──────────┐              ┌─────────────────────────┐             │
-│  │Heartbeat │              │    DOCKER CONTAINER     │             │
-│  │ Sender   │──▶ Dashboard │  ┌───────────────────┐  │             │
-│  └──────────┘              │  │  Ralph Meta-Agent │  │             │
-│       │                    │  │  ┌─────┐ ┌──────┐ │  │             │
-│       │                    │  │  │Write│ │Review│ │  │             │
-│       │                    │  │  └─────┘ └──────┘ │  │             │
-│       │                    │  └───────────────────┘  │             │
-│       │                    └─────────────────────────┘             │
+│  ┌──────────┐     ┌─────────────────────────────────────────┐      │
+│  │Heartbeat │     │          DOCKER CONTAINERS              │      │
+│  │ Sender   │──▶  │  ┌──────────────┐  ┌────────────────┐  │      │
+│  └──────────┘     │  │  App (agent)  │  │ Egress Proxy   │  │      │
+│       │      Dash │  │  internal net │──│ (Squid sidecar)│  │      │
+│       │           │  │  cap_drop:ALL │  │ domain allowl. │  │      │
+│       │           │  │  no-sudo      │  │ access logging │  │      │
+│       │           │  └──────────────┘  └────────────────┘  │      │
+│       │           └─────────────────────────────────────────┘      │
 │                                                                    │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                    INK TERMINAL DASHBOARD                    │  │
@@ -88,10 +88,13 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 
 Orchestrates the full container lifecycle, delegating to specialized components:
 
-- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Builds the process environment (all secrets, JIRA config, Anthropic API key, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`), spawns compose commands (`up`, `exec`, `down`), and enforces timeouts.
+- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Accepts multiple compose files (base + security overlay) and builds `-f file1 -f file2` args for every command. Injects process environment (all secrets, JIRA config, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, `SQUID_CONF_PATH`).
 - **CopilotExecutor** (`src/container/copilot-executor.ts`) — Executes `copilot --agent <name> --model <model> --experimental --yolo --share <path> -p <prompt>` inside the container. The `--share` flag exports a full session transcript.
 - **ClaudeCodeExecutor** (`src/container/claude-code-executor.ts`) — Executes `claude -p <prompt> --dangerously-skip-permissions [--model <model>]` inside the container.
+- **ContainerLogCollector** (`src/container/log-collector.ts`) — Per-task log collection from both `app` and sidecar containers (egress-proxy). Supports streaming (`tail -f`) and batch collection (`cat`) modes. Collects audit logs, session transcripts, tool output, and proxy access logs.
 - **StreamCapture** (`src/container/stream-capture.ts`) — Shared line-buffered streaming capture for child processes. Used by both executors and container build/setup to pipe stdout/stderr to the logger with a tag prefix (e.g. `[copilot]`, `[build]`).
+
+**Prompt construction & auditing:** Before CLI execution, `execute()` builds the prompt via `buildPromptWithSections()` (`src/prompt/prompt.ts`), which normalizes untrusted JIRA content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `--- BEGIN/END UNTRUSTED JIRA DATA ---` delimiters. The assembled prompt and its labelled sections are then passed through the prompt injection auditor (`src/prompt/prompt-auditor.ts`), which scans for common injection patterns based on the configured `promptAudit.mode` (see CONFIGURATION.md).
 
 **CLI selection:** The manager picks the executor based on the profile's `cli` preference (`"copilot"` or `"claude"`, default: `"copilot"`). If the preferred CLI's credential is missing (`GH_TOKEN` for Copilot, `ANTHROPIC_API_KEY` for Claude), it falls back to the other. If neither credential is available, it throws.
 
@@ -99,14 +102,12 @@ Orchestrates the full container lifecycle, delegating to specialized components:
 |---|---|
 | `start()` | `docker compose up -d --build` + setup script (both streamed) |
 | `execute()` | Runs the selected CLI agent, parses result block |
-| `collectLogs()` | `docker compose exec cat <auditLogPath>` → `output/logs/` |
-| `collectTranscript()` | Copies session transcript from container → `output/logs/` |
+| `registerLogSources()` | Registers all log sources (audit, transcript, tool-output, proxy) and starts streaming |
 | `cleanLogs()` | `docker compose exec rm -rf` the audit log dir |
-| `stop()` | `docker compose down --volumes --remove-orphans` |
-| `checkPrerequisites()` | `docker info` (verifies Docker is running) |
+| `stop()` | Detaches log streams, `docker compose down --volumes --remove-orphans` |
 
 Env vars are injected into the compose process environment (not via `-e` flags):
-`GH_TOKEN`, `ADO_PAT_DOCS`, `ADO_MCP_AUTH_TOKEN`, `ADO_PAT_XPERIENCE`, `JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_URL`, `JIRA_CLOUD_ID`, `ANTHROPIC_API_KEY`, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`
+`GH_TOKEN`, `ADO_PAT_DOCS`, `ADO_MCP_AUTH_TOKEN`, `ADO_PAT_XPERIENCE`, `JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_URL`, `JIRA_CLOUD_ID`, `ANTHROPIC_API_KEY`, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, `SQUID_CONF_PATH`
 
 ### Orchestrator (`src/orchestrator.ts`)
 
@@ -138,14 +139,26 @@ The scanner caches each issue's `updated` timestamp between cycles. If an issue 
 
 **State observation:** The `OrchestratorObserver` builds state snapshots and heartbeat payloads from live orchestrator data. The Ink dashboard subscribes to it directly (`orchestrator.observer`). This separation keeps state aggregation out of the main orchestration loop.
 
-### Log Collector (`src/logs/collector.ts`)
+### Log Collector (`src/logs/collector.ts`) + Container Log Collector (`src/container/log-collector.ts`)
 
-- Saves execution metadata as `<key>-<timestamp>-summary.json`
-- Audit trail stored as `<key>-<timestamp>.jsonl` (from hooks inside container)
-- Session transcript saved as `<key>-<timestamp>-transcript.md` (from `--share` flag)
-- Per-task streaming log at `<key>-<timestamp>.log` (real-time container output)
-- Persistent activity log at `activity-YYYY-MM-DD.log` (managed by ActivityLog)
-- Persistent container log at `container-YYYY-MM-DD.log` (managed by ActivityLog)
+**Container Log Collector** manages per-task log collection from both `app` and sidecar containers:
+- Each log source (audit, transcript, tool-output, proxy) is registered with an ID, target service, container path, and capture mode
+- **Stream mode** — starts `tail -f` during agent execution for real-time output (tool-output)
+- **Collect mode** — reads file contents via `docker compose exec cat` after execution (audit, transcript, proxy)
+- `collectAll()` flushes all sources to disk with consistent timestamps: `<key>-<ts>-<sourceId>.<ext>`
+- Proxy logs are collected even on error (for allowlist debugging)
+
+**Log Collector** saves execution metadata as `<key>-<timestamp>-summary.json`.
+
+Output files per task:
+- `<key>-<ts>-audit.jsonl` — Audit trail from hooks
+- `<key>-<ts>-transcript.md` — Copilot CLI session transcript (via `--share`)
+- `<key>-<ts>-tool-output.log` — Untruncated tool output from hooks
+- `<key>-<ts>-proxy.log` — Squid proxy access log (allowed/denied domains)
+- `<key>-<ts>-summary.json` — Execution metadata
+- `<key>-<ts>.log` — Per-task streaming log (real-time container output)
+- `activity-YYYY-MM-DD.log` — Persistent activity log (managed by ActivityLog)
+- `container-YYYY-MM-DD.log` — Persistent container output log (managed by ActivityLog)
 
 ### Status Dashboard (`ralph-dashboard/`)
 
@@ -175,7 +188,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── ralph-docs/
 │   │   ├── profile.json                 # Profile config: repo, cli, variants, transitions
 │   │   ├── Dockerfile                   # Container image (Ruby, Node, .NET, etc.)
-│   │   ├── docker-compose.yml           # Services, volumes, env vars
+│   │   ├── docker-compose.yml           # Base compose: services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
 │   │   └── agents/
 │   │       ├── ralph.ralph.agent.md     # Meta-agent template (with include markers)
@@ -194,17 +207,24 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │           ├── ralph.malph.agent.md     # Review agent template (observer)
 │           └── .build/                  # Resolved agent files (generated, gitignored)
 ├── shared/
+│   ├── security/                        # Container security infrastructure
+│   │   ├── docker-compose.security.yml  # Squid sidecar, network isolation, resource limits
+│   │   └── squid.conf                   # Domain allowlist for egress proxy
 │   ├── hooks/                           # Copilot CLI audit hooks (shared)
 │   │   ├── log-*.sh                     # Hook scripts for session logging
 │   │   └── ralph-audit.json             # Hook configuration
 │   └── agent-includes/                  # Shared partial files for agent templates
-│       └── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
-│       └── ado-api.md                   # ADO REST API patterns (PR creation, threads)
+│       ├── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
+│       ├── ado-api.md                   # ADO REST API patterns (PR creation, threads)
+│       ├── ado-pr-format.md             # PR description template
+│       └── prompt-security.md           # Prompt injection defense instructions for agents
 ```
 
 Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` reads agent templates, replaces markers with content from `shared/agent-includes/`, and writes resolved files to `agents/.build/`. Compose files mount from `.build/` — the templates are the source of truth.
 
-Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Resolved agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. Resolved agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
+
+**Two-file compose merge:** `ComposeClient` automatically injects both the base compose file and the security overlay for every command: `docker compose -f profiles/<id>/docker-compose.yml -f shared/security/docker-compose.security.yml <command>`. The security overlay adds the Squid sidecar, network isolation, proxy env vars, and resource limits. This separation keeps security concerns separate and allows disabling isolation for debugging by removing the overlay.
 
 Currently configured target repos:
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
@@ -247,6 +267,9 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
   "dashboard": {
     "enabled": true,
     "intervalMs": 30000
+  },
+  "promptAudit": {
+    "mode": "warn"
   }
 }
 ```
@@ -294,27 +317,58 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
 - `dashboard.enabled` — set to `false` to disable heartbeat sending entirely (no network calls)
 - `dashboard.intervalMs` — heartbeat interval in milliseconds (default: 30 000)
 - `DASHBOARD_URL` and `DASHBOARD_SECRET` must be set in `.env` for heartbeats to function
-```
 
 ### `.env`
 
 See `.env.example` for all required variables.
 
+## Security
+
+### Threat Model
+
+Prompt injection causes the agent to execute arbitrary commands. Everything inside the container (workspace, local files) is considered expendable and recoverable. External interactions (network exfiltration, lateral API access, host compromise) must be prevented.
+
+### Network Isolation
+
+Agent containers run on an **internal-only Docker network** (`internal: true`) with no direct internet access. All HTTP/HTTPS traffic is routed through a **Squid forward proxy sidecar** that enforces a domain allowlist.
+
+```
+Agent container (internal network only) → Squid proxy → allowlisted domains only
+```
+
+Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
+
+The allowlist (`shared/security/squid.conf`) is tuned per the agent's needs: LLM backends (GitHub Copilot, Anthropic), JIRA, Azure DevOps, package registries (npm, rubygems, pypi, nuget), and documentation sites. Squid access logs are collected per task for allowlist tuning — both allowed and denied requests are logged.
+
+### Container Hardening
+
+| Control | Implementation |
+|---|---|
+| No Docker socket | Removed from all compose files |
+| No Docker CLI | Removed from Dockerfiles |
+| No sudo | `/etc/sudoers.d/vscode` removed, vscode entry deleted from `/etc/sudoers` |
+| Capability drop | `cap_drop: ALL` — all Linux capabilities dropped |
+| Privilege escalation | `no-new-privileges: true` — prevents setuid/setgid |
+| Resource limits | Memory: 8G, CPU: 4, PIDs: 500 |
+| npm without root | User-writable npm prefix (`~/.npm-global`) — no sudo needed for `npm install -g` |
+
+### Compose Security Overlay
+
+The security overlay (`shared/security/docker-compose.security.yml`) is merged with each profile's base compose file. It adds:
+
+- **`egress-proxy` service** — Squid forward proxy sidecar on both internal and external networks
+- **`ralph-internal` network** (`internal: true`) — app container's only network, no internet route
+- **`ralph-external` network** — Squid's bridge to the internet
+- **Proxy env vars** — `HTTP_PROXY`, `HTTPS_PROXY`, `http_proxy`, `https_proxy` injected into the app
+- **Security options** — `cap_drop: ALL`, `no-new-privileges`, resource limits
+
 ## Design Decisions
 
 1. **One task at a time** — Sequential processing avoids container conflicts and simplifies state management.
 2. **Fresh container per task** — Clean state prevents leakage between tasks. Trade-off: ~2-5 min container startup.
-3. **Ralph owns JIRA completion** — The agent posts its own completion comment and handoff attachment, giving it full context about what was accomplished.
-4. **Orchestrator owns lifecycle** — JIRA transitions, container start/stop, and log collection stay in the orchestrator for reliability.
-5. **No JIRA SDK** — Native `fetch` against REST API v3 keeps dependencies minimal and avoids OAuth complexity (uses Basic auth with API tokens).
-6. **Docker compose directly** — Containers are managed via `docker compose` commands. No devcontainer CLI. Env vars are injected into the compose process environment.
-7. **Dual CLI support** — Profiles can use either Copilot CLI (`copilot --agent --model --yolo --share`) or Claude Code CLI (`claude -p --dangerously-skip-permissions`). The orchestrator selects at runtime based on profile preference and available credentials, with automatic fallback.
-8. **Logger interface** — All components accept a `Logger` for centralized log routing through the orchestrator's ring buffer to the Ink dashboard.
-9. **Persistent activity log** — Every log entry is appended to `activity-YYYY-MM-DD.log` so the full session history survives ring buffer eviction and restarts.
-10. **Build and exec streaming** — Container build progress, setup script output, and CLI output are streamed to the activity log in real-time via the shared `StreamCapture` class.
 11. **Profile variants** — Each profile can have multiple variants with different agent names and match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `AgentProfile[]` at load time.
-12. **Heartbeat sender** — Optional fire-and-forget heartbeat to a status dashboard. Controlled by `dashboard.enabled` in config. Each orchestrator generates a UUID on startup so multiple instances can report to the same dashboard.
-13. **JIRA field extraction** — Custom field parsing (ADF, `{value}` wrappers, strings) is separated into `JiraFieldExtractor` for testability and reuse outside `buildPrompt()`.
 14. **Centralized infrastructure** — All Docker, agent, and hook files live in the orchestrator repo under `profiles/` and `shared/`. Target repos contain no Ralph-specific files. Compose files use overlay file mounts to inject agent definitions into containers without modifying the host repo.
 15. **Session transcripts** — Copilot CLI's `--share` flag exports a full session transcript (conversation, tool calls, reasoning). The orchestrator collects it from the container and attaches it to the JIRA issue for auditability.
 16. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.
+17. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
+18. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.

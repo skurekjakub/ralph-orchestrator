@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { OperationLedger, OperationStatus } from "../src/services/operation-ledger.js";
+import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
+import { TaskStatus } from "../../src/container/types.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
@@ -60,12 +61,12 @@ describe("OperationLedger", () => {
       ledger.transition("DF-1", id, OperationStatus.Active);
       expect(ledger.getActive("DF-1")?.id).toBe(id);
 
-      ledger.transition("DF-1", id, OperationStatus.Completed, { resultStatus: "completed" });
+      ledger.transition("DF-1", id, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
       expect(ledger.getActive("DF-1")).toBeUndefined();
       const ops = ledger.getOperations("DF-1");
       expect(ops[0].status).toBe(OperationStatus.Completed);
       expect(ops[0].completedAt).toBeDefined();
-      expect(ops[0].resultStatus).toBe("completed");
+      expect(ops[0].resultStatus).toBe(TaskStatus.Completed);
     });
 
     it("transitions pending → active → error", () => {

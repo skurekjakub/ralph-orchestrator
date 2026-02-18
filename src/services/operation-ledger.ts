@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { TaskStatus } from "../container/types.js";
 
 /** Operation lifecycle state. */
 export enum OperationStatus {
@@ -36,8 +37,8 @@ export interface Operation {
   completedAt?: string;
   /** Human-readable reason for `rejected` or `error` status. */
   reason?: string;
-  /** Result status from the agent (e.g. "completed", "partial"). Only set on terminal states. */
-  resultStatus?: string;
+  /** Result status from the agent. Only set on terminal states. */
+  resultStatus?: TaskStatus;
 }
 
 /** On-disk structure for a single issue's operation history. */
@@ -141,7 +142,7 @@ export class OperationLedger {
     to: OperationStatus,
     extra?: {
       reason?: string;
-      resultStatus?: string;
+      resultStatus?: TaskStatus;
     },
   ): void {
     const ledger = this.read(issueKey);

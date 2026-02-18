@@ -4,6 +4,8 @@ import { z } from "zod";
 import "dotenv/config";
 import { buildJqlFromProfiles } from "./jira/jql-builder.js";
 import { resolvePath } from "./util/path.js";
+import { AuditMode } from "./prompt/prompt-auditor.js";
+import { CliType } from "./container/types.js";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for config.json (global settings only)
@@ -25,10 +27,16 @@ const rawDashboardSchema = z.object({
   intervalMs: z.number().positive().default(30_000),
 }).optional();
 
+const rawPromptAuditSchema = z.object({
+  /** How the auditor handles findings: "block" rejects critical findings, "warn" logs only, "off" skips. */
+  mode: z.enum(["block", "warn", "off"]).default("warn"),
+}).optional();
+
 const configFileSchema = z.object({
   jira: rawJiraSchema,
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
+  promptAudit: rawPromptAuditSchema,
 });
 
 // ---------------------------------------------------------------------------
@@ -106,7 +114,7 @@ export interface AgentProfile {
   /** Unique variant identifier: `<profileId>:<agentName>:<commentTrigger>`. Used for ledger dedup and profile lookup. */
   variantKey: string;
   /** Which CLI to use for agent execution. */
-  cli: "copilot" | "claude";
+  cli: CliType;
   /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
   model?: string;
   timeoutMs: number;
@@ -151,11 +159,18 @@ export interface DashboardConfig {
   intervalMs: number;
 }
 
+/** Configuration for the prompt injection auditor. */
+export interface PromptAuditConfig {
+  /** How the auditor handles findings: "block" rejects critical findings, "warn" logs only, "off" skips auditing. */
+  mode: AuditMode;
+}
+
 export interface AppConfig {
   jira: JiraConfig;
   profiles: AgentProfile[];
   output: OutputConfig;
   dashboard: DashboardConfig;
+  promptAudit: PromptAuditConfig;
   secrets: SecretsConfig;
 }
 
@@ -210,7 +225,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         agentName: variant.agent,
         displayName: variant.agent.replace(/^ralph\./, ""),
         variantKey: `${profileId}:${variant.agent}:${variant.match.commentTrigger}`,
-        cli: parsed.cli,
+        cli: parsed.cli as CliType,
         model: variant.model ?? parsed.model,
         timeoutMs: parsed.timeoutMs,
         setupScript: parsed.setupScript,
@@ -307,6 +322,9 @@ export function loadConfig(): AppConfig {
       handoffDir: resolve(process.cwd(), parsed.output?.handoffDir ?? "./output/handoffs"),
     },
     dashboard,
+    promptAudit: {
+      mode: (parsed.promptAudit?.mode ?? AuditMode.Warn) as AuditMode,
+    },
     secrets,
   };
 }

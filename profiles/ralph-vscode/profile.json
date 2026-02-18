@@ -1,7 +1,7 @@
 {
   "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
   "cli": "copilot",
-  "timeoutMs": 3600000,
+  "timeoutMs": 7200000,
   "variants": [
     {
       "agent": "ralph.ralph",

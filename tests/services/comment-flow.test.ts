@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { OperationLedger, OperationStatus } from "../src/services/operation-ledger.js";
-import { ProfileRouter } from "../src/services/profile-router.js";
-import { extractAdfText } from "../src/jira/field-extractor.js";
-import { makeProfile, makeIssue, makeMatch } from "./helpers.js";
-import type { JiraComment } from "../src/jira/types.js";
+import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
+import { TaskStatus } from "../../src/container/types.js";
+import { ProfileRouter } from "../../src/services/profile-router.js";
+import { extractAdfText } from "../../src/jira/field-extractor.js";
+import { makeProfile, makeIssue, makeMatch } from "../helpers.js";
+import type { JiraComment } from "../../src/jira/types.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
@@ -134,14 +135,14 @@ describe("Comment-driven orchestration flow", () => {
       expect(ledger.getPending("DF-1")).toHaveLength(0);
       expect(ledger.getActive("DF-1")?.id).toBe(opId);
 
-      ledger.transition("DF-1", opId, OperationStatus.Completed, { resultStatus: "completed" });
+      ledger.transition("DF-1", opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
       expect(ledger.getPending("DF-1")).toHaveLength(0);
       expect(ledger.getActive("DF-1")).toBeUndefined();
 
       const ops = ledger.getOperations("DF-1");
       expect(ops).toHaveLength(1);
       expect(ops[0].status).toBe(OperationStatus.Completed);
-      expect(ops[0].resultStatus).toBe("completed");
+      expect(ops[0].resultStatus).toBe(TaskStatus.Completed);
       expect(ops[0].completedAt).toBeDefined();
     });
 
@@ -206,7 +207,7 @@ describe("Comment-driven orchestration flow", () => {
 
       const opId = ledger.plan("DF-1", { variant, triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
       ledger.transition("DF-1", opId, OperationStatus.Active);
-      ledger.transition("DF-1", opId, OperationStatus.Completed, { resultStatus: "completed" });
+      ledger.transition("DF-1", opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
 
       expect(ledger.isConsumed("DF-1", variant, "C1")).toBe(true);
       expect(ledger.isConsumed("DF-1", variant, "C2")).toBe(false);

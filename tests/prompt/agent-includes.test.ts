@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveAgentIncludes, resolveAllProfileIncludes } from "../src/container/agent-includes.js";
+import { resolveAgentIncludes, resolveAllProfileIncludes } from "../../src/container/agent-includes.js";
 
 let tempDir: string;
 

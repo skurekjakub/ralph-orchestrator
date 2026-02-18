@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { OrchestratorObserver } from "../src/orchestrator-observer.js";
-import type { ObservableContext } from "../src/orchestrator-observer.js";
-import type { CompletedTask, LogEntry } from "../src/orchestrator-types.js";
+import { OrchestratorObserver } from "../../src/orchestrator-observer.js";
+import type { ObservableContext } from "../../src/orchestrator-observer.js";
+import type { CompletedTask, LogEntry } from "../../src/orchestrator-types.js";
+import { OrchestratorStatus, LogLevel, LogSource } from "../../src/orchestrator-types.js";
+import { TaskStatus } from "../../src/container/types.js";
+import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 
 function makeContext(overrides: Partial<ObservableContext> = {}): ObservableContext {
   return {
@@ -35,7 +38,7 @@ function makeCompletion(key = "DOC-100"): CompletedTask {
     key,
     summary: "Test issue",
     profileId: "ralph-docs",
-    status: "completed",
+    status: TaskStatus.Completed,
     durationMs: 5000,
     completedAt: Date.now(),
   };
@@ -46,7 +49,7 @@ describe("OrchestratorObserver", () => {
     it("returns idle when running with no active task", () => {
       const observer = new OrchestratorObserver(() => makeContext());
       const state = observer.getState();
-      expect(state.status).toBe("idle");
+      expect(state.status).toBe(OrchestratorStatus.Idle);
       expect(state.currentIssue).toBeNull();
       expect(state.currentProfile).toBeNull();
       expect(state.startedAt).toBeNull();
@@ -58,7 +61,7 @@ describe("OrchestratorObserver", () => {
         makeContext({ activeTask: task })
       );
       const state = observer.getState();
-      expect(state.status).toBe("working");
+      expect(state.status).toBe(OrchestratorStatus.Working);
       expect(state.currentIssue).toEqual({ key: "DOC-100", summary: "Test issue" });
       expect(state.currentProfile).toBe("ralph-docs");
       expect(state.startedAt).toBe(42000);
@@ -68,7 +71,7 @@ describe("OrchestratorObserver", () => {
       const observer = new OrchestratorObserver(() =>
         makeContext({ running: false })
       );
-      expect(observer.getState().status).toBe("stopping");
+      expect(observer.getState().status).toBe(OrchestratorStatus.Stopping);
     });
 
     it("maps pending ops to queue items", () => {
@@ -90,9 +93,9 @@ describe("OrchestratorObserver", () => {
 
     it("separates orchestrator and container logs", () => {
       const logs: LogEntry[] = [
-        { timestamp: 1, level: "info", message: "Started", source: "orchestrator" },
-        { timestamp: 2, level: "info", message: "Building...", source: "container" },
-        { timestamp: 3, level: "warn", message: "Slow", source: "orchestrator" },
+        { timestamp: 1, level: LogLevel.Info, message: "Started", source: LogSource.Orchestrator },
+        { timestamp: 2, level: LogLevel.Info, message: "Building...", source: LogSource.Container },
+        { timestamp: 3, level: LogLevel.Warn, message: "Slow", source: LogSource.Orchestrator },
       ];
       const observer = new OrchestratorObserver(() =>
         makeContext({ logEntries: logs })
@@ -137,7 +140,7 @@ describe("OrchestratorObserver", () => {
       observer.onStateChange(callback);
       observer.emit();
       expect(callback).toHaveBeenCalledOnce();
-      expect(callback.mock.calls[0][0].status).toBe("idle");
+      expect(callback.mock.calls[0][0].status).toBe(OrchestratorStatus.Idle);
     });
 
     it("does nothing when no callback is registered", () => {
@@ -150,7 +153,7 @@ describe("OrchestratorObserver", () => {
     it("returns polling status when idle", () => {
       const observer = new OrchestratorObserver(() => makeContext());
       const payload = observer.getHeartbeatPayload();
-      expect(payload.status).toBe("polling");
+      expect(payload.status).toBe(HeartbeatStatus.Polling);
       expect(payload.currentTask).toBeNull();
       expect(payload.profileId).toBeNull();
       expect(payload.queueSize).toBe(0);
@@ -164,7 +167,7 @@ describe("OrchestratorObserver", () => {
         makeContext({ activeTask: task })
       );
       const payload = observer.getHeartbeatPayload();
-      expect(payload.status).toBe("working");
+      expect(payload.status).toBe(HeartbeatStatus.Working);
       expect(payload.currentTask).toBe("DOC-100");
       expect(payload.profileId).toBe("ralph-docs");
       expect(payload.currentTaskStartedAt).toBe(new Date(1700000000000).toISOString());
@@ -174,7 +177,7 @@ describe("OrchestratorObserver", () => {
       const observer = new OrchestratorObserver(() =>
         makeContext({ running: false })
       );
-      expect(observer.getHeartbeatPayload().status).toBe("stopped");
+      expect(observer.getHeartbeatPayload().status).toBe(HeartbeatStatus.Stopped);
     });
 
     it("includes completion stats", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ProfileRouter } from "../src/services/profile-router.js";
-import { makeIssue, makeProfile } from "./helpers.js";
+import { ProfileRouter } from "../../src/services/profile-router.js";
+import { makeIssue, makeProfile } from "../helpers.js";
 
 /** Convenience wrapper — matches a single issue against a list of profiles. */
 function matchProfile(

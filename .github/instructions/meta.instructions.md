@@ -34,3 +34,27 @@ ask_questions([{
 The orchestrator project evolves through iterative refinement. The user works in a continuous flow where each task leads to the next. Ending without asking for follow-up breaks this flow and wastes time.
 
 **DO NOT** skip this step. **DO NOT** end with "Let me know if you need anything else." **DO** use `ask_questions` every single time.
+
+## Coding Conventions
+
+### No backward-compatibility wrappers
+
+When refactoring, always update the original callsites directly. Never introduce thin wrapper methods, adapter layers, or re-exports to maintain backward compatibility. If a method moves to a new class, update every caller to use the new class directly.
+
+### Use enums for fixed string sets
+
+Never use bare string literal unions (`type Foo = "a" | "b"`) for values that represent a fixed, known set of options. Use TypeScript `enum` instead:
+
+```typescript
+// ✅ Correct
+export enum AuditMode {
+  Block = "block",
+  Warn = "warn",
+  Off = "off",
+}
+
+// ❌ Wrong — string literals scattered across the codebase
+export type AuditMode = "block" | "warn" | "off";
+```
+
+### Be vigilant about unused imports

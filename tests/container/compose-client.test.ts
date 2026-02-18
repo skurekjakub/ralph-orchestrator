@@ -15,7 +15,7 @@ vi.mock("execa", () => ({
   execa: mockExeca,
 }));
 
-import { ComposeClient } from "../src/container/compose-client.js";
+import { ComposeClient } from "../../src/container/compose-client.js";
 
 describe("ComposeClient", () => {
   const testConfig = {

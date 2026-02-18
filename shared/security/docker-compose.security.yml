@@ -20,6 +20,8 @@
 services:
   egress-proxy:
     image: ubuntu/squid:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${SQUID_CONF_PATH}:/etc/squid/squid.conf:ro
     networks:
@@ -33,6 +35,8 @@ services:
       start_period: 5s
 
   app:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       HTTP_PROXY: "http://egress-proxy:3128"
       HTTPS_PROXY: "http://egress-proxy:3128"
@@ -49,6 +53,9 @@ services:
       - "no-new-privileges:true"
     cap_drop:
       - ALL
+    cap_add:
+      - DAC_OVERRIDE
+      - CHOWN
     deploy:
       resources:
         limits:

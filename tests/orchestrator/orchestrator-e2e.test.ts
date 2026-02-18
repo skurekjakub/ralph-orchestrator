@@ -2,20 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { Orchestrator } from "../src/orchestrator.js";
+import { Orchestrator } from "../../src/orchestrator.js";
 import {
   OperationLedger,
   OperationStatus,
-} from "../src/services/operation-ledger.js";
-import { ProfileRouter } from "../src/services/profile-router.js";
-import { TriggerScanner } from "../src/services/trigger-scanner.js";
-import { ActivityLog } from "../src/services/activity-log.js";
-import { makeProfile, makeIssue, makeConfig } from "./helpers.js";
-import type { OrchestratorDeps } from "../src/orchestrator-types.js";
-import type { JiraIssue, JiraComment } from "../src/jira/types.js";
-import type { AgentProfile } from "../src/config.js";
-import type { RalphResult } from "../src/container/types.js";
-import type { Logger } from "../src/logger.js";
+} from "../../src/services/operation-ledger.js";
+import { ProfileRouter } from "../../src/services/profile-router.js";
+import { TriggerScanner } from "../../src/services/trigger-scanner.js";
+import { ActivityLog } from "../../src/services/activity-log.js";
+import { makeProfile, makeIssue, makeConfig } from "../helpers.js";
+import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
+import { OrchestratorStatus } from "../../src/orchestrator-types.js";
+import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import type { AgentProfile } from "../../src/config.js";
+import type { RalphResult } from "../../src/container/types.js";
+import { TaskStatus } from "../../src/container/types.js";
+import { HeartbeatStatus } from "../../src/services/heartbeat.js";
+import type { Logger } from "../../src/logger.js";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -46,7 +49,7 @@ function makeResult(
 ): RalphResult {
   return {
     issueKey,
-    status: "completed",
+    status: TaskStatus.Completed,
     durationMs: 5000,
     exitCode: 0,
     stdout: "Done",
@@ -230,7 +233,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
     expect(state.completedToday[0].key).toBe("DF-100");
-    expect(state.completedToday[0].status).toBe("completed");
+    expect(state.completedToday[0].status).toBe(TaskStatus.Completed);
 
     const ops = deps.ledger.getOperations("DF-100");
     expect(ops).toHaveLength(1);
@@ -245,7 +248,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         "DF-150": [makeComment("C1", "@docs handle this")],
       },
       taskResult: {
-        status: "error",
+        status: TaskStatus.Error,
         exitCode: 1,
         stderr: "No such agent: ralph",
       },
@@ -266,7 +269,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const ops = deps.ledger.getOperations("DF-150");
     expect(ops[0].status).toBe(OperationStatus.Completed);
-    expect(ops[0].resultStatus).toBe("error");
+    expect(ops[0].resultStatus).toBe(TaskStatus.Error);
   });
 
   it("handles task runner errors gracefully", { timeout: 30_000 }, async () => {
@@ -288,7 +291,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
-    expect(state.completedToday[0].status).toBe("error");
+    expect(state.completedToday[0].status).toBe(TaskStatus.Error);
     expect(deps.taskRunner.postErrorComment).toHaveBeenCalledWith(
       "DF-200",
       "Container build failed",
@@ -486,8 +489,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
-    expect(states).toContain("working");
-    expect(states).toContain("stopping");
+    expect(states).toContain(OrchestratorStatus.Working);
+    expect(states).toContain(OrchestratorStatus.Stopping);
   });
 
   it("emits heartbeat payload with correct shape", async () => {
@@ -511,7 +514,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(payload).toHaveProperty("status");
     expect(payload).toHaveProperty("totalProcessed");
     expect(payload.totalProcessed).toBe(1);
-    expect(payload.status).toBe("stopped");
+    expect(payload.status).toBe(HeartbeatStatus.Stopped);
   });
 
   it("deduplicates trigger comments across multiple poll cycles", async () => {

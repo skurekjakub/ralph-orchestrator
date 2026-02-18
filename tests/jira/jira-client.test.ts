@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { JiraClient } from "../src/jira/client.js";
-import type { JiraConfig } from "../src/config.js";
+import { JiraClient } from "../../src/jira/client.js";
+import type { JiraConfig } from "../../src/config.js";
 
 const mockConfig: JiraConfig = {
   baseUrl: "https://api.atlassian.com/ex/jira",

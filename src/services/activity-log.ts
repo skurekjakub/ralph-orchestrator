@@ -1,4 +1,5 @@
 import type { LogEntry } from "../orchestrator-types.js";
+import { LogLevel, LogSource } from "../orchestrator-types.js";
 import type { Logger } from "../logger.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -7,7 +8,7 @@ import { join, resolve } from "node:path";
 function formatLine(entry: LogEntry): string {
   const d = new Date(entry.timestamp);
   const time = d.toLocaleTimeString("en-GB", { hour12: false });
-  const tag = entry.level === "info" ? "INFO" : entry.level === "warn" ? "WARN" : "ERR ";
+  const tag = entry.level === LogLevel.Info ? "INFO" : entry.level === LogLevel.Warn ? "WARN" : "ERR ";
   return `${time} [${tag}] ${entry.message}`;
 }
 
@@ -50,18 +51,18 @@ export class ActivityLog {
   /** Build a Logger facade that routes all messages through this ActivityLog. */
   createLogger(): Logger {
     return {
-      info: (msg) => this.push("info", msg),
-      warn: (msg) => this.push("warn", msg),
-      error: (msg) => this.push("error", msg),
+      info: (msg) => this.push(LogLevel.Info, msg),
+      warn: (msg) => this.push(LogLevel.Warn, msg),
+      error: (msg) => this.push(LogLevel.Error, msg),
     };
   }
 
   /** Build a Logger facade that tags entries with `source: "container"`. */
   createContainerLogger(): Logger {
     return {
-      info: (msg) => this.push("info", msg, "container"),
-      warn: (msg) => this.push("warn", msg, "container"),
-      error: (msg) => this.push("error", msg, "container"),
+      info: (msg) => this.push(LogLevel.Info, msg, LogSource.Container),
+      warn: (msg) => this.push(LogLevel.Warn, msg, LogSource.Container),
+      error: (msg) => this.push(LogLevel.Error, msg, LogSource.Container),
     };
   }
 
@@ -83,19 +84,19 @@ export class ActivityLog {
   }
 
   /** Push a log entry to the ring buffer, persist to daily log, and stream to per-task file. */
-  push(level: LogEntry["level"], message: string, source: LogEntry["source"] = "orchestrator"): void {
+  push(level: LogEntry["level"], message: string, source: LogEntry["source"] = LogSource.Orchestrator): void {
     const entry: LogEntry = { timestamp: Date.now(), level, message, source };
     this.buffer.push(entry);
     if (this.buffer.length > this.maxLines) {
       this.buffer.shift();
     }
-    const targetFile = source === "container" ? this.containerFilePath : this.filePath;
+    const targetFile = source === LogSource.Container ? this.containerFilePath : this.filePath;
     try {
       appendFileSync(targetFile, formatLine(entry) + "\n");
     } catch {
       // ignore
     }
-    if (this.taskFilePath && source === "container") {
+    if (this.taskFilePath && source === LogSource.Container) {
       try {
         appendFileSync(this.taskFilePath, formatLine(entry) + "\n");
       } catch {

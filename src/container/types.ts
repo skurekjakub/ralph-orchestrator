@@ -11,7 +11,10 @@ export interface ContainerExecResult {
 }
 
 /** Which CLI tool to use for agent execution inside the container. */
-export type CliType = "copilot" | "claude";
+export enum CliType {
+  Copilot = "copilot",
+  Claude = "claude",
+}
 
 /**
  * Common interface for CLI executors (Copilot CLI, Claude Code CLI).
@@ -26,6 +29,14 @@ export interface CliExecutor {
   killActive(): void;
 }
 
+/** Final task status — from the agent's structured output or inferred from exit code. */
+export enum TaskStatus {
+  Completed = "completed",
+  Partial = "partial",
+  Blocked = "blocked",
+  Error = "error",
+}
+
 /**
  * Enriched result returned by {@link ContainerManager.execute}.
  *
@@ -36,7 +47,7 @@ export interface RalphResult {
   /** JIRA issue key (e.g. `DF-2759`). */
   issueKey: string;
   /** Final task status — may come from the agent's structured output block or be inferred from the exit code. */
-  status: "completed" | "partial" | "blocked" | "error";
+  status: TaskStatus;
   /** Wall-clock duration in milliseconds. */
   durationMs: number;
   /** Copilot CLI process exit code. */

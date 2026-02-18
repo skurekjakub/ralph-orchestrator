@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { TriggerScanner } from "../src/services/trigger-scanner.js";
-import { OperationLedger } from "../src/services/operation-ledger.js";
-import { ProfileRouter } from "../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeMatch } from "./helpers.js";
-import type { JiraComment } from "../src/jira/types.js";
-import type { Logger } from "../src/logger.js";
+import { TriggerScanner } from "../../src/services/trigger-scanner.js";
+import { OperationLedger } from "../../src/services/operation-ledger.js";
+import { ProfileRouter } from "../../src/services/profile-router.js";
+import { makeProfile, makeIssue, makeMatch } from "../helpers.js";
+import type { JiraComment } from "../../src/jira/types.js";
+import type { Logger } from "../../src/logger.js";
 
 let tempDir: string;
 let ledger: OperationLedger;

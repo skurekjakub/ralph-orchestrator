@@ -19,44 +19,26 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 
 **One task at a time.** The orchestrator processes a single operation before moving to the next.
 
-## Key Components
+## Source Directory Map
 
-| File | Purpose |
+| Directory | Purpose |
 |---|---|
-| `src/index.tsx` | Entry point — wires orchestrator + Ink terminal dashboard |
-| `src/orchestrator.ts` | Main loop: ledger-driven execution → result recording; uses `createOrchestratorDeps()` factory |
-| `src/orchestrator-types.ts` | Types: `OrchestratorState`, `ActiveTask`, `OrchestratorDeps`, `CompletedTask`, `LogEntry` |
-| `src/orchestrator-observer.ts` | Builds state snapshots + heartbeat payloads for the Ink dashboard and status API |
-| `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
-| `src/config.ts` | Loads `config.json` (global settings) + `profiles/*/profile.json` (agent profiles) + `.env` secrets |
-| `src/logger.ts` | Logger interface — all components route logs through the orchestrator |
-| `src/jira/client.ts` | JIRA REST API v3 client (search with auto-pagination, comment, transition, attachments — both download and upload) |
-| `src/jira/poller.ts` | Polls JQL on interval, pushes to queue, deduplicates across multiple JQL queries |
-| `src/jira/jql-builder.ts` | Auto-generates JQL queries from profile match rules (projects, statuses) |
-| `src/jira/field-extractor.ts` | Extracts and normalizes JIRA custom fields (ADF, {value} wrappers, strings) |
-| `src/container/agent-includes.ts` | Resolves include markers in agent template files at startup |
-| `src/container/manager.ts` | Container lifecycle orchestration (start, exec, collect logs/transcript, stop); CLI selection |
-| `src/container/compose-client.ts` | Low-level docker compose wrapper (process spawning, env injection including `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH`) |
-| `src/container/copilot-executor.ts` | Copilot CLI execution inside containers (streaming, timeout, `--share` transcript export) |
-| `src/container/claude-code-executor.ts` | Claude Code CLI execution inside containers (streaming, timeout, process tracking) |
-| `src/container/stream-capture.ts` | Shared line-buffered streaming capture for child processes (used by both executors and container build/setup) |
-| `src/container/types.ts` | Container types (CliExecutor interface, ContainerExecResult, RalphResult, CliType) |
-| `src/container/prompt.ts` | Builds CLI prompt from JIRA issue fields; embeds revision context (comments + handoff) |
-| `src/container/result-parser.ts` | Parses structured result blocks from CLI stdout |
-| `src/services/activity-log.ts` | Persistent activity log writer — daily aggregate logs + per-task streaming logs |
-| `src/services/heartbeat.ts` | Optional heartbeat sender to the Vercel status dashboard |
-| `src/services/orchestrator-comments.ts` | Centralized JIRA comment templates for orchestrator messages |
-| `src/services/preflight.ts` | Named preflight check registry — validates prerequisites before agent execution |
-| `src/services/trigger-scanner.ts` | Scans issue comments for trigger strings, plans operations in the ledger, posts ack comments. Caches `updated` timestamps to skip unchanged issues. |
-| `src/services/profile-router.ts` | Matches JIRA issues to agent profiles by project/status; validates state before execution |
-| `src/services/operation-ledger.ts` | Persistent per-issue operation history — plans, tracks lifecycle, crash recovery, dedup |
-| `src/services/task-runner.ts` | Processes a single issue: JIRA transitions → container exec → result/transcript collection |
-| `src/logs/collector.ts` | Saves execution summaries to `output/` |
-| `src/util/path.ts` | Shared path resolution utility |
-| `src/validate.ts` | Config validation (profile overlaps, compose file existence, agent name verification against `.agent.md` files) |
-| `src/retry.ts` | Generic retry with exponential backoff |
-| `src/dashboard/*.tsx` | Ink (React for terminal) dashboard components (App, StatusPanel, QueuePanel, HistoryPanel, LogPanel) |
+| `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), config loading, logger, retry utility |
+| `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
+| `src/container/` | Container lifecycle (`manager.ts`), docker compose wrapper (`compose-client.ts`), CLI executors (Copilot + Claude Code), result parser, log collector, streaming capture |
+| `src/prompt/` | Prompt builder (`prompt.ts`), content normalizer (`normalizer.ts`), prompt injection auditor (`prompt-auditor.ts`) |
+| `src/services/` | Orchestration services — trigger scanner, profile router, task runner, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
+| `src/validate/` | Startup validation — env vars, config, profiles, Docker, security infrastructure |
+| `src/logs/` | Execution summary writer |
+| `src/dashboard/` | Ink (React for terminal) dashboard components — status, queue, history, log panels |
+| `profiles/` | Per-profile Docker infrastructure — Dockerfile, compose file, setup script, agent `.md` templates |
+| `shared/security/` | Security overlay — Squid proxy config, compose security overlay (network isolation, resource limits) |
+| `shared/hooks/` | Copilot CLI audit hooks (session logging) |
+| `shared/agent-includes/` | Shared include files for agent templates (JIRA API, ADO API references, prompt security) |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
+| `dashboard-local/` | Local development dashboard (Vite + React) |
+| `tests/` | Vitest test suite |
+| `scripts/` | Utility scripts (reset test env, validate config) |
 
 ## Commands
 
@@ -66,23 +48,49 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 - `npm test` — Run tests (vitest)
 - `npm run lint` — Type-check without emitting
 
-## Docker Compose
+## Docker & Security
 
-Containers are managed via `docker compose` directly — no devcontainer CLI.
-All Docker infrastructure (Dockerfiles, compose files, setup scripts, agent definitions) lives in the orchestrator repo under `profiles/<profile-id>/`. Target repos are mounted at `/workspace` via `TARGET_REPO_PATH`.
+Containers are managed via `docker compose` with a **two-file merge** pattern:
+1. **Base compose** — `profiles/<id>/docker-compose.yml` (services, volumes, build config)
+2. **Security overlay** — `shared/security/docker-compose.security.yml` (proxy sidecar, network isolation, resource limits)
+
+`ComposeClient` automatically injects both files: `docker compose -f base.yml -f security.yml <command>`
+
+### Network Isolation
+
+Agent containers run on an **internal-only Docker network** (`internal: true`) with no direct internet access. All HTTP/HTTPS traffic is routed through a **Squid forward proxy sidecar** that enforces a domain allowlist (`shared/security/squid.conf`).
+
+```
+Agent container (internal network only) → Squid proxy → allowlisted domains only
+```
+
+Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
+
+### Container Hardening
+
+- **No Docker socket** — removed from all compose files (was vestigial from devcontainer migration)
+- **No Docker CLI** — removed from Dockerfiles
+- **No sudo** — disabled for vscode user (`/etc/sudoers.d/vscode` removed)
+- **`cap_drop: ALL`** — all Linux capabilities dropped
+- **`no-new-privileges: true`** — prevents privilege escalation via setuid
+- **Resource limits** — memory (8G), CPU (4), PIDs (500)
+- **User-writable npm prefix** — `~/.npm-global` allows `npm install -g` without root
+- **Proxy log collection** — Squid access logs collected per task for allowlist tuning
+
+The allowlist (`shared/security/squid.conf`) is tuned to the specific domains the agent needs (LLM backends, JIRA, ADO, npm, rubygems, etc.).
+
+### Compose Commands
 
 ```bash
-# Starting the containers (compose file is in the orchestrator repo)
-docker compose -f profiles/ralph-docs/docker-compose.yml up -d --build 2>&1
+# ComposeClient handles the two-file merge automatically. Manual equivalent:
+docker compose -f profiles/ralph-docs/docker-compose.yml \
+  -f shared/security/docker-compose.security.yml up -d --build
 
-# Running the setup script
-docker compose -f profiles/ralph-docs/docker-compose.yml exec --user vscode app /usr/local/bin/setup.sh 2>&1
+# Exec inside container
+docker compose -f ... exec --user vscode app <command>
 
-# Executing a command inside the container
-docker compose -f profiles/ralph-docs/docker-compose.yml exec --user vscode app <command>
-
-# Stopping the containers
-docker compose -f profiles/ralph-docs/docker-compose.yml down --volumes --remove-orphans
+# Teardown
+docker compose -f ... down --volumes --remove-orphans
 ```
 
 No piping to `head` or `tail` — always show full output.
@@ -92,7 +100,6 @@ No piping to `head` or `tail` — always show full output.
 - `config.json` — Global settings (JIRA connection, polling interval, output paths, dashboard toggle)
 - `profiles/*/profile.json` — Per-profile config with agent variants, repo path, CLI preference, and match rules
 - `.env` — Secrets (JIRA token/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret)
-- See `.env.example` for required variables
 - See `CONFIGURATION.md` for the full configuration reference
 
 ### Agent Profiles
@@ -104,53 +111,17 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 - `cli` — `"copilot"` (default) or `"claude"` — which CLI to use. Falls back to the other CLI if the preferred one's credential is missing.
 - `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default). Can be overridden per-variant.
 - `timeoutMs` — execution timeout
-- `beforeAgent.transitionId` — JIRA transition ID applied before agent execution (e.g. "In Progress")
-- `afterAgent.transitionId` — JIRA transition ID applied after successful execution (e.g. "Ready for Review")
+- `beforeAgent.transitionId` / `afterAgent.transitionId` — JIRA transitions applied before/after agent execution
 
 **Variant-level fields** (each variant expands into a separate routing entry):
 - `agent` — Copilot CLI agent name (must match `<name>.agent.md` file in the profile's `agents/` directory)
 - `model` — optional model override (overrides profile-level)
 - `match.projects` — JIRA project keys to match
 - `match.statuses` — only match issues in these JIRA statuses (empty = any status)
-- `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant. Required for all variants.
-- `match.revisionStatuses` — statuses that indicate a revision task (e.g. `["Defect Found"]`). When the issue is in one of these statuses, the agent receives a `Mode: REVISION` prompt with the previous handoff attachment. Empty = never treat as revision.
+- `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant
+- `match.revisionStatuses` — statuses that indicate a revision task. Agent receives `Mode: REVISION` with the previous handoff.
 
-Variants are evaluated in order (across all profiles). The orchestrator scans all comments on matching issues and plans operations for each unconsumed trigger.
-
-The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs (e.g. `ralph`).
-
-### Dashboard
-
-The `dashboard` section in `config.json` controls heartbeat reporting to the Vercel status dashboard:
-- `enabled` — set to `false` to disable heartbeat sending entirely (no network calls)
-- `intervalMs` — heartbeat interval in milliseconds (default: 30000)
-
-The dashboard uses **Upstash Redis** (added via the Vercel Marketplace integration) for state storage. Env vars `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are auto-populated by the integration.
-
-Also requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env`. If `enabled` is false or the env vars are missing, no heartbeats are sent.
-
-Each orchestrator generates a fresh UUID on startup (the agent ID). Multiple orchestrators can report to the same dashboard — each gets its own card. Agents are auto-removed after 24h of no heartbeats.
-
-## Conventions
-
-- ESM-only (`"type": "module"` in package.json)
-- All imports use `.js` extensions (NodeNext module resolution)
-- No JIRA SDK — uses native `fetch` against REST API v3 (cloud endpoint: `api.atlassian.com/ex/jira/{cloudId}`)
-- Docker compose for container management — no devcontainer CLI
-- `execa` v9 for all subprocess management
-- Tests use `vitest` in `tests/` directory
-- All components accept a `Logger` interface for centralized log routing
-- Copilot CLI defaults to `--model claude-opus-4.6` (configurable via profile `model`)
-- Claude Code CLI uses `--dangerously-skip-permissions` (model configurable via profile `model`)
-- NEVER REEXPORT, update original imports instead
-
-### Comments
-
-- Only add comments that explain **why** something works a certain way, or document non-obvious behavior and edge cases.
-- Never add comments that restate what the code already says (e.g., `// increment counter` above `counter++`).
-- Never add comments about previous behavior, iterations, or changelog-style notes (e.g., `// was X, now Y`, `// changed from`).
-- Section-separator comments (`// --- Section name ---`) are unnecessary when the code structure is self-evident.
-- JSDoc on public interfaces, types, classes, and methods is encouraged.
+The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs.
 
 ## Profile Infrastructure
 
@@ -161,42 +132,37 @@ profiles/
   <profile-id>/
     profile.json        — Profile config: repo, cli, variants, transitions
     Dockerfile          — Container image definition
-    docker-compose.yml  — Services, env vars, volume mounts
-    setup.sh            — Post-create setup script (CLI installs, git config)
+    docker-compose.yml  — Base compose (services, env vars, volume mounts)
+    setup.sh            — Post-create setup (AI CLI installs, git config, deps)
     agents/             — Agent template files (.agent.md with include markers)
       .build/           — Resolved agent files (generated at startup, gitignored)
 shared/
+  security/             — Container security infrastructure
+    docker-compose.security.yml — Squid sidecar, network isolation, resource limits
+    squid.conf          — Domain allowlist for egress proxy
   hooks/                — Copilot CLI audit hooks (shared across all profiles)
-    log-*.sh            — Hook scripts for session logging
-    ralph-audit.json    — Hook configuration
   agent-includes/       — Shared include files for agent templates
-    jira-api.md         — JIRA API curl templates + wiki markup reference
 ```
 
-Agent template files use `<!-- include: name.md -->` markers that are resolved from `shared/agent-includes/` at orchestrator startup. The resolved files are written to `agents/.build/` and mounted into containers. This eliminates duplication of JIRA API instructions across agent files.
+Agent templates use `<!-- include: name.md -->` markers resolved from `shared/agent-includes/` at startup. Resolved files go to `agents/.build/` and are mounted read-only into containers.
 
-Compose files use `TARGET_REPO_PATH` and `SHARED_HOOKS_PATH` (injected by ComposeClient) for volume mounts. Agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
-
-Currently configured target repos:
-- `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
-- `kentico-docs-autocomplete-vscode` — VS Code extension (profile: `ralph-vscode`)
+Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts.
 
 ## JIRA Integration
 
 - Projects: **DF**, **DOC**
-- JQL filter: auto-generated from profile match rules by `src/jira/jql-builder.ts` — uses projects + statuses, results deduplicated by issue key. Search auto-paginates (100 per page) to fetch all matching issues.
-- **Comment-triggered:** The poller discovers issues via JQL, then the orchestrator scans each issue's comments for `commentTrigger` matches. Unconsumed triggers are planned in the operation ledger.
+- JQL filter: auto-generated from profile match rules, results deduplicated by issue key, auto-paginated
+- **Comment-triggered:** The poller discovers issues via JQL, then scans comments for `commentTrigger` matches. Unconsumed triggers are planned in the operation ledger.
 - On trigger discovery: posts an ack comment ("🤖 Got it! Queueing [agent]...")
-- On pickup: applies `beforeAgent` transition (if configured) + runs the agent
-- On completion: applies `afterAgent` transition (if configured); **Ralph itself** posts a completion comment + attaches the handoff file
+- On pickup: applies `beforeAgent` transition + runs the agent
+- On completion: applies `afterAgent` transition; Ralph posts a completion comment + attaches the handoff file
 - On error: orchestrator posts an error comment; records error in the ledger
 - Auth: Basic (`email:apiToken`)
 - API base: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`
-- Search endpoint: `/rest/api/3/search/jql` (the old `/search` is deprecated)
 
 ### Operation Ledger
 
-The orchestrator maintains a persistent operation ledger (`output/logs/history/<issueKey>.json`) that tracks every agent invocation through its lifecycle:
+Persistent per-issue operation history (`output/logs/history/<issueKey>.json`):
 
 ```
 pending → active → completed | error
@@ -204,23 +170,45 @@ pending → active → completed | error
 rejected (invalid state, conflict, preflight fail)
 ```
 
-- **Comment-trigger dedup:** Each trigger comment is consumed exactly once per variant. Repeated triggers on the same comment are ignored.
-- **Crash recovery:** On startup, any `active` operations from a previous session are marked as `error`, and a recovery comment is posted to JIRA.
-- **State re-validation:** Before executing a pending operation, the orchestrator re-fetches the issue to verify it's still in a valid status. If not, the operation is rejected.
-- **Pending operations survive restart:** They're persisted on disk and resumed after recovery.
+- Comment-trigger dedup — each trigger comment consumed exactly once per variant
+- Crash recovery — `active` operations from previous sessions marked as `error` on startup
+- Pending operations survive restart
 
-## Output
+## Log Collection
+
+The `ContainerLogCollector` (`src/container/log-collector.ts`) manages per-task log collection from both the `app` and sidecar containers. Log sources are registered with a capture mode (stream or collect) and flushed to disk after execution.
 
 After each task, the orchestrator collects:
-- `output/logs/<key>-<timestamp>.log` — Per-task streaming log (container output in real-time)
-- `output/logs/<key>-<timestamp>.jsonl` — Full audit trail from hooks
-- `output/logs/<key>-<timestamp>-transcript.md` — Copilot CLI session transcript (via `--share`)
-- `output/logs/<key>-<timestamp>-summary.json` — Execution metadata
-- `output/logs/activity-YYYY-MM-DD.log` — Persistent activity log (all sessions, never truncated)
-- `output/logs/container-YYYY-MM-DD.log` — Persistent container output log (all sessions)
-- `output/logs/history/<issueKey>.json` — Operation ledger per issue (lifecycle, dedup, audit trail)
+- `<key>-<ts>-audit.jsonl` — Audit trail from hooks
+- `<key>-<ts>-transcript.md` — Copilot CLI session transcript (via `--share`)
+- `<key>-<ts>-tool-output.log` — Untruncated tool output from hooks
+- `<key>-<ts>-proxy.log` — Squid access log (allowed/denied domains)
+- `<key>-<ts>-summary.json` — Execution metadata
+- `<key>-<ts>.log` — Per-task streaming log (real-time container output)
+- `activity-YYYY-MM-DD.log` — Persistent daily activity log
+- `history/<issueKey>.json` — Operation ledger
 
-Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly (not saved locally).
+Session transcripts are also attached to the JIRA issue. Proxy logs are collected even on error (for allowlist debugging).
+
+## Conventions
+
+- ESM-only (`"type": "module"` in package.json)
+- All imports use `.js` extensions (NodeNext module resolution)
+- No JIRA SDK — native `fetch` against REST API v3
+- `execa` v9 for all subprocess management
+- Tests use `vitest` in `tests/` directory
+- All components accept a `Logger` interface for centralized log routing
+- Copilot CLI defaults to `--model claude-opus-4.6` (configurable via profile `model`)
+- Claude Code CLI uses `--dangerously-skip-permissions`
+- NEVER REEXPORT, update original imports instead
+
+### Comments
+
+- Only add comments that explain **why** something works a certain way, or document non-obvious behavior and edge cases.
+- Never add comments that restate what the code already says.
+- Never add comments about previous behavior or changelog-style notes.
+- Section-separator comments are unnecessary when the code structure is self-evident.
+- JSDoc on public interfaces, types, classes, and methods is encouraged.
 
 ## Agent Workflow Rules
 

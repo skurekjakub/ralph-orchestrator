@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
-import { JiraPoller } from "../src/jira/poller.js";
-import type { JiraClient } from "../src/jira/client.js";
-import type { JiraConfig } from "../src/config.js";
-import type { JiraIssue } from "../src/jira/types.js";
-import type { Logger } from "../src/logger.js";
-import { makeIssue } from "./helpers.js";
+import { JiraPoller } from "../../src/jira/poller.js";
+import type { JiraClient } from "../../src/jira/client.js";
+import type { JiraConfig } from "../../src/config.js";
+import type { JiraIssue } from "../../src/jira/types.js";
+import type { Logger } from "../../src/logger.js";
+import { makeIssue } from "../helpers.js";
 
 describe("JiraPoller multi-JQL deduplication", () => {
   let mockClient: { searchIssues: ReturnType<typeof vi.fn> };

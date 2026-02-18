@@ -11,5 +11,8 @@
   "output": {
     "logDir": "./output/logs",
     "handoffDir": "./output/handoffs"
+  },
+  "promptAudit": {
+    "mode": "warn"
   }
 }

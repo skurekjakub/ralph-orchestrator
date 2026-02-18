@@ -54,6 +54,8 @@ When you find a clean PR with no issues, you acknowledge it with respect — bri
 
 <!-- include: ado-pr-format.md -->
 
+<!-- include: prompt-security.md -->
+
 ---
 
 ## Workflow

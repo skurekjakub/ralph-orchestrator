@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import type { RalphResult } from "../src/container/types.js";
-import { resolveStatus } from "../src/container/result-parser.js";
+import type { RalphResult } from "../../src/container/types.js";
+import { TaskStatus } from "../../src/container/types.js";
+import { LogLevel } from "../../src/orchestrator-types.js";
+import { resolveStatus } from "../../src/container/result-parser.js";
 
 // ── Log persistence tests ────────────────────────────────
 // Tests for persistent activity log, copilot output saving, log collector,
@@ -8,12 +10,12 @@ import { resolveStatus } from "../src/container/result-parser.js";
 
 describe("Persistent activity log", () => {
   it("generates correct JSONL format for log entries", () => {
-    const entry = { timestamp: 1707840000000, level: "info", message: "Test log" };
+    const entry = { timestamp: 1707840000000, level: LogLevel.Info, message: "Test log" };
     const line = JSON.stringify(entry);
     const parsed = JSON.parse(line);
 
     expect(parsed.timestamp).toBe(1707840000000);
-    expect(parsed.level).toBe("info");
+    expect(parsed.level).toBe(LogLevel.Info);
     expect(parsed.message).toBe("Test log");
   });
 
@@ -26,7 +28,7 @@ describe("Persistent activity log", () => {
   it("appends entries without overwriting", () => {
     const entries: string[] = [];
     for (let i = 0; i < 5; i++) {
-      entries.push(JSON.stringify({ timestamp: Date.now(), level: "info", message: `msg${i}` }));
+      entries.push(JSON.stringify({ timestamp: Date.now(), level: LogLevel.Info, message: `msg${i}` }));
     }
     const parsed = entries.map((e) => JSON.parse(e));
     expect(parsed).toHaveLength(5);
@@ -62,7 +64,7 @@ describe("Log collector", () => {
   it("creates valid summary JSON structure", () => {
     const result: RalphResult = {
       issueKey: "DF-2704",
-      status: "completed",
+      status: TaskStatus.Completed,
       durationMs: 120000,
       exitCode: 0,
       stdout: "output",
@@ -90,7 +92,7 @@ describe("Log collector", () => {
     const parsed = JSON.parse(json);
 
     expect(parsed.issueKey).toBe("DF-2704");
-    expect(parsed.status).toBe("completed");
+    expect(parsed.status).toBe(TaskStatus.Completed);
     expect(parsed.durationMs).toBe(120000);
     expect(parsed.prUrl).toBe("https://dev.azure.com/pr/1");
     expect(parsed.timestamp).toBeDefined();
@@ -100,16 +102,16 @@ describe("Log collector", () => {
 
 describe("Result status determination", () => {
   it("prefers agent status over exit code", () => {
-    expect(resolveStatus(0, false, "completed")).toBe("completed");
-    expect(resolveStatus(0, false, "partial")).toBe("partial");
-    expect(resolveStatus(1, false, "completed")).toBe("completed");
-    expect(resolveStatus(1, true, "blocked")).toBe("blocked");
+    expect(resolveStatus(0, false, "completed")).toBe(TaskStatus.Completed);
+    expect(resolveStatus(0, false, "partial")).toBe(TaskStatus.Partial);
+    expect(resolveStatus(1, false, "completed")).toBe(TaskStatus.Completed);
+    expect(resolveStatus(1, true, "blocked")).toBe(TaskStatus.Blocked);
   });
 
   it("falls back to exit code when no agent status", () => {
-    expect(resolveStatus(0, false, undefined)).toBe("completed");
-    expect(resolveStatus(1, false, undefined)).toBe("error");
-    expect(resolveStatus(1, true, undefined)).toBe("partial");
+    expect(resolveStatus(0, false, undefined)).toBe(TaskStatus.Completed);
+    expect(resolveStatus(1, false, undefined)).toBe(TaskStatus.Error);
+    expect(resolveStatus(1, true, undefined)).toBe(TaskStatus.Partial);
   });
 });
 
@@ -118,7 +120,7 @@ describe("Poller logging", () => {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     const source = readFileSync(
-      resolve(import.meta.dirname, "../src/jira/poller.ts"),
+      resolve(import.meta.dirname, "../../src/jira/poller.ts"),
       "utf-8"
     );
 

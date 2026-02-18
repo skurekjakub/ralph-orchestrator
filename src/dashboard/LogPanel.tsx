@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { LogEntry } from "../orchestrator-types.js";
+import { LogLevel } from "../orchestrator-types.js";
 
 interface LogPanelProps {
   logs: readonly LogEntry[];
@@ -16,22 +17,22 @@ export function LogPanel({ logs, title = "Activity Log", maxLines = 15 }: LogPan
 
   const levelColor = (level: LogEntry["level"]): string => {
     switch (level) {
-      case "info":
+      case LogLevel.Info:
         return "white";
-      case "warn":
+      case LogLevel.Warn:
         return "yellow";
-      case "error":
+      case LogLevel.Error:
         return "red";
     }
   };
 
   const levelIcon = (level: LogEntry["level"]): string => {
     switch (level) {
-      case "info":
+      case LogLevel.Info:
         return "·";
-      case "warn":
+      case LogLevel.Warn:
         return "⚠";
-      case "error":
+      case LogLevel.Error:
         return "✗";
     }
   };

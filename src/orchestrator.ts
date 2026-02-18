@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 import { execa } from "execa";
 import type { AgentProfile } from "./config.js";
+import { TaskStatus } from "./container/types.js";
+import { LogLevel } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
 import type { Operation } from "./services/operation-ledger.js";
 import { OrchestratorComments } from "./services/orchestrator-comments.js";
@@ -299,9 +301,9 @@ export class Orchestrator {
         },
       );
 
-      if (result.status === "completed" || result.status === "partial") {
+      if (result.status === TaskStatus.Completed || result.status === TaskStatus.Partial) {
         await this.deps.taskRunner.transitionAfterAgent(issue.key, profile);
-      } else if (result.status === "error" || result.status === "blocked") {
+      } else if (result.status === TaskStatus.Error || result.status === TaskStatus.Blocked) {
         await this.deps.taskRunner.postErrorComment(
           issue.key,
           result.stderr || `Agent finished with status: ${result.status}`,
@@ -315,7 +317,7 @@ export class Orchestrator {
         key: issue.key,
         summary: issue.fields.summary,
         profileId: profile.id,
-        status: "error",
+        status: TaskStatus.Error,
         durationMs: Date.now() - this.activeTask.startedAt,
         completedAt: Date.now(),
       });
@@ -402,15 +404,15 @@ export class Orchestrator {
   }
 
   private log(message: string): void {
-    this.deps.activityLog.push("info", message);
+    this.deps.activityLog.push(LogLevel.Info, message);
     this.emitState();
   }
   private warn(message: string): void {
-    this.deps.activityLog.push("warn", message);
+    this.deps.activityLog.push(LogLevel.Warn, message);
     this.emitState();
   }
   private logError(message: string): void {
-    this.deps.activityLog.push("error", message);
+    this.deps.activityLog.push(LogLevel.Error, message);
     this.emitState();
   }
 }

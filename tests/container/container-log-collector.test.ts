@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { CaptureMode, ContainerLogCollector } from "../src/container/log-collector.js";
-import type { ComposeClient } from "../src/container/compose-client.js";
-import type { Logger } from "../src/logger.js";
+import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
+import type { ComposeClient } from "../../src/container/compose-client.js";
+import type { Logger } from "../../src/logger.js";
 
 const tempDir = join(import.meta.dirname, ".tmp-log-collector");
 
@@ -303,5 +303,47 @@ describe("ContainerLogCollector", () => {
     expect(results[1].path).toBeNull();
     expect(files).toHaveLength(1);
     expect(files[0]).toContain("exists");
+  });
+
+  it("collects proxy logs even when app-side sources are missing (setup failure scenario)", async () => {
+    const compose = makeMockCompose({
+      "/var/log/squid/access.log": "1234 TCP_DENIED/403 aka.ms\n1235 TCP_DENIED/403 pypi.org\n",
+    });
+    const logger = makeMockLogger();
+    const collector = new ContainerLogCollector(compose, tempDir, logger);
+
+    collector.setIssueKey("DOC-900");
+
+    collector.addSource({
+      id: "audit",
+      service: "app",
+      containerPath: "/workspace/.ralph/logs/session.audit.jsonl",
+      extension: "jsonl",
+      mode: CaptureMode.Collect,
+    });
+    collector.addSource({
+      id: "transcript",
+      service: "app",
+      containerPath: "/workspace/.ralph/logs/session-transcript.md",
+      extension: "md",
+      mode: CaptureMode.Collect,
+    });
+    collector.addSource({
+      id: "proxy",
+      service: "egress-proxy",
+      containerPath: "/var/log/squid/access.log",
+      extension: "log",
+      mode: CaptureMode.Collect,
+    });
+
+    const results = await collector.collectAll();
+
+    const proxyResult = results.find((r) => r.id === "proxy");
+    expect(proxyResult?.path).toBeTruthy();
+    const content = readFileSync(proxyResult!.path!, "utf-8");
+    expect(content).toContain("TCP_DENIED/403");
+
+    expect(results.find((r) => r.id === "audit")?.path).toBeNull();
+    expect(results.find((r) => r.id === "transcript")?.path).toBeNull();
   });
 });

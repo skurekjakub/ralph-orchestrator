@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ProfileRouter } from "../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeConfig } from "./helpers.js";
+import { ProfileRouter } from "../../src/services/profile-router.js";
+import { makeProfile, makeIssue, makeConfig } from "../helpers.js";
+import { OrchestratorStatus } from "../../src/orchestrator-types.js";
+import { TaskStatus } from "../../src/container/types.js";
 
 /**
  * Orchestrator integration tests — exercise real logic from the core modules
@@ -58,20 +60,20 @@ describe("Orchestrator core integration", () => {
   describe("state derivation", () => {
     it("derives IDLE when running but not busy", () => {
       const running = true, busy = false;
-      const status = !running ? "stopping" : busy ? "working" : "idle";
-      expect(status).toBe("idle");
+      const status = !running ? OrchestratorStatus.Stopping : busy ? OrchestratorStatus.Working : OrchestratorStatus.Idle;
+      expect(status).toBe(OrchestratorStatus.Idle);
     });
 
     it("derives WORKING when running and busy", () => {
       const running = true, busy = true;
-      const status = !running ? "stopping" : busy ? "working" : "idle";
-      expect(status).toBe("working");
+      const status = !running ? OrchestratorStatus.Stopping : busy ? OrchestratorStatus.Working : OrchestratorStatus.Idle;
+      expect(status).toBe(OrchestratorStatus.Working);
     });
 
     it("derives STOPPING when not running", () => {
       const running = false;
-      const status = !running ? "stopping" : "idle";
-      expect(status).toBe("stopping");
+      const status = !running ? OrchestratorStatus.Stopping : OrchestratorStatus.Idle;
+      expect(status).toBe(OrchestratorStatus.Stopping);
     });
   });
 
@@ -112,7 +114,7 @@ describe("Orchestrator core integration", () => {
         key: "DF-1",
         summary: "Test issue",
         profileId: "ralph-docs",
-        status: "completed",
+        status: TaskStatus.Completed,
         durationMs: 120000,
         prUrl: "https://dev.azure.com/pr/1",
         completedAt: start + 120000,
@@ -122,7 +124,7 @@ describe("Orchestrator core integration", () => {
         key: "DF-2",
         summary: "Another issue",
         profileId: "ralph-vscode",
-        status: "partial",
+        status: TaskStatus.Partial,
         durationMs: 300000,
         completedAt: start + 420000,
       });

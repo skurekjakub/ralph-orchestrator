@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   buildPreflightContext,
   runPreflight,
-} from "../src/services/preflight.js";
-import type { JiraIssue, JiraComment } from "../src/jira/types.js";
+} from "../../src/services/preflight.js";
+import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 
 function makeComment(id: string, body: string, created = "2026-01-01T00:00:00Z"): JiraComment {
   return { id, author: { displayName: "test" }, body, created };

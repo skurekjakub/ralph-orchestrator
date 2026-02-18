@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { OrchestratorState } from "../orchestrator-types.js";
+import { OrchestratorStatus } from "../orchestrator-types.js";
 
 interface StatusPanelProps {
   state: OrchestratorState;
@@ -14,7 +15,7 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
-    if (state.status !== "working") return;
+    if (state.status !== OrchestratorStatus.Working) return;
     const timer = setInterval(() => {
       setFrame((f) => (f + 1) % SPINNER_FRAMES.length);
     }, 80);
@@ -22,16 +23,16 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
   }, [state.status]);
 
   const statusColor =
-    state.status === "working"
+    state.status === OrchestratorStatus.Working
       ? "yellow"
-      : state.status === "idle"
+      : state.status === OrchestratorStatus.Idle
         ? "green"
         : "red";
 
   const statusLabel =
-    state.status === "working"
+    state.status === OrchestratorStatus.Working
       ? `${SPINNER_FRAMES[frame]} WORKING`
-      : state.status === "idle"
+      : state.status === OrchestratorStatus.Idle
         ? "● IDLE"
         : "■ STOPPING";
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildJqlFromProfiles } from "../src/jira/jql-builder.js";
-import { makeProfile } from "./helpers.js";
+import { buildJqlFromProfiles } from "../../src/jira/jql-builder.js";
+import { makeProfile } from "../helpers.js";
 
 describe("buildJqlFromProfiles", () => {
   it("builds JQL with statuses", () => {

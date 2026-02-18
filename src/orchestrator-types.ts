@@ -1,4 +1,5 @@
 import type { RalphResult } from "./container/types.js";
+import { TaskStatus } from "./container/types.js";
 import type { AgentProfile, AppConfig } from "./config.js";
 import type { ContainerManager } from "./container/manager.js";
 import type { JiraIssue } from "./jira/types.js";
@@ -39,10 +40,31 @@ export interface ActiveTask {
   startedAt: number;
 }
 
+/** Orchestrator lifecycle phase. */
+export enum OrchestratorStatus {
+  Idle = "idle",
+  Polling = "polling",
+  Working = "working",
+  Stopping = "stopping",
+}
+
+/** Severity level for log entries. */
+export enum LogLevel {
+  Info = "info",
+  Warn = "warn",
+  Error = "error",
+}
+
+/** Origin of a log entry. */
+export enum LogSource {
+  Orchestrator = "orchestrator",
+  Container = "container",
+}
+
 /** Snapshot of the orchestrator's current state, pushed to the Ink dashboard on every change. */
 export interface OrchestratorState {
   /** Current lifecycle phase. */
-  status: "idle" | "polling" | "working" | "stopping";
+  status: OrchestratorStatus;
   /** The JIRA issue currently being processed, or null if idle. */
   currentIssue: { key: string; summary: string } | null;
   /** The agent profile being used for the current task, or null if idle. */
@@ -70,11 +92,11 @@ export interface LogEntry {
   /** Unix timestamp in milliseconds. */
   timestamp: number;
   /** Severity level. */
-  level: "info" | "warn" | "error";
+  level: LogLevel;
   /** Human-readable log message. */
   message: string;
   /** Origin of the log entry. Defaults to `"orchestrator"` for backward compatibility. */
-  source?: "orchestrator" | "container";
+  source?: LogSource;
 }
 
 /** Record of a completed task, displayed in the Ink HistoryPanel. */
@@ -86,7 +108,7 @@ export interface CompletedTask {
   /** Agent profile ID that handled this task. */
   profileId: string;
   /** Final status reported by the Ralph agent or inferred from exit code. */
-  status: RalphResult["status"];
+  status: TaskStatus;
   /** Total wall-clock time from container start to exec completion. */
   durationMs: number;
   /** ADO pull request URL, if one was created. */

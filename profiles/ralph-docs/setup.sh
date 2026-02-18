@@ -73,7 +73,8 @@ echo "📦 Installing Azure DevOps CLI extension..."
 if az extension list --query "[?name=='azure-devops'].name" -o tsv 2>/dev/null | grep -q 'azure-devops'; then
     echo "ℹ️  Azure DevOps CLI extension already installed"
 else
-    az extension add --name azure-devops --yes || echo "⚠️  Azure DevOps CLI extension install failed (non-critical)"
+    az extension add --name azure-devops --yes
+    echo "✅ Azure DevOps CLI extension installed"
 fi
 
 # ── Development config ────────────────────────────────────

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import type { JiraIssue } from "../src/jira/types.js";
-import { buildPrompt } from "../src/container/prompt.js";
-import { extractAdfText } from "../src/jira/field-extractor.js";
-import type { IssueContext } from "../src/container/prompt.js";
+import type { JiraIssue } from "../../src/jira/types.js";
+import { buildPrompt } from "../../src/prompt/prompt.js";
+import { extractAdfText } from "../../src/jira/field-extractor.js";
+import type { IssueContext } from "../../src/prompt/prompt.js";
 
 // ── Prompt building tests ────────────────────────────────
 // Tests the prompt construction logic that transforms JIRA issue fields

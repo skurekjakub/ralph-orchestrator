@@ -6,11 +6,20 @@
 
 import type { Logger } from "../logger.js";
 
+/** Heartbeat lifecycle status sent to the dashboard. */
+export enum HeartbeatStatus {
+  Idle = "idle",
+  Working = "working",
+  Building = "building",
+  Polling = "polling",
+  Stopped = "stopped",
+}
+
 /** Payload sent to the dashboard `/api/heartbeat` endpoint. */
 export interface HeartbeatPayload {
   /** Unique agent ID — UUID generated fresh on every orchestrator startup. */
   agentId: string;
-  status: "idle" | "working" | "building" | "polling" | "stopped";
+  status: HeartbeatStatus;
   queueSize: number;
   currentTask: string | null;
   currentTaskStartedAt: string | null;

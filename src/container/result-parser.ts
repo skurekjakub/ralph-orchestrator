@@ -1,4 +1,5 @@
 import type { RalphResult } from "./types.js";
+import { TaskStatus } from "./types.js";
 
 /**
  * Parse the structured `===RALPH_RESULT_START===` block from copilot stdout.
@@ -50,14 +51,14 @@ export function resolveStatus(
 ): RalphResult["status"] {
   // Prefer agent-reported status when it's a recognized value
   if (
-    agentStatus === "completed" ||
-    agentStatus === "partial" ||
-    agentStatus === "blocked"
+    agentStatus === TaskStatus.Completed ||
+    agentStatus === TaskStatus.Partial ||
+    agentStatus === TaskStatus.Blocked
   ) {
     return agentStatus as RalphResult["status"];
   }
 
-  if (timedOut) return "partial";
-  if (exitCode === 0) return "completed";
-  return "error";
+  if (timedOut) return TaskStatus.Partial;
+  if (exitCode === 0) return TaskStatus.Completed;
+  return TaskStatus.Error;
 }

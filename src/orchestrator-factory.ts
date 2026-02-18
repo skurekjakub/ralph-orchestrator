@@ -3,6 +3,7 @@ import type { AppConfig } from "./config.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraPoller } from "./jira/poller.js";
 import { LogCollector } from "./logs/collector.js";
+import { PromptBuilder } from "./prompt/prompt-builder.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
 import { TaskRunner } from "./services/task-runner.js";
@@ -29,10 +30,12 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   );
   const ledger = new OperationLedger(join(config.output.logDir, "history"));
   const logCollector = new LogCollector(config.output);
+  const promptBuilder = new PromptBuilder(config.promptAudit.mode, logger);
   const taskRunner = new TaskRunner(
     config,
     jiraClient,
     logCollector,
+    promptBuilder,
     logger,
     containerLogger,
   );
