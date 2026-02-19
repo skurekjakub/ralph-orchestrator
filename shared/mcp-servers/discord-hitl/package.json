@@ -1,0 +1,20 @@
+{
+  "name": "@ralph/discord-hitl-mcp",
+  "version": "1.0.0",
+  "description": "Discord-based human-in-the-loop MCP server — blocking questions, approvals, and notifications via Discord threads",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && esbuild dist/index.js --bundle --platform=node --format=esm --minify --outfile=dist/bundle.mjs",
+    "start": "node dist/bundle.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.3"
+  }
+}

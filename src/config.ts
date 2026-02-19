@@ -60,7 +60,7 @@ const profileMatchSchema = z.object({
 });
 
 const agentTransitionSchema = z.object({
-  transitionId: z.string().optional(),
+  targetStatus: z.string().optional(),
 }).default({});
 
 const variantSchema = z.object({
@@ -73,6 +73,12 @@ const variantSchema = z.object({
   failureComment: z.string().optional(),
 });
 
+/** Resource mount config — auto-discovers files in the profile's resources/ directory. */
+const resourcesSchema = z.object({
+  /** Container path prefix (relative to /workspace) where resource files are mounted. */
+  mountBase: z.string().min(1),
+}).optional();
+
 const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),
   cli: z.enum(["copilot", "claude"]).default("copilot"),
@@ -83,6 +89,10 @@ const profileFileSchema = z.object({
   composeProjectLabel: z.string().default("ralph-sandbox"),
   /** Paths inside the container (absolute) to delete before each agent run. */
   cleanPaths: z.array(z.string()).default([]),
+  /** MCP servers to deploy into the container (references shared/mcp-servers/<name>/). */
+  mcpServers: z.array(z.string()).default([]),
+  /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
+  resources: resourcesSchema,
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });
 
@@ -108,7 +118,7 @@ export interface ProfileMatch {
 
 /** Optional JIRA transition to execute before or after agent work. Empty = no transition (observer). */
 export interface AgentTransition {
-  transitionId?: string;
+  targetStatus?: string;
 }
 
 export interface AgentProfile {
@@ -135,6 +145,8 @@ export interface AgentProfile {
   composeProjectLabel: string;
   /** Absolute paths inside the container to delete before each agent run. */
   cleanPaths: string[];
+  /** MCP server names to deploy into the container (from shared/mcp-servers/). */
+  mcpServers: string[];
   match: ProfileMatch;
   /** JIRA transition to execute before agent work. Empty = no transition. */
   beforeAgent: AgentTransition;
@@ -159,6 +171,10 @@ export interface SecretsConfig {
   jiraEmail: string;
   /** Anthropic API key for Claude Code CLI. Optional — only needed when a profile uses `cli: "claude"`. */
   anthropicApiKey: string;
+  /** Discord bot token for the discord-hitl MCP server. Optional — only needed when a profile uses the discord-hitl MCP server. */
+  discordBotToken: string;
+  /** Discord channel ID where HITL threads are created. Optional — paired with discordBotToken. */
+  discordChannelId: string;
 }
 
 export interface DashboardConfig {
@@ -243,6 +259,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         auditLogPath: parsed.auditLogPath,
         composeProjectLabel: parsed.composeProjectLabel,
         cleanPaths: parsed.cleanPaths,
+        mcpServers: parsed.mcpServers,
         match: {
           projects: variant.match.projects,
           statuses: variant.match.statuses,
@@ -304,6 +321,8 @@ export function loadConfig(): AppConfig {
     jiraPat,
     jiraEmail,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+    discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
+    discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",
   };
 
   const dashboardUrl = process.env.DASHBOARD_URL ?? "";

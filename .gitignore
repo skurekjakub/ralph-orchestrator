@@ -6,6 +6,10 @@ output/
 # Resolved agent files (generated from templates at startup)
 profiles/**/agents/.build/
 
+# MCP server build artifacts (custom servers are built before container deployment)
+shared/mcp-servers/*/dist/
+shared/mcp-servers/*/node_modules/
+
 # Secrets
 .env
 

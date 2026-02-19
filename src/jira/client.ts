@@ -5,7 +5,22 @@ import type {
   JiraComment,
   JiraCommentResponse,
   JiraAttachment,
+  JiraTransition,
+  JiraTransitionsResponse,
 } from "./types.js";
+
+/** Public contract for the JIRA REST API client. */
+export interface IJiraClient {
+  searchIssues(jql: string, pageSize?: number): Promise<JiraIssue[]>;
+  addComment(key: string, bodyText: string): Promise<void>;
+  transitionIssue(key: string, transitionId: string): Promise<void>;
+  getTransitions(key: string): Promise<JiraTransition[]>;
+  findTransitionId(key: string, targetStatus: string): Promise<string | undefined>;
+  getComments(key: string): Promise<JiraComment[]>;
+  getAttachments(key: string): Promise<JiraAttachment[]>;
+  downloadAttachment(contentUrl: string): Promise<string>;
+  addAttachment(key: string, filename: string, content: string): Promise<void>;
+}
 
 /**
  * Lightweight JIRA REST API v3 client for Atlassian Cloud.
@@ -13,7 +28,7 @@ import type {
  * Uses native `fetch` with Basic auth (`email:apiToken`). No JIRA SDK dependency.
  * Cloud endpoint: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`.
  */
-export class JiraClient {
+export class JiraClient implements IJiraClient {
   private baseUrl: string;
   private authHeader: string;
 
@@ -120,6 +135,27 @@ export class JiraClient {
     await this.request("POST", `/rest/api/3/issue/${key}/transitions`, {
       transition: { id: transitionId },
     });
+  }
+
+  /** Fetch available transitions for an issue in its current workflow status. */
+  async getTransitions(key: string): Promise<JiraTransition[]> {
+    const data = await this.request<JiraTransitionsResponse>(
+      "GET",
+      `/rest/api/3/issue/${key}/transitions`,
+    );
+    return data.transitions;
+  }
+
+  /**
+   * Find the transition ID that moves the issue to the given target status.
+   *
+   * Matches `transition.to.name` case-insensitively against `targetStatus`.
+   * Returns the first matching transition ID, or `undefined` if no match.
+   */
+  async findTransitionId(key: string, targetStatus: string): Promise<string | undefined> {
+    const transitions = await this.getTransitions(key);
+    const target = targetStatus.toLowerCase();
+    return transitions.find((t) => t.to.name.toLowerCase() === target)?.id;
   }
 
   /** Fetch all comments on an issue, ordered by creation date (oldest first). */

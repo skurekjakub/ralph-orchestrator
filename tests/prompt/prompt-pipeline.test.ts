@@ -13,7 +13,7 @@ import { PromptBuilder } from "../../src/prompt/prompt-builder.js";
 import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 import type { JiraIssue } from "../../src/jira/types.js";
 import type { IssueContext } from "../../src/prompt/prompt.js";
-import { createSilentLogger } from "../helpers.js";
+import { createSilentLogger } from "../helpers/mocks.js";
 
 const FIXTURES_DIR = resolve(import.meta.dirname, "fixtures");
 

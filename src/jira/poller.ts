@@ -1,8 +1,20 @@
 import type { JiraConfig } from "../config.js";
-import type { JiraClient } from "./client.js";
+import type { IJiraClient } from "./client.js";
 import type { JiraIssue } from "./types.js";
 import type { Logger } from "../logger.js";
 import { consoleLogger } from "../logger.js";
+
+/** Public contract for the JIRA issue poller. */
+export interface IJiraPoller {
+  /** Start polling. Fires the first poll immediately, then repeats on interval. */
+  start(): void;
+  /** Stop polling and clear the interval timer. */
+  stop(): void;
+  /** Register a callback invoked whenever new issues are added to the buffer. */
+  onIssues(callback: () => void): void;
+  /** Retrieve and clear all accumulated issues since the last drain. */
+  drain(): JiraIssue[];
+}
 
 /**
  * Periodically polls JIRA for issues matching the configured JQL queries.
@@ -16,7 +28,7 @@ import { consoleLogger } from "../logger.js";
  * Discovered issues accumulate in an internal buffer. Use {@link drain}
  * to retrieve and clear the buffer from the main loop.
  */
-export class JiraPoller {
+export class JiraPoller implements IJiraPoller {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
   private logger: Logger;
@@ -29,7 +41,7 @@ export class JiraPoller {
    * @param logger Optional logger; defaults to {@link consoleLogger}.
    */
   constructor(
-    private client: JiraClient,
+    private client: IJiraClient,
     private config: JiraConfig,
     logger?: Logger,
   ) {

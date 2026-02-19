@@ -10,7 +10,7 @@
     "start": "npm run validate && npm run build && node dist/index.js",
     "validate": "tsx scripts/validate.ts",
     "setup": "npm install && npm run validate",
-    "lint": "tsc --noEmit && eslint .",
+    "lint": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json && eslint .",
     "test": "npm run lint && npm run build && vitest run",
     "test:watch": "vitest",
     "dashboard": "cd dashboard-local && npx vite",

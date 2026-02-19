@@ -1,4 +1,4 @@
-import type { ComposeClient } from "./compose-client.js";
+import type { IComposeClient } from "./compose-client.js";
 import type { Logger } from "../logger.js";
 
 /**
@@ -18,7 +18,7 @@ import type { Logger } from "../logger.js";
  */
 export class ContainerWorkspaceCleaner {
   constructor(
-    private readonly compose: ComposeClient,
+    private readonly compose: IComposeClient,
     private readonly logger: Logger,
   ) {}
 

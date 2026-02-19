@@ -1,30 +1,31 @@
 import { ExecaError, type ResultPromise } from "execa";
-import type { AgentProfile } from "../config.js";
-import { DEFAULT_MODEL } from "../config.js";
-import type { ContainerExecResult, CliExecutor } from "./types.js";
-import type { Logger } from "../logger.js";
-import type { ComposeClient } from "./compose-client.js";
-import { StreamCapture } from "./stream-capture.js";
+import type { AgentProfile } from "../../config.js";
+import type { ContainerExecResult, CliExecutor } from "../types.js";
+import type { Logger } from "../../logger.js";
+import type { IComposeClient } from "../compose-client.js";
+import { StreamCapture } from "../stream-capture.js";
 
 /**
- * Executes the Copilot CLI agent inside a running container.
+ * Executes the Claude Code CLI inside a running container.
+ *
+ * Invocation: `claude -p <prompt> --dangerously-skip-permissions [--model <model>]`
  *
  * Handles:
- * - Building the `docker compose exec` command with the right flags
+ * - Building the `docker compose exec` command with Claude Code flags
  * - Streaming stdout/stderr to the container logger in real-time
  * - Timeout enforcement and error recovery
  * - Active process tracking for graceful shutdown
  */
-export class CopilotExecutor implements CliExecutor {
+export class ClaudeCodeExecutor implements CliExecutor {
   private activeProcess: ResultPromise | null = null;
 
   constructor(
-    private readonly compose: ComposeClient,
+    private readonly compose: IComposeClient,
     private readonly profile: AgentProfile,
     private readonly containerLogger: Logger,
   ) {}
 
-  /** Kill the active copilot process if one is running. */
+  /** Kill the active claude process if one is running. */
   killActive(): void {
     if (this.activeProcess) {
       try {
@@ -37,28 +38,27 @@ export class CopilotExecutor implements CliExecutor {
   }
 
   /**
-   * Execute the Copilot CLI with the given prompt.
+   * Execute Claude Code CLI with the given prompt.
    *
-   * Streams stdout/stderr to the container logger with `[copilot]` prefix.
+   * Streams stdout/stderr to the container logger with `[claude]` prefix.
    *
-   * @param prompt The fully-built prompt string to pass to the Copilot CLI.
+   * @param prompt The fully-built prompt string to pass to Claude Code.
    * @returns Raw {@link ContainerExecResult} with exit code and captured output.
    */
-  /** Path inside the container where the session transcript is saved. */
-  static readonly TRANSCRIPT_PATH = "/workspace/.ralph/logs/session-transcript.md";
-
   async run(prompt: string): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
       "app",
-      "copilot",
-      "--agent", this.profile.agentName,
-      "--model", this.profile.model ?? DEFAULT_MODEL,
-      "--experimental",
-      "--yolo",
-      "--share", CopilotExecutor.TRANSCRIPT_PATH,
+      "claude",
       "-p", prompt,
+      "--dangerously-skip-permissions",
+      "--mcp-config", "/workspace/.ralph/mcp-config.json",
+      "--strict-mcp-config",
     ];
+
+    if (this.profile.model) {
+      args.push("--model", this.profile.model);
+    }
 
     try {
       this.activeProcess = this.compose.execWithTimeout(
@@ -66,7 +66,7 @@ export class CopilotExecutor implements CliExecutor {
         this.profile.timeoutMs,
       ) as ResultPromise;
 
-      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "copilot");
+      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "claude");
 
       const result = await this.activeProcess;
       this.activeProcess = null;

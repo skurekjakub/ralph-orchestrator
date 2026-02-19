@@ -30,11 +30,8 @@ services:
       - ./agents/.build/ralph.ralph-reviewer.agent.md:/workspace/.github/agents/ralph.ralph-reviewer.agent.md:ro
       - ./agents/.build/ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro
       - ./agents/.build/ralph.malph-investigator.agent.md:/workspace/.github/agents/ralph.malph-investigator.agent.md:ro
-      # Ralph resource files - mounted to gitignored folder
-      - ./resources/ralph-revisions.md:/workspace/resources/ralph-resources/ralph-revisions.md:ro
-      # Shared hook scripts + audit config
-      - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
-      - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
+      - ./agents/.build/ralph.overralph.agent.md:/workspace/.github/agents/ralph.overralph.agent.md:ro
+      - ./agents/.build/ralph.overralph-researcher.agent.md:/workspace/.github/agents/ralph.overralph-researcher.agent.md:ro
     command: sleep infinity
     depends_on:
       - db

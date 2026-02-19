@@ -1,29 +1,15 @@
 /**
- * Shared test factories and helpers.
+ * Data factories for test fixtures.
  *
- * Import from here instead of duplicating mock factories across test files.
- * Every mock needed by more than one test suite should live here.
+ * Pure constructors — no vi.fn() or mock behavior. Build value objects
+ * with sensible defaults and optional overrides.
  */
 
-import { vi } from "vitest";
-import type { AppConfig, AgentProfile, ProfileMatch } from "../src/config.js";
-import { CliType, TaskStatus } from "../src/container/types.js";
-import type { RalphResult } from "../src/container/types.js";
-import type { JiraIssue, JiraComment } from "../src/jira/types.js";
-import type { Logger } from "../src/logger.js";
-import { AuditMode } from "../src/prompt/prompt-auditor.js";
-
-// ── Logger ───────────────────────────────────────────────────────────────────
-
-/** Create a Logger that discards all output (no spy tracking). */
-export function createSilentLogger(): Logger {
-  return { info: () => {}, warn: () => {}, error: () => {} };
-}
-
-/** Create a Logger backed by `vi.fn()` spies for assertion. */
-export function createMockLogger(): Logger {
-  return { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-}
+import type { AppConfig, AgentProfile, ProfileMatch } from "../../src/config.js";
+import { CliType, TaskStatus } from "../../src/container/types.js";
+import type { RalphResult } from "../../src/container/types.js";
+import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
 
@@ -56,46 +42,7 @@ export function makeComment(
   return { id, author: { displayName: "Test User" }, body, created };
 }
 
-/**
- * Create a mock JiraClient with all methods stubbed via `vi.fn()`.
- *
- * Provide `overrides` to customize individual method implementations:
- * ```ts
- * const jira = createMockJiraClient({
- *   getComments: vi.fn().mockResolvedValue([makeComment("1", "text")]),
- * });
- * ```
- */
-export function createMockJiraClient(overrides: Record<string, unknown> = {}): any {
-  return {
-    searchIssues: vi.fn().mockResolvedValue([]),
-    addComment: vi.fn().mockResolvedValue(undefined),
-    getComments: vi.fn().mockResolvedValue([]),
-    getIssue: vi.fn().mockResolvedValue(null),
-    transitionIssue: vi.fn().mockResolvedValue(undefined),
-    getAttachments: vi.fn().mockResolvedValue([]),
-    downloadAttachment: vi.fn().mockResolvedValue(""),
-    addAttachment: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-// ── Container mocks ──────────────────────────────────────────────────────────
-
-/**
- * Create a mock ComposeClient with `exec` stubbed.
- *
- * Returns both the client and the underlying `exec` spy for assertion.
- */
-export function createMockCompose(execImpl?: (...args: any[]) => any): {
-  compose: any;
-  exec: ReturnType<typeof vi.fn>;
-} {
-  const exec = execImpl
-    ? vi.fn().mockImplementation(execImpl)
-    : vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
-  return { compose: { exec } as any, exec };
-}
+// ── Container data ───────────────────────────────────────────────────────────
 
 /** Create a mock RalphResult with sensible defaults. */
 export function makeResult(
@@ -128,11 +75,17 @@ export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, 
 
 /** Create a minimal AgentProfile for testing. */
 export function makeProfile(
-  overrides: Partial<AgentProfile> = {},
+  overrides: Partial<Omit<AgentProfile, "match">> & { match?: Partial<ProfileMatch> } = {},
 ): AgentProfile {
   const id = overrides.id ?? "ralph-default";
   const agentName = overrides.agentName ?? "ralph";
-  const match = overrides.match ?? { projects: ["DF"], statuses: [], commentTrigger: "@ralph", revisionStatuses: [] };
+  const match: ProfileMatch = {
+    projects: ["DF"],
+    statuses: [],
+    commentTrigger: "@ralph",
+    revisionStatuses: [],
+    ...overrides.match,
+  };
   return {
     id,
     repoPath: "/tmp/test-repo",
@@ -145,14 +98,15 @@ export function makeProfile(
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
     composeProjectLabel: "ralph-sandbox",
-    match,
     beforeAgent: {},
     afterAgent: {},
     cleanPaths: [],
+    mcpServers: [],
     ...overrides,
+    match,
     // Re-derive variantKey after overrides are applied
     ...(overrides.variantKey ? {} : {
-      variantKey: `${overrides.id ?? id}:${overrides.agentName ?? agentName}:${(overrides.match ?? match).commentTrigger}`,
+      variantKey: `${overrides.id ?? id}:${overrides.agentName ?? agentName}:${match.commentTrigger}`,
     }),
   };
 }
@@ -188,6 +142,8 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
       jiraPat: "test-jira-pat",
       jiraEmail: "test@test.com",
       anthropicApiKey: "",
+      discordBotToken: "",
+      discordChannelId: "",
     },
   };
 }

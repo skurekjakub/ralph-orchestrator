@@ -1,16 +1,18 @@
 import { TaskStatus } from "./container/types.js";
 import type { AgentProfile, AppConfig } from "./config.js";
-import type { ContainerManager } from "./container/manager.js";
+import type { IContainerManager } from "./container/manager.js";
 import type { JiraIssue } from "./jira/types.js";
-import type { JiraClient } from "./jira/client.js";
-import type { JiraPoller } from "./jira/poller.js";
-import type { ActivityLog } from "./services/activity-log.js";
-import type { ProfileRouter } from "./services/profile-router.js";
-import type { TaskRunner } from "./services/task-runner.js";
-import type { TriggerScanner } from "./services/trigger-scanner.js";
-import type { OperationLedger } from "./services/operation-ledger.js";
-import type { HeartbeatSender } from "./services/heartbeat.js";
+import type { IJiraPoller } from "./jira/poller.js";
+import type { IActivityLog } from "./services/activity-log.js";
+import type { IProfileRouter } from "./services/profile-router.js";
+import type { ITaskRunner } from "./services/task-runner.js";
+import type { ITriggerScanner } from "./services/trigger-scanner.js";
+import type { IOperationLedger } from "./services/operation-ledger.js";
+import type { IHeartbeatSender } from "./services/heartbeat.js";
 import type { Logger } from "./logger.js";
+
+import type { IIssueManager } from "./services/jira-issue-manager.js";
+import type { IResourceManager } from "./services/task-resource-manager.js";
 
 /**
  * Pre-built service dependencies injected into the Orchestrator.
@@ -20,14 +22,15 @@ import type { Logger } from "./logger.js";
  */
 export interface OrchestratorDeps {
   config: AppConfig;
-  activityLog: ActivityLog;
-  jiraClient: JiraClient;
-  poller: JiraPoller;
-  router: ProfileRouter;
-  taskRunner: TaskRunner;
-  triggerScanner: TriggerScanner;
-  ledger: OperationLedger;
-  heartbeat: HeartbeatSender | null;
+  activityLog: IActivityLog;
+  poller: IJiraPoller;
+  router: IProfileRouter;
+  issueManager: IIssueManager;
+  resources: IResourceManager;
+  taskRunner: ITaskRunner;
+  triggerScanner: ITriggerScanner;
+  ledger: IOperationLedger;
+  heartbeat: IHeartbeatSender | null;
   logger: Logger;
 }
 
@@ -35,8 +38,14 @@ export interface OrchestratorDeps {
 export interface ActiveTask {
   issue: JiraIssue;
   profile: AgentProfile;
-  container: ContainerManager | null;
+  container: IContainerManager | null;
   startedAt: number;
+}
+
+/** Identifies the phase of a JIRA status transition relative to agent execution. */
+export enum TransitionPhase {
+  BeforeAgent = "beforeAgent",
+  AfterAgent = "afterAgent",
 }
 
 /** Orchestrator lifecycle phase. */
@@ -80,7 +89,7 @@ export interface OrchestratorState {
   logs: readonly LogEntry[];
   /** Orchestrator-only log entries. */
   orchestratorLogs: readonly LogEntry[];
-  /** Container-only log entries (copilot output). */
+  /** Container-only log entries (CLI output). */
   containerLogs: readonly LogEntry[];
   /** All configured agent profile IDs. */
   profileIds: readonly string[];

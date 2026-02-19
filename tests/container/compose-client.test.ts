@@ -26,6 +26,8 @@ describe("ComposeClient", () => {
       jiraPat: "jira-pat",
       jiraEmail: "test@example.com",
       anthropicApiKey: "sk-ant-test",
+      discordBotToken: "discord-bot",
+      discordChannelId: "discord-channel",
     },
     jiraBaseUrl: "https://api.atlassian.com/ex/jira",
     jiraCloudId: "test-cloud-id",

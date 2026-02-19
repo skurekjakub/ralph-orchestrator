@@ -1,13 +1,33 @@
 import { extractAdfText } from "../jira/adf-converter.js";
-import { OrchestratorComments } from "./orchestrator-comments.js";
-import type { JiraClient } from "../jira/client.js";
+import type { IIssueManager } from "./jira-issue-manager.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
 import type { AgentProfile } from "../config.js";
-import type { ProfileRouter } from "./profile-router.js";
-import type { OperationLedger } from "./operation-ledger.js";
+import type { IProfileRouter } from "./profile-router.js";
+import type { IOperationLedger } from "./operation-ledger.js";
 import type { Logger } from "../logger.js";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+
+/**
+ * Word-boundary trigger match. The trigger must appear as a standalone word,
+ * optionally followed by `,` or `:`. This prevents `@Ralph` from matching
+ * inside `@RalphAutocomplete`.
+ */
+function matchesTrigger(text: string, trigger: string): boolean {
+  const escaped = trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(?:^|\\s|\\b)${escaped}(?=[,:;.!?\\s]|$)`, "i");
+  return re.test(text);
+}
+
+export { matchesTrigger };
+
+/** Public contract for the comment trigger scanner. */
+export interface ITriggerScanner {
+  /** Scan a batch of polled issues for trigger comments. Returns the number of new operations planned. */
+  scan(issues: JiraIssue[], profiles: readonly AgentProfile[]): Promise<number>;
+  /** Clear the scan cache (e.g. for testing). */
+  clearCache(): void;
+}
 
 /**
  * Scans JIRA issue comments for trigger strings and plans operations in the ledger.
@@ -28,7 +48,7 @@ import { dirname } from "node:path";
  * Without persistence, every startup would re-fetch comments for all matching
  * issues (potentially hundreds of API calls).
  */
-export class TriggerScanner {
+export class TriggerScanner implements ITriggerScanner {
   /**
    * Maps issue key → the `updated` timestamp from the last scan.
    * Used to skip comment fetching for issues that haven't changed.
@@ -39,9 +59,9 @@ export class TriggerScanner {
   private readonly cachePath: string | null;
 
   constructor(
-    private jiraClient: JiraClient,
-    private router: ProfileRouter,
-    private ledger: OperationLedger,
+    private issueManager: IIssueManager,
+    private router: IProfileRouter,
+    private ledger: IOperationLedger,
     private logger: Logger,
     cachePath?: string,
   ) {
@@ -87,7 +107,7 @@ export class TriggerScanner {
 
         if (!comments) {
           try {
-            comments = await this.jiraClient.getComments(issue.key);
+            comments = await this.issueManager.getComments(issue.key);
             commentsFetched++;
           } catch (err) {
             this.logger.warn(
@@ -110,7 +130,7 @@ export class TriggerScanner {
             ? comment.body
             : extractAdfText(comment.body);
 
-          if (!text.toLowerCase().includes(trigger.toLowerCase())) continue;
+          if (!matchesTrigger(text, trigger)) continue;
 
           this.ledger.plan(issue.key, {
             variant,
@@ -124,9 +144,9 @@ export class TriggerScanner {
             `Planned ${variant} on ${issue.key} (trigger comment ${comment.id})`
           );
 
-          await this.jiraClient.addComment(
+          await this.issueManager.postAckComment(
             issue.key,
-            OrchestratorComments.ack(profile.displayName)
+            profile.displayName,
           ).catch((err) => {
             this.logger.warn(`Failed to post ack comment on ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
           });

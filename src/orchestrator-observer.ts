@@ -68,7 +68,7 @@ export class OrchestratorObserver {
             summary: task.issue.fields.summary,
           }
         : null,
-      currentProfile: task?.profile.id ?? null,
+      currentProfile: task?.profile.variantKey ?? null,
       startedAt: task?.startedAt ?? null,
       completedToday: [...this.completedToday],
       queueSize: ctx.pendingOps.length,

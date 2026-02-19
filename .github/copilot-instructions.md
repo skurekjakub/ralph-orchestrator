@@ -25,7 +25,9 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 |---|---|
 | `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), config loading, logger, retry utility |
 | `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
-| `src/container/` | Container lifecycle (`manager.ts`), docker compose wrapper (`compose-client.ts`), CLI executors (Copilot + Claude Code), result parser, log collector, streaming capture |
+| `src/container/` | Container lifecycle (`manager.ts`), docker compose wrapper (`compose-client.ts`), result parser, log collector, streaming capture |
+| `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`) |
+| `src/container/setup/` | Startup setup — agent include resolution (`agent-includes.ts`), MCP config + overlay generation (`mcp-config.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
 | `src/prompt/` | Prompt builder (`prompt.ts`), content normalizer (`normalizer.ts`), prompt injection auditor (`prompt-auditor.ts`) |
 | `src/services/` | Orchestration services — trigger scanner, profile router, task runner, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
 | `src/validate/` | Startup validation — env vars, config, profiles, Docker, security infrastructure |
@@ -35,6 +37,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `shared/security/` | Security overlay — Squid proxy config, compose security overlay (network isolation, resource limits) |
 | `shared/hooks/` | Copilot CLI audit hooks (session logging) |
 | `shared/agent-includes/` | Shared include files for agent templates (JIRA API, ADO API references, prompt security) |
+| `shared/mcp-servers/` | MCP server manifests and custom server code (one subdirectory per server) |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 | `dashboard-local/` | Local development dashboard (Vite + React) |
 | `tests/` | Vitest test suite |
@@ -46,15 +49,16 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 - `npm run build` — Compile TypeScript
 - `npm start` — Run compiled output
 - `npm test` — Run tests (vitest)
-- `npm run lint` — Type-check without emitting
+- `npm run lint` — Type-check without emitting (src + tests)
 
 ## Docker & Security
 
-Containers are managed via `docker compose` with a **two-file merge** pattern:
+Containers are managed via `docker compose` with a **three-file merge** pattern:
 1. **Base compose** — `profiles/<id>/docker-compose.yml` (services, volumes, build config)
 2. **Security overlay** — `shared/security/docker-compose.security.yml` (proxy sidecar, network isolation, resource limits)
+3. **Resources overlay** — `profiles/<id>/agents/.build/docker-compose.overlay.yml` (MCP server mounts, env vars, resource file mounts — auto-generated at startup)
 
-`ComposeClient` automatically injects both files: `docker compose -f base.yml -f security.yml <command>`
+`ComposeClient` automatically injects all files: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay is only included if it exists (profiles with no MCP servers or resources skip it).
 
 ### Network Isolation
 
@@ -82,9 +86,10 @@ The allowlist (`shared/security/squid.conf`) is tuned to the specific domains th
 ### Compose Commands
 
 ```bash
-# ComposeClient handles the two-file merge automatically. Manual equivalent:
+# ComposeClient handles the three-file merge automatically. Manual equivalent:
 docker compose -f profiles/ralph-docs/docker-compose.yml \
-  -f shared/security/docker-compose.security.yml up -d --build
+  -f shared/security/docker-compose.security.yml \
+  -f profiles/ralph-docs/agents/.build/docker-compose.overlay.yml up -d --build
 
 # Exec inside container
 docker compose -f ... exec --user vscode app <command>
@@ -111,7 +116,10 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 - `cli` — `"copilot"` (default) or `"claude"` — which CLI to use. Falls back to the other CLI if the preferred one's credential is missing.
 - `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default). Can be overridden per-variant.
 - `timeoutMs` — execution timeout
-- `beforeAgent.transitionId` / `afterAgent.transitionId` — JIRA transitions applied before/after agent execution
+- `mcpServers` — array of MCP server names to enable (must match subdirectories in `shared/mcp-servers/`)
+- `resources` — resource auto-discovery config (`{ "mountBase": "<path>" }`); files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`
+- `cleanPaths` — array of absolute container paths to delete before each agent run
+- `beforeAgent.targetStatus` / `afterAgent.targetStatus` — JIRA target status name for transitions before/after agent execution (resolved dynamically via JIRA API; can also be set per-variant)
 
 **Variant-level fields** (each variant expands into a separate routing entry):
 - `agent` — Copilot CLI agent name (must match `<name>.agent.md` file in the profile's `agents/` directory)
@@ -130,23 +138,29 @@ All Docker and agent infrastructure is centralized in the orchestrator repo. Tar
 ```
 profiles/
   <profile-id>/
-    profile.json        — Profile config: repo, cli, variants, transitions
+    profile.json        — Profile config: repo, cli, variants, MCP servers, resources
     Dockerfile          — Container image definition
     docker-compose.yml  — Base compose (services, env vars, volume mounts)
     setup.sh            — Post-create setup (AI CLI installs, git config, deps)
+    resources/          — Profile-specific files mounted read-only into container
     agents/             — Agent template files (.agent.md with include markers)
-      .build/           — Resolved agent files (generated at startup, gitignored)
+      .build/           — Generated at startup (gitignored):
+                            resolved agent files, mcp-config.json, docker-compose.overlay.yml
 shared/
   security/             — Container security infrastructure
     docker-compose.security.yml — Squid sidecar, network isolation, resource limits
     squid.conf          — Domain allowlist for egress proxy
   hooks/                — Copilot CLI audit hooks (shared across all profiles)
-  agent-includes/       — Shared include files for agent templates
+  agent-includes/       — Shared partial files for agent templates
+  mcp-servers/          — MCP server manifests + custom server code
+    <name>/
+      mcp-server.json   — Server manifest (type, command, args, env, domains)
+      src/ dist/         — Custom server source/bundle (type: "custom" only)
 ```
 
 Agent templates use `<!-- include: name.md -->` markers resolved from `shared/agent-includes/` at startup. Resolved files go to `agents/.build/` and are mounted read-only into containers.
 
-Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts.
+Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. MCP-related mounts use absolute host paths baked directly into the generated overlay.
 
 ## JIRA Integration
 
@@ -198,9 +212,16 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 - `execa` v9 for all subprocess management
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
-- Copilot CLI defaults to `--model claude-opus-4.6` (configurable via profile `model`)
-- Claude Code CLI uses `--dangerously-skip-permissions`
+- Copilot CLI: `--config-dir /workspace/.ralph`, `--yolo`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
+- Claude Code CLI: `-p <prompt>`, `--dangerously-skip-permissions`, `--mcp-config /workspace/.ralph/mcp-config.json`, `--strict-mcp-config`
+- Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations)
 - NEVER REEXPORT, update original imports instead
+
+### Dependency Interfaces
+
+Every service class injected via `OrchestratorDeps` has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/jira/client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
+
+Only the **factory** (`orchestrator-factory.ts`) imports concrete classes for instantiation. This ensures `Mocked<Interface>` is structurally compatible without `as any` casts. See `DEPENDENCY-INJECTION.md` for rationale.
 
 ### Comments
 

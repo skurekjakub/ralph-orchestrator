@@ -6,7 +6,7 @@ import { OperationLedger, OperationStatus } from "../../src/services/operation-l
 import { TaskStatus } from "../../src/container/types.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { extractAdfText } from "../../src/jira/adf-converter.js";
-import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers.js";
+import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers/factories.js";
 
 let tempDir: string;
 let ledger: OperationLedger;

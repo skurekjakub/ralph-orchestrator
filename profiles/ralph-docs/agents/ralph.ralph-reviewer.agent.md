@@ -2,7 +2,7 @@
 description: 'Autonomous documentation reviewer — no user interaction'
 model: Claude Opus 4.6 (copilot)
 name: 'ralph-reviewer'
-user-invokable: false
+user-invocable: false
 ---
 
 # Autonomous Documentation Reviewer

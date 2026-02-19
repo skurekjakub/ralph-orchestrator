@@ -3,7 +3,8 @@ import {
   buildPreflightContext,
   runPreflight,
 } from "../../src/services/preflight.js";
-import { makeIssue, makeComment, createMockJiraClient } from "../helpers.js";
+import { makeIssue, makeComment } from "../helpers/factories.js";
+import { createMockResources } from "../helpers/mocks.js";
 
 describe("runPreflight", () => {
   it("returns ok for unknown check names", () => {
@@ -48,7 +49,7 @@ describe("runPreflight", () => {
 });
 
 describe("buildPreflightContext", () => {
-  const mockJira = createMockJiraClient();
+  const mockResources = createMockResources();
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -58,10 +59,10 @@ describe("buildPreflightContext", () => {
     const comments = [
       makeComment("1", "Please review https://github.com/org/repo/pull/42"),
     ];
-    mockJira.getAttachments.mockResolvedValue([]);
+    mockResources.fetchHandoff.mockResolvedValue(null);
 
     const ctx = await buildPreflightContext(
-      mockJira as any,
+      mockResources,
       "DF-1",
       comments,
     );
@@ -74,38 +75,24 @@ describe("buildPreflightContext", () => {
       makeComment("1", "old PR https://github.com/org/repo/pull/10"),
       makeComment("2", "new PR https://github.com/org/repo/pull/42"),
     ];
-    mockJira.getAttachments.mockResolvedValue([]);
+    mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
     expect(ctx.prUrl).toBe("https://github.com/org/repo/pull/42");
   });
 
   it("downloads handoff attachment", async () => {
-    mockJira.getAttachments.mockResolvedValue([
-      { id: "att1", filename: "handoff.md", content: "https://jira/att/1", created: "2026-01-01T00:00:00Z" },
-    ]);
-    mockJira.downloadAttachment.mockResolvedValue("## Handoff content");
+    mockResources.fetchHandoff.mockResolvedValue("## Handoff content");
 
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", []);
+    const ctx = await buildPreflightContext(mockResources, "DF-1", []);
     expect(ctx.handoffContent).toBe("## Handoff content");
-    expect(mockJira.downloadAttachment).toHaveBeenCalledWith("https://jira/att/1");
+    expect(mockResources.fetchHandoff).toHaveBeenCalledWith("DF-1");
   });
 
-  it("picks most recent handoff when multiple exist", async () => {
-    mockJira.getAttachments.mockResolvedValue([
-      { id: "att1", filename: "handoff.md", content: "https://jira/att/1", created: "2026-01-01T00:00:00Z" },
-      { id: "att2", filename: "handoff-v2.md", content: "https://jira/att/2", created: "2026-02-01T00:00:00Z" },
-    ]);
-    mockJira.downloadAttachment.mockResolvedValue("## Latest handoff");
+  it("returns null handoff when fetchHandoff returns null", async () => {
+    mockResources.fetchHandoff.mockResolvedValue(null);
 
-    await buildPreflightContext(mockJira as any, "DF-1", []);
-    expect(mockJira.downloadAttachment).toHaveBeenCalledWith("https://jira/att/2");
-  });
-
-  it("handles attachment fetch errors gracefully", async () => {
-    mockJira.getAttachments.mockRejectedValue(new Error("network error"));
-
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", []);
+    const ctx = await buildPreflightContext(mockResources, "DF-1", []);
     expect(ctx.handoffContent).toBeNull();
     expect(ctx.prUrl).toBeNull();
   });
@@ -114,9 +101,9 @@ describe("buildPreflightContext", () => {
     const comments = [
       makeComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
     ];
-    mockJira.getAttachments.mockResolvedValue([]);
+    mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
     expect(ctx.prUrl).toBe("https://dev.azure.com/org/proj/_git/repo/pullrequest/99");
   });
 
@@ -124,9 +111,9 @@ describe("buildPreflightContext", () => {
     const comments = [
       makeComment("1", "See https://bitbucket.org/org/repo/pull-requests/5"),
     ];
-    mockJira.getAttachments.mockResolvedValue([]);
+    mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockJira as any, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
     expect(ctx.prUrl).toContain("bitbucket.org");
   });
 });

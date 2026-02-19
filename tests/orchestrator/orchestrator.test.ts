@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeConfig } from "../helpers.js";
+import { makeProfile, makeIssue, makeConfig } from "../helpers/factories.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
 

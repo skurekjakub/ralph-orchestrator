@@ -36,7 +36,7 @@ export interface CliExecutor {
  * mocked in tests without needing a running Docker daemon.
  */
 export interface ContainerManagerFactory {
-  create(profile: import("../config.js").AgentProfile): import("./manager.js").ContainerManager;
+  create(profile: import("../config.js").AgentProfile): import("./manager.js").IContainerManager;
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */
@@ -60,11 +60,11 @@ export interface RalphResult {
   status: TaskStatus;
   /** Wall-clock duration in milliseconds. */
   durationMs: number;
-  /** Copilot CLI process exit code. */
+  /** CLI process exit code. */
   exitCode: number;
-  /** Full captured stdout from the copilot session. */
+  /** Full captured stdout from the CLI session. */
   stdout: string;
-  /** Full captured stderr from the copilot session. */
+  /** Full captured stderr from the CLI session. */
   stderr: string;
   /** Local path to the handoff file, if one was saved. */
   handoffPath?: string;

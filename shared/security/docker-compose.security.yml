@@ -44,6 +44,10 @@ services:
       https_proxy: "http://egress-proxy:3128"
       NO_PROXY: "localhost,127.0.0.1,db,egress-proxy"
       no_proxy: "localhost,127.0.0.1,db,egress-proxy"
+    volumes:
+      # Shared audit hooks + config (mounted for all profiles)
+      - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
+      - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
     depends_on:
       egress-proxy:
         condition: service_healthy

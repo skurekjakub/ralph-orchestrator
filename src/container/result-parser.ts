@@ -2,7 +2,7 @@ import type { RalphResult } from "./types.js";
 import { TaskStatus } from "./types.js";
 
 /**
- * Parse the structured `===RALPH_RESULT_START===` block from copilot stdout.
+ * Parse the structured `===RALPH_RESULT_START===` block from CLI stdout.
  *
  * Extracts PR URL and agent-reported status. Falls back to a loose regex for
  * the PR URL if the structured block is missing.

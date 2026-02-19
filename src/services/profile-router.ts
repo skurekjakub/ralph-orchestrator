@@ -12,6 +12,16 @@ export interface ProfileMatchResult {
  */
 export type CommentFetcher = (issueKey: string) => Promise<string[]>;
 
+/** Public contract for profile-based issue routing. */
+export interface IProfileRouter {
+  /** Match a JIRA issue to the first matching agent profile. */
+  match(issue: JiraIssue): Promise<ProfileMatchResult | null>;
+  /** Check if an issue matches a specific profile's project and status filters. */
+  matchesProjectAndStatus(issue: JiraIssue, profile: AgentProfile): boolean;
+  /** Get all configured profile IDs. */
+  readonly profileIds: string[];
+}
+
 /**
  * Routes JIRA issues to agent profiles based on matching rules.
  *
@@ -22,7 +32,7 @@ export type CommentFetcher = (issueKey: string) => Promise<string[]>;
  *
  * Profile order in the config matters — first match wins.
  */
-export class ProfileRouter {
+export class ProfileRouter implements IProfileRouter {
   constructor(
     private profiles: readonly AgentProfile[],
     private fetchComments?: CommentFetcher,

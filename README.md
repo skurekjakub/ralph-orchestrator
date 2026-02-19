@@ -40,8 +40,8 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      "repo": "~/repositories/kentico-docs-jekyll",
      "cli": "copilot",
      "timeoutMs": 3600000,
-     "beforeAgent": { "transitionId": "141" },
-     "afterAgent": { "transitionId": "91" },
+     "beforeAgent": { "targetStatus": "In Progress" },
+     "afterAgent": { "targetStatus": "Ready for Review" },
      "variants": [
        {
          "agent": "ralph.ralph",
@@ -120,7 +120,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
-   - Starts containers via `docker compose up -d --build` (base + security overlay) for the matched profile’s repo
+   - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
    - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
    - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file

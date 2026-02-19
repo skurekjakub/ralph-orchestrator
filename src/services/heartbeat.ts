@@ -32,7 +32,15 @@ export interface HeartbeatPayload {
 /** Callback the orchestrator registers to supply the latest state snapshot. */
 export type HeartbeatStateProvider = () => HeartbeatPayload;
 
-export class HeartbeatSender {
+/** Public contract for the dashboard heartbeat sender. */
+export interface IHeartbeatSender {
+  /** Start sending heartbeats on an interval. */
+  start(stateProvider: HeartbeatStateProvider): void;
+  /** Stop the heartbeat loop. */
+  stop(): void;
+}
+
+export class HeartbeatSender implements IHeartbeatSender {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastError: string | null = null;
 

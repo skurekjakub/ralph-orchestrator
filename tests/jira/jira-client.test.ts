@@ -153,4 +153,75 @@ describe("JiraClient", () => {
       expect(body.transition.id).toBe("21");
     });
   });
+
+  describe("getTransitions", () => {
+    it("returns available transitions for an issue", async () => {
+      const mockResponse = {
+        transitions: [
+          { id: "51", name: "Start progress", to: { name: "In progress" } },
+          { id: "71", name: "Just close", to: { name: "Closed" } },
+        ],
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
+
+      const transitions = await client.getTransitions("DF-1");
+
+      expect(transitions).toHaveLength(2);
+      expect(transitions[0]).toEqual({ id: "51", name: "Start progress", to: { name: "In progress" } });
+
+      const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+      expect(callUrl).toContain("/rest/api/3/issue/DF-1/transitions");
+    });
+  });
+
+  describe("findTransitionId", () => {
+    it("returns transition ID matching target status (case-insensitive)", async () => {
+      const mockResponse = {
+        transitions: [
+          { id: "51", name: "Start progress", to: { name: "In progress" } },
+          { id: "91", name: "Review", to: { name: "Ready for Review" } },
+        ],
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
+
+      const id = await client.findTransitionId("DF-1", "in progress");
+      expect(id).toBe("51");
+    });
+
+    it("returns undefined when no matching transition exists", async () => {
+      const mockResponse = {
+        transitions: [
+          { id: "51", name: "Start progress", to: { name: "In progress" } },
+        ],
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
+
+      const id = await client.findTransitionId("DF-1", "Done");
+      expect(id).toBeUndefined();
+    });
+  });
 });

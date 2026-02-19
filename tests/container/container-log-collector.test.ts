@@ -3,12 +3,12 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
-import type { ComposeClient } from "../../src/container/compose-client.js";
-import { createMockLogger } from "../helpers.js";
+import type { IComposeClient } from "../../src/container/compose-client.js";
+import { createMockLogger } from "../helpers/mocks.js";
 
 let tempDir: string;
 
-function makeMockCompose(responses: Record<string, string> = {}): ComposeClient {
+function makeMockCompose(responses: Record<string, string> = {}): IComposeClient {
   return {
     exec: vi.fn().mockImplementation(async (args: string[]) => {
       const catIndex = args.indexOf("cat");
@@ -34,7 +34,11 @@ function makeMockCompose(responses: Record<string, string> = {}): ComposeClient 
 
       throw new Error("Unexpected exec call");
     }),
-  } as any;
+    compose: vi.fn(),
+    execWithTimeout: vi.fn(),
+    checkDocker: vi.fn(),
+    getContainerName: vi.fn(),
+  } as IComposeClient;
 }
 
 describe("ContainerLogCollector", () => {
@@ -237,7 +241,7 @@ describe("ContainerLogCollector", () => {
 
     await collector.collectAll();
 
-    const execCalls = (compose.exec as any).mock.calls;
+    const execCalls = vi.mocked(compose.exec).mock.calls;
     expect(execCalls[0]).toEqual([
       ["-T", "app", "cat", "/workspace/.ralph/logs/audit.jsonl"],
     ]);

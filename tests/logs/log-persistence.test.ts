@@ -5,7 +5,7 @@ import { LogLevel } from "../../src/orchestrator-types.js";
 import { resolveStatus } from "../../src/container/result-parser.js";
 
 // ── Log persistence tests ────────────────────────────────
-// Tests for persistent activity log, copilot output saving, log collector,
+// Tests for persistent activity log, CLI output saving, log collector,
 // poller logging, and result status determination.
 
 describe("Persistent activity log", () => {

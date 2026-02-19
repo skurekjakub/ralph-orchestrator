@@ -10,14 +10,16 @@ import {
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
-import { makeProfile, makeIssue, makeConfig, makeComment, makeResult, createMockLogger } from "../helpers.js";
+import { makeProfile, makeIssue, makeConfig, makeComment, makeResult } from "../helpers/factories.js";
+import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
 import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
-import { OrchestratorStatus } from "../../src/orchestrator-types.js";
+import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 import type { AgentProfile } from "../../src/config.js";
 import type { RalphResult } from "../../src/container/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
+import type { ITaskRunner } from "../../src/services/task-runner.js";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -29,10 +31,6 @@ import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 let tempDir: string;
 
 const silentLogger = createMockLogger();
-
-function makeMockContainer() {
-  return { stop: vi.fn().mockResolvedValue(undefined) };
-}
 
 function buildMockDeps(options: {
   profile?: AgentProfile;
@@ -74,49 +72,42 @@ function buildMockDeps(options: {
     }
   }
 
-  const mockContainer = makeMockContainer();
+  const issueMap: Record<string, JiraIssue> = {};
+  for (const [key, issues] of Object.entries(searchMap)) {
+    if (issues.length > 0) issueMap[key] = issues[0];
+  }
 
-  const jiraClient = {
-    searchIssues: vi.fn().mockImplementation(async (jql: string) => {
-      const keyMatch = jql.match(/key\s*=\s*(\S+)/);
-      if (keyMatch) {
-        return searchMap[keyMatch[1]] ?? [];
-      }
-      return issuesToDrain;
-    }),
-    addComment: vi.fn().mockResolvedValue(undefined),
+  const { container: mockContainer } = createMockContainer();
+
+  const issueManager = createMockIssueManager({
     getComments: vi.fn().mockImplementation(async (key: string) => {
       return commentsMap[key] ?? [];
     }),
-    transitionIssue: vi.fn().mockResolvedValue(undefined),
-    getAttachments: vi.fn().mockResolvedValue([]),
-    downloadAttachment: vi.fn().mockResolvedValue(Buffer.from("")),
-    addAttachment: vi.fn().mockResolvedValue(undefined),
-  } as any;
+    refreshIssue: vi.fn().mockImplementation(async (key: string) => {
+      return issueMap[key] ?? null;
+    }),
+  });
 
-  const taskRunner = {
+  const resources = createMockResources();
+
+  const taskRunner: ITaskRunner = {
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
       : vi.fn().mockImplementation(async (issue: JiraIssue) => ({
           result: makeResult(issue.key, options.taskResult),
           container: mockContainer,
         })),
-    transitionAfterAgent: vi.fn().mockResolvedValue(undefined),
-    postErrorComment: vi.fn().mockResolvedValue(undefined),
-  } as any;
+  };
 
   const triggerScanner = new TriggerScanner(
-    jiraClient,
+    issueManager,
     router,
     ledger,
     silentLogger,
   );
 
   let drainCount = 0;
-  const poller = {
-    start: vi.fn(),
-    stop: vi.fn(),
-    onIssues: vi.fn(),
+  const poller = createMockPoller({
     drain: vi.fn().mockImplementation(() => {
       if (drainCount === 0) {
         drainCount++;
@@ -124,12 +115,13 @@ function buildMockDeps(options: {
       }
       return [];
     }),
-  } as any;
+  });
 
   return {
     config,
     activityLog,
-    jiraClient,
+    issueManager,
+    resources,
     poller,
     router,
     taskRunner,
@@ -191,14 +183,15 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     expect(deps.poller.start).toHaveBeenCalled();
     expect(deps.poller.stop).toHaveBeenCalled();
-    expect(deps.jiraClient.addComment).toHaveBeenCalled();
+    expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({ key: "DF-100" }),
       expect.objectContaining({ id: "ralph-docs" }),
     );
-    expect(deps.taskRunner.transitionAfterAgent).toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
       "DF-100",
-      expect.objectContaining({ id: "ralph-docs" }),
+      undefined,
+      TransitionPhase.AfterAgent,
     );
 
     const state = orchestrator.observer.getState();
@@ -232,11 +225,15 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
-    expect(deps.taskRunner.postErrorComment).toHaveBeenCalledWith(
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
       "DF-150",
       "No such agent: ralph",
     );
-    expect(deps.taskRunner.transitionAfterAgent).not.toHaveBeenCalled();
+    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      TransitionPhase.AfterAgent,
+    );
 
     const ops = deps.ledger.getOperations("DF-150");
     expect(ops[0].status).toBe(OperationStatus.Completed);
@@ -263,14 +260,18 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
     expect(state.completedToday[0].status).toBe(TaskStatus.Error);
-    expect(deps.taskRunner.postErrorComment).toHaveBeenCalledWith(
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
       "DF-200",
       "Container build failed",
     );
 
     const ops = deps.ledger.getOperations("DF-200");
     expect(ops[0].status).toBe(OperationStatus.Error);
-    expect(deps.taskRunner.transitionAfterAgent).not.toHaveBeenCalled();
+    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      TransitionPhase.AfterAgent,
+    );
   });
 
   it("rejects operation when issue status changed since planning", async () => {
@@ -384,25 +385,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const activityLog = new ActivityLog(logDir);
     const router = new ProfileRouter([profile]);
-    const jiraClient = {
-      searchIssues: vi.fn().mockResolvedValue([]),
-      addComment: vi.fn().mockResolvedValue(undefined),
-      getComments: vi.fn().mockResolvedValue([]),
-      transitionIssue: vi.fn(),
-      getAttachments: vi.fn().mockResolvedValue([]),
-      downloadAttachment: vi.fn(),
-      addAttachment: vi.fn(),
-    } as any;
+    const issueManager = createMockIssueManager();
 
-    const poller = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      onIssues: vi.fn(),
-      drain: vi.fn().mockReturnValue([]),
-    } as any;
+    const poller = createMockPoller();
 
     const triggerScanner = new TriggerScanner(
-      jiraClient,
+      issueManager,
       router,
       ledger,
       silentLogger,
@@ -411,14 +399,11 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps: OrchestratorDeps = {
       config,
       activityLog,
-      jiraClient,
+      issueManager,
+      resources: createMockResources(),
       poller,
       router,
-      taskRunner: {
-        run: vi.fn(),
-        transitionAfterAgent: vi.fn(),
-        postErrorComment: vi.fn(),
-      } as any,
+      taskRunner: createMockTaskRunner(),
       triggerScanner,
       ledger,
       heartbeat: null,
@@ -433,9 +418,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const recoveredOps = ledger.getOperations("DF-500");
     expect(recoveredOps[0].status).toBe(OperationStatus.Error);
 
-    expect(jiraClient.addComment).toHaveBeenCalledWith(
+    expect(issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(
       "DF-500",
-      expect.stringContaining("ralph"),
+      "ralph-docs:ralph:@docs",
     );
   });
 
@@ -559,41 +544,30 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const activityLog = new ActivityLog(logDir);
     const router = new ProfileRouter([dfProfile, docProfile]);
-    const mockContainer = makeMockContainer();
-    const jiraClient = {
-      searchIssues: vi.fn().mockResolvedValue([docIssue]),
-      addComment: vi.fn().mockResolvedValue(undefined),
-      getComments: vi.fn().mockResolvedValue([]),
-      transitionIssue: vi.fn().mockResolvedValue(undefined),
-      getAttachments: vi.fn().mockResolvedValue([]),
-      downloadAttachment: vi.fn(),
-      addAttachment: vi.fn(),
-    } as any;
+    const { container: mockContainer } = createMockContainer();
 
-    const taskRunner = {
+    const issueManager = createMockIssueManager({
+      refreshIssue: vi.fn().mockResolvedValue(docIssue),
+    });
+
+    const taskRunner: ITaskRunner = {
       run: vi.fn().mockResolvedValue({
         result: makeResult("DOC-100"),
         container: mockContainer,
       }),
-      transitionAfterAgent: vi.fn().mockResolvedValue(undefined),
-      postErrorComment: vi.fn().mockResolvedValue(undefined),
-    } as any;
+    };
 
     const triggerScanner = new TriggerScanner(
-      jiraClient, router, ledger, silentLogger,
+      issueManager, router, ledger, silentLogger,
     );
 
-    const poller = {
-      start: vi.fn(),
-      stop: vi.fn(),
-      onIssues: vi.fn(),
-      drain: vi.fn().mockReturnValue([]),
-    } as any;
+    const poller = createMockPoller();
 
     const deps: OrchestratorDeps = {
       config,
       activityLog,
-      jiraClient,
+      issueManager,
+      resources: createMockResources(),
       poller,
       router,
       taskRunner,
@@ -611,6 +585,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // The orchestrator must find the DOC profile (not the DF one) and execute
     expect(taskRunner.run).toHaveBeenCalledTimes(1);
-    expect(taskRunner.run.mock.calls[0][1]).toBe(docProfile);
+    expect(vi.mocked(taskRunner.run).mock.calls[0][1]).toBe(docProfile);
   });
 });

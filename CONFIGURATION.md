@@ -92,8 +92,11 @@ shared/
   "setupScript": "/usr/local/bin/setup.sh",
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
   "composeProjectLabel": "ralph-sandbox",
-  "beforeAgent": { "transitionId": "141" },
-  "afterAgent": { "transitionId": "91" },
+  "mcpServers": ["playwright", "discord-hitl"],
+  "resources": { "mountBase": "resources/ralph-resources" },
+  "cleanPaths": ["/workspace/resources/chats"],
+  "beforeAgent": { "targetStatus": "In Progress" },
+  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -114,8 +117,11 @@ shared/
 | `setupScript` | Absolute path to the setup script inside the container | `"/usr/local/bin/setup.sh"` |
 | `auditLogPath` | Absolute path to the audit JSONL log inside the container | `"/workspace/.ralph/logs/audit.jsonl"` |
 | `composeProjectLabel` | Docker compose project label used for container lookup | `"ralph-sandbox"` |
+| `mcpServers` | Array of MCP server names to enable. Must match subdirectories in `shared/mcp-servers/`. | `[]` |
+| `resources` | Resource auto-discovery config: `{ "mountBase": "<path>" }`. Files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`. | — (optional) |
+| `cleanPaths` | Array of absolute container paths to delete before each agent run. | `[]` |
 
-The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml`.
+The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/agents/.build/docker-compose.overlay.yml` (if present).
 
 #### Variants
 
@@ -138,16 +144,12 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 
 | Field | Description |
 |---|---|
-| `beforeAgent.transitionId` | JIRA transition ID applied before the agent runs (e.g. "In Progress") |
-| `afterAgent.transitionId` | JIRA transition ID applied after successful completion (e.g. "Ready for Review") |
+| `beforeAgent.targetStatus` | Target JIRA status name to transition to before the agent runs (e.g. `"In Progress"`) |
+| `afterAgent.targetStatus` | Target JIRA status name to transition to after successful completion (e.g. `"Ready for Review"`) |
 
 Both are optional — omit or leave empty (`{}`) to skip transitions (useful for observer agents that don't change issue state).
 
-**Finding transition IDs:** Use the JIRA REST API:
-```bash
-curl -u "$JIRA_EMAIL:$JIRA_PAT" \
-  "https://api.atlassian.com/ex/jira/<cloudId>/rest/api/3/issue/<issue-key>/transitions"
-```
+**Dynamic resolution:** The orchestrator queries the JIRA transitions API at runtime to find the transition ID that reaches the target status. This makes transitions portable across JIRA projects and source statuses — there's no need to look up or hardcode numeric IDs.
 
 #### Operation Ledger
 
@@ -175,9 +177,65 @@ The orchestrator selects which CLI to use based on the profile's `cli` preferenc
 | `"claude"` | Yes | No | Falls back to Copilot (with warning) |
 | Either | No | No | Error — no CLI available |
 
-**Copilot CLI** runs: `copilot --agent <agent> --model <model> --experimental --yolo -p <prompt>`
+**Copilot CLI** runs: `copilot --config-dir /workspace/.ralph --agent <agent> --model <model> --experimental --yolo --share <transcript> -p <prompt>`
 
-**Claude Code CLI** runs: `claude -p <prompt> --dangerously-skip-permissions [--model <model>]`
+**Claude Code CLI** runs: `claude -p <prompt> --dangerously-skip-permissions --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config [--model <model>]`
+
+Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations). Copilot CLI discovers it via `--config-dir`; Claude Code loads it explicitly via `--mcp-config`.
+
+#### MCP Servers
+
+Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` array in `profile.json`. Each entry must match a subdirectory of `shared/mcp-servers/`.
+
+At startup, the orchestrator:
+1. Reads each server's `mcp-server.json` manifest
+2. Generates `agents/.build/mcp-config.json` — shared by both Copilot and Claude Code CLIs
+3. Generates `agents/.build/docker-compose.overlay.yml` — mounts the MCP servers directory, config file, and required env vars into the container
+
+**Adding an MCP server:**
+1. Create `shared/mcp-servers/<name>/mcp-server.json`:
+   ```json
+   {
+     "name": "<name>",
+     "description": "What this server does",
+     "type": "npm",
+     "command": "npx",
+     "args": ["-y", "@scope/mcp-server-name"],
+     "requiredEnv": ["SOME_TOKEN"],
+     "proxyDomains": ["api.example.com"]
+   }
+   ```
+2. Add `"<name>"` to the profile's `mcpServers` array
+3. Add any required domains to `shared/security/squid.conf`
+4. Pass required env vars via the profile's base `docker-compose.yml`
+
+**Server types:**
+- `"npm"` — npx-based servers. No local code needed (e.g. Playwright, ADO).
+- `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Set `containerPath` to the mount target inside the container.
+
+#### Resources
+
+Profiles can auto-mount files from a `resources/` directory into the container. Configure via `resources.mountBase` in `profile.json`:
+
+```json
+{
+  "resources": { "mountBase": "resources/ralph-resources" }
+}
+```
+
+All files in `profiles/<id>/resources/` are recursively discovered and mounted read-only at `/workspace/<mountBase>/<relative-path>`. Mounts are included in the auto-generated compose overlay.
+
+#### Clean Paths
+
+The `cleanPaths` array lists absolute container paths that are deleted before each agent run:
+
+```json
+{
+  "cleanPaths": ["/workspace/resources/chats"]
+}
+```
+
+Useful for clearing agent-generated state (e.g. chat logs, cache files) between runs.
 
 ### Output Settings
 
@@ -253,8 +311,8 @@ The auditor scans untrusted JIRA data (description, comments, custom fields, han
 {
   "repo": "~/repositories/kentico-docs-jekyll",
   "timeoutMs": 1800000,
-  "beforeAgent": { "transitionId": "141" },
-  "afterAgent": { "transitionId": "91" },
+  "beforeAgent": { "targetStatus": "In Progress" },
+  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -288,8 +346,8 @@ When an issue is in "Defect Found" status and triggered, the agent receives a `M
         "commentTrigger": "@RalphDf",
         "revisionStatuses": ["Defect Found"]
       },
-      "beforeAgent": { "transitionId": "141" },
-      "afterAgent": { "transitionId": "91" }
+      "beforeAgent": { "targetStatus": "In Progress" },
+      "afterAgent": { "targetStatus": "Ready for Review" }
     },
     {
       "agent": "ralph.malph",
@@ -309,8 +367,8 @@ In this setup, the same Docker infrastructure serves both variants. Comments wit
   "repo": "~/repositories/kentico-docs-autocomplete-vscode",
   "cli": "claude",
   "timeoutMs": 1800000,
-  "beforeAgent": { "transitionId": "51" },
-  "afterAgent": { "transitionId": "91" },
+  "beforeAgent": { "targetStatus": "In Progress" },
+  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     { "agent": "ralph.ralph", "match": { "projects": ["DOC"], "commentTrigger": "@RalphAutocomplete" } }
   ]

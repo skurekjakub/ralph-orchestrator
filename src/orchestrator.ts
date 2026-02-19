@@ -1,13 +1,14 @@
-import { resolve } from "node:path";
-import { execa } from "execa";
 import type { AgentProfile } from "./config.js";
 import { TaskStatus } from "./container/types.js";
-import { LogLevel } from "./orchestrator-types.js";
+import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
 import type { Operation } from "./services/operation-ledger.js";
-import { OrchestratorComments } from "./services/orchestrator-comments.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
-import { resolveAllProfileIncludes } from "./container/agent-includes.js";
+import { resolveAllProfileIncludes } from "./container/setup/agent-includes.js";
+import { resolveAllProfileMcpConfigs } from "./container/setup/mcp-config.js";
+import { ComposeFileResolver } from "./container/setup/compose-files.js";
+import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
+import { ComposeClient } from "./container/compose-client.js";
 import type { JiraIssue } from "./jira/types.js";
 import type { ActiveTask, OrchestratorDeps } from "./orchestrator-types.js";
 
@@ -89,6 +90,12 @@ export class Orchestrator {
     resolveAllProfileIncludes();
     this.log("Resolved agent include markers");
 
+    await buildCustomMcpServers(this.deps.logger);
+    this.log("Built custom MCP servers");
+
+    resolveAllProfileMcpConfigs();
+    this.log("Resolved MCP server configs");
+
     this.deps.poller.start();
 
     if (this.deps.heartbeat) {
@@ -107,12 +114,7 @@ export class Orchestrator {
       this.warn(
         `Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`,
       );
-      await this.deps.jiraClient
-        .addComment(
-          issueKey,
-          OrchestratorComments.crashRecovery(operation.variant.split(":")[1]),
-        )
-        .catch((e) => this.log(`Failed to post crash-recovery comment on ${issueKey}: ${e}`));
+      await this.deps.issueManager.postCrashRecoveryComment(issueKey, operation.variant);
     }
 
     while (this.running) {
@@ -164,15 +166,32 @@ export class Orchestrator {
   }
 
   /**
-   * Execute a single pending operation: transition → agent → record result.
+   * Execute a single pending operation: validate → preflight → agent → record.
    *
-   * Re-validates the issue's current JIRA status before executing — if the
-   * status changed since planning, the operation is rejected.
+   * Each phase is a private method that returns `null` to signal abort.
+   * Abort paths handle their own ledger transitions, comments, and state emission.
    */
   private async executeOperation(
     issueKey: string,
     operation: Operation,
   ): Promise<void> {
+    const profile = this.resolveProfile(issueKey, operation);
+    if (!profile) return;
+
+    const issue = await this.refreshIssue(issueKey, operation);
+    if (!issue) return;
+
+    if (!this.validateStatusMatch(issue, profile, operation)) return;
+
+    if (profile.preflight) {
+      if (!await this.runPreflight(issue, profile, operation)) return;
+    }
+
+    await this.runTask(issue, profile, operation);
+  }
+
+  /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
+  private resolveProfile(issueKey: string, operation: Operation): AgentProfile | null {
     const profile = this.deps.config.profiles.find(
       (p) => p.variantKey === operation.variant,
     );
@@ -182,86 +201,79 @@ export class Orchestrator {
         reason: `Profile ${operation.variant} no longer exists`,
       });
       this.emitState();
-      return;
+      return null;
     }
+    return profile;
+  }
 
-    let issue: JiraIssue;
-    try {
-      const results = await this.deps.jiraClient.searchIssues(
-        `key = ${issueKey}`,
-        1,
-      );
-      if (results.length === 0) {
-        this.log(`Operation on ${issueKey} failed: issue not found in JIRA`);
-        this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
-          reason: "Issue not found in JIRA",
-        });
-        this.emitState();
-        return;
-      }
-      issue = results[0];
-    } catch (err) {
-      this.log(`Operation on ${issueKey} failed: ${err instanceof Error ? err.message : String(err)}`);
+  /** Re-fetch the issue from JIRA to get its current status. Returns `null` on failure or not found. */
+  private async refreshIssue(issueKey: string, operation: Operation): Promise<JiraIssue | null> {
+    const issue = await this.deps.issueManager.refreshIssue(issueKey);
+    if (!issue) {
+      this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
       this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
-        reason: `Failed to fetch issue: ${err instanceof Error ? err.message : String(err)}`,
+        reason: "Issue not found or unreachable in JIRA",
       });
       this.emitState();
-      return;
+      return null;
     }
+    return issue;
+  }
 
-    if (!this.deps.router.matchesProjectAndStatus(issue, profile)) {
-      this.log(
-        `Rejected ${issueKey}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
-      );
-      this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Rejected, {
-        reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
-      });
-      await this.deps.jiraClient
-        .addComment(
-          issueKey,
-          OrchestratorComments.staleStatus(
-            profile.displayName,
-            issue.fields.status.name,
-          ),
-        )
-        .catch((e) => this.log(`Failed to post stale-status comment on ${issueKey}: ${e}`));
-      this.emitState();
-      return;
-    }
+  /** Verify the issue's current status still matches the profile. Returns `false` if rejected. */
+  private validateStatusMatch(issue: JiraIssue, profile: AgentProfile, operation: Operation): boolean {
+    if (this.deps.router.matchesProjectAndStatus(issue, profile)) return true;
+    this.log(
+      `Rejected ${issue.key}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
+    );
+    this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Rejected, {
+      reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
+    });
+    this.deps.issueManager
+      .postStaleStatusComment(issue.key, profile.displayName, issue.fields.status.name);
+    this.emitState();
+    return false;
+  }
 
-    if (profile.preflight) {
-      const { buildPreflightContext, runPreflight } =
-        await import("./services/preflight.js");
-      const comments = await this.deps.jiraClient
-        .getComments(issueKey)
-        .catch(() => []);
-      const ctx = await buildPreflightContext(
-        this.deps.jiraClient,
-        issueKey,
-        comments,
-      );
-      const result = runPreflight(profile.preflight, issue, ctx);
-      if (!result.ok) {
-        const comment =
-          profile.failureComment ??
-          `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
-        this.deps.ledger.transition(
-          issueKey,
-          operation.id,
-          OperationStatus.Rejected,
-          {
-            reason: `preflight:${profile.preflight} — ${result.reason}`,
-          },
-        );
-        await this.deps.jiraClient.addComment(issueKey, comment)
-          .catch((e) => this.log(`Failed to post preflight comment on ${issueKey}: ${e}`));
-        this.log(
-          `Preflight failed for ${issue.key} (${profile.preflight}): ${result.reason}`,
-        );
-        return;
-      }
-    }
+  /** Run the profile's preflight check. Returns `false` if the check fails. */
+  private async runPreflight(
+    issue: JiraIssue,
+    profile: AgentProfile,
+    operation: Operation,
+  ): Promise<boolean> {
+    const { buildPreflightContext, runPreflight } =
+      await import("./services/preflight.js");
+    const comments = await this.deps.issueManager.getComments(issue.key);
+    const ctx = await buildPreflightContext(
+      this.deps.resources,
+      issue.key,
+      comments,
+    );
+    const result = runPreflight(profile.preflight!, issue, ctx);
+    if (result.ok) return true;
 
+    const comment =
+      profile.failureComment ??
+      `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
+    this.deps.ledger.transition(
+      issue.key,
+      operation.id,
+      OperationStatus.Rejected,
+      { reason: `preflight:${profile.preflight} — ${result.reason}` },
+    );
+    await this.deps.issueManager.postComment(issue.key, comment);
+    this.log(
+      `Preflight failed for ${issue.key} (${profile.preflight}): ${result.reason}`,
+    );
+    return false;
+  }
+
+  /** Execute the task runner, record completion/error, and handle teardown. */
+  private async runTask(
+    issue: JiraIssue,
+    profile: AgentProfile,
+    operation: Operation,
+  ): Promise<void> {
     this.activeTask = {
       issue,
       profile,
@@ -272,7 +284,7 @@ export class Orchestrator {
     this.log(
       `Picked up ${issue.key}: ${issue.fields.summary} (${operation.variant})`,
     );
-    this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Active);
+    this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Active);
 
     try {
       this.deps.activityLog.startTaskLog(issue.key);
@@ -294,7 +306,7 @@ export class Orchestrator {
       );
 
       this.deps.ledger.transition(
-        issueKey,
+        issue.key,
         operation.id,
         OperationStatus.Completed,
         {
@@ -303,9 +315,9 @@ export class Orchestrator {
       );
 
       if (result.status === TaskStatus.Completed || result.status === TaskStatus.Partial) {
-        await this.deps.taskRunner.transitionAfterAgent(issue.key, profile);
+        await this.deps.issueManager.transitionIssue(issue.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
       } else if (result.status === TaskStatus.Error || result.status === TaskStatus.Blocked) {
-        await this.deps.taskRunner.postErrorComment(
+        await this.deps.issueManager.postErrorComment(
           issue.key,
           result.stderr || `Agent finished with status: ${result.status}`,
         );
@@ -323,11 +335,11 @@ export class Orchestrator {
         completedAt: Date.now(),
       });
 
-      this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+      this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Error, {
         reason: errorMsg,
       });
 
-      await this.deps.taskRunner.postErrorComment(issue.key, errorMsg);
+      await this.deps.issueManager.postErrorComment(issue.key, errorMsg);
     } finally {
       this.deps.activityLog.endTaskLog();
       await this.teardownContainer(profile);
@@ -358,38 +370,29 @@ export class Orchestrator {
       }
     }
 
-    // Fallback: raw docker compose down using the profile's compose file + security overlay.
-    // Must inject the same env vars as ComposeClient — compose files reference
-    // TARGET_REPO_PATH, SHARED_HOOKS_PATH, etc. in volume mounts.
-    const composeFile = resolve(process.cwd(), profile.composeFile);
-    const securityOverlay = resolve(process.cwd(), "shared/security/docker-compose.security.yml");
+    await this.fallbackComposeDown(profile);
+  }
+
+  /**
+   * Raw `docker compose down` fallback — used when the container reference
+   * isn't available or graceful stop failed.
+   *
+   * Constructs a throwaway {@link ComposeClient} with the same multi-file merge
+   * and env injection as the normal container lifecycle, avoiding env duplication.
+   */
+  private async fallbackComposeDown(profile: AgentProfile): Promise<void> {
+    const composeFiles = new ComposeFileResolver().resolve(profile);
+
     const { secrets, jira } = this.deps.config;
+    const client = new ComposeClient(composeFiles, {
+      secrets,
+      jiraBaseUrl: jira.baseUrl,
+      jiraCloudId: jira.cloudId,
+      targetRepoPath: profile.repoPath,
+    });
+
     try {
-      await execa("docker", [
-        "compose",
-        "-f",
-        composeFile,
-        "-f",
-        securityOverlay,
-        "down",
-        "--volumes",
-        "--remove-orphans",
-      ], {
-        env: {
-          ...process.env as Record<string, string>,
-          TARGET_REPO_PATH: resolve(profile.repoPath),
-          SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
-          SQUID_CONF_PATH: resolve(process.cwd(), "shared/security/squid.conf"),
-          GH_TOKEN: secrets.ghToken,
-          ADO_PAT_DOCS: secrets.adoPatDocs,
-          ADO_PAT_XPERIENCE: secrets.adoPatXperience,
-          JIRA_PAT: secrets.jiraPat,
-          JIRA_EMAIL: secrets.jiraEmail,
-          JIRA_BASE_URL: jira.baseUrl,
-          JIRA_CLOUD_ID: jira.cloudId,
-          ANTHROPIC_API_KEY: secrets.anthropicApiKey,
-        },
-      });
+      await client.compose(["down", "--volumes", "--remove-orphans"]);
       this.log("Containers stopped (fallback)");
     } catch (err) {
       this.warn(

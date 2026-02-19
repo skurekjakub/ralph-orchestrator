@@ -1,0 +1,14 @@
+{
+  "name": "discord-hitl",
+  "description": "Discord-based human-in-the-loop — blocking questions, approvals, and notifications via Discord threads",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.mjs"],
+  "containerPath": "/workspace/.ralph/mcp-servers/discord-hitl",
+  "requiredEnv": ["DISCORD_BOT_TOKEN", "DISCORD_CHANNEL_ID"],
+  "optionalEnv": ["DISCORD_TASK_CONTEXT"],
+  "proxyDomains": [".discord.com", ".discord.gg"],
+  "tools": [
+    "discord_ask"
+  ]
+}

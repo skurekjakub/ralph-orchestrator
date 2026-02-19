@@ -35,39 +35,6 @@ npm install -g @github/copilot
 echo "📦 Installing Claude Code CLI..."
 npm install -g @anthropic-ai/claude-code
 
-# Pre-seed Copilot CLI config for headless/autonomous use
-COPILOT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.copilot}"
-mkdir -p "$COPILOT_CONFIG_DIR"
-
-# Trust the workspace directory so the interactive prompt is skipped
-if [ ! -f "$COPILOT_CONFIG_DIR/config.json" ]; then
-    cat > "$COPILOT_CONFIG_DIR/config.json" << 'COPILOT_CFG'
-{
-  "trusted_folders": ["/workspace"]
-}
-COPILOT_CFG
-    echo "✅ Copilot CLI config seeded (trusted /workspace)"
-fi
-
-# Register MCP servers for Copilot CLI
-if [ ! -f "$COPILOT_CONFIG_DIR/mcp-config.json" ]; then
-    cat > "$COPILOT_CONFIG_DIR/mcp-config.json" << 'MCP_CFG'
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
-    },
-    "ado": {
-      "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "KenticoCustomerSuccess", "--authentication", "envvar", "-d", "core", "repositories"]
-    }
-  }
-}
-MCP_CFG
-    echo "✅ MCP servers registered (Playwright, Azure DevOps)"
-fi
-
 # ── Azure DevOps CLI extension ────────────────────────────
 echo "📦 Installing Azure DevOps CLI extension..."
 if az extension list --query "[?name=='azure-devops'].name" -o tsv 2>/dev/null | grep -q 'azure-devops'; then

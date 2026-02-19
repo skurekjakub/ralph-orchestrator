@@ -6,7 +6,7 @@ import type { IssueContext } from "../../src/prompt/prompt.js";
 
 // ── Prompt building tests ────────────────────────────────
 // Tests the prompt construction logic that transforms JIRA issue fields
-// into a text prompt for the Copilot CLI agent.
+// into a text prompt for the agent CLI.
 
 describe("Prompt building", () => {
   it("builds basic prompt with key and summary", () => {

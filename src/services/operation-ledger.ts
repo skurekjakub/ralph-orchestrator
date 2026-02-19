@@ -46,6 +46,34 @@ interface LedgerFile {
   operations: Operation[];
 }
 
+/** Public contract for persistent operation tracking. */
+export interface IOperationLedger {
+  /** Register a callback invoked whenever a new pending operation is planned. */
+  onPending(callback: () => void): void;
+  /** Plan a new operation (record as `pending`). Returns the operation ID. */
+  plan(issueKey: string, opts: { variant: string; triggerCommentId: string; commentTimestamp: string }): string;
+  /** Reject a trigger comment immediately (no agent invocation). */
+  reject(issueKey: string, opts: { variant: string; triggerCommentId: string; commentTimestamp: string; reason: string }): void;
+  /** Transition an operation to a new status. */
+  transition(issueKey: string, operationId: string, to: OperationStatus, extra?: { reason?: string; resultStatus?: TaskStatus }): void;
+  /** Get all operations recorded for an issue. */
+  getOperations(issueKey: string): readonly Operation[];
+  /** Get all pending operations for an issue, sorted by comment timestamp. */
+  getPending(issueKey: string): readonly Operation[];
+  /** Get the active operation for an issue (at most one). */
+  getActive(issueKey: string): Operation | undefined;
+  /** Check if a specific trigger comment has already been consumed by a variant. */
+  isConsumed(issueKey: string, variant: string, triggerCommentId: string): boolean;
+  /** Get all consumed trigger comment IDs for a variant on an issue. */
+  getConsumedTriggerIds(issueKey: string, variant: string): Set<string>;
+  /** Check if any operation on this issue is active or pending. */
+  hasPendingOrActive(issueKey: string): boolean;
+  /** Crash recovery: find all active operations and mark them as `error`. */
+  recoverActiveOperations(): Array<{ issueKey: string; operation: Operation }>;
+  /** Get all pending operations across all issue ledgers, sorted by comment timestamp. */
+  getAllPending(): Array<{ issueKey: string; operation: Operation }>;
+}
+
 /**
  * Persistent per-issue operation history.
  *
@@ -66,7 +94,7 @@ interface LedgerFile {
  *
  * Writes are atomic (write to temp file, then rename) to avoid corruption.
  */
-export class OperationLedger {
+export class OperationLedger implements IOperationLedger {
   private pendingCallback: (() => void) | null = null;
 
   constructor(private historyDir: string) {

@@ -25,8 +25,8 @@ const VALID_PROFILE = JSON.stringify({
     {
       agent: "ralph",
       match: { projects: ["DF"], commentTrigger: "@ralph" },
-      beforeAgent: { transitionId: "141" },
-      afterAgent: { transitionId: "91" },
+      beforeAgent: { targetStatus: "In Progress" },
+      afterAgent: { targetStatus: "Ready for Review" },
     },
   ],
 });
@@ -143,7 +143,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "~/repositories/test",
-      variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } }],
+      variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } }],
     }));
 
     const config = loadConfig();
@@ -175,8 +175,8 @@ describe("loadConfig", () => {
     stubProfiles(JSON.stringify({
       repo: "/tmp/test",
       variants: [
-        { agent: "ralph.docs", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } },
-        { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@Ralph" }, beforeAgent: { transitionId: "1" }, afterAgent: { transitionId: "2" } },
+        { agent: "ralph.docs", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@Ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
       ],
     }));
 

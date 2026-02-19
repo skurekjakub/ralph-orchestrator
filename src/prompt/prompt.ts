@@ -36,7 +36,7 @@ export interface PromptWithSections {
 }
 
 /**
- * Build the Copilot CLI prompt from a JIRA issue and return both the prompt
+ * Build the CLI prompt from a JIRA issue and return both the prompt
  * string and labelled sections for prompt-injection auditing.
  *
  * Untrusted content (description, custom fields, comments, handoff) is wrapped
@@ -133,7 +133,7 @@ export function buildPromptWithSections(
 }
 
 /**
- * Build the Copilot CLI prompt from a JIRA issue.
+ * Build the CLI prompt from a JIRA issue.
  *
  * Includes: key, summary, description (ADF serialized as JSON), labels,
  * components, priority, and named custom fields.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { JiraFieldExtractor } from "../../src/jira/field-extractor.js";
 import { extractAdfText } from "../../src/jira/adf-converter.js";
-import { makeIssue } from "../helpers.js";
+import { makeIssue } from "../helpers/factories.js";
 
 const extractor = new JiraFieldExtractor();
 

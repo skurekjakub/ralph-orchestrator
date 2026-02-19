@@ -73,14 +73,15 @@ All other domains are blocked. Squid access logs (allowed + denied) are collecte
 | Resource limits | Memory: 8G, CPU: 4, PIDs: 500 | Prevents resource exhaustion attacks |
 | User-writable npm prefix | `~/.npm-global` set via `NPM_CONFIG_PREFIX` | Allows `npm install -g` without root |
 
-### Two-File Compose Pattern
+### Compose Merge Pattern
 
-Security is applied via a **compose file merge**:
+Security is applied via a **compose file merge** (up to three files):
 
 1. **Base:** `profiles/<id>/docker-compose.yml` — services, volumes, build config
-2. **Overlay:** `shared/security/docker-compose.security.yml` — Squid sidecar, networks, limits, hardening
+2. **Security overlay:** `shared/security/docker-compose.security.yml` — Squid sidecar, networks, limits, hardening
+3. **Resources overlay:** `profiles/<id>/agents/.build/docker-compose.overlay.yml` — MCP server mounts, env var passthrough, resource file mounts (auto-generated at startup, only included if present)
 
-`ComposeClient` automatically injects both files for every command. The overlay adds:
+`ComposeClient` automatically injects all applicable files for every command. The security overlay adds:
 
 - `egress-proxy` service (Squid on both internal and external networks)
 - `ralph-internal` network (`internal: true`) — agent's only network

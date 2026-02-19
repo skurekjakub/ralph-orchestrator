@@ -3,13 +3,25 @@ import { join } from "node:path";
 import type { AppConfig } from "../config.js";
 import type { RalphResult } from "../container/types.js";
 
+/** Public contract for execution summary persistence. */
+export interface ILogCollector {
+  /**
+   * Save a JSON execution summary for a completed task.
+   *
+   * @param result The Ralph execution result to persist.
+   * @param activityLogPath Optional path to the session's activity JSONL file.
+   * @returns Absolute path to the saved summary file.
+   */
+  saveExecutionSummary(result: RalphResult, activityLogPath?: string): string;
+}
+
 /**
  * Saves execution summaries and manages the output directory structure.
  *
  * Creates the log and handoff directories on instantiation.
  * Each execution produces a `<key>-<timestamp>-summary.json` file.
  */
-export class LogCollector {
+export class LogCollector implements ILogCollector {
   /** @param config Output directory paths. */
   constructor(private config: AppConfig["output"]) {
     mkdirSync(this.config.logDir, { recursive: true });

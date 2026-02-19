@@ -1,20 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraPoller } from "../../src/jira/poller.js";
-import type { JiraClient } from "../../src/jira/client.js";
 import type { JiraConfig } from "../../src/config.js";
 import type { JiraIssue } from "../../src/jira/types.js";
-import { makeIssue } from "../helpers.js";
+import { makeIssue } from "../helpers/factories.js";
+import { createMockJiraClient } from "../helpers/mocks.js";
 
 describe("JiraPoller", () => {
-  let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
+  let mockClient: ReturnType<typeof createMockJiraClient>;
   let config: JiraConfig;
 
   beforeEach(() => {
     vi.useFakeTimers();
 
-    mockClient = {
-      searchIssues: vi.fn().mockResolvedValue([]),
-    };
+    mockClient = createMockJiraClient();
 
     config = {
       baseUrl: "https://api.atlassian.com/ex/jira",
@@ -31,7 +29,7 @@ describe("JiraPoller", () => {
   it("polls immediately on start", async () => {
     mockClient.searchIssues.mockResolvedValue([makeIssue("DF-1")]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -44,7 +42,7 @@ describe("JiraPoller", () => {
   it("buffer is empty when no issues found", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -56,7 +54,7 @@ describe("JiraPoller", () => {
   it("polls on interval", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
 
     await vi.advanceTimersByTimeAsync(0);
@@ -74,7 +72,7 @@ describe("JiraPoller", () => {
   it("stops polling after stop()", async () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
 
     await vi.advanceTimersByTimeAsync(0);
@@ -90,7 +88,7 @@ describe("JiraPoller", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockClient.searchIssues.mockRejectedValue(new Error("network error"));
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -116,7 +114,7 @@ describe("JiraPoller", () => {
       .mockResolvedValueOnce([newer])
       .mockResolvedValueOnce([older]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -128,7 +126,7 @@ describe("JiraPoller", () => {
   it("drain clears the buffer", async () => {
     mockClient.searchIssues.mockResolvedValue([makeIssue("DF-1")]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
@@ -143,7 +141,7 @@ describe("JiraPoller", () => {
       .mockResolvedValueOnce([makeIssue("DF-1")])
       .mockResolvedValueOnce([makeIssue("DF-2")]);
 
-    const poller = new JiraPoller(mockClient as unknown as JiraClient, config);
+    const poller = new JiraPoller(mockClient, config);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(1000);

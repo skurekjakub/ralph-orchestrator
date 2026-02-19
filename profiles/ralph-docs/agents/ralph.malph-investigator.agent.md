@@ -2,7 +2,7 @@
 description: 'Review verification sub-agent — checks technical claims in PR diffs against the Xperience source code'
 model: Claude Opus 4.6 (copilot)
 name: 'malph-investigator'
-user-invokable: false
+user-invocable: false
 ---
 
 # Malph Investigator — Source Code Verification Agent
@@ -41,15 +41,20 @@ You receive a list of technical claims from Malph (the reviewer). Your job:
 
 ## Output Format
 
+For every source code reference, include a navigable URL to the Xperience source browser. URL format:
+`https://app-xbyk-source-prod.azurewebsites.net/#<FullyQualifiedTypeName>,<LineNumber>`
+
 ```markdown
 ## Verification Report
 
 ### Verified ✅
 - `Namespace.ClassName.Method()` — accurately documented
+  Source: [ReusableFieldSchemaValidator.cs:45](https://app-xbyk-source-prod.azurewebsites.net/#CMS.ContentEngine/ContentTypes/ReusableFieldSchemaValidator.cs,45)
 - <other verified claims>
 
 ### Discrepancies ⚠️
-- **<claim from diff>** — Source shows `<actual>` (at `<file path>`). The documentation says `<what it says>`.
+- **<claim from diff>** — Source shows `<actual>`. The documentation says `<what it says>`.
+  Source: [ClassName.cs:120](https://app-xbyk-source-prod.azurewebsites.net/#Namespace/ClassName.cs,120)
 - <other discrepancies with evidence>
 
 ### Could Not Verify ❓

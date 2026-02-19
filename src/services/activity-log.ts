@@ -12,6 +12,26 @@ function formatLine(entry: LogEntry): string {
   return `${time} [${tag}] ${entry.message}`;
 }
 
+/** Public contract for the activity log ring buffer and persistence layer. */
+export interface IActivityLog {
+  /** Subscribe to changes (called after every log entry). */
+  onLogChange(callback: () => void): void;
+  /** Build a Logger facade that routes all messages through this ActivityLog. */
+  createLogger(): Logger;
+  /** Build a Logger facade that tags entries with `source: "container"`. */
+  createContainerLogger(): Logger;
+  /** Start streaming container log entries to a per-task file. */
+  startTaskLog(issueKey: string): string;
+  /** Stop streaming to the per-task file. */
+  endTaskLog(): void;
+  /** Push a log entry to the ring buffer, persist to daily log, and stream to per-task file. */
+  push(level: LogEntry["level"], message: string, source?: LogEntry["source"]): void;
+  /** Read-only snapshot of the ring buffer. */
+  readonly entries: readonly LogEntry[];
+  /** Path to the current session's activity JSONL file. */
+  readonly activityFilePath: string;
+}
+
 /**
  * Manages the in-memory log ring buffer and persistent activity log on disk.
  *
@@ -20,7 +40,7 @@ function formatLine(entry: LogEntry): string {
  * 2. Appended to `output/logs/activity-YYYY-MM-DD.log` (never truncated)
  * 3. Emitted via the optional `onChange` callback (for Ink dashboard re-renders)
  */
-export class ActivityLog {
+export class ActivityLog implements IActivityLog {
   private buffer: LogEntry[] = [];
   private filePath: string;
   private containerFilePath: string;

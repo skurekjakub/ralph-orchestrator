@@ -1,4 +1,4 @@
-import type { JiraClient } from "../jira/client.js";
+import type { IResourceManager } from "./task-resource-manager.js";
 import type { JiraComment, JiraIssue } from "../jira/types.js";
 import { extractAdfText } from "../jira/adf-converter.js";
 
@@ -46,24 +46,11 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
  * phase — pass it in to avoid a redundant JIRA call.
  */
 export async function buildPreflightContext(
-  jira: JiraClient,
+  resources: IResourceManager,
   issueKey: string,
   comments: JiraComment[],
 ): Promise<PreflightContext> {
-  let handoffContent: string | null = null;
-
-  try {
-    const attachments = await jira.getAttachments(issueKey);
-    const handoff = attachments
-      .filter((a) => a.filename.toLowerCase().includes("handoff"))
-      .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())[0];
-
-    if (handoff) {
-      handoffContent = await jira.downloadAttachment(handoff.content);
-    }
-  } catch {
-    // Attachment fetch failed — proceed with null handoff
-  }
+  const handoffContent = await resources.fetchHandoff(issueKey);
 
   return {
     comments,

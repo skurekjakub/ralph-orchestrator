@@ -2,7 +2,7 @@
 description: 'Analyzes JIRA issues and suggests implementation paths for the Kentico Docs VS Code extension.'
 model: Claude Sonnet 4.5 (copilot)
 name: 'ralph-analyst'
-user-invokable: false
+user-invocable: false
 ---
 
 # Ralph Analyst — Implementation Path Advisor

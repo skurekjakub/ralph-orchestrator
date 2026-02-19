@@ -4,12 +4,19 @@ import type { RalphResult, ContainerManagerFactory } from "../container/types.js
 import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
-import { extractAdfText } from "../jira/adf-converter.js";
-import { JiraClient } from "../jira/client.js";
-import type { ContainerManager } from "../container/manager.js";
-import { LogCollector } from "../logs/collector.js";
-import { withRetry } from "../retry.js";
-import { OrchestratorComments } from "./orchestrator-comments.js";
+import type { IContainerManager } from "../container/manager.js";
+import type { ILogCollector } from "../logs/collector.js";
+import type { IResourceManager } from "./task-resource-manager.js";
+import type { IIssueManager } from "./jira-issue-manager.js";
+import { TransitionPhase } from "../orchestrator-types.js";
+
+/** Public contract for the task execution pipeline. */
+export interface ITaskRunner {
+  /** Optional callback invoked for each real-time tool output line from the container. */
+  onToolOutput?: (line: string) => void;
+  /** Run the full pipeline for a single issue + profile combination. */
+  run(issue: JiraIssue, profile: AgentProfile): Promise<{ result: RalphResult; container: IContainerManager }>;
+}
 
 /**
  * Processes a single JIRA issue end-to-end:
@@ -17,7 +24,7 @@ import { OrchestratorComments } from "./orchestrator-comments.js";
  * 1. Transition to "In Progress" + post start comment
  * 2. Start the containers for the matched profile
  * 3. Execute the agent inside the container
- * 4. Save copilot output + collect audit logs
+ * 4. Save CLI output + collect audit logs
  * 5. Save execution summary
  *
  * Also provides lifecycle helpers called by the Orchestrator after `run()` completes:
@@ -26,12 +33,13 @@ import { OrchestratorComments } from "./orchestrator-comments.js";
  *
  * This is a stateless service — all per-task state is scoped to the `run()` call.
  */
-export class TaskRunner {
+export class TaskRunner implements ITaskRunner {
   constructor(
-    private readonly jiraClient: JiraClient,
-    private readonly logCollector: LogCollector,
+    private readonly logCollector: ILogCollector,
     private readonly logger: Logger,
     private readonly containerFactory: ContainerManagerFactory,
+    private readonly resources: IResourceManager,
+    private readonly issueManager: IIssueManager,
   ) {}
 
   /** Optional callback invoked for each real-time tool output line from the container. */
@@ -46,57 +54,15 @@ export class TaskRunner {
   async run(
     issue: JiraIssue,
     profile: AgentProfile,
-  ): Promise<{ result: RalphResult; container: ContainerManager }> {
+  ): Promise<{ result: RalphResult; container: IContainerManager }> {
     const container = this.containerFactory.create(profile);
     if (this.onToolOutput) {
       container.onToolOutput = this.onToolOutput;
     }
 
     try {
-      const beforeTransitionId = profile.beforeAgent?.transitionId;
-
-      if (beforeTransitionId) {
-        this.logger.info(
-          `Transitioning ${issue.key} (beforeAgent, id=${beforeTransitionId})...`
-        );
-        await withRetry(
-          () =>
-            this.jiraClient.transitionIssue(
-              issue.key,
-              beforeTransitionId
-            ),
-          `transition ${issue.key}`,
-          this.logger,
-        )
-          .then(() =>
-            this.logger.info(`${issue.key} transitioned (beforeAgent)`)
-          )
-          .catch((err) => {
-            this.logger.warn(
-              `Failed to transition ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`
-            );
-          });
-      }
-
-      this.logger.info(`Posting start comment on ${issue.key}...`);
-      const startMessage = OrchestratorComments.start(profile.displayName, profile.id);
-      await withRetry(
-        () =>
-          this.jiraClient.addComment(
-            issue.key,
-            startMessage
-          ),
-        `comment on ${issue.key}`,
-        this.logger,
-      )
-        .then(() =>
-          this.logger.info(`Start comment posted on ${issue.key}`)
-        )
-        .catch((err) => {
-          this.logger.warn(
-            `Failed to comment on ${issue.key} after retries: ${err instanceof Error ? err.message : String(err)}`
-          );
-        });
+      await this.issueManager.transitionIssue(issue.key, profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
+      await this.issueManager.postStartComment(issue.key, profile.displayName, profile.id);
 
       await container.start();
 
@@ -116,7 +82,7 @@ export class TaskRunner {
       await container.setup();
 
       this.logger.info(`Fetching JIRA comments for ${issue.key}...`);
-      const comments = await this.fetchComments(issue.key);
+      const comments = await this.resources.fetchComments(issue.key);
       this.logger.info(`Found ${comments.length} comments on ${issue.key}`);
 
       const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
@@ -128,7 +94,7 @@ export class TaskRunner {
       let handoffContent: string | null = null;
       if (isRevision) {
         this.logger.info(`Issue is in revision status ("${issue.fields.status?.name}") — fetching handoff...`);
-        handoffContent = await this.fetchHandoff(issue.key);
+        handoffContent = await this.resources.fetchHandoff(issue.key);
         this.logger.info(
           `Handoff context: ${handoffContent ? "found" : "not found"}`
         );
@@ -167,7 +133,7 @@ export class TaskRunner {
 
       const transcriptPath = result.collectedLogs["transcript"];
       if (transcriptPath) {
-        await this.attachTranscript(issue.key, transcriptPath, profile.agentName);
+        await this.resources.attachTranscript(issue.key, transcriptPath, profile.agentName);
       }
 
       this.logCollector.saveExecutionSummary(result);
@@ -200,118 +166,4 @@ export class TaskRunner {
     }
   }
 
-  /** Post an error comment to JIRA when a task fails. */
-  async postErrorComment(issueKey: string, error: string): Promise<void> {
-    const message = OrchestratorComments.error(error);
-
-    try {
-      await withRetry(
-        () => this.jiraClient.addComment(issueKey, message),
-        `error comment on ${issueKey}`,
-        this.logger,
-      );
-      this.logger.info(`Error comment posted on ${issueKey}`);
-    } catch (err) {
-      this.logger.warn(
-        `Failed to post error comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-  }
-
-  /** Execute the afterAgent transition (if configured). */
-  async transitionAfterAgent(issueKey: string, profile: AgentProfile): Promise<void> {
-    const afterTransitionId = profile.afterAgent?.transitionId;
-    if (!afterTransitionId) return;
-
-    this.logger.info(`Transitioning ${issueKey} (afterAgent, id=${afterTransitionId})...`);
-    try {
-      await withRetry(
-        () =>
-          this.jiraClient.transitionIssue(
-            issueKey,
-            afterTransitionId
-          ),
-        `transition ${issueKey} (afterAgent)`,
-        this.logger,
-      );
-      this.logger.info(`${issueKey} transitioned (afterAgent)`);
-    } catch (err) {
-      this.logger.warn(
-        `Failed to transition ${issueKey} (afterAgent): ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-  }
-
-  /**
-   * Fetch and format all JIRA comments for an issue.
-   *
-   * Comment bodies are extracted from ADF to plain text.
-   */
-  private async fetchComments(issueKey: string): Promise<string[]> {
-    const comments = await this.jiraClient.getComments(issueKey).catch((err) => {
-      this.logger.warn(
-        `Failed to fetch comments for ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
-      );
-      return [];
-    });
-
-    return comments.map((c) => {
-      const bodyText = typeof c.body === "string"
-        ? c.body
-        : extractAdfText(c.body);
-      return `[${c.created}] ${c.author.displayName}:\n${bodyText.trim()}`;
-    });
-  }
-
-  /**
-   * Download the most recent `handoff.md` attachment for a revision task.
-   */
-  private async fetchHandoff(issueKey: string): Promise<string | null> {
-    const attachments = await this.jiraClient.getAttachments(issueKey).catch((err) => {
-      this.logger.warn(
-        `Failed to fetch attachments for ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
-      );
-      return [];
-    });
-
-    const handoffAttachments = attachments
-      .filter((a) => a.filename === "handoff.md")
-      .sort((a, b) => b.created.localeCompare(a.created));
-
-    if (handoffAttachments.length === 0) return null;
-
-    try {
-      return await this.jiraClient.downloadAttachment(
-        handoffAttachments[0].content
-      );
-    } catch (err) {
-      this.logger.warn(
-        `Failed to download handoff.md: ${err instanceof Error ? err.message : String(err)}`
-      );
-      return null;
-    }
-  }
-
-  /** Attach the session transcript to JIRA with variant name and date. */
-  private async attachTranscript(issueKey: string, localPath: string, variantName: string): Promise<void> {
-    try {
-      const { readFileSync } = await import("node:fs");
-      const content = readFileSync(localPath, "utf-8");
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, "0");
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const yyyy = now.getFullYear();
-      const filename = `session-transcript-${variantName}-${dd}-${mm}-${yyyy}.md`;
-      await withRetry(
-        () => this.jiraClient.addAttachment(issueKey, filename, content),
-        `attach transcript to ${issueKey}`,
-        this.logger,
-      );
-      this.logger.info(`Session transcript attached to ${issueKey}`);
-    } catch (err) {
-      this.logger.warn(
-        `Failed to attach transcript to ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-  }
 }

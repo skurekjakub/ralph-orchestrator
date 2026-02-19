@@ -59,6 +59,18 @@ export interface JiraCommentResponse {
   total: number;
 }
 
+/** A single JIRA workflow transition available for an issue in its current status. */
+export interface JiraTransition {
+  id: string;
+  name: string;
+  to: { name: string };
+}
+
+/** Response shape for `GET /rest/api/3/issue/{key}/transitions`. */
+export interface JiraTransitionsResponse {
+  transitions: JiraTransition[];
+}
+
 /** A single JIRA attachment from the issue's `fields.attachment` array. */
 export interface JiraAttachment {
   id: string;

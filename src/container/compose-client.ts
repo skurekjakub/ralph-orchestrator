@@ -1,4 +1,4 @@
-import { execa } from "execa";
+import { execa, type ResultPromise } from "execa";
 import { resolve } from "node:path";
 import type { SecretsConfig } from "../config.js";
 
@@ -13,20 +13,34 @@ export interface ComposeEnvConfig {
   targetRepoPath: string;
 }
 
+/** Public contract for Docker Compose process spawning. */
+export interface IComposeClient {
+  /** Run `docker compose -f <file...> <args>`. */
+  compose(args: string[]): ResultPromise;
+  /** Run `docker compose -f <file...> exec <args>`. */
+  exec(args: string[]): ResultPromise;
+  /** Run `docker compose exec` with a timeout. */
+  execWithTimeout(args: string[], timeoutMs: number): ResultPromise;
+  /** Verify that the Docker daemon is reachable. */
+  checkDocker(): Promise<void>;
+  /** Find the container ID by compose project label. */
+  getContainerName(projectLabel: string, service: string): Promise<string>;
+}
+
 /**
  * Low-level Docker Compose wrapper.
  *
  * All `docker compose` invocations go through this class, which handles:
- * - Compose file path resolution (base + security overlay)
+ * - Compose file path resolution (base + security + resources overlay)
  * - Environment variable injection (secrets, JIRA config) into the compose process
  * - The `compose` / `exec` / `down` primitives
  *
  * Does **not** contain any business logic — just process spawning.
  */
-export class ComposeClient {
+export class ComposeClient implements IComposeClient {
   /** Environment variables passed to all `docker compose` commands. */
   private readonly env: Record<string, string>;
-  /** Compose file `-f` args: ["-f", "base.yml", "-f", "security.yml"]. */
+  /** Compose file `-f` args: ["-f", "base.yml", "-f", "security.yml", "-f", "overlay.yml", ...]. */
   private readonly fileArgs: string[];
 
   constructor(
@@ -50,6 +64,8 @@ export class ComposeClient {
       JIRA_BASE_URL: envConfig.jiraBaseUrl,
       JIRA_CLOUD_ID: envConfig.jiraCloudId,
       ANTHROPIC_API_KEY: envConfig.secrets.anthropicApiKey,
+      DISCORD_BOT_TOKEN: envConfig.secrets.discordBotToken ?? "",
+      DISCORD_CHANNEL_ID: envConfig.secrets.discordChannelId ?? "",
       CLAUDE_CODE_DISABLE_AUTOUPDATER: "1",
       CLAUDE_CODE_DISABLE_COST_WARNINGS: "1",
     };

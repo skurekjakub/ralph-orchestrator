@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
+import { discoverMcpServers } from "../container/setup/mcp-config.js";
 import type { ValidationCollector } from "./types.js";
 
 export function validateProfiles({ errors, warnings }: ValidationCollector): void {
@@ -134,6 +135,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     }
 
     validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);
+    validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors, warnings);
   }
 
   validateTriggerUniqueness(allVariants, errors);
@@ -178,13 +180,55 @@ export interface VariantTriggerInfo {
 }
 
 /**
- * Verify that no two variants with overlapping projects share a comment
- * trigger where one is a case-insensitive substring of the other.
+ * Validate that all MCP servers referenced by a profile exist in shared/mcp-servers/.
+ */
+function validateMcpServers(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
+  profile: any,
+  mcpServersDir: string,
+  prefix: string,
+  errors: string[],
+  warnings: string[],
+): void {
+  const mcpServers: string[] = profile.mcpServers ?? [];
+  if (mcpServers.length === 0) return;
+
+  const available = discoverMcpServers(mcpServersDir);
+
+  for (const serverName of mcpServers) {
+    if (!available.includes(serverName)) {
+      errors.push(
+        `${prefix}: MCP server "${serverName}" not found in shared/mcp-servers/\n` +
+        `  Available servers: ${available.length > 0 ? available.join(", ") : "(none)"}\n` +
+        `  Create shared/mcp-servers/${serverName}/mcp-server.json`
+      );
+    } else {
+      const manifestPath = join(mcpServersDir, serverName, "mcp-server.json");
+      try {
+        const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+        if (manifest.requiredEnv) {
+          for (const envVar of manifest.requiredEnv) {
+            if (!process.env[envVar]) {
+              warnings.push(
+                `${prefix}: MCP server "${serverName}" requires env var ${envVar} (not currently set)`
+              );
+            }
+          }
+        }
+      } catch {
+        // manifest parse error — will be caught by the MCP config generator
+      }
+    }
+  }
+}
+
+/**
+ * Verify that no two variants with overlapping projects share an identical
+ * comment trigger (case-insensitive).
  *
- * The trigger scanner uses `text.includes(trigger)` (case-insensitive),
- * so a comment containing `@Malph` would match both `@Malph` and `@Mal`.
- * If two variants with overlapping projects have such triggers, a single
- * comment would schedule both — which is almost certainly a config mistake.
+ * The trigger scanner uses word-boundary matching, so `@Ralph` does NOT
+ * match inside `@RalphAutocomplete`. Only exact (case-insensitive) trigger
+ * collisions on overlapping projects are flagged.
  */
 export function validateTriggerUniqueness(
   variants: readonly VariantTriggerInfo[],
@@ -198,10 +242,7 @@ export function validateTriggerUniqueness(
       const sharedProjects = a.projects.filter((p) => b.projects.includes(p));
       if (sharedProjects.length === 0) continue;
 
-      const aLower = a.trigger.toLowerCase();
-      const bLower = b.trigger.toLowerCase();
-
-      if (aLower.includes(bLower) || bLower.includes(aLower)) {
+      if (a.trigger.toLowerCase() === b.trigger.toLowerCase()) {
         const aLabel = `profiles/${a.profileId}/variants[${a.variantIndex}]`;
         const bLabel = `profiles/${b.profileId}/variants[${b.variantIndex}]`;
         errors.push(

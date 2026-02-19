@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { withRetry, sleep } from "../src/retry.js";
-import { createMockLogger } from "./helpers.js";
+import { createMockLogger } from "./helpers/mocks.js";
 
 describe("withRetry", () => {
   it("returns result on first success", async () => {
@@ -15,7 +15,7 @@ describe("withRetry", () => {
       .fn()
       .mockRejectedValueOnce(new Error("fail-1"))
       .mockResolvedValue("ok");
-    const result = await withRetry(fn, "test", undefined, 3, 10);
+    const result = await withRetry(fn, "test", undefined, { attempts: 3, delayMs: 1 });
     expect(result).toBe("ok");
     expect(fn).toHaveBeenCalledTimes(2);
   });
@@ -23,7 +23,7 @@ describe("withRetry", () => {
   it("throws after all attempts exhausted", async () => {
     const fn = vi.fn().mockRejectedValue(new Error("always fails"));
     await expect(
-      withRetry(fn, "test", undefined, 2, 10),
+      withRetry(fn, "test", undefined, { attempts: 2, delayMs: 1 }),
     ).rejects.toThrow("always fails");
     expect(fn).toHaveBeenCalledTimes(2);
   });
@@ -35,7 +35,7 @@ describe("withRetry", () => {
       .mockRejectedValueOnce(new Error("oops"))
       .mockResolvedValue("ok");
 
-    await withRetry(fn, "my-op", logger, 3, 10);
+    await withRetry(fn, "my-op", logger, { attempts: 3, delayMs: 1 });
 
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining("my-op failed (attempt 1/3)"),

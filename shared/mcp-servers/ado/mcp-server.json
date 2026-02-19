@@ -1,0 +1,15 @@
+{
+  "name": "ado",
+  "description": "Azure DevOps MCP — repositories, pull requests, work items",
+  "type": "npm",
+  "command": "npx",
+  "args": ["-y", "@azure-devops/mcp", "KenticoCustomerSuccess", "--authentication", "envvar", "-d", "core", "repositories"],
+  "tools": [
+    "get_repositories",
+    "get_pull_requests",
+    "create_pull_request",
+    "get_pull_request_threads",
+    "create_thread",
+    "get_work_items"
+  ]
+}

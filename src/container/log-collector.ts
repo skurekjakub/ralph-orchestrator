@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
-import type { ComposeClient } from "./compose-client.js";
+import type { IComposeClient } from "./compose-client.js";
 import type { Logger } from "../logger.js";
 
 /** How a log source should be captured. */
@@ -59,7 +59,7 @@ export class ContainerLogCollector {
    * @param logger   Logger for status messages.
    */
   constructor(
-    private readonly compose: ComposeClient,
+    private readonly compose: IComposeClient,
     private readonly logDir: string,
     private readonly logger: Logger,
   ) {

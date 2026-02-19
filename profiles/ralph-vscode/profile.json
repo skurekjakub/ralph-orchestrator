@@ -2,6 +2,10 @@
   "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
   "cli": "copilot",
   "timeoutMs": 7200000,
+  "mcpServers": [],
+  "resources": {
+    "mountBase": "resources/ralph-resources"
+  },
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -11,8 +15,8 @@
         "commentTrigger": "@RalphAutocomplete",
         "revisionStatuses": ["Defect Found"]
       },
-      "beforeAgent": { "transitionId": "51" },
-      "afterAgent": { "transitionId": "91" }
+      "beforeAgent": { "targetStatus": "In Progress" },
+      "afterAgent": { "targetStatus": "Ready for Review" }
     },
     {
       "agent": "ralph.malph",

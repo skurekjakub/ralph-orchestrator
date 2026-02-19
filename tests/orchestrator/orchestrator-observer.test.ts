@@ -5,6 +5,7 @@ import type { CompletedTask, LogEntry } from "../../src/orchestrator-types.js";
 import { OrchestratorStatus, LogLevel, LogSource } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
+import { makeIssue, makeProfile } from "../helpers/factories.js";
 
 function makeContext(overrides: Partial<ObservableContext> = {}): ObservableContext {
   return {
@@ -17,17 +18,9 @@ function makeContext(overrides: Partial<ObservableContext> = {}): ObservableCont
   };
 }
 
-const fakeIssue = {
-  key: "DOC-100",
-  fields: {
-    summary: "Test issue",
-    status: { name: "Open" },
-    issuetype: { name: "Task" },
-  },
-} as ObservableContext["activeTask"] extends infer T
-  ? T extends { issue: infer I } ? I : never : never;
+const fakeIssue = makeIssue("DOC-100", "Test issue");
 
-const fakeProfile = { id: "ralph-docs", agentName: "ralph" } as any;
+const fakeProfile = makeProfile({ id: "ralph-docs", agentName: "ralph" });
 
 function makeActiveTask(startedAt = 1000) {
   return { issue: fakeIssue, profile: fakeProfile, container: null, startedAt };
@@ -63,7 +56,7 @@ describe("OrchestratorObserver", () => {
       const state = observer.getState();
       expect(state.status).toBe(OrchestratorStatus.Working);
       expect(state.currentIssue).toEqual({ key: "DOC-100", summary: "Test issue" });
-      expect(state.currentProfile).toBe("ralph-docs");
+      expect(state.currentProfile).toBe("ralph-docs:ralph:@ralph");
       expect(state.startedAt).toBe(42000);
     });
 

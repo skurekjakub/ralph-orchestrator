@@ -11,7 +11,9 @@ the ralphchives
     - fuzzy search (+ eventually RAG)
     - create thread
     - reply to thread
-need to solve unified artifact handling pipeline first
+
+squid.conf - needs to be dynamically including like discord domain as well - security hardening
+
 
 the over-ralph
 - impleemntation roadmap breakdown for large fuzzy tasks

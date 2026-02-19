@@ -1,0 +1,15 @@
+{
+  "name": "playwright",
+  "description": "Browser automation via Playwright — navigate, screenshot, interact with web pages",
+  "type": "npm",
+  "command": "npx",
+  "args": ["-y", "@playwright/mcp@latest"],
+  "tools": [
+    "playwright_navigate",
+    "playwright_screenshot",
+    "playwright_click",
+    "playwright_fill",
+    "playwright_evaluate",
+    "playwright_get_text"
+  ]
+}

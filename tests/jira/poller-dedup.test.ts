@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraPoller } from "../../src/jira/poller.js";
-import type { JiraClient } from "../../src/jira/client.js";
 import type { JiraConfig } from "../../src/config.js";
 import type { JiraIssue } from "../../src/jira/types.js";
-import { makeIssue, createMockLogger } from "../helpers.js";
+import { makeIssue } from "../helpers/factories.js";
+import { createMockLogger, createMockJiraClient } from "../helpers/mocks.js";
 
 describe("JiraPoller multi-JQL deduplication", () => {
-  let mockClient: { searchIssues: ReturnType<typeof vi.fn> };
+  let mockClient: ReturnType<typeof createMockJiraClient>;
   let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    mockClient = { searchIssues: vi.fn() };
+    mockClient = createMockJiraClient();
     mockLogger = createMockLogger();
   });
 
@@ -33,7 +33,7 @@ describe("JiraPoller multi-JQL deduplication", () => {
       .mockResolvedValueOnce([makeIssue("DF-1"), makeIssue("DF-2")]);
 
     const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
+      mockClient,
       config,
       mockLogger
     );
@@ -62,7 +62,7 @@ describe("JiraPoller multi-JQL deduplication", () => {
     mockClient.searchIssues.mockResolvedValue([]);
 
     const poller = new JiraPoller(
-      mockClient as unknown as JiraClient,
+      mockClient,
       config,
       mockLogger
     );

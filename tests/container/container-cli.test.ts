@@ -12,19 +12,19 @@ async function readSource(relPath: string): Promise<string> {
 
 describe("Copilot CLI args", () => {
   it("includes --model with configurable default", async () => {
-    const source = await readSource("../../src/container/copilot-executor.ts");
+    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
     expect(source).toContain('"--model"');
     expect(source).toContain("DEFAULT_MODEL");
   });
 
   it("includes --yolo and --experimental flags", async () => {
-    const source = await readSource("../../src/container/copilot-executor.ts");
+    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
     expect(source).toContain('"--yolo"');
     expect(source).toContain('"--experimental"');
   });
 
   it("includes --share flag for session transcript export", async () => {
-    const source = await readSource("../../src/container/copilot-executor.ts");
+    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
     expect(source).toContain('"--share"');
     expect(source).toContain("TRANSCRIPT_PATH");
   });
@@ -32,12 +32,12 @@ describe("Copilot CLI args", () => {
 
 describe("Claude Code CLI args", () => {
   it("includes --dangerously-skip-permissions flag", async () => {
-    const source = await readSource("../../src/container/claude-code-executor.ts");
+    const source = await readSource("../../src/container/cli-executors/claude-code-executor.ts");
     expect(source).toContain('"--dangerously-skip-permissions"');
   });
 
   it("supports optional --model flag", async () => {
-    const source = await readSource("../../src/container/claude-code-executor.ts");
+    const source = await readSource("../../src/container/cli-executors/claude-code-executor.ts");
     expect(source).toContain('"--model"');
     expect(source).toContain("profile.model");
   });

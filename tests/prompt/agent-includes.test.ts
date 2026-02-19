@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveAgentIncludes, resolveAllProfileIncludes } from "../../src/container/agent-includes.js";
+import { resolveAgentIncludes, resolveAllProfileIncludes } from "../../src/container/setup/agent-includes.js";
 
 let tempDir: string;
 
@@ -83,6 +83,25 @@ describe("resolveAgentIncludes", () => {
 
     const resolved = readFileSync(join(agentDir, ".build", "plain.agent.md"), "utf-8");
     expect(resolved).toBe(content);
+  });
+
+  it("resolves indented include markers", () => {
+    const agentDir = join(tempDir, "agents");
+    const includesDir = join(tempDir, "includes");
+    mkdirSync(agentDir);
+    mkdirSync(includesDir);
+
+    writeFileSync(join(includesDir, "refs.md"), "Link: https://example.com");
+    writeFileSync(
+      join(agentDir, "test.agent.md"),
+      "# Agent\n\n   <!-- include: refs.md -->\n\nDone.",
+    );
+
+    resolveAgentIncludes(agentDir, includesDir);
+
+    const resolved = readFileSync(join(agentDir, ".build", "test.agent.md"), "utf-8");
+    expect(resolved).toContain("Link: https://example.com");
+    expect(resolved).not.toContain("<!-- include:");
   });
 
   it("ignores non-.agent.md files", () => {

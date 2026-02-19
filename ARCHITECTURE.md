@@ -88,9 +88,9 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 
 Orchestrates the full container lifecycle, delegating to specialized components:
 
-- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Accepts multiple compose files (base + security overlay) and builds `-f file1 -f file2` args for every command. Injects process environment (all secrets, JIRA config, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, `SQUID_CONF_PATH`).
-- **CopilotExecutor** (`src/container/copilot-executor.ts`) — Executes `copilot --agent <name> --model <model> --experimental --yolo --share <path> -p <prompt>` inside the container. The `--share` flag exports a full session transcript.
-- **ClaudeCodeExecutor** (`src/container/claude-code-executor.ts`) — Executes `claude -p <prompt> --dangerously-skip-permissions [--model <model>]` inside the container.
+- **ComposeClient** (`src/container/compose-client.ts`) — Low-level `docker compose` wrapper. Accepts multiple compose files (base + security overlay + resources overlay) and builds `-f file1 -f file2 -f file3` args for every command. Injects process environment (all secrets, JIRA config, `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, `SQUID_CONF_PATH`).
+- **CopilotExecutor** (`src/container/cli-executors/copilot-executor.ts`) — Executes `copilot --config-dir /workspace/.ralph --agent <name> --model <model> --experimental --yolo --share <path> -p <prompt>` inside the container. The `--share` flag exports a full session transcript. The `--config-dir` flag points to the orchestrator-managed config directory (MCP config, logs).
+- **ClaudeCodeExecutor** (`src/container/cli-executors/claude-code-executor.ts`) — Executes `claude -p <prompt> --dangerously-skip-permissions --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config [--model <model>]` inside the container. The `--strict-mcp-config` flag ensures only orchestrator-managed MCP servers are used.
 - **ContainerLogCollector** (`src/container/log-collector.ts`) — Per-task log collection from both `app` and sidecar containers (egress-proxy). Supports streaming (`tail -f`) and batch collection (`cat`) modes. Collects audit logs, session transcripts, tool output, and proxy access logs.
 - **StreamCapture** (`src/container/stream-capture.ts`) — Shared line-buffered streaming capture for child processes. Used by both executors and container build/setup to pipe stdout/stderr to the logger with a tag prefix (e.g. `[copilot]`, `[build]`).
 
@@ -186,26 +186,30 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 <orchestrator-repo>/
 ├── profiles/
 │   ├── ralph-docs/
-│   │   ├── profile.json                 # Profile config: repo, cli, variants, transitions
+│   │   ├── profile.json                 # Profile config: repo, cli, variants, MCP servers, resources
 │   │   ├── Dockerfile                   # Container image (Ruby, Node, .NET, etc.)
 │   │   ├── docker-compose.yml           # Base compose: services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
+│   │   ├── resources/                   # Profile-specific files mounted read-only into container
 │   │   └── agents/
 │   │       ├── ralph.ralph.agent.md     # Meta-agent template (with include markers)
 │   │       ├── ralph.ralph-researcher.agent.md  # Research sub-agent (docs + source code)
 │   │       ├── ralph.reviewer.agent.md
 │   │       ├── ralph.malph.agent.md     # Review agent template (observer)
-│   │       └── .build/                  # Resolved agent files (generated, gitignored)
+│   │       └── .build/                  # Generated at startup (gitignored):
+│   │                                    #   resolved agent files, mcp-config.json,
+│   │                                    #   docker-compose.overlay.yml
 │   └── ralph-vscode/
 │       ├── profile.json
 │       ├── Dockerfile
 │       ├── docker-compose.yml
 │       ├── setup.sh
+│       ├── resources/
 │       └── agents/
 │           ├── ralph.ralph.agent.md
 │           ├── ralph.ralph-analyst.agent.md  # Analysis sub-agent (read-only, Sonnet)
 │           ├── ralph.malph.agent.md     # Review agent template (observer)
-│           └── .build/                  # Resolved agent files (generated, gitignored)
+│           └── .build/                  # Generated at startup (gitignored)
 ├── shared/
 │   ├── security/                        # Container security infrastructure
 │   │   ├── docker-compose.security.yml  # Squid sidecar, network isolation, resource limits
@@ -213,18 +217,32 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── hooks/                           # Copilot CLI audit hooks (shared)
 │   │   ├── log-*.sh                     # Hook scripts for session logging
 │   │   └── ralph-audit.json             # Hook configuration
-│   └── agent-includes/                  # Shared partial files for agent templates
-│       ├── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
-│       ├── ado-api.md                   # ADO REST API patterns (PR creation, threads)
-│       ├── ado-pr-format.md             # PR description template
-│       └── prompt-security.md           # Prompt injection defense instructions for agents
+│   ├── agent-includes/                  # Shared partial files for agent templates
+│   │   ├── jira-api.md                  # JIRA v2 curl templates + wiki markup reference
+│   │   ├── ado-api.md                   # ADO REST API patterns (PR creation, threads)
+│   │   ├── ado-pr-format.md             # PR description template
+│   │   └── prompt-security.md           # Prompt injection defense instructions for agents
+│   └── mcp-servers/                     # MCP server manifests + custom server code
+│       ├── ado/                         # Azure DevOps MCP server (npm)
+│       ├── discord-hitl/                # Discord HITL server (custom, esbuild bundle)
+│       └── playwright/                  # Playwright MCP server (npm)
 ```
 
-Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` reads agent templates, replaces markers with content from `shared/agent-includes/`, and writes resolved files to `agents/.build/`. Compose files mount from `.build/` — the templates are the source of truth.
+Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` reads agent templates, replaces markers with content from `shared/agent-includes/`, and writes resolved files to `agents/.build/`. The `.build/` directory is wiped before each startup to prevent stale artifacts. Compose files mount from `.build/` — the templates are the source of truth.
 
 Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. Resolved agent files and hooks are overlay-mounted as individual read-only files, preserving non-Ralph agents in the target repo.
 
-**Two-file compose merge:** `ComposeClient` automatically injects both the base compose file and the security overlay for every command: `docker compose -f profiles/<id>/docker-compose.yml -f shared/security/docker-compose.security.yml <command>`. The security overlay adds the Squid sidecar, network isolation, proxy env vars, and resource limits. This separation keeps security concerns separate and allows disabling isolation for debugging by removing the overlay.
+**Three-file compose merge:** `ComposeClient` automatically injects the base compose file, security overlay, and (if present) the resources overlay for every command:
+
+```
+docker compose -f profiles/<id>/docker-compose.yml \
+  -f shared/security/docker-compose.security.yml \
+  -f profiles/<id>/agents/.build/docker-compose.overlay.yml <command>
+```
+
+The security overlay adds the Squid sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds MCP server mounts, env var passthrough, and resource file mounts. Profiles with no MCP servers or resources skip the overlay file entirely.
+
+**Three-file compose merge (with overlay):** When a profile declares `mcpServers` or `resources` in its `profile.json`, the orchestrator generates a third compose file at startup: `profiles/<id>/agents/.build/docker-compose.overlay.yml`. This overlay adds MCP server volume mounts, `mcp-config.json` mount, resource file mounts, and MCP env var passthrough. `ContainerManager` checks for the overlay at startup and includes it if present: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay uses absolute host paths baked in during generation (no env var placeholders).
 
 Currently configured target repos:
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
@@ -282,8 +300,8 @@ Ralph has direct JIRA access via env vars (`JIRA_PAT`, `JIRA_EMAIL`, `JIRA_BASE_
   "cli": "copilot",
   "model": "claude-opus-4.6",
   "timeoutMs": 3600000,
-  "beforeAgent": { "transitionId": "141" },
-  "afterAgent": { "transitionId": "91" },
+  "beforeAgent": { "targetStatus": "In Progress" },
+  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -362,6 +380,22 @@ The security overlay (`shared/security/docker-compose.security.yml`) is merged w
 - **Proxy env vars** — `HTTP_PROXY`, `HTTPS_PROXY`, `http_proxy`, `https_proxy` injected into the app
 - **Security options** — `cap_drop: ALL`, `no-new-privileges`, resource limits
 
+### MCP Config System (`src/container/setup/mcp-config.ts`)
+
+MCP (Model Context Protocol) servers are declared per-profile in `profile.json` (`mcpServers` array). At startup, the orchestrator resolves each server name to a manifest in `shared/mcp-servers/<name>/mcp-server.json` and generates two files in `agents/.build/`:
+
+1. **`mcp-config.json`** — Shared by both CLIs. Contains `{ "mcpServers": { "<name>": { "command": ..., "args": [...], "env": {...} } } }`. Copilot CLI reads it via `--config-dir /workspace/.ralph`; Claude Code via `--mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config`.
+
+2. **`docker-compose.overlay.yml`** — Compose overlay that mounts the MCP servers directory, `mcp-config.json`, and any resource files into the container. Also passes through env vars required by MCP servers. Uses absolute host paths baked directly into the YAML (no env var substitution).
+
+**Server types:**
+- `npm` — npx-based servers (e.g. `@anthropic-ai/mcp-server-playwright`). No host code needed.
+- `custom` — Locally built servers with source in `shared/mcp-servers/<name>/src/` and bundle in `dist/`. Mounted into the container and executed directly.
+
+### Resource Auto-Discovery (`src/container/setup/resource-mounts.ts`)
+
+Profiles can declare `resources: { "mountBase": "<path>" }` in `profile.json`. Files in `profiles/<id>/resources/` are recursively discovered and mounted read-only at `/workspace/<mountBase>/<relative-path>` via the compose overlay. Resource mounts are generated alongside MCP mounts in `docker-compose.overlay.yml`.
+
 ## Design Decisions
 
 1. **One task at a time** — Sequential processing avoids container conflicts and simplifies state management.
@@ -372,3 +406,5 @@ The security overlay (`shared/security/docker-compose.security.yml`) is merged w
 16. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.
 17. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
 18. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.
+19. **Shared MCP config** — Both Copilot CLI and Claude Code CLI use the same `mcp-config.json` format. One generated file serves both, avoiding format divergence.
+

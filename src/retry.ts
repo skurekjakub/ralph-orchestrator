@@ -1,13 +1,19 @@
 import type { Logger } from "./logger.js";
 
+export interface RetryOptions {
+  /** Maximum number of attempts (default: 3). */
+  attempts?: number;
+  /** Base delay in milliseconds, multiplied by attempt number (default: 2000). */
+  delayMs?: number;
+}
+
 /**
  * Retry an async operation with linear backoff.
  *
  * @param fn       The async function to retry.
  * @param label    A human-readable label for log messages.
  * @param logger   Logger for retry warnings.
- * @param attempts Maximum number of attempts (default: 3).
- * @param delayMs  Base delay in milliseconds, multiplied by attempt number (default: 2000).
+ * @param options  Retry configuration (attempts, delayMs).
  * @returns The result of a successful `fn()` call.
  * @throws The last error if all attempts fail.
  */
@@ -15,9 +21,9 @@ export async function withRetry<T>(
   fn: () => Promise<T>,
   label: string,
   logger?: Logger,
-  attempts = 3,
-  delayMs = 2000,
+  options: RetryOptions = {},
 ): Promise<T> {
+  const { attempts = 3, delayMs = 2000 } = options;
   for (let i = 1; i <= attempts; i++) {
     try {
       return await fn();

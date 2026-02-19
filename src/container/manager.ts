@@ -1,5 +1,4 @@
 import { execa } from "execa";
-import { resolve } from "node:path";
 import type { AgentProfile, AppConfig, OutputConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, CliExecutor } from "./types.js";
@@ -10,11 +9,58 @@ import type { PromptBuilder } from "../prompt/prompt-builder.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import { parseResultBlock, resolveStatus } from "./result-parser.js";
 import { ComposeClient } from "./compose-client.js";
-import { CopilotExecutor } from "./copilot-executor.js";
-import { ClaudeCodeExecutor } from "./claude-code-executor.js";
+import type { IComposeClient } from "./compose-client.js";
+import { CopilotExecutor } from "./cli-executors/copilot-executor.js";
+import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor.js";
 import { StreamCapture } from "./stream-capture.js";
 import { ContainerLogCollector, CaptureMode } from "./log-collector.js";
+import type { LogSourceDef, CollectedLog } from "./log-collector.js";
 import { ContainerWorkspaceCleaner } from "./workspace-cleaner.js";
+import { ComposeFileResolver } from "./setup/compose-files.js";
+
+/** Public contract for log collection on a container. */
+export interface IContainerLogs {
+  /** Set the JIRA issue key used as the filename prefix. */
+  setIssueKey(key: string): void;
+  /** Register a log source to be collected. */
+  addSource(source: LogSourceDef): void;
+  /** Start streaming for all `"stream"` mode sources. */
+  attach(): void;
+  /** Stop all active streaming processes. */
+  detach(): void;
+  /** Flush all log sources to disk. */
+  collectAll(): Promise<CollectedLog[]>;
+}
+
+/** Public contract for workspace cleanup inside a container. */
+export interface IContainerCleaner {
+  /** Clear and recreate the audit log directory with vscode ownership. */
+  cleanLogDirectory(auditLogPath: string): Promise<void>;
+  /** Delete configured workspace paths before agent execution. */
+  cleanPaths(paths: readonly string[]): Promise<void>;
+}
+
+/** Public contract for container lifecycle management. */
+export interface IContainerManager {
+  /** Verify that Docker is running. */
+  checkPrerequisites(): Promise<void>;
+  /** Build and start the containers. */
+  start(): Promise<void>;
+  /** Run the profile's setup script inside the running container. */
+  setup(): Promise<void>;
+  /** Register standard log sources for a task and start streaming. */
+  registerLogSources(issueKey: string): void;
+  /** Execute the agent CLI inside the running container. */
+  execute(issue: JiraIssue, context?: IssueContext): Promise<RalphResult>;
+  /** Tear down all containers and associated resources. */
+  stop(): Promise<void>;
+  /** Per-task log collector. */
+  readonly logs: IContainerLogs;
+  /** Handles cleanup of workspace paths and log directories inside the container. */
+  readonly cleaner: IContainerCleaner;
+  /** Optional callback invoked for each line of real-time tool output. */
+  onToolOutput?: (line: string) => void;
+}
 
 /**
  * Manages the full container lifecycle for a single agent profile using
@@ -36,8 +82,8 @@ import { ContainerWorkspaceCleaner } from "./workspace-cleaner.js";
  * 4. **logs.collectAll()** — pulls all log sources from containers to the local filesystem
  * 5. **stop()** — `docker compose down --volumes --remove-orphans`
  */
-export class ContainerManager {
-  private readonly compose: ComposeClient;
+export class ContainerManager implements IContainerManager {
+  private readonly compose: IComposeClient;
   private readonly executor: CliExecutor;
   private readonly outputConfig: OutputConfig;
   private readonly logger: Logger;
@@ -59,7 +105,7 @@ export class ContainerManager {
    * @param appConfig Full application config (for shared secrets, jira, output settings).
    * @param promptBuilder Prompt builder for constructing and auditing CLI prompts.
    * @param logger Logger for orchestrator lifecycle messages. Defaults to {@link consoleLogger}.
-   * @param containerLogger Logger for copilot output streaming. Falls back to `logger`.
+   * @param containerLogger Logger for CLI output streaming. Falls back to `logger`.
    */
   constructor(profile: AgentProfile, appConfig: AppConfig, promptBuilder: PromptBuilder, logger?: Logger, containerLogger?: Logger) {
     this.profile = profile;
@@ -68,9 +114,9 @@ export class ContainerManager {
     this.logger = logger ?? consoleLogger;
     this.containerLogger = containerLogger ?? this.logger;
 
-    const composeFilePath = resolve(process.cwd(), profile.composeFile);
-    const securityOverlay = resolve(process.cwd(), "shared/security/docker-compose.security.yml");
-    this.compose = new ComposeClient([composeFilePath, securityOverlay], {
+    const composeFiles = new ComposeFileResolver().resolve(profile);
+
+    this.compose = new ComposeClient(composeFiles, {
       secrets: appConfig.secrets,
       jiraBaseUrl: appConfig.jira.baseUrl,
       jiraCloudId: appConfig.jira.cloudId,
@@ -208,7 +254,7 @@ export class ContainerManager {
   }
 
   /**
-   * Execute the Ralph Copilot CLI agent inside the running container.
+   * Execute the agent CLI inside the running container.
    *
    * Delegates prompt construction and injection auditing to the {@link PromptBuilder}.
    * Parses the agent's structured `===RALPH_RESULT_START===` block for PR URL
@@ -247,7 +293,7 @@ export class ContainerManager {
   /**
    * Tear down all containers and associated resources.
    *
-   * Detaches the log collector, kills any active copilot process, then runs
+   * Detaches the log collector, kills any active CLI process, then runs
    * `docker compose down --volumes --remove-orphans`.
    * Falls back to `docker rm -f` if compose fails.
    */

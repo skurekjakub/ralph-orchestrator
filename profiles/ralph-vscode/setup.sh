@@ -28,30 +28,6 @@ npm install -g @github/copilot
 echo "📦 Installing Claude Code CLI..."
 npm install -g @anthropic-ai/claude-code
 
-# Pre-seed Copilot CLI config for headless/autonomous use
-COPILOT_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.copilot}"
-mkdir -p "$COPILOT_CONFIG_DIR"
-
-# Trust the workspace directory so the interactive prompt is skipped
-if [ ! -f "$COPILOT_CONFIG_DIR/config.json" ]; then
-    cat > "$COPILOT_CONFIG_DIR/config.json" << 'COPILOT_CFG'
-{
-  "trusted_folders": ["/workspace"]
-}
-COPILOT_CFG
-    echo "✅ Copilot CLI config seeded (trusted /workspace)"
-fi
-
-# Register MCP servers for Copilot CLI
-if [ ! -f "$COPILOT_CONFIG_DIR/mcp-config.json" ]; then
-    cat > "$COPILOT_CONFIG_DIR/mcp-config.json" << 'MCP_CFG'
-{
-  "mcpServers": {}
-}
-MCP_CFG
-    echo "✅ MCP config seeded (empty — REST API preferred)"
-fi
-
 # ── Git configuration ─────────────────────────────────────
 echo "🔧 Configuring git..."
 git config --global --add safe.directory "$WORKSPACE"

@@ -49,6 +49,19 @@ curl -s --http1.1 -X POST \
   -d @/tmp/pr_comment.json
 ```
 
+### File-level comment (targeting a specific file and line range)
+
+To post a comment on a specific file and line range in a PR, add a `threadContext` to the thread body.
+Generate the JSON with Python to avoid escaping issues.
+
+```bash
+curl -s --http1.1 -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \
+  "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests/${PR_ID}/threads?api-version=${API_VERSION}" \
+  -d {contents}
+```
+
 ### Listing PR threads (for reading review feedback)
 
 ```bash

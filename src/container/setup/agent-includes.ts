@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const INCLUDE_PATTERN = /^<!-- include: (.+?) -->$/gm;
+const INCLUDE_PATTERN = /^[ \t]*<!-- include: (.+?) -->$/gm;
 
 /**
  * Resolve include markers in agent files.
@@ -14,9 +14,10 @@ const INCLUDE_PATTERN = /^<!-- include: (.+?) -->$/gm;
  */
 export function resolveAgentIncludes(agentDir: string, includesDir: string): void {
   const buildDir = join(agentDir, ".build");
-  if (!existsSync(buildDir)) {
-    mkdirSync(buildDir, { recursive: true });
+  if (existsSync(buildDir)) {
+    rmSync(buildDir, { recursive: true, force: true });
   }
+  mkdirSync(buildDir, { recursive: true });
 
   const files = readdirSync(agentDir).filter((f) => f.endsWith(".agent.md"));
 

@@ -5,6 +5,8 @@
  * in the JIRA comment stream.
  */
 
+import { TransitionPhase } from "../orchestrator-types.js";
+
 const PREFIX = "[Ralph-Orchestrator]";
 
 export const OrchestratorComments = {
@@ -26,6 +28,11 @@ export const OrchestratorComments = {
   /** Posted when the issue's status changed between planning and execution. */
   staleStatus(displayName: string, currentStatus: string): string {
     return `${PREFIX} 🤖 ${displayName} can't work on this issue anymore — status changed to "${currentStatus}".`;
+  },
+
+  /** Posted when a JIRA transition fails (e.g. no transition to the target status available). */
+  transitionFailed(phase: TransitionPhase, targetStatus: string, error: string): string {
+    return `${PREFIX} ⚠️ ${phase} transition to "${targetStatus}" failed: ${error}`;
   },
 
   /** Posted when the agent encounters an unrecoverable error. */

@@ -24,11 +24,6 @@ services:
       - ./agents/.build/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro
       - ./agents/.build/ralph.ralph-analyst.agent.md:/workspace/.github/agents/ralph.analyst.agent.md:ro
       - ./agents/.build/ralph.malph.agent.md:/workspace/.github/agents/ralph.malph.agent.md:ro
-      # Revision workflow instructions
-      - ./resources/ralph-revisions.md:/workspace/resources/ralph-resources/ralph-revisions.md:ro
-      # Shared hook scripts + audit config
-      - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro
-      - ${SHARED_HOOKS_PATH}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro
     command: sleep infinity
     networks:
       ralph-internal:

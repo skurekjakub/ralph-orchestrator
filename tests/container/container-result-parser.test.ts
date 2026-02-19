@@ -3,7 +3,7 @@ import { parseResultBlock } from "../../src/container/result-parser.js";
 
 // ── Result parsing tests ─────────────────────────────────
 // Tests the structured result block parser that extracts PR URL and agent status
-// from Copilot CLI stdout.
+// from CLI stdout.
 
 describe("Result parsing", () => {
   it("extracts PR URL and status from structured block", () => {

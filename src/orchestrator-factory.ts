@@ -7,6 +7,8 @@ import { PromptBuilder } from "./prompt/prompt-builder.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
 import { TaskRunner } from "./services/task-runner.js";
+import { TaskJiraResourceManager } from "./services/task-resource-manager.js";
+import { JiraIssueManager } from "./services/jira-issue-manager.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
 import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
@@ -36,14 +38,17 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   const containerFactory: ContainerManagerFactory = {
     create: (profile) => new ContainerManager(profile, config, promptBuilder, logger, containerLogger),
   };
+  const resources = new TaskJiraResourceManager(jiraClient, logger);
+  const issueManager = new JiraIssueManager(jiraClient, logger);
   const taskRunner = new TaskRunner(
-    jiraClient,
     logCollector,
     logger,
     containerFactory,
+    resources,
+    issueManager,
   );
   const triggerScanner = new TriggerScanner(
-    jiraClient, router, ledger, logger,
+    issueManager, router, ledger, logger,
     join("output", "cache", "trigger-cache.json"),
   );
   const heartbeat = config.dashboard.enabled
@@ -59,7 +64,8 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   return {
     config,
     activityLog,
-    jiraClient,
+    issueManager,
+    resources,
     router,
     taskRunner,
     triggerScanner,
