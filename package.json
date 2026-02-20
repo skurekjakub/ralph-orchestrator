@@ -16,7 +16,14 @@
     "test:watch": "vitest",
     "dashboard": "cd dashboard-local && npx vite",
     "agent": "tsx scripts/run-agent.ts",
-    "reset-testenv": "tsx scripts/reset-issue.ts"
+    "reset-testenv": "tsx scripts/reset-issue.ts",
+    "reset-testenv:easy": "tsx scripts/reset-issue.ts",
+    "reset-testenv:medium": "tsx scripts/reset-issue.ts --medium",
+    "reset-testenv:hard": "tsx scripts/reset-issue.ts --hard",
+    "reset-testenv:hard-admin": "tsx scripts/reset-issue.ts --hard-admin",
+    "reset-testenv:hard-cicd": "tsx scripts/reset-issue.ts --hard-cicd",
+    "reset-testenv:very-hard": "tsx scripts/reset-issue.ts --very-hard",
+    "reset-testenv:very-hard-admin": "tsx scripts/reset-issue.ts --very-hard-admin"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

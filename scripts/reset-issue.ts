@@ -3,18 +3,41 @@
  * Reset a JIRA issue + local environment to a clean "To Do" state for testing.
  *
  * Usage:
- *   npx tsx scripts/reset-issue.ts              # resets DOC-3143 (default)
- *   npx tsx scripts/reset-issue.ts DOC-3122     # resets a specific issue
+ *   npx tsx scripts/reset-issue.ts                  # resets DOC-3143 (default, easy task)
+ *   npx tsx scripts/reset-issue.ts DOC-3122         # resets a specific issue (easy task)
+ *   npx tsx scripts/reset-issue.ts --medium         # medium: data caching patterns
+ *   npx tsx scripts/reset-issue.ts --hard           # hard: content retrieval (schema-based)
+ *   npx tsx scripts/reset-issue.ts --hard-admin     # hard: admin UI visibility condition example
+ *   npx tsx scripts/reset-issue.ts --hard-cicd      # hard: advanced CI/CD serialization patterns
+ *   npx tsx scripts/reset-issue.ts --very-hard      # very-hard: cross-type content retrieval
+ *   npx tsx scripts/reset-issue.ts --very-hard-admin # very-hard: FormComponentExtender docs
+ *   npx tsx scripts/reset-issue.ts DOC-3122 --hard
  */
 import "dotenv/config";
 import { resolve } from "node:path";
-import type { ResetContext, JiraEnv } from "./reset-testenv/types.js";
+import type { ResetContext, JiraEnv, TaskDifficulty } from "./reset-testenv/types.js";
 import { fetchIssue, deleteComments, deleteAttachments, resetFields, transitionToToDo } from "./reset-testenv/jira.js";
 import { clearLedger, clearTriggerCache, clearLogFiles } from "./reset-testenv/local.js";
 import { cleanBranches } from "./reset-testenv/git.js";
 import { cleanContainers } from "./reset-testenv/docker.js";
 
-const issueKey = process.argv[2] || "DOC-3143";
+const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
+
+const issueKey = args[0] || "DOC-3143";
+const difficulty: TaskDifficulty = flags.includes("--very-hard-admin")
+  ? "very-hard-admin"
+  : flags.includes("--very-hard")
+    ? "very-hard"
+    : flags.includes("--hard-cicd")
+      ? "hard-cicd"
+      : flags.includes("--hard-admin")
+        ? "hard-admin"
+        : flags.includes("--hard")
+          ? "hard"
+          : flags.includes("--medium")
+            ? "medium"
+            : "easy";
 
 const jiraEnv: JiraEnv = {
   email: process.env.JIRA_EMAIL || "",
@@ -33,7 +56,7 @@ const ctx: ResetContext = {
 };
 
 async function main() {
-  console.log(`\n🔄 Resetting ${issueKey} to clean state...\n`);
+  console.log(`\n🔄 Resetting ${issueKey} to clean state (${difficulty} task)...\n`);
 
   console.log("1. Fetching issue...");
   const issue = await fetchIssue(issueKey, jiraEnv);
@@ -46,7 +69,7 @@ async function main() {
   await deleteAttachments(issueKey, issue, jiraEnv);
 
   console.log("\n4. Updating fields...");
-  await resetFields(issueKey, jiraEnv);
+  await resetFields(issueKey, jiraEnv, difficulty);
 
   console.log("\n5. Transitioning to To Do...");
   await transitionToToDo(issueKey, jiraEnv);

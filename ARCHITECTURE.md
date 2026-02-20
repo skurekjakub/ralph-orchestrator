@@ -270,7 +270,7 @@ The allowlist (`shared/security/squid.conf`) is tuned per the agent's needs: LLM
 | No Docker socket | Removed from all compose files |
 | No Docker CLI | Removed from Dockerfiles |
 | No sudo | `/etc/sudoers.d/vscode` removed, vscode entry deleted from `/etc/sudoers` |
-| Capability drop | `cap_drop: ALL` — all Linux capabilities dropped |
+| Capability drop | `cap_drop: ALL` — all Linux capabilities dropped. `cap_add: DAC_OVERRIDE, CHOWN` re-added for Docker volume cleanup (to be revised). |
 | Privilege escalation | `no-new-privileges: true` — prevents setuid/setgid |
 | Resource limits | Memory: 8G, CPU: 4, PIDs: 500 |
 | npm without root | User-writable npm prefix (`~/.npm-global`) — no sudo needed for `npm install -g` |

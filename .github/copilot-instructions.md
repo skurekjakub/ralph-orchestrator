@@ -75,7 +75,7 @@ Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's
 - **No Docker socket** — removed from all compose files (was vestigial from devcontainer migration)
 - **No Docker CLI** — removed from Dockerfiles
 - **No sudo** — disabled for vscode user (`/etc/sudoers.d/vscode` removed)
-- **`cap_drop: ALL`** — all Linux capabilities dropped
+- **`cap_drop: ALL`** — all Linux capabilities dropped; **`cap_add: DAC_OVERRIDE, CHOWN`** re-added for Docker volume cleanup (to be revised)
 - **`no-new-privileges: true`** — prevents privilege escalation via setuid
 - **Resource limits** — memory (8G), CPU (4), PIDs (500)
 - **User-writable npm prefix** — `~/.npm-global` allows `npm install -g` without root

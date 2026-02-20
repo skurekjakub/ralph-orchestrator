@@ -1,3 +1,6 @@
+/** Task difficulty for reset script — controls the JIRA description. */
+export type TaskDifficulty = "easy" | "medium" | "hard" | "hard-admin" | "hard-cicd" | "very-hard" | "very-hard-admin";
+
 /** Shared context passed to all reset sub-modules. */
 export interface ResetContext {
   issueKey: string;

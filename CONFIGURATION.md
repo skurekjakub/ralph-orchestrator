@@ -178,11 +178,11 @@ The orchestrator selects which CLI to use based on the profile's `cli` preferenc
 | `"claude"` | Yes | No | Falls back to Copilot (with warning) |
 | Either | No | No | Error — no CLI available |
 
-**Copilot CLI** runs: `copilot --config-dir /workspace/.ralph --agent <agent> --model <model> --experimental --allow-all-tools --allow-all-paths --share <transcript> -p <prompt>`
+**Copilot CLI** runs: `copilot --config-dir /workspace/.ralph --additional-mcp-config @/workspace/.ralph/mcp-config.json --agent <agent> --model <model> --experimental --allow-all-tools --allow-all-paths --share <transcript> -p <prompt>`
 
 **Claude Code CLI** runs: `claude -p <prompt> --dangerously-skip-permissions --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config [--model <model>]`
 
-Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations). Copilot CLI discovers it via `--config-dir`; Claude Code loads it explicitly via `--mcp-config`.
+Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations). Copilot CLI loads it via `--additional-mcp-config`; Claude Code loads it via `--mcp-config`.
 
 #### MCP Servers
 
