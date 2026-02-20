@@ -127,3 +127,5 @@ preflight for revision workflow - update tool calls after
 check for better source image - ubuntu-alpine? no python3 etc
 
 allowedUrlPaths should not be set on mcp.config or? each profile should also have baseAllowedUrlPaths - because of setup.sh 
+
+infrastructure vscode user hardcoded dependency - fucking devcontainers
