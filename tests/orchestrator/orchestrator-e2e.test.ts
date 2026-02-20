@@ -238,8 +238,75 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     );
 
     const ops = deps.ledger.getOperations("DF-150");
-    expect(ops[0].status).toBe(OperationStatus.Completed);
+    expect(ops[0].status).toBe(OperationStatus.Error);
     expect(ops[0].resultStatus).toBe(TaskStatus.Error);
+  });
+
+  it("maps TaskStatus.Blocked to OperationStatus.Error in the ledger", async () => {
+    const issue = makeIssue("DF-151", "Agent blocked by missing context");
+    const deps = buildMockDeps({
+      issues: [issue],
+      comments: {
+        "DF-151": [makeComment("C1", "@docs handle this")],
+      },
+      taskResult: {
+        status: TaskStatus.Blocked,
+        exitCode: 1,
+        stderr: "Missing required context",
+      },
+    });
+
+    const orchestrator = new Orchestrator(deps);
+
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    const ops = deps.ledger.getOperations("DF-151");
+    expect(ops[0].status).toBe(OperationStatus.Error);
+    expect(ops[0].resultStatus).toBe(TaskStatus.Blocked);
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
+      "DF-151",
+      "Missing required context",
+    );
+    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      TransitionPhase.AfterAgent,
+    );
+  });
+
+  it("maps TaskStatus.Partial to OperationStatus.Completed in the ledger", async () => {
+    const issue = makeIssue("DF-152", "Agent partial success");
+    const deps = buildMockDeps({
+      issues: [issue],
+      comments: {
+        "DF-152": [makeComment("C1", "@docs handle this")],
+      },
+      taskResult: {
+        status: TaskStatus.Partial,
+        exitCode: 0,
+        stderr: "",
+      },
+    });
+
+    const orchestrator = new Orchestrator(deps);
+
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    const ops = deps.ledger.getOperations("DF-152");
+    expect(ops[0].status).toBe(OperationStatus.Completed);
+    expect(ops[0].resultStatus).toBe(TaskStatus.Partial);
+    expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
+      "DF-152",
+      undefined,
+      TransitionPhase.AfterAgent,
+    );
+    expect(deps.issueManager.postErrorComment).not.toHaveBeenCalled();
   });
 
   it("handles task runner errors gracefully", async () => {

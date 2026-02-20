@@ -28,12 +28,9 @@ ask_questions([{
   ]
 }])
 ```
-
-### Why this matters
-
-The orchestrator project evolves through iterative refinement. The user works in a continuous flow where each task leads to the next. Ending without asking for follow-up breaks this flow and wastes time.
-
 **DO NOT** skip this step. **DO NOT** end with "Let me know if you need anything else." **DO** use `ask_questions` every single time.
+
+## Save memory often to remember implementation details about the repository
 
 ## Coding Conventions
 
@@ -59,7 +56,7 @@ export type AuditMode = "block" | "warn" | "off";
 
 ### Keep classes focused on a single responsibility
 
-Before adding functionality to an existing class or module, consider whether it belongs there. Each class should have one clear purpose. If new logic serves a different concern (e.g., data conversion vs. data extraction), create a dedicated module for it rather than growing an existing one. When reviewing changes, assess the impact on the module's cohesion — if a class is accumulating unrelated methods, split it.
+Before adding functionality to an existing class or module, consider whether it belongs there. Each class should have one clear purpose. If new logic serves a different concern -a dedicated module for it rather than growing an existing one. When reviewing changes, assess the impact on the module's cohesion — if a class is accumulating unrelated methods, split it.
 
 ### Never handle git lifecycle
 
@@ -68,5 +65,3 @@ Do not stage, commit, push, or perform any git operations on behalf of the user.
 ### Always include logging in modules that perform I/O or orchestration
 
 Any module that performs file I/O, subprocess execution, network calls, or orchestrates multiple steps must accept a `Logger` parameter and log its progress. Pure functions that transform data don't need their own logging — the caller logs before and after invoking them.
-
-- Accept `logger?: Logger` (optional) on public functions so callers can opt in.

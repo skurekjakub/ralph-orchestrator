@@ -294,18 +294,21 @@ export class Orchestrator {
         `Done ${issue.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
       );
 
+      const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
+
       this.deps.ledger.transition(
         issue.key,
         operation.id,
-        OperationStatus.Completed,
+        isSuccess ? OperationStatus.Completed : OperationStatus.Error,
         {
           resultStatus: result.status,
+          ...(!isSuccess && { reason: result.stderr || `Agent finished with status: ${result.status}` }),
         },
       );
 
-      if (result.status === TaskStatus.Completed || result.status === TaskStatus.Partial) {
+      if (isSuccess) {
         await this.deps.issueManager.transitionIssue(issue.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
-      } else if (result.status === TaskStatus.Error || result.status === TaskStatus.Blocked) {
+      } else {
         await this.deps.issueManager.postErrorComment(
           issue.key,
           result.stderr || `Agent finished with status: ${result.status}`,

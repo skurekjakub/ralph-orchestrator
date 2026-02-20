@@ -55,9 +55,9 @@ export function generateComposeOverlay(
   if (serverNames.length > 0) {
     lines.push("      # MCP servers directory (all manifests + custom server code)");
     lines.push(`      - ${mcpServersDir}:/workspace/.ralph/mcp-servers:ro`);
-    lines.push("      # Generated MCP config (Copilot + Claude Code)");
-    lines.push(`      - ${join(buildDir, "mcp-config.json")}:/workspace/.ralph/mcp-config.json:ro`);
   }
+  lines.push("      # Generated MCP config (Copilot + Claude Code)");
+  lines.push(`      - ${join(buildDir, "mcp-config.json")}:/workspace/.ralph/mcp-config.json:ro`);
   lines.push("      # Copilot CLI config with URL restrictions");
   lines.push(`      - ${join(buildDir, "copilot-config.json")}:/workspace/.ralph/config.json:ro`);
   if (extraVolumes.length > 0) {

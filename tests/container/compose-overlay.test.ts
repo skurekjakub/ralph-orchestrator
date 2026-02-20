@@ -60,6 +60,17 @@ describe("Compose Overlay", () => {
   });
 
   describe("generateComposeOverlay environment variables", () => {
+    it("always mounts mcp-config.json even with no MCP servers", () => {
+      const mcpDir = createTempDir();
+
+      const overlay = generateComposeOverlay(mcpDir, [], mcpDir);
+
+      expect(overlay).toContain("mcp-config.json:/workspace/.ralph/mcp-config.json:ro");
+      expect(overlay).not.toContain("mcp-servers:ro");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
     it("always injects base env vars even with no MCP servers", () => {
       const mcpDir = createTempDir();
 
