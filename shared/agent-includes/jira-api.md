@@ -5,7 +5,7 @@ You have access to JIRA via the **jira-kentico MCP server**. Use the provided to
 ### Available tools
 
 - `jira_add_comment` — Add a comment to an issue (wiki markup). Use real newlines in the body string, NOT literal `\n` escape sequences. Wiki markup headings like `h3.` and list items must start on their own line.
-- `jira_add_attachment` — Attach a file to an issue
+- `jira_add_attachment` — Attach a file to an issue. **Before calling**, copy/write the file to `/tmp/mcp-attachments/` and pass just the file name (e.g. `handoff.md`). Files outside this directory are rejected.
 
 ### Wiki Markup Reference
 

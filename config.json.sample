@@ -15,5 +15,6 @@
   "promptAudit": {
     "mode": "warn"
   },
-  "excludeFields": []
+  "excludeFields": [],
+  "allowedUsers": []
 }

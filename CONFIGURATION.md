@@ -178,7 +178,7 @@ The orchestrator selects which CLI to use based on the profile's `cli` preferenc
 | `"claude"` | Yes | No | Falls back to Copilot (with warning) |
 | Either | No | No | Error — no CLI available |
 
-**Copilot CLI** runs: `copilot --config-dir /workspace/.ralph --agent <agent> --model <model> --experimental --yolo --share <transcript> -p <prompt>`
+**Copilot CLI** runs: `copilot --config-dir /workspace/.ralph --agent <agent> --model <model> --experimental --allow-all-tools --allow-all-paths --share <transcript> -p <prompt>`
 
 **Claude Code CLI** runs: `claude -p <prompt> --dangerously-skip-permissions --mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config [--model <model>]`
 
@@ -188,10 +188,16 @@ Both CLIs share the same `mcp-config.json` (generated at startup from profile `m
 
 Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` array in `profile.json`. Each entry must match a subdirectory of `shared/mcp-servers/`.
 
+MCP servers run inside an isolated **sidecar container** — the agent communicates with them via HTTP URLs on the Docker internal network. Server code, credentials, and gateway configuration are never mounted into the agent container.
+
 At startup, the orchestrator:
 1. Reads each server's `mcp-server.json` manifest
-2. Generates `.build/mcp-config.json` — shared by both Copilot and Claude Code CLIs
-3. Generates `.build/docker-compose.overlay.yml` — mounts the MCP servers directory, config file, and required env vars into the container
+2. Validates `sidecarPort` (required, 1–65535, unique across servers)
+3. Builds custom servers (`npm install` + `npm run build`) and the sidecar gateway
+4. Generates `.build/mcp-config.json` — URL-based config for both CLIs (no secrets)
+5. Generates `.build/gateway.json` — sidecar config with embedded secrets
+6. Generates `.build/docker-compose.overlay.yml` — includes the `mcp-sidecar` service when servers are declared
+7. Generates `.build/squid.conf` — profile-specific proxy config with MCP domains
 
 **Adding an MCP server:**
 1. Create `shared/mcp-servers/<name>/mcp-server.json`:
@@ -201,19 +207,22 @@ At startup, the orchestrator:
      "description": "What this server does",
      "type": "npm",
      "command": "npx",
-     "args": ["-y", "@scope/mcp-server-name"],
+     "args": ["@scope/mcp-server-name"],
+     "sidecarPort": 9200,
      "requiredEnv": ["SOME_TOKEN"],
      "proxyDomains": [".api.example.com"]
    }
    ```
 2. Add `"<name>"` to the profile's `mcpServers` array
-3. Pass required env vars via the profile's base `docker-compose.yml`
+3. Set required env vars in `.env` — they're embedded in `gateway.json` automatically
 
 Domains listed in `proxyDomains` are automatically injected into the profile's squid proxy allowlist at startup — no manual squid.conf edits needed. See [MCP.md](MCP.md) for the full MCP architecture.
 
 **Server types:**
-- `"npm"` — npx-based servers. No local code needed (e.g. Playwright, ADO).
-- `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Set `containerPath` to the mount target inside the container.
+- `"npm"` — Pre-installed npm packages. No local code needed (e.g. Playwright). Bridged to HTTP via `supergateway`.
+- `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Must support `--transport http --port PORT` for sidecar mode. Set `containerPath` to `/opt/mcp/servers/<name>`.
+
+**Port assignment:** Each server must declare a unique `sidecarPort` in its manifest. Ports are validated at startup — duplicates or out-of-range values cause a startup error.
 
 #### Resources
 
@@ -386,7 +395,7 @@ The orchestrator validates the configuration on startup:
 - **Required fields:** `jira.cloudId`, at least one profile directory with valid `profile.json`, `JIRA_PAT`, `JIRA_EMAIL`
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
 - **Profile integrity:** Valid `repo` paths, agent names match `.agent.md` files in each profile's `agents/` directory, unique `commentTrigger` values
-- **Transition IDs:** Must be valid numeric strings
+- **MCP manifests:** Referenced servers must exist in `shared/mcp-servers/`, `sidecarPort` must be a valid integer (1–65535), ports must be unique across all servers
 - **Security infrastructure:** Security overlay compose file and squid.conf must exist, base compose files must use `ralph-internal` network, no `docker.sock` mounts
 - **Docker daemon:** Must be reachable via `docker info`
 - **Profiles auto-discovered** from `profiles/*/profile.json` — the profile `id` is derived from the directory name

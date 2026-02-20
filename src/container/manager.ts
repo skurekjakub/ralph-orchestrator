@@ -241,6 +241,15 @@ export class ContainerManager implements IContainerManager {
       collectArgs: ["sh", "-c", `cat ${CopilotExecutor.LOG_DIR}/*.log 2>/dev/null`],
     });
 
+    this.logs.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
     this.logs.attach();
   }
 
@@ -301,7 +310,7 @@ export class ContainerManager implements IContainerManager {
       await this.compose.compose(["down", "--volumes", "--remove-orphans"]);
     } catch {
       this.logger.warn("Graceful stop failed, forcing docker rm...");
-      for (const service of ["app", "egress-proxy"]) {
+      for (const service of ["app", "egress-proxy", "mcp-sidecar"]) {
         const name = await this.compose.getContainerName(this.profile.composeProjectLabel, service).catch(() => null);
         if (name) {
           await execa("docker", ["rm", "-f", name]).catch(() => {});

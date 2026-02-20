@@ -34,18 +34,15 @@ describe("TaskResourceManager", () => {
     });
 
     it("extracts text from ADF comment bodies", async () => {
-      jira.getComments.mockResolvedValue([{
-        id: "1",
-        author: { displayName: "Alice" },
-        created: "2026-01-15T10:00:00Z",
-        body: {
+      jira.getComments.mockResolvedValue([
+        makeComment("1", {
           type: "doc",
           content: [{
             type: "paragraph",
             content: [{ type: "text", text: "ADF content" }],
           }],
-        },
-      }]);
+        }, "2026-01-15T10:00:00Z"),
+      ]);
 
       const result = await resources.fetchComments("DF-100");
 

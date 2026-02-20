@@ -18,7 +18,7 @@ export interface ITaskRunner {
   /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
   onPreToolUse?: (line: string) => void;
   /** Run the full pipeline for a single issue + profile combination. */
-  run(issue: JiraIssue, profile: AgentProfile): Promise<{ result: RalphResult; container: IContainerManager }>;
+  run(issue: JiraIssue, profile: AgentProfile, taskId: string): Promise<{ result: RalphResult; container: IContainerManager }>;
   /** Tear down containers — tries graceful stop, falls back to raw compose down. */
   teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void>;
 }
@@ -89,6 +89,7 @@ export class TaskRunner implements ITaskRunner {
   async run(
     issue: JiraIssue,
     profile: AgentProfile,
+    taskId: string,
   ): Promise<{ result: RalphResult; container: IContainerManager }> {
     const container = this.containerFactory.create(profile);
     if (this.onToolOutput) {
@@ -118,7 +119,7 @@ export class TaskRunner implements ITaskRunner {
       // the directory that streaming sources watch, and setup is where squid
       // proxy failures surface. With sources registered, the error path can
       // still collectAll (especially proxy logs) before teardown.
-      container.registerLogSources(issue.key);
+      container.registerLogSources(taskId);
 
       await container.setup();
 
@@ -177,7 +178,7 @@ export class TaskRunner implements ITaskRunner {
         await this.resources.attachTranscript(issue.key, transcriptPath, profile.agentName);
       }
 
-      this.logCollector.saveExecutionSummary(result);
+      this.logCollector.saveExecutionSummary(result, undefined, taskId);
       this.logger.info("Execution summary saved");
 
       return { result, container };

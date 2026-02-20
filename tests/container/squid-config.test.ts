@@ -1,20 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { generateProfileSquidConf } from "../../src/container/setup/squid-config.js";
-
-function createTempDir(): string {
-  const dir = join(tmpdir(), `ralph-squid-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function writeManifest(dir: string, name: string, manifest: Record<string, unknown>): void {
-  const serverDir = join(dir, name);
-  mkdirSync(serverDir, { recursive: true });
-  writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify(manifest));
-}
+import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("Squid Config", () => {
   let tempDir: string;
@@ -47,6 +35,7 @@ describe("Squid Config", () => {
         type: "custom",
         command: "node",
         args: ["dist/bundle.mjs"],
+        sidecarPort: 9100,
         proxyDomains: [".atlassian.com", ".atlassian.net"],
       });
 
@@ -59,10 +48,12 @@ describe("Squid Config", () => {
     it("deduplicates domains from multiple servers", () => {
       writeManifest(tempDir, "server-a", {
         name: "a", type: "npm", command: "npx", args: [],
+        sidecarPort: 9100,
         proxyDomains: [".example.com", ".shared.org"],
       });
       writeManifest(tempDir, "server-b", {
         name: "b", type: "npm", command: "npx", args: [],
+        sidecarPort: 9101,
         proxyDomains: [".shared.org", ".other.com"],
       });
 
@@ -76,6 +67,7 @@ describe("Squid Config", () => {
     it("produces fallback comment when no servers have proxy domains", () => {
       writeManifest(tempDir, "no-domains", {
         name: "no-domains", type: "npm", command: "npx", args: [],
+        sidecarPort: 9100,
       });
 
       const result = generateProfileSquidConf(baselinePath, tempDir, ["no-domains"]);
@@ -86,6 +78,7 @@ describe("Squid Config", () => {
     it("preserves baseline content around the marker", () => {
       writeManifest(tempDir, "srv", {
         name: "srv", type: "npm", command: "npx", args: [],
+        sidecarPort: 9100,
         proxyDomains: [".test.io"],
       });
 

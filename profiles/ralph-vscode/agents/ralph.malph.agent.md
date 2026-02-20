@@ -291,7 +291,7 @@ After posting the JIRA comment, post your findings on the PR in Azure DevOps.
 
 ### Phase 7: Write Review Handoff
 
-Create a `review-handoff.md` file and attach it to the JIRA issue. Write to `resources/chats/<issue-key>/review-handoff.md`:
+Create a `review-handoff.md` file and attach it to the JIRA issue. Write to `/tmp/mcp-attachments/review-handoff.md`:
 
 ```markdown
 # Review Handoff — <ISSUE-KEY>
@@ -317,7 +317,7 @@ problematic code, corrections. For APPROVED verdicts, "No issues found."
 and any minor suggestions.>
 ```
 
-After writing the file, attach it to the JIRA issue.
+After writing the file, attach it to the JIRA issue using the `jira_add_attachment` tool with file name `review-handoff.md`.
 
 ### Phase 8: Return Result
 

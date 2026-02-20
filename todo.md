@@ -131,3 +131,7 @@ allowedUrlPaths should not be set on mcp.config or? each profile should also hav
 infrastructure vscode user hardcoded dependency - fucking devcontainers
 
 hardbake issue id and pr id into the mcp servers - no parameterization - further restrict ai bullshit
+
+cleaning abandoned containers starts inside orchestrator - hm? i guess the profiles need to be resolved yea
+
+whitelist jira account that can invoke the agents

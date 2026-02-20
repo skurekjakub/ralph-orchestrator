@@ -3,6 +3,46 @@ import { ContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner
 import { createMockLogger, createMockCompose } from "../helpers/mocks.js";
 
 describe("ContainerWorkspaceCleaner", () => {
+  describe("prepareConfigDir", () => {
+    it("chowns the config dir and creates writable subdirectories", async () => {
+      const { compose, exec } = createMockCompose();
+      const logger = createMockLogger();
+      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+
+      await cleaner.prepareConfigDir("/workspace/.ralph", ["session-state", "logs/cli-debug"]);
+
+      expect(exec).toHaveBeenCalledTimes(5);
+      expect(exec).toHaveBeenNthCalledWith(1, ["-T", "--user", "root", "app", "chown", "vscode:vscode", "/workspace/.ralph"]);
+      expect(exec).toHaveBeenNthCalledWith(2, ["-T", "--user", "root", "app", "mkdir", "-p", "session-state"]);
+      expect(exec).toHaveBeenNthCalledWith(3, ["-T", "--user", "root", "app", "chown", "vscode:vscode", "session-state"]);
+      expect(exec).toHaveBeenNthCalledWith(4, ["-T", "--user", "root", "app", "mkdir", "-p", "logs/cli-debug"]);
+      expect(exec).toHaveBeenNthCalledWith(5, ["-T", "--user", "root", "app", "chown", "vscode:vscode", "logs/cli-debug"]);
+      expect(logger.info).toHaveBeenCalledWith("Config directory ready: /workspace/.ralph");
+    });
+
+    it("handles empty writable dirs list", async () => {
+      const { compose, exec } = createMockCompose();
+      const logger = createMockLogger();
+      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+
+      await cleaner.prepareConfigDir("/workspace/.ralph", []);
+
+      expect(exec).toHaveBeenCalledTimes(1);
+      expect(exec).toHaveBeenCalledWith(["-T", "--user", "root", "app", "chown", "vscode:vscode", "/workspace/.ralph"]);
+    });
+
+    it("warns on failure without throwing", async () => {
+      const { compose, exec } = createMockCompose();
+      exec.mockRejectedValueOnce(new Error("Permission denied"));
+      const logger = createMockLogger();
+      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+
+      await cleaner.prepareConfigDir("/workspace/.ralph", ["session-state"]);
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Permission denied"));
+    });
+  });
+
   describe("cleanLogDirectory", () => {
     it("removes, recreates, and chowns the log directory as root", async () => {
       const { compose, exec } = createMockCompose();

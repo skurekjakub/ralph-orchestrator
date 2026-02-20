@@ -4,7 +4,8 @@
   "type": "custom",
   "command": "node",
   "args": ["dist/bundle.js"],
-  "containerPath": "/workspace/.ralph/mcp-servers/jira-kentico",
+  "containerPath": "/opt/mcp/servers/jira-kentico",
+  "sidecarPort": 9100,
   "requiredEnv": ["JIRA_PAT", "JIRA_EMAIL"],
   "proxyDomains": [".atlassian.com", ".atlassian.net"],
   "allowedUrlPaths": {

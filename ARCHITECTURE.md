@@ -9,29 +9,33 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 │                         RALPH ORCHESTRATOR                         │
 │                      (this repo — Node.js app)                     │
 │                                                                    │
-│  ┌──────────┐    ┌──────────┐    ┌───────────────┐    ┌─────────┐  │
-│  │  JIRA    │───▶│ Operation│───▶│  Container    │───▶│  Log   │  │
-│  │  Poller  │    │  Ledger  │    │  Manager      │    │Collector│  │
-│  └──────────┘    └──────────┘    └───────┬───────┘    └─────────┘  │
-│       │                                  │                         │
-│       │                          ┌───────┴───────┐                 │
-│       │                          │ CLI Selection  │                 │
-│       │                          └───┬───────┬───┘                 │
-│  ┌──────────┐              ┌─────┴──┐ ┌──┴──────┐                  │
-│  │  JIRA    │              │Copilot │ │ Claude  │                  │
-│  │  Client  │              │Executor│ │Executor │                  │
-│  └──────────┘              └────┬───┘ └───┬─────┘                  │
-│       │                         └────┬────┘                        │
-│       │                              ▼                             │
-│  ┌──────────┐     ┌─────────────────────────────────────────┐      │
-│  │Heartbeat │     │          DOCKER CONTAINERS              │      │
-│  │ Sender   │──▶  │  ┌──────────────┐  ┌────────────────┐  │      │
-│  └──────────┘     │  │  App (agent)  │  │ Egress Proxy   │  │      │
-│       │      Dash │  │  internal net │──│ (Squid sidecar)│  │      │
-│       │           │  │  cap_drop:ALL │  │ domain allowl. │  │      │
-│       │           │  │  no-sudo      │  │ access logging │  │      │
-│       │           │  └──────────────┘  └────────────────┘  │      │
-│       │           └─────────────────────────────────────────┘      │
+│  ┌──────────┐  ┌─────────┐  ┌──────────┐  ┌───────────────────┐   │
+│  │  JIRA    │─▶│ Trigger │─▶│ Operation│─▶│   Task Runner     │   │
+│  │  Poller  │  │ Scanner │  │  Ledger  │  └────────┬──────────┘   │
+│  └──────────┘  └─────────┘  └──────────┘           │              │
+│       │                                    ┌───────┴───────┐      │
+│       │                                    │ CLI Selection  │      │
+│  ┌──────────┐                       ┌──────┴──┐ ┌──┴──────┐       │
+│  │  JIRA    │                       │ Copilot │ │  Claude │       │
+│  │  Client  │                       │Executor │ │Executor │       │
+│  └──────────┘                       └────┬────┘ └───┬─────┘       │
+│       │                                  └────┬─────┘             │
+│       │                                       ▼                   │
+│  ┌──────────┐     ┌────────────────────────────────────────────┐  │
+│  │Heartbeat │     │           DOCKER CONTAINERS                │  │
+│  │ Sender   │──▶  │                                            │  │
+│  └──────────┘     │  ┌──────────────┐  ┌────────────────────┐  │  │
+│       │      Dash │  │  App (agent)  │  │   MCP Sidecar      │  │  │
+│       │           │  │  internal net │──│   gateway.ts        │  │  │
+│       │           │  │  cap_drop:ALL │  │   MCP HTTP servers  │  │  │
+│       │           │  │  no-sudo      │  │   isolated secrets  │  │  │
+│       │           │  └──────────────┘  └────────────────────┘  │  │
+│       │           │                    ┌────────────────────┐  │  │
+│       │           │                    │  Egress Proxy       │  │  │
+│       │           │                    │  (Squid sidecar)    │  │  │
+│       │           │                    │  domain allowlist   │  │  │
+│       │           │                    └────────────────────┘  │  │
+│       │           └────────────────────────────────────────────┘  │
 │                                                                    │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                    INK TERMINAL DASHBOARD                    │  │
@@ -43,17 +47,17 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Data Flow
 
 ```
-1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Comment scan ──▶ Operation Ledger
-2. Ledger ──(next pending)──▶ Orchestrator ──(profile match)──▶ Profile selected
-3. Orchestrator ──(transition + comment)──▶ JIRA Cloud
-4. Orchestrator ──(docker compose up -d --build)──▶ Docker
-5. Orchestrator ──(docker compose exec <cli>)──▶ Container
-6. Ralph (inside) ──(git pull, branch, write, review)──▶ ADO Git
-7. Ralph (inside) ──(REST API: create PR)──▶ Azure DevOps
-8. Ralph (inside) ──(REST: comment + attach handoff)──▶ JIRA Cloud
-9. Orchestrator ──(docker compose exec cat)──▶ audit.jsonl ──▶ output/logs/
-10. Orchestrator ──(save CLI output)──▶ output/logs/<key>-<ts>-copilot.log
-11. Orchestrator ──(docker compose down --volumes --remove-orphans)──▶ Container destroyed
+1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Trigger Scanner ──▶ Operation Ledger
+2. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup)──▶ Profile selected
+3. Orchestrator ──(transition + ack comment)──▶ JIRA Cloud
+4. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
+5. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
+6. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(JIRA/ADO REST)──▶ External APIs
+7. Agent ──(git push)──▶ ADO Git (via Squid proxy)
+8. Agent ──(MCP: create PR, comment, attach handoff)──▶ MCP Sidecar ──▶ JIRA/ADO
+9. Orchestrator ──(exec cat / compose logs)──▶ Collect logs from all containers
+10. Orchestrator ──(save execution summary)──▶ output/logs/<key>-<startTs>/
+11. Orchestrator ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
 12. Orchestrator ──▶ resume polling (back to step 1)
 ```
 
@@ -65,8 +69,8 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 1. Validates prerequisites (env vars, config, Docker, profiles, security)
 2. Loads and returns `AppConfig`
 3. Resolves agent template includes (`shared/agent-includes/` → `.build/`)
-4. Builds custom MCP servers (esbuild bundle)
-5. Generates per-profile MCP configs (`mcp-config.json`, compose overlay, squid.conf)
+4. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
+5. Generates per-profile MCP configs (`mcp-config.json`, `gateway.json`, compose overlay, squid.conf)
 
 All profile infrastructure is fully prepared before the orchestrator is instantiated.
 
@@ -101,10 +105,10 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 - **ComposeClient** — Low-level `docker compose` wrapper. Handles the three-file merge and injects process environment (secrets, JIRA config, host paths).
 - **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders. Copilot uses `--config-dir`, `--agent`, `--share` (transcript export); Claude uses `--mcp-config`, `--strict-mcp-config`.
-- **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`) or batch (`cat`) modes.
+- **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
-**Prompt construction:** Before CLI execution, the prompt is built via `buildPromptWithSections()`, which normalizes untrusted JIRA content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `BEGIN/END UNTRUSTED JIRA DATA` delimiters. The assembled prompt is passed through the prompt injection auditor.
+**Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted JIRA content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `BEGIN/END UNTRUSTED JIRA DATA` delimiters. The assembled prompt is passed through the prompt injection auditor.
 
 **CLI selection:** Based on the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 
@@ -118,17 +122,19 @@ Main loop: poll → scan triggers → execute pending operations → repeat.
 
 The scanner caches each issue's `updated` timestamp between cycles. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
 
-**Processing a single operation:** Re-validate issue status → preflight checks → select CLI → transition JIRA (beforeAgent) → start containers → run setup → execute agent → collect logs + transcript → save summary → attach transcript to JIRA → update ledger → stop container → transition JIRA (afterAgent). Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
+**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. The task runner transitions JIRA (beforeAgent) → start containers → clean audit logs → register log sources → run setup → fetch comments/handoff context → execute agent → collect logs + transcript → save summary → attach transcript to JIRA → return result. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
 
 **State observation:** The `OrchestratorObserver` builds state snapshots and heartbeat payloads from live orchestrator data. The Ink dashboard subscribes to it directly (`orchestrator.observer`). This separation keeps state aggregation out of the main orchestration loop.
 
 ### Log Collection
 
-**Container Log Collector** (`src/container/log-collector.ts`) manages per-task log collection from `app` and sidecar containers. Each source is registered with a capture mode (stream for real-time, collect for post-execution). All sources are flushed to disk as `<key>-<ts>-<sourceId>.<ext>`.
+**Container Log Collector** (`src/container/log-collector.ts`) manages per-task log collection from `app` and sidecar containers. Each source is registered with a capture mode (stream for real-time, collect for post-execution). Each task gets its own timestamped directory (`output/logs/<key>-<startTs>/`), with files named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`.
 
-**Log Collector** (`src/logs/collector.ts`) saves execution metadata as `<key>-<ts>-summary.json`.
+Sidecar logs (gateway startup, MCP server output) are collected via `docker compose logs` since the gateway writes to stdout rather than a file. The collector's `useComposeLogs` flag routes collection through the compose logs command instead of `exec cat`.
 
-Per-task outputs: audit trail (`.jsonl`), session transcript (`.md`), tool output (`.log`), proxy access log (`.log`), execution summary (`.json`), streaming log (`.log`). Proxy logs are collected even on error for allowlist debugging. A persistent daily activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) are also maintained.
+**Log Collector** (`src/logs/collector.ts`) saves execution metadata as `<key>-<startTs>-<ts>-summary.json` inside the task's timestamped directory.
+
+Per-task outputs: audit trail (`.jsonl`), session transcript (`.md`), tool output (`.log`), proxy access log (`.log`), sidecar log (`.log`), execution summary (`.json`), streaming log (`.log`). Proxy and sidecar logs are collected even on error for debugging. A persistent daily activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) are also maintained.
 
 ### Status Dashboard (`ralph-dashboard/`)
 
@@ -163,7 +169,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── resources/                   # Profile-specific files mounted read-only into container
 │   │   ├── .build/                      # Generated at startup (gitignored):
 │   │   │                                #   resolved agent files, mcp-config.json,
-│   │   │                                #   docker-compose.overlay.yml, squid.conf
+│   │   │                                #   gateway.json, docker-compose.overlay.yml, squid.conf
 │   │   └── agents/
 │   │       ├── ralph.ralph.agent.md     # Meta-agent template (with include markers)
 │   │       ├── ralph.ralph-researcher.agent.md  # Research sub-agent (docs + source code)
@@ -196,11 +202,15 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       ├── jira-kentico/                # JIRA Cloud MCP server (custom, Kentico instance)
 │       ├── discord-hitl/                # Discord HITL server (custom, esbuild bundle)
 │       └── playwright/                  # Playwright MCP server (npm)
+├── shared/mcp-sidecar/                  # MCP sidecar container (gateway process manager)
+│   ├── Dockerfile                       # Sidecar image (node:22-slim, supergateway, mcp packages)
+│   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
+│   └── package.json
 ```
 
 Agent template files use `<!-- include: name.md -->` markers. At startup, `resolveAllProfileIncludes()` resolves markers from `shared/agent-includes/` into `profiles/<id>/.build/`. Compose files mount from `.build/` — the templates are the source of truth.
 
-**Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds MCP server mounts, env var passthrough, and resource file mounts. Profiles with no MCP servers or resources skip the overlay.
+**Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config for the agent, and resource file mounts. Profiles with no MCP servers or resources skip the overlay.
 
 Currently configured target repos:
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
@@ -271,16 +281,17 @@ The security overlay (`shared/security/docker-compose.security.yml`) is merged w
 
 ### MCP Config System (`src/container/setup/`)
 
-Each profile declares MCP servers in `profile.json` (`mcpServers` array). At startup, `resolveAllProfileSetup()` resolves server names to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files in `.build/`:
+Each profile declares MCP servers in `profile.json` (`mcpServers` array). At startup, `resolveAllProfileSetup()` resolves server names to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files per profile in `.build/`:
 
-1. **`mcp-config.json`** — Shared by both CLIs. Copilot reads it via `--config-dir`; Claude Code via `--mcp-config --strict-mcp-config`.
-2. **`docker-compose.overlay.yml`** — Injects base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`) and MCP env vars (auto-derived from manifest `requiredEnv`/`optionalEnv`). Mounts MCP server code, `mcp-config.json`, Copilot CLI config, and resource files.
-3. **`squid.conf`** — Profile-specific proxy config (baseline + MCP proxy domains).
-4. **`copilot-config.json`** — Copilot CLI config with `allowed_urls` derived from squid domains + path restrictions from MCP server manifests.
+1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains only `{ type, url }` entries — no secrets. Copilot reads it via `--config-dir`; Claude Code via `--mcp-config --strict-mcp-config`.
+2. **`gateway.json`** — Per-profile sidecar config with server commands, args, ports, and embedded secrets. The sidecar only starts servers the profile declares — a profile with `["jira-kentico", "ado"]` never spawns `discord-hitl`.
+3. **`docker-compose.overlay.yml`** — Injects base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, Copilot CLI config, and resource files.
+4. **`squid.conf`** — Profile-specific proxy config (baseline + MCP proxy domains).
+5. **`copilot-config.json`** — Copilot CLI config with `allowed_urls` derived from squid domains + path restrictions from MCP server manifests.
 
 The setup modules are split by responsibility: `mcp-manifest.ts` (types/loading), `mcp-config.ts` (CLI config), `compose-overlay.ts` (overlay generation), `squid-config.ts` (proxy config), `profile-setup.ts` (orchestrator).
 
-Server types: `npm` (npx-based, no host code) and `custom` (locally built with esbuild bundle in `dist/`). See [MCP.md](MCP.md) for the full MCP reference.
+Server types: `npm` (pre-installed packages, bridged to HTTP via supergateway) and `custom` (locally built, bundled to `dist/`). See [MCP.md](MCP.md) for the full MCP reference.
 
 ### Runtime URL Enforcement
 
@@ -302,5 +313,5 @@ Path restrictions are auto-derived from MCP server manifests at startup (`src/co
 17. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
 18. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.
 19. **Shared MCP config** — Both Copilot CLI and Claude Code CLI use the same `mcp-config.json` format. One generated file serves both, avoiding format divergence.
-20. **MCP least-privilege** — Each profile declares only the MCP servers it needs (`mcpServers` array). The agent only sees the tools from those servers — a profile with `["playwright"]` has no JIRA or ADO tools. Per-profile squid configs further restrict egress to only the domains required by the declared servers. This enforces least-privilege at both the tool and network level.
+20. **MCP least-privilege** — Each profile declares only the MCP servers it needs (`mcpServers` array). The agent only sees the tools from those servers — a profile with `["playwright"]` has no JIRA or ADO tools. Per-profile `gateway.json` ensures the sidecar only starts declared servers. Per-profile squid configs restrict egress to only the domains required. This enforces least-privilege at tool, process, network, and credential levels.
 

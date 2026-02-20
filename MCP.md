@@ -4,33 +4,38 @@ This document describes how MCP (Model Context Protocol) servers are managed, co
 
 ## Overview
 
-MCP servers give agents structured tool access to external services (JIRA, Azure DevOps, Discord, Playwright, etc.) instead of raw `curl` calls. Each server is a standalone process communicating via stdio, discovered and configured at orchestrator startup.
+MCP servers give agents structured tool access to external services (JIRA, Azure DevOps, Discord, Playwright, etc.) instead of raw `curl` calls. Each server runs inside an isolated **MCP sidecar container**, communicating with the agent via HTTP (Streamable HTTP transport). This architecture ensures complete filesystem isolation — the agent cannot read server code, credentials, or gateway configuration.
 
 ```
 profile.json → mcpServers: ["jira-kentico", "ado", "playwright"]
                      ↓
            resolveAllProfileSetup()
                      ↓
-        ┌────────────┼────────────────┐
-        ↓            ↓                ↓
-  mcp-config.json  compose overlay  squid.conf
-  (tool config)    (env + mounts)   (proxy domains)
-        ↓            ↓                ↓
-     mounted into container at startup
+        ┌────────────┼──────────────────────┐
+        ↓            ↓            ↓         ↓
+  mcp-config.json  gateway.json  overlay  squid.conf
+  (URL entries)    (secrets)     (sidecar) (domains)
+        ↓            ↓            ↓         ↓
+     agent        sidecar    compose     egress
+     container    container  merge       proxy
 ```
 
-Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot discovers it via `--config-dir /workspace/.ralph`; Claude Code loads it explicitly via `--mcp-config`.
+Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot discovers it via `--config-dir /workspace/.ralph`; Claude Code loads it explicitly via `--mcp-config`. The config contains only HTTP URLs pointing to the sidecar — no secrets.
 
 ## Server Registry
 
-All MCP servers live under `shared/mcp-servers/`, each in its own subdirectory with a `mcp-server.json` manifest:
+All MCP servers live under `shared/mcp-servers/`, each in its own subdirectory with a `mcp-server.json` manifest. The sidecar gateway and Dockerfile live under `shared/mcp-sidecar/`.
 
 ```
 shared/mcp-servers/
-  ado/              — Azure DevOps (npm: @azure-devops/mcp)
+  ado/              — Azure DevOps (custom: PR creation + review threads)
   jira-kentico/     — JIRA Cloud (custom: comments + attachments, Kentico instance)
   discord-hitl/     — Discord human-in-the-loop (custom: blocking questions)
   playwright/       — Browser automation (npm: @playwright/mcp)
+shared/mcp-sidecar/
+  Dockerfile        — Sidecar container image
+  src/gateway.ts    — Process manager + health endpoint
+  package.json      — Gateway dependencies (supergateway)
 ```
 
 ### Current Servers
@@ -46,33 +51,35 @@ shared/mcp-servers/
 
 ### npm (`type: "npm"`)
 
-Uses an existing npm package via `npx`. No local code — just the manifest:
+Uses a pre-installed npm package. No local code — just the manifest. In sidecar mode, `supergateway` bridges the stdio-based server to Streamable HTTP:
 
 ```json
 {
   "name": "playwright",
   "type": "npm",
-  "command": "npx",
-  "args": ["-y", "@playwright/mcp@latest"]
+  "command": "playwright-mcp",
+  "args": [],
+  "sidecarPort": 9103
 }
 ```
 
 ### Custom (`type: "custom"`)
 
-Locally built server with source in `src/`, bundled to `dist/`. The `containerPath` field specifies where the server is mounted inside the container:
+Locally built server with source in `src/`, bundled to `dist/`. The `containerPath` field specifies where the server is mounted inside the sidecar container:
 
 ```json
 {
   "name": "jira-kentico",
   "type": "custom",
   "command": "node",
-  "args": ["dist/bundle.mjs"],
-  "containerPath": "/workspace/.ralph/mcp-servers/jira-kentico",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/jira-kentico",
+  "sidecarPort": 9100,
   "requiredEnv": ["JIRA_PAT", "JIRA_EMAIL"]
 }
 ```
 
-Custom servers use `@modelcontextprotocol/sdk` and are bundled with esbuild for single-file deployment. Build with `npm run build` inside the server directory.
+Custom servers support both stdio and HTTP transport modes. In sidecar mode, the gateway spawns them with `--transport http --port <sidecarPort>`. Custom servers use `@modelcontextprotocol/sdk` with `StreamableHTTPServerTransport` and are bundled for single-file deployment (webpack or esbuild, depending on server). Build with `npm run build` inside the server directory.
 
 ## Manifest Schema
 
@@ -81,45 +88,65 @@ Custom servers use `@modelcontextprotocol/sdk` and are bundled with esbuild for 
 | `name` | Server identifier (must match directory name) | Yes |
 | `description` | Human-readable description | No |
 | `type` | `"npm"` or `"custom"` | Yes |
-| `command` | Executable (`npx`, `node`) | Yes |
+| `command` | Executable (`node`, `playwright-mcp`, etc.) | Yes |
 | `args` | Command arguments | Yes |
-| `containerPath` | Mount path inside container (custom servers only) | Custom only |
-| `requiredEnv` | Env vars that must be present | No |
+| `sidecarPort` | Fixed port the server listens on inside the MCP sidecar container (1–65535, must be unique) | Yes |
+| `containerPath` | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`) | Custom only |
+| `requiredEnv` | Env vars that must be present (embedded in gateway.json, not in the agent container) | No |
 | `optionalEnv` | Optional env vars the server supports | No |
 | `proxyDomains` | Domains the server needs egress access to | No |
-| `tools` | Tool names (documentation reference) | No |
+| `allowedUrlPaths` | Domain → allowed URL path prefixes for Copilot CLI URL restrictions | No |
+| `tools` | Tool names (documentation reference + tool filtering) | No |
 
 ## Startup Resolution
 
-At startup, `resolveAllProfileSetup()` processes each profile and generates five files in `profiles/<id>/.build/`:
+At startup, `resolveAllProfileSetup()` processes each profile and generates six files in `profiles/<id>/.build/`:
 
 ### `mcp-config.json`
 
-MCP server configuration consumed by both CLIs. Maps server names to command + args + env:
+MCP server configuration consumed by both CLIs. Maps server names to HTTP URLs on the sidecar — **no secrets included**:
 
 ```json
 {
   "mcpServers": {
     "jira-kentico": {
-      "command": "node",
-      "args": ["/workspace/.ralph/mcp-servers/jira-kentico/dist/bundle.mjs"],
-      "env": {
-        "JIRA_PAT": "${JIRA_PAT}",
-        "JIRA_EMAIL": "${JIRA_EMAIL}"
-      }
+      "type": "http",
+      "url": "http://mcp-sidecar:9100/mcp"
+    },
+    "ado": {
+      "type": "http",
+      "url": "http://mcp-sidecar:9101/mcp"
     }
   }
 }
 ```
 
+### `gateway.json`
+
+Sidecar gateway configuration with commands, args, and embedded secrets. Mounted into the sidecar container only — **never into the agent**:
+
+```json
+{
+  "servers": [
+    {
+      "name": "jira-kentico",
+      "type": "custom",
+      "port": 9100,
+      "command": "node",
+      "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js"],
+      "env": { "JIRA_PAT": "...", "JIRA_EMAIL": "..." }
+    }
+  ]
+}
+```
+
 ### `docker-compose.overlay.yml`
 
-Compose overlay merged as the third file in the three-file pattern. Injects:
-- **Base environment variables** — always present: `GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`
-- **MCP environment variables** — auto-derived from manifest `requiredEnv` / `optionalEnv` (deduplicated with base)
-- Volume mounts for the MCP servers directory and generated config
-- Copilot CLI config (`copilot-config.json` → `/workspace/.ralph/config.json`)
-- Resource file mounts (if `resources` is configured)
+Compose overlay merged as the third file. Generates:
+- **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, etc.), URL-only `mcp-config.json` mount, copilot-config mount, resource mounts, `depends_on: mcp-sidecar`
+- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs)
+
+No MCP server code, secrets, or gateway config is mounted into the agent container.
 
 ### `squid.conf`
 
@@ -137,23 +164,58 @@ Copilot CLI config with `allowed_urls` derived from squid domains + path restric
 
 ```
 Agent container (internal-only network)
-  → MCP server process (stdio, same container)
-    → HTTP request via egress proxy (port 3128)
-      → Squid proxy sidecar (checks domain allowlist)
-        → External API (if allowed)
+  → HTTP request to MCP sidecar (http://mcp-sidecar:PORT/mcp)
+    → Sidecar gateway dispatches to MCP server process
+      → Server makes API call via egress proxy (port 3128)
+        → Squid proxy sidecar (checks domain allowlist)
+          → External API (if allowed)
 ```
 
-The agent container has no direct internet access. The squid proxy is the only bridge, and it enforces a per-profile domain allowlist built from the baseline + MCP `proxyDomains`.
+The agent container has no direct internet access and no MCP credentials. The agent talks to MCP servers via HTTP URLs on the internal Docker network. MCP servers inside the sidecar reach external APIs through the Squid egress proxy (also on the internal network). The proxy enforces a per-profile domain allowlist.
 
 ## Adding a New Server
 
-1. Create `shared/mcp-servers/<name>/mcp-server.json`
-2. For custom servers: add `package.json`, `tsconfig.json`, `src/index.ts`, build with `npm run build`
-3. Add `"<name>"` to profile `mcpServers` arrays
-4. List `requiredEnv` / `optionalEnv` in the manifest — they're auto-injected into the compose overlay
-5. List `proxyDomains` in the manifest — they're auto-injected into the squid config
+1. Create `shared/mcp-servers/<name>/mcp-server.json` with a unique `sidecarPort` (1–65535)
+2. For npm servers: set `type: "npm"`, `command`, `args` — no local code needed
+3. For custom servers: add `package.json`, `tsconfig.json`, `src/index.ts` with HTTP transport support (`--transport http --port PORT`), set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
+4. Add `"<name>"` to the profile `mcpServers` arrays that should use this server
+5. List `requiredEnv` / `optionalEnv` in the manifest — they're embedded in `gateway.json` (sidecar-only)
+6. List `proxyDomains` in the manifest — they're auto-injected into the squid config
 
-No manual squid.conf edits needed. No changes to the orchestrator source code.
+No manual squid.conf edits, compose file edits, or env var wiring needed. The orchestrator discovers manifests automatically and generates all configuration at startup.
+
+### Custom Server HTTP Transport
+
+Custom servers must support the Streamable HTTP transport for sidecar mode. Each request creates a fresh `McpServer` + `StreamableHTTPServerTransport` pair (stateless — no session tracking). This ensures crash resilience: if the gateway restarts a server, clients reconnect transparently without session errors.
+
+Parse `--transport http --port PORT` from argv:
+
+```typescript
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createServer } from "node:http";
+
+function startHttpTransport(createMcpServer: () => McpServer, port: number): void {
+  const httpServer = createServer(async (req, res) => {
+    if (req.url === "/health") { res.writeHead(200); res.end('{"status":"ok"}'); return; }
+    if (req.url !== "/mcp") { res.writeHead(404); res.end(); return; }
+    let body;
+    if (req.method === "POST") {
+      const chunks = [];
+      for await (const chunk of req) chunks.push(chunk);
+      try { body = JSON.parse(Buffer.concat(chunks).toString()); }
+      catch { res.writeHead(400); res.end('{"error":"Invalid JSON"}'); return; }
+    }
+    const mcpServer = createMcpServer();
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on("close", () => { transport.close(); mcpServer.close(); });
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, body);
+  });
+  httpServer.listen(port, "0.0.0.0");
+}
+```
+
+The `main()` function should check for `--transport http` and fall back to stdio for local development.
 
 ## Agent Include Files
 

@@ -28,6 +28,9 @@ export interface LogSourceDef {
   /** Override the default `["cat", containerPath]` command used during collection.
    *  Useful when the file has a dynamic name (e.g. glob pattern). */
   collectArgs?: string[];
+  /** When true, collect via `docker compose logs` instead of `exec cat`. Use for
+   *  sidecar services that log to stdout rather than a file. */
+  useComposeLogs?: boolean;
   /** Optional callback invoked for each streamed line (only used in `"stream"` mode). */
   onLine?: (line: string) => void;
 }
@@ -122,10 +125,12 @@ export class ContainerLogCollector {
       );
 
       try {
-        const collectCmd = source.collectArgs ?? ["cat", source.containerPath];
-        const result = await this.compose.exec([
-          "-T", source.service, ...collectCmd,
-        ]);
+        const result = source.useComposeLogs
+          ? await this.compose.logs(source.service)
+          : await this.compose.exec([
+              "-T", source.service,
+              ...(source.collectArgs ?? ["cat", source.containerPath]),
+            ]);
 
         const content = String(result.stdout);
         if (!content.trim()) {

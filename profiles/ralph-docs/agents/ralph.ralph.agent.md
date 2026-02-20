@@ -154,7 +154,7 @@ Note the PR URL/ID for the handoff file.
 
 ### Phase 8: Write Handoff & Report to JIRA
 
-1. **Create the handoff file** at `resources/chats/<jira-key>/handoff.md` (local only — do NOT commit it):
+1. **Create the handoff file** at `/tmp/mcp-attachments/handoff.md` (local only — do NOT commit it):
 
 ```markdown
 # Handoff: <JIRA Key> — <JIRA Title>
@@ -190,7 +190,7 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 <!-- What the human should do after reviewing -->
 ```
 
-2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` MCP tool with the issue key and the handoff file path.
+2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` MCP tool with the issue key and file name `handoff.md`.
 
 3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
@@ -208,7 +208,7 @@ JIRA_KEY: <key>
 STATUS: <completed|partial|blocked>
 BRANCH: ralph/<jira-key>-<short-slug>
 PR_URL: <full ADO PR URL, or "none" if PR creation failed>
-HANDOFF: resources/chats/<jira-key>/handoff.md
+HANDOFF: /tmp/mcp-attachments/handoff.md
 SUMMARY: <one-line description of what was done>
 ===RALPH_RESULT_END===
 ```

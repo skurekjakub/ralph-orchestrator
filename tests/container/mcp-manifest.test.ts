@@ -1,23 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   loadMcpManifest,
   discoverMcpServers,
 } from "../../src/container/setup/mcp-manifest.js";
-
-function createTempDir(): string {
-  const dir = join(tmpdir(), `ralph-manifest-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function writeManifest(dir: string, name: string, manifest: Record<string, unknown>): void {
-  const serverDir = join(dir, name);
-  mkdirSync(serverDir, { recursive: true });
-  writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify(manifest));
-}
+import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("MCP Manifest", () => {
   let tempDir: string;
@@ -37,12 +25,14 @@ describe("MCP Manifest", () => {
         type: "npm",
         command: "npx",
         args: ["-y", "test-package"],
+        sidecarPort: 9100,
       });
 
       const manifest = loadMcpManifest(tempDir, "test-server");
       expect(manifest.name).toBe("test-server");
       expect(manifest.command).toBe("npx");
       expect(manifest.args).toEqual(["-y", "test-package"]);
+      expect(manifest.sidecarPort).toBe(9100);
     });
 
     it("throws for missing manifest", () => {
@@ -50,15 +40,25 @@ describe("MCP Manifest", () => {
     });
 
     it("throws for manifest without name", () => {
-      writeManifest(tempDir, "bad", { command: "node", args: [] });
+      writeManifest(tempDir, "bad", { command: "node", args: [], sidecarPort: 9100 });
       expect(() => loadMcpManifest(tempDir, "bad")).toThrow("name and command are required");
+    });
+
+    it("throws for manifest without valid sidecarPort", () => {
+      writeManifest(tempDir, "no-port", { name: "no-port", command: "node", args: [] });
+      expect(() => loadMcpManifest(tempDir, "no-port")).toThrow("sidecarPort must be an integer between 1 and 65535");
+    });
+
+    it("throws for out-of-range sidecarPort", () => {
+      writeManifest(tempDir, "bad-port", { name: "bad-port", command: "node", args: [], sidecarPort: 70000 });
+      expect(() => loadMcpManifest(tempDir, "bad-port")).toThrow("sidecarPort must be an integer between 1 and 65535");
     });
   });
 
   describe("discoverMcpServers", () => {
     it("discovers servers with manifests", () => {
-      writeManifest(tempDir, "server-a", { name: "a", command: "npx", args: [] });
-      writeManifest(tempDir, "server-b", { name: "b", command: "node", args: [] });
+      writeManifest(tempDir, "server-a", { name: "a", command: "npx", args: [], sidecarPort: 9100 });
+      writeManifest(tempDir, "server-b", { name: "b", command: "node", args: [], sidecarPort: 9101 });
       mkdirSync(join(tempDir, "no-manifest")); // no mcp-server.json
 
       const servers = discoverMcpServers(tempDir);

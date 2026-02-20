@@ -189,4 +189,67 @@ describe("loadConfig", () => {
     expect(config.profiles[1].match.projects).toEqual(["DF"]);
     expect(config.profiles[0].id).toBe(config.profiles[1].id);
   });
+
+  describe("per-variant model override", () => {
+    it("variant model overrides profile-level model", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        model: "claude-sonnet-4",
+        variants: [
+          { agent: "ralph", model: "claude-opus-4.6", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        ],
+      }));
+
+      const config = loadConfig();
+
+      expect(config.profiles[0].model).toBe("claude-opus-4.6");
+    });
+
+    it("variant without model falls back to profile-level model", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        model: "claude-sonnet-4",
+        variants: [
+          { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        ],
+      }));
+
+      const config = loadConfig();
+
+      expect(config.profiles[0].model).toBe("claude-sonnet-4");
+    });
+
+    it("model is undefined when both variant and profile omit it", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        variants: [
+          { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        ],
+      }));
+
+      const config = loadConfig();
+
+      expect(config.profiles[0].model).toBeUndefined();
+    });
+
+    it("multiple variants resolve model overrides independently", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        model: "claude-sonnet-4",
+        variants: [
+          { agent: "ralph.docs", model: "claude-opus-4.6", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+          { agent: "ralph.probe", match: { projects: ["DF"], commentTrigger: "@McpProbe" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        ],
+      }));
+
+      const config = loadConfig();
+
+      expect(config.profiles[0].model).toBe("claude-opus-4.6");
+      expect(config.profiles[1].model).toBe("claude-sonnet-4");
+    });
+  });
 });

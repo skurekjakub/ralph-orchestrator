@@ -19,6 +19,8 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ToolDefinition } from "./shared.js";
 import { tool as createPullRequest } from "./tools/create-pull-request.js";
 import { tool as createPullRequestThread } from "./tools/create-pull-request-thread.js";
@@ -34,18 +36,75 @@ const tools: ToolDefinition[] = [
   replyToComment,
 ];
 
-const server = new McpServer({
-  name: "ado",
-  version: "1.0.0",
-});
+/** Create a fresh McpServer with all tools registered. */
+function createMcpServer(): McpServer {
+  const server = new McpServer({ name: "ado", version: "1.0.0" });
+  for (const { name, config, handler } of tools) {
+    server.registerTool(name, config, handler);
+  }
+  return server;
+}
 
-for (const { name, config, handler } of tools) {
-  server.registerTool(name, config, handler);
+/**
+ * Stateless HTTP transport — each request gets a fresh McpServer + transport.
+ * Eliminates session state so the server survives gateway-level restarts
+ * without clients hitting "Server not initialized" errors.
+ */
+function startHttpTransport(port: number): void {
+  const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    if (req.url === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
+    if (req.url !== "/mcp") {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+
+    let body: unknown;
+    if (req.method === "POST") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) chunks.push(chunk as Buffer);
+      try {
+        body = JSON.parse(Buffer.concat(chunks).toString());
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+        return;
+      }
+    }
+
+    const mcpServer = createMcpServer();
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on("close", () => { transport.close(); mcpServer.close(); });
+    await mcpServer.connect(transport);
+    await transport.handleRequest(req, res, body);
+  });
+
+  httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`ado MCP HTTP server listening on port ${port}`);
+  });
 }
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const transportIdx = process.argv.indexOf("--transport");
+  const portIdx = process.argv.indexOf("--port");
+
+  if (transportIdx !== -1 && process.argv[transportIdx + 1] === "http" && portIdx !== -1) {
+    const port = parseInt(process.argv[portIdx + 1], 10);
+    if (Number.isNaN(port) || port < 1 || port > 65535) {
+      console.error(`Invalid --port value: ${process.argv[portIdx + 1]}`);
+      process.exit(1);
+    }
+    startHttpTransport(port);
+  } else {
+    const server = createMcpServer();
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  }
 }
 
 main().catch((err) => {

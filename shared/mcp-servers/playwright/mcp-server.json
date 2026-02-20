@@ -2,14 +2,17 @@
   "name": "playwright",
   "description": "Browser automation via Playwright — navigate, screenshot, interact with web pages",
   "type": "npm",
-  "command": "npx",
-  "args": ["-y", "@playwright/mcp@latest"],
+  "command": "playwright-mcp",
+  "args": [],
+  "sidecarPort": 9103,
   "tools": [
-    "playwright_navigate",
-    "playwright_screenshot",
-    "playwright_click",
-    "playwright_fill",
-    "playwright_evaluate",
-    "playwright_get_text"
+    "browser_navigate",
+    "browser_navigate_back",
+    "browser_take_screenshot",
+    "browser_network_requests",
+    "browser_click",
+    "browser_fill_form",
+    "browser_evaluate",
+    "browser_press_key"
   ]
 }

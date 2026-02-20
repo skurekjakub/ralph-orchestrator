@@ -56,7 +56,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 Containers are managed via `docker compose` with a **three-file merge** pattern:
 1. **Base compose** — `profiles/<id>/docker-compose.yml` (services, volumes, build config)
 2. **Security overlay** — `shared/security/docker-compose.security.yml` (proxy sidecar, network isolation, resource limits)
-3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (MCP server mounts, env vars, resource file mounts — auto-generated at startup)
+3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (MCP sidecar service, URL-only MCP config, resource file mounts — auto-generated at startup)
 
 `ComposeClient` automatically injects all files: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay is only included if it exists (profiles with no MCP servers or resources skip it).
 
@@ -111,12 +111,6 @@ No piping to `head` or `tail` — always show full output.
 
 Each profile directory under `profiles/` contains a `profile.json` that maps JIRA issues to a repo and agent configuration. Profiles are auto-discovered at startup.
 
-**Profile-level fields** (shared by all variants):
-
-
-**Variant-level fields** (each variant expands into a separate routing entry):
-
-
 The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs.
 
 ## Profile Infrastructure
@@ -133,7 +127,7 @@ profiles/
     resources/          — Profile-specific files mounted read-only into container
     .build/             — Generated at startup (gitignored):
                             resolved agent files, mcp-config.json,
-                            docker-compose.overlay.yml, squid.conf
+                            gateway.json, docker-compose.overlay.yml, squid.conf
     agents/             — Agent template files (.agent.md with include markers)
 shared/
   security/             — Container security infrastructure
@@ -143,19 +137,22 @@ shared/
   agent-includes/       — Shared partial files for agent templates
   mcp-servers/          — MCP server manifests + custom server code
     <name>/
-      mcp-server.json   — Server manifest (type, command, args, env, domains)
+      mcp-server.json   — Server manifest (type, command, args, env, sidecarPort, domains)
       src/ dist/         — Custom server source/bundle (type: "custom" only)
+  mcp-sidecar/          — MCP sidecar container (gateway process manager + Dockerfile)
 ```
 
 Agent templates use `<!-- include: name.md -->` markers resolved from `shared/agent-includes/` at startup. Resolved files go to `.build/` and are mounted read-only into containers.
 
-Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. MCP-related mounts use absolute host paths baked directly into the generated overlay.
+Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. MCP server code and secrets are mounted only into the `mcp-sidecar` container — the agent container receives URL-only MCP config.
 
 ### MCP Least-Privilege
 
-Each profile declares exactly which MCP servers it needs via `mcpServers` in `profile.json`. This enforces least-privilege at two levels:
+Each profile declares exactly which MCP servers it needs via `mcpServers` in `profile.json`. This enforces least-privilege at three levels:
 - **Tool level** — the agent only sees tools from declared servers. A profile with `["playwright"]` has no JIRA or ADO tools.
 - **Network level** — each profile's squid config is generated from the baseline + `proxyDomains` of declared servers. Undeclared server domains are blocked.
+- **Process level** — each profile's `gateway.json` contains only its declared servers. The sidecar never starts servers the profile doesn't need.
+- **Credential level** — MCP secrets are embedded in `gateway.json` inside the sidecar container. The agent container has no access to MCP server code or credentials.
 
 ## JIRA Integration
 
@@ -187,11 +184,12 @@ rejected (invalid state, conflict, preflight fail)
 
 The `ContainerLogCollector` (`src/container/log-collector.ts`) manages per-task log collection from both the `app` and sidecar containers. Log sources are registered with a capture mode (stream or collect) and flushed to disk after execution.
 
-After each task, the orchestrator collects:
+Each task gets its own timestamped directory under `output/logs/<key>-<startTs>/`. After each task, the orchestrator collects:
 - `<key>-<ts>-audit.jsonl` — Audit trail from hooks
 - `<key>-<ts>-transcript.md` — Copilot CLI session transcript (via `--share`)
 - `<key>-<ts>-tool-output.log` — Untruncated tool output from hooks
 - `<key>-<ts>-proxy.log` — Squid access log (allowed/denied domains)
+- `<key>-<ts>-sidecar.log` — MCP sidecar gateway output (server startup, errors)
 - `<key>-<ts>-summary.json` — Execution metadata
 - `<key>-<ts>.log` — Per-task streaming log (real-time container output)
 - `activity-YYYY-MM-DD.log` — Persistent daily activity log
@@ -207,7 +205,7 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 - `execa` v9 for all subprocess management
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
-- Copilot CLI: `--config-dir /workspace/.ralph`, `--yolo`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
+- Copilot CLI: `--config-dir /workspace/.ralph`, `--allow-all-tools`, `--allow-all-paths`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
 - Claude Code CLI: `-p <prompt>`, `--dangerously-skip-permissions`, `--mcp-config /workspace/.ralph/mcp-config.json`, `--strict-mcp-config`
 - Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations)
 - NEVER REEXPORT, update original imports instead

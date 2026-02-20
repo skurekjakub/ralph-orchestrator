@@ -1,24 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { OperationLedger } from "../../src/services/operation-ledger.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager } from "../helpers/mocks.js";
-import type { JiraComment } from "../../src/jira/types.js";
+import { createMockLogger } from "../helpers/mocks.js";
+import { makeMockIssueManager } from "./trigger-test-helpers.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
 
 const silentLogger = createMockLogger();
-
-function makeMockIssueManager(comments: JiraComment[] = []) {
-  return createMockIssueManager({
-    getComments: vi.fn().mockResolvedValue(comments),
-  });
-}
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "trigger-scanner-"));
@@ -187,7 +181,7 @@ describe("TriggerScanner", () => {
     });
     const router = new ProfileRouter([profile]);
     const mgr = makeMockIssueManager([
-      { id: "C1", author: { displayName: "User" }, body: adfBody, created: "2026-01-01T00:00:00Z" },
+      makeComment("C1", adfBody),
     ]);
     const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
 
@@ -383,86 +377,118 @@ describe("TriggerScanner", () => {
     const planned = await scanner2.scan([issue], [profile2]);
     expect(planned).toBe(1);
   });
-});
 
-describe("TriggerScanner cache persistence", () => {
-  it("persists cache to disk and restores on new instance", async () => {
-    const cachePath = join(tempDir, "trigger-cache.json");
-    const profile = makeProfile({
-      match: makeMatch({ commentTrigger: "@go" }),
+  describe("allowedUsers filtering", () => {
+    it("rejects triggers from users not in allowedUsers and records in ledger", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, ["allowed-user"]);
+
+      const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+      expect(planned).toBe(0);
+      expect(ledger.getAllPending()).toHaveLength(0);
+
+      const ops = ledger.getOperations("DF-100");
+      expect(ops).toHaveLength(1);
+      expect(ops[0].status).toBe("rejected");
+      expect(ops[0].reason).toContain("blocked-user");
+      expect(ops[0].reason).toContain("not in allowedUsers");
     });
-    const router = new ProfileRouter([profile]);
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
-    const scanner1 = new TriggerScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
-    await scanner1.scan([issue], [profile]);
+    it("posts a rejection comment on JIRA for unauthorized users", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, ["allowed-user"]);
 
-    expect(mgr.getComments).toHaveBeenCalledTimes(1);
+      await scanner.scan([makeIssue("DF-100")], [profile]);
 
-    // Create a new scanner instance loading from the same cache file
-    const mgr2 = makeMockIssueManager([makeComment("C1", "@go")]);
-    const scanner2 = new TriggerScanner(mgr2, router, ledger, silentLogger, cachePath);
-
-    // Same issue, same updated timestamp — should be skipped
-    await scanner2.scan([issue], [profile]);
-    expect(mgr2.getComments).not.toHaveBeenCalled();
-  });
-
-  it("re-scans issues when updated timestamp changes after cache restore", async () => {
-    const cachePath = join(tempDir, "trigger-cache.json");
-    const profile = makeProfile({
-      match: makeMatch({ commentTrigger: "@go" }),
+      expect(mgr.postComment).toHaveBeenCalledTimes(1);
+      expect(mgr.postComment.mock.calls[0][0]).toBe("DF-100");
+      expect(mgr.postComment.mock.calls[0][1]).toContain("not authorized");
+      expect(mgr.postComment.mock.calls[0][1]).toContain("Test User");
     });
-    const router = new ProfileRouter([profile]);
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
-    const scanner1 = new TriggerScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
-    await scanner1.scan([issue], [profile]);
+    it("does not re-reject already-consumed trigger comments", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, ["allowed-user"]);
 
-    // New instance, but issue has a newer updated timestamp
-    const mgr2 = makeMockIssueManager([makeComment("C1", "@go")]);
-    const scanner2 = new TriggerScanner(mgr2, router, ledger, silentLogger, cachePath);
+      await scanner.scan([makeIssue("DF-100")], [profile]);
+      expect(ledger.getOperations("DF-100")).toHaveLength(1);
 
-    const updatedIssue = makeIssue("DF-100", "Test", "New", "2026-02-15T11:00:00Z");
-    await scanner2.scan([updatedIssue], [profile]);
+      mgr.postComment.mockClear();
 
-    expect(mgr2.getComments).toHaveBeenCalledTimes(1);
-  });
-
-  it("works without cache path (in-memory only)", async () => {
-    const profile = makeProfile({
-      match: makeMatch({ commentTrigger: "@go" }),
+      // Second scan — comment C1 is already consumed (rejected), should not re-reject
+      await scanner.scan([makeIssue("DF-100", "Test", "New", "2026-02-01T00:00:00Z")], [profile]);
+      expect(ledger.getOperations("DF-100")).toHaveLength(1);
+      expect(mgr.postComment).not.toHaveBeenCalled();
     });
-    const router = new ProfileRouter([profile]);
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
-    // No cachePath — should not throw, works in-memory only
-    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
-    await scanner.scan([issue], [profile]);
-    expect(mgr.getComments).toHaveBeenCalledTimes(1);
-  });
+    it("allows triggers from whitelisted users", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "allowed-user"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, ["allowed-user"]);
 
-  it("uses atomic write (temp file + rename) for cache persistence", async () => {
-    const cachePath = join(tempDir, "trigger-cache.json");
-    const profile = makeProfile({
-      match: makeMatch({ commentTrigger: "@go" }),
+      const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+      expect(planned).toBe(1);
     });
-    const router = new ProfileRouter([profile]);
-    const mgr = makeMockIssueManager([makeComment("C1", "no trigger")]);
 
-    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
-    await scanner.scan([issue], [profile]);
+    it("allows all users when allowedUsers is empty", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "any-random-user"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, []);
 
-    // Cache file should exist and be valid JSON
-    expect(existsSync(cachePath)).toBe(true);
-    const data = JSON.parse(readFileSync(cachePath, "utf-8"));
-    expect(data["DF-100"]).toBe("2026-02-15T10:00:00Z");
+      const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
 
-    // Temp file should NOT linger after successful write
-    expect(existsSync(`${cachePath}.tmp`)).toBe(false);
+      expect(planned).toBe(1);
+    });
+
+    it("supports multiple allowed users", async () => {
+      const profile = makeProfile({
+        match: makeMatch({ commentTrigger: "@go" }),
+      });
+      const router = new ProfileRouter([profile]);
+      const mgr = makeMockIssueManager([
+        makeComment("C1", "@go first", "2026-01-01T00:00:00Z", "user-a"),
+        makeComment("C2", "@go second", "2026-01-01T01:00:00Z", "user-b"),
+        makeComment("C3", "@go third", "2026-01-01T02:00:00Z", "user-c"),
+      ]);
+      const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, undefined, ["user-a", "user-c"]);
+
+      const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+      expect(planned).toBe(2);
+      // user-b should be rejected
+      const rejected = ledger.getOperations("DF-100").filter(op => op.status === "rejected");
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason).toContain("user-b");
+    });
   });
 });

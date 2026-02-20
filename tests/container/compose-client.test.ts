@@ -83,4 +83,27 @@ describe("ComposeClient", () => {
     expect(env1).toBe(env2);
     expect(env2).toBe(env3);
   });
+
+  it("logs passes correct args for service log retrieval", () => {
+    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    client.logs("mcp-sidecar");
+
+    const [cmd, args] = mockExeca.mock.calls[0];
+    expect(cmd).toBe("docker");
+    expect(args).toEqual([
+      "compose", "-f", "/fake/compose.yml",
+      "logs", "--no-color", "--no-log-prefix", "mcp-sidecar",
+    ]);
+  });
+
+  it("logs uses same env as compose and exec", () => {
+    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    client.compose(["config"]);
+    client.logs("mcp-sidecar");
+
+    const env1 = mockExeca.mock.calls[0][2]?.env;
+    const env2 = mockExeca.mock.calls[1][2]?.env;
+
+    expect(env1).toBe(env2);
+  });
 });

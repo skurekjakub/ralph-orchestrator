@@ -1,0 +1,6 @@
+{
+  "1113214": {
+    "active": true,
+    "notes": "ajv ReDoS via $data option - devDep only (eslint), eslint does not use $data so this is not triggerable"
+  }
+}

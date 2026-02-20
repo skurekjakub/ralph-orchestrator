@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraPoller } from "../../src/jira/poller.js";
 import type { JiraConfig } from "../../src/config.js";
-import type { JiraIssue } from "../../src/jira/types.js";
-import { makeIssue } from "../helpers/factories.js";
+import { makeIssue, makeJiraConfig } from "../helpers/factories.js";
 import { createMockJiraClient } from "../helpers/mocks.js";
 
 describe("JiraPoller", () => {
@@ -14,12 +13,7 @@ describe("JiraPoller", () => {
 
     mockClient = createMockJiraClient();
 
-    config = {
-      baseUrl: "https://api.atlassian.com/ex/jira",
-      cloudId: "test-cloud-id",
-      jql: ['project = DF'],
-      pollIntervalMs: 1000,
-    };
+    config = makeJiraConfig({ pollIntervalMs: 1000 });
   });
 
   afterEach(() => {
@@ -100,14 +94,8 @@ describe("JiraPoller", () => {
   });
 
   it("sorts issues by creation date across multiple JQL queries", async () => {
-    const newer: JiraIssue = {
-      key: "DOC-1",
-      fields: { summary: "Newer", status: { name: "New" }, created: "2026-02-01T00:00:00.000+0000" },
-    };
-    const older: JiraIssue = {
-      key: "DF-5",
-      fields: { summary: "Older", status: { name: "New" }, created: "2025-06-15T00:00:00.000+0000" },
-    };
+    const newer = makeIssue("DOC-1", "Newer", "New", undefined, { created: "2026-02-01T00:00:00.000+0000" });
+    const older = makeIssue("DF-5", "Older", "New", undefined, { created: "2025-06-15T00:00:00.000+0000" });
 
     config.jql = ["query1", "query2"];
     mockClient.searchIssues

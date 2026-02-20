@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
-import { discoverMcpServers } from "../container/setup/mcp-manifest.js";
+import { discoverMcpServers, loadMcpManifest } from "../container/setup/mcp-manifest.js";
 import type { ValidationCollector } from "./types.js";
 
 export function validateProfiles({ errors, warnings }: ValidationCollector): void {
@@ -193,6 +193,8 @@ export interface VariantTriggerInfo {
 
 /**
  * Validate that all MCP servers referenced by a profile exist in shared/mcp-servers/.
+ *
+ * Also checks that sidecarPort values are unique across all servers.
  */
 function validateMcpServers(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
@@ -205,6 +207,24 @@ function validateMcpServers(
   if (mcpServers.length === 0) return;
 
   const available = discoverMcpServers(mcpServersDir);
+
+  const portMap = new Map<number, string>();
+  for (const serverName of available) {
+    try {
+      const manifest = loadMcpManifest(mcpServersDir, serverName);
+      const existing = portMap.get(manifest.sidecarPort);
+      if (existing) {
+        errors.push(
+          `MCP server "${serverName}" and "${existing}" both use sidecarPort ${manifest.sidecarPort}\n` +
+          `  Each server must have a unique sidecarPort`
+        );
+      } else {
+        portMap.set(manifest.sidecarPort, serverName);
+      }
+    } catch {
+      // loadMcpManifest already validates — errors will surface at startup
+    }
+  }
 
   for (const serverName of mcpServers) {
     if (!available.includes(serverName)) {

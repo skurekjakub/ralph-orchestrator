@@ -5,10 +5,11 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { AppConfig, AgentProfile, ProfileMatch } from "../../src/config.js";
+import type { AppConfig, AgentProfile, JiraConfig, ProfileMatch } from "../../src/config.js";
 import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import type { CompletedTask } from "../../src/orchestrator-types.js";
 import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
@@ -36,10 +37,11 @@ export function makeIssue(
 /** Create a minimal JiraComment. */
 export function makeComment(
   id: string,
-  body: string,
+  body: unknown,
   created = "2026-01-01T00:00:00Z",
+  accountId = "test-account-id",
 ): JiraComment {
-  return { id, author: { displayName: "Test User" }, body, created };
+  return { id, author: { accountId, displayName: "Test User" }, body, created };
 }
 
 // ── Container data ───────────────────────────────────────────────────────────
@@ -62,6 +64,17 @@ export function makeResult(
 }
 
 // ── Profile / Config ─────────────────────────────────────────────────────────
+
+/** Create a minimal JiraConfig with sensible defaults. */
+export function makeJiraConfig(overrides: Partial<JiraConfig> = {}): JiraConfig {
+  return {
+    baseUrl: "https://api.atlassian.com/ex/jira",
+    cloudId: "test-cloud-id",
+    jql: ["project = DF"],
+    pollIntervalMs: 60000,
+    ...overrides,
+  };
+}
 
 /** Create a ProfileMatch with sensible defaults. Only `commentTrigger` is typically needed. */
 export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, "commentTrigger">): ProfileMatch {
@@ -115,12 +128,7 @@ export function makeProfile(
 /** Create a minimal AppConfig for testing. */
 export function makeConfig(profiles?: AgentProfile[]): AppConfig {
   return {
-    jira: {
-      baseUrl: "https://api.atlassian.com/ex/jira",
-      cloudId: "test-cloud-id",
-      jql: ["project = DF"],
-      pollIntervalMs: 60000,
-    },
+    jira: makeJiraConfig(),
     profiles: profiles ?? [makeProfile()],
     output: {
       logDir: "/tmp/test-output/logs",
@@ -136,6 +144,7 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
       mode: AuditMode.Warn,
     },
     excludeFields: [],
+    allowedUsers: [],
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",
@@ -146,5 +155,23 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
       discordBotToken: "",
       discordChannelId: "",
     },
+  };
+}
+
+// ── Orchestrator data ────────────────────────────────────────────────────────
+
+/** Create a minimal CompletedTask for testing. */
+export function makeCompletion(
+  key: string,
+  overrides: Partial<CompletedTask> = {},
+): CompletedTask {
+  return {
+    key,
+    summary: `Test issue ${key}`,
+    profileId: "ralph-docs",
+    status: TaskStatus.Completed,
+    durationMs: 5000,
+    completedAt: Date.now(),
+    ...overrides,
   };
 }

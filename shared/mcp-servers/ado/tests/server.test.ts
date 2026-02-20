@@ -29,7 +29,7 @@ describe("ADO MCP Server manifest", () => {
     expect(manifest.type).toBe("custom");
     expect(manifest.command).toBe("node");
     expect(manifest.args).toEqual(["dist/bundle.js"]);
-    expect(manifest.containerPath).toBe("/workspace/.ralph/mcp-servers/ado");
+    expect(manifest.containerPath).toBe("/opt/mcp/servers/ado");
   });
 
   it("requires ADO_PAT env var", () => {

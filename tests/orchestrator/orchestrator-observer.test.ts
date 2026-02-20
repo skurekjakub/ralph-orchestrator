@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { OrchestratorObserver } from "../../src/orchestrator-observer.js";
 import type { ObservableContext } from "../../src/orchestrator-observer.js";
-import type { CompletedTask, LogEntry } from "../../src/orchestrator-types.js";
+import type { LogEntry } from "../../src/orchestrator-types.js";
 import { OrchestratorStatus, LogLevel, LogSource } from "../../src/orchestrator-types.js";
-import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import { makeIssue, makeProfile } from "../helpers/factories.js";
+import { makeIssue, makeProfile, makeCompletion } from "../helpers/factories.js";
 
 function makeContext(overrides: Partial<ObservableContext> = {}): ObservableContext {
   return {
@@ -24,17 +23,6 @@ const fakeProfile = makeProfile({ id: "ralph-docs", agentName: "ralph" });
 
 function makeActiveTask(startedAt = 1000) {
   return { issue: fakeIssue, profile: fakeProfile, container: null, startedAt };
-}
-
-function makeCompletion(key = "DOC-100"): CompletedTask {
-  return {
-    key,
-    summary: "Test issue",
-    profileId: "ralph-docs",
-    status: TaskStatus.Completed,
-    durationMs: 5000,
-    completedAt: Date.now(),
-  };
 }
 
 describe("OrchestratorObserver", () => {
@@ -117,7 +105,7 @@ describe("OrchestratorObserver", () => {
 
     it("returns a copy of completedToday (not a live reference)", () => {
       const observer = new OrchestratorObserver(() => makeContext());
-      observer.recordCompletion(makeCompletion());
+      observer.recordCompletion(makeCompletion("DOC-100"));
       const snapshot1 = observer.getState().completedToday;
       observer.recordCompletion(makeCompletion("DOC-2"));
       const snapshot2 = observer.getState().completedToday;
@@ -139,6 +127,18 @@ describe("OrchestratorObserver", () => {
     it("does nothing when no callback is registered", () => {
       const observer = new OrchestratorObserver(() => makeContext());
       expect(() => observer.emit()).not.toThrow();
+    });
+
+    it("guards against reentrancy from callbacks", () => {
+      const observer = new OrchestratorObserver(() => makeContext());
+      const calls: string[] = [];
+      observer.onStateChange(() => {
+        calls.push("outer-start");
+        observer.emit(); // reentrant call — should be skipped
+        calls.push("outer-end");
+      });
+      observer.emit();
+      expect(calls).toEqual(["outer-start", "outer-end"]);
     });
   });
 

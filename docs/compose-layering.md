@@ -37,15 +37,25 @@ Shared across all profiles. Adds the egress proxy sidecar and container hardenin
 
 ## Layer 3 — Overlay (`profiles/<id>/.build/docker-compose.overlay.yml`)
 
-Auto-generated at startup by `generateComposeOverlay()`. Injects environment variables and MCP-related volume mounts.
+Auto-generated at startup by `generateComposeOverlay()`. Injects environment variables, MCP sidecar service, and volume mounts.
 
-**Responsibilities:**
+**Agent container (`app`) responsibilities:**
 - **Base env vars** (always present): `GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_AUTOUPDATER`, `CLAUDE_CODE_DISABLE_COST_WARNINGS`
-- **MCP env vars** (auto-derived from server manifests): each server's `requiredEnv` and `optionalEnv` fields are collected, deduplicated against the base set, and injected
-- MCP server code mount (`shared/mcp-servers/` → `/workspace/.ralph/mcp-servers:ro`)
-- MCP config mount (`mcp-config.json` → `/workspace/.ralph/mcp-config.json:ro`)
+- MCP config mount (`mcp-config.json` → `/workspace/.ralph/mcp-config.json:ro`) — contains only HTTP URLs, no secrets
 - Copilot CLI config mount (`copilot-config.json` → `/workspace/.ralph/config.json:ro`)
 - Resource file mounts (profile-specific files from `resources/`)
+- `depends_on: mcp-sidecar` (when MCP servers are declared)
+
+**MCP sidecar container (`mcp-sidecar`)** — only generated when `mcpServers` is non-empty:
+- Builds from `shared/mcp-sidecar/Dockerfile`
+- MCP server code mount (`shared/mcp-servers/` → `/opt/mcp/servers:ro`)
+- Gateway config mount (`gateway.json` → `/opt/mcp/config/gateway.json:ro`) — contains commands, args, and embedded secrets
+- Connected to `ralph-internal` network (same as agent + egress proxy)
+- Hardened: `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs)
+- `depends_on: egress-proxy` (needs proxy for external API calls)
+- Health check via gateway's `GET /health` endpoint
+
+No MCP server code, secrets, or gateway configuration is mounted into the agent container.
 
 Only included if the file exists on disk. Profiles with no MCP servers still get the overlay for base env vars and Copilot CLI config.
 

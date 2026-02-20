@@ -1,14 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { generateResourceVolumeMounts } from "../../src/container/setup/resource-mounts.js";
-
-function createTempDir(): string {
-  const dir = join(tmpdir(), `ralph-res-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
+import { createTempDir } from "../helpers/mcp-fs.js";
 
 describe("Resource Mounts", () => {
   let tempDir: string;

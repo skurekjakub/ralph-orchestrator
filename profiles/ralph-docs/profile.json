@@ -46,6 +46,15 @@
         "statuses": ["To Do"],
         "commentTrigger": "@OverRalph"
       }
+    },
+    {
+      "agent": "ralph.mcp-probe",
+      "model": "claude-sonnet-4",
+      "match": {
+        "projects": ["DOC"],
+        "statuses": ["To Do", "In Progress", "Ready for Review", "Defect Found"],
+        "commentTrigger": "@McpProbe"
+      }
     }
   ]
 }

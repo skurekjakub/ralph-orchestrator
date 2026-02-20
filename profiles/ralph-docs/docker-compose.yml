@@ -22,6 +22,7 @@ services:
       - ./.build/ralph.malph-investigator.agent.md:/workspace/.github/agents/ralph.malph-investigator.agent.md:ro
       - ./.build/ralph.overralph.agent.md:/workspace/.github/agents/ralph.overralph.agent.md:ro
       - ./.build/ralph.overralph-researcher.agent.md:/workspace/.github/agents/ralph.overralph-researcher.agent.md:ro
+      - ./.build/ralph.mcp-probe.agent.md:/workspace/.github/agents/ralph.mcp-probe.agent.md:ro
     command: sleep infinity
     depends_on:
       - db

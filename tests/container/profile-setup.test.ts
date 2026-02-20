@@ -1,20 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { resolveAllProfileSetup } from "../../src/container/setup/profile-setup.js";
-
-function createTempDir(): string {
-  const dir = join(tmpdir(), `ralph-setup-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function writeManifest(dir: string, name: string, manifest: Record<string, unknown>): void {
-  const serverDir = join(dir, name);
-  mkdirSync(serverDir, { recursive: true });
-  writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify(manifest));
-}
+import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("Profile Setup", () => {
   describe("resolveAllProfileSetup", () => {
@@ -33,6 +21,7 @@ describe("Profile Setup", () => {
         type: "npm",
         command: "npx",
         args: ["-y", "test-pkg"],
+        sidecarPort: 9100,
         proxyDomains: [".test-domain.com"],
       });
 
@@ -53,6 +42,16 @@ describe("Profile Setup", () => {
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.mcpServers["test-server"]).toBeDefined();
+      expect(config.mcpServers["test-server"].type).toBe("http");
+      expect(config.mcpServers["test-server"].url).toContain("mcp-sidecar:9100/mcp");
+
+      // Gateway config should be generated
+      const gatewayPath = join(profileDir, ".build/gateway.json");
+      expect(existsSync(gatewayPath)).toBe(true);
+      const gateway = JSON.parse(readFileSync(gatewayPath, "utf-8"));
+      expect(gateway.servers).toHaveLength(1);
+      expect(gateway.servers[0].name).toBe("test-server");
+      expect(gateway.servers[0].port).toBe(9100);
 
       const squidPath = join(profileDir, ".build/squid.conf");
       expect(existsSync(squidPath)).toBe(true);
@@ -60,6 +59,11 @@ describe("Profile Setup", () => {
       const squidConf = readFileSync(squidPath, "utf-8");
       expect(squidConf).toContain(".test-domain.com");
       expect(squidConf).toContain(".github.com");
+
+      // Attachments directory should exist and be world-writable
+      const attachDir = join(profileDir, ".build/attachments");
+      expect(existsSync(attachDir)).toBe(true);
+      expect(statSync(attachDir).mode & 0o777).toBe(0o777);
 
       rmSync(rootDir, { recursive: true, force: true });
     });
@@ -73,8 +77,10 @@ describe("Profile Setup", () => {
 
       writeManifest(mcpDir, "test-mcp", {
         name: "test-mcp",
+        type: "custom",
         command: "node",
         args: ["index.js"],
+        sidecarPort: 9100,
         requiredEnv: ["MCP_TOKEN"],
       });
 
@@ -112,14 +118,17 @@ describe("Profile Setup", () => {
         type: "npm",
         command: "npx",
         args: ["-y", "@azure-devops/mcp", "TestOrg"],
+        sidecarPort: 9101,
         proxyDomains: [".dev.azure.com"],
         allowedUrlPaths: { "dev.azure.com": ["/TestOrg/"] },
       });
 
       writeManifest(mcpDir, "jira-kentico", {
         name: "jira-kentico",
+        type: "custom",
         command: "node",
         args: ["dist/bundle.mjs"],
+        sidecarPort: 9100,
         proxyDomains: [".atlassian.com"],
         allowedUrlPaths: { "api.atlassian.com": ["/ex/jira/cloud-99/"] },
       });
@@ -178,6 +187,38 @@ describe("Profile Setup", () => {
 
       const overlay = readFileSync(overlayPath, "utf-8");
       expect(overlay).toContain("test-file.md:/workspace/resources/ralph-resources/test-file.md:ro");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("generates per-profile gateway.json with only declared servers", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+
+      writeManifest(mcpDir, "server-a", {
+        name: "server-a", type: "npm", command: "npx", args: ["-y", "a"], sidecarPort: 9100,
+      });
+      writeManifest(mcpDir, "server-b", {
+        name: "server-b", type: "npm", command: "npx", args: ["-y", "b"], sidecarPort: 9101,
+      });
+      writeManifest(mcpDir, "server-c", {
+        name: "server-c", type: "npm", command: "npx", args: ["-y", "c"], sidecarPort: 9102,
+      });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["server-a", "server-c"] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const gateway = JSON.parse(readFileSync(join(profileDir, ".build/gateway.json"), "utf-8"));
+      expect(gateway.servers).toHaveLength(2);
+      expect(gateway.servers.map((s: { name: string }) => s.name)).toEqual(["server-a", "server-c"]);
 
       rmSync(rootDir, { recursive: true, force: true });
     });

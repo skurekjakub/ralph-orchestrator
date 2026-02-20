@@ -53,12 +53,11 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 
    See [CONFIGURATION.md](CONFIGURATION.md) for the full configuration reference.
 
-4. Verify the JIRA transition IDs match your project:
+4. Verify JIRA transitions work for your project — the orchestrator resolves transition IDs dynamically from target status names (`beforeAgent.targetStatus`, `afterAgent.targetStatus`):
    ```bash
    curl -u "$JIRA_EMAIL:$JIRA_PAT" \
      "https://api.atlassian.com/ex/jira/<cloudId>/rest/api/3/issue/DF-2704/transitions"
    ```
-   Update `transitions.inProgressId` and `transitions.readyForReviewId` in each profile if needed.
 
 ## Usage
 
@@ -153,17 +152,21 @@ After each task, the orchestrator saves:
 ```
 output/
 └── logs/
-    ├── DF-2704-1707840000000.log             # Per-task streaming log (real-time container output)
-    ├── DF-2704-1707840000000-audit.jsonl     # Audit trail from hooks
-    ├── DF-2704-1707840000000-transcript.md   # Copilot CLI session transcript
-    ├── DF-2704-1707840000000-tool-output.log # Untruncated tool output from hooks
-    ├── DF-2704-1707840000000-proxy.log       # Squid proxy access log (allowed/denied domains)
-    ├── DF-2704-1707840000000-summary.json    # Execution metadata
-    ├── activity-2026-02-13.log               # Persistent activity log (all sessions)
-    └── container-2026-02-13.log              # Persistent container output log
+    ├── <key>-<startTs>/                              # Per-task directory (one per agent run)
+    │   ├── <key>-<startTs>-<ts>.log                  # Per-task streaming log (real-time container output)
+    │   ├── <key>-<startTs>-<ts>-audit.jsonl          # Audit trail from hooks
+    │   ├── <key>-<startTs>-<ts>-transcript.md        # Copilot CLI session transcript
+    │   ├── <key>-<startTs>-<ts>-tool-output.log      # Untruncated tool output from hooks
+    │   ├── <key>-<startTs>-<ts>-proxy.log            # Squid proxy access log (allowed/denied domains)
+    │   ├── <key>-<startTs>-<ts>-sidecar.log          # MCP sidecar gateway output
+    │   └── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    ├── activity-YYYY-MM-DD.log                       # Persistent activity log (all sessions)
+    ├── container-YYYY-MM-DD.log                      # Persistent container output log
+    └── history/
+        └── <key>.json                                # Operation ledger
 ```
 
-The per-task log (`<key>-<timestamp>.log`) streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) persists across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
+Each task gets its own timestamped directory (`<key>-<startTs>/`). Files within are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`. The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 
 ## Architecture
 

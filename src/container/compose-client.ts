@@ -24,6 +24,8 @@ export interface IComposeClient {
   exec(args: string[]): ResultPromise;
   /** Run `docker compose exec` with a timeout. */
   execWithTimeout(args: string[], timeoutMs: number): ResultPromise;
+  /** Run `docker compose -f <file...> logs --no-color --no-log-prefix <service>`. */
+  logs(service: string): ResultPromise;
   /** Verify that the Docker daemon is reachable. */
   checkDocker(): Promise<void>;
   /** Find the container ID by compose project label. */
@@ -73,6 +75,15 @@ export class ComposeClient implements IComposeClient {
   exec(args: string[]) {
     return execa("docker", [
       "compose", ...this.fileArgs, "exec", ...args,
+    ], {
+      env: this.env,
+    });
+  }
+
+  /** Run `docker compose logs` for a single service (no ANSI color, no prefix). */
+  logs(service: string) {
+    return execa("docker", [
+      "compose", ...this.fileArgs, "logs", "--no-color", "--no-log-prefix", service,
     ], {
       env: this.env,
     });

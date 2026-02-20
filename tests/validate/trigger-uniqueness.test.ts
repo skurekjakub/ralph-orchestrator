@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateTriggerUniqueness } from "../../src/validate/profiles.js";
 import type { VariantTriggerInfo } from "../../src/validate/profiles.js";
-import { matchesTrigger } from "../../src/services/trigger-scanner.js";
 
 function variant(
   profileId: string,
@@ -103,52 +102,5 @@ describe("validateTriggerUniqueness", () => {
       variant("docs", 0, ["DOC"], "@Ralph"),
     ], errors);
     expect(errors).toHaveLength(0);
-  });
-});
-
-describe("matchesTrigger", () => {
-  it("matches trigger as a standalone word", () => {
-    expect(matchesTrigger("@Ralph please review", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger at end of text", () => {
-    expect(matchesTrigger("Hey @Ralph", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger at start of text", () => {
-    expect(matchesTrigger("@Ralph", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger followed by comma", () => {
-    expect(matchesTrigger("@Ralph, please do this", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger followed by colon", () => {
-    expect(matchesTrigger("@Ralph: do the thing", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger followed by period", () => {
-    expect(matchesTrigger("Ask @Ralph.", "@Ralph")).toBe(true);
-  });
-
-  it("matches trigger followed by semicolon", () => {
-    expect(matchesTrigger("@Ralph; also @Malph", "@Ralph")).toBe(true);
-  });
-
-  it("is case-insensitive", () => {
-    expect(matchesTrigger("@ralph please", "@Ralph")).toBe(true);
-    expect(matchesTrigger("@RALPH please", "@Ralph")).toBe(true);
-  });
-
-  it("does NOT match trigger embedded in a longer word", () => {
-    expect(matchesTrigger("@RalphAutocomplete please", "@Ralph")).toBe(false);
-  });
-
-  it("does NOT match trigger as infix", () => {
-    expect(matchesTrigger("use @Malphredo", "@Malph")).toBe(false);
-  });
-
-  it("does not match partial triggers", () => {
-    expect(matchesTrigger("@Ral is here", "@Ralph")).toBe(false);
   });
 });

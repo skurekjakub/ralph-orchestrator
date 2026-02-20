@@ -111,7 +111,7 @@ Use the REST API template above to create a PR for this branch.
 
 ### Create handoff.md
 
-Create a `handoff.md` file with a summary of all changes made:
+Create `/tmp/mcp-attachments/handoff.md` with a summary of all changes made:
 
 ```markdown
 # Handoff — <ISSUE_KEY>
@@ -131,7 +131,7 @@ Create a `handoff.md` file with a summary of all changes made:
 
 ### Upload handoff to JIRA
 
-Use the attachment curl from the JIRA Communication section above to upload `handoff.md` to the JIRA issue.
+Use the `jira_add_attachment` tool to upload `handoff.md` to the JIRA issue.
 
 ### Post completion comment
 

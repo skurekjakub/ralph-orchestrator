@@ -4,7 +4,8 @@
   "type": "custom",
   "command": "node",
   "args": ["dist/bundle.js"],
-  "containerPath": "/workspace/.ralph/mcp-servers/ado",
+  "containerPath": "/opt/mcp/servers/ado",
+  "sidecarPort": 9101,
   "requiredEnv": ["ADO_PAT"],
   "proxyDomains": [".dev.azure.com"],
   "allowedUrlPaths": {

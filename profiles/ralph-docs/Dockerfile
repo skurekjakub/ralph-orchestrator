@@ -71,7 +71,7 @@ RUN wget -qO /tmp/pandoc.deb \
 # ============================================================
 # 6. Playwright browser (Chromium only)
 # ============================================================
-RUN npm install -g playwright@latest \
+RUN npm install -g playwright@1.58.2 \
     && npx playwright install chromium \
     && npx playwright install-deps chromium
 

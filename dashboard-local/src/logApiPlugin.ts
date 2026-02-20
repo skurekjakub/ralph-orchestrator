@@ -52,43 +52,59 @@ interface TaskLogGroup {
 
 function handleLogList(logDir: string, res: import("node:http").ServerResponse) {
   try {
-    const files = readdirSync(logDir).filter(
-      (f) => !statSync(join(logDir, f)).isDirectory()
-    );
-
     const taskMap = new Map<string, TaskLogGroup>();
 
-    for (const file of files) {
-      if (file.startsWith("activity-") || file.startsWith("container-")) {
-        const key = file.replace(/\.log$/, "");
+    const entries = readdirSync(logDir);
+
+    // Activity and container logs live at the root level
+    for (const entry of entries) {
+      if (!statSync(join(logDir, entry)).isFile()) continue;
+      if (entry.startsWith("activity-") || entry.startsWith("container-")) {
+        const key = entry.replace(/\.log$/, "");
         if (!taskMap.has(key)) {
           taskMap.set(key, { id: key, issueKey: key, files: {} });
         }
-        taskMap.get(key)!.files.log = file;
-        continue;
+        taskMap.get(key)!.files.log = entry;
       }
+    }
 
-      const match = file.match(/^([A-Z]+-\d+)-(\d+)(?:-(.+))?\.(.+)$/);
-      if (!match) continue;
+    // Task logs live in timestamped subdirectories (e.g. DOC-3143-<ts>/, local-run-<ts>/)
+    for (const entry of entries) {
+      const entryPath = join(logDir, entry);
+      if (!statSync(entryPath).isDirectory() || entry === "history") continue;
 
-      const [, issueKey, timestamp, suffix, ext] = match;
-      const taskId = `${issueKey}-${timestamp}`;
+      // Extract issue key and timestamp from folder name
+      const dirMatch = entry.match(/^(.+?)-(\d{13,})$/);
+      const dirIssueKey = dirMatch ? dirMatch[1] : entry;
+      const dirTimestamp = dirMatch ? Number(dirMatch[2]) : undefined;
 
-      if (!taskMap.has(taskId)) {
-        taskMap.set(taskId, {
-          id: taskId,
-          issueKey,
-          timestamp: Number(timestamp),
-          files: {},
-        });
+      const files = readdirSync(entryPath).filter(
+        (f) => statSync(join(entryPath, f)).isFile(),
+      );
+
+      for (const file of files) {
+        const relPath = `${entry}/${file}`;
+        const match = file.match(/^.+-(\d+)(?:-(.+))?\.(.+)$/);
+        if (!match) continue;
+
+        const [, , suffix, ext] = match;
+
+        if (!taskMap.has(entry)) {
+          taskMap.set(entry, {
+            id: entry,
+            issueKey: dirIssueKey,
+            timestamp: dirTimestamp,
+            files: {},
+          });
+        }
+
+        const group = taskMap.get(entry)!;
+        if (ext === "log" && !suffix) group.files.log = relPath;
+        else if (ext === "json" && suffix === "summary") group.files.summary = relPath;
+        else if (ext === "jsonl") group.files.audit = relPath;
+        else if (suffix === "transcript" && ext === "md") group.files.transcript = relPath;
+        else if (suffix === "tool-output" && ext === "log") group.files.toolOutput = relPath;
       }
-
-      const group = taskMap.get(taskId)!;
-      if (ext === "log" && !suffix) group.files.log = file;
-      else if (ext === "json" && suffix === "summary") group.files.summary = file;
-      else if (ext === "jsonl") group.files.audit = file;
-      else if (suffix === "transcript" && ext === "md") group.files.transcript = file;
-      else if (suffix === "tool-output" && ext === "log") group.files.toolOutput = file;
     }
 
     const groups = [...taskMap.values()].sort(

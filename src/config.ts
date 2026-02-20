@@ -46,6 +46,8 @@ const configFileSchema = z.object({
   promptAudit: rawPromptAuditSchema,
   /** Custom field IDs to exclude from agent prompts (e.g. boilerplate form templates). */
   excludeFields: z.array(z.string()).default([]),
+  /** JIRA accountIds allowed to trigger agent invocations. Empty array = unrestricted. */
+  allowedUsers: z.array(z.string()).default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -213,6 +215,8 @@ export interface AppConfig {
   promptAudit: PromptAuditConfig;
   /** Custom field IDs to exclude from agent prompts. */
   excludeFields: string[];
+  /** JIRA accountIds allowed to trigger agent invocations. Empty = unrestricted. */
+  allowedUsers: string[];
   secrets: SecretsConfig;
 }
 
@@ -372,6 +376,7 @@ export function loadConfig(): AppConfig {
       mode: (parsed.promptAudit?.mode ?? AuditMode.Warn) as AuditMode,
     },
     excludeFields: parsed.excludeFields ?? [],
+    allowedUsers: parsed.allowedUsers ?? [],
     secrets,
   };
 }

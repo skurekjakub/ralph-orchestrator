@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { JiraIssueManager } from "../../src/services/jira-issue-manager.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import { createMockJiraClient, createMockLogger } from "../helpers/mocks.js";
+import { makeIssue } from "../helpers/factories.js";
 
 describe("JiraIssueManager", () => {
   let jira: ReturnType<typeof createMockJiraClient>;
@@ -96,6 +97,118 @@ describe("JiraIssueManager", () => {
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post error comment"),
+      );
+    });
+  });
+
+  describe("refreshIssue", () => {
+    it("returns the first search result", async () => {
+      const issue = makeIssue("DF-200");
+      jira.searchIssues.mockResolvedValue([issue]);
+
+      const result = await manager.refreshIssue("DF-200");
+
+      expect(result).toBe(issue);
+      expect(jira.searchIssues).toHaveBeenCalledWith("key = DF-200", 1);
+    });
+
+    it("returns null when no results", async () => {
+      jira.searchIssues.mockResolvedValue([]);
+
+      const result = await manager.refreshIssue("DF-200");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null and logs warning on error", async () => {
+      jira.searchIssues.mockRejectedValue(new Error("timeout"));
+
+      const result = await manager.refreshIssue("DF-200");
+
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to refresh DF-200"),
+      );
+    });
+  });
+
+  describe("postCrashRecoveryComment", () => {
+    it("posts crash-recovery comment to JIRA", async () => {
+      await manager.postCrashRecoveryComment("DF-100", "ralph-docs:ralph");
+
+      expect(jira.addComment).toHaveBeenCalledWith(
+        "DF-100",
+        expect.any(String),
+      );
+    });
+
+    it("logs warning on failure without throwing", async () => {
+      jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
+
+      await manager.postCrashRecoveryComment("DF-100", "ralph-docs:ralph");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to post crash-recovery comment"),
+      );
+    });
+  });
+
+  describe("postStaleStatusComment", () => {
+    it("posts stale-status comment to JIRA", async () => {
+      await manager.postStaleStatusComment("DF-100", "ralph", "Done");
+
+      expect(jira.addComment).toHaveBeenCalledWith(
+        "DF-100",
+        expect.any(String),
+      );
+    });
+
+    it("logs warning on failure without throwing", async () => {
+      jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
+
+      await manager.postStaleStatusComment("DF-100", "ralph", "Done");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to post stale-status comment"),
+      );
+    });
+  });
+
+  describe("postAckComment", () => {
+    it("posts ack comment to JIRA", async () => {
+      await manager.postAckComment("DF-100", "ralph");
+
+      expect(jira.addComment).toHaveBeenCalledWith(
+        "DF-100",
+        expect.any(String),
+      );
+    });
+
+    it("logs warning on failure without throwing", async () => {
+      jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
+
+      await manager.postAckComment("DF-100", "ralph");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to post ack comment"),
+      );
+    });
+  });
+
+  describe("postComment", () => {
+    it("posts arbitrary comment body to JIRA", async () => {
+      await manager.postComment("DF-100", "Custom message");
+
+      expect(jira.addComment).toHaveBeenCalledWith("DF-100", "Custom message");
+    });
+
+    it("logs warning on failure without throwing", async () => {
+      jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
+
+      await manager.postComment("DF-100", "Custom message");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to post comment"),
       );
     });
   });

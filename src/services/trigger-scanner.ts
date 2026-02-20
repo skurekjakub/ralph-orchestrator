@@ -4,6 +4,7 @@ import type { JiraIssue, JiraComment } from "../jira/types.js";
 import type { AgentProfile } from "../config.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
+import { OrchestratorComments } from "./orchestrator-comments.js";
 import type { Logger } from "../logger.js";
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname } from "node:path";
@@ -64,6 +65,7 @@ export class TriggerScanner implements ITriggerScanner {
     private ledger: IOperationLedger,
     private logger: Logger,
     cachePath?: string,
+    private allowedUsers: string[] = [],
   ) {
     this.cachePath = cachePath ?? null;
     this.loadCache();
@@ -131,6 +133,27 @@ export class TriggerScanner implements ITriggerScanner {
             : extractAdfText(comment.body);
 
           if (!matchesTrigger(text, trigger)) continue;
+
+          if (this.allowedUsers.length > 0 && !this.allowedUsers.includes(comment.author.accountId)) {
+            const reason = `User ${comment.author.displayName} (${comment.author.accountId}) not in allowedUsers`;
+            this.logger.info(`Rejecting trigger on ${issue.key} — ${reason}`);
+
+            this.ledger.reject(issue.key, {
+              variant,
+              triggerCommentId: comment.id,
+              commentTimestamp: comment.created,
+              reason,
+            });
+
+            await this.issueManager.postComment(
+              issue.key,
+              OrchestratorComments.userNotAllowed(profile.displayName, comment.author.displayName),
+            ).catch((err) => {
+              this.logger.warn(`Failed to post rejection comment on ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
+            });
+
+            continue;
+          }
 
           this.ledger.plan(issue.key, {
             variant,

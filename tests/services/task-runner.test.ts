@@ -20,6 +20,7 @@ function createMockFactory(container: IContainerManager): ContainerManagerFactor
 
 describe("TaskRunner", () => {
   let logger: ReturnType<typeof createMockLogger>;
+  const taskId = "DF-100-1234567890000";
   const profile = makeProfile({
     id: "ralph-docs",
     agentName: "ralph",
@@ -40,7 +41,7 @@ describe("TaskRunner", () => {
     const issueManager = createMockIssueManager();
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), issueManager);
 
-    const { result } = await runner.run(issue, profile);
+    const { result } = await runner.run(issue, profile, taskId);
 
     expect(factory.create).toHaveBeenCalledWith(profile);
     expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
@@ -49,7 +50,7 @@ describe("TaskRunner", () => {
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
     expect(spies.cleanLogDirectory).toHaveBeenCalled();
-    expect(spies.registerLogSources).toHaveBeenCalledWith("DF-100");
+    expect(spies.registerLogSources).toHaveBeenCalledWith(taskId);
     expect(spies.setup).toHaveBeenCalled();
     expect(spies.execute).toHaveBeenCalled();
     expect(spies.collectAll).toHaveBeenCalled();
@@ -62,7 +63,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
 
-    const { container: returnedContainer } = await runner.run(issue, profile);
+    const { container: returnedContainer } = await runner.run(issue, profile, taskId);
 
     expect(returnedContainer).toBe(container);
   });
@@ -82,7 +83,7 @@ describe("TaskRunner", () => {
 
     const factory = createMockFactory(container);
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
-    await runner.run(issue, profile);
+    await runner.run(issue, profile, taskId);
 
     expect(callOrder).toEqual(["start", "check", "prepareConfig", "cleanLog", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
   });
@@ -94,7 +95,7 @@ describe("TaskRunner", () => {
     const issueManager = createMockIssueManager();
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), issueManager);
 
-    await runner.run(issue, profileNoTransition);
+    await runner.run(issue, profileNoTransition, taskId);
 
     expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", undefined, TransitionPhase.BeforeAgent);
   });
@@ -105,7 +106,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
 
-    const { result } = await runner.run(issue, profile);
+    const { result } = await runner.run(issue, profile, taskId);
 
     expect(result.status).toBe(TaskStatus.Error);
     expect(result.stderr).toContain("Docker not running");
@@ -117,7 +118,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
 
-    await runner.run(issue, profile);
+    await runner.run(issue, profile, taskId);
 
     expect(spies.collectAll).toHaveBeenCalled();
   });
@@ -129,7 +130,7 @@ describe("TaskRunner", () => {
     const onToolOutput = vi.fn();
     runner.onToolOutput = onToolOutput;
 
-    await runner.run(issue, profile);
+    await runner.run(issue, profile, taskId);
 
     expect(container.onToolOutput).toBe(onToolOutput);
   });
@@ -141,9 +142,65 @@ describe("TaskRunner", () => {
     const onPreToolUse = vi.fn();
     runner.onPreToolUse = onPreToolUse;
 
-    await runner.run(issue, profile);
+    await runner.run(issue, profile, taskId);
 
     expect(container.onPreToolUse).toBe(onPreToolUse);
+  });
+
+  it("fetches handoff when issue is in a revision status", async () => {
+    const revisionProfile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: ["Defect Found"] },
+    });
+    const revisionIssue = makeIssue("DF-200", "Revision issue", "Defect Found");
+    const { container } = createMockContainer({ issueKey: "DF-200" });
+    const factory = createMockFactory(container);
+    const resources = createMockResources();
+    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager());
+
+    await runner.run(revisionIssue, revisionProfile, "DF-200-1234567890000");
+
+    expect(resources.fetchHandoff).toHaveBeenCalledWith("DF-200");
+  });
+
+  it("skips handoff fetch when issue is not in revision status", async () => {
+    const { container } = createMockContainer();
+    const factory = createMockFactory(container);
+    const resources = createMockResources();
+    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager());
+
+    await runner.run(issue, profile, taskId);
+
+    expect(resources.fetchHandoff).not.toHaveBeenCalled();
+  });
+
+  it("attaches transcript to JIRA when collected", async () => {
+    const { container, spies } = createMockContainer({ issueKey: "DF-100" });
+    spies.collectAll.mockResolvedValue([
+      { id: "transcript", path: "/tmp/logs/DF-100-transcript.md" },
+    ]);
+    const factory = createMockFactory(container);
+    const resources = createMockResources();
+    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager());
+
+    await runner.run(issue, profile, taskId);
+
+    expect(resources.attachTranscript).toHaveBeenCalledWith("DF-100", "/tmp/logs/DF-100-transcript.md", "ralph");
+  });
+
+  it("does not attach transcript when not collected", async () => {
+    const { container, spies } = createMockContainer({ issueKey: "DF-100" });
+    spies.collectAll.mockResolvedValue([
+      { id: "proxy", path: "/tmp/logs/DF-100-proxy.log" },
+    ]);
+    const factory = createMockFactory(container);
+    const resources = createMockResources();
+    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager());
+
+    await runner.run(issue, profile, taskId);
+
+    expect(resources.attachTranscript).not.toHaveBeenCalled();
   });
 
   describe("teardown", () => {

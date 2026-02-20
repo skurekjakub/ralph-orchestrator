@@ -96,6 +96,13 @@ describe("JIRA MCP Server source", () => {
     expect(source).toContain("no-check");
   });
 
+  it("validates attachment file paths stay within shared directory", () => {
+    const source = readSource();
+    expect(source).toContain("ATTACHMENTS_DIR");
+    expect(source).toContain("/tmp/mcp-attachments");
+    expect(source).toContain("resolve(ATTACHMENTS_DIR, fileName)");
+  });
+
   it("returns isError on non-OK responses", () => {
     const source = readSource();
     expect(source).toContain("isError: true");

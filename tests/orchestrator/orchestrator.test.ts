@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeConfig } from "../helpers/factories.js";
+import { makeProfile, makeIssue, makeConfig, makeCompletion } from "../helpers/factories.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
 
@@ -99,35 +99,22 @@ describe("Orchestrator core integration", () => {
 
   describe("completed task tracking", () => {
     it("tracks completed tasks with proper metadata", () => {
-      const completed: Array<{
-        key: string;
-        summary: string;
-        profileId: string;
-        status: string;
-        durationMs: number;
-        prUrl?: string;
-        completedAt: number;
-      }> = [];
-
       const start = Date.now();
-      completed.push({
-        key: "DF-1",
-        summary: "Test issue",
-        profileId: "ralph-docs",
-        status: TaskStatus.Completed,
-        durationMs: 120000,
-        prUrl: "https://dev.azure.com/pr/1",
-        completedAt: start + 120000,
-      });
-
-      completed.push({
-        key: "DF-2",
-        summary: "Another issue",
-        profileId: "ralph-vscode",
-        status: TaskStatus.Partial,
-        durationMs: 300000,
-        completedAt: start + 420000,
-      });
+      const completed = [
+        makeCompletion("DF-1", {
+          summary: "Test issue",
+          durationMs: 120000,
+          prUrl: "https://dev.azure.com/pr/1",
+          completedAt: start + 120000,
+        }),
+        makeCompletion("DF-2", {
+          summary: "Another issue",
+          profileId: "ralph-vscode",
+          status: TaskStatus.Partial,
+          durationMs: 300000,
+          completedAt: start + 420000,
+        }),
+      ];
 
       expect(completed).toHaveLength(2);
       expect(completed[0].prUrl).toBe("https://dev.azure.com/pr/1");

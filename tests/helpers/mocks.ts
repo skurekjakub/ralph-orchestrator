@@ -17,6 +17,7 @@ import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult } from "../../src/container/types.js";
+import type { ResultPromise } from "execa";
 import { makeResult } from "./factories.js";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
@@ -42,6 +43,18 @@ export function createSilentLogger(): Logger {
 /** Create a Logger backed by `vi.fn()` spies for assertion. */
 export function createMockLogger(): Logger {
   return { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+}
+
+// ── Execa helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Minimal shape satisfying the awaited value of execa `ResultPromise`.
+ *
+ * Centralizes the `as any` cast so test files can use a typed helper
+ * instead of scattering `as any` across individual mock setups.
+ */
+export function fakeExecResult(overrides: Record<string, unknown> = {}): Awaited<ResultPromise> {
+  return { stdout: "", stderr: "", exitCode: 0, ...overrides } as Awaited<ResultPromise>;
 }
 
 // ── JIRA service mocks ───────────────────────────────────────────────────────
@@ -115,6 +128,7 @@ export function createMockCompose(execImpl?: (...args: any[]) => any): {
     compose: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
     exec,
     execWithTimeout: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+    logs: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
     checkDocker: vi.fn().mockResolvedValue(undefined),
     getContainerName: vi.fn().mockResolvedValue("mock-container"),
   } as IComposeClient;
@@ -207,10 +221,10 @@ export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): 
 /** Create a mock TaskRunner with all methods stubbed. */
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
-    run: vi.fn().mockResolvedValue({
-      result: makeResult("MOCK-1"),
+    run: vi.fn().mockImplementation(async (issue: any) => ({
+      result: makeResult(issue.key ?? "MOCK-1"),
       container: createMockContainer().container,
-    }),
+    })),
     teardown: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

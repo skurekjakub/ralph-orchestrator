@@ -275,9 +275,11 @@ export class Orchestrator {
     );
     this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Active);
 
+    const taskId = `${issue.key}-${this.activeTask.startedAt}`;
+
     try {
-      this.deps.activityLog.startTaskLog(issue.key);
-      const { result, container } = await this.deps.taskRunner.run(issue, profile);
+      this.deps.activityLog.startTaskLog(taskId);
+      const { result, container } = await this.deps.taskRunner.run(issue, profile, taskId);
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
@@ -360,6 +362,7 @@ export class Orchestrator {
         // teardown already logs warnings internally
       }
     }
+    this.log("Container cleanup complete...");
   }
 
   /** Reset all per-task state and emit an update. */

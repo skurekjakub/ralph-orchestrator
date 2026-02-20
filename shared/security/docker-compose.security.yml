@@ -42,8 +42,8 @@ services:
       HTTPS_PROXY: "http://egress-proxy:3128"
       http_proxy: "http://egress-proxy:3128"
       https_proxy: "http://egress-proxy:3128"
-      NO_PROXY: "localhost,127.0.0.1,db,egress-proxy"
-      no_proxy: "localhost,127.0.0.1,db,egress-proxy"
+      NO_PROXY: "localhost,127.0.0.1,db,egress-proxy,mcp-sidecar"
+      no_proxy: "localhost,127.0.0.1,db,egress-proxy,mcp-sidecar"
     volumes:
       # Shared audit hooks + config (mounted for all profiles)
       - ${SHARED_HOOKS_PATH}:/workspace/.ralph/hooks:ro

@@ -14,7 +14,7 @@ The container sets these env vars automatically via the security overlay:
 |---|---|
 | `HTTP_PROXY` / `http_proxy` | `http://egress-proxy:3128` |
 | `HTTPS_PROXY` / `https_proxy` | `http://egress-proxy:3128` |
-| `NO_PROXY` / `no_proxy` | `localhost,127.0.0.1,db,egress-proxy` |
+| `NO_PROXY` / `no_proxy` | `localhost,127.0.0.1,db,egress-proxy,mcp-sidecar` |
 
 Squid uses CONNECT tunneling for HTTPS — the client sends `CONNECT host:443`, Squid creates a TCP tunnel, and TLS negotiation happens directly between the client and the target server. Squid never sees the encrypted traffic (no SSL bumping).
 
@@ -85,7 +85,7 @@ For npm MCP packages that use `fetch()` internally, **write a custom replacement
 
 ## Bundling custom MCP servers
 
-Custom servers are bundled with webpack for deployment into containers.
+Custom servers are bundled for deployment into containers. Most use webpack (jira-kentico, ado); discord-hitl uses esbuild.
 
 ### webpack.config.js (ESM)
 
@@ -125,7 +125,7 @@ export default {
 
 ## Proxy log analysis
 
-Proxy logs are collected per-task at `output/logs/<key>-<ts>-proxy.log`. Useful patterns:
+Proxy logs are collected per-task at `output/logs/<key>-<startTs>/<key>-<startTs>-<ts>-proxy.log`. Useful patterns:
 
 ```bash
 # Show all HTTPS tunnels (successful connections)

@@ -294,7 +294,7 @@ Before coding, read [03-tasks-00-READBEFORE.md](03-tasks-00-READBEFORE.md)
 
 ### Phase 7: Handoff & Report
 
-1. **Create the handoff file** at `resources/chats/<jira-key>/handoff.md` (do NOT commit):
+1. **Create the handoff file** at `/tmp/mcp-attachments/handoff.md` (do NOT commit):
 
 ```markdown
 # Handoff: <JIRA Key> — <JIRA Title>
@@ -319,7 +319,7 @@ completed
 - Trigger the implementation agent (@Ralph) or implement tasks manually
 ```
 
-2. **Attach the handoff file to the JIRA issue**
+2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` tool with file name `handoff.md`.
 
 3. **Post a completion comment on JIRA** — include a summary of the PRD artifacts, key decisions, and next steps. Use rich wiki markup.
 
@@ -333,7 +333,7 @@ JIRA_KEY: <key>
 STATUS: <completed|partial|blocked>
 BRANCH: none
 PR_URL: none
-HANDOFF: resources/chats/<jira-key>/handoff.md
+HANDOFF: /tmp/mcp-attachments/handoff.md
 SUMMARY: <one-line: PRD completed with N tasks, spec approved/auto-approved>
 ===RALPH_RESULT_END===
 ```

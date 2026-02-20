@@ -45,4 +45,9 @@ export const OrchestratorComments = {
       `Re-trigger via a new comment to retry.`,
     ].join("\n");
   },
+
+  /** Posted when a trigger comment comes from a user not in the allowedUsers list. */
+  userNotAllowed(displayName: string, userName: string): string {
+    return `${PREFIX} 🚫 ${userName} is not authorized to invoke ${displayName}. Contact an admin to request access.`;
+  },
 } as const;

@@ -1,18 +1,20 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { Logger } from "../../logger.js";
-import { generateMcpConfig } from "./mcp-config.js";
+import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
 import { generateProfileSquidConf } from "./squid-config.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
 import { generateUrlPathRules, writeCopilotConfig } from "./url-restrictions.js";
+import { discoverMcpServers } from "./mcp-manifest.js";
 
 /**
  * Resolve MCP configs for all profiles and write them to each profile's build directory.
  *
  * For each profile that declares `mcpServers`, generates:
- * - `mcp-config.json` — MCP server configuration (used by both CLIs)
- * - `docker-compose.overlay.yml` — Compose overlay with env vars and volume mounts
+ * - `mcp-config.json` — URL-based MCP config pointing to sidecar
+ * - `gateway.json` — Sidecar gateway config with embedded secrets
+ * - `docker-compose.overlay.yml` — Compose overlay with sidecar service
  * - `squid.conf` — Profile-specific squid proxy config (baseline + MCP proxy domains)
  * - `copilot-config.json` — Copilot CLI config with URL restrictions
  *
@@ -25,6 +27,7 @@ import { generateUrlPathRules, writeCopilotConfig } from "./url-restrictions.js"
 export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void {
   const root = rootDir ?? process.cwd();
   const mcpServersDir = resolve(root, "shared/mcp-servers");
+  const sidecarDir = resolve(root, "shared/mcp-sidecar");
   const profilesDir = resolve(root, "profiles");
   const baselineSquidPath = resolve(root, "shared/security/squid.conf");
 
@@ -36,6 +39,12 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
   const hasBaselineSquid = existsSync(baselineSquidPath);
   if (!hasBaselineSquid) {
     logger?.warn("Baseline squid.conf not found — squid configs will not be generated");
+  }
+
+  // Verify MCP servers directory is valid (used for per-profile gateway config).
+  const allServerNames = discoverMcpServers(mcpServersDir);
+  if (allServerNames.length > 0) {
+    logger?.info(`Discovered ${allServerNames.length} MCP server(s): ${allServerNames.join(", ")}`);
   }
 
   for (const profileId of readdirSync(profilesDir, { withFileTypes: true })) {
@@ -55,15 +64,27 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const serverNames = parsed.mcpServers ?? [];
     logger?.info(`Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`);
 
-    const config = generateMcpConfig(mcpServersDir, serverNames, process.env);
+    const config = generateMcpConfig(mcpServersDir, serverNames);
+    const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
 
     const buildDir = join(profilesDir, profileId.name, ".build");
     rmSync(buildDir, { recursive: true, force: true });
     mkdirSync(buildDir, { recursive: true });
 
+    // World-writable so the vscode user inside containers can create files
+    const attachDir = join(buildDir, "attachments");
+    mkdirSync(attachDir);
+    chmodSync(attachDir, 0o777);
+
     writeFileSync(
       join(buildDir, "mcp-config.json"),
       JSON.stringify(config, null, 2) + "\n",
+      "utf-8",
+    );
+
+    writeFileSync(
+      join(buildDir, "gateway.json"),
+      JSON.stringify(gatewayConfig, null, 2) + "\n",
       "utf-8",
     );
 
@@ -72,7 +93,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       ? generateResourceVolumeMounts(profileDir, parsed.resources)
       : [];
 
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, resourceVolumes);
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, resourceVolumes);
     writeFileSync(
       join(buildDir, "docker-compose.overlay.yml"),
       overlay,
@@ -110,7 +131,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       }
     }
 
-    const files = ["mcp-config.json", "docker-compose.overlay.yml"];
+    const files = ["mcp-config.json", "gateway.json", "docker-compose.overlay.yml"];
     if (hasBaselineSquid) files.push("squid.conf", "copilot-config.json");
     logger?.info(`  → wrote ${files.join(", ")}`);
   }

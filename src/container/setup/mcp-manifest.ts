@@ -14,8 +14,10 @@ export interface McpServerManifest {
   type: McpServerType;
   command: string;
   args: string[];
-  /** Absolute path inside the container where the custom server is mounted. Only for `type: "custom"`. */
+  /** Absolute path inside the sidecar container where the custom server is mounted. Only for `type: "custom"`. */
   containerPath?: string;
+  /** Fixed port the server listens on inside the MCP sidecar container. */
+  sidecarPort: number;
   /** Env vars that must be present for the server to work. */
   requiredEnv?: string[];
   /** Optional env vars the server supports. */
@@ -45,6 +47,9 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   const raw = JSON.parse(readFileSync(manifestPath, "utf-8")) as McpServerManifest;
   if (!raw.name || !raw.command) {
     throw new Error(`Invalid MCP server manifest at ${manifestPath}: name and command are required`);
+  }
+  if (typeof raw.sidecarPort !== "number" || !Number.isInteger(raw.sidecarPort) || raw.sidecarPort < 1 || raw.sidecarPort > 65535) {
+    throw new Error(`Invalid MCP server manifest at ${manifestPath}: sidecarPort must be an integer between 1 and 65535`);
   }
   return raw;
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   generateUrlPathRules,
   parseSquidDomains,
@@ -10,18 +9,7 @@ import {
   writeCopilotConfig,
 } from "../../src/container/setup/url-restrictions.js";
 import type { UrlPathRules } from "../../src/container/setup/url-restrictions.js";
-
-function createTempDir(): string {
-  const dir = join(tmpdir(), `ralph-url-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function writeManifest(dir: string, name: string, manifest: Record<string, unknown>): void {
-  const serverDir = join(dir, name);
-  mkdirSync(serverDir, { recursive: true });
-  writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify(manifest));
-}
+import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("URL Restrictions", () => {
   let tempDir: string;
@@ -40,12 +28,14 @@ describe("URL Restrictions", () => {
         name: "jira-kentico",
         command: "node",
         args: ["dist/bundle.mjs"],
+        sidecarPort: 9100,
         allowedUrlPaths: { "api.atlassian.com": ["/ex/jira/cloud-42/"] },
       });
       writeManifest(tempDir, "ado", {
         name: "ado",
         command: "npx",
         args: ["-y", "@azure-devops/mcp", "MyOrg"],
+        sidecarPort: 9101,
         allowedUrlPaths: { "dev.azure.com": ["/MyOrg/"] },
       });
 
@@ -65,12 +55,14 @@ describe("URL Restrictions", () => {
       writeManifest(tempDir, "playwright", {
         name: "playwright",
         command: "npx",
-        args: ["-y", "@playwright/mcp@latest"],
+        args: ["@playwright/mcp"],
+        sidecarPort: 9103,
       });
       writeManifest(tempDir, "ado", {
         name: "ado",
         command: "npx",
         args: ["-y", "@azure-devops/mcp", "Org"],
+        sidecarPort: 9101,
         allowedUrlPaths: { "dev.azure.com": ["/Org/"] },
       });
 
@@ -84,12 +76,14 @@ describe("URL Restrictions", () => {
         name: "server-a",
         command: "node",
         args: [],
+        sidecarPort: 9100,
         allowedUrlPaths: { "api.example.com": ["/v1/"] },
       });
       writeManifest(tempDir, "server-b", {
         name: "server-b",
         command: "node",
         args: [],
+        sidecarPort: 9101,
         allowedUrlPaths: { "api.example.com": ["/v2/"] },
       });
 
@@ -104,6 +98,7 @@ describe("URL Restrictions", () => {
         name: "playwright",
         command: "npx",
         args: [],
+        sidecarPort: 9103,
       });
 
       const rules = generateUrlPathRules(tempDir, ["playwright"]);
@@ -125,12 +120,14 @@ describe("URL Restrictions", () => {
         name: "z-server",
         command: "node",
         args: [],
+        sidecarPort: 9100,
         allowedUrlPaths: { "z.example.com": ["/z/"] },
       });
       writeManifest(tempDir, "a-server", {
         name: "a-server",
         command: "node",
         args: [],
+        sidecarPort: 9101,
         allowedUrlPaths: { "a.example.com": ["/a/"] },
       });
 

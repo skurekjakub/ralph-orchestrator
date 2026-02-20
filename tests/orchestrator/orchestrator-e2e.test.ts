@@ -1,26 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { Orchestrator } from "../../src/orchestrator.js";
-import {
-  OperationLedger,
-  OperationStatus,
-} from "../../src/services/operation-ledger.js";
-import { ProfileRouter } from "../../src/services/profile-router.js";
-import { TriggerScanner } from "../../src/services/trigger-scanner.js";
-import { ActivityLog } from "../../src/services/activity-log.js";
-import { makeProfile, makeIssue, makeConfig, makeComment, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
-import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
+import { OperationStatus } from "../../src/services/operation-ledger.js";
+import { makeProfile, makeIssue, makeComment, makeResult } from "../helpers/factories.js";
+import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
-import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 import type { AgentProfile } from "../../src/config.js";
-import type { RalphResult } from "../../src/container/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import type { ITaskRunner } from "../../src/services/task-runner.js";
+import { buildMockDeps, buildBaseDeps, runUntil } from "./e2e-helpers.js";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -30,133 +21,6 @@ import type { ITaskRunner } from "../../src/services/task-runner.js";
  */
 
 let tempDir: string;
-
-const silentLogger = createMockLogger();
-
-function buildMockDeps(options: {
-  profile?: AgentProfile;
-  issues?: JiraIssue[];
-  comments?: Record<string, JiraComment[]>;
-  searchResults?: Record<string, JiraIssue[]>;
-  taskResult?: Partial<RalphResult>;
-  taskError?: Error;
-}): OrchestratorDeps {
-  const profile =
-    options.profile ??
-    makeProfile({
-      id: "ralph-docs",
-      agentName: "ralph",
-      match: {
-        projects: ["DF"],
-        statuses: [],
-        commentTrigger: "@docs",
-        revisionStatuses: [],
-      },
-    });
-  const config = makeConfig([profile]);
-  const logDir = join(tempDir, "logs");
-  const historyDir = join(logDir, "history");
-  mkdirSync(historyDir, { recursive: true });
-  config.output.logDir = logDir;
-
-  const activityLog = new ActivityLog(logDir);
-  const router = new ProfileRouter([profile]);
-  const ledger = new OperationLedger(historyDir);
-
-  const issuesToDrain = [...(options.issues ?? [])];
-  const commentsMap = options.comments ?? {};
-  const searchMap = options.searchResults ?? {};
-
-  for (const issue of issuesToDrain) {
-    if (!searchMap[issue.key]) {
-      searchMap[issue.key] = [issue];
-    }
-  }
-
-  const issueMap: Record<string, JiraIssue> = {};
-  for (const [key, issues] of Object.entries(searchMap)) {
-    if (issues.length > 0) issueMap[key] = issues[0];
-  }
-
-  const { container: mockContainer } = createMockContainer();
-
-  const issueManager = createMockIssueManager({
-    getComments: vi.fn().mockImplementation(async (key: string) => {
-      return commentsMap[key] ?? [];
-    }),
-    refreshIssue: vi.fn().mockImplementation(async (key: string) => {
-      return issueMap[key] ?? null;
-    }),
-  });
-
-  const resources = createMockResources();
-
-  const taskRunner: ITaskRunner = {
-    run: options.taskError
-      ? vi.fn().mockRejectedValue(options.taskError)
-      : vi.fn().mockImplementation(async (issue: JiraIssue) => ({
-          result: makeResult(issue.key, options.taskResult),
-          container: mockContainer,
-        })),
-    teardown: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const triggerScanner = new TriggerScanner(
-    issueManager,
-    router,
-    ledger,
-    silentLogger,
-  );
-
-  let drainCount = 0;
-  const poller = createMockPoller({
-    drain: vi.fn().mockImplementation(() => {
-      if (drainCount === 0) {
-        drainCount++;
-        return issuesToDrain;
-      }
-      return [];
-    }),
-  });
-
-  return {
-    config,
-    activityLog,
-    issueManager,
-    resources,
-    poller,
-    router,
-    taskRunner,
-    triggerScanner,
-    ledger,
-    heartbeat: null,
-    logger: silentLogger,
-  };
-}
-
-/**
- * Run the orchestrator until a condition is met.
- *
- * The loop is event-driven (no timers). We observe state changes and
- * call `stop()` once the condition is satisfied or `maxMs` elapses.
- */
-async function runUntil(
-  orchestrator: Orchestrator,
-  stopCondition: () => boolean,
-  maxMs = 5000,
-): Promise<void> {
-  const timeout = setTimeout(() => orchestrator.stop(), maxMs);
-
-  orchestrator.observer.onStateChange(() => {
-    if (stopCondition()) {
-      clearTimeout(timeout);
-      orchestrator.stop();
-    }
-  });
-
-  await orchestrator.start();
-  clearTimeout(timeout);
-}
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "e2e-orchestrator-"));
@@ -169,7 +33,7 @@ afterEach(() => {
 describe("Orchestrator E2E loop (mock deps)", () => {
   it("completes full cycle: poll -> trigger scan -> execute -> completion", async () => {
     const issue = makeIssue("DF-100", "Update API docs", "New");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-100": [makeComment("C1", "@docs please handle this")],
@@ -189,6 +53,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({ key: "DF-100" }),
       expect.objectContaining({ id: "ralph-docs" }),
+      expect.stringMatching(/^DF-100-\d+$/),
     );
     expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
       "DF-100",
@@ -208,7 +73,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("posts error comment when agent returns error status without throwing", async () => {
     const issue = makeIssue("DF-150", "Agent CLI fails");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-150": [makeComment("C1", "@docs handle this")],
@@ -244,7 +109,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("maps TaskStatus.Blocked to OperationStatus.Error in the ledger", async () => {
     const issue = makeIssue("DF-151", "Agent blocked by missing context");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-151": [makeComment("C1", "@docs handle this")],
@@ -279,7 +144,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("maps TaskStatus.Partial to OperationStatus.Completed in the ledger", async () => {
     const issue = makeIssue("DF-152", "Agent partial success");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-152": [makeComment("C1", "@docs handle this")],
@@ -311,7 +176,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("handles task runner errors gracefully", async () => {
     const issue = makeIssue("DF-200", "Broken task");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-200": [makeComment("C1", "@docs handle this")],
@@ -357,7 +222,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const issueAtPoll = makeIssue("DF-300", "Task that moved", "New");
     const issueAtExec = makeIssue("DF-300", "Task that moved", "Done");
 
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       profile,
       issues: [issueAtPoll],
       comments: {
@@ -382,7 +247,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("skips issues that match no profile", async () => {
     const issue = makeIssue("OTHER-1", "Wrong project");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "OTHER-1": [makeComment("C1", "@docs go")],
@@ -402,7 +267,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const issue1 = makeIssue("DF-400", "First task");
     const issue2 = makeIssue("DF-401", "Second task");
 
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue1, issue2],
       comments: {
         "DF-400": [makeComment("C1", "@docs first")],
@@ -437,57 +302,30 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         revisionStatuses: [],
       },
     });
-    const config = makeConfig([profile]);
-    const logDir = join(tempDir, "crash-logs");
-    const historyDir = join(logDir, "history");
-    mkdirSync(historyDir, { recursive: true });
-    config.output.logDir = logDir;
 
-    const ledger = new OperationLedger(historyDir);
-    ledger.plan("DF-500", {
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile],
+      logDirName: "crash-logs",
+    });
+
+    // Simulate a previously crashed operation
+    deps.ledger.plan("DF-500", {
       variant: "ralph-docs:ralph:@docs",
       triggerCommentId: "C1",
       commentTimestamp: "2026-01-01T00:00:00Z",
     });
-    const ops = ledger.getOperations("DF-500");
-    ledger.transition("DF-500", ops[0].id, OperationStatus.Active);
-
-    const activityLog = new ActivityLog(logDir);
-    const router = new ProfileRouter([profile]);
-    const issueManager = createMockIssueManager();
-
-    const poller = createMockPoller();
-
-    const triggerScanner = new TriggerScanner(
-      issueManager,
-      router,
-      ledger,
-      silentLogger,
-    );
-
-    const deps: OrchestratorDeps = {
-      config,
-      activityLog,
-      issueManager,
-      resources: createMockResources(),
-      poller,
-      router,
-      taskRunner: createMockTaskRunner(),
-      triggerScanner,
-      ledger,
-      heartbeat: null,
-      logger: silentLogger,
-    };
+    const ops = deps.ledger.getOperations("DF-500");
+    deps.ledger.transition("DF-500", ops[0].id, OperationStatus.Active);
 
     const orchestrator = new Orchestrator(deps);
 
     // Recovery happens at startup, then loop idles -> timeout stops it
     await runUntil(orchestrator, () => false, 200);
 
-    const recoveredOps = ledger.getOperations("DF-500");
+    const recoveredOps = deps.ledger.getOperations("DF-500");
     expect(recoveredOps[0].status).toBe(OperationStatus.Error);
 
-    expect(issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(
+    expect(deps.issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(
       "DF-500",
       "ralph-docs:ralph:@docs",
     );
@@ -495,7 +333,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("tracks state transitions during execution", async () => {
     const issue = makeIssue("DF-600", "State tracking test");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-600": [makeComment("C1", "@docs go")],
@@ -520,7 +358,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("emits heartbeat payload with correct shape", async () => {
     const issue = makeIssue("DF-700", "Heartbeat test");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-700": [makeComment("C1", "@docs go")],
@@ -544,7 +382,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it("deduplicates trigger comments across multiple poll cycles", async () => {
     const issue = makeIssue("DF-800", "Dedup test");
-    const deps = buildMockDeps({
+    const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
         "DF-800": [makeComment("C1", "@docs handle please")],
@@ -595,57 +433,29 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(dfProfile.variantKey).toBe("ralph-docs:ralph:@RalphDf");
     expect(docProfile.variantKey).toBe("ralph-docs:ralph:@RalphDocs");
 
-    const config = makeConfig([dfProfile, docProfile]);
-    const logDir = join(tempDir, "multi-variant-logs");
-    const historyDir = join(logDir, "history");
-    mkdirSync(historyDir, { recursive: true });
-    config.output.logDir = logDir;
-
-    const ledger = new OperationLedger(historyDir);
     const docIssue = makeIssue("DOC-100", "VS Code docs", "To Do");
+    const { container: mockContainer } = createMockContainer();
+
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [dfProfile, docProfile],
+      issueManager: {
+        refreshIssue: vi.fn().mockResolvedValue(docIssue),
+      },
+      taskRunner: {
+        run: vi.fn().mockResolvedValue({
+          result: makeResult("DOC-100"),
+          container: mockContainer,
+        }),
+      },
+      logDirName: "multi-variant-logs",
+    });
 
     // Plan an operation for the DOC variant
-    ledger.plan("DOC-100", {
+    deps.ledger.plan("DOC-100", {
       variant: docProfile.variantKey,
       triggerCommentId: "C1",
       commentTimestamp: "2026-01-01T00:00:00Z",
     });
-
-    const activityLog = new ActivityLog(logDir);
-    const router = new ProfileRouter([dfProfile, docProfile]);
-    const { container: mockContainer } = createMockContainer();
-
-    const issueManager = createMockIssueManager({
-      refreshIssue: vi.fn().mockResolvedValue(docIssue),
-    });
-
-    const taskRunner: ITaskRunner = {
-      run: vi.fn().mockResolvedValue({
-        result: makeResult("DOC-100"),
-        container: mockContainer,
-      }),
-      teardown: vi.fn().mockResolvedValue(undefined),
-    };
-
-    const triggerScanner = new TriggerScanner(
-      issueManager, router, ledger, silentLogger,
-    );
-
-    const poller = createMockPoller();
-
-    const deps: OrchestratorDeps = {
-      config,
-      activityLog,
-      issueManager,
-      resources: createMockResources(),
-      poller,
-      router,
-      taskRunner,
-      triggerScanner,
-      ledger,
-      heartbeat: null,
-      logger: silentLogger,
-    };
 
     const orchestrator = new Orchestrator(deps);
     await runUntil(
@@ -654,8 +464,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     );
 
     // The orchestrator must find the DOC profile (not the DF one) and execute
-    expect(taskRunner.run).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(taskRunner.run).mock.calls[0][1]).toBe(docProfile);
+    expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(deps.taskRunner.run).mock.calls[0][1]).toBe(docProfile);
   });
 
   it("tears down all profiles on startup to clean abandoned containers", async () => {
@@ -669,37 +479,18 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       agentName: "ralph",
       match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode", revisionStatuses: [] },
     });
-    const config = makeConfig([profile1, profile2]);
-    const logDir = join(tempDir, "cleanup-logs");
-    const historyDir = join(logDir, "history");
-    mkdirSync(historyDir, { recursive: true });
-    config.output.logDir = logDir;
 
-    const taskRunner = createMockTaskRunner();
-    const poller = createMockPoller();
-    const ledger = new OperationLedger(historyDir);
-    const router = new ProfileRouter([profile1, profile2]);
-
-    const deps: OrchestratorDeps = {
-      config,
-      activityLog: new ActivityLog(logDir),
-      issueManager: createMockIssueManager(),
-      resources: createMockResources(),
-      poller,
-      router,
-      taskRunner,
-      triggerScanner: new TriggerScanner(createMockIssueManager(), router, ledger, silentLogger),
-      ledger,
-      heartbeat: null,
-      logger: silentLogger,
-    };
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile1, profile2],
+      logDirName: "cleanup-logs",
+    });
 
     const orchestrator = new Orchestrator(deps);
     await runUntil(orchestrator, () => false, 200);
 
     // Both profiles should have been torn down with null container (force path)
-    expect(taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
-    expect(taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
+    expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
+    expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
   });
 
   it("continues cleanup when one profile teardown fails", async () => {
@@ -713,40 +504,22 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       agentName: "ralph",
       match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode", revisionStatuses: [] },
     });
-    const config = makeConfig([profile1, profile2]);
-    const logDir = join(tempDir, "cleanup-fail-logs");
-    const historyDir = join(logDir, "history");
-    mkdirSync(historyDir, { recursive: true });
-    config.output.logDir = logDir;
 
-    const taskRunner = createMockTaskRunner({
-      teardown: vi.fn().mockImplementation(async (profile: AgentProfile) => {
-        if (profile.id === "ralph-docs") throw new Error("compose stuck");
-      }),
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile1, profile2],
+      taskRunner: {
+        teardown: vi.fn().mockImplementation(async (profile: AgentProfile) => {
+          if (profile.id === "ralph-docs") throw new Error("compose stuck");
+        }),
+      },
+      logDirName: "cleanup-fail-logs",
     });
-    const poller = createMockPoller();
-    const ledger = new OperationLedger(historyDir);
-    const router = new ProfileRouter([profile1, profile2]);
-
-    const deps: OrchestratorDeps = {
-      config,
-      activityLog: new ActivityLog(logDir),
-      issueManager: createMockIssueManager(),
-      resources: createMockResources(),
-      poller,
-      router,
-      taskRunner,
-      triggerScanner: new TriggerScanner(createMockIssueManager(), router, ledger, silentLogger),
-      ledger,
-      heartbeat: null,
-      logger: silentLogger,
-    };
 
     const orchestrator = new Orchestrator(deps);
     await runUntil(orchestrator, () => false, 200);
 
     // Both profiles should have been attempted despite the first one failing
-    expect(taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
-    expect(taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
+    expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
+    expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
   });
 });

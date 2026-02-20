@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import type { RalphResult } from "../../src/container/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { LogLevel } from "../../src/orchestrator-types.js";
 import { resolveStatus } from "../../src/container/result-parser.js";
+import { makeResult } from "../helpers/factories.js";
 
 // ── Log persistence tests ────────────────────────────────
 // Tests for persistent activity log, CLI output saving, log collector,
@@ -62,20 +62,16 @@ describe("Copilot output persistence", () => {
 
 describe("Log collector", () => {
   it("creates valid summary JSON structure", () => {
-    const result: RalphResult = {
-      issueKey: "DF-2704",
-      status: TaskStatus.Completed,
+    const result = makeResult("DF-2704", {
       durationMs: 120000,
-      exitCode: 0,
       stdout: "output",
-      stderr: "",
       prUrl: "https://dev.azure.com/pr/1",
       collectedLogs: {
         audit: "/tmp/logs/DF-2704-123-audit.jsonl",
         transcript: "/tmp/logs/DF-2704-123-transcript.md",
         proxy: "/tmp/logs/DF-2704-123-proxy.log",
       },
-    };
+    });
 
     const summary = {
       issueKey: result.issueKey,

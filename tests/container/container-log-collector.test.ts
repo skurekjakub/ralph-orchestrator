@@ -4,41 +4,47 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
 
 let tempDir: string;
 
-function makeMockCompose(responses: Record<string, string> = {}): IComposeClient {
-  return {
-    exec: vi.fn().mockImplementation(async (args: string[]) => {
-      const catIndex = args.indexOf("cat");
-      if (catIndex >= 0) {
-        const path = args[catIndex + 1];
-        if (responses[path] !== undefined) {
-          return { stdout: responses[path], stderr: "" };
-        }
-        throw new Error(`File not found: ${path}`);
+function makeMockCompose(
+  responses: Record<string, string> = {},
+  logsResponse?: { stdout: string } | Error,
+): IComposeClient {
+  const { compose } = createMockCompose(async (args: string[]) => {
+    const catIndex = args.indexOf("cat");
+    if (catIndex >= 0) {
+      const path = args[catIndex + 1];
+      if (responses[path] !== undefined) {
+        return { stdout: responses[path], stderr: "" };
       }
+      throw new Error(`File not found: ${path}`);
+    }
 
-      // For tail -f: return a mock process with stdout
-      const tailing = args.includes("tail");
-      if (tailing) {
-        const mockProc = {
-          stdout: { on: vi.fn() },
-          stderr: { on: vi.fn() },
-          kill: vi.fn(),
-          catch: vi.fn().mockReturnThis(),
-        };
-        return mockProc;
-      }
+    // For tail -f: return a mock process with stdout
+    const tailing = args.includes("tail");
+    if (tailing) {
+      return {
+        stdout: { on: vi.fn() },
+        stderr: { on: vi.fn() },
+        kill: vi.fn(),
+        catch: vi.fn().mockReturnThis(),
+      };
+    }
 
-      throw new Error("Unexpected exec call");
-    }),
-    compose: vi.fn(),
-    execWithTimeout: vi.fn(),
-    checkDocker: vi.fn(),
-    getContainerName: vi.fn(),
-  } as IComposeClient;
+    throw new Error("Unexpected exec call");
+  });
+
+  if (logsResponse) {
+    if (logsResponse instanceof Error) {
+      vi.mocked(compose.logs).mockRejectedValue(logsResponse);
+    } else {
+      vi.mocked(compose.logs).mockResolvedValue(fakeExecResult({ stdout: logsResponse.stdout, stderr: "" }));
+    }
+  }
+
+  return compose;
 }
 
 describe("ContainerLogCollector", () => {
@@ -343,5 +349,106 @@ describe("ContainerLogCollector", () => {
 
     expect(results.find((r) => r.id === "audit")?.path).toBeNull();
     expect(results.find((r) => r.id === "transcript")?.path).toBeNull();
+  });
+
+  it("uses compose.logs() instead of exec when useComposeLogs is set", async () => {
+    const compose = makeMockCompose({}, { stdout: "[gateway] Starting 2 MCP server(s)\n" });
+    const logger = createMockLogger();
+    const collector = new ContainerLogCollector(compose, tempDir, logger);
+
+    collector.setIssueKey("DOC-1000");
+    collector.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
+    const results = await collector.collectAll();
+
+    expect(compose.logs).toHaveBeenCalledWith("mcp-sidecar");
+    expect(compose.exec).not.toHaveBeenCalled();
+    expect(results[0].path).toBeTruthy();
+    const content = readFileSync(results[0].path!, "utf-8");
+    expect(content).toContain("gateway");
+  });
+
+  it("collects mixed useComposeLogs and exec sources in one pass", async () => {
+    const compose = makeMockCompose(
+      { "/var/log/squid/access.log": "TCP_TUNNEL/200 proxy.example.com\n" },
+      { stdout: "[gateway] sidecar output\n" },
+    );
+    const logger = createMockLogger();
+    const collector = new ContainerLogCollector(compose, tempDir, logger);
+
+    collector.setIssueKey("DOC-1100");
+    collector.addSource({
+      id: "proxy",
+      service: "egress-proxy",
+      containerPath: "/var/log/squid/access.log",
+      extension: "log",
+      mode: CaptureMode.Collect,
+    });
+    collector.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
+    const results = await collector.collectAll();
+
+    expect(results).toHaveLength(2);
+    expect(compose.exec).toHaveBeenCalledTimes(1);
+    expect(compose.logs).toHaveBeenCalledWith("mcp-sidecar");
+
+    expect(readFileSync(results[0].path!, "utf-8")).toContain("TCP_TUNNEL/200");
+    expect(readFileSync(results[1].path!, "utf-8")).toContain("sidecar output");
+  });
+
+  it("returns null when useComposeLogs yields empty stdout", async () => {
+    const compose = makeMockCompose({}, { stdout: "  \n  " });
+    const logger = createMockLogger();
+    const collector = new ContainerLogCollector(compose, tempDir, logger);
+
+    collector.setIssueKey("DOC-1200");
+    collector.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
+    const results = await collector.collectAll();
+
+    expect(results[0].path).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith("No sidecar log found");
+  });
+
+  it("returns null when useComposeLogs throws", async () => {
+    const compose = makeMockCompose({}, new Error("container not running"));
+    const logger = createMockLogger();
+    const collector = new ContainerLogCollector(compose, tempDir, logger);
+
+    collector.setIssueKey("DOC-1300");
+    collector.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
+    const results = await collector.collectAll();
+
+    expect(results[0].path).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith("Failed to collect sidecar log");
   });
 });

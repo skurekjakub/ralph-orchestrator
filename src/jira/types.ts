@@ -47,7 +47,11 @@ export interface JiraSearchResponse {
 /** A single JIRA issue comment from the `/rest/api/3/issue/{key}/comment` endpoint. */
 export interface JiraComment {
   id: string;
-  author: { displayName: string };
+  author: {
+    /** Immutable Atlassian account ID (e.g. `5b10ac8d...`). Stable across display name changes. */
+    accountId: string;
+    displayName: string;
+  };
   /** ADF body — extract text for prompt inclusion. */
   body: unknown;
   created: string;

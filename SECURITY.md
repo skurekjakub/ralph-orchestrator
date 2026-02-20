@@ -111,7 +111,7 @@ timestamp elapsed_ms client_ip TCP_status/HTTP_code bytes method domain:port use
 - `TCP_TUNNEL/200` — HTTPS tunnel allowed
 - `TCP_MISS/200` — HTTP request allowed
 
-Proxy logs are saved as `<key>-<ts>-proxy.log` in `output/logs/`.
+Proxy logs are saved in each task's subdirectory as `<key>-<startTs>-<ts>-proxy.log` within `output/logs/<key>-<startTs>/`.
 
 ## Prompt Injection Defense
 
@@ -298,7 +298,7 @@ The agent calls `http://host.docker.internal:8080/...` — traffic is routed thr
 
 ### How do I debug a blocked request?
 
-Check the Squid proxy logs collected after each task (`output/logs/<key>-<ts>-proxy.log`). Look for `TCP_DENIED/403` entries — they show the blocked domain and port.
+Check the Squid proxy logs collected after each task (inside `output/logs/<key>-<startTs>/`). Look for `TCP_DENIED/403` entries — they show the blocked domain and port.
 
 For live debugging during development, `docker compose logs egress-proxy` shows the Squid access log in real time.
 
