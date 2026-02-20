@@ -1,5 +1,6 @@
 export type { ValidationResult } from "./types.js";
 
+import type { Logger } from "../logger.js";
 import type { ValidationResult } from "./types.js";
 import { validateEnvFile } from "./env.js";
 import { validateConfigFile } from "./config.js";
@@ -18,13 +19,17 @@ import { validateDocker } from "./docker.js";
  *
  * Returns a result with errors (fatal) and warnings (non-fatal).
  */
-export async function validatePrerequisites(): Promise<ValidationResult> {
+export async function validatePrerequisites(logger?: Logger): Promise<ValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  logger?.info("Validating .env file");
   validateEnvFile({ errors, warnings });
+  logger?.info("Validating config.json");
   validateConfigFile({ errors, warnings });
+  logger?.info("Validating security infrastructure");
   validateSecurityInfra({ errors, warnings });
+  logger?.info("Validating Docker availability");
   await validateDocker({ errors, warnings });
 
   return { ok: errors.length === 0, errors, warnings };

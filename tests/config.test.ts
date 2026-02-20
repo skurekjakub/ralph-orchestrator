@@ -35,13 +35,13 @@ function setRequiredEnv() {
   process.env.JIRA_PAT = "jira-token";
   process.env.JIRA_EMAIL = "test@test.com";
   process.env.GH_TOKEN = "gh-token";
-  process.env.ADO_PAT_DOCS = "ado-token";
+  process.env.ADO_PAT = "ado-token";
 }
 
 const savedEnv: Record<string, string | undefined> = {};
 
 function saveEnv() {
-  for (const k of ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT_DOCS"]) {
+  for (const k of ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT"]) {
     savedEnv[k] = process.env[k];
   }
 }
@@ -115,7 +115,7 @@ describe("loadConfig", () => {
     expect(config.profiles[0].match).toBeDefined();
     expect(config.secrets.jiraPat).toBe("jira-token");
     expect(config.secrets.ghToken).toBe("gh-token");
-    expect(config.secrets.adoPatDocs).toBe("ado-token");
+    expect(config.secrets.adoPat).toBe("ado-token");
   });
 
   it("throws when no profile directories exist", () => {

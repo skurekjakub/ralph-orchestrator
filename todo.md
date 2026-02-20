@@ -14,9 +14,9 @@ the ralphchives
 
 squid.conf - needs to be dynamically including like discord domain as well - security hardening
 
-
 the over-ralph
 - impleemntation roadmap breakdown for large fuzzy tasks
+- whats the expected output/artifacts. Jira issue subtasks???
 
 conditionally enhance prompt based on agent type
 
@@ -68,7 +68,6 @@ test malph
 
 unify validation
 
-check for better source image
 
 investigate root/vscode file/folder rm -f permissions from ContainerWOrkspaceCleaner - Dockerfile creation requiremens/DAC/CHOWN in docker-compose.security? CAP_ADD
 
@@ -116,3 +115,15 @@ structured prompt building aka copilot extension
   
   <cacheBreakpoint /> [if cache breakpoints enabled]
 </UserMessage>
+
+send completely different prompt for revision workflow
+
+harden and reenable claude code cli
+
+compose-client env handling.
+
+preflight for revision workflow - update tool calls after
+
+check for better source image - ubuntu-alpine? no python3 etc
+
+allowedUrlPaths should not be set on mcp.config or? each profile should also have baseAllowedUrlPaths - because of setup.sh 

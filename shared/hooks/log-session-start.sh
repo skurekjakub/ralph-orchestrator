@@ -1,19 +1,16 @@
 #!/bin/bash
 # Ralph audit logger — Session Start
 # Writes structured JSONL to /workspace/.ralph/logs/
-
 set -e
 INPUT=$(cat)
 
 LOG_DIR="/workspace/.ralph/logs"
 mkdir -p "$LOG_DIR"
 
-SOURCE=$(echo "$INPUT" | jq -r '.source // "unknown"')
-TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
+# Single jq call: extract all fields at once.
+read -r TIMESTAMP SOURCE CWD <<< "$(echo "$INPUT" | jq -r '[.timestamp, (.source // "unknown"), .cwd] | @tsv')"
 INITIAL_PROMPT=$(echo "$INPUT" | jq -r '.initialPrompt // ""')
-CWD=$(echo "$INPUT" | jq -r '.cwd')
 
-# Derive a session ID from the timestamp
 SESSION_ID="ralph-$(date +%Y%m%d-%H%M%S)"
 echo "$SESSION_ID" > "$LOG_DIR/.current-session-id"
 

@@ -36,8 +36,10 @@ export class LogCollector implements ILogCollector {
    * @returns Absolute path to the saved summary file.
    */
   saveExecutionSummary(result: RalphResult, activityLogPath?: string): string {
+    const issueDir = join(this.config.logDir, result.issueKey);
+    mkdirSync(issueDir, { recursive: true });
     const filename = `${result.issueKey}-${Date.now()}-summary.json`;
-    const path = join(this.config.logDir, filename);
+    const path = join(issueDir, filename);
     writeFileSync(
       path,
       JSON.stringify(

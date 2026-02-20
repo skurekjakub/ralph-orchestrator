@@ -6,9 +6,8 @@ INPUT=$(cat)
 LOG_DIR="/workspace/.ralph/logs"
 SESSION_ID=$(cat "$LOG_DIR/.current-session-id" 2>/dev/null || echo "unknown")
 
-TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
-REASON=$(echo "$INPUT" | jq -r '.reason // "unknown"')
-CWD=$(echo "$INPUT" | jq -r '.cwd')
+# Single jq call: extract all fields at once.
+read -r TIMESTAMP REASON CWD <<< "$(echo "$INPUT" | jq -r '[.timestamp, (.reason // "unknown"), .cwd] | @tsv')"
 
 jq -n -c \
   --arg event "session_end" \

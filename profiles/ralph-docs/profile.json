@@ -3,7 +3,8 @@
   "cli": "copilot",
   "timeoutMs": 7200000,
   "cleanPaths": ["/workspace/resources/chats"],
-  "mcpServers": ["playwright", "discord-hitl"],
+  "mcpServers": ["playwright", "jira-kentico", "ado"],
+  "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "resources/ralph-resources"
   },

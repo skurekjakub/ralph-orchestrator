@@ -79,7 +79,7 @@ Security is applied via a **compose file merge** (up to three files):
 
 1. **Base:** `profiles/<id>/docker-compose.yml` — services, volumes, build config
 2. **Security overlay:** `shared/security/docker-compose.security.yml` — Squid sidecar, networks, limits, hardening
-3. **Resources overlay:** `profiles/<id>/agents/.build/docker-compose.overlay.yml` — MCP server mounts, env var passthrough, resource file mounts (auto-generated at startup, only included if present)
+3. **Resources overlay:** `profiles/<id>/.build/docker-compose.overlay.yml` — MCP server mounts, env var passthrough, resource file mounts (auto-generated at startup, only included if present)
 
 `ComposeClient` automatically injects all applicable files for every command. The security overlay adds:
 
@@ -183,6 +183,75 @@ A shared include file injected into all top-level agent templates instructs the 
 ### Defense Philosophy
 
 Prompt injection is **fundamentally unsolved at the model level**. No filtering, training, or detection technique reliably prevents it against adaptive attacks. These layers are **tripwire defenses** — they catch accidental or opportunistic injections and provide audit visibility. The real security boundary remains **architectural**: network isolation, domain allowlist proxy, container hardening, and privilege minimization.
+
+## Runtime URL Enforcement
+
+Domain-level allowlisting (Squid proxy) prevents the agent from reaching arbitrary servers, but an injected agent could still abuse *allowed* APIs to target different organizations or resources. URL **path** restrictions provide an additional enforcement layer.
+
+### Threat Model
+
+An attacker embeds a PAT (personal access token) in a JIRA issue description. The injected agent uses `curl` or a bash tool to call an allowlisted API (e.g., `dev.azure.com`) with the stolen PAT, targeting a different organization than the one Ralph is configured for. Domain-level filtering alone can't prevent this.
+
+### Pre-Tool Hook Audit Logging (`shared/hooks/log-pre-tool.sh`)
+
+A Copilot CLI pre-tool hook that runs **synchronously before every tool execution**. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to host in real-time) and `audit.jsonl` for post-task analysis.
+
+**Limitations:**
+- Only applies to Copilot CLI (Claude Code has no equivalent hook protocol)
+- Audit-only — does not block tool calls (URL enforcement is handled by the CLI URL allowlist and Squid proxy)
+
+### Copilot CLI URL Allowlist (`copilot-config.json`)
+
+The Copilot CLI's built-in URL permission system, configured via a generated config file. The CLI checks URLs at its own permission layer before tools execute.
+
+At startup, the orchestrator:
+
+1. Parses the profile's generated `squid.conf` for allowed domains
+2. Applies path restrictions from MCP server manifests to sensitive domains (JIRA, ADO)
+3. Includes host loopback ports from the squid config
+4. Writes `copilot-config.json` with `allowed_urls` patterns
+
+**URL pattern examples:**
+- `https://*.github.com` — any GitHub subdomain, any path
+- `https://api.atlassian.com/ex/jira/cloud-42/*` — only the configured JIRA cloud instance
+- `https://dev.azure.com/MyOrg/*` — only the configured ADO organization
+- `http://host.docker.internal:4500/*` — host loopback on specific port
+
+The config is mounted read-only at `/workspace/.ralph/config.json` and read by the CLI via `--config-dir /workspace/.ralph`. The `--yolo` flag (which includes `--allow-all-urls`) is replaced with explicit `--allow-all-tools --allow-all-paths` to keep URL enforcement active.
+
+**Limitations:**
+- Only applies to Copilot CLI (Claude Code has no equivalent URL restriction config)
+- Path wildcards are prefix-based (`/*` suffix) — exact path matching not available
+
+### Path Restriction Auto-Derivation (`src/container/setup/url-restrictions.ts`)
+
+Path restrictions are auto-derived at startup from MCP server manifests:
+
+| Source | Rule | Restricts |
+|---|---|---|
+| JIRA cloud ID (`config.json`) | `api.atlassian.com` → `/ex/jira/{cloudId}/` | Agent can only access the configured JIRA instance |
+| ADO MCP manifest (`shared/mcp-servers/ado/mcp-server.json`) | `dev.azure.com` → `/{orgName}/` | Agent can only access the configured ADO organization |
+
+Rules are used to generate path-scoped `allowed_urls` in `copilot-config.json` (consumed by the CLI).
+
+### Defense Layering Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      URL Access Control                         │
+│                                                                 │
+│  Layer 2: Squid Proxy (DOMAIN level — network enforcement)      │
+│    └─ Blocks all traffic to non-allowlisted domains             │
+│                                                                 │
+│  Layer 1: Copilot CLI URL Allowlist (PATH level — CLI layer)    │
+│    └─ Restricts tool URL access to path-scoped patterns         │
+│                                                                 │
+│  Audit: Pre-tool hook logs all tool calls for observability     │
+│                                                                 │
+│  Note: Layer 1 is Copilot-only. Claude Code relies on           │
+│  Layer 2 (Squid) + the hook for audit logging only.             │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## What the Agent Can Still Do
 

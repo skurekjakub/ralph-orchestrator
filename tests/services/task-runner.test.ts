@@ -15,7 +15,7 @@ import { makeIssue, makeProfile, makeResult } from "../helpers/factories.js";
 import { createMockLogger, createMockContainer, createMockLogCollector, createMockResources, createMockIssueManager } from "../helpers/mocks.js";
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
-  return { create: vi.fn().mockReturnValue(container) };
+  return { create: vi.fn().mockReturnValue(container), forceDown: vi.fn().mockResolvedValue(undefined) };
 }
 
 describe("TaskRunner", () => {
@@ -47,6 +47,7 @@ describe("TaskRunner", () => {
     expect(issueManager.postStartComment).toHaveBeenCalledWith("DF-100", "ralph", "ralph-docs");
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
+    expect(spies.prepareConfigDir).toHaveBeenCalled();
     expect(spies.cleanLogDirectory).toHaveBeenCalled();
     expect(spies.registerLogSources).toHaveBeenCalledWith("DF-100");
     expect(spies.setup).toHaveBeenCalled();
@@ -71,6 +72,7 @@ describe("TaskRunner", () => {
     const { container, spies } = createMockContainer();
     spies.start.mockImplementation(() => { callOrder.push("start"); return Promise.resolve(); });
     spies.checkPrerequisites.mockImplementation(() => { callOrder.push("check"); return Promise.resolve(); });
+    spies.prepareConfigDir.mockImplementation(() => { callOrder.push("prepareConfig"); return Promise.resolve(); });
     spies.cleanLogDirectory.mockImplementation(() => { callOrder.push("cleanLog"); return Promise.resolve(); });
     spies.cleanPaths.mockImplementation(() => { callOrder.push("cleanPaths"); return Promise.resolve(); });
     spies.registerLogSources.mockImplementation(() => { callOrder.push("registerLogs"); });
@@ -82,7 +84,7 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
     await runner.run(issue, profile);
 
-    expect(callOrder).toEqual(["start", "check", "cleanLog", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
+    expect(callOrder).toEqual(["start", "check", "prepareConfig", "cleanLog", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
   });
 
   it("skips beforeAgent transition when not configured", async () => {
@@ -130,5 +132,66 @@ describe("TaskRunner", () => {
     await runner.run(issue, profile);
 
     expect(container.onToolOutput).toBe(onToolOutput);
+  });
+
+  it("propagates onPreToolUse to the container", async () => {
+    const { container } = createMockContainer();
+    const factory = createMockFactory(container);
+    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
+    const onPreToolUse = vi.fn();
+    runner.onPreToolUse = onPreToolUse;
+
+    await runner.run(issue, profile);
+
+    expect(container.onPreToolUse).toBe(onPreToolUse);
+  });
+
+  describe("teardown", () => {
+    it("calls container.stop() when container is provided", async () => {
+      const { container, spies } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
+
+      await runner.teardown(profile, container);
+
+      expect(spies.stop).toHaveBeenCalled();
+      expect(factory.forceDown).not.toHaveBeenCalled();
+    });
+
+    it("falls back to forceDown when container.stop() throws", async () => {
+      const { container, spies } = createMockContainer();
+      spies.stop.mockRejectedValue(new Error("compose down failed"));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
+
+      await runner.teardown(profile, container);
+
+      expect(spies.stop).toHaveBeenCalled();
+      expect(factory.forceDown).toHaveBeenCalledWith(profile);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Graceful stop failed"));
+    });
+
+    it("calls forceDown directly when container is null", async () => {
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
+
+      await runner.teardown(profile, null);
+
+      expect(factory.forceDown).toHaveBeenCalledWith(profile);
+    });
+
+    it("logs warning without throwing when both stop and forceDown fail", async () => {
+      const { container, spies } = createMockContainer();
+      spies.stop.mockRejectedValue(new Error("stop failed"));
+      const factory = createMockFactory(container);
+      vi.mocked(factory.forceDown).mockRejectedValue(new Error("forceDown failed"));
+      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager());
+
+      await expect(runner.teardown(profile, container)).resolves.toBeUndefined();
+
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Graceful stop failed"));
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Fallback teardown failed"));
+    });
   });
 });

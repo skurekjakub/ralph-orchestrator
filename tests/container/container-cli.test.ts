@@ -17,16 +17,26 @@ describe("Copilot CLI args", () => {
     expect(source).toContain("DEFAULT_MODEL");
   });
 
-  it("includes --yolo and --experimental flags", async () => {
+  it("includes explicit permission flags instead of --yolo", async () => {
     const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
-    expect(source).toContain('"--yolo"');
+    expect(source).toContain('"--allow-all-tools"');
+    expect(source).toContain('"--allow-all-paths"');
     expect(source).toContain('"--experimental"');
+    expect(source).not.toContain('"--yolo"');
+    expect(source).not.toContain('"--allow-all-urls"');
   });
 
   it("includes --share flag for session transcript export", async () => {
     const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
     expect(source).toContain('"--share"');
     expect(source).toContain("TRANSCRIPT_PATH");
+  });
+
+  it("supports configurable GitHub MCP server tool restrictions", async () => {
+    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
+    expect(source).toContain('"--disable-builtin-mcps"');
+    expect(source).toContain('"--add-github-mcp-tool"');
+    expect(source).toContain("githubMcpTools");
   });
 });
 
@@ -44,37 +54,16 @@ describe("Claude Code CLI args", () => {
 });
 
 describe("Compose environment", () => {
-  it("injects all required env vars into compose process", async () => {
+  it("injects computed paths into compose process", async () => {
     const source = await readSource("../../src/container/compose-client.ts");
     const requiredEnvVars = [
-      "GH_TOKEN",
-      "ADO_PAT_DOCS",
-      "ADO_MCP_AUTH_TOKEN",
-      "ADO_PAT_XPERIENCE",
-      "JIRA_PAT",
-      "JIRA_EMAIL",
-      "JIRA_BASE_URL",
-      "JIRA_CLOUD_ID",
-      "ANTHROPIC_API_KEY",
+      "TARGET_REPO_PATH",
+      "SHARED_HOOKS_PATH",
+      "SQUID_CONF_PATH",
     ];
     for (const envVar of requiredEnvVars) {
       expect(source).toContain(envVar);
     }
-  });
-});
-
-describe("CLI selection", () => {
-  it("manager supports both copilot and claude executors", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain("CopilotExecutor");
-    expect(source).toContain("ClaudeCodeExecutor");
-    expect(source).toContain("selectExecutor");
-  });
-
-  it("falls back when preferred CLI credential is missing", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain("falling back to Copilot CLI");
-    expect(source).toContain("falling back to Claude Code CLI");
   });
 });
 

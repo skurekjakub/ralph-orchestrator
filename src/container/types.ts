@@ -1,3 +1,6 @@
+import { AgentProfile } from "../config.js";
+import { IContainerManager } from "./manager.js";
+
 /** Raw result from a `docker compose exec` call (exit code, captured output, timeout flag). */
 export interface ContainerExecResult {
   /** Process exit code (0 = success). */
@@ -36,7 +39,9 @@ export interface CliExecutor {
  * mocked in tests without needing a running Docker daemon.
  */
 export interface ContainerManagerFactory {
-  create(profile: import("../config.js").AgentProfile): import("./manager.js").IContainerManager;
+  create(profile: AgentProfile): IContainerManager;
+  /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
+  forceDown(profile: AgentProfile): Promise<void>;
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */

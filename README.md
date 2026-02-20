@@ -26,7 +26,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    |---|---|---|
    | `GH_TOKEN` | GitHub PAT with Copilot Requests permission | When using Copilot CLI |
    | `ANTHROPIC_API_KEY` | Anthropic API key for Claude Code CLI | When using Claude Code |
-   | `ADO_PAT_DOCS` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
+   | `ADO_PAT` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
    | `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read) | Optional |
    | `JIRA_PAT` | JIRA API token (classic, from id.atlassian.com) | Yes |
    | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |

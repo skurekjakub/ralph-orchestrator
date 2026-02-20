@@ -91,6 +91,15 @@ const profileFileSchema = z.object({
   cleanPaths: z.array(z.string()).default([]),
   /** MCP servers to deploy into the container (references shared/mcp-servers/<name>/). */
   mcpServers: z.array(z.string()).default([]),
+  /**
+   * Control the bundled GitHub MCP server in Copilot CLI (only affects cli: "copilot").
+   * - `false` (default): server disabled (`--disable-builtin-mcps`)
+   * - `["get_file_contents", ...]`: enable only the listed tools (`--add-github-mcp-tool`)
+   */
+  githubMcpTools: z.union([
+    z.literal(false),
+    z.array(z.string()).refine((a) => a.length > 0, "githubMcpTools must list at least one tool when enabled"),
+  ]).default(false),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
@@ -147,6 +156,12 @@ export interface AgentProfile {
   cleanPaths: string[];
   /** MCP server names to deploy into the container (from shared/mcp-servers/). */
   mcpServers: string[];
+  /**
+   * Control the bundled GitHub MCP server in Copilot CLI.
+   * - `false` (default): server disabled (`--disable-builtin-mcps`)
+   * - `["get_file_contents", ...]`: enable only the listed tools (`--add-github-mcp-tool`)
+   */
+  githubMcpTools: false | string[];
   match: ProfileMatch;
   /** JIRA transition to execute before agent work. Empty = no transition. */
   beforeAgent: AgentTransition;
@@ -165,7 +180,7 @@ export interface OutputConfig {
 
 export interface SecretsConfig {
   ghToken: string;
-  adoPatDocs: string;
+  adoPat: string;
   adoPatXperience: string;
   jiraPat: string;
   jiraEmail: string;
@@ -260,6 +275,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         composeProjectLabel: parsed.composeProjectLabel,
         cleanPaths: parsed.cleanPaths,
         mcpServers: parsed.mcpServers,
+        githubMcpTools: parsed.githubMcpTools,
         match: {
           projects: variant.match.projects,
           statuses: variant.match.statuses,
@@ -309,14 +325,14 @@ export function loadConfig(): AppConfig {
   }
 
   const ghToken = process.env.GH_TOKEN;
-  const adoPatDocs = process.env.ADO_PAT_DOCS;
-  if (!ghToken || !adoPatDocs) {
-    throw new Error("GH_TOKEN and ADO_PAT_DOCS must be set in .env");
+  const adoPat = process.env.ADO_PAT;
+  if (!ghToken || !adoPat) {
+    throw new Error("GH_TOKEN and ADO_PAT must be set in .env");
   }
 
   const secrets: SecretsConfig = {
     ghToken,
-    adoPatDocs,
+    adoPat,
     adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
     jiraPat,
     jiraEmail,

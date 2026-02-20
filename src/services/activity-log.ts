@@ -94,7 +94,9 @@ export class ActivityLog implements IActivityLog {
    * @returns Absolute path to the task log file.
    */
   startTaskLog(issueKey: string): string {
-    this.taskFilePath = join(this.logDir, `${issueKey}-${Date.now()}.log`);
+    const issueDir = join(this.logDir, issueKey);
+    mkdirSync(issueDir, { recursive: true });
+    this.taskFilePath = join(issueDir, `${issueKey}-${Date.now()}.log`);
     return this.taskFilePath;
   }
 

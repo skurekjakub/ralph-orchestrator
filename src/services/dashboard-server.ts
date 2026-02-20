@@ -7,7 +7,8 @@ import type { Logger } from "../logger.js";
 export type DashboardMessage =
   | { type: "state"; data: OrchestratorState }
   | { type: "log"; data: LogEntry }
-  | { type: "toolOutput"; data: string };
+  | { type: "toolOutput"; data: string }
+  | { type: "preToolUse"; data: string };
 
 const DEFAULT_PORT = 3100;
 
@@ -60,6 +61,11 @@ export class DashboardServer {
   /** Forward a tool output line to all clients. */
   pushToolOutput(line: string): void {
     this.broadcast({ type: "toolOutput", data: line });
+  }
+
+  /** Forward a pre-tool invocation line to all clients. */
+  pushPreToolUse(line: string): void {
+    this.broadcast({ type: "preToolUse", data: line });
   }
 
   /** Stop the server and close all connections. */

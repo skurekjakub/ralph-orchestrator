@@ -3,8 +3,8 @@ node_modules/
 dist/
 output/
 
-# Resolved agent files (generated from templates at startup)
-profiles/**/agents/.build/
+# Build artifacts (generated from templates at startup)
+profiles/**/.build/
 
 # MCP server build artifacts (custom servers are built before container deployment)
 shared/mcp-servers/*/dist/

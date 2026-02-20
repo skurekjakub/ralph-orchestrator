@@ -1,7 +1,7 @@
 import { execa } from "execa";
 import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { McpServerType, loadMcpManifest } from "./mcp-config.js";
+import { McpServerType, loadMcpManifest } from "./mcp-manifest.js";
 import type { Logger } from "../../logger.js";
 
 /**

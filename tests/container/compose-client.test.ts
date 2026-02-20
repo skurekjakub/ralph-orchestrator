@@ -19,43 +19,24 @@ import { ComposeClient } from "../../src/container/compose-client.js";
 
 describe("ComposeClient", () => {
   const testConfig = {
-    secrets: {
-      ghToken: "gh-tok",
-      adoPatDocs: "ado-docs",
-      adoPatXperience: "ado-xp",
-      jiraPat: "jira-pat",
-      jiraEmail: "test@example.com",
-      anthropicApiKey: "sk-ant-test",
-      discordBotToken: "discord-bot",
-      discordChannelId: "discord-channel",
-    },
-    jiraBaseUrl: "https://api.atlassian.com/ex/jira",
-    jiraCloudId: "test-cloud-id",
     targetRepoPath: "/home/user/repos/target-repo",
+    squidConfPath: "/fake/squid.conf",
   };
 
   beforeEach(() => {
     mockExeca.mockClear();
   });
 
-  it("injects all required env vars into compose environment", () => {
+  it("injects computed paths into compose environment", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
     client.compose(["config"]);
 
     const callArgs = mockExeca.mock.calls[0];
     const env = callArgs[2]?.env as Record<string, string>;
 
-    expect(env.GH_TOKEN).toBe("gh-tok");
-    expect(env.ADO_PAT_DOCS).toBe("ado-docs");
-    expect(env.ADO_MCP_AUTH_TOKEN).toBe("ado-docs");
-    expect(env.ADO_PAT_XPERIENCE).toBe("ado-xp");
-    expect(env.JIRA_PAT).toBe("jira-pat");
-    expect(env.JIRA_EMAIL).toBe("test@example.com");
-    expect(env.JIRA_BASE_URL).toBe("https://api.atlassian.com/ex/jira");
-    expect(env.JIRA_CLOUD_ID).toBe("test-cloud-id");
-    expect(env.ANTHROPIC_API_KEY).toBe("sk-ant-test");
-    expect(env.CLAUDE_CODE_DISABLE_AUTOUPDATER).toBe("1");
-    expect(env.CLAUDE_CODE_DISABLE_COST_WARNINGS).toBe("1");
+    expect(env.TARGET_REPO_PATH).toBe("/home/user/repos/target-repo");
+    expect(env.SHARED_HOOKS_PATH).toMatch(/shared\/hooks$/);
+    expect(env.SQUID_CONF_PATH).toBe("/fake/squid.conf");
   });
 
   it("passes compose file path to docker command", () => {
@@ -101,14 +82,5 @@ describe("ComposeClient", () => {
 
     expect(env1).toBe(env2);
     expect(env2).toBe(env3);
-  });
-
-  it("injects TARGET_REPO_PATH and SHARED_HOOKS_PATH", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
-    client.compose(["config"]);
-
-    const env = mockExeca.mock.calls[0][2]?.env as Record<string, string>;
-    expect(env.TARGET_REPO_PATH).toBe("/home/user/repos/target-repo");
-    expect(env.SHARED_HOOKS_PATH).toMatch(/shared\/hooks$/);
   });
 });

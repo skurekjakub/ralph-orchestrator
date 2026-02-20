@@ -25,6 +25,9 @@ export interface LogSourceDef {
   /** {@link CaptureMode.Stream} starts `tail -f` on attach and collects the full file on flush;
    *  {@link CaptureMode.Collect} only reads the file on flush. */
   mode: CaptureMode;
+  /** Override the default `["cat", containerPath]` command used during collection.
+   *  Useful when the file has a dynamic name (e.g. glob pattern). */
+  collectArgs?: string[];
   /** Optional callback invoked for each streamed line (only used in `"stream"` mode). */
   onLine?: (line: string) => void;
 }
@@ -108,17 +111,20 @@ export class ContainerLogCollector {
     }
 
     const timestamp = Date.now();
+    const issueDir = join(this.logDir, this.issueKey);
+    mkdirSync(issueDir, { recursive: true });
     const results: CollectedLog[] = [];
 
     for (const source of this.sources) {
       const localPath = join(
-        this.logDir,
+        issueDir,
         `${this.issueKey}-${timestamp}-${source.id}.${source.extension}`,
       );
 
       try {
+        const collectCmd = source.collectArgs ?? ["cat", source.containerPath];
         const result = await this.compose.exec([
-          "-T", source.service, "cat", source.containerPath,
+          "-T", source.service, ...collectCmd,
         ]);
 
         const content = String(result.stdout);

@@ -17,7 +17,7 @@ Secrets and credentials live in `.env`. Never commit this file.
 |---|---|---|
 | `GH_TOKEN` | GitHub fine-grained PAT with **Copilot Requests** permission | When using Copilot CLI |
 | `ANTHROPIC_API_KEY` | Anthropic API key for Claude Code CLI | When using Claude Code CLI |
-| `ADO_PAT_DOCS` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
+| `ADO_PAT` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
 | `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read) | No |
 | `JIRA_PAT` | JIRA API token (classic, from [id.atlassian.com](https://id.atlassian.com)) | Yes |
 | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |
@@ -120,8 +120,9 @@ shared/
 | `mcpServers` | Array of MCP server names to enable. Must match subdirectories in `shared/mcp-servers/`. | `[]` |
 | `resources` | Resource auto-discovery config: `{ "mountBase": "<path>" }`. Files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`. | — (optional) |
 | `cleanPaths` | Array of absolute container paths to delete before each agent run. | `[]` |
+| `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
 
-The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/agents/.build/docker-compose.overlay.yml` (if present).
+The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
 
 #### Variants
 
@@ -189,8 +190,8 @@ Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` a
 
 At startup, the orchestrator:
 1. Reads each server's `mcp-server.json` manifest
-2. Generates `agents/.build/mcp-config.json` — shared by both Copilot and Claude Code CLIs
-3. Generates `agents/.build/docker-compose.overlay.yml` — mounts the MCP servers directory, config file, and required env vars into the container
+2. Generates `.build/mcp-config.json` — shared by both Copilot and Claude Code CLIs
+3. Generates `.build/docker-compose.overlay.yml` — mounts the MCP servers directory, config file, and required env vars into the container
 
 **Adding an MCP server:**
 1. Create `shared/mcp-servers/<name>/mcp-server.json`:
@@ -202,12 +203,13 @@ At startup, the orchestrator:
      "command": "npx",
      "args": ["-y", "@scope/mcp-server-name"],
      "requiredEnv": ["SOME_TOKEN"],
-     "proxyDomains": ["api.example.com"]
+     "proxyDomains": [".api.example.com"]
    }
    ```
 2. Add `"<name>"` to the profile's `mcpServers` array
-3. Add any required domains to `shared/security/squid.conf`
-4. Pass required env vars via the profile's base `docker-compose.yml`
+3. Pass required env vars via the profile's base `docker-compose.yml`
+
+Domains listed in `proxyDomains` are automatically injected into the profile's squid proxy allowlist at startup — no manual squid.conf edits needed. See [MCP.md](MCP.md) for the full MCP architecture.
 
 **Server types:**
 - `"npm"` — npx-based servers. No local code needed (e.g. Playwright, ADO).

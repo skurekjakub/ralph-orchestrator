@@ -15,7 +15,7 @@ let tempDir: string;
 let origCwd: string;
 let savedEnv: Record<string, string | undefined>;
 
-const REQUIRED_VARS = ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT_DOCS"];
+const REQUIRED_VARS = ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT"];
 const OPTIONAL_VARS = ["ADO_PAT_XPERIENCE", "DASHBOARD_URL", "DASHBOARD_SECRET"];
 
 function collector(): ValidationCollector {
@@ -76,7 +76,7 @@ describe("validateEnvFile", () => {
       JIRA_PAT: "token",
       JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
-      ADO_PAT_DOCS: "ado_abc",
+      ADO_PAT: "ado_abc",
     });
     const c = collector();
     validateEnvFile(c);
@@ -88,7 +88,7 @@ describe("validateEnvFile", () => {
     process.env.JIRA_PAT = "from-env";
     process.env.JIRA_EMAIL = "from-env";
     process.env.GH_TOKEN = "from-env";
-    process.env.ADO_PAT_DOCS = "from-env";
+    process.env.ADO_PAT = "from-env";
 
     const c = collector();
     validateEnvFile(c);
@@ -100,7 +100,7 @@ describe("validateEnvFile", () => {
       JIRA_PAT: "token",
       JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
-      ADO_PAT_DOCS: "ado_abc",
+      ADO_PAT: "ado_abc",
     });
     const c = collector();
     validateEnvFile(c);
@@ -115,7 +115,7 @@ describe("validateEnvFile", () => {
       JIRA_PAT: "token",
       JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
-      ADO_PAT_DOCS: "ado_abc",
+      ADO_PAT: "ado_abc",
       ADO_PAT_XPERIENCE: "xp_abc",
       DASHBOARD_URL: "https://dashboard.test",
       DASHBOARD_SECRET: "secret",
@@ -130,7 +130,7 @@ describe("validateEnvFile", () => {
       JIRA_PAT: '"quoted-token"',
       JIRA_EMAIL: "'single-quoted@test.com'",
       GH_TOKEN: "unquoted",
-      ADO_PAT_DOCS: "also-unquoted",
+      ADO_PAT: "also-unquoted",
     });
     const c = collector();
     validateEnvFile(c);
@@ -146,7 +146,7 @@ describe("validateEnvFile", () => {
       "JIRA_EMAIL=test@test.com",
       "",
       "GH_TOKEN=ghp_abc",
-      "ADO_PAT_DOCS=ado_abc",
+      "ADO_PAT=ado_abc",
     ].join("\n"));
 
     const c = collector();
@@ -159,7 +159,7 @@ describe("validateEnvFile", () => {
       "JIRA_PAT=token",
       "JIRA_EMAIL=test@test.com",
       "GH_TOKEN=ghp_abc",
-      "ADO_PAT_DOCS=ado_abc",
+      "ADO_PAT=ado_abc",
       "MALFORMED_LINE",
     ].join("\n"));
 

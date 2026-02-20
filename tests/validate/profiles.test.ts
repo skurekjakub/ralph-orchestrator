@@ -42,7 +42,7 @@ function writeValidProfile(
 
   if (!overrides.skipCompose) {
     const compose = overrides.composeContent ??
-      agentFiles.map((f) => `      - ./agents/.build/${f}:/workspace/.github/agents/${f}:ro`).join("\n");
+      agentFiles.map((f) => `      - ./.build/${f}:/workspace/.github/agents/${f}:ro`).join("\n");
     writeFileSync(join(dir, "docker-compose.yml"), `services:\n  app:\n    volumes:\n${compose}\n`);
   }
 
@@ -136,6 +136,19 @@ describe("validateProfiles", () => {
     const c = collector();
     validateProfiles(c);
     expect(c.errors.some((e) => e.includes("repo path does not exist"))).toBe(true);
+  });
+
+  it("errors when cli is set to claude", () => {
+    writeValidProfile("test", {
+      profileJson: {
+        repo: tempDir,
+        cli: "claude",
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+      },
+    });
+    const c = collector();
+    validateProfiles(c);
+    expect(c.errors.some((e) => e.includes("claude") && e.includes("not supported"))).toBe(true);
   });
 
   it("errors when docker-compose.yml is missing", () => {
@@ -269,7 +282,7 @@ describe("validateProfiles", () => {
     it("passes when agent file has a matching volume mount", () => {
       writeValidProfile("test", {
         agentFiles: ["ralph.agent.md"],
-        composeContent: "      - ./agents/.build/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro",
+        composeContent: "      - ./.build/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro",
       });
       const c = collector();
       validateProfiles(c);
@@ -310,25 +323,6 @@ describe("validateProfiles", () => {
       expect(c.errors.filter((e) => e.includes("MCP server"))).toHaveLength(0);
     });
 
-    it("warns when MCP server requires missing env var", () => {
-      const serverDir = join(tempDir, "shared", "mcp-servers", "my-server");
-      mkdirSync(serverDir, { recursive: true });
-      writeFileSync(
-        join(serverDir, "mcp-server.json"),
-        JSON.stringify({ command: "node", args: [], requiredEnv: ["SOME_MISSING_VAR_12345"] }),
-      );
-
-      writeValidProfile("test", {
-        profileJson: {
-          repo: tempDir,
-          mcpServers: ["my-server"],
-          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
-        },
-      });
-      const c = collector();
-      validateProfiles(c);
-      expect(c.warnings.some((w) => w.includes("SOME_MISSING_VAR_12345"))).toBe(true);
-    });
   });
 
   it("validates multiple profiles in a single run", () => {

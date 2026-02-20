@@ -294,7 +294,8 @@ describe("ContainerLogCollector", () => {
     });
 
     const results = await collector.collectAll();
-    const files = readdirSync(tempDir);
+    const issueDir = join(tempDir, "DOC-800");
+    const files = readdirSync(issueDir);
 
     expect(results[0].path).toBeTruthy();
     expect(results[1].path).toBeNull();

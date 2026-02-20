@@ -21,7 +21,7 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
     ["JIRA_PAT", "API token from id.atlassian.com — needed for JIRA integration"],
     ["JIRA_EMAIL", "Atlassian account email — needed for JIRA Basic auth"],
     ["GH_TOKEN", "GitHub PAT with Copilot Requests permission — needed for Copilot CLI"],
-    ["ADO_PAT_DOCS", "Azure DevOps PAT for the docs repo — needed for git push + PR creation"],
+    ["ADO_PAT", "Azure DevOps PAT for the ADO MCP server — needed for PR creation and review threads"],
   ];
 
   for (const [name, hint] of required) {

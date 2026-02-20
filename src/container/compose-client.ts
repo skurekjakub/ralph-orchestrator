@@ -1,16 +1,19 @@
 import { execa, type ResultPromise } from "execa";
 import { resolve } from "node:path";
-import type { SecretsConfig } from "../config.js";
 
 /**
- * Configuration for the compose client — JIRA config, secrets, and target repo path.
+ * Configuration for the compose client — computed paths not available in `process.env`.
+ *
+ * Secrets like GH_TOKEN, ADO_PAT, JIRA_PAT, ANTHROPIC_API_KEY come
+ * from `process.env` (loaded by dotenv). Container `environment:` declarations
+ * live in the auto-generated compose overlay. This config only carries values
+ * that are computed at runtime.
  */
 export interface ComposeEnvConfig {
-  secrets: SecretsConfig;
-  jiraBaseUrl: string;
-  jiraCloudId: string;
   /** Absolute path to the target repository on the host (mounted as /workspace in the container). */
   targetRepoPath: string;
+  /** Absolute path to the profile-specific squid.conf (generated at startup from baseline + MCP proxy domains). */
+  squidConfPath: string;
 }
 
 /** Public contract for Docker Compose process spawning. */
@@ -52,22 +55,10 @@ export class ComposeClient implements IComposeClient {
 
     this.env = {
       ...process.env as Record<string, string>,
+      // Computed paths — not in .env, needed for volume mount interpolation.
       TARGET_REPO_PATH: envConfig.targetRepoPath,
       SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
-      SQUID_CONF_PATH: resolve(process.cwd(), "shared/security/squid.conf"),
-      GH_TOKEN: envConfig.secrets.ghToken,
-      ADO_PAT_DOCS: envConfig.secrets.adoPatDocs,
-      ADO_MCP_AUTH_TOKEN: envConfig.secrets.adoPatDocs,
-      ADO_PAT_XPERIENCE: envConfig.secrets.adoPatXperience,
-      JIRA_PAT: envConfig.secrets.jiraPat,
-      JIRA_EMAIL: envConfig.secrets.jiraEmail,
-      JIRA_BASE_URL: envConfig.jiraBaseUrl,
-      JIRA_CLOUD_ID: envConfig.jiraCloudId,
-      ANTHROPIC_API_KEY: envConfig.secrets.anthropicApiKey,
-      DISCORD_BOT_TOKEN: envConfig.secrets.discordBotToken ?? "",
-      DISCORD_CHANNEL_ID: envConfig.secrets.discordChannelId ?? "",
-      CLAUDE_CODE_DISABLE_AUTOUPDATER: "1",
-      CLAUDE_CODE_DISABLE_COST_WARNINGS: "1",
+      SQUID_CONF_PATH: envConfig.squidConfPath,
     };
   }
 

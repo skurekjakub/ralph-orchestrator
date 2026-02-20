@@ -9,13 +9,18 @@ import type { ILogCollector } from "../logs/collector.js";
 import type { IResourceManager } from "./task-resource-manager.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import { TransitionPhase } from "../orchestrator-types.js";
+import { CopilotExecutor } from "../container/cli-executors/copilot-executor.js";
 
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
   /** Optional callback invoked for each real-time tool output line from the container. */
   onToolOutput?: (line: string) => void;
+  /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
+  onPreToolUse?: (line: string) => void;
   /** Run the full pipeline for a single issue + profile combination. */
   run(issue: JiraIssue, profile: AgentProfile): Promise<{ result: RalphResult; container: IContainerManager }>;
+  /** Tear down containers — tries graceful stop, falls back to raw compose down. */
+  teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void>;
 }
 
 /**
@@ -45,6 +50,36 @@ export class TaskRunner implements ITaskRunner {
   /** Optional callback invoked for each real-time tool output line from the container. */
   onToolOutput?: (line: string) => void;
 
+  /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
+  onPreToolUse?: (line: string) => void;
+
+  /**
+   * Tear down containers — tries graceful stop, falls back to raw compose down.
+   *
+   * Attempts `container.stop()` first. If the container reference is null or
+   * stop fails, delegates to the factory's `forceDown()` fallback.
+   */
+  async teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void> {
+    if (container) {
+      try {
+        await container.stop();
+        return;
+      } catch (err) {
+        this.logger.warn(
+          `Graceful stop failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    try {
+      await this.containerFactory.forceDown(profile);
+    } catch (err) {
+      this.logger.warn(
+        `Fallback teardown failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   /**
    * Run the full pipeline for a single issue + profile combination.
    *
@@ -59,6 +94,9 @@ export class TaskRunner implements ITaskRunner {
     if (this.onToolOutput) {
       container.onToolOutput = this.onToolOutput;
     }
+    if (this.onPreToolUse) {
+      container.onPreToolUse = this.onPreToolUse;
+    }
 
     try {
       await this.issueManager.transitionIssue(issue.key, profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
@@ -68,6 +106,9 @@ export class TaskRunner implements ITaskRunner {
 
       this.logger.info("Verifying container health...");
       await container.checkPrerequisites();
+
+      this.logger.info("Preparing config directory...");
+      await container.cleaner.prepareConfigDir(CopilotExecutor.CONFIG_DIR, CopilotExecutor.WRITABLE_DIRS);
 
       this.logger.info("Cleaning previous audit logs...");
       await container.cleaner.cleanLogDirectory(profile.auditLogPath);

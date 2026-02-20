@@ -4,11 +4,6 @@ import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
 import type { Operation } from "./services/operation-ledger.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
-import { resolveAllProfileIncludes } from "./container/setup/agent-includes.js";
-import { resolveAllProfileMcpConfigs } from "./container/setup/mcp-config.js";
-import { ComposeFileResolver } from "./container/setup/compose-files.js";
-import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
-import { ComposeClient } from "./container/compose-client.js";
 import type { JiraIssue } from "./jira/types.js";
 import type { ActiveTask, OrchestratorDeps } from "./orchestrator-types.js";
 
@@ -87,15 +82,6 @@ export class Orchestrator {
   async start(): Promise<void> {
     this.running = true;
 
-    resolveAllProfileIncludes();
-    this.log("Resolved agent include markers");
-
-    await buildCustomMcpServers(this.deps.logger);
-    this.log("Built custom MCP servers");
-
-    resolveAllProfileMcpConfigs();
-    this.log("Resolved MCP server configs");
-
     this.deps.poller.start();
 
     if (this.deps.heartbeat) {
@@ -116,6 +102,9 @@ export class Orchestrator {
       );
       await this.deps.issueManager.postCrashRecoveryComment(issueKey, operation.variant);
     }
+
+    // Tear down any containers abandoned by a previous SIGINT.
+    await this.cleanupAbandonedContainers();
 
     while (this.running) {
       const discovered = this.deps.poller.drain();
@@ -347,57 +336,26 @@ export class Orchestrator {
     }
   }
 
-  /**
-   * Guarantee container teardown regardless of how the task ended.
-   *
-   * First tries a graceful `container.stop()` via the active container reference.
-   * If that fails or wasn't available, falls back to a raw `docker compose down`
-   * using the profile's compose file path — this catches containers that were
-   * started but never returned to the orchestrator (e.g. crash during setup).
-   */
+  /** Delegate container teardown to the task runner (graceful stop + fallback). */
   private async teardownContainer(profile: AgentProfile): Promise<void> {
     this.log("Stopping containers...");
-
-    if (this.activeTask?.container) {
-      try {
-        await this.activeTask.container.stop();
-        this.log("Containers stopped");
-        return;
-      } catch (err) {
-        this.warn(
-          `Graceful stop failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-
-    await this.fallbackComposeDown(profile);
+    await this.deps.taskRunner.teardown(profile, this.activeTask?.container ?? null);
+    this.log("Containers stopped");
   }
 
   /**
-   * Raw `docker compose down` fallback — used when the container reference
-   * isn't available or graceful stop failed.
+   * Tear down containers for all profiles on startup.
    *
-   * Constructs a throwaway {@link ComposeClient} with the same multi-file merge
-   * and env injection as the normal container lifecycle, avoiding env duplication.
+   * Catches and logs errors per-profile so one stuck profile doesn't block the others.
    */
-  private async fallbackComposeDown(profile: AgentProfile): Promise<void> {
-    const composeFiles = new ComposeFileResolver().resolve(profile);
-
-    const { secrets, jira } = this.deps.config;
-    const client = new ComposeClient(composeFiles, {
-      secrets,
-      jiraBaseUrl: jira.baseUrl,
-      jiraCloudId: jira.cloudId,
-      targetRepoPath: profile.repoPath,
-    });
-
-    try {
-      await client.compose(["down", "--volumes", "--remove-orphans"]);
-      this.log("Containers stopped (fallback)");
-    } catch (err) {
-      this.warn(
-        `Fallback teardown failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+  private async cleanupAbandonedContainers(): Promise<void> {
+    this.log("Cleaning up abandoned containers from previous session...");
+    for (const profile of this.deps.config.profiles) {
+      try {
+        await this.deps.taskRunner.teardown(profile, null);
+      } catch {
+        // teardown already logs warnings internally
+      }
     }
   }
 

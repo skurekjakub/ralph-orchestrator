@@ -37,19 +37,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# 2. Microsoft packages – PowerShell & sqlcmd
+# 2. Microsoft package signing key
 # ============================================================
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
-        | tee /etc/apt/trusted.gpg.d/microsoft.asc > /dev/null \
-    && wget -qO /tmp/ms.deb \
-        "https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb" \
-    && dpkg -i /tmp/ms.deb && rm /tmp/ms.deb \
-    && apt-get update \
-    && apt-get install -y powershell \
-    && ACCEPT_EULA=Y apt-get install -y mssql-tools18 unixodbc-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV PATH="$PATH:/opt/mssql-tools18/bin"
+        | tee /etc/apt/trusted.gpg.d/microsoft.asc > /dev/null
 
 # ============================================================
 # 3. Node.js (via NodeSource)
@@ -59,7 +50,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
-# 5. .NET SDK (via official install script)
+# 4. .NET SDK (via official install script)
 # ============================================================
 RUN wget -qO /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh \
     && chmod +x /tmp/dotnet-install.sh \
@@ -71,38 +62,21 @@ ENV DOTNET_ROOT=/usr/share/dotnet \
     PATH="$PATH:/usr/share/dotnet"
 
 # ============================================================
-# 6. GitHub CLI
-# ============================================================
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-        | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
-        https://cli.github.com/packages stable main" \
-        | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update && apt-get install -y gh \
-    && rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# 7. Azure CLI
-# ============================================================
-RUN curl -fsSL https://aka.ms/InstallAzureCLIDeb | bash \
-    && rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# 8. Pandoc
+# 5. Pandoc
 # ============================================================
 RUN wget -qO /tmp/pandoc.deb \
         "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-1-amd64.deb" \
     && dpkg -i /tmp/pandoc.deb && rm /tmp/pandoc.deb
 
 # ============================================================
-# 9. Playwright browsers (global install, all engines)
+# 6. Playwright browser (Chromium only)
 # ============================================================
 RUN npm install -g playwright@latest \
-    && npx playwright install chromium firefox webkit \
-    && npx playwright install-deps
+    && npx playwright install chromium \
+    && npx playwright install-deps chromium
 
 # ============================================================
-# 10. RVM + Ruby (as vscode user)
+# 7. RVM + Ruby (as vscode user)
 # ============================================================
 USER vscode
 
@@ -132,7 +106,7 @@ ENV BASH_ENV="/home/vscode/.rvm/scripts/rvm" \
     RUBY_VERSION="ruby-${RUBY_VERSION}"
 
 # ============================================================
-# 11. Copy scripts & finalize
+# 8. Copy scripts & finalize
 # ============================================================
 USER root
 COPY --chown=vscode:vscode setup.sh /usr/local/bin/
@@ -146,6 +120,10 @@ ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 # Disable sudo for vscode user (prevent privilege escalation inside container)
 RUN rm -f /etc/sudoers.d/vscode 2>/dev/null; \
     sed -i '/vscode/d' /etc/sudoers
+
+# Remove HTTP client binaries (only needed during build, not at runtime).
+# libcurl stays for git HTTP transport; agent cannot use curl/wget directly.
+RUN apt-get purge -y --auto-remove curl wget && rm -rf /var/lib/apt/lists/*
 
 USER vscode
 WORKDIR /workspace

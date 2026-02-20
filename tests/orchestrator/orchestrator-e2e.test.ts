@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
 import { Orchestrator } from "../../src/orchestrator.js";
 import {
   OperationLedger,
@@ -97,6 +98,7 @@ function buildMockDeps(options: {
           result: makeResult(issue.key, options.taskResult),
           container: mockContainer,
         })),
+    teardown: vi.fn().mockResolvedValue(undefined),
   };
 
   const triggerScanner = new TriggerScanner(
@@ -240,7 +242,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(ops[0].resultStatus).toBe(TaskStatus.Error);
   });
 
-  it("handles task runner errors gracefully", { timeout: 30_000 }, async () => {
+  it("handles task runner errors gracefully", async () => {
     const issue = makeIssue("DF-200", "Broken task");
     const deps = buildMockDeps({
       issues: [issue],
@@ -555,6 +557,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         result: makeResult("DOC-100"),
         container: mockContainer,
       }),
+      teardown: vi.fn().mockResolvedValue(undefined),
     };
 
     const triggerScanner = new TriggerScanner(
@@ -586,5 +589,97 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     // The orchestrator must find the DOC profile (not the DF one) and execute
     expect(taskRunner.run).toHaveBeenCalledTimes(1);
     expect(vi.mocked(taskRunner.run).mock.calls[0][1]).toBe(docProfile);
+  });
+
+  it("tears down all profiles on startup to clean abandoned containers", async () => {
+    const profile1 = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
+    });
+    const profile2 = makeProfile({
+      id: "ralph-vscode",
+      agentName: "ralph",
+      match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode", revisionStatuses: [] },
+    });
+    const config = makeConfig([profile1, profile2]);
+    const logDir = join(tempDir, "cleanup-logs");
+    const historyDir = join(logDir, "history");
+    mkdirSync(historyDir, { recursive: true });
+    config.output.logDir = logDir;
+
+    const taskRunner = createMockTaskRunner();
+    const poller = createMockPoller();
+    const ledger = new OperationLedger(historyDir);
+    const router = new ProfileRouter([profile1, profile2]);
+
+    const deps: OrchestratorDeps = {
+      config,
+      activityLog: new ActivityLog(logDir),
+      issueManager: createMockIssueManager(),
+      resources: createMockResources(),
+      poller,
+      router,
+      taskRunner,
+      triggerScanner: new TriggerScanner(createMockIssueManager(), router, ledger, silentLogger),
+      ledger,
+      heartbeat: null,
+      logger: silentLogger,
+    };
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(orchestrator, () => false, 200);
+
+    // Both profiles should have been torn down with null container (force path)
+    expect(taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
+    expect(taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
+  });
+
+  it("continues cleanup when one profile teardown fails", async () => {
+    const profile1 = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
+    });
+    const profile2 = makeProfile({
+      id: "ralph-vscode",
+      agentName: "ralph",
+      match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode", revisionStatuses: [] },
+    });
+    const config = makeConfig([profile1, profile2]);
+    const logDir = join(tempDir, "cleanup-fail-logs");
+    const historyDir = join(logDir, "history");
+    mkdirSync(historyDir, { recursive: true });
+    config.output.logDir = logDir;
+
+    const taskRunner = createMockTaskRunner({
+      teardown: vi.fn().mockImplementation(async (profile: AgentProfile) => {
+        if (profile.id === "ralph-docs") throw new Error("compose stuck");
+      }),
+    });
+    const poller = createMockPoller();
+    const ledger = new OperationLedger(historyDir);
+    const router = new ProfileRouter([profile1, profile2]);
+
+    const deps: OrchestratorDeps = {
+      config,
+      activityLog: new ActivityLog(logDir),
+      issueManager: createMockIssueManager(),
+      resources: createMockResources(),
+      poller,
+      router,
+      taskRunner,
+      triggerScanner: new TriggerScanner(createMockIssueManager(), router, ledger, silentLogger),
+      ledger,
+      heartbeat: null,
+      logger: silentLogger,
+    };
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(orchestrator, () => false, 200);
+
+    // Both profiles should have been attempted despite the first one failing
+    expect(taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
+    expect(taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
   });
 });

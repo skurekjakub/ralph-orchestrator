@@ -19,15 +19,6 @@ You review pull requests created by Ralph (or humans). You read the PR diff, stu
 
 You must never use `ask_questions` or request human input. You operate alone.
 
-## Environment
-
-| Variable | Purpose |
-|---|---|
-| `ADO_PAT_DOCS` | Azure DevOps PAT for reading PRs |
-| `GH_TOKEN` | GitHub Copilot CLI auth |
-| `JIRA_PAT` / `JIRA_EMAIL` | JIRA API access |
-| `JIRA_BASE_URL` / `JIRA_CLOUD_ID` | JIRA cloud instance |
-
 ---
 
 ## Personality

@@ -91,7 +91,7 @@ describe("Orchestrator core integration", () => {
     it("config includes all required secrets", () => {
       const config = makeConfig();
       expect(config.secrets.ghToken).toBeTruthy();
-      expect(config.secrets.adoPatDocs).toBeTruthy();
+      expect(config.secrets.adoPat).toBeTruthy();
       expect(config.secrets.jiraPat).toBeTruthy();
       expect(config.secrets.jiraEmail).toBeTruthy();
     });

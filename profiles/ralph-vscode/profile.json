@@ -2,7 +2,8 @@
   "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
   "cli": "copilot",
   "timeoutMs": 7200000,
-  "mcpServers": [],
+  "mcpServers": ["jira-kentico", "ado"],
+  "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "resources/ralph-resources"
   },

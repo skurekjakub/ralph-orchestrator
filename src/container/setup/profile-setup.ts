@@ -1,0 +1,117 @@
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
+import type { Logger } from "../../logger.js";
+import { generateMcpConfig } from "./mcp-config.js";
+import { generateComposeOverlay } from "./compose-overlay.js";
+import { generateProfileSquidConf } from "./squid-config.js";
+import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
+import { generateUrlPathRules, writeCopilotConfig } from "./url-restrictions.js";
+
+/**
+ * Resolve MCP configs for all profiles and write them to each profile's build directory.
+ *
+ * For each profile that declares `mcpServers`, generates:
+ * - `mcp-config.json` — MCP server configuration (used by both CLIs)
+ * - `docker-compose.overlay.yml` — Compose overlay with env vars and volume mounts
+ * - `squid.conf` — Profile-specific squid proxy config (baseline + MCP proxy domains)
+ * - `copilot-config.json` — Copilot CLI config with URL restrictions
+ *
+ * All files go to `profiles/<id>/.build/`. The compose overlay is passed as
+ * a third `-f` argument to `docker compose` by {@link ComposeFileResolver}.
+ *
+ * @param rootDir Workspace root (defaults to cwd).
+ * @param logger Logger for progress and error reporting.
+ */
+export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void {
+  const root = rootDir ?? process.cwd();
+  const mcpServersDir = resolve(root, "shared/mcp-servers");
+  const profilesDir = resolve(root, "profiles");
+  const baselineSquidPath = resolve(root, "shared/security/squid.conf");
+
+  if (!existsSync(profilesDir)) {
+    logger?.warn("Profiles directory not found, skipping profile setup");
+    return;
+  }
+
+  const hasBaselineSquid = existsSync(baselineSquidPath);
+  if (!hasBaselineSquid) {
+    logger?.warn("Baseline squid.conf not found — squid configs will not be generated");
+  }
+
+  for (const profileId of readdirSync(profilesDir, { withFileTypes: true })) {
+    if (!profileId.isDirectory()) continue;
+
+    const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
+    if (!existsSync(profileJsonPath)) continue;
+
+    let parsed: { mcpServers?: string[]; resources?: ResourceConfig };
+    try {
+      parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
+    } catch (err) {
+      logger?.warn(`Skipping profile ${profileId.name}: failed to parse profile.json — ${err instanceof Error ? err.message : err}`);
+      continue;
+    }
+
+    const serverNames = parsed.mcpServers ?? [];
+    logger?.info(`Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`);
+
+    const config = generateMcpConfig(mcpServersDir, serverNames, process.env);
+
+    const buildDir = join(profilesDir, profileId.name, ".build");
+    rmSync(buildDir, { recursive: true, force: true });
+    mkdirSync(buildDir, { recursive: true });
+
+    writeFileSync(
+      join(buildDir, "mcp-config.json"),
+      JSON.stringify(config, null, 2) + "\n",
+      "utf-8",
+    );
+
+    const profileDir = join(profilesDir, profileId.name);
+    const resourceVolumes = parsed.resources
+      ? generateResourceVolumeMounts(profileDir, parsed.resources)
+      : [];
+
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, resourceVolumes);
+    writeFileSync(
+      join(buildDir, "docker-compose.overlay.yml"),
+      overlay,
+      "utf-8",
+    );
+
+    if (hasBaselineSquid) {
+      const squidConf = generateProfileSquidConf(baselineSquidPath, mcpServersDir, serverNames);
+      writeFileSync(join(buildDir, "squid.conf"), squidConf, "utf-8");
+
+      if (logger) {
+        const domains = squidConf
+          .split("\n")
+          .filter((l) => l.startsWith("acl allowed_domains dstdomain"))
+          .map((l) => l.replace("acl allowed_domains dstdomain ", ""));
+        logger.info(`  → squid.conf: ${domains.length} allowed domain${domains.length === 1 ? "" : "s"}: ${domains.join(", ")}`);
+      }
+    }
+
+    const rules = generateUrlPathRules(mcpServersDir, serverNames, logger);
+
+    // Generate Copilot CLI config with URL restrictions.
+    // Must run after squid.conf is written (reads it to discover allowed domains).
+    writeCopilotConfig(buildDir, rules);
+
+    if (logger) {
+      const copilotConfigPath = join(buildDir, "copilot-config.json");
+      if (existsSync(copilotConfigPath)) {
+        const copilotConfig = JSON.parse(readFileSync(copilotConfigPath, "utf-8"));
+        const urls: string[] = copilotConfig.allowed_urls ?? [];
+        logger.info(`  → copilot-config.json: ${urls.length} allowed URL${urls.length === 1 ? "" : "s"}:`);
+        for (const url of urls) {
+          logger.info(`      ${url}`);
+        }
+      }
+    }
+
+    const files = ["mcp-config.json", "docker-compose.overlay.yml"];
+    if (hasBaselineSquid) files.push("squid.conf", "copilot-config.json");
+    logger?.info(`  → wrote ${files.join(", ")}`);
+  }
+}

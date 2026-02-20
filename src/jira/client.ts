@@ -1,4 +1,7 @@
 import type { JiraConfig } from "../config.js";
+import type { Logger } from "../logger.js";
+import type { RetryOptions } from "../retry.js";
+import { withRetry } from "../retry.js";
 import type {
   JiraIssue,
   JiraSearchResponse,
@@ -40,7 +43,9 @@ export class JiraClient implements IJiraClient {
   constructor(
     config: JiraConfig,
     private email: string,
-    private apiToken: string
+    private apiToken: string,
+    private logger?: Logger,
+    private retryOptions?: RetryOptions,
   ) {
     // Cloud API: https://api.atlassian.com/ex/jira/{cloudId}
     const base = config.baseUrl.replace(/\/+$/, "");
@@ -103,9 +108,11 @@ export class JiraClient implements IJiraClient {
         params.set("nextPageToken", nextPageToken);
       }
 
-      const data = await this.request<JiraSearchResponse>(
-        "GET",
-        `/rest/api/3/search/jql?${params}`,
+      const data = await withRetry(
+        () => this.request<JiraSearchResponse>("GET", `/rest/api/3/search/jql?${params}`),
+        `JIRA search (page ${allIssues.length})`,
+        this.logger,
+        this.retryOptions,
       );
       allIssues.push(...data.issues);
       nextPageToken = data.isLast === false ? data.nextPageToken : undefined;

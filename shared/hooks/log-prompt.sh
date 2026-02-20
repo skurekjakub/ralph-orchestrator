@@ -9,6 +9,7 @@ SESSION_ID=$(cat "$LOG_DIR/.current-session-id" 2>/dev/null || echo "unknown")
 TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // ""')
 
+# Prompt can be very large — pass INPUT directly to jq to avoid shell variable limits.
 jq -n -c \
   --arg event "prompt" \
   --arg ts "$TIMESTAMP" \

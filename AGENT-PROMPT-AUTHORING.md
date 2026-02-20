@@ -4,7 +4,7 @@ How to structure agent prompts in this project — what to inline, what to defer
 
 ## Current Architecture
 
-Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use `<!-- include: name.md -->` markers that resolve from `shared/agent-includes/` at startup. Resolved files go to `agents/.build/` and are mounted read-only into containers.
+Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use `<!-- include: name.md -->` markers that resolve from `shared/agent-includes/` at startup. Resolved files go to `.build/` and are mounted read-only into containers.
 
 The agent receives the fully resolved prompt as its system instructions. All includes are baked in before the CLI is invoked.
 
@@ -16,7 +16,7 @@ All instructions — API references, output formats, security rules — are reso
 
 **Pros:**
 - Single source of truth — no "agent forgot to read the file" failures
-- Simpler debugging — `cat agents/.build/malph.agent.md` shows exactly what the agent received
+- Simpler debugging — `cat .build/malph.agent.md` shows exactly what the agent received
 - No wasted tool calls on file reads
 - Works with prompt caching (static prefix stays unchanged across runs)
 

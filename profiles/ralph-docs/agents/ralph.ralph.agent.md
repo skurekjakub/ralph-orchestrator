@@ -190,14 +190,7 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 <!-- What the human should do after reviewing -->
 ```
 
-2. **Attach the handoff file to the JIRA issue:**
-
-```bash
-curl -s -u "${JIRA_EMAIL}:${JIRA_PAT}" \
-  -H "X-Atlassian-Token: no-check" \
-  -X POST "${JIRA_BASE_URL}/${JIRA_CLOUD_ID}/rest/api/2/issue/<jira-key>/attachments" \
-  -F "file=@resources/chats/<jira-key>/handoff.md"
-```
+2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` MCP tool with the issue key and the handoff file path.
 
 3. **Post a completion comment** on the JIRA issue using the comment API above. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 

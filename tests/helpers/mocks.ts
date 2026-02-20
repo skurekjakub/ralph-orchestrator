@@ -15,6 +15,7 @@ import type { IContainerManager } from "../../src/container/manager.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
 import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
+import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult } from "../../src/container/types.js";
 import { makeResult } from "./factories.js";
 
@@ -148,6 +149,7 @@ export function createMockContainer(
     stop: vi.fn().mockResolvedValue(undefined),
     cleanLogDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
+    prepareConfigDir: vi.fn().mockResolvedValue(undefined),
     collectAll: vi.fn().mockResolvedValue([]),
     attach: vi.fn(),
     detach: vi.fn(),
@@ -163,6 +165,7 @@ export function createMockContainer(
     execute: spies.execute,
     stop: spies.stop,
     onToolOutput: undefined,
+    onPreToolUse: undefined,
     logs: {
       collectAll: spies.collectAll,
       attach: spies.attach,
@@ -171,6 +174,7 @@ export function createMockContainer(
       addSource: spies.addSource,
     },
     cleaner: {
+      prepareConfigDir: spies.prepareConfigDir,
       cleanLogDirectory: spies.cleanLogDirectory,
       cleanPaths: spies.cleanPaths,
     },
@@ -207,6 +211,20 @@ export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {
       result: makeResult("MOCK-1"),
       container: createMockContainer().container,
     }),
+    teardown: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/** Create a mock AppStartupDeps with all steps stubbed. */
+export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): AppStartupDeps {
+  return {
+    validate: vi.fn().mockResolvedValue({ ok: true, errors: [], warnings: [] }),
+    printResults: vi.fn().mockReturnValue(true),
+    loadConfig: vi.fn().mockReturnValue({}),
+    resolveIncludes: vi.fn(),
+    buildMcpServers: vi.fn().mockResolvedValue(undefined),
+    resolveMcpConfigs: vi.fn(),
     ...overrides,
   };
 }

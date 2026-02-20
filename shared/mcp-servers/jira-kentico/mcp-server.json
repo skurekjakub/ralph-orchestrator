@@ -1,0 +1,18 @@
+{
+  "name": "jira-kentico",
+  "description": "JIRA Cloud — add comments and attachments to issues",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/workspace/.ralph/mcp-servers/jira-kentico",
+  "requiredEnv": ["JIRA_PAT", "JIRA_EMAIL"],
+  "proxyDomains": [".atlassian.com", ".atlassian.net"],
+  "allowedUrlPaths": {
+    ".atlassian.com": ["/ex/jira/37df0bb1-cba3-49a3-a001-61b91bdd8c08/"],
+    ".atlassian.net": ["/ex/jira/37df0bb1-cba3-49a3-a001-61b91bdd8c08/"]
+  },
+  "tools": [
+    "jira_add_comment",
+    "jira_add_attachment"
+  ]
+}

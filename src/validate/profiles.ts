@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
-import { discoverMcpServers } from "../container/setup/mcp-config.js";
+import { discoverMcpServers } from "../container/setup/mcp-manifest.js";
 import type { ValidationCollector } from "./types.js";
 
 export function validateProfiles({ errors, warnings }: ValidationCollector): void {
@@ -66,6 +66,12 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
           `  Clone the repository or update the path in profile.json`
         );
       }
+    }
+
+    if (p.cli === "claude") {
+      errors.push(
+        `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`
+      );
     }
 
     const composePath = resolve(process.cwd(), `profiles/${dirName}/docker-compose.yml`);
@@ -135,7 +141,13 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     }
 
     validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);
-    validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors, warnings);
+    validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
+
+    if (Array.isArray(p.githubMcpTools) && p.githubMcpTools.length === 0) {
+      errors.push(
+        `${prefix}: githubMcpTools is an empty array — list at least one tool name, or use false to disable the server`,
+      );
+    }
   }
 
   validateTriggerUniqueness(allVariants, errors);
@@ -143,7 +155,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 
 /**
  * Verify that every .agent.md file in the agents/ directory has a matching
- * volume mount in docker-compose.yml sourcing from agents/.build/<filename>.
+ * volume mount in docker-compose.yml sourcing from .build/<filename>.
  */
 function validateAgentMounts(
   composePath: string,
@@ -162,7 +174,7 @@ function validateAgentMounts(
   }
 
   for (const agentFile of agentFiles) {
-    const expectedMount = `./agents/.build/${agentFile}`;
+    const expectedMount = `./.build/${agentFile}`;
     if (!composeContent.includes(expectedMount)) {
       errors.push(
         `${prefix}: agent file "${agentFile}" has no volume mount in docker-compose.yml\n` +
@@ -188,7 +200,6 @@ function validateMcpServers(
   mcpServersDir: string,
   prefix: string,
   errors: string[],
-  warnings: string[],
 ): void {
   const mcpServers: string[] = profile.mcpServers ?? [];
   if (mcpServers.length === 0) return;
@@ -202,22 +213,6 @@ function validateMcpServers(
         `  Available servers: ${available.length > 0 ? available.join(", ") : "(none)"}\n` +
         `  Create shared/mcp-servers/${serverName}/mcp-server.json`
       );
-    } else {
-      const manifestPath = join(mcpServersDir, serverName, "mcp-server.json");
-      try {
-        const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-        if (manifest.requiredEnv) {
-          for (const envVar of manifest.requiredEnv) {
-            if (!process.env[envVar]) {
-              warnings.push(
-                `${prefix}: MCP server "${serverName}" requires env var ${envVar} (not currently set)`
-              );
-            }
-          }
-        }
-      } catch {
-        // manifest parse error — will be caught by the MCP config generator
-      }
     }
   }
 }

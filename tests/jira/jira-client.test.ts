@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { JiraClient } from "../../src/jira/client.js";
 import type { JiraConfig } from "../../src/config.js";
+import type { Logger } from "../../src/logger.js";
 
 const mockConfig: JiraConfig = {
   baseUrl: "https://api.atlassian.com/ex/jira",
@@ -8,6 +9,8 @@ const mockConfig: JiraConfig = {
   jql: ['project = DF AND summary ~ "Ralph"'],
   pollIntervalMs: 60000,
 };
+
+const mockLogger: Logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
 describe("JiraClient", () => {
   let client: JiraClient;
@@ -102,9 +105,34 @@ describe("JiraClient", () => {
         })
       );
 
-      await expect(client.searchIssues("project = DF")).rejects.toThrow(
+      const retryClient = new JiraClient(mockConfig, "test@test.com", "test-token", mockLogger, { delayMs: 1 });
+      await expect(retryClient.searchIssues("project = DF")).rejects.toThrow(
         "401"
       );
+    });
+
+    it("retries on transient fetch failure", async () => {
+      const mockResponse = {
+        issues: [{ key: "DF-1", fields: { summary: "Test", status: { name: "New" }, created: "2026-01-01T00:00:00Z" } }],
+        total: 1,
+        maxResults: 100,
+        startAt: 0,
+        isLast: true,
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn()
+          .mockRejectedValueOnce(new TypeError("fetch failed"))
+          .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(mockResponse) }),
+      );
+
+      const retryClient = new JiraClient(mockConfig, "test@test.com", "test-token", mockLogger, { delayMs: 1 });
+      const issues = await retryClient.searchIssues("project = DF");
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(issues).toHaveLength(1);
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining("failed (attempt 1/3)"));
     });
   });
 

@@ -65,6 +65,10 @@ ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 RUN rm -f /etc/sudoers.d/vscode 2>/dev/null; \
     sed -i '/vscode/d' /etc/sudoers
 
+# Remove HTTP client binaries (only needed during build, not at runtime).
+# libcurl stays for git HTTP transport; agent cannot use curl/wget directly.
+RUN apt-get purge -y --auto-remove curl wget && rm -rf /var/lib/apt/lists/*
+
 USER vscode
 WORKDIR /workspace
 ENV DEBIAN_FRONTEND=dialog

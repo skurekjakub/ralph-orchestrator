@@ -25,22 +25,11 @@ Your prompt already contains:
    git checkout "ralph/${ISSUE_KEY,,}"
    git pull origin "ralph/${ISSUE_KEY,,}"
    ```
-3. **Find the existing PR** via the Azure DevOps REST API:
-   ```bash
-   ADO_ORG="KenticoCustomerSuccess"
-   ADO_PROJECT="CustomerEducation"
-   ADO_REPO="kentico-docs-autocomplete-vscode"
-
-   curl -s --http1.1 \
-     -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \
-     "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests?searchCriteria.sourceRefName=refs/heads/ralph/${ISSUE_KEY,,}&api-version=7.1"
-   ```
+3. **Find the existing PR** using the ADO MCP server:
+   - Use `ado_list_pull_requests` with `repositoryId: "kentico-docs-autocomplete-vscode"` and `project: "CustomerEducation"`, filtering by source branch `refs/heads/ralph/${ISSUE_KEY,,}`
+   - Note the PR ID from the result
 4. **Read ALL PR review threads** to understand inline feedback:
-   ```bash
-   curl -s --http1.1 \
-     -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \
-     "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests/<PR_ID>/threads?api-version=7.1"
-   ```
+   - Use `ado_list_pull_request_threads` with the PR ID from above
 
 ### Revision Phase 3: Implement Fixes
 
@@ -63,20 +52,7 @@ Work directly on the existing branch. This is a single-agent workflow — no sub
    ```bash
    git push origin "ralph/${ISSUE_KEY,,}"
    ```
-3. **Respond to PR review threads** — for each comment thread that you addressed, post a reply:
-   ```bash
-   python3 -c "
-   import json
-   data = {'content': 'Fixed — <brief explanation>', 'parentCommentId': 0, 'commentType': 1}
-   print(json.dumps(data))
-   " > /tmp/thread_reply.json
-
-   curl -s --http1.1 -X POST \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Basic $(printf ":%s" "$ADO_PAT_DOCS" | base64 -w 0)" \
-     "https://dev.azure.com/${ADO_ORG}/${ADO_PROJECT}/_apis/git/repositories/${ADO_REPO}/pullrequests/<PR_ID>/threads/<THREAD_ID>/comments?api-version=7.1" \
-     -d @/tmp/thread_reply.json
-   ```
+3. **Respond to PR review threads** — for each comment thread that you addressed, use `ado_reply_to_comment` with the thread ID and a brief explanation of the fix.
 
 ### Revision Phase 5: Update Handoff & Report
 

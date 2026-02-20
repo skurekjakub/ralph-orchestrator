@@ -1,8 +1,9 @@
 import { execa } from "execa";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import type { AgentProfile, AppConfig, OutputConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, CliExecutor } from "./types.js";
-import { CliType } from "./types.js";
 import type { Logger } from "../logger.js";
 import { consoleLogger } from "../logger.js";
 import type { PromptBuilder } from "../prompt/prompt-builder.js";
@@ -10,8 +11,8 @@ import type { IssueContext } from "../prompt/prompt.js";
 import { parseResultBlock, resolveStatus } from "./result-parser.js";
 import { ComposeClient } from "./compose-client.js";
 import type { IComposeClient } from "./compose-client.js";
+import type { ICliExecutorFactory } from "./cli-executor-factory.js";
 import { CopilotExecutor } from "./cli-executors/copilot-executor.js";
-import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor.js";
 import { StreamCapture } from "./stream-capture.js";
 import { ContainerLogCollector, CaptureMode } from "./log-collector.js";
 import type { LogSourceDef, CollectedLog } from "./log-collector.js";
@@ -34,6 +35,8 @@ export interface IContainerLogs {
 
 /** Public contract for workspace cleanup inside a container. */
 export interface IContainerCleaner {
+  /** Ensure the CLI config directory and its writable subdirectories are owned by vscode. */
+  prepareConfigDir(configDir: string, writableDirs: readonly string[]): Promise<void>;
   /** Clear and recreate the audit log directory with vscode ownership. */
   cleanLogDirectory(auditLogPath: string): Promise<void>;
   /** Delete configured workspace paths before agent execution. */
@@ -60,6 +63,8 @@ export interface IContainerManager {
   readonly cleaner: IContainerCleaner;
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
+  /** Optional callback invoked for each line of real-time pre-tool invocation output. */
+  onPreToolUse?: (line: string) => void;
 }
 
 /**
@@ -71,10 +76,8 @@ export interface IContainerManager {
  *
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
- * - {@link CopilotExecutor} / {@link ClaudeCodeExecutor} — CLI execution with streaming
- *
- * CLI selection: uses the profile's `cli` preference. If the required credential
- * is missing, falls back to the other CLI. If neither credential is available, throws.
+ * - {@link ICliExecutorFactory} — CLI executor creation based on available credentials
+ * - {@link CopilotExecutor} — CLI execution with streaming
  *
  * 1. **start()** — `docker compose up -d --build`
  * 2. **setup()** — runs the profile's setup script inside the container
@@ -100,14 +103,18 @@ export class ContainerManager implements IContainerManager {
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
 
+  /** Optional callback invoked for each line of real-time pre-tool invocation output. */
+  onPreToolUse?: (line: string) => void;
+
   /**
    * @param profile Agent profile with repo, compose file, agent name, and timeout.
    * @param appConfig Full application config (for shared secrets, jira, output settings).
    * @param promptBuilder Prompt builder for constructing and auditing CLI prompts.
+   * @param executorFactory Factory for creating the CLI executor.
    * @param logger Logger for orchestrator lifecycle messages. Defaults to {@link consoleLogger}.
    * @param containerLogger Logger for CLI output streaming. Falls back to `logger`.
    */
-  constructor(profile: AgentProfile, appConfig: AppConfig, promptBuilder: PromptBuilder, logger?: Logger, containerLogger?: Logger) {
+  constructor(profile: AgentProfile, appConfig: AppConfig, promptBuilder: PromptBuilder, executorFactory: ICliExecutorFactory, logger?: Logger, containerLogger?: Logger) {
     this.profile = profile;
     this.outputConfig = appConfig.output;
     this.promptBuilder = promptBuilder;
@@ -116,11 +123,14 @@ export class ContainerManager implements IContainerManager {
 
     const composeFiles = new ComposeFileResolver().resolve(profile);
 
+    const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
+    const squidConfPath = existsSync(profileSquid)
+      ? profileSquid
+      : resolve(process.cwd(), "shared/security/squid.conf");
+
     this.compose = new ComposeClient(composeFiles, {
-      secrets: appConfig.secrets,
-      jiraBaseUrl: appConfig.jira.baseUrl,
-      jiraCloudId: appConfig.jira.cloudId,
       targetRepoPath: profile.repoPath,
+      squidConfPath,
     });
 
     this.logs = new ContainerLogCollector(
@@ -132,45 +142,8 @@ export class ContainerManager implements IContainerManager {
     this.cleaner = new ContainerWorkspaceCleaner(this.compose, this.logger);
 
     const cliLogger = containerLogger ?? this.logger;
-    this.executor = this.selectExecutor(profile, appConfig, cliLogger);
-  }
-
-  /**
-   * Select the CLI executor based on profile preference and available credentials.
-   *
-   * Falls back to the other CLI if the preferred one lacks credentials.
-   * Logs the selection and any fallback.
-   */
-  private selectExecutor(
-    profile: AgentProfile,
-    appConfig: AppConfig,
-    cliLogger: Logger,
-  ): CliExecutor {
-    const hasCopilot = !!appConfig.secrets.ghToken;
-    const hasClaude = !!appConfig.secrets.anthropicApiKey;
-    const preferred = profile.cli;
-
-    if (preferred === CliType.Claude && hasClaude) {
-      this.logger.info(`Using Claude Code CLI (profile preference)`);
-      return new ClaudeCodeExecutor(this.compose, profile, cliLogger);
-    }
-
-    if (preferred === CliType.Copilot && hasCopilot) {
-      this.logger.info(`Using Copilot CLI (profile preference)`);
-      return new CopilotExecutor(this.compose, profile, cliLogger);
-    }
-
-    if (preferred === CliType.Claude && !hasClaude && hasCopilot) {
-      this.logger.warn(`Claude Code preferred but ANTHROPIC_API_KEY missing — falling back to Copilot CLI`);
-      return new CopilotExecutor(this.compose, profile, cliLogger);
-    }
-
-    if (preferred === CliType.Copilot && !hasCopilot && hasClaude) {
-      this.logger.warn(`Copilot CLI preferred but GH_TOKEN missing — falling back to Claude Code CLI`);
-      return new ClaudeCodeExecutor(this.compose, profile, cliLogger);
-    }
-
-    throw new Error(`No CLI credentials available. Set GH_TOKEN (Copilot) or ANTHROPIC_API_KEY (Claude Code) in .env`);
+    this.executor = executorFactory.create(this.compose, profile, cliLogger);
+    this.logger.info(`Using ${profile.cli} CLI`);
   }
 
   /** Verify that Docker is running. Throws if `docker info` fails. */
@@ -234,6 +207,15 @@ export class ContainerManager implements IContainerManager {
     });
 
     this.logs.addSource({
+      id: "pre-tool",
+      service: "app",
+      containerPath: ContainerManager.PRE_TOOL_PATH,
+      extension: "log",
+      mode: this.onPreToolUse ? CaptureMode.Stream : CaptureMode.Collect,
+      onLine: this.onPreToolUse,
+    });
+
+    this.logs.addSource({
       id: "tool-output",
       service: "app",
       containerPath: ContainerManager.TOOL_OUTPUT_PATH,
@@ -248,6 +230,15 @@ export class ContainerManager implements IContainerManager {
       containerPath: "/var/log/squid/access.log",
       extension: "log",
       mode: CaptureMode.Collect,
+    });
+
+    this.logs.addSource({
+      id: "cli-debug",
+      service: "app",
+      containerPath: CopilotExecutor.LOG_DIR,
+      extension: "log",
+      mode: CaptureMode.Collect,
+      collectArgs: ["sh", "-c", `cat ${CopilotExecutor.LOG_DIR}/*.log 2>/dev/null`],
     });
 
     this.logs.attach();
@@ -287,8 +278,12 @@ export class ContainerManager implements IContainerManager {
     };
   }
 
+  /** Path to the pre-tool invocation log inside the container. */
+  static readonly PRE_TOOL_PATH = "/workspace/.ralph/logs/pre-tool.log";
+
   /** Path to the untruncated tool output log inside the container. */
   static readonly TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
+
 
   /**
    * Tear down all containers and associated resources.

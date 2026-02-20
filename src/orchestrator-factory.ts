@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
 import type { AppConfig } from "./config.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraPoller } from "./jira/poller.js";
@@ -13,6 +14,9 @@ import { HeartbeatSender } from "./services/heartbeat.js";
 import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
 import { ContainerManager } from "./container/manager.js";
+import { ComposeClient } from "./container/compose-client.js";
+import { ComposeFileResolver } from "./container/setup/compose-files.js";
+import { CliExecutorFactory } from "./container/cli-executor-factory.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import type { OrchestratorDeps } from "./orchestrator-types.js";
 
@@ -31,12 +35,26 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
     config.jira,
     config.secrets.jiraEmail,
     config.secrets.jiraPat,
+    logger,
   );
   const ledger = new OperationLedger(join(config.output.logDir, "history"));
   const logCollector = new LogCollector(config.output);
   const promptBuilder = new PromptBuilder(config.promptAudit.mode, logger, config.excludeFields);
+  const executorFactory = new CliExecutorFactory(config);
   const containerFactory: ContainerManagerFactory = {
-    create: (profile) => new ContainerManager(profile, config, promptBuilder, logger, containerLogger),
+    create: (profile) => new ContainerManager(profile, config, promptBuilder, executorFactory, logger, containerLogger),
+    forceDown: async (profile) => {
+      const composeFiles = new ComposeFileResolver().resolve(profile);
+      const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
+      const squidConfPath = existsSync(profileSquid)
+        ? profileSquid
+        : resolve(process.cwd(), "shared/security/squid.conf");
+      const client = new ComposeClient(composeFiles, {
+        targetRepoPath: profile.repoPath,
+        squidConfPath,
+      });
+      await client.compose(["down", "--volumes", "--remove-orphans"]);
+    },
   };
   const resources = new TaskJiraResourceManager(jiraClient, logger);
   const issueManager = new JiraIssueManager(jiraClient, logger);

@@ -27,7 +27,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
 | `src/container/` | Container lifecycle (`manager.ts`), docker compose wrapper (`compose-client.ts`), result parser, log collector, streaming capture |
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`) |
-| `src/container/setup/` | Startup setup — agent include resolution (`agent-includes.ts`), MCP config + overlay generation (`mcp-config.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
+| `src/container/setup/` | Startup setup — agent include resolution (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
 | `src/prompt/` | Prompt builder (`prompt.ts`), content normalizer (`normalizer.ts`), prompt injection auditor (`prompt-auditor.ts`) |
 | `src/services/` | Orchestration services — trigger scanner, profile router, task runner, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
 | `src/validate/` | Startup validation — env vars, config, profiles, Docker, security infrastructure |
@@ -56,7 +56,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 Containers are managed via `docker compose` with a **three-file merge** pattern:
 1. **Base compose** — `profiles/<id>/docker-compose.yml` (services, volumes, build config)
 2. **Security overlay** — `shared/security/docker-compose.security.yml` (proxy sidecar, network isolation, resource limits)
-3. **Resources overlay** — `profiles/<id>/agents/.build/docker-compose.overlay.yml` (MCP server mounts, env vars, resource file mounts — auto-generated at startup)
+3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (MCP server mounts, env vars, resource file mounts — auto-generated at startup)
 
 `ComposeClient` automatically injects all files: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay is only included if it exists (profiles with no MCP servers or resources skip it).
 
@@ -89,7 +89,7 @@ The allowlist (`shared/security/squid.conf`) is tuned to the specific domains th
 # ComposeClient handles the three-file merge automatically. Manual equivalent:
 docker compose -f profiles/ralph-docs/docker-compose.yml \
   -f shared/security/docker-compose.security.yml \
-  -f profiles/ralph-docs/agents/.build/docker-compose.overlay.yml up -d --build
+  -f profiles/ralph-docs/.build/docker-compose.overlay.yml up -d --build
 
 # Exec inside container
 docker compose -f ... exec --user vscode app <command>
@@ -112,22 +112,10 @@ No piping to `head` or `tail` — always show full output.
 Each profile directory under `profiles/` contains a `profile.json` that maps JIRA issues to a repo and agent configuration. Profiles are auto-discovered at startup.
 
 **Profile-level fields** (shared by all variants):
-- `repo` — path to the target repository
-- `cli` — `"copilot"` (default) or `"claude"` — which CLI to use. Falls back to the other CLI if the preferred one's credential is missing.
-- `model` — optional model override (Copilot defaults to `claude-opus-4.6`; Claude Code uses its own default). Can be overridden per-variant.
-- `timeoutMs` — execution timeout
-- `mcpServers` — array of MCP server names to enable (must match subdirectories in `shared/mcp-servers/`)
-- `resources` — resource auto-discovery config (`{ "mountBase": "<path>" }`); files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`
-- `cleanPaths` — array of absolute container paths to delete before each agent run
-- `beforeAgent.targetStatus` / `afterAgent.targetStatus` — JIRA target status name for transitions before/after agent execution (resolved dynamically via JIRA API; can also be set per-variant)
+
 
 **Variant-level fields** (each variant expands into a separate routing entry):
-- `agent` — Copilot CLI agent name (must match `<name>.agent.md` file in the profile's `agents/` directory)
-- `model` — optional model override (overrides profile-level)
-- `match.projects` — JIRA project keys to match
-- `match.statuses` — only match issues in these JIRA statuses (empty = any status)
-- `match.commentTrigger` — JIRA comment must contain this string (case-insensitive) to trigger the variant
-- `match.revisionStatuses` — statuses that indicate a revision task. Agent receives `Mode: REVISION` with the previous handoff.
+
 
 The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs.
 
@@ -143,9 +131,10 @@ profiles/
     docker-compose.yml  — Base compose (services, env vars, volume mounts)
     setup.sh            — Post-create setup (AI CLI installs, git config, deps)
     resources/          — Profile-specific files mounted read-only into container
+    .build/             — Generated at startup (gitignored):
+                            resolved agent files, mcp-config.json,
+                            docker-compose.overlay.yml, squid.conf
     agents/             — Agent template files (.agent.md with include markers)
-      .build/           — Generated at startup (gitignored):
-                            resolved agent files, mcp-config.json, docker-compose.overlay.yml
 shared/
   security/             — Container security infrastructure
     docker-compose.security.yml — Squid sidecar, network isolation, resource limits
@@ -158,9 +147,15 @@ shared/
       src/ dist/         — Custom server source/bundle (type: "custom" only)
 ```
 
-Agent templates use `<!-- include: name.md -->` markers resolved from `shared/agent-includes/` at startup. Resolved files go to `agents/.build/` and are mounted read-only into containers.
+Agent templates use `<!-- include: name.md -->` markers resolved from `shared/agent-includes/` at startup. Resolved files go to `.build/` and are mounted read-only into containers.
 
 Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. MCP-related mounts use absolute host paths baked directly into the generated overlay.
+
+### MCP Least-Privilege
+
+Each profile declares exactly which MCP servers it needs via `mcpServers` in `profile.json`. This enforces least-privilege at two levels:
+- **Tool level** — the agent only sees tools from declared servers. A profile with `["playwright"]` has no JIRA or ADO tools.
+- **Network level** — each profile's squid config is generated from the baseline + `proxyDomains` of declared servers. Undeclared server domains are blocked.
 
 ## JIRA Integration
 

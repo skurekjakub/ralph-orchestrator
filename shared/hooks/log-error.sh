@@ -6,8 +6,8 @@ INPUT=$(cat)
 LOG_DIR="/workspace/.ralph/logs"
 SESSION_ID=$(cat "$LOG_DIR/.current-session-id" 2>/dev/null || echo "unknown")
 
-TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
-ERROR_NAME=$(echo "$INPUT" | jq -r '.error.name // "UnknownError"')
+# Single jq call: extract all fields at once.
+read -r TIMESTAMP ERROR_NAME <<< "$(echo "$INPUT" | jq -r '[.timestamp, (.error.name // "UnknownError")] | @tsv')"
 ERROR_MSG=$(echo "$INPUT" | jq -r '.error.message // ""')
 ERROR_STACK=$(echo "$INPUT" | jq -r '.error.stack // ""')
 

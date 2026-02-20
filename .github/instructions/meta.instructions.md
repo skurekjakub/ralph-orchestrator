@@ -61,4 +61,12 @@ export type AuditMode = "block" | "warn" | "off";
 
 Before adding functionality to an existing class or module, consider whether it belongs there. Each class should have one clear purpose. If new logic serves a different concern (e.g., data conversion vs. data extraction), create a dedicated module for it rather than growing an existing one. When reviewing changes, assess the impact on the module's cohesion — if a class is accumulating unrelated methods, split it.
 
-### Be vigilant about unused imports
+### Never handle git lifecycle
+
+Do not stage, commit, push, or perform any git operations on behalf of the user. The user manages their own git workflow. Only run git commands when explicitly asked (e.g. `git diff`, `git status` for review purposes).
+
+### Always include logging in modules that perform I/O or orchestration
+
+Any module that performs file I/O, subprocess execution, network calls, or orchestrates multiple steps must accept a `Logger` parameter and log its progress. Pure functions that transform data don't need their own logging — the caller logs before and after invoking them.
+
+- Accept `logger?: Logger` (optional) on public functions so callers can opt in.

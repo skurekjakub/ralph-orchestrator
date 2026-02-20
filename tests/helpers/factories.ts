@@ -102,6 +102,7 @@ export function makeProfile(
     afterAgent: {},
     cleanPaths: [],
     mcpServers: [],
+    githubMcpTools: false,
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied
@@ -137,7 +138,7 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
     excludeFields: [],
     secrets: {
       ghToken: "test-gh-token",
-      adoPatDocs: "test-ado-pat",
+      adoPat: "test-ado-pat",
       adoPatXperience: "test-ado-xp-pat",
       jiraPat: "test-jira-pat",
       jiraEmail: "test@test.com",

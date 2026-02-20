@@ -1,20 +1,23 @@
 #!/bin/bash
 # Ralph audit logger — Post-Tool Use
 # Logs tool results including success/failure and the LLM-visible output.
+#
+# Performance: optimized for the hot path.
+# - Single jq call for field extraction
+# - Truncation via bash substring
+# - Single jq call for audit JSONL
 set -e
 INPUT=$(cat)
 
 LOG_DIR="/workspace/.ralph/logs"
 SESSION_ID=$(cat "$LOG_DIR/.current-session-id" 2>/dev/null || echo "unknown")
 
-TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
-TOOL_NAME=$(echo "$INPUT" | jq -r '.toolName // "unknown"')
+# Single jq call: extract all scalar fields at once (was 5 separate jq forks).
+read -r TIMESTAMP TOOL_NAME RESULT_TYPE <<< "$(echo "$INPUT" | jq -r '[.timestamp, (.toolName // "unknown"), (.toolResult.resultType // "unknown")] | @tsv')"
 TOOL_ARGS=$(echo "$INPUT" | jq -r '.toolArgs // "{}"')
-RESULT_TYPE=$(echo "$INPUT" | jq -r '.toolResult.resultType // "unknown"')
 RESULT_TEXT=$(echo "$INPUT" | jq -r '.toolResult.textResultForLlm // ""')
 
 # Write full untruncated tool output to a separate readable log.
-# Format: timestamp + tool name + args + full result, separated by markers.
 TS_HUMAN=$(date -d "@${TIMESTAMP%.*}" "+%H:%M:%S" 2>/dev/null || date "+%H:%M:%S")
 {
     echo "── ${TS_HUMAN} ${TOOL_NAME} (${RESULT_TYPE}) ──"
@@ -23,7 +26,7 @@ TS_HUMAN=$(date -d "@${TIMESTAMP%.*}" "+%H:%M:%S" 2>/dev/null || date "+%H:%M:%S
     echo ""
 } >> "$LOG_DIR/tool-output.log"
 
-# Truncate very long results for the structured audit log
+# Truncate via bash substring (no jq fork needed).
 AUDIT_TEXT="$RESULT_TEXT"
 if [ ${#AUDIT_TEXT} -gt 2000 ]; then
     AUDIT_TEXT="${AUDIT_TEXT:0:2000}...[truncated]"

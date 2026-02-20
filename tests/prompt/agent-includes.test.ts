@@ -29,7 +29,7 @@ describe("resolveAgentIncludes", () => {
 
     resolveAgentIncludes(agentDir, includesDir);
 
-    const resolved = readFileSync(join(agentDir, ".build", "ralph.agent.md"), "utf-8");
+    const resolved = readFileSync(join(tempDir, ".build", "ralph.agent.md"), "utf-8");
     expect(resolved).toContain("## JIRA API");
     expect(resolved).toContain("Curl commands here.");
     expect(resolved).not.toContain("<!-- include:");
@@ -51,7 +51,7 @@ describe("resolveAgentIncludes", () => {
 
     resolveAgentIncludes(agentDir, includesDir);
 
-    const resolved = readFileSync(join(agentDir, ".build", "test.agent.md"), "utf-8");
+    const resolved = readFileSync(join(tempDir, ".build", "test.agent.md"), "utf-8");
     expect(resolved).toContain("Section A");
     expect(resolved).toContain("Section B");
   });
@@ -81,7 +81,7 @@ describe("resolveAgentIncludes", () => {
 
     resolveAgentIncludes(agentDir, includesDir);
 
-    const resolved = readFileSync(join(agentDir, ".build", "plain.agent.md"), "utf-8");
+    const resolved = readFileSync(join(tempDir, ".build", "plain.agent.md"), "utf-8");
     expect(resolved).toBe(content);
   });
 
@@ -99,7 +99,7 @@ describe("resolveAgentIncludes", () => {
 
     resolveAgentIncludes(agentDir, includesDir);
 
-    const resolved = readFileSync(join(agentDir, ".build", "test.agent.md"), "utf-8");
+    const resolved = readFileSync(join(tempDir, ".build", "test.agent.md"), "utf-8");
     expect(resolved).toContain("Link: https://example.com");
     expect(resolved).not.toContain("<!-- include:");
   });
@@ -115,7 +115,7 @@ describe("resolveAgentIncludes", () => {
 
     resolveAgentIncludes(agentDir, includesDir);
 
-    const buildFiles = require("node:fs").readdirSync(join(agentDir, ".build"));
+    const buildFiles = require("node:fs").readdirSync(join(tempDir, ".build"));
     expect(buildFiles).toEqual(["test.agent.md"]);
   });
 });
@@ -137,8 +137,8 @@ describe("resolveAllProfileIncludes", () => {
 
     resolveAllProfileIncludes(root);
 
-    expect(readFileSync(join(profile1, ".build", "a.agent.md"), "utf-8")).toBe("Shared content");
-    expect(readFileSync(join(profile2, ".build", "b.agent.md"), "utf-8")).toBe("Shared content");
+    expect(readFileSync(join(root, "profiles", "p1", ".build", "a.agent.md"), "utf-8")).toBe("Shared content");
+    expect(readFileSync(join(root, "profiles", "p2", ".build", "b.agent.md"), "utf-8")).toBe("Shared content");
   });
 
   it("does nothing when shared/agent-includes does not exist", () => {

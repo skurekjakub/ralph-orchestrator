@@ -1,0 +1,209 @@
+import { describe, it, expect } from "vitest";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { resolveAllProfileSetup } from "../../src/container/setup/profile-setup.js";
+
+function createTempDir(): string {
+  const dir = join(tmpdir(), `ralph-setup-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function writeManifest(dir: string, name: string, manifest: Record<string, unknown>): void {
+  const serverDir = join(dir, name);
+  mkdirSync(serverDir, { recursive: true });
+  writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify(manifest));
+}
+
+describe("Profile Setup", () => {
+  describe("resolveAllProfileSetup", () => {
+    it("generates mcp-config.json and squid.conf in profile build directories", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const securityDir = join(rootDir, "shared/security");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+      mkdirSync(securityDir, { recursive: true });
+
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test-pkg"],
+        proxyDomains: [".test-domain.com"],
+      });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["test-server"] }),
+      );
+
+      writeFileSync(
+        join(securityDir, "squid.conf"),
+        "acl allowed_domains dstdomain .github.com\n# MCP_PROXY_DOMAINS\nhttp_access allow allowed_domains",
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const configPath = join(profileDir, ".build/mcp-config.json");
+      expect(existsSync(configPath)).toBe(true);
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.mcpServers["test-server"]).toBeDefined();
+
+      const squidPath = join(profileDir, ".build/squid.conf");
+      expect(existsSync(squidPath)).toBe(true);
+
+      const squidConf = readFileSync(squidPath, "utf-8");
+      expect(squidConf).toContain(".test-domain.com");
+      expect(squidConf).toContain(".github.com");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("does not inject MCP env vars into compose overlay", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+
+      writeManifest(mcpDir, "test-mcp", {
+        name: "test-mcp",
+        command: "node",
+        args: ["index.js"],
+        requiredEnv: ["MCP_TOKEN"],
+      });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["test-mcp"] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const overlayPath = join(profileDir, ".build/docker-compose.overlay.yml");
+      const overlay = readFileSync(overlayPath, "utf-8");
+
+      // Base env vars always present
+      expect(overlay).toContain('GH_TOKEN: "${GH_TOKEN}"');
+      expect(overlay).toContain('ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"');
+      expect(overlay).toContain('CLAUDE_CODE_DISABLE_AUTOUPDATER: "1"');
+      // MCP env vars NOT in compose overlay (embedded in mcp-config.json instead)
+      expect(overlay).not.toContain("MCP_TOKEN");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("generates copilot-config.json with URL restrictions from squid domains and path rules", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const securityDir = join(rootDir, "shared/security");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(securityDir, { recursive: true });
+
+      writeManifest(mcpDir, "ado", {
+        name: "ado",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "@azure-devops/mcp", "TestOrg"],
+        proxyDomains: [".dev.azure.com"],
+        allowedUrlPaths: { "dev.azure.com": ["/TestOrg/"] },
+      });
+
+      writeManifest(mcpDir, "jira-kentico", {
+        name: "jira-kentico",
+        command: "node",
+        args: ["dist/bundle.mjs"],
+        proxyDomains: [".atlassian.com"],
+        allowedUrlPaths: { "api.atlassian.com": ["/ex/jira/cloud-99/"] },
+      });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["ado", "jira-kentico"] }),
+      );
+
+      writeFileSync(
+        join(securityDir, "squid.conf"),
+        [
+          "acl allowed_domains dstdomain .github.com",
+          "acl allowed_domains dstdomain api.atlassian.com",
+          "acl allowed_domains dstdomain .dev.azure.com",
+          "# MCP_PROXY_DOMAINS",
+          "http_access allow allowed_domains",
+        ].join("\n"),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const configPath = join(profileDir, ".build/copilot-config.json");
+      expect(existsSync(configPath)).toBe(true);
+
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
+      expect(config.allowed_urls).toContain("https://api.atlassian.com/ex/jira/cloud-99/*");
+      expect(config.allowed_urls).toContain("https://dev.azure.com/TestOrg/*");
+      expect(config.allowed_urls).toContain("https://*.github.com");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("includes resource mounts in the generated overlay", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(join(profileDir, "resources"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+
+      writeFileSync(join(profileDir, "resources", "test-file.md"), "# Test");
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({
+          mcpServers: [],
+          resources: { mountBase: "resources/ralph-resources" },
+        }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const overlayPath = join(profileDir, ".build/docker-compose.overlay.yml");
+      expect(existsSync(overlayPath)).toBe(true);
+
+      const overlay = readFileSync(overlayPath, "utf-8");
+      expect(overlay).toContain("test-file.md:/workspace/resources/ralph-resources/test-file.md:ro");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("skips resource mounts when resources config is not set", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: [] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const overlayPath = join(profileDir, ".build/docker-compose.overlay.yml");
+      expect(existsSync(overlayPath)).toBe(true);
+
+      const overlay = readFileSync(overlayPath, "utf-8");
+      expect(overlay).not.toContain("# Resource files");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+  });
+});

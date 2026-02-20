@@ -37,6 +37,18 @@ export class CopilotExecutor implements CliExecutor {
   }
 
   /**
+   * Build CLI flags to control the bundled GitHub MCP server.
+   *
+   * - `false` → `--disable-builtin-mcps` (server disabled)
+   * - `["tool1"]` → `--add-github-mcp-tool tool1` (only listed tools enabled)
+   */
+  private githubMcpFlags(): string[] {
+    const tools = this.profile.githubMcpTools;
+    if (tools === false) return ["--disable-builtin-mcps"];
+    return tools.flatMap((t) => ["--add-github-mcp-tool", t]);
+  }
+
+  /**
    * Execute the Copilot CLI with the given prompt.
    *
    * Streams stdout/stderr to the container logger with `[copilot]` prefix.
@@ -47,16 +59,37 @@ export class CopilotExecutor implements CliExecutor {
   /** Path inside the container where the session transcript is saved. */
   static readonly TRANSCRIPT_PATH = "/workspace/.ralph/logs/session-transcript.md";
 
+  /** Path inside the container where the MCP server config is mounted. */
+  static readonly MCP_CONFIG_PATH = "/workspace/.ralph/mcp-config.json";
+
+  /** Copilot CLI config directory inside the container. */
+  static readonly CONFIG_DIR = "/workspace/.ralph";
+
+  /** Copilot CLI debug log directory. */
+  static readonly LOG_DIR = "/workspace/.ralph/logs/cli-debug";
+
+  /** Subdirectories the CLI needs to create at runtime (must be writable by vscode). */
+  static readonly WRITABLE_DIRS = [
+    "/workspace/.ralph/logs",
+    "/workspace/.ralph/logs/cli-debug",
+    "/workspace/.ralph/session-state",
+  ] as const;
+
   async run(prompt: string): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
       "app",
       "copilot",
-      "--config-dir", "/workspace/.ralph",
+      "--config-dir", CopilotExecutor.CONFIG_DIR,
+      "--additional-mcp-config", `@${CopilotExecutor.MCP_CONFIG_PATH}`,
       "--agent", this.profile.agentName,
       "--model", this.profile.model ?? DEFAULT_MODEL,
+      ...this.githubMcpFlags(),
+      "--log-level", "debug",
+      "--log-dir", CopilotExecutor.LOG_DIR,
       "--experimental",
-      "--yolo",
+      "--allow-all-tools",
+      "--allow-all-paths",
       "--share", CopilotExecutor.TRANSCRIPT_PATH,
       "-p", prompt,
     ];
