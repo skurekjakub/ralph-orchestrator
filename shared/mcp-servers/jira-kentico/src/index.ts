@@ -42,6 +42,19 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
+/**
+ * Sanitize JIRA wiki markup from LLM agents.
+ *
+ * Agents frequently produce literal `\n` (two-char backslash-n) instead of actual
+ * newlines in JSON string values. JIRA's wiki renderer needs real newlines to
+ * create line breaks, so the entire comment renders as a single blob without them.
+ */
+function sanitizeWikiMarkup(raw: string): string {
+  // Replace literal \n sequences with real newlines.
+  // Must be done before any other processing since it changes the line structure.
+  return raw.replace(/\\n/g, "\n");
+}
+
 // ---------------------------------------------------------------------------
 // jira_add_comment
 // ---------------------------------------------------------------------------
@@ -50,16 +63,18 @@ server.registerTool("jira_add_comment", {
   description:
     "Add a comment to a JIRA issue. The comment body uses JIRA wiki markup " +
     "(h3. for headings, {{code}} for inline code, {code:lang}...{code} for blocks, " +
-    "bq. for blockquotes, regular markdown for the rest). Use \\n for newlines.",
+    "bq. for blockquotes, regular markdown for the rest). " +
+    "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
   inputSchema: {
     issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
     body: z.string().describe("Comment body in JIRA wiki markup"),
   },
 }, async ({ issueKey, body }) => {
   const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/comment`;
+  const sanitized = sanitizeWikiMarkup(body);
 
   try {
-    const res = await axios.post(url, { body }, {
+    const res = await axios.post(url, { body: sanitized }, {
       headers: {
         "Content-Type": "application/json",
         Authorization: authHeader,

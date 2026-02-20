@@ -110,4 +110,14 @@ describe("ADO MCP Server source", () => {
     const source = readAllSources();
     expect(source).toContain("isError: true");
   });
+
+  it("sanitizes text content in tools that accept user input", () => {
+    const source = readAllSources();
+    // All three tools with text content should use sanitizeContent
+    expect(source).toContain("sanitizeContent");
+    // Verify it's imported and used in the handler, not just defined
+    const sanitizeCount = (source.match(/sanitizeContent\(/g) ?? []).length;
+    // 1 definition + 3 tool usages = at least 4
+    expect(sanitizeCount).toBeGreaterThanOrEqual(4);
+  });
 });

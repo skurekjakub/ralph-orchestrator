@@ -1,6 +1,6 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, errorResult, reqConfig, repoUrl } from "../shared.js";
+import { type ToolDefinition, errorResult, reqConfig, repoUrl, sanitizeContent } from "../shared.js";
 
 export const tool: ToolDefinition = {
   name: "ado_reply_to_comment",
@@ -19,7 +19,7 @@ export const tool: ToolDefinition = {
     const url = repoUrl(String(project), String(repositoryId), `pullRequests/${pullRequestId}/threads/${threadId}/comments`);
 
     try {
-      const res = await axios.post(url, { content, parentCommentId: 1, commentType: 1 }, reqConfig());
+      const res = await axios.post(url, { content: sanitizeContent(String(content)), parentCommentId: 1, commentType: 1 }, reqConfig());
       return {
         content: [{
           type: "text" as const,

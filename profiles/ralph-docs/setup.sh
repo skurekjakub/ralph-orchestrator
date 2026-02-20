@@ -69,6 +69,8 @@ if [ ! "$TF_BUILD" ]; then
     else
         echo "ℹ️ Xperience repository already exists, skipping clone"
     fi
+    # Clear the PAT from environment — only needed for clone
+    unset ADO_PAT_XPERIENCE
 fi
 
 # ── Summary ───────────────────────────────────────────────

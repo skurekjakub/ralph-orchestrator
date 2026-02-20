@@ -165,13 +165,29 @@ export class JiraClient implements IJiraClient {
     return transitions.find((t) => t.to.name.toLowerCase() === target)?.id;
   }
 
-  /** Fetch all comments on an issue, ordered by creation date (oldest first). */
+  /**
+   * Fetch all comments on an issue, ordered by creation date (oldest first).
+   *
+   * Auto-paginates using `startAt` + `total` until all comments are fetched.
+   * Uses 100 results per page (JIRA's maximum for this endpoint).
+   */
   async getComments(key: string): Promise<JiraComment[]> {
-    const data = await this.request<JiraCommentResponse>(
-      "GET",
-      `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=100`
-    );
-    return data.comments;
+    const allComments: JiraComment[] = [];
+    let startAt = 0;
+    const pageSize = 100;
+    let total: number;
+
+    do {
+      const data = await this.request<JiraCommentResponse>(
+        "GET",
+        `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=${pageSize}&startAt=${startAt}`
+      );
+      allComments.push(...data.comments);
+      total = data.total;
+      startAt += pageSize;
+    } while (startAt < total);
+
+    return allComments;
   }
 
   /** List attachments on an issue (from the issue's fields). */

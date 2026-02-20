@@ -5,8 +5,10 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && esbuild dist/index.js --bundle --platform=node --format=esm --minify --outfile=dist/bundle.mjs",
-    "start": "node dist/bundle.mjs"
+    "clean": "rm -rf dist",
+    "build": "rm -rf dist && tsc && esbuild dist/index.js --bundle --platform=node --format=esm --minify --outfile=dist/bundle.mjs",
+    "start": "node dist/bundle.mjs",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
@@ -15,6 +17,7 @@
     "node": ">=22.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.3.0",
     "esbuild": "^0.27.3"
   }
 }

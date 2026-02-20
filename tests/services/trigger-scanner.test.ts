@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
@@ -443,5 +443,26 @@ describe("TriggerScanner cache persistence", () => {
     const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
     await scanner.scan([issue], [profile]);
     expect(mgr.getComments).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses atomic write (temp file + rename) for cache persistence", async () => {
+    const cachePath = join(tempDir, "trigger-cache.json");
+    const profile = makeProfile({
+      match: makeMatch({ commentTrigger: "@go" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const mgr = makeMockIssueManager([makeComment("C1", "no trigger")]);
+
+    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger, cachePath);
+    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    await scanner.scan([issue], [profile]);
+
+    // Cache file should exist and be valid JSON
+    expect(existsSync(cachePath)).toBe(true);
+    const data = JSON.parse(readFileSync(cachePath, "utf-8"));
+    expect(data["DF-100"]).toBe("2026-02-15T10:00:00Z");
+
+    // Temp file should NOT linger after successful write
+    expect(existsSync(`${cachePath}.tmp`)).toBe(false);
   });
 });

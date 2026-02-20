@@ -53,3 +53,13 @@ export function errorResult(err: unknown) {
     isError: true,
   };
 }
+
+/**
+ * Sanitize text content from LLM agents.
+ *
+ * Agents frequently produce literal `\n` (two-char backslash-n) instead of actual
+ * newlines in JSON string values. ADO's markdown renderer needs real newlines.
+ */
+export function sanitizeContent(raw: string): string {
+  return raw.replace(/\\n/g, "\n");
+}

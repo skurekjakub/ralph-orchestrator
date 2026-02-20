@@ -1,6 +1,6 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, errorResult, reqConfig, repoUrl } from "../shared.js";
+import { type ToolDefinition, errorResult, reqConfig, repoUrl, sanitizeContent } from "../shared.js";
 
 export const tool: ToolDefinition = {
   name: "ado_create_pull_request_thread",
@@ -28,7 +28,7 @@ export const tool: ToolDefinition = {
     };
 
     const body: Record<string, unknown> = {
-      comments: [{ parentCommentId: 0, content, commentType: 1 }],
+      comments: [{ parentCommentId: 0, content: sanitizeContent(String(content)), commentType: 1 }],
       status: statusMap[String(status ?? "active")],
     };
 

@@ -5,7 +5,7 @@ import type { AgentProfile } from "../config.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
 import type { Logger } from "../logger.js";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname } from "node:path";
 
 /**
@@ -198,13 +198,15 @@ export class TriggerScanner implements ITriggerScanner {
     }
   }
 
-  /** Write the timestamp cache to disk. */
+  /** Write the timestamp cache to disk atomically (temp file + rename). */
   private persistCache(): void {
     if (!this.cachePath) return;
     try {
       mkdirSync(dirname(this.cachePath), { recursive: true });
       const data: Record<string, string> = Object.fromEntries(this.lastScanTimestamps);
-      writeFileSync(this.cachePath, JSON.stringify(data, null, 2));
+      const tmp = `${this.cachePath}.tmp`;
+      writeFileSync(tmp, JSON.stringify(data, null, 2));
+      renameSync(tmp, this.cachePath);
     } catch (err) {
       this.logger.warn(`Failed to persist trigger cache: ${err instanceof Error ? err.message : String(err)}`);
     }

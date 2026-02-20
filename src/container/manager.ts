@@ -301,9 +301,11 @@ export class ContainerManager implements IContainerManager {
       await this.compose.compose(["down", "--volumes", "--remove-orphans"]);
     } catch {
       this.logger.warn("Graceful stop failed, forcing docker rm...");
-      const name = await this.compose.getContainerName(this.profile.composeProjectLabel, "app").catch(() => null);
-      if (name) {
-        await execa("docker", ["rm", "-f", name]).catch(() => {});
+      for (const service of ["app", "egress-proxy"]) {
+        const name = await this.compose.getContainerName(this.profile.composeProjectLabel, service).catch(() => null);
+        if (name) {
+          await execa("docker", ["rm", "-f", name]).catch(() => {});
+        }
       }
     }
 

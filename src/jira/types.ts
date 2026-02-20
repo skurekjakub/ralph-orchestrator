@@ -55,8 +55,10 @@ export interface JiraComment {
 
 /** Paginated comment response from the JIRA REST API. */
 export interface JiraCommentResponse {
-  comments: JiraComment[];
+  startAt: number;
+  maxResults: number;
   total: number;
+  comments: JiraComment[];
 }
 
 /** A single JIRA workflow transition available for an issue in its current status. */

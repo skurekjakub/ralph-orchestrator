@@ -3,20 +3,142 @@ trigger: none
 pool:
   vmImage: ubuntu-latest
 
-steps:
-  - task: UseNode@1
-    inputs:
-      version: "22.x"
-    displayName: Use Node.js 22.x
+stages:
+  - stage: Orchestrator
+    displayName: Orchestrator
+    jobs:
+      - job: OrchestratorValidation
+        displayName: Lint, Test & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
 
-  - script: npm ci
-    displayName: Install dependencies
+          - script: npm ci
+            displayName: Install dependencies
 
-  - script: npm run lint
-    displayName: Type-check (tsc --noEmit)
+          - script: npm run lint
+            displayName: Type-check (tsc --noEmit)
 
-  - script: npm test
-    displayName: Run tests
+          - script: npx vitest run
+            displayName: Run tests
 
-  - script: npm run build
-    displayName: Build
+          - script: npm run build
+            displayName: Build
+
+  - stage: McpServers
+    displayName: MCP Servers
+    dependsOn: []
+    jobs:
+      - job: JiraKenticoMcp
+        displayName: JIRA MCP — Lint, Test & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: shared/mcp-servers/jira-kentico
+            displayName: Install dependencies
+
+          - script: npm run lint
+            workingDirectory: shared/mcp-servers/jira-kentico
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npm test
+            workingDirectory: shared/mcp-servers/jira-kentico
+            displayName: Run tests
+
+          - script: npm run build
+            workingDirectory: shared/mcp-servers/jira-kentico
+            displayName: Build (webpack)
+
+      - job: AdoMcp
+        displayName: ADO MCP — Lint, Test & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: shared/mcp-servers/ado
+            displayName: Install dependencies
+
+          - script: npm run lint
+            workingDirectory: shared/mcp-servers/ado
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npm test
+            workingDirectory: shared/mcp-servers/ado
+            displayName: Run tests
+
+          - script: npm run build
+            workingDirectory: shared/mcp-servers/ado
+            displayName: Build (webpack)
+
+      - job: DiscordHitlMcp
+        displayName: Discord HITL MCP — Lint & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: shared/mcp-servers/discord-hitl
+            displayName: Install dependencies
+
+          - script: npm run lint
+            workingDirectory: shared/mcp-servers/discord-hitl
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npm run build
+            workingDirectory: shared/mcp-servers/discord-hitl
+            displayName: Build (tsc + esbuild)
+
+  - stage: Dashboards
+    displayName: Dashboards
+    dependsOn: []
+    jobs:
+      - job: DashboardLocal
+        displayName: Local Dashboard — Lint & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: dashboard-local
+            displayName: Install dependencies
+
+          - script: npm run lint
+            workingDirectory: dashboard-local
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npm run build
+            workingDirectory: dashboard-local
+            displayName: Build (vite)
+
+      - job: DashboardVercel
+        displayName: Vercel Dashboard — Lint & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: ralph-dashboard
+            displayName: Install dependencies
+
+          - script: npm run lint
+            workingDirectory: ralph-dashboard
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npm run build
+            workingDirectory: ralph-dashboard
+            displayName: Build (next)

@@ -182,6 +182,77 @@ describe("JiraClient", () => {
     });
   });
 
+  describe("getComments", () => {
+    it("returns all comments for a single page", async () => {
+      const mockResponse = {
+        startAt: 0,
+        maxResults: 100,
+        total: 2,
+        comments: [
+          { id: "1", body: "first", author: { displayName: "A" }, created: "2026-01-01T00:00:00Z" },
+          { id: "2", body: "second", author: { displayName: "B" }, created: "2026-01-02T00:00:00Z" },
+        ],
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(mockResponse),
+        })
+      );
+
+      const comments = await client.getComments("DF-1");
+
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(comments).toHaveLength(2);
+      expect(comments[0].id).toBe("1");
+    });
+
+    it("auto-paginates when total exceeds page size", async () => {
+      const page1 = {
+        startAt: 0,
+        maxResults: 100,
+        total: 150,
+        comments: Array.from({ length: 100 }, (_, i) => ({
+          id: `C${i}`,
+          body: `comment ${i}`,
+          author: { displayName: "User" },
+          created: "2026-01-01T00:00:00Z",
+        })),
+      };
+      const page2 = {
+        startAt: 100,
+        maxResults: 100,
+        total: 150,
+        comments: Array.from({ length: 50 }, (_, i) => ({
+          id: `C${100 + i}`,
+          body: `comment ${100 + i}`,
+          author: { displayName: "User" },
+          created: "2026-01-01T00:00:00Z",
+        })),
+      };
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn()
+          .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+          .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) }),
+      );
+
+      const comments = await client.getComments("DF-1");
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(comments).toHaveLength(150);
+      expect(comments[0].id).toBe("C0");
+      expect(comments[149].id).toBe("C149");
+
+      const url2 = vi.mocked(fetch).mock.calls[1][0] as string;
+      expect(url2).toContain("startAt=100");
+    });
+  });
+
   describe("getTransitions", () => {
     it("returns available transitions for an issue", async () => {
       const mockResponse = {

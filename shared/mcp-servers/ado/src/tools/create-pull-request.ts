@@ -1,6 +1,6 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, apiBase, errorResult, reqConfig, repoUrl } from "../shared.js";
+import { type ToolDefinition, apiBase, errorResult, reqConfig, repoUrl, sanitizeContent } from "../shared.js";
 
 export const tool: ToolDefinition = {
   name: "ado_create_pull_request",
@@ -28,7 +28,7 @@ export const tool: ToolDefinition = {
         title,
         supportsIterations: true,
       };
-      if (description !== undefined) body.description = description;
+      if (description !== undefined) body.description = sanitizeContent(String(description));
       if (isDraft !== undefined) body.isDraft = isDraft;
 
       const res = await axios.post(url, body, reqConfig());

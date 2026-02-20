@@ -81,3 +81,12 @@ describe("Build streaming", () => {
     expect(source).toContain('new StreamCapture(setupProc, this.containerLogger, "setup")');
   });
 });
+
+describe("Container stop fallback", () => {
+  it("force-removes both app and egress-proxy containers on compose failure", async () => {
+    const source = await readSource("../../src/container/manager.ts");
+    expect(source).toContain('"egress-proxy"');
+    // Both services should be in the fallback loop
+    expect(source).toMatch(/for\s*\(.*\["app",\s*"egress-proxy"\]/);
+  });
+});

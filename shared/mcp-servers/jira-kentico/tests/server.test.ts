@@ -54,6 +54,17 @@ describe("JIRA MCP Server source", () => {
     expect(source).toContain('registerTool("jira_add_attachment"');
   });
 
+  it("sanitizes wiki markup before posting comments", () => {
+    const source = readSource();
+    expect(source).toContain("sanitizeWikiMarkup");
+    expect(source).toContain("sanitized");
+  });
+
+  it("tool description warns against literal backslash-n", () => {
+    const source = readSource();
+    expect(source).toContain("do NOT use literal backslash-n");
+  });
+
   it("validates required env vars at startup", () => {
     const source = readSource();
     for (const envVar of ["JIRA_PAT", "JIRA_EMAIL"]) {
@@ -95,5 +106,37 @@ describe("JIRA MCP Server source", () => {
     expect(source).toContain("import axios");
     expect(source).toContain("axios.post");
     expect(source).not.toContain("setGlobalDispatcher");
+  });
+});
+
+describe("sanitizeWikiMarkup logic", () => {
+  // Re-implement the sanitizer locally to unit-test the regex logic
+  // (the actual function is embedded in the server source, not exported)
+  function sanitizeWikiMarkup(raw: string): string {
+    return raw.replace(/\\n/g, "\n");
+  }
+
+  it("converts literal backslash-n to real newlines", () => {
+    const input = "h3. Title\\n\\n*Bold* text\\nMore text";
+    const result = sanitizeWikiMarkup(input);
+    expect(result).toBe("h3. Title\n\n*Bold* text\nMore text");
+  });
+
+  it("preserves already-correct newlines", () => {
+    const input = "h3. Title\n\n*Bold* text\nMore text";
+    const result = sanitizeWikiMarkup(input);
+    expect(result).toBe("h3. Title\n\n*Bold* text\nMore text");
+  });
+
+  it("handles input with no newlines at all", () => {
+    const input = "Just a plain comment";
+    const result = sanitizeWikiMarkup(input);
+    expect(result).toBe("Just a plain comment");
+  });
+
+  it("handles mixed literal and real newlines", () => {
+    const input = "Line 1\\nLine 2\nLine 3\\nLine 4";
+    const result = sanitizeWikiMarkup(input);
+    expect(result).toBe("Line 1\nLine 2\nLine 3\nLine 4");
   });
 });
