@@ -1,4 +1,4 @@
-import type { IAppConfig } from "../config.js";
+import type { IJiraConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IAgentProfile } from "../config.js";
 import type { IActivityLog } from "../services/activity-log.js";
 import type { Logger } from "../logger.js";
 import type { IJiraClient } from "../jira/client.js";
@@ -27,8 +27,16 @@ import type { ILifecycleHook } from "./lifecycle.js";
  * `container.cradle` and `container.register()`.
  */
 export interface OrchestratorCradle {
-  // Config
-  config: IAppConfig;
+  // Config slices
+  jiraConfig: IJiraConfig;
+  outputConfig: IOutputConfig;
+  dashboardConfig: IDashboardConfig;
+  secrets: ISecretsConfig;
+  profiles: readonly IAgentProfile[];
+  promptAuditConfig: IPromptAuditConfig;
+  excludeFields: readonly string[];
+  allowedUsers: readonly string[];
+  enableContinuation: boolean;
 
   // Infrastructure
   activityLog: IActivityLog;

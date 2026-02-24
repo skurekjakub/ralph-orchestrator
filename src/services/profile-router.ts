@@ -1,4 +1,4 @@
-import type { IAgentProfile, IAppConfig } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 
 /** Result of a profile match. */
@@ -36,11 +36,10 @@ export class ProfileRouter implements IProfileRouter {
   private profiles: readonly IAgentProfile[];
   private fetchComments?: CommentFetcher;
 
-  constructor({ config, fetchComments }: {
-    config: IAppConfig;
-    fetchComments?: CommentFetcher;
-  }) {
-    this.profiles = config.profiles;
+  constructor({ profiles }: {
+    profiles: readonly IAgentProfile[];
+  }, fetchComments?: CommentFetcher) {
+    this.profiles = profiles;
     this.fetchComments = fetchComments;
   }
 

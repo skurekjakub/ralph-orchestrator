@@ -25,7 +25,7 @@ function makeCacheScanner(
     router,
     ledger,
     logger,
-    config: { allowedUsers: [] } as any,
+    allowedUsers: [],
   });
   scanner.cachePath = cachePath;
   return scanner;
@@ -38,7 +38,7 @@ const silentLogger = createMockLogger();
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "trigger-cache-"));
-  ledger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
   vi.clearAllMocks();
 });
 
@@ -52,7 +52,7 @@ describe("TriggerScanner cache persistence", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
     const scanner1 = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);
@@ -75,7 +75,7 @@ describe("TriggerScanner cache persistence", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
     const scanner1 = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);
@@ -96,7 +96,7 @@ describe("TriggerScanner cache persistence", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
 
     // No cachePath — should not throw, works in-memory only
@@ -111,7 +111,7 @@ describe("TriggerScanner cache persistence", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "no trigger")]);
 
     const scanner = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);

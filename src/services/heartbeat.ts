@@ -5,7 +5,7 @@
  */
 
 import type { Logger } from "../logger.js";
-import type { IAppConfig } from "../config.js";
+import type { IDashboardConfig } from "../config.js";
 import { toErrorMessage } from "../util/error.js";
 
 /** Heartbeat lifecycle status sent to the dashboard. */
@@ -50,13 +50,13 @@ export class HeartbeatSender implements IHeartbeatSender {
   private intervalMs: number;
   private logger?: Logger;
 
-  constructor({ config, logger }: {
-    config: IAppConfig;
+  constructor({ dashboardConfig, logger }: {
+    dashboardConfig: IDashboardConfig;
     logger?: Logger;
   }) {
-    this.dashboardUrl = config.dashboard.url;
-    this.secret = config.dashboard.secret;
-    this.intervalMs = config.dashboard.intervalMs;
+    this.dashboardUrl = dashboardConfig.url;
+    this.secret = dashboardConfig.secret;
+    this.intervalMs = dashboardConfig.intervalMs;
     this.logger = logger;
   }
 

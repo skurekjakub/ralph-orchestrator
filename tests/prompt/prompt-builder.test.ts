@@ -13,7 +13,7 @@ import { makeIssue } from "../helpers/factories.js";
 import type { Logger } from "../../src/logger.js";
 
 function makeBuilder(mode: AuditMode, logger: Logger, excludeFields: string[] = []) {
-  return new PromptBuilder({ config: { promptAudit: { mode }, excludeFields } as any, logger });
+  return new PromptBuilder({ promptAuditConfig: { mode }, excludeFields, logger });
 }
 
 /** Create an issue with an injected description that triggers critical findings. */

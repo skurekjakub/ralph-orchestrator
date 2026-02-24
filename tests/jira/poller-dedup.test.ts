@@ -34,7 +34,7 @@ describe("JiraPoller multi-JQL deduplication", () => {
 
     const poller = new JiraPoller({
       jiraClient: mockClient,
-      config: { jira: config } as any,
+      jiraConfig: config,
       logger: mockLogger,
     });
     poller.start();
@@ -63,7 +63,7 @@ describe("JiraPoller multi-JQL deduplication", () => {
 
     const poller = new JiraPoller({
       jiraClient: mockClient,
-      config: { jira: config } as any,
+      jiraConfig: config,
       logger: mockLogger,
     });
     poller.start();

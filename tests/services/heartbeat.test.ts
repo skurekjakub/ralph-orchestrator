@@ -22,7 +22,7 @@ function makePayload(overrides: Partial<HeartbeatPayload> = {}): HeartbeatPayloa
 
 function makeHeartbeat(url: string, secret: string, intervalMs: number, logger?: Logger) {
   return new HeartbeatSender({
-    config: { dashboard: { url, secret, intervalMs } } as any,
+    dashboardConfig: { enabled: true, url, secret, intervalMs },
     logger,
   });
 }
