@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config.js";
-import type { OrchestratorCradle } from "./container/cradle.js";
+import type { OrchestratorCradle } from "./awlix-cradle-types.js";
 import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import { JiraClient } from "./jira/client.js";
@@ -12,6 +12,7 @@ import { PromptBuilder } from "./prompt/prompt-builder.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
 import { TaskRunner } from "./services/task-runner.js";
+import { TaskResultWriter } from "./services/task-result-writer.js";
 import { TaskJiraResourceManager } from "./services/task-resource-manager.js";
 import { JiraIssueManager } from "./services/jira-issue-manager.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
@@ -129,6 +130,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     containerFactory: asFunction(buildContainerFactory).singleton(),
 
     // ── Task runner ───────────────────────────────────────────────────────────
+    resultWriter: asClass(TaskResultWriter).singleton(),
     taskRunner: asClass(TaskRunner).singleton(),
 
     // ── Optional ──────────────────────────────────────────────────────────────

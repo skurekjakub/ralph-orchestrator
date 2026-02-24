@@ -35,9 +35,9 @@ esac
 MESSAGES=()
 
 # --- Guard 1: Composition Root (src/ files only, skip factory) ---
-if [[ "$FILE_PATH" == */src/*.ts ]] && [[ "$FILE_PATH" != */orchestrator-factory.ts ]]; then
+if [[ "$FILE_PATH" == */src/*.ts ]] && [[ "$FILE_PATH" != */awilix-cradle.ts ]]; then
   # Known concrete classes that must only be imported in the factory
-  CONCRETE_CLASSES='JiraClient|JiraPoller|LogCollector|PromptBuilder|ActivityLog|ProfileRouter|TaskRunner|TaskJiraResourceManager|JiraIssueManager|HeartbeatSender|OperationLedger|TriggerScanner|ContainerManager|ComposeClient|ComposeFileResolver|AgentTemplateRenderer|JitMcpConfigWriter|CliExecutorFactory|RepoSyncHook|ContainerLogCollector|ContainerWorkspaceCleaner|LogSourceRegistry|ContinuationRunner|PromptInjectionAuditor|ContentNormalizer'
+  CONCRETE_CLASSES='JiraClient|JiraPoller|LogCollector|PromptBuilder|ActivityLog|ProfileRouter|TaskRunner|TaskResultWriter|TaskJiraResourceManager|JiraIssueManager|HeartbeatSender|OperationLedger|TriggerScanner|ContainerManager|ComposeClient|ComposeFileResolver|AgentTemplateRenderer|JitMcpConfigWriter|CliExecutorFactory|RepoSyncHook|ContainerLogCollector|ContainerWorkspaceCleaner|LogSourceRegistry|ContinuationRunner|PromptInjectionAuditor|ContentNormalizer'
 
   # Match non-type imports of concrete classes: import { Foo } from (not: import type { Foo })
   if grep -Pn "^\s*import\s+\{[^}]*(${CONCRETE_CLASSES})" "$FILE_PATH" 2>/dev/null | grep -Pv '^\s*import\s+type\b' | grep -qv '^\s*$'; then

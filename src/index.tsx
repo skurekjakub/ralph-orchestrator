@@ -21,8 +21,10 @@ async function main(): Promise<void> {
   dashboardServer.start();
 
   // Wire real-time tool output streaming to the dashboard
-  cradle.taskRunner.onToolOutput = (line) => dashboardServer.pushToolOutput(line);
-  cradle.taskRunner.onPreToolUse = (line) => dashboardServer.pushPreToolUse(line);
+  orchestrator.setTaskCallbacks({
+    onToolOutput: (line) => dashboardServer.pushToolOutput(line),
+    onPreToolUse: (line) => dashboardServer.pushPreToolUse(line),
+  });
 
   const { unmount } = render(
     React.createElement(App, { observer: orchestrator.observer })

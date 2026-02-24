@@ -17,6 +17,7 @@ import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
 import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
+import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
 import type { ResultPromise } from "execa";
@@ -211,6 +212,15 @@ export function createMockContainer(
 export function createMockLogCollector(overrides: Partial<Mocked<ILogCollector>> = {}): Mocked<ILogCollector> {
   return {
     saveExecutionSummary: vi.fn().mockReturnValue("/tmp/summary.json"),
+    ...overrides,
+  };
+}
+
+/** Create a mock TaskResultWriter with all methods stubbed. */
+export function createMockResultWriter(overrides: Partial<Mocked<ITaskResultWriter>> = {}): Mocked<ITaskResultWriter> {
+  return {
+    collectLogs: vi.fn().mockResolvedValue(undefined),
+    collectResults: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

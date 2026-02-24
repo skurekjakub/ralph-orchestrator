@@ -118,12 +118,13 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 4. **Routes to a profile** — matches the issue's project key and status against profile variants. Unmatched issues are skipped.
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
+   - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
    - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
    - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
-6. **Saves** audit logs, per-task streaming log, session transcript, and **proxy access log** to `output/logs/`
+6. **Collects results** — `TaskResultWriter` collects audit logs, per-task streaming log, session transcript, and proxy access log to `output/logs/`
 7. **Attaches** the session transcript to the JIRA issue
 8. **Stops** the container and cleans up volumes
 9. **Transitions** the issue to "Ready for Review"
@@ -134,16 +135,18 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Responsibility | Owner |
 |---|---|
 | Poll JIRA, queue issues, dedup | Orchestrator |
-| Transition to "In Progress" + start comment | Orchestrator |
-| CLI selection (Copilot/Claude Code) with fallback | Orchestrator |
-| Container lifecycle (start, exec, stop) | Orchestrator |
+| Route to matching profile | Orchestrator |
+| CLI selection (Copilot/Claude Code) with fallback | TaskRunner (ContainerManager) |
+| JIRA transition to "In Progress" + start comment | TaskRunner |
+| Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
+| Render agent templates (JIT) + resolve MCP macros | TaskRunner |
 | `git pull`, branch, write, review, revise | Ralph (inside container) |
 | Create PR via ADO REST API, push branch | Ralph (inside container) |
 | Post completion comment on JIRA | Ralph (inside container) |
 | Attach handoff.md to JIRA issue | Ralph (inside container) |
-| Transition to "Ready for Review" | Orchestrator |
-| Collect audit logs, transcript, proxy access log, save to disk | Orchestrator |
-| Attach session transcript to JIRA issue | Orchestrator |
+| JIRA transition to "Ready for Review" | Orchestrator |
+| Collect audit logs, transcript, proxy access log, save to disk | TaskResultWriter |
+| Attach session transcript to JIRA issue | TaskResultWriter |
 
 ## Output
 

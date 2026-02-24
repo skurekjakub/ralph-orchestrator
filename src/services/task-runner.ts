@@ -4,15 +4,15 @@ import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
 import type { IContainerManager } from "../container/manager.js";
-import type { ILogCollector } from "../logs/collector.js";
 import type { IResourceManager } from "./task-resource-manager.js";
+import type { ITaskResultWriter } from "./task-result-writer.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import type { IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
 import { buildTemplateContext } from "../container/setup/agent-includes.js";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
 import type { ILifecycleHook } from "../container/lifecycle.js";
 import { TransitionPhase } from "../orchestrator-types.js";
-import type { TaskContext } from "./task-context.js";
+import type { TaskContext, TaskCallbacks } from "./task-context.js";
 import { toErrorMessage } from "../util/error.js";
 import { rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -20,12 +20,8 @@ import { join } from "node:path";
 
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
-  /** Optional callback invoked for each real-time tool output line from the container. */
-  onToolOutput?: (line: string) => void;
-  /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
-  onPreToolUse?: (line: string) => void;
   /** Run the full pipeline for a single issue + profile combination. */
-  run(ctx: TaskContext): Promise<{ result: RalphResult; container: IContainerManager }>;
+  run(ctx: TaskContext, callbacks?: TaskCallbacks): Promise<{ result: RalphResult; container: IContainerManager }>;
   /** Tear down containers — tries graceful stop, falls back to raw compose down. */
   teardown(profile: IAgentProfile, container: IContainerManager | null): Promise<void>;
 }
@@ -46,40 +42,34 @@ export interface ITaskRunner {
  * This is a stateless service — all per-task state is scoped to the `run()` call.
  */
 export class TaskRunner implements ITaskRunner {
-  private readonly logCollector: ILogCollector;
   private readonly logger: Logger;
   private readonly containerFactory: ContainerManagerFactory;
   private readonly resources: IResourceManager;
+  private readonly resultWriter: ITaskResultWriter;
   private readonly issueManager: IIssueManager;
   private readonly templateRenderer: IAgentTemplateRenderer;
   private readonly jitMcpConfig: IJitMcpConfigWriter;
   private readonly preExecuteHooks: readonly ILifecycleHook[];
 
-  constructor({ logCollector, logger, containerFactory, resources, issueManager, templateRenderer, jitMcpConfig, preExecuteHooks = [] }: {
-    logCollector: ILogCollector;
+  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, jitMcpConfig, preExecuteHooks = [] }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
     resources: IResourceManager;
+    resultWriter: ITaskResultWriter;
     issueManager: IIssueManager;
     templateRenderer: IAgentTemplateRenderer;
     jitMcpConfig: IJitMcpConfigWriter;
     preExecuteHooks?: readonly ILifecycleHook[];
   }) {
-    this.logCollector = logCollector;
     this.logger = logger;
     this.containerFactory = containerFactory;
     this.resources = resources;
+    this.resultWriter = resultWriter;
     this.issueManager = issueManager;
     this.templateRenderer = templateRenderer;
     this.jitMcpConfig = jitMcpConfig;
     this.preExecuteHooks = preExecuteHooks;
   }
-
-  /** Optional callback invoked for each real-time tool output line from the container. */
-  onToolOutput?: (line: string) => void;
-
-  /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
-  onPreToolUse?: (line: string) => void;
 
   /**
    * Tear down containers — tries graceful stop, falls back to raw compose down.
@@ -113,20 +103,21 @@ export class TaskRunner implements ITaskRunner {
    *
    * @returns The task result (status, duration, PR URL, etc.)
    */
-  async run(ctx: TaskContext): Promise<{ result: RalphResult; container: IContainerManager }> {
+  async run(ctx: TaskContext, callbacks?: TaskCallbacks): Promise<{ result: RalphResult; container: IContainerManager }> {
     const container = this.containerFactory.create(ctx.profile);
-    if (this.onToolOutput) {
-      container.onToolOutput = this.onToolOutput;
+    if (callbacks?.onToolOutput) {
+      container.onToolOutput = callbacks.onToolOutput;
     }
-    if (this.onPreToolUse) {
-      container.onPreToolUse = this.onPreToolUse;
+    if (callbacks?.onPreToolUse) {
+      container.onPreToolUse = callbacks.onPreToolUse;
     }
 
     try {
       await this.prepareProfile(ctx);
+      await this.transitionIssue(ctx);
       await this.prepareContainer(ctx, container);
       const result = await this.executeAgent(ctx, container);
-      await this.collectResults(ctx, container, result);
+      await this.resultWriter.collectResults(ctx, container, result);
       return { result, container };
     } catch (err) {
       this.logger.error(
@@ -144,10 +135,7 @@ export class TaskRunner implements ITaskRunner {
       };
 
       if (container) {
-        const collected = await container.logs.collectAll().catch(() => []);
-        for (const { id, path } of collected) {
-          if (path) errorResult.collectedLogs[id] = path;
-        }
+        await this.resultWriter.collectLogs(container, errorResult);
       }
 
       return { result: errorResult, container };
@@ -165,10 +153,12 @@ export class TaskRunner implements ITaskRunner {
     this.jitMcpConfig.write(ctx.profile, ctx.issue, this.logger, ctx.triggerParams);
   }
 
-  private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
+  private async transitionIssue(ctx: TaskContext): Promise<void> {
     await this.issueManager.transitionIssue(ctx.issue.key, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
     await this.issueManager.postStartComment(ctx.issue.key, ctx.profile.displayName, ctx.profile.id);
+  }
 
+  private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
     // Clean the .ralph runtime directory on the host before compose up.
     // This removes stale logs/session-state from prior runs. Docker will
     // recreate it (owned by host UID) when mounting config files into it.
@@ -241,21 +231,5 @@ export class TaskRunner implements ITaskRunner {
     }
 
     return result;
-  }
-
-  private async collectResults(ctx: TaskContext, container: IContainerManager, result: RalphResult): Promise<void> {
-    this.logger.info("Collecting logs from containers...");
-    const collected = await container.logs.collectAll();
-    for (const { id, path } of collected) {
-      if (path) result.collectedLogs[id] = path;
-    }
-
-    const transcriptPath = result.collectedLogs["transcript"];
-    if (transcriptPath) {
-      await this.resources.attachTranscript(ctx.issue.key, transcriptPath, ctx.profile.agentName);
-    }
-
-    this.logCollector.saveExecutionSummary(result, undefined, ctx.taskId);
-    this.logger.info("Execution summary saved");
   }
 }

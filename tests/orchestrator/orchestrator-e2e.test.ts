@@ -56,6 +56,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
+      expect.any(Object),
     );
     expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
       "DF-100",

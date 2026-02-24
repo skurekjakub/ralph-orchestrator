@@ -11,6 +11,12 @@ export interface TaskContext {
   readonly isRevision: boolean;
 }
 
+/** Optional callbacks for real-time streaming during task execution. */
+export interface TaskCallbacks {
+  readonly onToolOutput?: (line: string) => void;
+  readonly onPreToolUse?: (line: string) => void;
+}
+
 /**
  * Build a {@link TaskContext} from raw orchestrator inputs.
  *

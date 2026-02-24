@@ -26,7 +26,7 @@ Ralph Orchestrator autonomously processes JIRA documentation tasks by polling fo
 ```
 JIRA poller → comment trigger scan → operation ledger → profile router
                                                               ↓
-                                            task runner: JIRA transition → container lifecycle → log collection
+                                            task runner: JIRA transition → container lifecycle → task result writer
                                                               ↓
                                                   docker compose exec <copilot|claude>
                                                               ↓
@@ -37,7 +37,7 @@ JIRA poller → comment trigger scan → operation ledger → profile router
 
 ### Dependency Injection
 
-Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/jira/client.ts`). All consumers depend on interfaces, never classes. **Only `src/orchestrator-factory.ts` imports concrete classes** — this is the sole composition root. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
+Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/jira/client.ts`). All consumers depend on interfaces, never classes. **Only `src/awilix-cradle.ts` imports concrete classes** — this is the sole composition root (awilix `InjectionMode.PROXY`, `strict: true`). Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `profiles`, etc.) rather than a monolithic config object. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
 
 ### Container Lifecycle — Three-File Compose Merge
 
@@ -83,9 +83,11 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | File | Role |
 |---|---|
 | `src/orchestrator.ts` | Main event loop |
-| `src/orchestrator-factory.ts` | Sole composition root (imports all concrete classes) |
+| `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
 | `src/app-startup.ts` | Startup pipeline: validate → load config → setup profiles |
-| `src/services/task-runner.ts` | Single operation executor |
+| `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
+| `src/services/task-result-writer.ts` | Post-execution: log collection, transcript attach, summary |
+| `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
 | `src/services/trigger-scanner.ts` | Scans JIRA comments for trigger strings |
 | `src/services/operation-ledger.ts` | Persistent per-issue state machine |
 | `src/container/manager.ts` | Full container lifecycle |

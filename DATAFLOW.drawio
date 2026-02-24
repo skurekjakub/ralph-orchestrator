@@ -60,7 +60,7 @@
         </mxCell>
 
         <!-- TaskRunner -->
-        <mxCell id="taskrunner" value="&lt;b&gt;TaskRunner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;run(ctx: TaskContext)&lt;br&gt;4-phase pipeline&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="taskrunner" value="&lt;b&gt;TaskRunner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;run(ctx, callbacks?)&lt;br&gt;4-phase pipeline&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="560" y="260" width="140" height="55" as="geometry" />
         </mxCell>
 
@@ -69,16 +69,21 @@
           <mxGeometry x="160" y="350" width="120" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase2" value="&lt;b&gt;2. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;JIRA transition&lt;br&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase2" value="&lt;b&gt;2. transitionIssue&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;JIRA beforeAgent&lt;br&gt;transition + start comment&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="310" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase3" value="&lt;b&gt;3. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;prompt build + audit&lt;br&gt;CLI exec (copilot|claude)&lt;br&gt;continuation loop&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase4" value="&lt;b&gt;4. collectResults&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;log collection&lt;br&gt;JIRA attachment&lt;br&gt;execution summary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase4" value="&lt;b&gt;4. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;prompt build + audit&lt;br&gt;CLI exec (copilot|claude)&lt;br&gt;continuation loop&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="630" y="350" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- TaskResultWriter -->
+        <mxCell id="resultwriter" value="&lt;b&gt;TaskResultWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;log collection&lt;br&gt;JIRA attachment&lt;br&gt;execution summary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="350" width="120" height="55" as="geometry" />
         </mxCell>
 
         <!-- Post-execution -->
@@ -247,8 +252,13 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- phase4 → post-execution -->
-        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="phase4" target="postexec" parent="1">
+        <!-- phase4 → TaskResultWriter -->
+        <mxCell id="e9e" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="phase4" target="resultwriter" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- TaskResultWriter → post-execution -->
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="resultwriter" target="postexec" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e10-label" value="RalphResult" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e10">
@@ -407,12 +417,12 @@
           <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
         </mxCell>
 
-        <!-- Phase 4 → Output logs -->
-        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;fontSize=10;" edge="1" source="phase4" target="output" parent="1">
+        <!-- TaskResultWriter → Output logs -->
+        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;fontSize=10;" edge="1" source="resultwriter" target="output" parent="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="750" y="375" />
-              <mxPoint x="900" y="375" />
+              <mxPoint x="820" y="420" />
+              <mxPoint x="900" y="420" />
               <mxPoint x="900" y="195" />
             </Array>
           </mxGeometry>

@@ -7,6 +7,7 @@ import { OrchestratorObserver } from "./orchestrator-observer.js";
 import type { JiraIssue } from "./jira/types.js";
 import type { ActiveTask } from "./orchestrator-types.js";
 import { buildTaskContext } from "./services/task-context.js";
+import type { TaskCallbacks } from "./services/task-context.js";
 import { toErrorMessage } from "./util/error.js";
 import type { IJiraConfig } from "./config.js";
 import type { IActivityLog } from "./services/activity-log.js";
@@ -51,6 +52,7 @@ export class Orchestrator {
   private readonly triggerScanner: ITriggerScanner;
   private readonly ledger: IOperationLedger;
   private readonly heartbeat: IHeartbeatSender | null;
+  private taskCallbacks: TaskCallbacks = {};
 
   private activeTask: ActiveTask | null = null;
   private running = false;
@@ -113,6 +115,11 @@ export class Orchestrator {
 
     this.ledger.onPending(() => this.wakeUp());
     this.poller.onIssues(() => this.wakeUp());
+  }
+
+  /** Set callbacks for real-time streaming during task execution. */
+  setTaskCallbacks(callbacks: TaskCallbacks): void {
+    this.taskCallbacks = callbacks;
   }
 
   /**
@@ -349,7 +356,7 @@ export class Orchestrator {
     try {
       this.activityLog.startTaskLog(taskId);
       const ctx = buildTaskContext(issue, profile, taskId, operation.triggerParams);
-      const { result, container } = await this.taskRunner.run(ctx);
+      const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
