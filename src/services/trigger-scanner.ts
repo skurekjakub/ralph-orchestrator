@@ -8,19 +8,38 @@ import { OrchestratorComments } from "./orchestrator-comments.js";
 import type { Logger } from "../logger.js";
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname } from "node:path";
+import { toErrorMessage } from "../util/error.js";
+
+/** Escape a trigger string for use in a RegExp. */
+function escapeTrigger(trigger: string): string {
+  return trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /**
  * Word-boundary trigger match. The trigger must appear as a standalone word,
- * optionally followed by `,` or `:`. This prevents `@Ralph` from matching
- * inside `@RalphAutocomplete`.
+ * optionally followed by `,`, `:`, `(`, or end-of-string. This prevents
+ * `@Ralph` from matching inside `@RalphAutocomplete`.
  */
 function matchesTrigger(text: string, trigger: string): boolean {
-  const escaped = trigger.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`(?:^|\\s|\\b)${escaped}(?=[,:;.!?\\s]|$)`, "i");
+  const re = new RegExp(`(?:^|\\s|\\b)${escapeTrigger(trigger)}(?=[,:;.!?(\\s]|$)`, "i");
   return re.test(text);
 }
 
-export { matchesTrigger };
+/**
+ * Extract parenthesized parameters from a trigger comment.
+ *
+ * Given text `"@Ralph(codesamples, verbose) please review"` and trigger `"@Ralph"`,
+ * returns `["codesamples", "verbose"]`. Returns an empty array when no parenthesized
+ * suffix is present or when the parens are empty.
+ */
+function parseTriggerParams(text: string, trigger: string): string[] {
+  const re = new RegExp(`(?:^|\\s|\\b)${escapeTrigger(trigger)}\\(([^)]+)\\)`, "i");
+  const match = re.exec(text);
+  if (!match) return [];
+  return match[1].split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+export { matchesTrigger, parseTriggerParams };
 
 /** Public contract for the comment trigger scanner. */
 export interface ITriggerScanner {
@@ -113,7 +132,7 @@ export class TriggerScanner implements ITriggerScanner {
             commentsFetched++;
           } catch (err) {
             this.logger.warn(
-              `Failed to fetch comments for ${issue.key}: ${err instanceof Error ? err.message : String(err)}`
+              `Failed to fetch comments for ${issue.key}: ${toErrorMessage(err)}`
             );
             comments = [];
           }
@@ -149,16 +168,19 @@ export class TriggerScanner implements ITriggerScanner {
               issue.key,
               OrchestratorComments.userNotAllowed(profile.displayName, comment.author.displayName),
             ).catch((err) => {
-              this.logger.warn(`Failed to post rejection comment on ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
+              this.logger.warn(`Failed to post rejection comment on ${issue.key}: ${toErrorMessage(err)}`);
             });
 
             continue;
           }
 
+          const triggerParams = parseTriggerParams(text, trigger);
+
           this.ledger.plan(issue.key, {
             variant,
             triggerCommentId: comment.id,
             commentTimestamp: comment.created,
+            ...(triggerParams.length > 0 ? { triggerParams } : {}),
           });
 
           planned++;
@@ -170,8 +192,9 @@ export class TriggerScanner implements ITriggerScanner {
           await this.issueManager.postAckComment(
             issue.key,
             profile.displayName,
+            triggerParams,
           ).catch((err) => {
-            this.logger.warn(`Failed to post ack comment on ${issue.key}: ${err instanceof Error ? err.message : String(err)}`);
+            this.logger.warn(`Failed to post ack comment on ${issue.key}: ${toErrorMessage(err)}`);
           });
         }
       }
@@ -231,7 +254,7 @@ export class TriggerScanner implements ITriggerScanner {
       writeFileSync(tmp, JSON.stringify(data, null, 2));
       renameSync(tmp, this.cachePath);
     } catch (err) {
-      this.logger.warn(`Failed to persist trigger cache: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(`Failed to persist trigger cache: ${toErrorMessage(err)}`);
     }
   }
 }

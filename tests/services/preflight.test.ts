@@ -46,6 +46,37 @@ describe("runPreflight", () => {
       expect(result.ok).toBe(true);
     });
   });
+
+  describe("revision-ready check", () => {
+    it("fails when no PR URL found", () => {
+      const result = runPreflight("revision-ready", makeIssue("DF-1"), {
+        comments: [],
+        handoffContent: "handoff content",
+        prUrl: null,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toContain("pull request");
+    });
+
+    it("fails when no handoff attachment", () => {
+      const result = runPreflight("revision-ready", makeIssue("DF-1"), {
+        comments: [],
+        handoffContent: null,
+        prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/123",
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toContain("handoff");
+    });
+
+    it("passes when both PR URL and handoff exist", () => {
+      const result = runPreflight("revision-ready", makeIssue("DF-1"), {
+        comments: [],
+        handoffContent: "## Summary\nRevision work.",
+        prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/42",
+      });
+      expect(result.ok).toBe(true);
+    });
+  });
 });
 
 describe("buildPreflightContext", () => {

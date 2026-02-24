@@ -154,8 +154,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 }
 
 /**
- * Verify that every .agent.md file in the agents/ directory has a matching
- * volume mount in docker-compose.yml sourcing from .build/<filename>.
+ * Verify that every .agent.md template has a matching volume mount
+ * in docker-compose.yml sourcing from .build/<name>.agent.md.
  */
 function validateAgentMounts(
   composePath: string,
@@ -194,7 +194,8 @@ export interface VariantTriggerInfo {
 /**
  * Validate that all MCP servers referenced by a profile exist in shared/mcp-servers/.
  *
- * Also checks that sidecarPort values are unique across all servers.
+ * Also checks that sidecarPort values are unique across all servers and that
+ * profiles provide all `requiredConfig` env vars declared by each manifest.
  */
 function validateMcpServers(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
@@ -203,8 +204,23 @@ function validateMcpServers(
   prefix: string,
   errors: string[],
 ): void {
-  const mcpServers: string[] = profile.mcpServers ?? [];
-  if (mcpServers.length === 0) return;
+  const rawEntries: unknown[] = profile.mcpServers ?? [];
+  if (rawEntries.length === 0) return;
+
+  // Parse mixed mcpServers entries to extract names and per-server configs
+  const serverNames: string[] = [];
+  const serverConfigs: Record<string, Record<string, string>> = {};
+  for (const entry of rawEntries) {
+    if (typeof entry === "string") {
+      serverNames.push(entry);
+    } else if (entry && typeof entry === "object" && "name" in entry) {
+      const obj = entry as { name: string; env?: Record<string, string> };
+      serverNames.push(obj.name);
+      if (obj.env && Object.keys(obj.env).length > 0) {
+        serverConfigs[obj.name] = obj.env;
+      }
+    }
+  }
 
   const available = discoverMcpServers(mcpServersDir);
 
@@ -226,13 +242,32 @@ function validateMcpServers(
     }
   }
 
-  for (const serverName of mcpServers) {
+  for (const serverName of serverNames) {
     if (!available.includes(serverName)) {
       errors.push(
         `${prefix}: MCP server "${serverName}" not found in shared/mcp-servers/\n` +
         `  Available servers: ${available.length > 0 ? available.join(", ") : "(none)"}\n` +
         `  Create shared/mcp-servers/${serverName}/mcp-server.json`
       );
+      continue;
+    }
+
+    // Cross-check requiredConfig from manifest against profile-level configs
+    try {
+      const manifest = loadMcpManifest(mcpServersDir, serverName);
+      if (manifest.requiredConfig && manifest.requiredConfig.length > 0) {
+        const provided = serverConfigs[serverName] ?? {};
+        const missing = manifest.requiredConfig.filter((k) => !(k in provided));
+        if (missing.length > 0) {
+          errors.push(
+            `${prefix}: MCP server "${serverName}" requires config [${missing.join(", ")}] ` +
+            `but the profile does not provide them\n` +
+            `  Add an object entry in mcpServers with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`
+          );
+        }
+      }
+    } catch {
+      // manifest load errors handled elsewhere
     }
   }
 }

@@ -53,6 +53,31 @@ describe("MCP Manifest", () => {
       writeManifest(tempDir, "bad-port", { name: "bad-port", command: "node", args: [], sidecarPort: 70000 });
       expect(() => loadMcpManifest(tempDir, "bad-port")).toThrow("sidecarPort must be an integer between 1 and 65535");
     });
+
+    it("accepts valid requiredConfig", () => {
+      writeManifest(tempDir, "with-config", {
+        name: "with-config", command: "node", args: [], sidecarPort: 9100,
+        requiredConfig: ["ADO_PROJECT", "ADO_REPO"],
+      });
+      const manifest = loadMcpManifest(tempDir, "with-config");
+      expect(manifest.requiredConfig).toEqual(["ADO_PROJECT", "ADO_REPO"]);
+    });
+
+    it("accepts manifest without requiredConfig", () => {
+      writeManifest(tempDir, "no-config", {
+        name: "no-config", command: "node", args: [], sidecarPort: 9100,
+      });
+      const manifest = loadMcpManifest(tempDir, "no-config");
+      expect(manifest.requiredConfig).toBeUndefined();
+    });
+
+    it("throws for empty requiredConfig array", () => {
+      writeManifest(tempDir, "empty-config", {
+        name: "empty-config", command: "node", args: [], sidecarPort: 9100,
+        requiredConfig: [],
+      });
+      expect(() => loadMcpManifest(tempDir, "empty-config")).toThrow("requiredConfig must be a non-empty array");
+    });
   });
 
   describe("discoverMcpServers", () => {

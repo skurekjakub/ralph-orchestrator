@@ -49,9 +49,9 @@ export function generateMcpConfig(
 // ---------------------------------------------------------------------------
 
 /** A single server entry in the sidecar gateway config. */
-interface GatewayServerEntry {
+export interface GatewayServerEntry {
   name: string;
-  type: string;
+  type: McpServerType;
   port: number;
   command: string;
   args: string[];

@@ -22,7 +22,6 @@ describe("Profile Setup", () => {
         command: "npx",
         args: ["-y", "test-pkg"],
         sidecarPort: 9100,
-        proxyDomains: [".test-domain.com"],
       });
 
       writeFileSync(
@@ -57,13 +56,20 @@ describe("Profile Setup", () => {
       expect(existsSync(squidPath)).toBe(true);
 
       const squidConf = readFileSync(squidPath, "utf-8");
-      expect(squidConf).toContain(".test-domain.com");
+      // Squid config is the static baseline — MCP server proxyDomains are no longer injected
+      // (the sidecar has unrestricted direct internet access via ralph-sidecar-external)
+      expect(squidConf).not.toContain(".test-domain.com");
       expect(squidConf).toContain(".github.com");
 
       // Attachments directory should exist and be world-writable
       const attachDir = join(profileDir, ".build/attachments");
       expect(existsSync(attachDir)).toBe(true);
       expect(statSync(attachDir).mode & 0o777).toBe(0o777);
+
+      // .gitignore should be generated to hide .ralph/ from git
+      const gitignorePath = join(profileDir, ".build/.gitignore");
+      expect(existsSync(gitignorePath)).toBe(true);
+      expect(readFileSync(gitignorePath, "utf-8")).toBe("*\n");
 
       rmSync(rootDir, { recursive: true, force: true });
     });
@@ -104,47 +110,27 @@ describe("Profile Setup", () => {
       rmSync(rootDir, { recursive: true, force: true });
     });
 
-    it("generates copilot-config.json with URL restrictions from squid domains and path rules", () => {
+    it("generates copilot-config.json with domain-level URLs from squid.conf", () => {
       const rootDir = createTempDir();
       const mcpDir = join(rootDir, "shared/mcp-servers");
       const securityDir = join(rootDir, "shared/security");
       const profileDir = join(rootDir, "profiles/test-profile");
 
       mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
       mkdirSync(securityDir, { recursive: true });
-
-      writeManifest(mcpDir, "ado", {
-        name: "ado",
-        type: "npm",
-        command: "npx",
-        args: ["-y", "@azure-devops/mcp", "TestOrg"],
-        sidecarPort: 9101,
-        proxyDomains: [".dev.azure.com"],
-        allowedUrlPaths: { "dev.azure.com": ["/TestOrg/"] },
-      });
-
-      writeManifest(mcpDir, "jira-kentico", {
-        name: "jira-kentico",
-        type: "custom",
-        command: "node",
-        args: ["dist/bundle.mjs"],
-        sidecarPort: 9100,
-        proxyDomains: [".atlassian.com"],
-        allowedUrlPaths: { "api.atlassian.com": ["/ex/jira/cloud-99/"] },
-      });
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({ mcpServers: ["ado", "jira-kentico"] }),
+        JSON.stringify({ mcpServers: [] }),
       );
 
       writeFileSync(
         join(securityDir, "squid.conf"),
         [
-          "acl allowed_domains dstdomain .github.com",
-          "acl allowed_domains dstdomain api.atlassian.com",
-          "acl allowed_domains dstdomain .dev.azure.com",
-          "# MCP_PROXY_DOMAINS",
+          "acl allowed_domains dstdomain .githubcopilot.com",
+          "acl allowed_domains dstdomain .anthropic.com",
+          "acl allowed_domains dstdomain .npmjs.org",
           "http_access allow allowed_domains",
         ].join("\n"),
       );
@@ -155,9 +141,11 @@ describe("Profile Setup", () => {
       expect(existsSync(configPath)).toBe(true);
 
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
-      expect(config.allowed_urls).toContain("https://api.atlassian.com/ex/jira/cloud-99/*");
-      expect(config.allowed_urls).toContain("https://dev.azure.com/TestOrg/*");
-      expect(config.allowed_urls).toContain("https://*.github.com");
+      expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
+      expect(config.allowed_urls).toContain("https://*.anthropic.com");
+      expect(config.allowed_urls).toContain("https://*.npmjs.org");
+      // MCP servers no longer contribute to the Copilot allowlist — sidecar has direct internet access
+      expect(config.allowed_urls.some((u: string) => u.includes("atlassian"))).toBe(false);
 
       rmSync(rootDir, { recursive: true, force: true });
     });

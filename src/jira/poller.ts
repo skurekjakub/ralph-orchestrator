@@ -3,6 +3,7 @@ import type { IJiraClient } from "./client.js";
 import type { JiraIssue } from "./types.js";
 import type { Logger } from "../logger.js";
 import { consoleLogger } from "../logger.js";
+import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for the JIRA issue poller. */
 export interface IJiraPoller {
@@ -109,7 +110,7 @@ export class JiraPoller implements IJiraPoller {
 
       this.logger.info(`Polling for Ralph requests... ${allIssues.length} candidate issues`);
     } catch (err) {
-      this.logger.error(`JIRA poll failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.error(`JIRA poll failed: ${toErrorMessage(err)}`);
     }
   }
 }

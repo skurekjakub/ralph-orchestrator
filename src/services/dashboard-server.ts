@@ -1,4 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
+import { toErrorMessage } from "../util/error.js";
 import type { OrchestratorState, LogEntry } from "../orchestrator-types.js";
 import type { OrchestratorObserver } from "../orchestrator-observer.js";
 import type { Logger } from "../logger.js";
@@ -42,7 +43,7 @@ export class DashboardServer {
 
     this.wss.on("error", (err) => {
       this.logger.warn(
-        `Dashboard server error: ${err instanceof Error ? err.message : String(err)}`
+        `Dashboard server error: ${toErrorMessage(err)}`
       );
     });
 

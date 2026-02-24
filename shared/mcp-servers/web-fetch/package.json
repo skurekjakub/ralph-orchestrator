@@ -1,0 +1,26 @@
+{
+  "name": "@ralph/web-fetch-mcp",
+  "version": "1.0.0",
+  "description": "Web fetch MCP server — retrieve content from any URL",
+  "main": "dist/bundle.js",
+  "type": "module",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "rm -rf dist && webpack",
+    "start": "node dist/bundle.js",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.0.0",
+    "webpack": "^5.105.2",
+    "webpack-cli": "^6.0.1"
+  }
+}

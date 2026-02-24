@@ -12,6 +12,16 @@ const BASE_CONTAINER_ENV: Record<string, string> = {
 };
 
 /**
+ * Build args injected into every service that bind-mounts the host workspace.
+ * Ensures the container process runs as the same UID/GID as the host user so
+ * it can write to bind-mounted directories.
+ */
+const HOST_BUILD_ARGS = [
+  '        HOST_UID: "${HOST_UID}"',
+  '        HOST_GID: "${HOST_GID}"',
+];
+
+/**
  * Generate a Docker Compose overlay YAML that injects environment variables,
  * volumes needed by the profile, and the MCP sidecar service.
  *
@@ -35,19 +45,22 @@ export function generateComposeOverlay(
   sidecarDir: string,
   extraVolumes: string[] = [],
 ): string {
-  const lines: string[] = [
-    "# Auto-generated compose overlay — do not edit",
-    "# Regenerated at orchestrator startup from profile config",
-    "",
-    "services:",
-    "  app:",
-    "    environment:",
-  ];
+  const lines: string[] = [];
 
+  lines.push("# Auto-generated compose overlay — do not edit");
+  lines.push("# Regenerated at orchestrator startup from profile config");
+  lines.push("");
+  lines.push("services:");
+
+  // ── app ──────────────────────────────────────────────────────────────────
+  lines.push("  app:");
+  lines.push("    build:");
+  lines.push("      args:");
+  lines.push(...HOST_BUILD_ARGS);
+  lines.push("    environment:");
   for (const [key, value] of Object.entries(BASE_CONTAINER_ENV)) {
     lines.push(`      ${key}: ${value}`);
   }
-
   // Agent container volumes — URL-only MCP config, CLI config, resources.
   // No MCP server code or secrets are mounted here.
   lines.push("    volumes:");
@@ -55,29 +68,32 @@ export function generateComposeOverlay(
   lines.push(`      - ${join(buildDir, "mcp-config.json")}:/workspace/.ralph/mcp-config.json:ro`);
   lines.push("      # Copilot CLI config with URL restrictions");
   lines.push(`      - ${join(buildDir, "copilot-config.json")}:/workspace/.ralph/config.json:ro`);
+  lines.push("      # Hides .ralph/ from git (blocks everything including itself)");
+  lines.push(`      - ${join(buildDir, ".gitignore")}:/workspace/.ralph/.gitignore:ro`);
   if (extraVolumes.length > 0) {
     lines.push("      # Resource files");
     lines.push(...extraVolumes);
   }
-
   if (serverNames.length > 0) {
     // Shared attachment directory — agent writes files here, sidecar reads them.
     // Used by tools like jira_add_attachment that need file access across containers.
     lines.push("      # Shared attachment exchange directory");
     lines.push(`      - ${join(buildDir, "attachments")}:/tmp/mcp-attachments`);
-
     lines.push("    depends_on:");
     lines.push("      mcp-sidecar:");
     lines.push("        condition: service_healthy");
   }
 
-  // MCP sidecar container — runs MCP servers with credentials isolated from agent
+  // ── mcp-sidecar ──────────────────────────────────────────────────────────
+  // Runs MCP servers with credentials isolated from the agent container.
   if (serverNames.length > 0) {
     lines.push("");
     lines.push("  mcp-sidecar:");
     lines.push("    build:");
     lines.push(`      context: ${sidecarDir}`);
     lines.push("      dockerfile: Dockerfile");
+    lines.push("      args:");
+    lines.push(...HOST_BUILD_ARGS);
     lines.push("    volumes:");
     lines.push("      # MCP server code (read-only, inaccessible to agent)");
     lines.push(`      - ${mcpServersDir}:/opt/mcp/servers:ro`);
@@ -87,8 +103,13 @@ export function generateComposeOverlay(
     lines.push(`      - ${join(buildDir, "gateway.json")}:/opt/mcp/config/gateway.json:ro`);
     lines.push("      # Shared attachment exchange directory (read-only in sidecar)");
     lines.push(`      - ${join(buildDir, "attachments")}:/tmp/mcp-attachments:ro`);
+    lines.push("      # Repo volume for git operations (push_progress, create_pr)");
+    lines.push('      - "${TARGET_REPO_PATH}:/workspace"');
+    lines.push("    environment:");
+    lines.push('      REPO_ROOT: "/workspace"');
     lines.push("    networks:");
     lines.push("      ralph-internal:");
+    lines.push("      ralph-sidecar-external:");
     lines.push("    security_opt:");
     lines.push('      - "no-new-privileges:true"');
     lines.push("    cap_drop:");
@@ -99,9 +120,6 @@ export function generateComposeOverlay(
     lines.push("          memory: 4G");
     lines.push('          cpus: "1.0"');
     lines.push("          pids: 300");
-    lines.push("    depends_on:");
-    lines.push("      egress-proxy:");
-    lines.push("        condition: service_healthy");
   }
 
   lines.push("");

@@ -36,6 +36,11 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
     if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found" };
     return { ok: true };
   },
+  "revision-ready": (_issue, ctx) => {
+    if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments — revision requires an existing pull request" };
+    if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found — revision requires a previous handoff" };
+    return { ok: true };
+  },
 };
 
 /**

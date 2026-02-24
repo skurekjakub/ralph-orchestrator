@@ -5,6 +5,7 @@
  */
 
 import type { Logger } from "../logger.js";
+import { toErrorMessage } from "../util/error.js";
 
 /** Heartbeat lifecycle status sent to the dashboard. */
 export enum HeartbeatStatus {
@@ -103,7 +104,7 @@ export class HeartbeatSender implements IHeartbeatSender {
         this.lastError = null;
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = toErrorMessage(err);
       // Only log once per distinct error to avoid flooding the activity log
       if (msg !== this.lastError) {
         this.lastError = msg;

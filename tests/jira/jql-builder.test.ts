@@ -12,7 +12,7 @@ describe("buildJqlFromProfiles", () => {
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(1);
     expect(queries[0]).toBe(
-      'project = DF AND status IN ("New", "To Do") ORDER BY created ASC'
+      'project = "DF" AND status IN ("New", "To Do") ORDER BY created ASC'
     );
   });
 
@@ -21,7 +21,7 @@ describe("buildJqlFromProfiles", () => {
       makeProfile({ match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" } }),
     ];
     const queries = buildJqlFromProfiles(profiles);
-    expect(queries[0]).toBe("project = DF ORDER BY created ASC");
+    expect(queries[0]).toBe('project = "DF" ORDER BY created ASC');
   });
 
   it("builds JQL with single status", () => {
@@ -32,7 +32,7 @@ describe("buildJqlFromProfiles", () => {
     ];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries[0]).toBe(
-      'project = DOC AND status = "TODO" ORDER BY created ASC'
+      'project = "DOC" AND status = "TODO" ORDER BY created ASC'
     );
   });
 
@@ -50,10 +50,10 @@ describe("buildJqlFromProfiles", () => {
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(2);
     expect(queries).toContain(
-      'project = DF AND status = "New" ORDER BY created ASC'
+      'project = "DF" AND status = "New" ORDER BY created ASC'
     );
     expect(queries).toContain(
-      'project = DOC AND status = "TODO" ORDER BY created ASC'
+      'project = "DOC" AND status = "TODO" ORDER BY created ASC'
     );
   });
 
@@ -81,10 +81,10 @@ describe("buildJqlFromProfiles", () => {
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(2);
     expect(queries).toContain(
-      'project = DF ORDER BY created ASC'
+      'project = "DF" ORDER BY created ASC'
     );
     expect(queries).toContain(
-      'project = DOC ORDER BY created ASC'
+      'project = "DOC" ORDER BY created ASC'
     );
   });
 
@@ -103,6 +103,6 @@ describe("buildJqlFromProfiles", () => {
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
-    expect(queries[0]).toBe('project = DF AND status = "New" ORDER BY created ASC');
+    expect(queries[0]).toBe('project = "DF" AND status = "New" ORDER BY created ASC');
   });
 });

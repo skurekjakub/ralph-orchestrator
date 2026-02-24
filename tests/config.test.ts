@@ -252,4 +252,69 @@ describe("loadConfig", () => {
       expect(config.profiles[1].model).toBe("claude-sonnet-4");
     });
   });
+
+  describe("mcpServers schema", () => {
+    it("accepts string-only mcpServers (backward compat)", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        mcpServers: ["jira-kentico", "ado"],
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+      }));
+      const config = loadConfig();
+      expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "ado"]);
+      expect(config.profiles[0].mcpServerConfigs).toEqual({});
+    });
+
+    it("accepts object entries in mcpServers", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        mcpServers: [
+          { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$jira.key" } },
+          "playwright",
+          { name: "ado", env: { ADO_PROJECT: "Proj" } },
+        ],
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+      }));
+      const config = loadConfig();
+      expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "playwright", "ado"]);
+      expect(config.profiles[0].mcpServerConfigs).toEqual({
+        "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" },
+        "ado": { ADO_PROJECT: "Proj" },
+      });
+    });
+
+    it("rejects object mcpServers entry without name", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        mcpServers: [{ env: { FOO: "bar" } }],
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+      }));
+      expect(() => loadConfig()).toThrow();
+    });
+
+    it("ignores object entry with empty env", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        mcpServers: [{ name: "ado", env: {} }],
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+      }));
+      const config = loadConfig();
+      expect(config.profiles[0].mcpServers).toEqual(["ado"]);
+      expect(config.profiles[0].mcpServerConfigs).toEqual({});
+    });
+
+    it("rejects duplicate MCP server names in mcpServers", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
+        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+      }));
+      expect(() => loadConfig()).toThrow("duplicate MCP server(s): ado");
+    });
+  });
 });

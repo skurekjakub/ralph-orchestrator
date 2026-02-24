@@ -42,7 +42,9 @@ function writeValidProfile(
 
   if (!overrides.skipCompose) {
     const compose = overrides.composeContent ??
-      agentFiles.map((f) => `      - ./.build/${f}:/workspace/.github/agents/${f}:ro`).join("\n");
+      agentFiles.map((f) => {
+        return `      - ./.build/${f}:/workspace/.github/agents/${f}:ro`;
+      }).join("\n");
     writeFileSync(join(dir, "docker-compose.yml"), `services:\n  app:\n    volumes:\n${compose}\n`);
   }
 

@@ -1,0 +1,119 @@
+import type { AgentProfile } from "../config.js";
+import type { IContainerLogCollector } from "./log-collector.js";
+import { CaptureMode } from "./log-collector.js";
+import type { CliPaths } from "./types.js";
+
+/** Optional callbacks wired into streamed log sources. */
+export interface LogSourceCallbacks {
+  /** Invoked for each line of real-time tool output. */
+  onToolOutput?: (line: string) => void;
+  /** Invoked for each line of real-time pre-tool invocation output. */
+  onPreToolUse?: (line: string) => void;
+}
+
+/** Public contract for registering standard log sources on a task. */
+export interface ILogSourceRegistry {
+  /**
+   * Register all standard log sources on the collector and start streaming.
+   *
+   * @param logs       The log collector to register sources on.
+   * @param profile    Agent profile providing paths (audit log, etc.).
+   * @param issueKey   JIRA key used as the filename prefix.
+   * @param callbacks  Optional real-time line callbacks for streamed sources.
+   * @param cliPaths   CLI-specific filesystem paths.
+   */
+  registerAll(
+    logs: IContainerLogCollector,
+    profile: AgentProfile,
+    issueKey: string,
+    callbacks: LogSourceCallbacks,
+    cliPaths: CliPaths,
+  ): void;
+}
+
+/**
+ * Encapsulates the registration of all standard log sources for a task.
+ *
+ * Knows about audit logs, transcripts, tool output, proxy logs, CLI debug
+ * logs, and the MCP sidecar — delegating the actual capture to the
+ * {@link ContainerLogCollector}.
+ */
+export class LogSourceRegistry implements ILogSourceRegistry {
+  /** Path to the pre-tool invocation log inside the container. */
+  static readonly PRE_TOOL_PATH = "/workspace/.ralph/logs/pre-tool.log";
+
+  /** Path to the untruncated tool output log inside the container. */
+  static readonly TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
+
+  registerAll(
+    logs: IContainerLogCollector,
+    profile: AgentProfile,
+    issueKey: string,
+    callbacks: LogSourceCallbacks,
+    cliPaths: CliPaths,
+  ): void {
+    logs.setTaskId(issueKey);
+
+    logs.addSource({
+      id: "audit",
+      service: "app",
+      containerPath: profile.auditLogPath,
+      extension: "jsonl",
+      mode: CaptureMode.Collect,
+    });
+
+    logs.addSource({
+      id: "transcript",
+      service: "app",
+      containerPath: cliPaths.transcriptPath,
+      extension: "md",
+      mode: CaptureMode.Collect,
+    });
+
+    logs.addSource({
+      id: "pre-tool",
+      service: "app",
+      containerPath: LogSourceRegistry.PRE_TOOL_PATH,
+      extension: "log",
+      mode: callbacks.onPreToolUse ? CaptureMode.Stream : CaptureMode.Collect,
+      onLine: callbacks.onPreToolUse,
+    });
+
+    logs.addSource({
+      id: "tool-output",
+      service: "app",
+      containerPath: LogSourceRegistry.TOOL_OUTPUT_PATH,
+      extension: "log",
+      mode: callbacks.onToolOutput ? CaptureMode.Stream : CaptureMode.Collect,
+      onLine: callbacks.onToolOutput,
+    });
+
+    logs.addSource({
+      id: "proxy",
+      service: "egress-proxy",
+      containerPath: "/var/log/squid/access.log",
+      extension: "log",
+      mode: CaptureMode.Collect,
+    });
+
+    logs.addSource({
+      id: "cli-debug",
+      service: "app",
+      containerPath: cliPaths.logDir,
+      extension: "log",
+      mode: CaptureMode.Collect,
+      collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
+    });
+
+    logs.addSource({
+      id: "sidecar",
+      service: "mcp-sidecar",
+      containerPath: "",
+      extension: "log",
+      mode: CaptureMode.Collect,
+      useComposeLogs: true,
+    });
+
+    logs.attach();
+  }
+}

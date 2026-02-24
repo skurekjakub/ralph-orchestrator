@@ -5,6 +5,7 @@ import type { RetryOptions } from "../retry.js";
 import { withRetry } from "../retry.js";
 import { TransitionPhase } from "../orchestrator-types.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
+import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for JIRA issue lifecycle operations. */
 export interface IIssueManager {
@@ -15,7 +16,7 @@ export interface IIssueManager {
   postErrorComment(issueKey: string, error: string): Promise<void>;
   postCrashRecoveryComment(issueKey: string, variant: string): Promise<void>;
   postStaleStatusComment(issueKey: string, displayName: string, currentStatus: string): Promise<void>;
-  postAckComment(issueKey: string, displayName: string): Promise<void>;
+  postAckComment(issueKey: string, displayName: string, triggerParams?: string[]): Promise<void>;
   postComment(issueKey: string, body: string): Promise<void>;
 }
 
@@ -44,7 +45,7 @@ export class JiraIssueManager implements IIssueManager {
       return results[0] ?? null;
     } catch (err) {
       this.logger.warn(
-        `Failed to refresh ${issueKey}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to refresh ${issueKey}: ${toErrorMessage(err)}`,
       );
       return null;
     }
@@ -89,7 +90,7 @@ export class JiraIssueManager implements IIssueManager {
       );
       this.logger.info(`${issueKey} transitioned (${phase} → "${targetStatus}")`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = toErrorMessage(err);
       this.logger.warn(
         `Failed to transition ${issueKey} (${phase}): ${message}`
       );
@@ -114,7 +115,7 @@ export class JiraIssueManager implements IIssueManager {
       this.logger.info(`Start comment posted on ${issueKey}`);
     } catch (err) {
       this.logger.warn(
-        `Failed to comment on ${issueKey} after retries: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to comment on ${issueKey} after retries: ${toErrorMessage(err)}`
       );
     }
   }
@@ -132,7 +133,7 @@ export class JiraIssueManager implements IIssueManager {
       this.logger.info(`Error comment posted on ${issueKey}`);
     } catch (err) {
       this.logger.warn(
-        `Failed to post error comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to post error comment on ${issueKey}: ${toErrorMessage(err)}`
       );
     }
   }
@@ -144,7 +145,7 @@ export class JiraIssueManager implements IIssueManager {
       .addComment(issueKey, OrchestratorComments.crashRecovery(displayName))
       .catch((err) => {
         this.logger.warn(
-          `Failed to post crash-recovery comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to post crash-recovery comment on ${issueKey}: ${toErrorMessage(err)}`,
         );
       });
   }
@@ -155,18 +156,18 @@ export class JiraIssueManager implements IIssueManager {
       .addComment(issueKey, OrchestratorComments.staleStatus(displayName, currentStatus))
       .catch((err) => {
         this.logger.warn(
-          `Failed to post stale-status comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to post stale-status comment on ${issueKey}: ${toErrorMessage(err)}`,
         );
       });
   }
 
   /** Post an ack comment when a trigger comment is discovered. */
-  async postAckComment(issueKey: string, displayName: string): Promise<void> {
+  async postAckComment(issueKey: string, displayName: string, triggerParams?: string[]): Promise<void> {
     await this.jiraClient
-      .addComment(issueKey, OrchestratorComments.ack(displayName))
+      .addComment(issueKey, OrchestratorComments.ack(displayName, triggerParams))
       .catch((err) => {
         this.logger.warn(
-          `Failed to post ack comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to post ack comment on ${issueKey}: ${toErrorMessage(err)}`,
         );
       });
   }
@@ -177,7 +178,7 @@ export class JiraIssueManager implements IIssueManager {
       .addComment(issueKey, body)
       .catch((err) => {
         this.logger.warn(
-          `Failed to post comment on ${issueKey}: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to post comment on ${issueKey}: ${toErrorMessage(err)}`,
         );
       });
   }

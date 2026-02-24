@@ -3,6 +3,7 @@ import { extractAdfText } from "../jira/adf-converter.js";
 import type { IJiraClient } from "../jira/client.js";
 import type { RetryOptions } from "../retry.js";
 import { withRetry } from "../retry.js";
+import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for JIRA resource interactions (comments, attachments, transcripts). */
 export interface IResourceManager {
@@ -30,7 +31,7 @@ export class TaskJiraResourceManager implements IResourceManager {
   async fetchComments(issueKey: string): Promise<string[]> {
     const comments = await this.jiraClient.getComments(issueKey).catch((err) => {
       this.logger.warn(
-        `Failed to fetch comments for ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to fetch comments for ${issueKey}: ${toErrorMessage(err)}`
       );
       return [];
     });
@@ -49,7 +50,7 @@ export class TaskJiraResourceManager implements IResourceManager {
   async fetchHandoff(issueKey: string): Promise<string | null> {
     const attachments = await this.jiraClient.getAttachments(issueKey).catch((err) => {
       this.logger.warn(
-        `Failed to fetch attachments for ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to fetch attachments for ${issueKey}: ${toErrorMessage(err)}`
       );
       return [];
     });
@@ -66,7 +67,7 @@ export class TaskJiraResourceManager implements IResourceManager {
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to download handoff.md: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to download handoff.md: ${toErrorMessage(err)}`
       );
       return null;
     }
@@ -91,7 +92,7 @@ export class TaskJiraResourceManager implements IResourceManager {
       this.logger.info(`Session transcript attached to ${issueKey}`);
     } catch (err) {
       this.logger.warn(
-        `Failed to attach transcript to ${issueKey}: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to attach transcript to ${issueKey}: ${toErrorMessage(err)}`
       );
     }
   }

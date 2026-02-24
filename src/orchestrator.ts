@@ -6,6 +6,8 @@ import type { Operation } from "./services/operation-ledger.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
 import type { JiraIssue } from "./jira/types.js";
 import type { ActiveTask, OrchestratorDeps } from "./orchestrator-types.js";
+import { buildTaskContext } from "./services/task-context.js";
+import { toErrorMessage } from "./util/error.js";
 
 /**
  * Main orchestration loop.
@@ -176,6 +178,16 @@ export class Orchestrator {
       if (!await this.runPreflight(issue, profile, operation)) return;
     }
 
+    // Auto-preflight for revision tasks — requires an existing PR and handoff.
+    const revisionStatuses = profile.match.revisionStatuses ?? [];
+    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+    const isRevision = revisionStatuses.some(
+      (s) => s.toLowerCase() === issueStatus,
+    );
+    if (isRevision) {
+      if (!await this.runPreflight(issue, profile, operation, "revision-ready")) return;
+    }
+
     await this.runTask(issue, profile, operation);
   }
 
@@ -224,12 +236,14 @@ export class Orchestrator {
     return false;
   }
 
-  /** Run the profile's preflight check. Returns `false` if the check fails. */
+  /** Run a preflight check. Uses the profile's configured check or an explicit name. Returns `false` if the check fails. */
   private async runPreflight(
     issue: JiraIssue,
     profile: AgentProfile,
     operation: Operation,
+    checkName?: string,
   ): Promise<boolean> {
+    const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
     const comments = await this.deps.issueManager.getComments(issue.key);
@@ -238,7 +252,7 @@ export class Orchestrator {
       issue.key,
       comments,
     );
-    const result = runPreflight(profile.preflight!, issue, ctx);
+    const result = runPreflight(name, issue, ctx);
     if (result.ok) return true;
 
     const comment =
@@ -248,11 +262,11 @@ export class Orchestrator {
       issue.key,
       operation.id,
       OperationStatus.Rejected,
-      { reason: `preflight:${profile.preflight} — ${result.reason}` },
+      { reason: `preflight:${name} — ${result.reason}` },
     );
     await this.deps.issueManager.postComment(issue.key, comment);
     this.log(
-      `Preflight failed for ${issue.key} (${profile.preflight}): ${result.reason}`,
+      `Preflight failed for ${issue.key} (${name}): ${result.reason}`,
     );
     return false;
   }
@@ -279,7 +293,8 @@ export class Orchestrator {
 
     try {
       this.deps.activityLog.startTaskLog(taskId);
-      const { result, container } = await this.deps.taskRunner.run(issue, profile, taskId);
+      const ctx = buildTaskContext(issue, profile, taskId, operation.triggerParams);
+      const { result, container } = await this.deps.taskRunner.run(ctx);
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
@@ -317,7 +332,7 @@ export class Orchestrator {
         );
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
+      const errorMsg = toErrorMessage(err);
       this.logError(`Error processing ${issue.key}: ${errorMsg}`);
 
       this.observer.recordCompletion({

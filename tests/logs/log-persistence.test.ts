@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { TaskStatus } from "../../src/container/types.js";
 import { LogLevel } from "../../src/orchestrator-types.js";
 import { resolveStatus } from "../../src/container/result-parser.js";
@@ -108,6 +108,14 @@ describe("Result status determination", () => {
     expect(resolveStatus(0, false, undefined)).toBe(TaskStatus.Completed);
     expect(resolveStatus(1, false, undefined)).toBe(TaskStatus.Error);
     expect(resolveStatus(1, true, undefined)).toBe(TaskStatus.Partial);
+  });
+
+  it("falls back to exit code and warns on unrecognized agent status", () => {
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    expect(resolveStatus(0, false, "success", logger)).toBe(TaskStatus.Completed);
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(logger.warn.mock.calls[0][0]).toContain("success");
+    expect(logger.warn.mock.calls[0][0]).toContain("unrecognized");
   });
 });
 

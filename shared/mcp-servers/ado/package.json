@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "axios": "^1.13.5",
-    "https-proxy-agent": "^7.0.6"
+    "axios": "^1.13.5"
   },
   "engines": {
     "node": ">=22.0.0"

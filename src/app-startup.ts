@@ -1,5 +1,4 @@
 import type { Logger } from "./logger.js";
-import { resolveAllProfileIncludes } from "./container/setup/agent-includes.js";
 import { resolveAllProfileSetup } from "./container/setup/profile-setup.js";
 import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
 import { loadConfig } from "./config.js";
@@ -12,7 +11,6 @@ export interface AppStartupDeps {
   validate(logger?: Logger): Promise<ValidationResult>;
   printResults(result: ValidationResult): boolean;
   loadConfig(): AppConfig;
-  resolveIncludes(logger?: Logger): void;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
 }
@@ -29,7 +27,6 @@ function defaultDeps(): AppStartupDeps {
     validate: (logger) => validatePrerequisites(logger),
     printResults: printValidationResults,
     loadConfig,
-    resolveIncludes: (logger) => resolveAllProfileIncludes(undefined, logger),
     buildMcpServers: buildCustomMcpServers,
     resolveMcpConfigs: (logger) => resolveAllProfileSetup(undefined, logger),
   };
@@ -72,11 +69,10 @@ export class AppStartup implements IAppStartup {
   }
 
   /**
-   * Build custom MCP servers, generate per-profile configs, and resolve
-   * agent templates.
+   * Build custom MCP servers and generate per-profile configs.
    *
-   * Order matters: MCP config generation clears `.build/` so agent
-   * include resolution must run after it.
+   * Agent template rendering is deferred to task execution time (JIT)
+   * so templates have access to runtime context like `isRevision`.
    */
   private async initializeProfiles(logger: Logger): Promise<void> {
     await this.deps.buildMcpServers(logger);
@@ -84,8 +80,5 @@ export class AppStartup implements IAppStartup {
 
     this.deps.resolveMcpConfigs(logger);
     logger.info("Resolved MCP server configs");
-
-    this.deps.resolveIncludes(logger);
-    logger.info("Resolved agent include markers");
   }
 }

@@ -10,6 +10,8 @@ import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";
+import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
+import type { TaskContext } from "../../src/services/task-context.js";
 import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
@@ -114,7 +116,9 @@ export function makeProfile(
     beforeAgent: {},
     afterAgent: {},
     cleanPaths: [],
+    maxContinuations: 0,
     mcpServers: [],
+    mcpServerConfigs: {},
     githubMcpTools: false,
     ...overrides,
     match,
@@ -143,6 +147,7 @@ export function makeConfig(profiles?: AgentProfile[]): AppConfig {
     promptAudit: {
       mode: AuditMode.Warn,
     },
+    enableContinuation: false,
     excludeFields: [],
     allowedUsers: [],
     secrets: {
@@ -172,6 +177,50 @@ export function makeCompletion(
     status: TaskStatus.Completed,
     durationMs: 5000,
     completedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+// ── Template context ─────────────────────────────────────────────────────────
+
+/** Create a minimal TemplateContext for testing. */
+export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): TemplateContext {
+  return {
+    profileId: "ralph-default",
+    repo: "/tmp/test-repo",
+    cli: "copilot",
+    model: "",
+    agentName: "ralph",
+    displayName: "ralph",
+    mcpServers: [],
+    issueKey: "DF-100",
+    issueSummary: "Test issue DF-100",
+    issueStatus: "New",
+    issueType: "",
+    issuePriority: "",
+    issueLabels: [],
+    issueComponents: [],
+    issueProject: "DF",
+    issueDescription: "",
+    issueCreated: "2026-01-01T00:00:00.000+0000",
+    issueUpdated: "",
+    commentTrigger: "@ralph",
+    triggerParams: {},
+    isRevision: false,
+    ...overrides,
+  };
+}
+
+// ── Task context ─────────────────────────────────────────────────────────────
+
+/** Create a minimal TaskContext for testing. */
+export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskContext {
+  return {
+    issue: makeIssue("DF-100"),
+    profile: makeProfile(),
+    taskId: "DF-100-1234567890000",
+    triggerParams: {},
+    isRevision: false,
     ...overrides,
   };
 }

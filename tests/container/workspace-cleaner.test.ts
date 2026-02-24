@@ -49,7 +49,7 @@ describe("ContainerWorkspaceCleaner", () => {
       const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
-      await cleaner.cleanLogDirectory("/workspace/.ralph/logs/session.audit.jsonl");
+      await cleaner.cleanDirectory("/workspace/.ralph/logs/session.audit.jsonl");
 
       expect(exec).toHaveBeenCalledTimes(3);
       expect(exec).toHaveBeenNthCalledWith(1, ["-T", "--user", "root", "app", "rm", "-rf", "/workspace/.ralph/logs/"]);
@@ -64,7 +64,7 @@ describe("ContainerWorkspaceCleaner", () => {
       const logger = createMockLogger();
       const cleaner = new ContainerWorkspaceCleaner(compose, logger);
 
-      await cleaner.cleanLogDirectory("/workspace/.ralph/logs/audit.jsonl");
+      await cleaner.cleanDirectory("/workspace/.ralph/logs/audit.jsonl");
 
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Permission denied"));
     });

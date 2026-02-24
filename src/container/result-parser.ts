@@ -1,5 +1,13 @@
 import type { RalphResult } from "./types.js";
 import { TaskStatus } from "./types.js";
+import type { Logger } from "../logger.js";
+
+/** Valid agent-reported statuses accepted by {@link resolveStatus}. */
+const RECOGNIZED_STATUSES: ReadonlySet<string> = new Set([
+  TaskStatus.Completed,
+  TaskStatus.Partial,
+  TaskStatus.Blocked,
+]);
 
 /**
  * Parse the structured `===RALPH_RESULT_START===` block from CLI stdout.
@@ -42,20 +50,28 @@ export function parseResultBlock(stdout: string): {
  * Determine the final {@link RalphResult} status from exit code, timeout flag,
  * and agent-reported status.
  *
- * Priority: agent-reported status > timeout > exit code
+ * Priority: agent-reported status > timeout > exit code.
+ *
+ * Logs a warning when the agent reports an unrecognized status value — this
+ * typically indicates a typo in the result block (e.g. `STATUS: success`
+ * instead of `STATUS: completed`).
+ *
+ * @param logger Optional logger for diagnostic warnings.
  */
 export function resolveStatus(
   exitCode: number,
   timedOut: boolean,
-  agentStatus: string | undefined
+  agentStatus: string | undefined,
+  logger?: Logger,
 ): RalphResult["status"] {
-  // Prefer agent-reported status when it's a recognized value
-  if (
-    agentStatus === TaskStatus.Completed ||
-    agentStatus === TaskStatus.Partial ||
-    agentStatus === TaskStatus.Blocked
-  ) {
-    return agentStatus as RalphResult["status"];
+  if (agentStatus !== undefined) {
+    if (RECOGNIZED_STATUSES.has(agentStatus)) {
+      return agentStatus as RalphResult["status"];
+    }
+    logger?.warn(
+      `Agent reported unrecognized status "${agentStatus}" — falling back to exit-code resolution. ` +
+      `Valid values: ${[...RECOGNIZED_STATUSES].join(", ")}`,
+    );
   }
 
   if (timedOut) return TaskStatus.Partial;

@@ -8,7 +8,6 @@
   "sidecarPort": 9102,
   "requiredEnv": ["DISCORD_BOT_TOKEN", "DISCORD_CHANNEL_ID"],
   "optionalEnv": ["DISCORD_TASK_CONTEXT"],
-  "proxyDomains": [".discord.com", ".discord.gg"],
   "tools": [
     "discord_ask"
   ]

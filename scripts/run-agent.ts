@@ -17,8 +17,8 @@
  * Logs are saved to output/logs/ with prefix "local-run-<timestamp>".
  */
 import "dotenv/config";
-import { resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { existsSync, rmSync, mkdirSync } from "node:fs";
 import { AppStartup } from "../src/app-startup.js";
 import { ComposeClient } from "../src/container/compose-client.js";
 import { ComposeFileResolver } from "../src/container/setup/compose-files.js";
@@ -73,7 +73,7 @@ async function main() {
   // 4. Set up log collector
   const logs = new ContainerLogCollector(compose, config.output.logDir, logger);
   const issueKey = `local-run-${Date.now()}`;
-  logs.setIssueKey(issueKey);
+  logs.setTaskId(issueKey);
 
   logs.addSource({
     id: "audit",
@@ -105,41 +105,46 @@ async function main() {
     useComposeLogs: true,
   });
 
-  const cleaner = new ContainerWorkspaceCleaner(compose, logger);
   const executor = new CopilotExecutor(compose, profile, logger);
 
   try {
-    // 5. Start containers
+    // 5. Clean .ralph directory on host before compose up
+    const ralphDir = join(profile.repoPath, ".ralph");
+    logger.info(`Cleaning ${ralphDir}...`);
+    rmSync(ralphDir, { recursive: true, force: true });
+    mkdirSync(ralphDir, { recursive: true });
+
+    // 6. Start containers
     logger.info("Starting containers...");
     const buildProc = compose.compose(["up", "-d", "--build"]);
     new StreamCapture(buildProc, logger, "build");
     await buildProc;
     logger.info("Containers started");
 
-    // 6. Health check
+    // 7. Health check
     await compose.checkDocker();
 
-    // 7. Prepare workspace
+    // 8. Prepare workspace
     logger.info("Preparing workspace...");
+    const cleaner = new ContainerWorkspaceCleaner(compose, logger);
     await cleaner.prepareConfigDir(CopilotExecutor.CONFIG_DIR, CopilotExecutor.WRITABLE_DIRS);
-    await cleaner.cleanLogDirectory(profile.auditLogPath);
     await cleaner.cleanPaths(profile.cleanPaths);
 
     logs.attach();
 
-    // 8. Run setup script
+    // 9. Run setup script
     logger.info("Running setup script...");
     const setupProc = compose.exec(["--user", "vscode", "app", profile.setupScript]);
     new StreamCapture(setupProc, logger, "setup");
     await setupProc;
     logger.info("Setup complete");
 
-    // 9. Execute agent
+    // 10. Execute agent
     logger.info(`Executing ${profile.displayName} agent...`);
     const result = await executor.run(prompt);
     logger.info(`Agent finished: exit=${result.exitCode}, timedOut=${result.timedOut}`);
 
-    // 10. Collect logs
+    // 11. Collect logs
     logger.info("Collecting logs...");
     const collected = await logs.collectAll();
     for (const { id, path } of collected) {

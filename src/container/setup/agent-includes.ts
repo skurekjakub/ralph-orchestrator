@@ -1,71 +1,235 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
+import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
-
-const INCLUDE_PATTERN = /^[ \t]*<!-- include: (.+?) -->$/gm;
+import type { AgentProfile } from "../../config.js";
+import type { JiraIssue } from "../../jira/types.js";
+import { extractAdfText } from "../../jira/adf-converter.js";
+import { normalizeContent } from "../../prompt/normalizer.js";
+import { registerCustomTags } from "./liquid-tags.js";
 
 /**
- * Resolve include markers in agent files.
+ * Render agent templates to resolved `.agent.md` files in `.build/`.
  *
- * Reads agent template files from agentDir, replaces include markers with
- * content from includesDir, and writes the resolved files to the profile's .build/ directory.
+ * Reads `.agent.md` templates from agentDir, renders Liquid tags
+ * (e.g. `{% render 'name' %}`) using partials from includesDir, and
+ * writes the output to the profile's `.build/` directory.
  *
- * The .build/ directory is what Docker compose should mount. The template
- * files in agentDir are the source of truth.
+ * The context object is passed to Liquid's renderer, making all keys
+ * available as template variables (e.g. `{{ repo }}`, `{{ isRevision }}`).
+ *
+ * The `.build/` directory is what Docker compose should mount. The
+ * `.agent.md` files in agentDir are the source of truth.
  */
-export function resolveAgentIncludes(agentDir: string, includesDir: string, logger?: Logger): void {
+export async function resolveAgentIncludes(
+  agentDir: string,
+  includesDir: string,
+  context: Record<string, unknown>,
+  logger?: Logger,
+): Promise<void> {
   const profileDir = dirname(agentDir);
   const buildDir = join(profileDir, ".build");
-  mkdirSync(buildDir, { recursive: true });
+  await mkdir(buildDir, { recursive: true });
 
-  const files = readdirSync(agentDir).filter((f) => f.endsWith(".agent.md"));
+  const engine = new Liquid({
+    root: [includesDir],
+    extname: ".md",
+    globals: context,
+  });
+  registerCustomTags(engine);
 
-  for (const file of files) {
+  const allFiles = await readdir(agentDir);
+  const templates = allFiles.filter((f) => f.endsWith(".agent.md"));
+
+  for (const file of templates) {
     const templatePath = join(agentDir, file);
-    let content = readFileSync(templatePath, "utf-8");
-
-    let includeCount = 0;
-    content = content.replace(INCLUDE_PATTERN, (_match, includeName: string) => {
-      const includePath = join(includesDir, includeName.trim());
-      if (!existsSync(includePath)) {
-        throw new Error(
-          `Agent include not found: ${includeName} (referenced in ${file}, expected at ${includePath})`
-        );
-      }
-      includeCount++;
-      return readFileSync(includePath, "utf-8").trimEnd();
-    });
-
-    writeFileSync(join(buildDir, file), content, "utf-8");
-    if (includeCount > 0) {
-      logger?.info(`  → ${file}: resolved ${includeCount} include${includeCount === 1 ? "" : "s"}`);
-    }
+    const content = await readFile(templatePath, "utf-8");
+    const rendered = await engine.parseAndRender(content, context);
+    await writeFile(join(buildDir, file), rendered, "utf-8");
+    logger?.info(`  → ${file}: rendered`);
   }
 }
 
 /**
- * Resolve includes for all profiles in the workspace.
+ * Template variables available to agent `.agent.md` templates.
  *
- * Scans profile agent directories and resolves includes from
- * shared/agent-includes/. Call this before starting any containers.
+ * Built from the parsed profile config and the current JIRA issue,
+ * so templates can tailor instructions per-task (e.g. `{% if isRevision %}`,
+ * `{% if issueProject == "DOC" %}`).
  */
-export function resolveAllProfileIncludes(rootDir?: string, logger?: Logger): void {
-  const root = rootDir ?? process.cwd();
-  const includesDir = resolve(root, "shared/agent-includes");
+export interface TemplateContext {
+  /** Allow Liquid to access any property — known fields are typed below. */
+  [key: string]: unknown;
 
-  if (!existsSync(includesDir)) {
-    logger?.warn("Agent includes directory not found, skipping include resolution");
-    return;
-  }
+  /** Profile directory name (e.g. `ralph-docs`). */
+  profileId: string;
+  /** Absolute path to the target repository on the host. */
+  repo: string;
+  /** CLI type (`copilot` or `claude`). */
+  cli: string;
+  /** Model override, or empty string when using CLI default. */
+  model: string;
+  /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). */
+  agentName: string;
+  /** Human-friendly agent name (e.g. `ralph`). */
+  displayName: string;
+  /** MCP servers deployed for this profile. */
+  mcpServers: string[];
 
-  const profilesDir = resolve(root, "profiles");
-  if (!existsSync(profilesDir)) return;
+  /** JIRA issue key (e.g. `DF-2704`). */
+  issueKey: string;
+  /** JIRA issue summary / title. */
+  issueSummary: string;
+  /** Current JIRA workflow status (e.g. `To Do`, `Defect Found`). */
+  issueStatus: string;
+  /** JIRA issue type (e.g. `Task`, `Story`), or empty string if unavailable. */
+  issueType: string;
+  /** JIRA issue priority (e.g. `High`), or empty string if unavailable. */
+  issuePriority: string;
+  /** JIRA labels attached to the issue. */
+  issueLabels: string[];
+  /** JIRA component names attached to the issue. */
+  issueComponents: string[];
+  /** JIRA project key derived from the issue key (e.g. `DF`). */
+  issueProject: string;
+  /**
+   * Plain-text issue description extracted from ADF and normalized.
+   *
+   * **Contains untrusted JIRA content.** Use with care in templates —
+   * prefer referencing the CLI prompt for full description rendering.
+   * Useful for Liquid conditionals (e.g. `{% if issueDescription contains "migration" %}`).
+   */
+  issueDescription: string;
+  /** ISO-8601 creation timestamp (e.g. `2026-01-15T10:30:00.000+0000`). */
+  issueCreated: string;
+  /** ISO-8601 last-updated timestamp, or empty string if unavailable. */
+  issueUpdated: string;
 
-  for (const profileId of readdirSync(profilesDir)) {
-    const agentDir = join(profilesDir, profileId, "agents");
-    if (existsSync(agentDir)) {
-      logger?.info(`Resolving agent includes for profile ${profileId}`);
-      resolveAgentIncludes(agentDir, includesDir, logger);
+  /** The comment trigger string that matched this variant (e.g. `@ralph write`). */
+  commentTrigger: string;
+
+  /**
+   * Parsed trigger parameters from the comment callsign.
+   *
+   * Built from the raw comma-separated strings by {@link buildTriggerParams}.
+   * Bare params (e.g. `codesamples`) map to `"true"`. Key-value params
+   * (e.g. `branch_name=feature-xyz`) map to the value string.
+   * Enables Liquid conditionals like `{% if triggerParams.codesamples %}`
+   * and interpolation like `{{ triggerParams.branch_name }}`.
+   */
+  triggerParams: Record<string, string>;
+
+  /** Whether this task is a revision of a previous attempt. */
+  isRevision: boolean;
+}
+
+/**
+ * Build a {@link TemplateContext} from the already-parsed profile and JIRA issue.
+ *
+ * Called by {@link TaskRunner} before rendering so all data is available
+ * as Liquid variables without re-reading `profile.json` from disk.
+ */
+export function buildTemplateContext(
+  profile: AgentProfile,
+  issue: JiraIssue,
+  isRevision: boolean,
+  triggerParams: string[] | Record<string, string> = [],
+): TemplateContext {
+  const resolvedParams = Array.isArray(triggerParams)
+    ? buildTriggerParams(triggerParams)
+    : triggerParams;
+
+  return {
+    profileId: profile.id,
+    repo: profile.repoPath,
+    cli: profile.cli,
+    model: profile.model ?? "",
+    agentName: profile.agentName,
+    displayName: profile.displayName,
+    mcpServers: profile.mcpServers,
+
+    issueKey: issue.key,
+    issueSummary: issue.fields.summary,
+    issueStatus: issue.fields.status.name,
+    issueType: issue.fields.issuetype?.name ?? "",
+    issuePriority: issue.fields.priority?.name ?? "",
+    issueLabels: issue.fields.labels ?? [],
+    issueComponents: (issue.fields.components ?? []).map((c) => c.name),
+    issueProject: issue.key.split("-")[0],
+    issueDescription: extractDescription(issue),
+    issueCreated: issue.fields.created,
+    issueUpdated: issue.fields.updated ?? "",
+
+    commentTrigger: profile.match.commentTrigger,
+    triggerParams: resolvedParams,
+
+    isRevision,
+  };
+}
+
+/**
+ * Build a key-value map from raw trigger params.
+ *
+ * Bare params like `"codesamples"` become `{ codesamples: "true" }`.
+ * Key-value params like `"branch_name=feature-xyz"` become `{ branch_name: "feature-xyz" }`.
+ */
+export function buildTriggerParams(params: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const param of params) {
+    const eqIndex = param.indexOf("=");
+    if (eqIndex > 0) {
+      map[param.slice(0, eqIndex).trim()] = param.slice(eqIndex + 1).trim();
+    } else {
+      map[param] = "true";
     }
+  }
+  return map;
+}
+
+/** Extract plain text from a JIRA issue description (ADF or string). */
+function extractDescription(issue: JiraIssue): string {
+  if (!issue.fields.description) return "";
+  const raw =
+    typeof issue.fields.description === "string"
+      ? issue.fields.description
+      : extractAdfText(issue.fields.description);
+  return normalizeContent(raw);
+}
+
+/** Public contract for JIT agent template rendering. */
+export interface IAgentTemplateRenderer {
+  /** Render agent templates for a profile with the pre-built template context. */
+  render(profileId: string, context: TemplateContext, logger?: Logger): Promise<void>;
+}
+
+/**
+ * JIT agent template renderer.
+ *
+ * Accepts a pre-built {@link TemplateContext} and renders all agent
+ * templates via Liquid. Called before each task so templates can use
+ * runtime data like `{% if isRevision %}` or `{{ issueKey }}`.
+ */
+export class AgentTemplateRenderer implements IAgentTemplateRenderer {
+  constructor(private readonly rootDir?: string) {}
+
+  async render(profileId: string, context: TemplateContext, logger?: Logger): Promise<void> {
+    const root = this.rootDir ?? process.cwd();
+    const includesDir = resolve(root, "shared/agent-includes");
+
+    if (!existsSync(includesDir)) {
+      logger?.warn("Agent includes directory not found, skipping template rendering");
+      return;
+    }
+
+    const profileDir = join(root, "profiles", profileId);
+    const agentDir = join(profileDir, "agents");
+    if (!existsSync(agentDir)) {
+      logger?.warn(`No agents directory for profile ${profileId}, skipping template rendering`);
+      return;
+    }
+
+    logger?.info(`Rendering agent templates for ${profileId}`);
+    await resolveAgentIncludes(agentDir, includesDir, context, logger);
   }
 }

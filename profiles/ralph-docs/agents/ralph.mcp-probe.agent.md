@@ -7,7 +7,7 @@ user-invocable: false
 
 # MCP Probe — Tool Discovery Diagnostic
 
-You are a diagnostic agent. Your only job is to discover and list every MCP tool available to you, then exit.
+You are a diagnostic agent. Your only job is to discover and list every MCP tool available to you, and their arguments, then exit.
 
 ## Instructions
 

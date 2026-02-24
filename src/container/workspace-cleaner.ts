@@ -1,6 +1,16 @@
 import type { IComposeClient } from "./compose-client.js";
 import type { Logger } from "../logger.js";
 
+/** Public contract for workspace cleanup inside a container. */
+export interface IContainerWorkspaceCleaner {
+  /** Ensure the CLI config directory and its writable subdirectories are owned by vscode. */
+  prepareConfigDir(configDir: string, writableDirs: readonly string[]): Promise<void>;
+  /** Clear and recreate the audit log directory with vscode ownership. */
+  cleanDirectory(auditLogPath: string): Promise<void>;
+  /** Delete configured workspace paths before agent execution. */
+  cleanPaths(paths: readonly string[]): Promise<void>;
+}
+
 /**
  * Cleans up workspace paths inside a running Docker Compose container
  * before agent execution.
@@ -16,7 +26,7 @@ import type { Logger } from "../logger.js";
  * 2. **Workspace paths** — arbitrary paths configured in the profile
  *    (`cleanPaths`). Removed as vscode (agent-created files).
  */
-export class ContainerWorkspaceCleaner {
+export class ContainerWorkspaceCleaner implements IContainerWorkspaceCleaner {
   constructor(
     private readonly compose: IComposeClient,
     private readonly logger: Logger,
@@ -53,7 +63,7 @@ export class ContainerWorkspaceCleaner {
    * @param auditLogPath Absolute path to the audit log file inside the
    *   container — the parent directory is derived from this.
    */
-  async cleanLogDirectory(auditLogPath: string): Promise<void> {
+  async cleanDirectory(auditLogPath: string): Promise<void> {
     const logDir = auditLogPath.substring(0, auditLogPath.lastIndexOf("/") + 1);
     try {
       await this.compose.exec(["-T", "--user", "root", "app", "rm", "-rf", logDir]);

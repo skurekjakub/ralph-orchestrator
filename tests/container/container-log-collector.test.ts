@@ -63,7 +63,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-100");
+    collector.setTaskId("DOC-100");
     collector.addSource({
       id: "proxy",
       service: "egress-proxy",
@@ -91,7 +91,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-200");
+    collector.setTaskId("DOC-200");
     collector.addSource({
       id: "audit",
       service: "app",
@@ -138,7 +138,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-300");
+    collector.setTaskId("DOC-300");
     collector.addSource({
       id: "proxy",
       service: "egress-proxy",
@@ -158,7 +158,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-400");
+    collector.setTaskId("DOC-400");
     collector.addSource({
       id: "audit",
       service: "app",
@@ -197,7 +197,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-500");
+    collector.setTaskId("DOC-500");
     collector.addSource({
       id: "source-a",
       service: "app",
@@ -229,7 +229,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-600");
+    collector.setTaskId("DOC-600");
     collector.addSource({
       id: "audit",
       service: "app",
@@ -269,7 +269,7 @@ describe("ContainerLogCollector", () => {
     const compose = makeMockCompose({});
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
-    collector.setIssueKey("DOC-700");
+    collector.setTaskId("DOC-700");
 
     const results = await collector.collectAll();
 
@@ -283,7 +283,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-800");
+    collector.setTaskId("DOC-800");
     collector.addSource({
       id: "exists",
       service: "app",
@@ -316,7 +316,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-900");
+    collector.setTaskId("DOC-900");
 
     collector.addSource({
       id: "audit",
@@ -356,7 +356,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-1000");
+    collector.setTaskId("DOC-1000");
     collector.addSource({
       id: "sidecar",
       service: "mcp-sidecar",
@@ -383,7 +383,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-1100");
+    collector.setTaskId("DOC-1100");
     collector.addSource({
       id: "proxy",
       service: "egress-proxy",
@@ -415,7 +415,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-1200");
+    collector.setTaskId("DOC-1200");
     collector.addSource({
       id: "sidecar",
       service: "mcp-sidecar",
@@ -436,7 +436,7 @@ describe("ContainerLogCollector", () => {
     const logger = createMockLogger();
     const collector = new ContainerLogCollector(compose, tempDir, logger);
 
-    collector.setIssueKey("DOC-1300");
+    collector.setTaskId("DOC-1300");
     collector.addSource({
       id: "sidecar",
       service: "mcp-sidecar",

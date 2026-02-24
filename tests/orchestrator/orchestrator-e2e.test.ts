@@ -51,9 +51,11 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.poller.stop).toHaveBeenCalled();
     expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
-      expect.objectContaining({ key: "DF-100" }),
-      expect.objectContaining({ id: "ralph-docs" }),
-      expect.stringMatching(/^DF-100-\d+$/),
+      expect.objectContaining({
+        issue: expect.objectContaining({ key: "DF-100" }),
+        profile: expect.objectContaining({ id: "ralph-docs" }),
+        taskId: expect.stringMatching(/^DF-100-\d+$/),
+      }),
     );
     expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
       "DF-100",
@@ -465,7 +467,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // The orchestrator must find the DOC profile (not the DF one) and execute
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(deps.taskRunner.run).mock.calls[0][1]).toBe(docProfile);
+    expect(vi.mocked(deps.taskRunner.run).mock.calls[0][0].profile).toBe(docProfile);
   });
 
   it("tears down all profiles on startup to clean abandoned containers", async () => {
@@ -521,5 +523,161 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     // Both profiles should have been attempted despite the first one failing
     expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile1, null);
     expect(deps.taskRunner.teardown).toHaveBeenCalledWith(profile2, null);
+  });
+
+  it("rejects revision task when no PR URL or handoff exists", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DF"],
+        statuses: ["Defect Found"],
+        commentTrigger: "@docs",
+        revisionStatuses: ["Defect Found"],
+      },
+    });
+
+    const issue = makeIssue("DF-900", "Revision without PR", "Defect Found");
+    const { container: mockContainer } = createMockContainer();
+
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile],
+      issueManager: {
+        refreshIssue: vi.fn().mockResolvedValue(issue),
+        getComments: vi.fn().mockResolvedValue([
+          makeComment("C1", "No PR link here"),
+        ]),
+      },
+      taskRunner: {
+        run: vi.fn().mockResolvedValue({
+          result: makeResult("DF-900"),
+          container: mockContainer,
+        }),
+      },
+      logDirName: "revision-preflight-logs",
+    });
+
+    // fetchHandoff returns null — no handoff attachment
+    vi.mocked(deps.resources.fetchHandoff).mockResolvedValue(null);
+
+    deps.ledger.plan("DF-900", {
+      variant: profile.variantKey,
+      triggerCommentId: "C1",
+      commentTimestamp: "2026-01-01T00:00:00Z",
+    });
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(orchestrator, () => {
+      const ops = deps.ledger.getOperations("DF-900");
+      return ops.length > 0 && ops[0].status === OperationStatus.Rejected;
+    });
+
+    const ops = deps.ledger.getOperations("DF-900");
+    expect(ops[0].status).toBe(OperationStatus.Rejected);
+    expect(ops[0].reason).toContain("revision-ready");
+    expect(deps.taskRunner.run).not.toHaveBeenCalled();
+    expect(deps.issueManager.postComment).toHaveBeenCalledWith(
+      "DF-900",
+      expect.stringContaining("can't proceed"),
+    );
+  });
+
+  it("allows revision task when PR URL and handoff exist", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DF"],
+        statuses: ["Defect Found"],
+        commentTrigger: "@docs",
+        revisionStatuses: ["Defect Found"],
+      },
+    });
+
+    const issue = makeIssue("DF-901", "Revision with PR", "Defect Found");
+    const { container: mockContainer } = createMockContainer();
+
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile],
+      issueManager: {
+        refreshIssue: vi.fn().mockResolvedValue(issue),
+        getComments: vi.fn().mockResolvedValue([
+          makeComment("C1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
+        ]),
+      },
+      taskRunner: {
+        run: vi.fn().mockResolvedValue({
+          result: makeResult("DF-901"),
+          container: mockContainer,
+        }),
+      },
+      logDirName: "revision-pass-logs",
+    });
+
+    vi.mocked(deps.resources.fetchHandoff).mockResolvedValue("## Handoff\nPrevious work done.");
+
+    deps.ledger.plan("DF-901", {
+      variant: profile.variantKey,
+      triggerCommentId: "C1",
+      commentTimestamp: "2026-01-01T00:00:00Z",
+    });
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+    const ops = deps.ledger.getOperations("DF-901");
+    expect(ops[0].status).toBe(OperationStatus.Completed);
+  });
+
+  it("skips revision preflight for non-revision status on same profile", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      match: {
+        projects: ["DF"],
+        statuses: ["New", "Defect Found"],
+        commentTrigger: "@docs",
+        revisionStatuses: ["Defect Found"],
+      },
+    });
+
+    // Issue is in "New" — not a revision status
+    const issue = makeIssue("DF-902", "Standard task", "New");
+    const { container: mockContainer } = createMockContainer();
+
+    const deps = buildBaseDeps(tempDir, {
+      profiles: [profile],
+      issueManager: {
+        refreshIssue: vi.fn().mockResolvedValue(issue),
+        // No getComments mock needed — revision preflight should not run
+      },
+      taskRunner: {
+        run: vi.fn().mockResolvedValue({
+          result: makeResult("DF-902"),
+          container: mockContainer,
+        }),
+      },
+      logDirName: "non-revision-logs",
+    });
+
+    deps.ledger.plan("DF-902", {
+      variant: profile.variantKey,
+      triggerCommentId: "C1",
+      commentTimestamp: "2026-01-01T00:00:00Z",
+    });
+
+    const orchestrator = new Orchestrator(deps);
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    // Task should proceed without any preflight check
+    expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+    expect(deps.resources.fetchHandoff).not.toHaveBeenCalled();
   });
 });

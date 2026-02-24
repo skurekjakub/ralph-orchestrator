@@ -4,7 +4,7 @@ How to structure agent prompts in this project — what to inline, what to defer
 
 ## Current Architecture
 
-Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use `<!-- include: name.md -->` markers that resolve from `shared/agent-includes/` at startup. Resolved files go to `.build/` and are mounted read-only into containers.
+Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials from `shared/agent-includes/*.md`. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, JIRA issue data (key, summary, status, type, priority, labels, components, project), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags. The `triggerParams` enables runtime parameterization of agent behavior — see [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference. Resolved files go to `.build/` and are mounted read-only into containers.
 
 The agent receives the fully resolved prompt as its system instructions. All includes are baked in before the CLI is invoked.
 
@@ -140,3 +140,24 @@ If keeping everything inline, optimize ordering for recall:
 5. **Prompt security** (end — last thing the agent reads before starting)
 
 This follows the "longform data at top, instructions at end" pattern from Anthropic's guidance.
+
+### XML Semantic Boundaries
+
+Use the custom `{% section "name" %}...{% endsection %}` Liquid block tag to wrap each top-level section in XML boundary tags. The rendered output becomes `<name>...</name>`, giving the LLM clear structural delimiters between prompt sections.
+
+**Why:** Claude and other LLMs respect XML boundaries for recall and scope isolation. A `<security>` block is less likely to be confused with a `<workflow>` block, and injection attempts within one section can't easily bleed into another.
+
+**Standard section names:** `agent-identity`, `api-reference`, `security`, `workflow`, `error-handling`, `review-principles`, `target-repository`.
+
+```markdown
+{% section "security" %}
+{% render 'prompt-security' %}
+{% endsection %}
+
+{% section "workflow" %}
+## Workflow
+### Phase 1: ...
+{% endsection %}
+```
+
+Multiple sections can share a name (e.g. two `api-reference` blocks for JIRA and ADO). The tag is stateless — each pair is independent.

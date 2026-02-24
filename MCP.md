@@ -42,7 +42,7 @@ shared/mcp-sidecar/
 
 | Server | Type | Tools | Proxy Domains |
 |---|---|---|---|
-| `ado` | custom | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment` | `.dev.azure.com`, `.visualstudio.com` |
+| `ado` | custom | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment`, `ado_push_progress` | `.dev.azure.com`, `.visualstudio.com` |
 | `jira-kentico` | custom | `jira_add_comment`, `jira_add_attachment` | `.atlassian.com`, `.atlassian.net` |
 | `discord-hitl` | custom | `discord_ask` | `.discord.com`, `.discord.gg` |
 | `playwright` | npm | `playwright_navigate`, `playwright_screenshot`, `playwright_click`, `playwright_fill`, `playwright_evaluate`, `playwright_get_text` | — |
@@ -97,6 +97,62 @@ Custom servers support both stdio and HTTP transport modes. In sidecar mode, the
 | `proxyDomains` | Domains the server needs egress access to | No |
 | `allowedUrlPaths` | Domain → allowed URL path prefixes for Copilot CLI URL restrictions | No |
 | `tools` | Tool names (documentation reference + tool filtering) | No |
+| `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error. | No |
+
+## Task-Scoped Parameters (JIT)
+
+Profile `mcpServers` entries can include `env` blocks with per-server configuration. Before each task, `JitMcpConfigWriter` resolves runtime macros and injects all env values into the server's `gateway.json` entry.
+
+### How it works
+
+1. **Profile declaration** — Per-server env in `profile.json`:
+   ```json
+   {
+     "mcpServers": [
+       { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$jira.key" } },
+       { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "TASK_BRANCH": "$jira.branch" } }
+     ]
+   }
+   ```
+
+2. **Resolution** — Before each task, `JitMcpConfigWriter.write()` processes each env value:
+   - Static values (no `$` prefix) pass through as-is
+   - `$`-prefixed macros are resolved from the current JIRA issue
+
+3. **Injection** — Resolved values merge into the server's `env` block in `gateway.json`. Existing env vars (secrets from `requiredEnv`) are preserved.
+
+4. **Server adaptation** — MCP servers read env vars at startup. When present, they conditionally remove the corresponding parameter from tool schemas, simplifying the agent's interface.
+
+### Available macros
+
+| Macro | Resolves to | Example |
+|---|---|---|
+| `$jira.key` | JIRA issue key | `DOC-3143` |
+| `$jira.project` | Project key derived from issue key | `DOC` |
+| `$jira.branch` | Branch name: `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
+| `$jira.summary` | JIRA issue summary | `Update getting started guide` |
+| `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing) | `$trigger.branch` → `feature-xyz` |
+
+### Manifest `requiredConfig`
+
+Servers declare `requiredConfig` to validate that profiles provide necessary env vars:
+
+```json
+{
+  "name": "ado",
+  "requiredConfig": ["ADO_PROJECT", "ADO_REPO"]
+}
+```
+
+At startup, the orchestrator checks that every key in `requiredConfig` is present in the profile's `mcpServers` env block for that server. Missing keys cause a descriptive validation error.
+
+### Execution order
+
+```
+template rendering → JIT MCP param injection → JIRA transition → container start → setup → hooks → execute
+```
+
+The JIT write happens after templates are rendered but before the container starts, so the sidecar always sees the task-specific config.
 
 ## Startup Resolution
 
@@ -134,17 +190,20 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
       "port": 9100,
       "command": "node",
       "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js"],
-      "env": { "JIRA_PAT": "...", "JIRA_EMAIL": "..." }
+      "env": { "JIRA_PAT": "...", "JIRA_EMAIL": "...", "JIRA_ISSUE_KEY": "DOC-3143" }
     }
   ]
 }
+```
+
+(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.)
 ```
 
 ### `docker-compose.overlay.yml`
 
 Compose overlay merged as the third file. Generates:
 - **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, etc.), URL-only `mcp-config.json` mount, copilot-config mount, resource mounts, `depends_on: mcp-sidecar`
-- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs)
+- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs), mounts the target repo volume at `/workspace` for git-powered tools (`REPO_ROOT` env var)
 
 No MCP server code, secrets, or gateway config is mounted into the agent container.
 
@@ -220,7 +279,6 @@ The `main()` function should check for `--transport http` and fall back to stdio
 ## Agent Include Files
 
 Agent templates reference MCP tools via `shared/agent-includes/`:
-- `jira-api.md` — Documents `jira_add_comment` and `jira_add_attachment` tools
 - `ado-api.md` — Documents `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment` tools
 
-These files are included in agent `.md` templates via `<!-- include: jira-api.md -->` markers, resolved at startup.
+These files live in `shared/agent-includes/` but are no longer inlined into all agent prompts — tool descriptions registered via MCP provide the same information. Agent templates reference specific tools by name at the relevant workflow phase instead.

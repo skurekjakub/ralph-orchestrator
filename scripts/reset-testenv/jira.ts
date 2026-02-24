@@ -504,6 +504,18 @@ export async function resetFields(issueKey: string, env: JiraEnv, difficulty: Ta
   console.log("  ✓ Fields updated");
 }
 
+export async function postComment(issueKey: string, comment: string, env: JiraEnv) {
+  const request = makeClient(env);
+  await request("POST", `/issue/${issueKey}/comment`, {
+    body: {
+      version: 1,
+      type: "doc",
+      content: [{ type: "paragraph", content: [{ type: "text", text: comment }] }],
+    },
+  });
+  console.log(`  ✓ Posted comment: ${comment}`);
+}
+
 export async function transitionToToDo(issueKey: string, env: JiraEnv) {
   const request = makeClient(env);
   const res = await request("GET", `/issue/${issueKey}/transitions`);

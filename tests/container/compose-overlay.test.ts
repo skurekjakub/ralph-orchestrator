@@ -60,6 +60,17 @@ describe("Compose Overlay", () => {
       rmSync(mcpDir, { recursive: true, force: true });
     });
 
+    it("always mounts .gitignore into .ralph directory", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+
+      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
+
+      expect(overlay).toContain(".gitignore:/workspace/.ralph/.gitignore:ro");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
     it("always injects base env vars even with no MCP servers", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
@@ -217,6 +228,39 @@ describe("Compose Overlay", () => {
       rmSync(mcpDir, { recursive: true, force: true });
     });
 
+    it("mounts repo volume into sidecar for git operations", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
+
+      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
+      const sidecarSection = overlay.slice(sidecarStart);
+      expect(sidecarSection).toContain('"${TARGET_REPO_PATH}:/workspace"');
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("sets REPO_ROOT environment variable on sidecar", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
+
+      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
+      const sidecarSection = overlay.slice(sidecarStart);
+      expect(sidecarSection).toContain("environment:");
+      expect(sidecarSection).toContain('REPO_ROOT: "/workspace"');
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
     it("sidecar depends on egress-proxy", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
@@ -229,8 +273,9 @@ describe("Compose Overlay", () => {
       // Find the sidecar service definition (second occurrence — first is app's depends_on)
       const sidecarServiceIdx = overlay.indexOf("  mcp-sidecar:\n    build:");
       const sidecarSection = overlay.slice(sidecarServiceIdx);
-      expect(sidecarSection).toContain("egress-proxy:");
-      expect(sidecarSection).toContain("condition: service_healthy");
+      // Sidecar has direct internet access via ralph-sidecar-external — no egress-proxy dependency
+      expect(sidecarSection).toContain("ralph-sidecar-external:");
+      expect(sidecarSection).not.toContain("egress-proxy:");
 
       rmSync(mcpDir, { recursive: true, force: true });
     });

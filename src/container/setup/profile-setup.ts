@@ -5,18 +5,18 @@ import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
 import { generateProfileSquidConf } from "./squid-config.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
-import { generateUrlPathRules, writeCopilotConfig } from "./url-restrictions.js";
+import { writeCopilotConfig } from "./url-restrictions.js";
 import { discoverMcpServers } from "./mcp-manifest.js";
 
 /**
- * Resolve MCP configs for all profiles and write them to each profile's build directory.
+ * Resolve configs for all profiles and write them to each profile's build directory.
  *
  * For each profile that declares `mcpServers`, generates:
  * - `mcp-config.json` — URL-based MCP config pointing to sidecar
  * - `gateway.json` — Sidecar gateway config with embedded secrets
  * - `docker-compose.overlay.yml` — Compose overlay with sidecar service
- * - `squid.conf` — Profile-specific squid proxy config (baseline + MCP proxy domains)
- * - `copilot-config.json` — Copilot CLI config with URL restrictions
+ * - `squid.conf` — Static baseline squid proxy config (MCP sidecar has direct internet access)
+ * - `copilot-config.json` — Copilot CLI config with URL allowlist derived from squid.conf
  *
  * All files go to `profiles/<id>/.build/`. The compose overlay is passed as
  * a third `-f` argument to `docker compose` by {@link ComposeFileResolver}.
@@ -53,7 +53,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: string[]; resources?: ResourceConfig };
+    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -61,7 +61,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       continue;
     }
 
-    const serverNames = parsed.mcpServers ?? [];
+    const serverNames = (parsed.mcpServers ?? []).map((s) => typeof s === "string" ? s : s.name);
     logger?.info(`Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`);
 
     const config = generateMcpConfig(mcpServersDir, serverNames);
@@ -75,6 +75,9 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const attachDir = join(buildDir, "attachments");
     mkdirSync(attachDir);
     chmodSync(attachDir, 0o777);
+
+    // .gitignore mounted into /workspace/.ralph/ to hide runtime files from git
+    writeFileSync(join(buildDir, ".gitignore"), "*\n", "utf-8");
 
     writeFileSync(
       join(buildDir, "mcp-config.json"),
@@ -101,7 +104,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     );
 
     if (hasBaselineSquid) {
-      const squidConf = generateProfileSquidConf(baselineSquidPath, mcpServersDir, serverNames);
+      const squidConf = generateProfileSquidConf(baselineSquidPath);
       writeFileSync(join(buildDir, "squid.conf"), squidConf, "utf-8");
 
       if (logger) {
@@ -113,11 +116,9 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       }
     }
 
-    const rules = generateUrlPathRules(mcpServersDir, serverNames, logger);
-
-    // Generate Copilot CLI config with URL restrictions.
+    // Generate Copilot CLI config with URL allowlist derived from squid.conf.
     // Must run after squid.conf is written (reads it to discover allowed domains).
-    writeCopilotConfig(buildDir, rules);
+    writeCopilotConfig(buildDir);
 
     if (logger) {
       const copilotConfigPath = join(buildDir, "copilot-config.json");

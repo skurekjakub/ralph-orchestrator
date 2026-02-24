@@ -1,9 +1,10 @@
-import { ExecaError, type ResultPromise } from "execa";
+import type { ResultPromise } from "execa";
 import type { AgentProfile } from "../../config.js";
-import type { ContainerExecResult, CliExecutor } from "../types.js";
+import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { IComposeClient } from "../compose-client.js";
-import { StreamCapture } from "../stream-capture.js";
+import { ICliExecutor } from "../cli-executor-factory.js";
+import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
 
 /**
  * Executes the Claude Code CLI inside a running container.
@@ -16,8 +17,20 @@ import { StreamCapture } from "../stream-capture.js";
  * - Timeout enforcement and error recovery
  * - Active process tracking for graceful shutdown
  */
-export class ClaudeCodeExecutor implements CliExecutor {
-  private activeProcess: ResultPromise | null = null;
+export class ClaudeCodeExecutor implements ICliExecutor {
+  activeProcess: ResultPromise | null = null;
+
+  /** Filesystem paths specific to the Claude Code CLI. */
+  readonly paths: CliPaths = {
+    configDir: "/workspace/.ralph",
+    writableDirs: [
+      "/workspace/.ralph/logs",
+      "/workspace/.ralph/logs/cli-debug",
+      "/workspace/.ralph/session-state",
+    ],
+    transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
+    logDir: "/workspace/.ralph/logs/cli-debug",
+  };
 
   constructor(
     private readonly compose: IComposeClient,
@@ -27,14 +40,7 @@ export class ClaudeCodeExecutor implements CliExecutor {
 
   /** Kill the active claude process if one is running. */
   killActive(): void {
-    if (this.activeProcess) {
-      try {
-        this.activeProcess.kill("SIGTERM");
-      } catch {
-        // already terminated
-      }
-      this.activeProcess = null;
-    }
+    killActiveProcess(this);
   }
 
   /**
@@ -46,11 +52,29 @@ export class ClaudeCodeExecutor implements CliExecutor {
    * @returns Raw {@link ContainerExecResult} with exit code and captured output.
    */
   async run(prompt: string): Promise<ContainerExecResult> {
+    return this.exec(["-p", prompt]);
+  }
+
+  /**
+   * Resume the previous Claude Code session with a continuation prompt.
+   *
+   * Uses `--continue` to resume the last session, preserving conversation context.
+   */
+  async continueSession(prompt: string): Promise<ContainerExecResult> {
+    return this.exec(["--continue", "-p", prompt]);
+  }
+
+  /**
+   * Internal: build and execute a Claude Code command with shared flags.
+   *
+   * @param promptArgs CLI-specific args (e.g. `-p <prompt>` or `--continue -p <prompt>`)
+   */
+  private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
       "app",
       "claude",
-      "-p", prompt,
+      ...promptArgs,
       "--dangerously-skip-permissions",
       "--mcp-config", "/workspace/.ralph/mcp-config.json",
       "--strict-mcp-config",
@@ -60,36 +84,8 @@ export class ClaudeCodeExecutor implements CliExecutor {
       args.push("--model", this.profile.model);
     }
 
-    try {
-      this.activeProcess = this.compose.execWithTimeout(
-        args,
-        this.profile.timeoutMs,
-      ) as ResultPromise;
-
-      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "claude");
-
-      const result = await this.activeProcess;
-      this.activeProcess = null;
-
-      return {
-        exitCode: result.exitCode ?? 0,
-        stdout: capture.stdout,
-        stderr: capture.stderr,
-        timedOut: false,
-      };
-    } catch (err: unknown) {
-      this.activeProcess = null;
-
-      if (err instanceof ExecaError) {
-        return {
-          exitCode: err.exitCode ?? 1,
-          stdout: err.stdout ?? "",
-          stderr: err.stderr ?? "",
-          timedOut: err.timedOut ?? false,
-        };
-      }
-
-      throw err;
-    }
+    return executeCliCommand(
+      this.compose, args, this.profile.timeoutMs, this.containerLogger, "claude", this,
+    );
   }
 }

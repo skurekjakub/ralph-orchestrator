@@ -1,5 +1,4 @@
 import type { AgentProfile } from "../config.js";
-import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, ContainerManagerFactory } from "../container/types.js";
 import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
@@ -8,8 +7,16 @@ import type { IContainerManager } from "../container/manager.js";
 import type { ILogCollector } from "../logs/collector.js";
 import type { IResourceManager } from "./task-resource-manager.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
+import type { IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
+import { buildTemplateContext } from "../container/setup/agent-includes.js";
+import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
+import type { ILifecycleHook } from "../container/lifecycle.js";
 import { TransitionPhase } from "../orchestrator-types.js";
-import { CopilotExecutor } from "../container/cli-executors/copilot-executor.js";
+import type { TaskContext } from "./task-context.js";
+import { toErrorMessage } from "../util/error.js";
+import { rmSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
@@ -18,7 +25,7 @@ export interface ITaskRunner {
   /** Optional callback invoked for each real-time pre-tool invocation line from the container. */
   onPreToolUse?: (line: string) => void;
   /** Run the full pipeline for a single issue + profile combination. */
-  run(issue: JiraIssue, profile: AgentProfile, taskId: string): Promise<{ result: RalphResult; container: IContainerManager }>;
+  run(ctx: TaskContext): Promise<{ result: RalphResult; container: IContainerManager }>;
   /** Tear down containers — tries graceful stop, falls back to raw compose down. */
   teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void>;
 }
@@ -45,6 +52,9 @@ export class TaskRunner implements ITaskRunner {
     private readonly containerFactory: ContainerManagerFactory,
     private readonly resources: IResourceManager,
     private readonly issueManager: IIssueManager,
+    private readonly templateRenderer: IAgentTemplateRenderer,
+    private readonly jitMcpConfig: IJitMcpConfigWriter,
+    private readonly preExecuteHooks: readonly ILifecycleHook[] = [],
   ) {}
 
   /** Optional callback invoked for each real-time tool output line from the container. */
@@ -66,7 +76,7 @@ export class TaskRunner implements ITaskRunner {
         return;
       } catch (err) {
         this.logger.warn(
-          `Graceful stop failed: ${err instanceof Error ? err.message : String(err)}`,
+          `Graceful stop failed: ${toErrorMessage(err)}`,
         );
       }
     }
@@ -75,7 +85,7 @@ export class TaskRunner implements ITaskRunner {
       await this.containerFactory.forceDown(profile);
     } catch (err) {
       this.logger.warn(
-        `Fallback teardown failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Fallback teardown failed: ${toErrorMessage(err)}`,
       );
     }
   }
@@ -83,15 +93,10 @@ export class TaskRunner implements ITaskRunner {
   /**
    * Run the full pipeline for a single issue + profile combination.
    *
-   * @param isRevision When true, fetches JIRA comments and the previous handoff
    * @returns The task result (status, duration, PR URL, etc.)
    */
-  async run(
-    issue: JiraIssue,
-    profile: AgentProfile,
-    taskId: string,
-  ): Promise<{ result: RalphResult; container: IContainerManager }> {
-    const container = this.containerFactory.create(profile);
+  async run(ctx: TaskContext): Promise<{ result: RalphResult; container: IContainerManager }> {
+    const container = this.containerFactory.create(ctx.profile);
     if (this.onToolOutput) {
       container.onToolOutput = this.onToolOutput;
     }
@@ -100,100 +105,23 @@ export class TaskRunner implements ITaskRunner {
     }
 
     try {
-      await this.issueManager.transitionIssue(issue.key, profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
-      await this.issueManager.postStartComment(issue.key, profile.displayName, profile.id);
-
-      await container.start();
-
-      this.logger.info("Verifying container health...");
-      await container.checkPrerequisites();
-
-      this.logger.info("Preparing config directory...");
-      await container.cleaner.prepareConfigDir(CopilotExecutor.CONFIG_DIR, CopilotExecutor.WRITABLE_DIRS);
-
-      this.logger.info("Cleaning previous audit logs...");
-      await container.cleaner.cleanLogDirectory(profile.auditLogPath);
-      await container.cleaner.cleanPaths(profile.cleanPaths);
-
-      // Register log sources after cleanup but before setup — cleanup deletes
-      // the directory that streaming sources watch, and setup is where squid
-      // proxy failures surface. With sources registered, the error path can
-      // still collectAll (especially proxy logs) before teardown.
-      container.registerLogSources(taskId);
-
-      await container.setup();
-
-      this.logger.info(`Fetching JIRA comments for ${issue.key}...`);
-      const comments = await this.resources.fetchComments(issue.key);
-      this.logger.info(`Found ${comments.length} comments on ${issue.key}`);
-
-      const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
-      const revisionStatuses = profile.match.revisionStatuses ?? [];
-      const isRevision = revisionStatuses.some(
-        (s) => s.toLowerCase() === issueStatus,
-      );
-
-      let handoffContent: string | null = null;
-      if (isRevision) {
-        this.logger.info(`Issue is in revision status ("${issue.fields.status?.name}") — fetching handoff...`);
-        handoffContent = await this.resources.fetchHandoff(issue.key);
-        this.logger.info(
-          `Handoff context: ${handoffContent ? "found" : "not found"}`
-        );
-      }
-
-      const issueContext: IssueContext = {
-        comments,
-        isRevision,
-        handoffContent,
-      };
-
-      const timeoutSec = Math.round(profile.timeoutMs / 1000);
-      this.logger.info(
-        `Executing ${profile.displayName} agent for ${issue.key} (timeout: ${timeoutSec}s)...`
-      );
-      const result = await container.execute(issue, issueContext);
-      this.logger.info(
-        `Agent finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
-      );
-
-      if (result.prUrl) {
-        this.logger.info(`PR created: ${result.prUrl}`);
-      }
-
-      if (result.status === TaskStatus.Partial) {
-        this.logger.warn(
-          `${issue.key} completed with partial status — check handoff for details`
-        );
-      }
-
-      this.logger.info("Collecting logs from containers...");
-      const collected = await container.logs.collectAll();
-      for (const { id, path } of collected) {
-        if (path) result.collectedLogs[id] = path;
-      }
-
-      const transcriptPath = result.collectedLogs["transcript"];
-      if (transcriptPath) {
-        await this.resources.attachTranscript(issue.key, transcriptPath, profile.agentName);
-      }
-
-      this.logCollector.saveExecutionSummary(result, undefined, taskId);
-      this.logger.info("Execution summary saved");
-
+      await this.prepareProfile(ctx);
+      await this.prepareContainer(ctx, container);
+      const result = await this.executeAgent(ctx, container);
+      await this.collectResults(ctx, container, result);
       return { result, container };
     } catch (err) {
       this.logger.error(
-        `Error processing ${issue.key}: ${err instanceof Error ? err.message : String(err)}`
+        `Error processing ${ctx.issue.key}: ${toErrorMessage(err)}`
       );
 
       const errorResult: RalphResult = {
-        issueKey: issue.key,
+        issueKey: ctx.issue.key,
         status: TaskStatus.Error,
         durationMs: 0,
         exitCode: 1,
         stdout: "",
-        stderr: err instanceof Error ? err.message : String(err),
+        stderr: toErrorMessage(err),
         collectedLogs: {},
       };
 
@@ -208,4 +136,108 @@ export class TaskRunner implements ITaskRunner {
     }
   }
 
+  private async prepareProfile(ctx: TaskContext): Promise<void> {
+    this.logger.info("Rendering agent templates...");
+    await this.templateRenderer.render(
+      ctx.profile.id,
+      buildTemplateContext(ctx.profile, ctx.issue, ctx.isRevision, ctx.triggerParams),
+      this.logger,
+    );
+
+    this.jitMcpConfig.write(ctx.profile, ctx.issue, this.logger, ctx.triggerParams);
+  }
+
+  private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
+    await this.issueManager.transitionIssue(ctx.issue.key, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
+    await this.issueManager.postStartComment(ctx.issue.key, ctx.profile.displayName, ctx.profile.id);
+
+    // Clean the .ralph runtime directory on the host before compose up.
+    // This removes stale logs/session-state from prior runs. Docker will
+    // recreate it (owned by host UID) when mounting config files into it.
+    const ralphDir = join(ctx.profile.repoPath, ".ralph");
+    this.logger.info(`Cleaning ${ralphDir}...`);
+    rmSync(ralphDir, { recursive: true, force: true });
+    mkdirSync(ralphDir, { recursive: true });
+
+    await container.start();
+
+    this.logger.info("Verifying container health...");
+    await container.checkPrerequisites();
+
+    this.logger.info("Preparing config directory...");
+    await container.cleaner.prepareConfigDir(container.cliPaths.configDir, container.cliPaths.writableDirs);
+
+    await container.cleaner.cleanPaths(ctx.profile.cleanPaths);
+
+    // Register log sources after cleanup but before setup — cleanup deletes
+    // the directory that streaming sources watch, and setup is where squid
+    // proxy failures surface. With sources registered, the error path can
+    // still collectAll (especially proxy logs) before teardown.
+    container.registerLogSources(ctx.taskId);
+
+    await container.setup();
+
+    for (const hook of this.preExecuteHooks) {
+      this.logger.info(`Running lifecycle hook: ${hook.name}...`);
+      await hook.execute(container, ctx, this.logger);
+    }
+  }
+
+  private async executeAgent(ctx: TaskContext, container: IContainerManager): Promise<RalphResult> {
+    this.logger.info(`Fetching JIRA comments for ${ctx.issue.key}...`);
+    const comments = await this.resources.fetchComments(ctx.issue.key);
+    this.logger.info(`Found ${comments.length} comments on ${ctx.issue.key}`);
+
+    let handoffContent: string | null = null;
+    if (ctx.isRevision) {
+      this.logger.info(`Issue is in revision status ("${ctx.issue.fields.status?.name}") — fetching handoff...`);
+      handoffContent = await this.resources.fetchHandoff(ctx.issue.key);
+      this.logger.info(
+        `Handoff context: ${handoffContent ? "found" : "not found"}`
+      );
+    }
+
+    const issueContext: IssueContext = {
+      comments,
+      isRevision: ctx.isRevision,
+      handoffContent,
+    };
+
+    const timeoutSec = Math.round(ctx.profile.timeoutMs / 1000);
+    this.logger.info(
+      `Executing ${ctx.profile.displayName} agent for ${ctx.issue.key} (timeout: ${timeoutSec}s)...`
+    );
+    const result = await container.execute(ctx.issue, issueContext);
+    this.logger.info(
+      `Agent finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
+    );
+
+    if (result.prUrl) {
+      this.logger.info(`PR created: ${result.prUrl}`);
+    }
+
+    if (result.status === TaskStatus.Partial) {
+      this.logger.warn(
+        `${ctx.issue.key} completed with partial status — check handoff for details`
+      );
+    }
+
+    return result;
+  }
+
+  private async collectResults(ctx: TaskContext, container: IContainerManager, result: RalphResult): Promise<void> {
+    this.logger.info("Collecting logs from containers...");
+    const collected = await container.logs.collectAll();
+    for (const { id, path } of collected) {
+      if (path) result.collectedLogs[id] = path;
+    }
+
+    const transcriptPath = result.collectedLogs["transcript"];
+    if (transcriptPath) {
+      await this.resources.attachTranscript(ctx.issue.key, transcriptPath, ctx.profile.agentName);
+    }
+
+    this.logCollector.saveExecutionSummary(result, undefined, ctx.taskId);
+    this.logger.info("Execution summary saved");
+  }
 }

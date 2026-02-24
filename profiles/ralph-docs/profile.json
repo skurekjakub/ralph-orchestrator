@@ -3,7 +3,25 @@
   "cli": "copilot",
   "timeoutMs": 7200000,
   "cleanPaths": ["/workspace/resources/chats"],
-  "mcpServers": ["playwright", "jira-kentico", "ado"],
+  "maxContinuations": 3,
+  "mcpServers": [
+    {
+      "name": "jira-kentico",
+      "env": {
+        "JIRA_ISSUE_KEY": "$jira.key"
+      }
+    },
+    {
+      "name": "ado",
+      "env": {
+        "ADO_PROJECT": "CustomerEducation",
+        "ADO_REPO": "kentico-docs-jekyll",
+        "TASK_BRANCH": "$jira.branch"
+      }
+    },
+    { "name": "web-fetch" },
+    { "name": "microsoft-docs" }
+  ],
   "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "resources/ralph-resources"

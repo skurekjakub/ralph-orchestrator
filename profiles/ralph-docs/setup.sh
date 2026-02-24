@@ -50,38 +50,13 @@ fi
 echo "🔧 Configuring git..."
 git config --global --add safe.directory "$WORKSPACE"
 git config --global credential.useHttpPath true
-git config --global push.autoSetupRemote true
-
-# ── Xperience repository ─────────────────────────────────
-if [ ! "$TF_BUILD" ]; then
-    echo "📥 Checking Xperience repository..."
-    XPERIENCE_REPO_PATH="resources/repositories/xperience"
-    if [ ! -d "$XPERIENCE_REPO_PATH" ]; then
-        if [ -n "$ADO_PAT_XPERIENCE" ]; then
-            XPERIENCE_CLONE_URL="https://pat:${ADO_PAT_XPERIENCE}@dev.azure.com/kenticoxperience/CMS/_git/xperience"
-            echo "📦 Cloning Xperience repository (shallow)..."
-            mkdir -p resources/repositories
-            git clone --branch master --single-branch "$XPERIENCE_CLONE_URL" "$XPERIENCE_REPO_PATH"
-            echo "✅ Xperience repository cloned (shallow)"
-        else
-            echo "⚠️  ADO_PAT_XPERIENCE not set, skipping Xperience clone (non-critical)"
-        fi
-    else
-        echo "ℹ️ Xperience repository already exists, skipping clone"
-    fi
-    # Clear the PAT from environment — only needed for clone
-    unset ADO_PAT_XPERIENCE
-fi
 
 # ── Summary ───────────────────────────────────────────────
 echo ""
 echo "✅ Ralph development environment ready!"
 echo "   Ruby:    $(ruby --version 2>/dev/null || echo 'not found')"
 echo "   Node:    $(node --version 2>/dev/null || echo 'not found')"
-echo "   Python:  $(python3 --version 2>/dev/null || echo 'not found')"
 echo "   .NET:    $(dotnet --version 2>/dev/null || echo 'not found')"
 echo "   Bundler: $(bundle --version 2>/dev/null || echo 'not found')"
 echo "   Pandoc:  $(pandoc --version 2>/dev/null | head -1 || echo 'not found')"
 echo ""
-
-git config --global user.email "Wiggum@kentico.com"

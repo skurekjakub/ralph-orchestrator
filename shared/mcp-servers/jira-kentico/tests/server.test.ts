@@ -30,13 +30,6 @@ describe("JIRA MCP Server manifest", () => {
     expect(manifest.requiredEnv).not.toContain("JIRA_CLOUD_ID");
   });
 
-  it("declares proxy domains for Atlassian Cloud", () => {
-    const manifest = loadManifest();
-    expect(manifest.proxyDomains).toEqual(
-      expect.arrayContaining([".atlassian.com", ".atlassian.net"]),
-    );
-  });
-
   it("lists both tool names", () => {
     const manifest = loadManifest();
     expect(manifest.tools).toEqual(["jira_add_comment", "jira_add_attachment"]);

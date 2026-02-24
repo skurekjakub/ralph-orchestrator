@@ -10,6 +10,22 @@ describe("OrchestratorComments", () => {
     expect(msg).toContain("Queueing");
   });
 
+  it("ack appends trigger params when provided", () => {
+    const msg = OrchestratorComments.ack("ralph", ["codesamples", "branch=xyz"]);
+    expect(msg).toContain("Queueing ralph");
+    expect(msg).toContain("\nParams: codesamples, branch=xyz");
+  });
+
+  it("ack omits params line when array is empty", () => {
+    const msg = OrchestratorComments.ack("ralph", []);
+    expect(msg).not.toContain("Params:");
+  });
+
+  it("ack omits params line when undefined", () => {
+    const msg = OrchestratorComments.ack("ralph");
+    expect(msg).not.toContain("Params:");
+  });
+
   it("start includes display name and profile ID", () => {
     const msg = OrchestratorComments.start("ralph", "ralph-docs");
     expect(msg).toContain("ralph");

@@ -1,10 +1,11 @@
-import { ExecaError, type ResultPromise } from "execa";
+import type { ResultPromise } from "execa";
 import type { AgentProfile } from "../../config.js";
 import { DEFAULT_MODEL } from "../../config.js";
-import type { ContainerExecResult, CliExecutor } from "../types.js";
+import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { IComposeClient } from "../compose-client.js";
-import { StreamCapture } from "../stream-capture.js";
+import { ICliExecutor } from "../cli-executor-factory.js";
+import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
 
 /**
  * Executes the Copilot CLI agent inside a running container.
@@ -15,47 +16,7 @@ import { StreamCapture } from "../stream-capture.js";
  * - Timeout enforcement and error recovery
  * - Active process tracking for graceful shutdown
  */
-export class CopilotExecutor implements CliExecutor {
-  private activeProcess: ResultPromise | null = null;
-
-  constructor(
-    private readonly compose: IComposeClient,
-    private readonly profile: AgentProfile,
-    private readonly containerLogger: Logger,
-  ) {}
-
-  /** Kill the active copilot process if one is running. */
-  killActive(): void {
-    if (this.activeProcess) {
-      try {
-        this.activeProcess.kill("SIGTERM");
-      } catch {
-        // already terminated
-      }
-      this.activeProcess = null;
-    }
-  }
-
-  /**
-   * Build CLI flags to control the bundled GitHub MCP server.
-   *
-   * - `false` → `--disable-builtin-mcps` (server disabled)
-   * - `["tool1"]` → `--add-github-mcp-tool tool1` (only listed tools enabled)
-   */
-  private githubMcpFlags(): string[] {
-    const tools = this.profile.githubMcpTools;
-    if (tools === false) return ["--disable-builtin-mcps"];
-    return tools.flatMap((t) => ["--add-github-mcp-tool", t]);
-  }
-
-  /**
-   * Execute the Copilot CLI with the given prompt.
-   *
-   * Streams stdout/stderr to the container logger with `[copilot]` prefix.
-   *
-   * @param prompt The fully-built prompt string to pass to the Copilot CLI.
-   * @returns Raw {@link ContainerExecResult} with exit code and captured output.
-   */
+export class CopilotExecutor implements ICliExecutor {
   /** Path inside the container where the session transcript is saved. */
   static readonly TRANSCRIPT_PATH = "/workspace/.ralph/logs/session-transcript.md";
 
@@ -75,7 +36,59 @@ export class CopilotExecutor implements CliExecutor {
     "/workspace/.ralph/session-state",
   ] as const;
 
+  activeProcess: ResultPromise | null = null;
+
+  /** Filesystem paths specific to the Copilot CLI. */
+  readonly paths: CliPaths = {
+    configDir: CopilotExecutor.CONFIG_DIR,
+    writableDirs: CopilotExecutor.WRITABLE_DIRS,
+    transcriptPath: CopilotExecutor.TRANSCRIPT_PATH,
+    logDir: CopilotExecutor.LOG_DIR,
+  };
+
+  constructor(
+    private readonly compose: IComposeClient,
+    private readonly profile: AgentProfile,
+    private readonly containerLogger: Logger,
+  ) {}
+
+  /** Kill the active copilot process if one is running. */
+  killActive(): void {
+    killActiveProcess(this);
+  }
+
+  /**
+   * Build CLI flags to control the bundled GitHub MCP server.
+   *
+   * - `false` → `--disable-builtin-mcps` (server disabled)
+   * - `["tool1"]` → `--add-github-mcp-tool tool1` (only listed tools enabled)
+   */
+  private githubMcpFlags(): string[] {
+    const tools = this.profile.githubMcpTools;
+    if (tools === false) return ["--disable-builtin-mcps"];
+    return tools.flatMap((t) => ["--add-github-mcp-tool", t]);
+  }
+
   async run(prompt: string): Promise<ContainerExecResult> {
+    return this.exec(["-p", prompt]);
+  }
+
+  /**
+   * Resume the previous Copilot CLI session with a continuation prompt.
+   *
+   * Uses `--continue` to resume the last session, preserving conversation
+   * context. The continuation prompt is passed via `--prompt`.
+   */
+  async continueSession(prompt: string): Promise<ContainerExecResult> {
+    return this.exec(["--continue", "--prompt", prompt]);
+  }
+
+  /**
+   * Internal: build and execute a Copilot CLI command with shared flags.
+   *
+   * @param promptArgs CLI-specific args (e.g. `-p <prompt>` or `--continue --prompt <prompt>`)
+   */
+  private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
     const args = [
       "--user", "vscode",
       "app",
@@ -91,39 +104,11 @@ export class CopilotExecutor implements CliExecutor {
       "--allow-all-tools",
       "--allow-all-paths",
       "--share", CopilotExecutor.TRANSCRIPT_PATH,
-      "-p", prompt,
+      ...promptArgs,
     ];
 
-    try {
-      this.activeProcess = this.compose.execWithTimeout(
-        args,
-        this.profile.timeoutMs,
-      ) as ResultPromise;
-
-      const capture = new StreamCapture(this.activeProcess, this.containerLogger, "copilot");
-
-      const result = await this.activeProcess;
-      this.activeProcess = null;
-
-      return {
-        exitCode: result.exitCode ?? 0,
-        stdout: capture.stdout,
-        stderr: capture.stderr,
-        timedOut: false,
-      };
-    } catch (err: unknown) {
-      this.activeProcess = null;
-
-      if (err instanceof ExecaError) {
-        return {
-          exitCode: err.exitCode ?? 1,
-          stdout: err.stdout ?? "",
-          stderr: err.stderr ?? "",
-          timedOut: err.timedOut ?? false,
-        };
-      }
-
-      throw err;
-    }
+    return executeCliCommand(
+      this.compose, args, this.profile.timeoutMs, this.containerLogger, "copilot", this,
+    );
   }
 }

@@ -9,6 +9,7 @@ import {
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { TaskStatus } from "../container/types.js";
+import { assertValidIssueKey } from "../util/jira.js";
 
 /** Operation lifecycle state. */
 export enum OperationStatus {
@@ -39,7 +40,22 @@ export interface Operation {
   reason?: string;
   /** Result status from the agent. Only set on terminal states. */
   resultStatus?: TaskStatus;
+  /** Parameters extracted from the trigger comment (e.g. `@Ralph(codesamples, verbose)` → `["codesamples", "verbose"]`). */
+  triggerParams?: string[];
 }
+
+/**
+ * Allowed state transitions for an operation.
+ *
+ * ```
+ * pending → active → completed | error
+ *         ↘ rejected
+ * ```
+ */
+const VALID_TRANSITIONS = new Map<OperationStatus, ReadonlySet<OperationStatus>>([
+  [OperationStatus.Pending,  new Set([OperationStatus.Active, OperationStatus.Rejected])],
+  [OperationStatus.Active,   new Set([OperationStatus.Completed, OperationStatus.Error])],
+]);
 
 /** On-disk structure for a single issue's operation history. */
 interface LedgerFile {
@@ -51,7 +67,7 @@ export interface IOperationLedger {
   /** Register a callback invoked whenever a new pending operation is planned. */
   onPending(callback: () => void): void;
   /** Plan a new operation (record as `pending`). Returns the operation ID. */
-  plan(issueKey: string, opts: { variant: string; triggerCommentId: string; commentTimestamp: string }): string;
+  plan(issueKey: string, opts: { variant: string; triggerCommentId: string; commentTimestamp: string; triggerParams?: string[] }): string;
   /** Reject a trigger comment immediately (no agent invocation). */
   reject(issueKey: string, opts: { variant: string; triggerCommentId: string; commentTimestamp: string; reason: string }): void;
   /** Transition an operation to a new status. */
@@ -118,8 +134,10 @@ export class OperationLedger implements IOperationLedger {
       variant: string;
       triggerCommentId: string;
       commentTimestamp: string;
+      triggerParams?: string[];
     },
   ): string {
+    assertValidIssueKey(issueKey);
     const op: Operation = {
       id: randomUUID(),
       variant: opts.variant,
@@ -127,6 +145,7 @@ export class OperationLedger implements IOperationLedger {
       commentTimestamp: opts.commentTimestamp,
       discoveredAt: new Date().toISOString(),
       status: OperationStatus.Pending,
+      ...(opts.triggerParams && opts.triggerParams.length > 0 ? { triggerParams: opts.triggerParams } : {}),
     };
     const ledger = this.read(issueKey);
     ledger.operations.push(op);
@@ -148,6 +167,7 @@ export class OperationLedger implements IOperationLedger {
       reason: string;
     },
   ): void {
+    assertValidIssueKey(issueKey);
     const op: Operation = {
       id: randomUUID(),
       variant: opts.variant,
@@ -176,6 +196,13 @@ export class OperationLedger implements IOperationLedger {
     const ledger = this.read(issueKey);
     const op = ledger.operations.find((o) => o.id === operationId);
     if (!op) return;
+
+    const allowed = VALID_TRANSITIONS.get(op.status);
+    if (!allowed?.has(to)) {
+      throw new Error(
+        `Invalid operation state transition: ${op.status} → ${to} (operation ${operationId})`,
+      );
+    }
 
     op.status = to;
     if (

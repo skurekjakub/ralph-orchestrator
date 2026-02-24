@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { existsSync } from "node:fs";
-import type { AppConfig } from "./config.js";
+import type { AppConfig, AgentProfile } from "./config.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraPoller } from "./jira/poller.js";
 import { LogCollector } from "./logs/collector.js";
@@ -15,10 +15,31 @@ import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
 import { ContainerManager } from "./container/manager.js";
 import { ComposeClient } from "./container/compose-client.js";
+import type { IComposeClient } from "./container/compose-client.js";
 import { ComposeFileResolver } from "./container/setup/compose-files.js";
-import { CliExecutorFactory } from "./container/cli-executor-factory.js";
+import { AgentTemplateRenderer } from "./container/setup/agent-includes.js";
+import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import type { OrchestratorDeps } from "./orchestrator-types.js";
+import { CliExecutorFactory } from "./container/cli-executor-factory.js";
+import { RepoSyncHook } from "./container/lifecycle.js";
+import { ContainerLogCollector } from "./container/log-collector.js";
+import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
+import { LogSourceRegistry } from "./container/log-source-registry.js";
+import { ContinuationRunner } from "./container/continuation-runner.js";
+
+/** Build a ComposeClient for a profile, resolving compose files and squid config path. */
+function buildComposeClient(profile: AgentProfile): IComposeClient {
+  const composeFiles = new ComposeFileResolver().resolve(profile);
+  const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
+  const squidConfPath = existsSync(profileSquid)
+    ? profileSquid
+    : resolve(process.cwd(), "shared/security/squid.conf");
+  return new ComposeClient(composeFiles, {
+    targetRepoPath: profile.repoPath,
+    squidConfPath,
+  });
+}
 
 /**
  * Build all service dependencies from config.
@@ -42,28 +63,38 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   const promptBuilder = new PromptBuilder(config.promptAudit.mode, logger, config.excludeFields);
   const executorFactory = new CliExecutorFactory(config);
   const containerFactory: ContainerManagerFactory = {
-    create: (profile) => new ContainerManager(profile, config, promptBuilder, executorFactory, logger, containerLogger),
+    create: (profile) => {
+      const compose = buildComposeClient(profile);
+      const executor = executorFactory.create(compose, profile, containerLogger);
+      const logs = new ContainerLogCollector(compose, config.output.logDir, logger);
+      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const logRegistry = new LogSourceRegistry();
+      const continuationRunner = new ContinuationRunner(logger);
+      return new ContainerManager(
+        profile, compose, executor, logs, cleaner,
+        logRegistry, continuationRunner, promptBuilder, logger, containerLogger,
+        config.enableContinuation,
+      );
+    },
     forceDown: async (profile) => {
-      const composeFiles = new ComposeFileResolver().resolve(profile);
-      const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-      const squidConfPath = existsSync(profileSquid)
-        ? profileSquid
-        : resolve(process.cwd(), "shared/security/squid.conf");
-      const client = new ComposeClient(composeFiles, {
-        targetRepoPath: profile.repoPath,
-        squidConfPath,
-      });
-      await client.compose(["down", "--volumes", "--remove-orphans"]);
+      const compose = buildComposeClient(profile);
+      await compose.compose(["down", "--volumes", "--remove-orphans"]);
     },
   };
   const resources = new TaskJiraResourceManager(jiraClient, logger);
   const issueManager = new JiraIssueManager(jiraClient, logger);
+  const templateRenderer = new AgentTemplateRenderer();
+  const jitMcpConfig = new JitMcpConfigWriter();
+  const preExecuteHooks = [new RepoSyncHook()];
   const taskRunner = new TaskRunner(
     logCollector,
     logger,
     containerFactory,
     resources,
     issueManager,
+    templateRenderer,
+    jitMcpConfig,
+    preExecuteHooks,
   );
   const triggerScanner = new TriggerScanner(
     issueManager, router, ledger, logger,

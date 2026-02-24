@@ -78,7 +78,7 @@ shared/
     docker-compose.security.yml  — Security overlay (proxy, isolation, limits)
     squid.conf                   — Domain allowlist for egress proxy
   hooks/                         — Copilot CLI audit hooks
-  agent-includes/                — Shared include files for agent templates
+  agent-includes/                — Shared Liquid partials for agent templates (*.md)
 ```
 
 #### `profile.json` Schema
@@ -92,7 +92,10 @@ shared/
   "setupScript": "/usr/local/bin/setup.sh",
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
   "composeProjectLabel": "ralph-sandbox",
-  "mcpServers": ["playwright", "discord-hitl"],
+  "mcpServers": [
+    { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$jira.key" } },
+    { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$jira.branch" } }
+  ],
   "resources": { "mountBase": "resources/ralph-resources" },
   "cleanPaths": ["/workspace/resources/chats"],
   "beforeAgent": { "targetStatus": "In Progress" },
@@ -117,9 +120,10 @@ shared/
 | `setupScript` | Absolute path to the setup script inside the container | `"/usr/local/bin/setup.sh"` |
 | `auditLogPath` | Absolute path to the audit JSONL log inside the container | `"/workspace/.ralph/logs/audit.jsonl"` |
 | `composeProjectLabel` | Docker compose project label used for container lookup | `"ralph-sandbox"` |
-| `mcpServers` | Array of MCP server names to enable. Must match subdirectories in `shared/mcp-servers/`. | `[]` |
+| `mcpServers` | Array of MCP server entries. Each entry is either a string (server name) or an object `{ name, env? }` with per-server environment variables. Server names must match subdirectories in `shared/mcp-servers/`. Values in `env` starting with `$` are JIT macros resolved per-task (see MCP Servers section). | `[]` |
 | `resources` | Resource auto-discovery config: `{ "mountBase": "<path>" }`. Files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`. | — (optional) |
 | `cleanPaths` | Array of absolute container paths to delete before each agent run. | `[]` |
+| `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
 | `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
 
 The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
@@ -134,12 +138,16 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.model` | Optional model override (overrides the profile-level `model`). |
 | `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
-| `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive substring match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. |
+| `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive word-boundary match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. Supports optional parenthesized parameters — see below. |
 | `variant.match.revisionStatuses` | Statuses that indicate a revision task (e.g. `["Defect Found"]`). When the issue is in one of these statuses, the agent follows the revision workflow instead of starting fresh. Empty `[]` = never treat as revision. |
 
 **Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
 **Comment trigger dedup:** Each trigger comment is consumed exactly once per variant. The orchestrator tracks consumed comment IDs in the operation ledger. Repeated triggers on the same comment are ignored. Post a new trigger comment to request another invocation.
+
+**Trigger parameters:** Comments can include parenthesized parameters after the trigger string: `@RalphDf(codesamples, verbose)`. The orchestrator extracts the raw comma-separated strings from parentheses, then converts them into `triggerParams` (`Record<string, string>`) — bare params map to `"true"`, key-value params map to the value. This is persisted in the operation ledger and passed to the `TemplateContext` for use in agent templates. Parameters are comma-separated, whitespace-trimmed, and case-preserved. Empty parens `@RalphDf()` and bare triggers `@RalphDf` both result in an empty record. The trigger match itself ignores the parenthesized suffix — `@RalphDf(verbose)` matches the `@RalphDf` trigger.
+
+`buildTriggerParams()` in `agent-includes.ts` performs the conversion. Templates can check `{% if triggerParams.codesamples %}` or interpolate `{{ triggerParams.branch_name }}`. See [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference.
 
 #### Transitions
 
@@ -186,18 +194,41 @@ Both CLIs share the same `mcp-config.json` (generated at startup from profile `m
 
 #### MCP Servers
 
-Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` array in `profile.json`. Each entry must match a subdirectory of `shared/mcp-servers/`.
+Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` array in `profile.json`. Each entry is either a string (server name) or an object with `name` and optional `env` for per-server configuration:
 
-MCP servers run inside an isolated **sidecar container** — the agent communicates with them via HTTP URLs on the Docker internal network. Server code, credentials, and gateway configuration are never mounted into the agent container.
+```json
+"mcpServers": [
+  "playwright",
+  {
+    "name": "jira-kentico",
+    "env": { "JIRA_ISSUE_KEY": "$jira.key" }
+  },
+  {
+    "name": "ado",
+    "env": {
+      "ADO_PROJECT": "CustomerEducation",
+      "ADO_REPO": "kentico-docs-jekyll",
+      "TASK_BRANCH": "$jira.branch"
+    }
+  }
+]
+```
 
-At startup, the orchestrator:
-1. Reads each server's `mcp-server.json` manifest
-2. Validates `sidecarPort` (required, 1–65535, unique across servers)
-3. Builds custom servers (`npm install` + `npm run build`) and the sidecar gateway
-4. Generates `.build/mcp-config.json` — URL-based config for both CLIs (no secrets)
-5. Generates `.build/gateway.json` — sidecar config with embedded secrets
-6. Generates `.build/docker-compose.overlay.yml` — includes the `mcp-sidecar` service when servers are declared
-7. Generates `.build/squid.conf` — profile-specific proxy config with MCP domains
+Server names must match a subdirectory of `shared/mcp-servers/`. Servers declare `requiredConfig` in their manifest — the orchestrator validates at startup that all required env vars are provided by the profile.
+
+**Runtime macros:** Env values starting with `$` are resolved per-task from the current JIRA issue:
+
+| Macro | Resolves to |
+|---|---|
+| `$jira.key` | JIRA issue key (e.g. `DOC-3143`) |
+| `$jira.project` | Project key prefix (e.g. `DOC`) |
+| `$jira.branch` | Branch name: `ralph/<issueKey>-<slugified-summary>` (max 80 chars) |
+| `$jira.summary` | JIRA issue summary text |
+| `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`). Returns empty string if the parameter is missing. |
+
+Static values (no `$` prefix) are passed through as-is. All env values (static + resolved macros) are injected into the server's env block in `gateway.json` before each task by `JitMcpConfigWriter`.
+
+MCP servers run inside an isolated **sidecar container** — the agent communicates with them via HTTP URLs on the Docker internal network. Server code, credentials, and gateway configuration are never mounted into the agent container. The sidecar also has git installed and the repo volume mounted for git-powered tools.
 
 **Adding an MCP server:**
 1. Create `shared/mcp-servers/<name>/mcp-server.json`:
@@ -216,7 +247,7 @@ At startup, the orchestrator:
 2. Add `"<name>"` to the profile's `mcpServers` array
 3. Set required env vars in `.env` — they're embedded in `gateway.json` automatically
 
-Domains listed in `proxyDomains` are automatically injected into the profile's squid proxy allowlist at startup — no manual squid.conf edits needed. See [MCP.md](MCP.md) for the full MCP architecture.
+The MCP sidecar has **unrestricted direct internet access** via the `ralph-sidecar-external` Docker network — no Squid configuration changes are needed for new servers. The `proxyDomains` field is kept in the manifest schema for documentation purposes (to record what domains a server accesses) but is no longer injected into the agent's Squid allowlist. See [MCP.md](MCP.md) for the full MCP architecture.
 
 **Server types:**
 - `"npm"` — Pre-installed npm packages. No local code needed (e.g. Playwright). Bridged to HTTP via `supergateway`.
@@ -247,6 +278,22 @@ The `cleanPaths` array lists absolute container paths that are deleted before ea
 ```
 
 Useful for clearing agent-generated state (e.g. chat logs, cache files) between runs.
+
+#### Agent Templates
+
+Agent definition files live in `profiles/<id>/agents/` as `.agent.md` files. They use [Liquid](https://liquidjs.com/) template syntax for shared includes and conditional sections.
+
+**Shared includes** — `{% render 'name' %}` pulls in partials from `shared/agent-includes/*.md`:
+
+
+**Conditional sections** — `{% if isRevision %}...{% endif %}` renders content only when the issue is in a revision status.
+
+**XML semantic boundaries** — `{% section "name" %}...{% endsection %}` wraps content in `<name>...</name>` XML tags, improving LLM recall and injection isolation. See `AGENT-PROMPT-AUTHORING.md` for standard section names.
+
+**Template context** — Templates have access to these Liquid variables at render time (including `triggerParams` for key-value trigger parameter lookup). See [docs/agent-templates.md](docs/agent-templates.md) for the full variable reference.
+
+
+Templates are rendered JIT before each task by `AgentTemplateRenderer`. Resolved output goes to `profiles/<id>/.build/` and is mounted read-only into the container.
 
 ### Output Settings
 

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { ResultPromise } from "execa";
 import type { IComposeClient } from "./compose-client.js";
 import type { Logger } from "../logger.js";
+import { toErrorMessage } from "../util/error.js";
 
 /** How a log source should be captured. */
 export enum CaptureMode {
@@ -43,6 +44,20 @@ export interface CollectedLog {
   path: string | null;
 }
 
+/** Public contract for container log collection. */
+export interface IContainerLogCollector {
+  /** Set the JIRA issue key used as the filename prefix. */
+  setTaskId(key: string): void;
+  /** Register a log source to be collected. */
+  addSource(source: LogSourceDef): void;
+  /** Start streaming for all `"stream"` mode sources. */
+  attach(): void;
+  /** Stop all active streaming processes. */
+  detach(): void;
+  /** Flush all log sources to disk. */
+  collectAll(): Promise<CollectedLog[]>;
+}
+
 /**
  * Manages log collection from one or more Docker Compose services for a single task.
  *
@@ -53,7 +68,7 @@ export interface CollectedLog {
  *
  * File naming: `<issueKey>-<timestamp>-<sourceId>.<extension>`
  */
-export class ContainerLogCollector {
+export class ContainerLogCollector implements IContainerLogCollector {
   private readonly sources: LogSourceDef[] = [];
   private readonly streamProcs = new Map<string, ResultPromise>();
   private attached = false;
@@ -73,7 +88,7 @@ export class ContainerLogCollector {
   }
 
   /** Set the JIRA issue key used as the filename prefix. Must be called before {@link collectAll}. */
-  setIssueKey(key: string): void {
+  setTaskId(key: string): void {
     this.issueKey = key;
   }
 
@@ -189,8 +204,12 @@ export class ContainerLogCollector {
         });
       }
 
-      proc.catch(() => {
-        // tail exits when the container stops — expected
+      proc.catch((err: unknown) => {
+        // tail exits when the container stops — that's expected and not an error
+        const msg = toErrorMessage(err);
+        if (!msg.includes("Command failed") && !msg.includes("killed")) {
+          this.logger.warn(`Stream process for ${source.id} exited unexpectedly: ${msg}`);
+        }
       });
     } catch {
       this.logger.warn(`Failed to start streaming ${source.id}`);

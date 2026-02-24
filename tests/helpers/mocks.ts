@@ -15,8 +15,10 @@ import type { IContainerManager } from "../../src/container/manager.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
 import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
+import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
+import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
-import type { RalphResult } from "../../src/container/types.js";
+import type { RalphResult, CliPaths } from "../../src/container/types.js";
 import type { ResultPromise } from "execa";
 import { makeResult } from "./factories.js";
 
@@ -158,6 +160,8 @@ export function createMockContainer(
     start: vi.fn().mockResolvedValue(undefined),
     checkPrerequisites: vi.fn().mockResolvedValue(undefined),
     setup: vi.fn().mockResolvedValue(undefined),
+    execInApp: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
+    execInSidecar: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
     registerLogSources: vi.fn(),
     execute: vi.fn().mockResolvedValue(result),
     stop: vi.fn().mockResolvedValue(undefined),
@@ -165,31 +169,35 @@ export function createMockContainer(
     cleanPaths: vi.fn().mockResolvedValue(undefined),
     prepareConfigDir: vi.fn().mockResolvedValue(undefined),
     collectAll: vi.fn().mockResolvedValue([]),
-    attach: vi.fn(),
     detach: vi.fn(),
-    setIssueKey: vi.fn(),
-    addSource: vi.fn(),
+  };
+
+  const cliPaths: CliPaths = {
+    configDir: "/workspace/.ralph",
+    writableDirs: ["/workspace/.ralph/logs", "/workspace/.ralph/logs/cli-debug", "/workspace/.ralph/session-state"],
+    transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
+    logDir: "/workspace/.ralph/logs/cli-debug",
   };
 
   const container: IContainerManager = {
     start: spies.start,
     checkPrerequisites: spies.checkPrerequisites,
     setup: spies.setup,
+    execInApp: spies.execInApp,
+    execInSidecar: spies.execInSidecar,
     registerLogSources: spies.registerLogSources,
     execute: spies.execute,
     stop: spies.stop,
     onToolOutput: undefined,
     onPreToolUse: undefined,
+    cliPaths,
     logs: {
       collectAll: spies.collectAll,
-      attach: spies.attach,
       detach: spies.detach,
-      setIssueKey: spies.setIssueKey,
-      addSource: spies.addSource,
     },
     cleaner: {
       prepareConfigDir: spies.prepareConfigDir,
-      cleanLogDirectory: spies.cleanLogDirectory,
+      cleanDirectory: spies.cleanLogDirectory,
       cleanPaths: spies.cleanPaths,
     },
   };
@@ -221,11 +229,27 @@ export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): 
 /** Create a mock TaskRunner with all methods stubbed. */
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
-    run: vi.fn().mockImplementation(async (issue: any) => ({
-      result: makeResult(issue.key ?? "MOCK-1"),
+    run: vi.fn().mockImplementation(async (ctx: any) => ({
+      result: makeResult(ctx.issue?.key ?? ctx.key ?? "MOCK-1"),
       container: createMockContainer().container,
     })),
     teardown: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/** Create a mock AgentTemplateRenderer with all methods stubbed. */
+export function createMockTemplateRenderer(overrides: Partial<Mocked<IAgentTemplateRenderer>> = {}): Mocked<IAgentTemplateRenderer> {
+  return {
+    render: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/** Create a mock JitMcpConfigWriter with all methods stubbed. */
+export function createMockJitMcpConfigWriter(overrides: Partial<Mocked<IJitMcpConfigWriter>> = {}): Mocked<IJitMcpConfigWriter> {
+  return {
+    write: vi.fn(),
     ...overrides,
   };
 }
@@ -236,7 +260,6 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
     validate: vi.fn().mockResolvedValue({ ok: true, errors: [], warnings: [] }),
     printResults: vi.fn().mockReturnValue(true),
     loadConfig: vi.fn().mockReturnValue({}),
-    resolveIncludes: vi.fn(),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
     resolveMcpConfigs: vi.fn(),
     ...overrides,

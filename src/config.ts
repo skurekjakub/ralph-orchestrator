@@ -6,6 +6,7 @@ import { buildJqlFromProfiles } from "./jira/jql-builder.js";
 import { resolvePath } from "./util/path.js";
 import { AuditMode } from "./prompt/prompt-auditor.js";
 import { CliType } from "./container/types.js";
+import { toErrorMessage } from "./util/error.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -48,6 +49,8 @@ const configFileSchema = z.object({
   excludeFields: z.array(z.string()).default([]),
   /** JIRA accountIds allowed to trigger agent invocations. Empty array = unrestricted. */
   allowedUsers: z.array(z.string()).default([]),
+  /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
+  enableContinuation: z.boolean().default(false),
 });
 
 // ---------------------------------------------------------------------------
@@ -81,6 +84,14 @@ const resourcesSchema = z.object({
   mountBase: z.string().min(1),
 }).optional();
 
+const mcpServerEntrySchema = z.union([
+  z.string(),
+  z.object({
+    name: z.string().min(1, "MCP server entry name must not be empty"),
+    env: z.record(z.string(), z.string()).optional(),
+  }),
+]);
+
 const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),
   cli: z.enum(["copilot", "claude"]).default("copilot"),
@@ -91,8 +102,10 @@ const profileFileSchema = z.object({
   composeProjectLabel: z.string().default("ralph-sandbox"),
   /** Paths inside the container (absolute) to delete before each agent run. */
   cleanPaths: z.array(z.string()).default([]),
+  /** Max continuation attempts when the agent doesn't produce a result block. 0 = disabled (default). */
+  maxContinuations: z.number().int().min(0).max(10).default(0),
   /** MCP servers to deploy into the container (references shared/mcp-servers/<name>/). */
-  mcpServers: z.array(z.string()).default([]),
+  mcpServers: z.array(mcpServerEntrySchema).default([]),
   /**
    * Control the bundled GitHub MCP server in Copilot CLI (only affects cli: "copilot").
    * - `false` (default): server disabled (`--disable-builtin-mcps`)
@@ -156,8 +169,12 @@ export interface AgentProfile {
   composeProjectLabel: string;
   /** Absolute paths inside the container to delete before each agent run. */
   cleanPaths: string[];
+  /** Max continuation attempts when the agent doesn't produce a result block. 0 = disabled. */
+  maxContinuations: number;
   /** MCP server names to deploy into the container (from shared/mcp-servers/). */
   mcpServers: string[];
+  /** Per-server env var overrides from profile config. Maps server name → env var name → value (static or $macro). */
+  mcpServerConfigs: Record<string, Record<string, string>>;
   /**
    * Control the bundled GitHub MCP server in Copilot CLI.
    * - `false` (default): server disabled (`--disable-builtin-mcps`)
@@ -217,6 +234,8 @@ export interface AppConfig {
   excludeFields: string[];
   /** JIRA accountIds allowed to trigger agent invocations. Empty = unrestricted. */
   allowedUsers: string[];
+  /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
+  enableContinuation: boolean;
   secrets: SecretsConfig;
 }
 
@@ -254,12 +273,32 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
       rawJson = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
       throw new Error(
-        `Failed to read ${profileJsonPath}: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to read ${profileJsonPath}: ${toErrorMessage(err)}`
       );
     }
 
     const parsed = profileFileSchema.parse(rawJson);
     const profileId = dirName;
+
+    // Normalize mixed mcpServers array into names + configs
+    const mcpServers: string[] = [];
+    const mcpServerConfigs: Record<string, Record<string, string>> = {};
+    for (const entry of parsed.mcpServers) {
+      if (typeof entry === "string") {
+        mcpServers.push(entry);
+      } else {
+        mcpServers.push(entry.name);
+        if (entry.env && Object.keys(entry.env).length > 0) {
+          mcpServerConfigs[entry.name] = entry.env;
+        }
+      }
+    }
+
+    const uniqueServers = new Set(mcpServers);
+    if (uniqueServers.size !== mcpServers.length) {
+      const dupes = mcpServers.filter((s, i) => mcpServers.indexOf(s) !== i);
+      throw new Error(`Profile "${profileId}": duplicate MCP server(s): ${[...new Set(dupes)].join(", ")}`);
+    }
 
     for (let vi = 0; vi < parsed.variants.length; vi++) {
       const variant = parsed.variants[vi];
@@ -278,7 +317,9 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
         auditLogPath: parsed.auditLogPath,
         composeProjectLabel: parsed.composeProjectLabel,
         cleanPaths: parsed.cleanPaths,
-        mcpServers: parsed.mcpServers,
+        maxContinuations: parsed.maxContinuations,
+        mcpServers,
+        mcpServerConfigs,
         githubMcpTools: parsed.githubMcpTools,
         match: {
           projects: variant.match.projects,
@@ -316,7 +357,7 @@ export function loadConfig(): AppConfig {
     rawJson = JSON.parse(readFileSync(configPath, "utf-8"));
   } catch (err) {
     throw new Error(
-      `Failed to read config.json at ${configPath}: ${err instanceof Error ? err.message : String(err)}`
+      `Failed to read config.json at ${configPath}: ${toErrorMessage(err)}`
     );
   }
 
@@ -377,6 +418,7 @@ export function loadConfig(): AppConfig {
     },
     excludeFields: parsed.excludeFields ?? [],
     allowedUsers: parsed.allowedUsers ?? [],
+    enableContinuation: parsed.enableContinuation ?? false,
     secrets,
   };
 }

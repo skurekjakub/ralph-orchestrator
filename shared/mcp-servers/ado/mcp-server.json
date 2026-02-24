@@ -7,15 +7,13 @@
   "containerPath": "/opt/mcp/servers/ado",
   "sidecarPort": 9101,
   "requiredEnv": ["ADO_PAT"],
-  "proxyDomains": [".dev.azure.com"],
-  "allowedUrlPaths": {
-    "dev.azure.com": ["/KenticoCustomerSuccess/"]
-  },
   "tools": [
     "ado_create_pull_request",
     "ado_list_pull_requests",
     "ado_list_pull_request_threads",
     "ado_create_pull_request_thread",
-    "ado_reply_to_comment"
-  ]
+    "ado_reply_to_comment",
+    "ado_push_progress"
+  ],
+  "requiredConfig": ["ADO_PROJECT", "ADO_REPO"]
 }

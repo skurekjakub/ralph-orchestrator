@@ -8,7 +8,7 @@
  * - jira_add_attachment: Attach a file to an issue
  *
  * Communicates via stdio using the MCP protocol. Designed to run inside
- * a container with HTTP proxy access to atlassian.com.
+ * the MCP sidecar container, which has unrestricted direct internet access.
  *
  * Required env vars:
  *   JIRA_PAT       — API token for authentication
@@ -19,7 +19,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import axios from "axios";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { z } from "zod";
 import { readFileSync } from "node:fs";
@@ -31,10 +30,6 @@ import { resolve } from "node:path";
  */
 const ATTACHMENTS_DIR = "/tmp/mcp-attachments";
 
-// Proxy agent for CONNECT tunneling through Squid (axios built-in proxy doesn't do CONNECT)
-const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-const httpsAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
-
 const JIRA_PAT = process.env.JIRA_PAT;
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
 
@@ -42,6 +37,9 @@ if (!JIRA_PAT || !JIRA_EMAIL) {
   console.error("JIRA_PAT and JIRA_EMAIL must be set");
   process.exit(1);
 }
+
+/** Task-scoped issue key injected by the orchestrator's JIT MCP param system. */
+const JIRA_ISSUE_KEY = process.env.JIRA_ISSUE_KEY;
 
 const apiBase = "https://api.atlassian.com/ex/jira/37df0bb1-cba3-49a3-a001-61b91bdd8c08/rest/api/2";
 const authHeader = `Basic ${Buffer.from(`${JIRA_EMAIL}:${JIRA_PAT}`).toString("base64")}`;
@@ -75,12 +73,17 @@ function createMcpServer(): McpServer {
       "Add a comment to a JIRA issue. The comment body uses JIRA wiki markup " +
       "(h3. for headings, {{code}} for inline code, {code:lang}...{code} for blocks, " +
       "bq. for blockquotes, regular markdown for the rest). " +
-      "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
-    inputSchema: {
-      issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
-      body: z.string().describe("Comment body in JIRA wiki markup"),
-    },
-  }, async ({ issueKey, body }) => {
+      "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences." +
+      (JIRA_ISSUE_KEY ? ` The issue key is pre-configured to ${JIRA_ISSUE_KEY}.` : ""),
+    inputSchema: JIRA_ISSUE_KEY
+      ? { body: z.string().describe("Comment body in JIRA wiki markup") }
+      : {
+          issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
+          body: z.string().describe("Comment body in JIRA wiki markup"),
+        },
+  }, async (args: Record<string, unknown>) => {
+    const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
+    const body = String(args.body);
     const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/comment`;
     const sanitized = sanitizeWikiMarkup(body);
 
@@ -90,8 +93,6 @@ function createMcpServer(): McpServer {
           "Content-Type": "application/json",
           Authorization: authHeader,
         },
-        httpsAgent,
-        proxy: false,
       });
 
       return {
@@ -113,12 +114,17 @@ function createMcpServer(): McpServer {
 
   server.registerTool("jira_add_attachment", {
     description:
-      "Attach a file to a JIRA issue. The file must be placed in /tmp/mcp-attachments/",
-    inputSchema: {
-      issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
-      fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)"),
-    },
-  }, async ({ issueKey, fileName }) => {
+      "Attach a file to a JIRA issue. The file must be placed in /tmp/mcp-attachments/" +
+      (JIRA_ISSUE_KEY ? ` The issue key is pre-configured to ${JIRA_ISSUE_KEY}.` : ""),
+    inputSchema: JIRA_ISSUE_KEY
+      ? { fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") }
+      : {
+          issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
+          fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)"),
+        },
+  }, async (args: Record<string, unknown>) => {
+    const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
+    const fileName = String(args.fileName);
     const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/attachments`;
 
     // Validate the resolved path stays within the attachments directory
@@ -149,8 +155,6 @@ function createMcpServer(): McpServer {
           Authorization: authHeader,
           "X-Atlassian-Token": "no-check",
         },
-        httpsAgent,
-        proxy: false,
       });
 
       const data = res.data as Array<{ id: string; filename: string }>;

@@ -1,0 +1,10 @@
+{
+  "name": "web-fetch",
+  "description": "Fetch the content of any URL and return it as text",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/web-fetch",
+  "sidecarPort": 9104,
+  "tools": ["web_fetch"]
+}

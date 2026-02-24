@@ -37,14 +37,7 @@ describe("ADO MCP Server manifest", () => {
     expect(manifest.requiredEnv).toEqual(["ADO_PAT"]);
   });
 
-  it("declares proxy domains for Azure DevOps", () => {
-    const manifest = loadManifest();
-    expect(manifest.proxyDomains).toEqual(
-      expect.arrayContaining([".dev.azure.com"]),
-    );
-  });
-
-  it("lists all five tool names", () => {
+  it("lists all six tool names", () => {
     const manifest = loadManifest();
     expect(manifest.tools).toEqual([
       "ado_create_pull_request",
@@ -52,12 +45,13 @@ describe("ADO MCP Server manifest", () => {
       "ado_list_pull_request_threads",
       "ado_create_pull_request_thread",
       "ado_reply_to_comment",
+      "ado_push_progress",
     ]);
   });
 });
 
 describe("ADO MCP Server source", () => {
-  it("defines all five tools", () => {
+  it("defines all six tools", () => {
     const source = readAllSources();
     for (const tool of [
       "ado_create_pull_request",
@@ -65,6 +59,7 @@ describe("ADO MCP Server source", () => {
       "ado_list_pull_request_threads",
       "ado_create_pull_request_thread",
       "ado_reply_to_comment",
+      "ado_push_progress",
     ]) {
       expect(source).toContain(`"${tool}"`);
     }
@@ -93,11 +88,12 @@ describe("ADO MCP Server source", () => {
     expect(source).toContain("7.1");
   });
 
-  it("uses axios with https-proxy-agent for HTTP requests", () => {
+  it("uses axios for HTTP requests without proxy configuration", () => {
     const source = readAllSources();
     expect(source).toContain("import axios");
-    expect(source).toContain("HttpsProxyAgent");
-    expect(source).toContain("proxy: false");
+    // Sidecar has direct internet access — no proxy agent needed
+    expect(source).not.toContain("HttpsProxyAgent");
+    expect(source).not.toContain("proxy: false");
   });
 
   it("encodes project and repo in URL paths", () => {
@@ -119,5 +115,76 @@ describe("ADO MCP Server source", () => {
     const sanitizeCount = (source.match(/sanitizeContent\(/g) ?? []).length;
     // 1 definition + 3 tool usages = at least 4
     expect(sanitizeCount).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("ADO MCP Server git tools", () => {
+  it("defines push_progress tool", () => {
+    const source = readAllSources();
+    expect(source).toContain('"ado_push_progress"');
+  });
+
+  it("uses REPO_ROOT env var for git operations", () => {
+    const source = readAllSources();
+    expect(source).toContain("process.env.REPO_ROOT");
+    expect(source).toContain("REPO_ROOT");
+  });
+
+  it("uses gitExec helper for git operations", () => {
+    const source = readAllSources();
+    expect(source).toContain("gitExec");
+    // gitExec definition + gitStageCommitPush usage (add, commit, push)
+    const gitExecCount = (source.match(/gitExec\(/g) ?? []).length;
+    expect(gitExecCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it("sets GIT_TERMINAL_PROMPT=0 to prevent auth hangs", () => {
+    const source = readAllSources();
+    expect(source).toContain("GIT_TERMINAL_PROMPT");
+  });
+
+  it("uses force-with-lease for push safety", () => {
+    const source = readAllSources();
+    expect(source).toContain("force-with-lease");
+  });
+
+  it("sanitizes ADO_PAT from error messages in gitExec", () => {
+    const source = readAllSources();
+    expect(source).toContain('.replaceAll(ADO_PAT');
+  });
+});
+
+describe("ADO MCP Server conditional schemas", () => {
+  it("reads task-scoped env vars from process.env", () => {
+    const source = readAllSources();
+    expect(source).toContain("process.env.ADO_PROJECT");
+    expect(source).toContain("process.env.ADO_REPO");
+    expect(source).toContain("process.env.TASK_BRANCH");
+  });
+
+  it("conditionally includes project and repositoryId in schemas", () => {
+    const source = readAllSources();
+    expect(source).toContain("TASK_PROJECT");
+    expect(source).toContain("TASK_REPO");
+    // All 5 tools should check TASK_PROJECT and TASK_REPO
+    const projectChecks = (source.match(/TASK_PROJECT/g) ?? []).length;
+    const repoChecks = (source.match(/TASK_REPO/g) ?? []).length;
+    // 1 definition in shared.ts + 5 imports + 5 schema checks + 5 handler defaults = ~16 each
+    expect(projectChecks).toBeGreaterThanOrEqual(10);
+    expect(repoChecks).toBeGreaterThanOrEqual(10);
+  });
+
+  it("uses TASK_BRANCH for sourceRefName defaulting in create and list tools", () => {
+    const source = readAllSources();
+    // TASK_BRANCH is used in shared.ts + create-pull-request + list-pull-requests
+    const branchRefs = (source.match(/TASK_BRANCH/g) ?? []).length;
+    expect(branchRefs).toBeGreaterThanOrEqual(5);
+    // refs/heads/ prefix is used when TASK_BRANCH is present
+    expect(source).toContain("refs/heads/${TASK_BRANCH}");
+  });
+
+  it("exports requiredConfig in manifest", () => {
+    const manifest = loadManifest();
+    expect(manifest.requiredConfig).toEqual(["ADO_PROJECT", "ADO_REPO"]);
   });
 });

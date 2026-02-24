@@ -22,12 +22,10 @@ export interface McpServerManifest {
   requiredEnv?: string[];
   /** Optional env vars the server supports. */
   optionalEnv?: string[];
-  /** Domains the server needs egress access to (for squid allowlist reference). */
-  proxyDomains?: string[];
-  /** Domain → allowed URL path prefixes. Used by URL path restrictions and Copilot CLI URL config. */
-  allowedUrlPaths?: Record<string, string[]>;
   /** Tool names this server provides (documentation / prompt-authoring reference). */
   tools?: string[];
+  /** Env var names that MUST be provided by profiles using this server (via mcpServers object entries). */
+  requiredConfig?: string[];
 }
 
 /**
@@ -51,6 +49,16 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   if (typeof raw.sidecarPort !== "number" || !Number.isInteger(raw.sidecarPort) || raw.sidecarPort < 1 || raw.sidecarPort > 65535) {
     throw new Error(`Invalid MCP server manifest at ${manifestPath}: sidecarPort must be an integer between 1 and 65535`);
   }
+
+  if (raw.requiredConfig !== undefined) {
+    if (!Array.isArray(raw.requiredConfig) || raw.requiredConfig.length === 0 ||
+        raw.requiredConfig.some((v: unknown) => typeof v !== "string" || v === "")) {
+      throw new Error(
+        `Invalid MCP server manifest at ${manifestPath}: requiredConfig must be a non-empty array of non-empty strings`,
+      );
+    }
+  }
+
   return raw;
 }
 

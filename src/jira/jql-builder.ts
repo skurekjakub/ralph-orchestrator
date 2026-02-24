@@ -16,7 +16,7 @@ export function buildJqlFromProfiles(profiles: readonly AgentProfile[]): string[
     const allStatuses = [...new Set(profile.match.statuses ?? [])];
 
     for (const project of profile.match.projects) {
-      const clauses: string[] = [`project = ${project}`];
+      const clauses: string[] = [`project = "${project}"`];
 
       if (allStatuses.length === 1) {
         clauses.push(`status = "${allStatuses[0]}"`);

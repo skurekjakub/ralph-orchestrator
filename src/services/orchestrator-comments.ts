@@ -11,8 +11,12 @@ const PREFIX = "[Ralph-Orchestrator]";
 
 export const OrchestratorComments = {
   /** Posted when a trigger comment is discovered and an operation is queued. */
-  ack(displayName: string): string {
-    return `${PREFIX} 🤖 Got it! Queueing ${displayName} for this issue...`;
+  ack(displayName: string, triggerParams?: string[]): string {
+    const base = `${PREFIX} 🤖 Got it! Queueing ${displayName} for this issue...`;
+    if (triggerParams && triggerParams.length > 0) {
+      return `${base}\nParams: ${triggerParams.join(", ")}`;
+    }
+    return base;
   },
 
   /** Posted when the agent starts working on an issue. */

@@ -1,17 +1,16 @@
 FROM node:22-bookworm-slim
 
-# Dedicated non-root user for MCP server isolation
-RUN groupadd -r mcp && useradd -r -g mcp -m -s /bin/false mcp
+ARG HOST_UID=1000
+ARG HOST_GID=1000
 
-# Server + gateway directories (owned by mcp, unreadable by others)
-RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway \
-    && chown -R mcp:mcp /opt/mcp \
-    && chmod 700 /opt/mcp
+# All installs run as root so they land in predictable paths.
+# Everything is chowned to HOST_UID:HOST_GID at the end before switching user.
+ENV NPM_CONFIG_PREFIX=/opt/npm-global
+ENV PATH="/opt/npm-global/bin:$PATH"
+# Fixed path so playwright browsers survive the chown and are found at runtime.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
 
-# npm prefix for global installs without root
-RUN mkdir -p /home/mcp/.npm-global && chown mcp:mcp /home/mcp/.npm-global
-ENV NPM_CONFIG_PREFIX=/home/mcp/.npm-global
-ENV PATH="/home/mcp/.npm-global/bin:$PATH"
+RUN mkdir -p /opt/npm-global /opt/playwright-browsers
 
 # Pre-install supergateway (stdio → Streamable HTTP bridge for npm servers)
 RUN npm install -g supergateway@3
@@ -21,19 +20,28 @@ RUN npm install -g @playwright/mcp@0.0.68 \
     && npx playwright install chromium \
     && npx playwright install-deps chromium
 
+# Git + CA certificates for ADO push/PR tools running inside the sidecar.
+# ca-certificates is stripped from node:bookworm-slim; without it git cannot
+# verify SSL certificates and all HTTPS operations fail with "CAfile: none".
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Server + gateway directories
+RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway
+
 # Gateway dependencies
-COPY --chown=mcp:mcp package.json /opt/mcp/gateway/
+COPY package.json /opt/mcp/gateway/
 RUN cd /opt/mcp/gateway && npm install --omit=dev
+
+# Transfer ownership of all app directories to the runtime user so the process
+# can write to them. Bind-mounted volumes (/workspace) work because the process
+# UID matches the host file owner — no chown needed for those.
+RUN chown -R ${HOST_UID}:${HOST_GID} /opt/mcp /opt/npm-global /opt/playwright-browsers
 
 # Gateway code is mounted at runtime via compose overlay
 # (shared/mcp-sidecar/dist/ → /opt/mcp/gateway/dist:ro)
 
-# Route HTTP/HTTPS through Squid egress proxy
-ENV HTTP_PROXY="http://egress-proxy:3128"
-ENV HTTPS_PROXY="http://egress-proxy:3128"
-ENV NO_PROXY="localhost,127.0.0.1,app,egress-proxy"
-
-USER mcp
+USER ${HOST_UID}:${HOST_GID}
 WORKDIR /opt/mcp
 
 HEALTHCHECK --interval=5s --timeout=3s --retries=3 \

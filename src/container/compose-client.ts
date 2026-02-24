@@ -61,6 +61,10 @@ export class ComposeClient implements IComposeClient {
       TARGET_REPO_PATH: envConfig.targetRepoPath,
       SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
       SQUID_CONF_PATH: envConfig.squidConfPath,
+      // Host UID/GID for sidecar build args — ensures the sidecar process owns
+      // the bind-mounted workspace and can write to it without permission errors.
+      HOST_UID: String(process.getuid?.() ?? 1000),
+      HOST_GID: String(process.getgid?.() ?? 1000),
     };
   }
 

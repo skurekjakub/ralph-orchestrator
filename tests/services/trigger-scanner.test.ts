@@ -81,6 +81,42 @@ describe("TriggerScanner", () => {
     expect(mgr.postAckComment.mock.calls[0][0]).toBe("DF-100");
   });
 
+  it("passes trigger params to ack comment when present", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: makeMatch({ commentTrigger: "@docs" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const mgr = makeMockIssueManager([
+      makeComment("C1", "@docs(codesamples, branch=xyz) review"),
+    ]);
+    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
+
+    await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(mgr.postAckComment).toHaveBeenCalledWith(
+      "DF-100", "ralph", ["codesamples", "branch=xyz"],
+    );
+  });
+
+  it("passes empty trigger params array to ack when no params in trigger", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: makeMatch({ commentTrigger: "@docs" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const mgr = makeMockIssueManager([
+      makeComment("C1", "@docs please review"),
+    ]);
+    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
+
+    await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(mgr.postAckComment).toHaveBeenCalledWith(
+      "DF-100", "ralph", [],
+    );
+  });
+
   it("skips profiles that don't match the issue project", async () => {
     const profile = makeProfile({
       id: "ralph-vscode",
@@ -203,6 +239,42 @@ describe("TriggerScanner", () => {
     const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
 
     expect(planned).toBe(1);
+  });
+
+  it("stores trigger params from callsign in the operation", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: makeMatch({ commentTrigger: "@docs" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const mgr = makeMockIssueManager([
+      makeComment("C1", "@docs(codesamples, verbose) please review"),
+    ]);
+    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
+
+    const planned = await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    expect(planned).toBe(1);
+    const ops = ledger.getOperations("DF-100");
+    expect(ops).toHaveLength(1);
+    expect(ops[0].triggerParams).toEqual(["codesamples", "verbose"]);
+  });
+
+  it("omits triggerParams when callsign has no parentheses", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      match: makeMatch({ commentTrigger: "@docs" }),
+    });
+    const router = new ProfileRouter([profile]);
+    const mgr = makeMockIssueManager([
+      makeComment("C1", "@docs please review"),
+    ]);
+    const scanner = new TriggerScanner(mgr, router, ledger, silentLogger);
+
+    await scanner.scan([makeIssue("DF-100")], [profile]);
+
+    const ops = ledger.getOperations("DF-100");
+    expect(ops[0].triggerParams).toBeUndefined();
   });
 
   it("returns 0 for empty issue list", async () => {

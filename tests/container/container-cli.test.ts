@@ -1,124 +1,53 @@
 import { describe, it, expect, vi } from "vitest";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
+import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor.js";
 import { DEFAULT_MODEL } from "../../src/config.js";
+import { CliType } from "../../src/container/types.js";
+import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
 import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
 
-// ── Container CLI args validation tests ──────────────────
-// Validates that the container source code includes all required
-// CLI flags, env vars, and docker compose options.
+// ── CopilotExecutor.paths ────────────────────────────────────────────────────
 
-async function readSource(relPath: string): Promise<string> {
-  const { readFileSync } = await import("node:fs");
-  const { resolve } = await import("node:path");
-  return readFileSync(resolve(import.meta.dirname, relPath), "utf-8");
-}
+describe("CopilotExecutor.paths", () => {
+  it("exposes a CliPaths object with correct values", () => {
+    const { compose } = createMockCompose();
+    const executor = new CopilotExecutor(compose, makeProfile(), createMockLogger());
 
-describe("Copilot CLI args", () => {
-  it("includes --model with configurable default", async () => {
-    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
-    expect(source).toContain('"--model"');
-    expect(source).toContain("DEFAULT_MODEL");
-  });
+    const paths: CliPaths = executor.paths;
 
-  it("includes explicit permission flags instead of --yolo", async () => {
-    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
-    expect(source).toContain('"--allow-all-tools"');
-    expect(source).toContain('"--allow-all-paths"');
-    expect(source).toContain('"--experimental"');
-    expect(source).not.toContain('"--yolo"');
-    expect(source).not.toContain('"--allow-all-urls"');
-  });
-
-  it("includes --share flag for session transcript export", async () => {
-    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
-    expect(source).toContain('"--share"');
-    expect(source).toContain("TRANSCRIPT_PATH");
-  });
-
-  it("supports configurable GitHub MCP server tool restrictions", async () => {
-    const source = await readSource("../../src/container/cli-executors/copilot-executor.ts");
-    expect(source).toContain('"--disable-builtin-mcps"');
-    expect(source).toContain('"--add-github-mcp-tool"');
-    expect(source).toContain("githubMcpTools");
+    expect(paths.configDir).toBe("/workspace/.ralph");
+    expect(paths.transcriptPath).toBe("/workspace/.ralph/logs/session-transcript.md");
+    expect(paths.logDir).toBe("/workspace/.ralph/logs/cli-debug");
+    expect(paths.writableDirs).toEqual([
+      "/workspace/.ralph/logs",
+      "/workspace/.ralph/logs/cli-debug",
+      "/workspace/.ralph/session-state",
+    ]);
   });
 });
 
-describe("Claude Code CLI args", () => {
-  it("includes --dangerously-skip-permissions flag", async () => {
-    const source = await readSource("../../src/container/cli-executors/claude-code-executor.ts");
-    expect(source).toContain('"--dangerously-skip-permissions"');
-  });
+// ── ClaudeCodeExecutor.paths ─────────────────────────────────────────────────
 
-  it("supports optional --model flag", async () => {
-    const source = await readSource("../../src/container/cli-executors/claude-code-executor.ts");
-    expect(source).toContain('"--model"');
-    expect(source).toContain("profile.model");
-  });
-});
+describe("ClaudeCodeExecutor.paths", () => {
+  it("exposes a CliPaths object with correct values", () => {
+    const { compose } = createMockCompose();
+    const executor = new ClaudeCodeExecutor(compose, makeProfile({ cli: CliType.Claude }), createMockLogger());
 
-describe("Compose environment", () => {
-  it("injects computed paths into compose process", async () => {
-    const source = await readSource("../../src/container/compose-client.ts");
-    const requiredEnvVars = [
-      "TARGET_REPO_PATH",
-      "SHARED_HOOKS_PATH",
-      "SQUID_CONF_PATH",
-    ];
-    for (const envVar of requiredEnvVars) {
-      expect(source).toContain(envVar);
-    }
+    const paths: CliPaths = executor.paths;
+
+    expect(paths.configDir).toBe("/workspace/.ralph");
+    expect(paths.transcriptPath).toBe("/workspace/.ralph/logs/session-transcript.md");
+    expect(paths.logDir).toBe("/workspace/.ralph/logs/cli-debug");
+    expect(paths.writableDirs).toEqual([
+      "/workspace/.ralph/logs",
+      "/workspace/.ralph/logs/cli-debug",
+      "/workspace/.ralph/session-state",
+    ]);
   });
 });
 
-describe("Docker compose options", () => {
-  it("uses --remove-orphans in docker compose down", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain('"--remove-orphans"');
-  });
-});
-
-describe("Build streaming", () => {
-  it("streams build and setup output via StreamCapture", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain('new StreamCapture(proc, this.containerLogger, "build")');
-    expect(source).toContain('new StreamCapture(setupProc, this.containerLogger, "setup")');
-  });
-});
-
-describe("Container stop fallback", () => {
-  it("force-removes app, egress-proxy, and mcp-sidecar containers on compose failure", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain('"egress-proxy"');
-    expect(source).toContain('"mcp-sidecar"');
-    // All services should be in the fallback loop
-    expect(source).toMatch(/for\s*\(.*\["app",\s*"egress-proxy",\s*"mcp-sidecar"\]/);
-  });
-});
-
-describe("Log collection", () => {
-  it("registers mcp-sidecar log source with useComposeLogs", async () => {
-    const source = await readSource("../../src/container/manager.ts");
-    expect(source).toContain('id: "sidecar"');
-    expect(source).toContain('service: "mcp-sidecar"');
-    expect(source).toContain("useComposeLogs: true");
-  });
-
-  it("compose client exposes logs() method for docker compose logs", async () => {
-    const source = await readSource("../../src/container/compose-client.ts");
-    expect(source).toContain('"logs"');
-    expect(source).toContain('"--no-color"');
-    expect(source).toContain('"--no-log-prefix"');
-  });
-
-  it("log collector supports useComposeLogs flag for stdout-based services", async () => {
-    const source = await readSource("../../src/container/log-collector.ts");
-    expect(source).toContain("useComposeLogs");
-    expect(source).toContain("compose.logs(source.service)");
-  });
-});
-
-// ── Behavioral tests — Copilot CLI executor ─────────────────────────────────
+// ── CopilotExecutor ──────────────────────────────────────────────────────────
 
 describe("CopilotExecutor.run", () => {
   function createExecutor(profileOverrides: Parameters<typeof makeProfile>[0] = {}) {
@@ -179,5 +108,151 @@ describe("CopilotExecutor.run", () => {
     const modelIndex2 = args2.indexOf("--model");
     expect(args1[modelIndex1 + 1]).toBe("claude-sonnet-4");
     expect(args2[modelIndex2 + 1]).toBe(DEFAULT_MODEL);
+  });
+
+  it("uses --continue flag in continueSession", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.continueSession("continue working");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--continue");
+    expect(args).toContain("--prompt");
+    const promptIdx = args.indexOf("--prompt");
+    expect(args[promptIdx + 1]).toBe("continue working");
+    expect(args).not.toContain("-p");
+  });
+
+  it("shares common flags between run and continueSession", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.continueSession("continuation prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--config-dir");
+    expect(args).toContain("--agent");
+    expect(args).toContain("--allow-all-tools");
+    expect(args).toContain("--share");
+  });
+});
+
+// ── ClaudeCodeExecutor ───────────────────────────────────────────────────────
+
+describe("ClaudeCodeExecutor.run", () => {
+  function createExecutor(profileOverrides: Parameters<typeof makeProfile>[0] = {}) {
+    const { compose } = createMockCompose();
+    const logger = createMockLogger();
+    const profile = makeProfile({ cli: CliType.Claude, ...profileOverrides });
+
+    vi.mocked(compose.execWithTimeout).mockResolvedValue(fakeExecResult({
+      exitCode: 0,
+      stdout: "done",
+      stderr: "",
+      on: () => {},
+    }));
+
+    const executor = new ClaudeCodeExecutor(compose, profile, logger);
+    return { executor, compose };
+  }
+
+  it("passes prompt via -p flag", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.run("test prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    const pIdx = args.indexOf("-p");
+    expect(pIdx).toBeGreaterThan(-1);
+    expect(args[pIdx + 1]).toBe("test prompt");
+  });
+
+  it("includes --dangerously-skip-permissions flag", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.run("test prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--dangerously-skip-permissions");
+  });
+
+  it("includes --mcp-config and --strict-mcp-config", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.run("test prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--mcp-config");
+    expect(args).toContain("--strict-mcp-config");
+    const mcpIdx = args.indexOf("--mcp-config");
+    expect(args[mcpIdx + 1]).toBe("/workspace/.ralph/mcp-config.json");
+  });
+
+  it("includes --model when profile.model is set", async () => {
+    const { executor, compose } = createExecutor({ model: "claude-sonnet-4" });
+
+    await executor.run("test prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    const modelIdx = args.indexOf("--model");
+    expect(modelIdx).toBeGreaterThan(-1);
+    expect(args[modelIdx + 1]).toBe("claude-sonnet-4");
+  });
+
+  it("omits --model when profile.model is not set", async () => {
+    const { executor, compose } = createExecutor({ model: undefined });
+
+    await executor.run("test prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).not.toContain("--model");
+  });
+});
+
+describe("ClaudeCodeExecutor.continueSession", () => {
+  function createExecutor(profileOverrides: Parameters<typeof makeProfile>[0] = {}) {
+    const { compose } = createMockCompose();
+    const logger = createMockLogger();
+    const profile = makeProfile({ cli: CliType.Claude, ...profileOverrides });
+
+    vi.mocked(compose.execWithTimeout).mockResolvedValue(fakeExecResult({
+      exitCode: 0,
+      stdout: "done",
+      stderr: "",
+      on: () => {},
+    }));
+
+    const executor = new ClaudeCodeExecutor(compose, profile, logger);
+    return { executor, compose };
+  }
+
+  it("uses --continue flag", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.continueSession("continue working");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--continue");
+  });
+
+  it("passes prompt via -p flag", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.continueSession("continue working");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    const pIdx = args.indexOf("-p");
+    expect(pIdx).toBeGreaterThan(-1);
+    expect(args[pIdx + 1]).toBe("continue working");
+  });
+
+  it("shares common flags with run()", async () => {
+    const { executor, compose } = createExecutor();
+
+    await executor.continueSession("continuation prompt");
+
+    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+    expect(args).toContain("--dangerously-skip-permissions");
+    expect(args).toContain("--mcp-config");
+    expect(args).toContain("--strict-mcp-config");
   });
 });

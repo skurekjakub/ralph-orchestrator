@@ -1,18 +1,23 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+FROM ubuntu:22.04
 
-# ============================================================
-# Version pinning – single place to bump dependencies
-# ============================================================
 ARG NODE_MAJOR=24
 ARG RUBY_VERSION=3.3.8
 ARG BUNDLER_VERSION=2.6.9
 ARG DOTNET_VERSION=10.0
 ARG PANDOC_VERSION=3.8.3
+ARG HOST_UID=1000
+ARG HOST_GID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ============================================================
-# 0. Locale — Ruby defaults to US-ASCII without this, causing
+# 0. Create non-root user
+# ============================================================
+RUN groupadd --gid ${HOST_GID} vscode \
+    && useradd --uid ${HOST_UID} --gid ${HOST_GID} --create-home --shell /bin/bash vscode
+
+# ============================================================
+# 1. Locale — Ruby defaults to US-ASCII without this, causing
 #    "invalid byte sequence" errors on UTF-8 content files
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends locales \
@@ -24,29 +29,21 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 # ============================================================
-# 1. Core build deps + Playwright system libraries
+# 2. Runtime deps + build-time tools
+#    build-essential/lib*-dev stay for native gem compilation
+#    and Ruby source build (step 6)
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential ca-certificates curl gnupg2 lsb-release \
-        software-properties-common wget apt-transport-https unzip jq \
-        # Playwright Chromium / Firefox / WebKit runtime deps
-        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-        libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 libxdamage1 \
-        libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
-        libasound2 libatspi2.0-0 libwayland-client0 \
+        git bash build-essential ca-certificates \
+        curl jq gnupg2 wget \
+        libssl-dev libyaml-dev libreadline-dev libffi-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
-
-# ============================================================
-# 2. Microsoft package signing key
-# ============================================================
-RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
-        | tee /etc/apt/trusted.gpg.d/microsoft.asc > /dev/null
 
 # ============================================================
 # 3. Node.js (via NodeSource)
 # ============================================================
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
-    && apt-get install -y nodejs \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -69,44 +66,30 @@ RUN wget -qO /tmp/pandoc.deb \
     && dpkg -i /tmp/pandoc.deb && rm /tmp/pandoc.deb
 
 # ============================================================
-# 6. Playwright browser (Chromium only)
+# 6. Ruby (compiled from source → /usr/local, like Node/.NET)
+#    Build deps installed in step 2.
 # ============================================================
-RUN npm install -g playwright@1.58.2 \
-    && npx playwright install chromium \
-    && npx playwright install-deps chromium
+RUN curl -fsSL "https://cache.ruby-lang.org/pub/ruby/3.3/ruby-${RUBY_VERSION}.tar.gz" \
+        -o /tmp/ruby.tar.gz \
+    && tar -xzf /tmp/ruby.tar.gz -C /tmp \
+    && cd /tmp/ruby-${RUBY_VERSION} \
+    && ./configure --prefix=/usr/local --disable-install-doc \
+    && make -j"$(nproc)" \
+    && make install \
+    && rm -rf /tmp/ruby*
 
-# ============================================================
-# 7. RVM + Ruby (as vscode user)
-# ============================================================
+# User-writable gem home (mirrors NPM_CONFIG_PREFIX pattern)
 USER vscode
+RUN mkdir -p /home/vscode/.gems/bin
 
-RUN gpg2 --keyserver hkp://keyserver.ubuntu.com --recv-keys \
-        409B6B1796C275462A1703113804BB82D39DC0E3 \
-        7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
-    || (curl -sSL https://rvm.io/mpapis.asc | gpg2 --import - \
-     && curl -sSL https://rvm.io/pkuczynski.asc | gpg2 --import -)
+ENV GEM_HOME=/home/vscode/.gems \
+    GEM_PATH=/home/vscode/.gems \
+    PATH="/home/vscode/.gems/bin:$PATH"
 
-RUN curl -sSL https://get.rvm.io | bash -s stable \
-    && echo 'source ~/.rvm/scripts/rvm' >> ~/.bashrc \
-    && echo 'source ~/.rvm/scripts/rvm' >> ~/.bash_profile \
-    && echo 'source ~/.rvm/scripts/rvm' >> ~/.profile \
-    && /bin/bash -l -c "rvm install ${RUBY_VERSION}" \
-    && /bin/bash -l -c "rvm use ${RUBY_VERSION} --default" \
-    && /bin/bash -l -c "gem install bundler -v ${BUNDLER_VERSION}"
-
-RUN echo '#!/bin/bash' > /home/vscode/.rvmrc_wrapper \
-    && echo 'source ~/.rvm/scripts/rvm' >> /home/vscode/.rvmrc_wrapper \
-    && echo 'exec "$@"' >> /home/vscode/.rvmrc_wrapper \
-    && chmod +x /home/vscode/.rvmrc_wrapper
-
-ENV BASH_ENV="/home/vscode/.rvm/scripts/rvm" \
-    PATH="/home/vscode/.rvm/gems/ruby-${RUBY_VERSION}/bin:/home/vscode/.rvm/gems/ruby-${RUBY_VERSION}@global/bin:/home/vscode/.rvm/rubies/ruby-${RUBY_VERSION}/bin:/home/vscode/.rvm/bin:$PATH" \
-    GEM_HOME="/home/vscode/.rvm/gems/ruby-${RUBY_VERSION}" \
-    GEM_PATH="/home/vscode/.rvm/gems/ruby-${RUBY_VERSION}:/home/vscode/.rvm/gems/ruby-${RUBY_VERSION}@global" \
-    RUBY_VERSION="ruby-${RUBY_VERSION}"
+RUN gem install bundler -v ${BUNDLER_VERSION}
 
 # ============================================================
-# 8. Copy scripts & finalize
+# 7. Copy scripts & finalize
 # ============================================================
 USER root
 COPY --chown=vscode:vscode setup.sh /usr/local/bin/
@@ -117,13 +100,14 @@ RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-g
 ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
 ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 
-# Disable sudo for vscode user (prevent privilege escalation inside container)
-RUN rm -f /etc/sudoers.d/vscode 2>/dev/null; \
-    sed -i '/vscode/d' /etc/sudoers
-
-# Remove HTTP client binaries (only needed during build, not at runtime).
-# libcurl stays for git HTTP transport; agent cannot use curl/wget directly.
-RUN apt-get purge -y --auto-remove curl wget && rm -rf /var/lib/apt/lists/*
+# ============================================================
+# 8. Purge build-only tools
+#    curl/wget were needed to fetch install scripts.
+#    gnupg2 needed for NodeSource GPG key.
+#    libcurl stays for git HTTP transport.
+# ============================================================
+RUN apt-get purge -y --auto-remove curl wget gnupg2 \
+    && rm -rf /var/lib/apt/lists/*
 
 USER vscode
 WORKDIR /workspace

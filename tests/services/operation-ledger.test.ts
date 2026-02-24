@@ -55,6 +55,31 @@ describe("OperationLedger", () => {
   });
 
   describe("lifecycle transitions", () => {
+    it("rejects invalid transition: completed → active", () => {
+      const id = ledger.plan("DF-1", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+      ledger.transition("DF-1", id, OperationStatus.Active);
+      ledger.transition("DF-1", id, OperationStatus.Completed);
+
+      expect(() => ledger.transition("DF-1", id, OperationStatus.Active))
+        .toThrow("Invalid operation state transition: completed → active");
+    });
+
+    it("rejects invalid transition: pending → completed", () => {
+      const id = ledger.plan("DF-1", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+
+      expect(() => ledger.transition("DF-1", id, OperationStatus.Completed))
+        .toThrow("Invalid operation state transition: pending → completed");
+    });
+
+    it("rejects invalid transition: error → pending", () => {
+      const id = ledger.plan("DF-1", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+      ledger.transition("DF-1", id, OperationStatus.Active);
+      ledger.transition("DF-1", id, OperationStatus.Error);
+
+      expect(() => ledger.transition("DF-1", id, OperationStatus.Pending))
+        .toThrow("Invalid operation state transition: error → pending");
+    });
+
     it("transitions pending → active → completed", () => {
       const id = ledger.plan("DF-1", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
 
@@ -197,11 +222,11 @@ describe("OperationLedger", () => {
     });
 
     it("handles corrupt files gracefully", () => {
-      writeFileSync(join(tempDir, "DF-BAD.json"), "not json at all");
+      writeFileSync(join(tempDir, "DF-999.json"), "not json at all");
 
-      expect(ledger.getOperations("DF-BAD")).toEqual([]);
-      ledger.plan("DF-BAD", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
-      expect(ledger.getOperations("DF-BAD")).toHaveLength(1);
+      expect(ledger.getOperations("DF-999")).toEqual([]);
+      ledger.plan("DF-999", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+      expect(ledger.getOperations("DF-999")).toHaveLength(1);
     });
   });
 });

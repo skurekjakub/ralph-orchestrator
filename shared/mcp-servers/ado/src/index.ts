@@ -27,6 +27,7 @@ import { tool as createPullRequestThread } from "./tools/create-pull-request-thr
 import { tool as listPullRequestThreads } from "./tools/list-pull-request-threads.js";
 import { tool as listPullRequests } from "./tools/list-pull-requests.js";
 import { tool as replyToComment } from "./tools/reply-to-comment.js";
+import { tool as pushProgress } from "./tools/push-progress.js";
 
 const tools: ToolDefinition[] = [
   createPullRequest,
@@ -34,6 +35,7 @@ const tools: ToolDefinition[] = [
   listPullRequestThreads,
   createPullRequestThread,
   replyToComment,
+  pushProgress,
 ];
 
 /** Create a fresh McpServer with all tools registered. */

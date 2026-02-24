@@ -75,3 +75,5 @@ networks:
     internal: true
   ralph-external:
     driver: bridge
+  ralph-sidecar-external:
+    driver: bridge

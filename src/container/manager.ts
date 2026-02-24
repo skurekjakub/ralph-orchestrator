@@ -1,46 +1,26 @@
 import { execa } from "execa";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
-import type { AgentProfile, AppConfig, OutputConfig } from "../config.js";
+import type { AgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
-import type { RalphResult, CliExecutor } from "./types.js";
+import type { RalphResult, CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";
-import { consoleLogger } from "../logger.js";
 import type { PromptBuilder } from "../prompt/prompt-builder.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import { parseResultBlock, resolveStatus } from "./result-parser.js";
-import { ComposeClient } from "./compose-client.js";
 import type { IComposeClient } from "./compose-client.js";
-import type { ICliExecutorFactory } from "./cli-executor-factory.js";
-import { CopilotExecutor } from "./cli-executors/copilot-executor.js";
+import type { ICliExecutor } from "./cli-executor-factory.js";
 import { StreamCapture } from "./stream-capture.js";
-import { ContainerLogCollector, CaptureMode } from "./log-collector.js";
-import type { LogSourceDef, CollectedLog } from "./log-collector.js";
-import { ContainerWorkspaceCleaner } from "./workspace-cleaner.js";
-import { ComposeFileResolver } from "./setup/compose-files.js";
+import type { IContainerLogCollector } from "./log-collector.js";
+import type { CollectedLog } from "./log-collector.js";
+import type { IContainerWorkspaceCleaner } from "./workspace-cleaner.js";
+import type { ILogSourceRegistry } from "./log-source-registry.js";
+import type { IContinuationRunner } from "./continuation-runner.js";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {
-  /** Set the JIRA issue key used as the filename prefix. */
-  setIssueKey(key: string): void;
-  /** Register a log source to be collected. */
-  addSource(source: LogSourceDef): void;
-  /** Start streaming for all `"stream"` mode sources. */
-  attach(): void;
   /** Stop all active streaming processes. */
   detach(): void;
   /** Flush all log sources to disk. */
   collectAll(): Promise<CollectedLog[]>;
-}
-
-/** Public contract for workspace cleanup inside a container. */
-export interface IContainerCleaner {
-  /** Ensure the CLI config directory and its writable subdirectories are owned by vscode. */
-  prepareConfigDir(configDir: string, writableDirs: readonly string[]): Promise<void>;
-  /** Clear and recreate the audit log directory with vscode ownership. */
-  cleanLogDirectory(auditLogPath: string): Promise<void>;
-  /** Delete configured workspace paths before agent execution. */
-  cleanPaths(paths: readonly string[]): Promise<void>;
 }
 
 /** Public contract for container lifecycle management. */
@@ -51,6 +31,10 @@ export interface IContainerManager {
   start(): Promise<void>;
   /** Run the profile's setup script inside the running container. */
   setup(): Promise<void>;
+  /** Execute a command inside the app container as the vscode user. */
+  execInApp(args: string[]): Promise<{ stdout: string; stderr: string }>;
+  /** Execute a command inside the mcp-sidecar container. */
+  execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
   registerLogSources(issueKey: string): void;
   /** Execute the agent CLI inside the running container. */
@@ -60,7 +44,9 @@ export interface IContainerManager {
   /** Per-task log collector. */
   readonly logs: IContainerLogs;
   /** Handles cleanup of workspace paths and log directories inside the container. */
-  readonly cleaner: IContainerCleaner;
+  readonly cleaner: IContainerWorkspaceCleaner;
+  /** Filesystem paths specific to the chosen CLI. */
+  readonly cliPaths: CliPaths;
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
   /** Optional callback invoked for each line of real-time pre-tool invocation output. */
@@ -77,7 +63,7 @@ export interface IContainerManager {
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
  * - {@link ICliExecutorFactory} — CLI executor creation based on available credentials
- * - {@link CopilotExecutor} — CLI execution with streaming
+ * - {@link LogSourceRegistry} — standard log source registration
  *
  * 1. **start()** — `docker compose up -d --build`
  * 2. **setup()** — runs the profile's setup script inside the container
@@ -87,18 +73,23 @@ export interface IContainerManager {
  */
 export class ContainerManager implements IContainerManager {
   private readonly compose: IComposeClient;
-  private readonly executor: CliExecutor;
-  private readonly outputConfig: OutputConfig;
+  private readonly executor: ICliExecutor;
+  private readonly continuationRunner: IContinuationRunner;
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
   private readonly profile: AgentProfile;
   private readonly promptBuilder: PromptBuilder;
+  private readonly logRegistry: ILogSourceRegistry;
+  private readonly enableContinuation: boolean;
 
   /** Per-task log collector — manages streaming and collection for all log sources. */
-  readonly logs: ContainerLogCollector;
+  readonly logs: IContainerLogCollector;
 
   /** Handles cleanup of workspace paths and log directories inside the container. */
-  readonly cleaner: ContainerWorkspaceCleaner;
+  readonly cleaner: IContainerWorkspaceCleaner;
+
+  /** Filesystem paths specific to the chosen CLI. */
+  readonly cliPaths: CliPaths;
 
   /** Optional callback invoked for each line of real-time tool output. */
   onToolOutput?: (line: string) => void;
@@ -108,41 +99,42 @@ export class ContainerManager implements IContainerManager {
 
   /**
    * @param profile Agent profile with repo, compose file, agent name, and timeout.
-   * @param appConfig Full application config (for shared secrets, jira, output settings).
+   * @param compose Pre-built compose client for Docker Compose process spawning.
+   * @param executor CLI executor for running the agent inside the container.
+   * @param logs Per-task log collector for streaming and collection.
+   * @param cleaner Handles cleanup of workspace paths and log directories.
+   * @param logRegistry Registers standard log sources for a task.
+   * @param continuationRunner Handles the continuation retry loop.
    * @param promptBuilder Prompt builder for constructing and auditing CLI prompts.
-   * @param executorFactory Factory for creating the CLI executor.
-   * @param logger Logger for orchestrator lifecycle messages. Defaults to {@link consoleLogger}.
+   * @param logger Logger for orchestrator lifecycle messages.
    * @param containerLogger Logger for CLI output streaming. Falls back to `logger`.
+   * @param enableContinuation Whether to use the continuation retry loop. Controlled by global config.
    */
-  constructor(profile: AgentProfile, appConfig: AppConfig, promptBuilder: PromptBuilder, executorFactory: ICliExecutorFactory, logger?: Logger, containerLogger?: Logger) {
+  constructor(
+    profile: AgentProfile,
+    compose: IComposeClient,
+    executor: ICliExecutor,
+    logs: IContainerLogCollector,
+    cleaner: IContainerWorkspaceCleaner,
+    logRegistry: ILogSourceRegistry,
+    continuationRunner: IContinuationRunner,
+    promptBuilder: PromptBuilder,
+    logger: Logger,
+    containerLogger?: Logger,
+    enableContinuation = false,
+  ) {
     this.profile = profile;
-    this.outputConfig = appConfig.output;
     this.promptBuilder = promptBuilder;
-    this.logger = logger ?? consoleLogger;
-    this.containerLogger = containerLogger ?? this.logger;
-
-    const composeFiles = new ComposeFileResolver().resolve(profile);
-
-    const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-    const squidConfPath = existsSync(profileSquid)
-      ? profileSquid
-      : resolve(process.cwd(), "shared/security/squid.conf");
-
-    this.compose = new ComposeClient(composeFiles, {
-      targetRepoPath: profile.repoPath,
-      squidConfPath,
-    });
-
-    this.logs = new ContainerLogCollector(
-      this.compose,
-      this.outputConfig.logDir,
-      this.logger,
-    );
-
-    this.cleaner = new ContainerWorkspaceCleaner(this.compose, this.logger);
-
-    const cliLogger = containerLogger ?? this.logger;
-    this.executor = executorFactory.create(this.compose, profile, cliLogger);
+    this.logger = logger;
+    this.containerLogger = containerLogger ?? logger;
+    this.compose = compose;
+    this.logs = logs;
+    this.cleaner = cleaner;
+    this.logRegistry = logRegistry;
+    this.executor = executor;
+    this.cliPaths = executor.paths;
+    this.continuationRunner = continuationRunner;
+    this.enableContinuation = enableContinuation;
     this.logger.info(`Using ${profile.cli} CLI`);
   }
 
@@ -178,6 +170,16 @@ export class ContainerManager implements IContainerManager {
     this.logger.info("Setup complete");
   }
 
+  async execInApp(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    const result = await this.compose.exec(["--user", "vscode", "app", ...args]);
+    return { stdout: String(result.stdout ?? ""), stderr: String(result.stderr ?? "") };
+  }
+
+  async execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    const result = await this.compose.exec(["mcp-sidecar", ...args]);
+    return { stdout: String(result.stdout ?? ""), stderr: String(result.stderr ?? "") };
+  }
+
   /**
    * Register standard log sources for a task and start streaming.
    *
@@ -188,69 +190,10 @@ export class ContainerManager implements IContainerManager {
    * @param issueKey JIRA key used as the filename prefix for all collected logs.
    */
   registerLogSources(issueKey: string): void {
-    this.logs.setIssueKey(issueKey);
-
-    this.logs.addSource({
-      id: "audit",
-      service: "app",
-      containerPath: this.profile.auditLogPath,
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-
-    this.logs.addSource({
-      id: "transcript",
-      service: "app",
-      containerPath: CopilotExecutor.TRANSCRIPT_PATH,
-      extension: "md",
-      mode: CaptureMode.Collect,
-    });
-
-    this.logs.addSource({
-      id: "pre-tool",
-      service: "app",
-      containerPath: ContainerManager.PRE_TOOL_PATH,
-      extension: "log",
-      mode: this.onPreToolUse ? CaptureMode.Stream : CaptureMode.Collect,
-      onLine: this.onPreToolUse,
-    });
-
-    this.logs.addSource({
-      id: "tool-output",
-      service: "app",
-      containerPath: ContainerManager.TOOL_OUTPUT_PATH,
-      extension: "log",
-      mode: this.onToolOutput ? CaptureMode.Stream : CaptureMode.Collect,
-      onLine: this.onToolOutput,
-    });
-
-    this.logs.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    this.logs.addSource({
-      id: "cli-debug",
-      service: "app",
-      containerPath: CopilotExecutor.LOG_DIR,
-      extension: "log",
-      mode: CaptureMode.Collect,
-      collectArgs: ["sh", "-c", `cat ${CopilotExecutor.LOG_DIR}/*.log 2>/dev/null`],
-    });
-
-    this.logs.addSource({
-      id: "sidecar",
-      service: "mcp-sidecar",
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-
-    this.logs.attach();
+    this.logRegistry.registerAll(this.logs, this.profile, issueKey, {
+      onToolOutput: this.onToolOutput,
+      onPreToolUse: this.onPreToolUse,
+    }, this.cliPaths);
   }
 
   /**
@@ -259,6 +202,9 @@ export class ContainerManager implements IContainerManager {
    * Delegates prompt construction and injection auditing to the {@link PromptBuilder}.
    * Parses the agent's structured `===RALPH_RESULT_START===` block for PR URL
    * and status. Streams stdout/stderr to the logger in real-time.
+   *
+   * When `maxContinuations > 0`, re-invokes the CLI with `--continue` if the
+   * result block is missing, using exponential backoff between attempts.
    *
    * @param issue JIRA issue to process — used to build the prompt.
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
@@ -269,30 +215,30 @@ export class ContainerManager implements IContainerManager {
 
     const startTime = Date.now();
 
-    const result = await this.executor.run(prompt);
+    const { lastResult, combinedStdout, combinedStderr } =
+      await this.continuationRunner.run(
+        this.executor,
+        prompt,
+        issue,
+        this.enableContinuation ? this.profile.maxContinuations : 0,
+      );
+
     const durationMs = Date.now() - startTime;
 
-    const { prUrl, agentStatus } = parseResultBlock(result.stdout);
-    const status = resolveStatus(result.exitCode, result.timedOut, agentStatus);
+    const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
+    const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
 
     return {
       issueKey: issue.key,
       status,
       durationMs,
-      exitCode: result.exitCode,
-      stdout: result.stdout,
-      stderr: result.stderr,
+      exitCode: lastResult.exitCode,
+      stdout: combinedStdout,
+      stderr: combinedStderr,
       collectedLogs: {},
       prUrl,
     };
   }
-
-  /** Path to the pre-tool invocation log inside the container. */
-  static readonly PRE_TOOL_PATH = "/workspace/.ralph/logs/pre-tool.log";
-
-  /** Path to the untruncated tool output log inside the container. */
-  static readonly TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
-
 
   /**
    * Tear down all containers and associated resources.

@@ -1,0 +1,469 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot" version="26.0.0">
+  <diagram id="ralph-orchestrator-dataflow" name="Dataflow Overview">
+    <mxGraphModel dx="2200" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== TITLE ===== -->
+        <mxCell id="title" value="&lt;b&gt;Ralph Orchestrator — Dataflow Overview&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="-60" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EXTERNAL SYSTEMS ===== -->
+        <!-- JIRA Cloud -->
+        <mxCell id="jira" value="&lt;b&gt;JIRA Cloud&lt;/b&gt;&lt;br&gt;REST API v3" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="-100" y="80" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Azure DevOps -->
+        <mxCell id="ado" value="&lt;b&gt;Azure DevOps&lt;/b&gt;&lt;br&gt;Git + REST API" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="760" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- LLM APIs -->
+        <mxCell id="llm" value="&lt;b&gt;LLM APIs&lt;/b&gt;&lt;br&gt;Anthropic / OpenAI" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="600" width="180" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ORCHESTRATOR HOST ===== -->
+        <mxCell id="host-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="10" width="740" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="host-label" value="&lt;b&gt;Orchestrator Host (Node.js)&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="150" y="15" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- JiraPoller -->
+        <mxCell id="poller" value="&lt;b&gt;JiraPoller&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;setInterval polling&lt;br&gt;JQL auto-generated&lt;br&gt;from match rules&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="60" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- TriggerScanner -->
+        <mxCell id="scanner" value="&lt;b&gt;TriggerScanner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;comment matching&lt;br&gt;param parsing&lt;br&gt;ack comment posting&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="160" y="160" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- OperationLedger -->
+        <mxCell id="ledger" value="&lt;b&gt;OperationLedger&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;pending → active →&lt;br&gt;completed | error&lt;br&gt;crash recovery&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="160" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Orchestrator Main Loop -->
+        <mxCell id="orchestrator" value="&lt;b&gt;Orchestrator&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;event-driven main loop&lt;br&gt;await workSignal&lt;br&gt;one task at a time&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- buildTaskContext -->
+        <mxCell id="taskctx" value="&lt;b&gt;buildTaskContext()&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;issue + profile + params&lt;br&gt;→ TaskContext&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="260" width="140" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- TaskRunner -->
+        <mxCell id="taskrunner" value="&lt;b&gt;TaskRunner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;run(ctx: TaskContext)&lt;br&gt;4-phase pipeline&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="260" width="140" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Phase boxes inside TaskRunner area -->
+        <mxCell id="phase1" value="&lt;b&gt;1. prepareProfile&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;Liquid templates&lt;br&gt;JIT gateway.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="350" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase2" value="&lt;b&gt;2. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;JIRA transition&lt;br&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="350" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase3" value="&lt;b&gt;3. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;prompt build + audit&lt;br&gt;CLI exec (copilot|claude)&lt;br&gt;continuation loop&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase4" value="&lt;b&gt;4. collectResults&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;log collection&lt;br&gt;JIRA attachment&lt;br&gt;execution summary&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="350" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Post-execution -->
+        <mxCell id="postexec" value="&lt;b&gt;Post-Execution&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;JIRA transition (afterAgent)&lt;br&gt;completion/error comment&lt;br&gt;ledger update + teardown&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Profile Setup (startup) -->
+        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (static baseline)&lt;br&gt;copilot-config.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="440" width="160" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- JIT MCP Config -->
+        <mxCell id="jitmcp" value="&lt;b&gt;JitMcpConfigWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;$jira.key, $jira.project&lt;br&gt;$jira.branch, $jira.summary&lt;br&gt;$trigger.&amp;lt;key&amp;gt; macros&lt;br&gt;→ gateway.json in-place&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="440" width="160" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ===== DOCKER ENVIRONMENT ===== -->
+        <mxCell id="docker-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4285F4;strokeWidth=2;dashed=1;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="580" width="1120" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="docker-label" value="&lt;b&gt;Docker Compose (three-file merge)&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;base.yml + security.yml + overlay.yml&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontColor=#1a73e8;" vertex="1" parent="1">
+          <mxGeometry x="150" y="585" width="350" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Internal Network -->
+        <mxCell id="network" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="155" y="625" width="850" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="network-label" value="&lt;b&gt;Internal Network&lt;/b&gt; (internal: true — no direct internet)" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="165" y="628" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Container -->
+        <mxCell id="agent" value="&lt;b&gt;app&lt;/b&gt; (Agent Container)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• Copilot CLI or Claude Code CLI&lt;br&gt;• reads mcp-config.json (URL-only)&lt;br&gt;• reads rendered agent templates&lt;br&gt;• HTTPS_PROXY=egress-proxy:3128&lt;br&gt;• cap_drop: ALL, no-new-privileges&lt;br&gt;• no Docker socket, no sudo&lt;br&gt;• 8GB RAM, 4 CPU, 500 PIDs&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="175" y="655" width="230" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- MCP Sidecar -->
+        <mxCell id="sidecar" value="&lt;b&gt;mcp-sidecar&lt;/b&gt;&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• supergateway bridge&lt;br&gt;• reads gateway.json (secrets)&lt;br&gt;• stdio → Streamable HTTP&lt;br&gt;• one process per MCP server&lt;br&gt;• agent gets URL-only access&lt;br&gt;• direct internet: ralph-sidecar-external&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="655" width="210" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- MCP Servers inside sidecar -->
+        <mxCell id="mcpservers" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;MCP Servers&lt;/b&gt;&lt;br&gt;ado (PR + git push)&lt;br&gt;jira-kentico (comments)&lt;br&gt;discord-hitl, playwright&lt;br&gt;microsoft-docs, web-fetch&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="815" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Egress Proxy -->
+        <mxCell id="proxy" value="&lt;b&gt;egress-proxy&lt;/b&gt;&lt;br&gt;(Squid)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• static domain allowlist&lt;br&gt;• AI providers + pkg registries&lt;br&gt;• access log collected&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="655" width="170" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===== OUTPUT / STORAGE ===== -->
+        <mxCell id="output" value="&lt;b&gt;output/logs/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• &amp;lt;key&amp;gt;-&amp;lt;ts&amp;gt;/ per-task dir&lt;br&gt;• audit.jsonl, transcript.md&lt;br&gt;• proxy.log, sidecar.log&lt;br&gt;• summary.json&lt;br&gt;• activity-YYYY-MM-DD.log&lt;br&gt;• history/&amp;lt;key&amp;gt;.json (ledger)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="120" width="170" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- .build directory -->
+        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="310" width="180" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ARROWS — JIRA POLLING FLOW ===== -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;fontSize=10;" edge="1" source="jira" target="poller" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1-label" value="JQL search" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6c8ebf;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Poller → Orchestrator (wakeUp) -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="poller" target="orchestrator" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2-label" value="JiraIssue[]&lt;br&gt;+ wakeUp()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e2">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Orchestrator → Scanner -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673a6;fontSize=10;" edge="1" source="orchestrator" target="scanner" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="95" />
+              <mxPoint x="340" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3-label" value="scan()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#9673a6;" vertex="1" connectable="0" parent="e3">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Scanner → Ledger (plan) -->
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;" edge="1" source="scanner" target="ledger" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4-label" value="plan()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e4">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Scanner → JIRA (ack comment) -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;fontSize=10;dashed=1;" edge="1" source="scanner" target="jira" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="195" />
+              <mxPoint x="140" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5-label" value="ack comment&lt;br&gt;+ params" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6c8ebf;" vertex="1" connectable="0" parent="e5">
+          <mxGeometry x="-0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Ledger → Orchestrator (onPending wakeUp) -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;dashed=1;" edge="1" source="ledger" target="orchestrator" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6-label" value="wakeUp()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e6">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Orchestrator → buildTaskContext -->
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="orchestrator" target="taskctx" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="140" />
+              <mxPoint x="430" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7-label" value="issue + profile&lt;br&gt;+ triggerParams" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e7">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- buildTaskContext → TaskRunner -->
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;strokeWidth=2;" edge="1" source="taskctx" target="taskrunner" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8-label" value="TaskContext" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;fontStyle=1;" vertex="1" connectable="0" parent="e8">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- TaskRunner → 4 phases -->
+        <mxCell id="e9a" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;fontSize=10;" edge="1" source="taskrunner" target="phase1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="330" />
+              <mxPoint x="220" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e9b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;fontSize=10;" edge="1" source="phase1" target="phase2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9c" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;fontSize=10;" edge="1" source="phase2" target="phase3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9d" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;fontSize=10;" edge="1" source="phase3" target="phase4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- phase4 → post-execution -->
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="phase4" target="postexec" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10-label" value="RalphResult" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e10">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Post-exec → JIRA -->
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;fontSize=10;" edge="1" source="postexec" target="jira" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="470" />
+              <mxPoint x="780" y="30" />
+              <mxPoint x="-10" y="30" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11-label" value="transition + comment&lt;br&gt;+ attachment" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#6c8ebf;" vertex="1" connectable="0" parent="e11">
+          <mxGeometry x="0.5" relative="1" as="geometry"><mxPoint x="50" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ProfileSetup → .build -->
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;" edge="1" source="profilesetup" target="builddir" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="530" />
+              <mxPoint x="1000" y="530" />
+              <mxPoint x="1000" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12-label" value="startup init" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e12">
+          <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- JIT → .build (mutate) -->
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;dashed=1;" edge="1" source="jitmcp" target="builddir" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="530" />
+              <mxPoint x="1020" y="530" />
+              <mxPoint x="1020" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13-label" value="JIT mutate&lt;br&gt;gateway.json" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e13">
+          <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Phase 1 → JIT MCP -->
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;dashed=1;" edge="1" source="phase1" target="jitmcp" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="420" />
+              <mxPoint x="440" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14-label" value="resolve macros" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e14">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- .build → Agent container (mounted) -->
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;fontSize=10;strokeWidth=2;" edge="1" source="builddir" target="agent" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="540" />
+              <mxPoint x="290" y="540" />
+              <mxPoint x="290" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15-label" value="mount: mcp-config.json&lt;br&gt;+ rendered templates (ro)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="e15">
+          <mxGeometry x="0.2" relative="1" as="geometry"><mxPoint y="10" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- .build → Sidecar (gateway.json mounted) -->
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;fontSize=10;strokeWidth=2;" edge="1" source="builddir" target="sidecar" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="560" />
+              <mxPoint x="580" y="560" />
+              <mxPoint x="580" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16-label" value="mount: gateway.json&lt;br&gt;(secrets + JIT env) (ro)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="e16">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint y="10" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Agent → Sidecar (HTTP) -->
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3F51B5;fontSize=10;strokeWidth=2;" edge="1" source="agent" target="sidecar" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17-label" value="Streamable HTTP&lt;br&gt;(MCP tools)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#3F51B5;fontStyle=1;" vertex="1" connectable="0" parent="e17">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Sidecar → MCP Servers -->
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3F51B5;fontSize=10;" edge="1" source="sidecar" target="mcpservers" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18-label" value="stdio" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#3F51B5;" vertex="1" connectable="0" parent="e18">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Agent → Proxy (HTTPS) -->
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;fontSize=10;strokeWidth=2;" edge="1" source="agent" target="proxy" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="730" />
+              <mxPoint x="700" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e19-label" value="HTTPS_PROXY" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#E65100;fontStyle=1;" vertex="1" connectable="0" parent="e19">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Proxy → LLM APIs -->
+        <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;fontSize=10;strokeWidth=2;" edge="1" source="proxy" target="llm" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="700" />
+              <mxPoint x="1050" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e20-label" value="allowlisted" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#E65100;" vertex="1" connectable="0" parent="e20">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- MCP Servers → ADO (direct via ralph-sidecar-external) -->
+        <mxCell id="e22" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3F51B5;fontSize=10;" edge="1" source="mcpservers" target="ado" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="855" />
+              <mxPoint x="1300" y="855" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e22-label" value="ADO REST + git push&lt;br&gt;(ralph-sidecar-external)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#3F51B5;" vertex="1" connectable="0" parent="e22">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- MCP Servers → JIRA (direct via ralph-sidecar-external) -->
+        <mxCell id="e25" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3F51B5;fontSize=10;" edge="1" source="mcpservers" target="jira" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="875" />
+              <mxPoint x="-60" y="875" />
+              <mxPoint x="-60" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e25-label" value="JIRA REST&lt;br&gt;(ralph-sidecar-external)" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#3F51B5;" vertex="1" connectable="0" parent="e25">
+          <mxGeometry x="0.3" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Phase 4 → Output logs -->
+        <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;fontSize=10;" edge="1" source="phase4" target="output" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="375" />
+              <mxPoint x="900" y="375" />
+              <mxPoint x="900" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e23-label" value="logs + summary" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" connectable="0" parent="e23">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Ledger → Output (history files) -->
+        <mxCell id="e24" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;fontSize=10;dashed=1;" edge="1" source="ledger" target="output" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="195" />
+              <mxPoint x="1050" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e24-label" value="history/&lt;key&gt;.json" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e24">
+          <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- ===== LEGEND ===== -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="500" width="210" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="505" width="80" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="&lt;font color=&quot;#82b366&quot;&gt;━━ Orchestration flow&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="523" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="&lt;font color=&quot;#9673a6&quot;&gt;━━ JIRA discovery&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="540" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="&lt;font color=&quot;#d6b656&quot;&gt;━━ Config/ledger I/O&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="557" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="&lt;font color=&quot;#b85450&quot;&gt;━━ Task pipeline phases&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="574" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="&lt;font color=&quot;#3F51B5&quot;&gt;━━ MCP tool calls / sidecar egress&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="591" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="&lt;font color=&quot;#E65100&quot;&gt;━━ Agent egress (Squid proxy)&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="608" width="180" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7" value="&lt;font color=&quot;#666666&quot;&gt;━━ Log / storage writes&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="625" width="180" height="15" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

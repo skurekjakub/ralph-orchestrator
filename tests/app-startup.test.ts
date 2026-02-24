@@ -20,7 +20,6 @@ describe("AppStartup", () => {
           callOrder.push("loadConfig");
           return makeConfig();
         }),
-        resolveIncludes: vi.fn().mockImplementation(() => callOrder.push("resolveIncludes")),
         buildMcpServers: vi.fn().mockImplementation(async () => callOrder.push("buildMcpServers")),
         resolveMcpConfigs: vi.fn().mockImplementation(() => callOrder.push("resolveMcpConfigs")),
       });
@@ -34,7 +33,6 @@ describe("AppStartup", () => {
         "loadConfig",
         "buildMcpServers",
         "resolveMcpConfigs",
-        "resolveIncludes",
       ]);
     });
 
@@ -76,14 +74,13 @@ describe("AppStartup", () => {
       expect(deps.buildMcpServers).toHaveBeenCalledWith(logger);
     });
 
-    it("passes logger to resolveIncludes and resolveMcpConfigs", async () => {
+    it("passes logger to resolveMcpConfigs", async () => {
       const deps = createMockStartupDeps();
       const logger = createMockLogger();
 
       const startup = new AppStartup(deps);
       await startup.run(logger);
 
-      expect(deps.resolveIncludes).toHaveBeenCalledWith(logger);
       expect(deps.resolveMcpConfigs).toHaveBeenCalledWith(logger);
     });
 
@@ -107,7 +104,6 @@ describe("AppStartup", () => {
       expect(logger.info).toHaveBeenCalledWith("Starting prerequisite validation");
       expect(logger.info).toHaveBeenCalledWith("Validation passed (0 warnings)");
       expect(logger.info).toHaveBeenCalledWith("Loaded configuration");
-      expect(logger.info).toHaveBeenCalledWith("Resolved agent include markers");
       expect(logger.info).toHaveBeenCalledWith("Built custom MCP servers");
       expect(logger.info).toHaveBeenCalledWith("Resolved MCP server configs");
     });
@@ -117,7 +113,6 @@ describe("AppStartup", () => {
       const startup = new AppStartup(deps);
       await startup.run();
 
-      expect(deps.resolveIncludes).toHaveBeenCalled();
       expect(deps.buildMcpServers).toHaveBeenCalled();
       expect(deps.resolveMcpConfigs).toHaveBeenCalled();
     });

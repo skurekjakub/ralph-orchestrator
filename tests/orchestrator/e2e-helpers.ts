@@ -90,8 +90,8 @@ export function buildMockDeps(
   const taskRunner = createMockTaskRunner({
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
-      : vi.fn().mockImplementation(async (issue: JiraIssue) => ({
-          result: makeResult(issue.key, options.taskResult),
+      : vi.fn().mockImplementation(async (ctx: any) => ({
+          result: makeResult(ctx.issue.key, options.taskResult),
           container: mockContainer,
         })),
   });

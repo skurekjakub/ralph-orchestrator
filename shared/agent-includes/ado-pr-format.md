@@ -3,7 +3,9 @@
 ### Template
 
 ```markdown
-## <JIRA-KEY>: <One-line summary of the change> <JIRA issue link>
+## <JIRA-KEY>: <One-line summary of the change>
+
+Link: <JIRA issue link>
 
 ### Changes
 - <File path> — <what was changed and why>
