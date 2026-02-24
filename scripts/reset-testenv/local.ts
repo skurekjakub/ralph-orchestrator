@@ -13,7 +13,7 @@ export function clearLedger(ctx: ResetContext) {
 }
 
 export function clearTriggerCache(ctx: ResetContext) {
-  const cachePath = resolve(ctx.rootDir, "output/cache/trigger-cache.json");
+  const cachePath = resolve(ctx.rootDir, "cache/trigger-cache.json");
   if (!existsSync(cachePath)) {
     console.log("  ✓ No trigger cache to clear");
     return;

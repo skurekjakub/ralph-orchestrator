@@ -6,7 +6,7 @@ on:
 jobs:
   orchestrator:
     name: Lint, Test & Build
-    runs-on: ubuntu-latest
+    runs-on: satriel-ralph
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +29,7 @@ jobs:
 
   mcp-servers:
     name: "MCP: ${{ matrix.serverName }}"
-    runs-on: ubuntu-latest
+    runs-on: satriel-ralph
     strategy:
       matrix:
         include:
@@ -74,7 +74,7 @@ jobs:
 
   dashboard-local:
     name: Local Dashboard — Lint & Build
-    runs-on: ubuntu-latest
+    runs-on: satriel-ralph
     steps:
       - uses: actions/checkout@v4
 
@@ -97,7 +97,7 @@ jobs:
 
   dashboard-vercel:
     name: Vercel Dashboard — Lint & Build
-    runs-on: ubuntu-latest
+    runs-on: satriel-ralph
     steps:
       - uses: actions/checkout@v4
 

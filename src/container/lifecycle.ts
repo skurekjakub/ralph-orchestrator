@@ -33,11 +33,11 @@ export class RepoSyncHook implements ILifecycleHook {
     const defaultBranch: string = taskCtx.triggerParams['source_branch'] ?? "main";
     if (!adoPat) throw new Error("ADO_PAT must be set for repo-sync hook");
 
-    const credConfig = `url.https://pat:${adoPat}@dev.azure.com/.insteadOf=https://dev.azure.com/`;
+    const authHeader = `Basic ${Buffer.from(`:${adoPat}`).toString("base64")}`;
     const git = (args: string[]) => execa("git", ["-C", taskCtx.profile.repoPath, ...args]);
 
     logger.info(`Syncing repo to ${defaultBranch}...`);
-    await git(["-c", credConfig, "fetch", "origin", defaultBranch]);
+    await git(["-c", `http.extraHeader=Authorization: ${authHeader}`, "fetch", "origin", defaultBranch]);
     await git(["checkout", defaultBranch]);
     await git(["reset", "--hard", `origin/${defaultBranch}`]);
     logger.info("Repo sync complete");

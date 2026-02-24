@@ -98,7 +98,7 @@ export function createOrchestratorDeps(config: AppConfig): OrchestratorDeps {
   );
   const triggerScanner = new TriggerScanner(
     issueManager, router, ledger, logger,
-    join("output", "cache", "trigger-cache.json"),
+    join("cache", "trigger-cache.json"),
     config.allowedUsers,
   );
   const heartbeat = config.dashboard.enabled
