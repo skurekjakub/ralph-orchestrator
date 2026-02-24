@@ -1,7 +1,7 @@
 import { extractAdfText } from "../jira/adf-converter.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
-import type { IAgentProfile, IAppConfig } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
@@ -85,18 +85,18 @@ export class TriggerScanner implements ITriggerScanner {
   private logger: Logger;
   private allowedUsers: readonly string[];
 
-  constructor({ issueManager, router, ledger, logger, config }: {
+  constructor({ issueManager, router, ledger, logger, allowedUsers }: {
     issueManager: IIssueManager;
     router: IProfileRouter;
     ledger: IOperationLedger;
     logger: Logger;
-    config: IAppConfig;
+    allowedUsers: readonly string[];
   }) {
     this.issueManager = issueManager;
     this.router = router;
     this.ledger = ledger;
     this.logger = logger;
-    this.allowedUsers = config.allowedUsers ?? [];
+    this.allowedUsers = allowedUsers ?? [];
   }
 
   /**

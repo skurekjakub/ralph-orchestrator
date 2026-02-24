@@ -5,7 +5,7 @@ import { makeIssue, makeJiraConfig } from "../helpers/factories.js";
 import { createMockJiraClient } from "../helpers/mocks.js";
 
 function makePoller(client: ReturnType<typeof createMockJiraClient>, jira: IJiraConfig) {
-  return new JiraPoller({ jiraClient: client, config: { jira } as any });
+  return new JiraPoller({ jiraClient: client, jiraConfig: jira });
 }
 
 describe("JiraPoller", () => {
@@ -101,12 +101,12 @@ describe("JiraPoller", () => {
     const newer = makeIssue("DOC-1", "Newer", "New", undefined, { created: "2026-02-01T00:00:00.000+0000" });
     const older = makeIssue("DF-5", "Older", "New", undefined, { created: "2025-06-15T00:00:00.000+0000" });
 
-    config.jql = ["query1", "query2"];
+    const multiJqlConfig = makeJiraConfig({ pollIntervalMs: 1000, jql: ["query1", "query2"] });
     mockClient.searchIssues
       .mockResolvedValueOnce([newer])
       .mockResolvedValueOnce([older]);
 
-    const poller = makePoller(mockClient, config);
+    const poller = makePoller(mockClient, multiJqlConfig);
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 

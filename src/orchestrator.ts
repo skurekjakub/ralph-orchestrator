@@ -2,12 +2,22 @@ import type { IAgentProfile } from "./config.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
-import type { Operation } from "./services/operation-ledger.js";
+import type { Operation, IOperationLedger } from "./services/operation-ledger.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
 import type { JiraIssue } from "./jira/types.js";
-import type { ActiveTask, OrchestratorDeps } from "./orchestrator-types.js";
+import type { ActiveTask } from "./orchestrator-types.js";
 import { buildTaskContext } from "./services/task-context.js";
 import { toErrorMessage } from "./util/error.js";
+import type { IJiraConfig } from "./config.js";
+import type { IActivityLog } from "./services/activity-log.js";
+import type { IJiraPoller } from "./jira/poller.js";
+import type { IProfileRouter } from "./services/profile-router.js";
+import type { IIssueManager } from "./services/jira-issue-manager.js";
+import type { IResourceManager } from "./services/task-resource-manager.js";
+import type { ITaskRunner } from "./services/task-runner.js";
+import type { ITriggerScanner } from "./services/trigger-scanner.js";
+import type { IHeartbeatSender } from "./services/heartbeat.js";
+import type { Logger } from "./logger.js";
 
 /**
  * Main orchestration loop.
@@ -30,7 +40,17 @@ import { toErrorMessage } from "./util/error.js";
  * - {@link TaskRunner} -- single-issue pipeline
  */
 export class Orchestrator {
-  private deps: OrchestratorDeps;
+  private readonly jiraConfig: IJiraConfig;
+  private readonly profiles: readonly IAgentProfile[];
+  private readonly activityLog: IActivityLog;
+  private readonly poller: IJiraPoller;
+  private readonly router: IProfileRouter;
+  private readonly issueManager: IIssueManager;
+  private readonly resources: IResourceManager;
+  private readonly taskRunner: ITaskRunner;
+  private readonly triggerScanner: ITriggerScanner;
+  private readonly ledger: IOperationLedger;
+  private readonly heartbeat: IHeartbeatSender | null;
 
   private activeTask: ActiveTask | null = null;
   private running = false;
@@ -42,22 +62,57 @@ export class Orchestrator {
    */
   private workSignalResolve: (() => void) | null = null;
 
-  constructor(deps: OrchestratorDeps) {
-    this.deps = deps;
+  constructor({
+    jiraConfig,
+    profiles,
+    activityLog,
+    poller,
+    router,
+    issueManager,
+    resources,
+    taskRunner,
+    triggerScanner,
+    ledger,
+    heartbeat,
+  }: {
+    jiraConfig: IJiraConfig;
+    profiles: readonly IAgentProfile[];
+    activityLog: IActivityLog;
+    poller: IJiraPoller;
+    router: IProfileRouter;
+    issueManager: IIssueManager;
+    resources: IResourceManager;
+    taskRunner: ITaskRunner;
+    triggerScanner: ITriggerScanner;
+    ledger: IOperationLedger;
+    heartbeat: IHeartbeatSender | null;
+    logger?: Logger;
+  }) {
+    this.jiraConfig = jiraConfig;
+    this.profiles = profiles;
+    this.activityLog = activityLog;
+    this.poller = poller;
+    this.router = router;
+    this.issueManager = issueManager;
+    this.resources = resources;
+    this.taskRunner = taskRunner;
+    this.triggerScanner = triggerScanner;
+    this.ledger = ledger;
+    this.heartbeat = heartbeat;
 
     this.observer = new OrchestratorObserver(() => ({
       activeTask: this.activeTask,
       running: this.running,
-      pendingOps: this.deps.ledger.getAllPending().map((p) => ({
+      pendingOps: this.ledger.getAllPending().map((p) => ({
         issueKey: p.issueKey,
         variant: p.operation.variant,
       })),
-      logEntries: this.deps.activityLog.entries,
-      profileIds: this.deps.router.profileIds,
+      logEntries: this.activityLog.entries,
+      profileIds: this.router.profileIds,
     }));
 
-    this.deps.ledger.onPending(() => this.wakeUp());
-    this.deps.poller.onIssues(() => this.wakeUp());
+    this.ledger.onPending(() => this.wakeUp());
+    this.poller.onIssues(() => this.wakeUp());
   }
 
   /**
@@ -84,41 +139,41 @@ export class Orchestrator {
   async start(): Promise<void> {
     this.running = true;
 
-    this.deps.poller.start();
+    this.poller.start();
 
-    if (this.deps.heartbeat) {
-      this.deps.heartbeat.start(() => this.observer.getHeartbeatPayload());
+    if (this.heartbeat) {
+      this.heartbeat.start(() => this.observer.getHeartbeatPayload());
       this.log("Dashboard heartbeat enabled");
     }
 
     this.log("Orchestrator started -- polling JIRA for new tasks");
     this.log(`Agent ID: ${this.observer.agentId}`);
-    this.log(`Poll interval: ${this.deps.config.jira.pollIntervalMs / 1000}s`);
-    this.log(`JQL queries: ${this.deps.config.jira.jql.length}`);
-    this.log(`Agent profiles: ${this.deps.router.profileIds.join(", ")}`);
+    this.log(`Poll interval: ${this.jiraConfig.pollIntervalMs / 1000}s`);
+    this.log(`JQL queries: ${this.jiraConfig.jql.length}`);
+    this.log(`Agent profiles: ${this.router.profileIds.join(", ")}`);
 
-    const recovered = this.deps.ledger.recoverActiveOperations();
+    const recovered = this.ledger.recoverActiveOperations();
     for (const { issueKey, operation } of recovered) {
       this.warn(
         `Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`,
       );
-      await this.deps.issueManager.postCrashRecoveryComment(issueKey, operation.variant);
+      await this.issueManager.postCrashRecoveryComment(issueKey, operation.variant);
     }
 
     // Tear down any containers abandoned by a previous SIGINT.
     await this.cleanupAbandonedContainers();
 
     while (this.running) {
-      const discovered = this.deps.poller.drain();
+      const discovered = this.poller.drain();
       if (discovered.length > 0) {
-        const planned = await this.deps.triggerScanner.scan(
+        const planned = await this.triggerScanner.scan(
           discovered,
-          this.deps.config.profiles,
+          this.profiles,
         );
         if (planned > 0) this.emitState();
       }
 
-      const pending = this.deps.ledger.getAllPending();
+      const pending = this.ledger.getAllPending();
       if (pending.length === 0) {
         await this.waitForWork();
         continue;
@@ -128,7 +183,7 @@ export class Orchestrator {
       await this.executeOperation(next.issueKey, next.operation);
     }
 
-    this.deps.poller.stop();
+    this.poller.stop();
     this.log("Orchestrator stopped");
   }
 
@@ -143,8 +198,8 @@ export class Orchestrator {
   async shutdown(): Promise<void> {
     this.log("Shutting down gracefully...");
     this.running = false;
-    this.deps.poller.stop();
-    this.deps.heartbeat?.stop();
+    this.poller.stop();
+    this.heartbeat?.stop();
     this.wakeUp();
     this.emitState();
 
@@ -193,12 +248,12 @@ export class Orchestrator {
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
   private resolveProfile(issueKey: string, operation: Operation): IAgentProfile | null {
-    const profile = this.deps.config.profiles.find(
+    const profile = this.profiles.find(
       (p) => p.variantKey === operation.variant,
     );
     if (!profile) {
       this.log(`Operation on ${issueKey} failed: profile ${operation.variant} no longer exists`);
-      this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
         reason: `Profile ${operation.variant} no longer exists`,
       });
       this.emitState();
@@ -209,10 +264,10 @@ export class Orchestrator {
 
   /** Re-fetch the issue from JIRA to get its current status. Returns `null` on failure or not found. */
   private async refreshIssue(issueKey: string, operation: Operation): Promise<JiraIssue | null> {
-    const issue = await this.deps.issueManager.refreshIssue(issueKey);
+    const issue = await this.issueManager.refreshIssue(issueKey);
     if (!issue) {
       this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
-      this.deps.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
         reason: "Issue not found or unreachable in JIRA",
       });
       this.emitState();
@@ -223,14 +278,14 @@ export class Orchestrator {
 
   /** Verify the issue's current status still matches the profile. Returns `false` if rejected. */
   private validateStatusMatch(issue: JiraIssue, profile: IAgentProfile, operation: Operation): boolean {
-    if (this.deps.router.matchesProjectAndStatus(issue, profile)) return true;
+    if (this.router.matchesProjectAndStatus(issue, profile)) return true;
     this.log(
       `Rejected ${issue.key}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
     );
-    this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Rejected, {
+    this.ledger.transition(issue.key, operation.id, OperationStatus.Rejected, {
       reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
     });
-    this.deps.issueManager
+    this.issueManager
       .postStaleStatusComment(issue.key, profile.displayName, issue.fields.status.name);
     this.emitState();
     return false;
@@ -246,9 +301,9 @@ export class Orchestrator {
     const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
-    const comments = await this.deps.issueManager.getComments(issue.key);
+    const comments = await this.issueManager.getComments(issue.key);
     const ctx = await buildPreflightContext(
-      this.deps.resources,
+      this.resources,
       issue.key,
       comments,
     );
@@ -258,13 +313,13 @@ export class Orchestrator {
     const comment =
       profile.failureComment ??
       `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
-    this.deps.ledger.transition(
+    this.ledger.transition(
       issue.key,
       operation.id,
       OperationStatus.Rejected,
       { reason: `preflight:${name} — ${result.reason}` },
     );
-    await this.deps.issueManager.postComment(issue.key, comment);
+    await this.issueManager.postComment(issue.key, comment);
     this.log(
       `Preflight failed for ${issue.key} (${name}): ${result.reason}`,
     );
@@ -287,14 +342,14 @@ export class Orchestrator {
     this.log(
       `Picked up ${issue.key}: ${issue.fields.summary} (${operation.variant})`,
     );
-    this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Active);
+    this.ledger.transition(issue.key, operation.id, OperationStatus.Active);
 
     const taskId = `${issue.key}-${this.activeTask.startedAt}`;
 
     try {
-      this.deps.activityLog.startTaskLog(taskId);
+      this.activityLog.startTaskLog(taskId);
       const ctx = buildTaskContext(issue, profile, taskId, operation.triggerParams);
-      const { result, container } = await this.deps.taskRunner.run(ctx);
+      const { result, container } = await this.taskRunner.run(ctx);
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
@@ -313,7 +368,7 @@ export class Orchestrator {
 
       const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
 
-      this.deps.ledger.transition(
+      this.ledger.transition(
         issue.key,
         operation.id,
         isSuccess ? OperationStatus.Completed : OperationStatus.Error,
@@ -324,9 +379,9 @@ export class Orchestrator {
       );
 
       if (isSuccess) {
-        await this.deps.issueManager.transitionIssue(issue.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
+        await this.issueManager.transitionIssue(issue.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
       } else {
-        await this.deps.issueManager.postErrorComment(
+        await this.issueManager.postErrorComment(
           issue.key,
           result.stderr || `Agent finished with status: ${result.status}`,
         );
@@ -344,13 +399,13 @@ export class Orchestrator {
         completedAt: Date.now(),
       });
 
-      this.deps.ledger.transition(issue.key, operation.id, OperationStatus.Error, {
+      this.ledger.transition(issue.key, operation.id, OperationStatus.Error, {
         reason: errorMsg,
       });
 
-      await this.deps.issueManager.postErrorComment(issue.key, errorMsg);
+      await this.issueManager.postErrorComment(issue.key, errorMsg);
     } finally {
-      this.deps.activityLog.endTaskLog();
+      this.activityLog.endTaskLog();
       await this.teardownContainer(profile);
       this.resetTaskState();
     }
@@ -359,7 +414,7 @@ export class Orchestrator {
   /** Delegate container teardown to the task runner (graceful stop + fallback). */
   private async teardownContainer(profile: IAgentProfile): Promise<void> {
     this.log("Stopping containers...");
-    await this.deps.taskRunner.teardown(profile, this.activeTask?.container ?? null);
+    await this.taskRunner.teardown(profile, this.activeTask?.container ?? null);
     this.log("Containers stopped");
   }
 
@@ -370,9 +425,9 @@ export class Orchestrator {
    */
   private async cleanupAbandonedContainers(): Promise<void> {
     this.log("Cleaning up abandoned containers from previous session...");
-    for (const profile of this.deps.config.profiles) {
+    for (const profile of this.profiles) {
       try {
-        await this.deps.taskRunner.teardown(profile, null);
+        await this.taskRunner.teardown(profile, null);
       } catch {
         // teardown already logs warnings internally
       }
@@ -387,15 +442,15 @@ export class Orchestrator {
   }
 
   private log(message: string): void {
-    this.deps.activityLog.push(LogLevel.Info, message);
+    this.activityLog.push(LogLevel.Info, message);
     this.emitState();
   }
   private warn(message: string): void {
-    this.deps.activityLog.push(LogLevel.Warn, message);
+    this.activityLog.push(LogLevel.Warn, message);
     this.emitState();
   }
   private logError(message: string): void {
-    this.deps.activityLog.push(LogLevel.Error, message);
+    this.activityLog.push(LogLevel.Error, message);
     this.emitState();
   }
 }

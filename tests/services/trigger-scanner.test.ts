@@ -25,7 +25,7 @@ function makeScanner(
     router,
     ledger,
     logger,
-    config: { allowedUsers: opts?.allowedUsers ?? [] } as any,
+    allowedUsers: opts?.allowedUsers ?? [],
   });
   scanner.cachePath = null;
   return scanner;
@@ -38,7 +38,7 @@ const silentLogger = createMockLogger();
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "trigger-scanner-"));
-  ledger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
+  ledger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
   vi.clearAllMocks();
 });
 
@@ -52,7 +52,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "Regular comment"),
       makeComment("C2", "@RalphDocs please handle this"),
@@ -72,7 +72,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
     const variant = profile.variantKey;
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@RalphDocs handle this"),
     ]);
@@ -90,7 +90,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs do it"),
       makeComment("C2", "@docs again"),
@@ -108,7 +108,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs(codesamples, branch=xyz) review"),
     ]);
@@ -126,7 +126,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs please review"),
     ]);
@@ -144,7 +144,7 @@ describe("TriggerScanner", () => {
       id: "ralph-vscode",
       match: makeMatch({ projects: ["DOC"], commentTrigger: "@vscode" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@vscode go")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
@@ -158,7 +158,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ statuses: ["In Progress"], commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@go now")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
@@ -178,7 +178,7 @@ describe("TriggerScanner", () => {
       agentName: "reviewer",
       match: makeMatch({ commentTrigger: "@review" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile1, profile2] } as any });
+    const router = new ProfileRouter({ profiles: [profile1, profile2] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs please"),
       makeComment("C2", "@review please"),
@@ -195,7 +195,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager();
     mgr.getComments.mockRejectedValue(new Error("Network error"));
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
@@ -210,7 +210,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "@go now")]);
     mgr.postAckComment.mockRejectedValue(new Error("Post failed"));
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
@@ -237,7 +237,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", adfBody),
     ]);
@@ -252,7 +252,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@ralphdocs please handle"),
     ]);
@@ -268,7 +268,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs(codesamples, verbose) please review"),
     ]);
@@ -287,7 +287,7 @@ describe("TriggerScanner", () => {
       id: "ralph-docs",
       match: makeMatch({ commentTrigger: "@docs" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@docs please review"),
     ]);
@@ -301,7 +301,7 @@ describe("TriggerScanner", () => {
 
   it("returns 0 for empty issue list", async () => {
     const profile = makeProfile();
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager();
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
@@ -314,7 +314,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager();
     mgr.getComments
       .mockResolvedValueOnce([makeComment("C1", "@go issue 1")])
@@ -334,7 +334,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "@go now"),
     ]);
@@ -358,7 +358,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "no trigger here"),
     ]);
@@ -381,7 +381,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "nothing relevant"),
     ]);
@@ -408,7 +408,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([
       makeComment("C1", "no trigger"),
     ]);
@@ -430,7 +430,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager([makeComment("C1", "no trigger")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
@@ -450,7 +450,7 @@ describe("TriggerScanner", () => {
     const profile = makeProfile({
       match: makeMatch({ projects: ["DOC"], commentTrigger: "@go" }),
     });
-    const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+    const router = new ProfileRouter({ profiles: [profile] });
     const mgr = makeMockIssueManager();
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
@@ -464,7 +464,7 @@ describe("TriggerScanner", () => {
     const profile2 = makeProfile({
       match: makeMatch({ commentTrigger: "@go" }),
     });
-    const router2 = new ProfileRouter({ config: { profiles: [profile2] } as any });
+    const router2 = new ProfileRouter({ profiles: [profile2] });
     const mgr2 = makeMockIssueManager([makeComment("C1", "@go")]);
     const scanner2 = makeScanner(mgr2, router2, ledger, silentLogger);
 
@@ -477,7 +477,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
       ]);
@@ -499,7 +499,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
       ]);
@@ -517,7 +517,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
       ]);
@@ -538,7 +538,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "allowed-user"),
       ]);
@@ -553,7 +553,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go please", "2026-01-01T00:00:00Z", "any-random-user"),
       ]);
@@ -568,7 +568,7 @@ describe("TriggerScanner", () => {
       const profile = makeProfile({
         match: makeMatch({ commentTrigger: "@go" }),
       });
-      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+      const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
         makeComment("C1", "@go first", "2026-01-01T00:00:00Z", "user-a"),
         makeComment("C2", "@go second", "2026-01-01T01:00:00Z", "user-b"),

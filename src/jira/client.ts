@@ -1,4 +1,4 @@
-import type { IAppConfig, IJiraConfig } from "../config.js";
+import type { IJiraConfig, ISecretsConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 import type { RetryOptions } from "../retry.js";
 import { withRetry } from "../retry.js";
@@ -40,17 +40,17 @@ export class JiraClient implements IJiraClient {
   private logger?: Logger;
   private retryOptions?: RetryOptions;
 
-  constructor({ config, logger, retryOptions }: {
-    config: IAppConfig;
+  constructor({ jiraConfig, secrets, logger }: {
+    jiraConfig: IJiraConfig;
+    secrets: ISecretsConfig;
     logger?: Logger;
-    retryOptions?: RetryOptions;
-  }) {
-    this.email = config.secrets.jiraEmail;
-    this.apiToken = config.secrets.jiraPat;
+  }, retryOptions?: RetryOptions) {
+    this.email = secrets.jiraEmail;
+    this.apiToken = secrets.jiraPat;
     this.logger = logger;
     this.retryOptions = retryOptions;
-    const base = config.jira.baseUrl.replace(/\/+$/, "");
-    this.baseUrl = `${base}/${config.jira.cloudId}`;
+    const base = jiraConfig.baseUrl.replace(/\/+$/, "");
+    this.baseUrl = `${base}/${jiraConfig.cloudId}`;
     this.authHeader =
       "Basic " +
       Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");

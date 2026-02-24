@@ -32,7 +32,7 @@ describe("Prompt pipeline integration", () => {
 
   it("DOC-3122: standard task with ADF description, custom fields, and comments", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = {
       comments,
@@ -56,7 +56,7 @@ describe("Prompt pipeline integration", () => {
 
   it("DOC-3122: revision task includes handoff and revision header", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = {
       comments,
@@ -85,7 +85,7 @@ describe("Prompt pipeline integration", () => {
 
   it("excluded fields are stripped from the prompt", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
     const { text } = builder.build(issue, context);
@@ -99,7 +99,7 @@ describe("Prompt pipeline integration", () => {
 
   it("ADF description is converted to readable Markdown", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
     const { text } = builder.build(issue, context);
@@ -116,7 +116,7 @@ describe("Prompt pipeline integration", () => {
 
   it("unknown custom fields with long values are included", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
     const { text } = builder.build(issue, context);
@@ -126,7 +126,7 @@ describe("Prompt pipeline integration", () => {
 
   it("comments are included in the prompt", () => {
     const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ config: { promptAudit: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS } as any, logger: createSilentLogger() });
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
     const { text } = builder.build(issue, context);

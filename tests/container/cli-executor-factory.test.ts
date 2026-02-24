@@ -10,7 +10,7 @@ const mockLogger = createMockLogger();
 describe("CliExecutorFactory", () => {
   it("creates a CopilotExecutor when GH_TOKEN is present", () => {
     const config = makeConfig();
-    const factory = new CliExecutorFactory({ config });
+    const factory = new CliExecutorFactory({ secrets: config.secrets });
 
     const executor = factory.create(mockCompose, makeProfile(), mockLogger);
 
@@ -18,9 +18,7 @@ describe("CliExecutorFactory", () => {
   });
 
   it("throws when GH_TOKEN is missing", () => {
-    const config = makeConfig();
-    config.secrets.ghToken = "";
-    const factory = new CliExecutorFactory({ config });
+    const factory = new CliExecutorFactory({ secrets: { ...makeConfig().secrets, ghToken: "" } });
 
     expect(() => factory.create(mockCompose, makeProfile(), mockLogger)).toThrowError(
       /GH_TOKEN is required/,

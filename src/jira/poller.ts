@@ -1,4 +1,4 @@
-import type { IAppConfig, IJiraConfig } from "../config.js";
+import type { IJiraConfig } from "../config.js";
 import type { IJiraClient } from "./client.js";
 import type { JiraIssue } from "./types.js";
 import type { Logger } from "../logger.js";
@@ -39,13 +39,13 @@ export class JiraPoller implements IJiraPoller {
   private client: IJiraClient;
   private config: IJiraConfig;
 
-  constructor({ jiraClient, config, logger }: {
+  constructor({ jiraClient, jiraConfig, logger }: {
     jiraClient: IJiraClient;
-    config: IAppConfig;
+    jiraConfig: IJiraConfig;
     logger?: Logger;
   }) {
     this.client = jiraClient;
-    this.config = config.jira;
+    this.config = jiraConfig;
     this.logger = logger ?? consoleLogger;
   }
 

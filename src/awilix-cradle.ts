@@ -3,7 +3,6 @@ import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config.js";
 import type { OrchestratorCradle } from "./container/cradle.js";
-import type { OrchestratorDeps } from "./orchestrator-types.js";
 import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import { JiraClient } from "./jira/client.js";
@@ -49,24 +48,25 @@ function buildComposeClient(profile: IAgentProfile): IComposeClient {
  * OrchestratorCradle — it only touches the deps it declares, no others.
  */
 function buildContainerFactory({
-  config,
+  outputConfig,
+  enableContinuation,
   executorFactory,
   promptBuilder,
   logger,
   containerLogger,
-}: Pick<OrchestratorCradle, "config" | "executorFactory" | "promptBuilder" | "logger" | "containerLogger">): ContainerManagerFactory {
+}: Pick<OrchestratorCradle, "outputConfig" | "enableContinuation" | "executorFactory" | "promptBuilder" | "logger" | "containerLogger">): ContainerManagerFactory {
   return {
     create: (profile) => {
       const compose = buildComposeClient(profile);
       const executor = executorFactory.create(compose, profile, containerLogger);
-      const logs = new ContainerLogCollector({ compose, logDir: config.output.logDir, logger });
+      const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
       const logRegistry = new LogSourceRegistry();
       const continuationRunner = new ContinuationRunner({ logger });
       return new ContainerManager({
         profile, compose, executor, logs, cleaner,
         logRegistry, continuationRunner, promptBuilder, logger, containerLogger,
-        enableContinuation: config.enableContinuation,
+        enableContinuation,
       });
     },
     forceDown: async (profile) => {
@@ -77,21 +77,30 @@ function buildContainerFactory({
 }
 
 /**
- * Build all service dependencies from config.
+ * Create the awilix DI container with all registered services.
  *
- * The returned bag is passed to the Orchestrator constructor.
- * In tests, individual services can be replaced with mocks.
+ * Returns the full cradle proxy — services are lazily resolved on access.
+ * The Orchestrator picks what it needs; other callers (e.g. index.tsx)
+ * can access any registered service.
  */
-export function createOrchestratorDeps(config: IAppConfig): OrchestratorDeps {
+export function createCradle(config: IAppConfig): OrchestratorCradle {
   const container = createContainer<OrchestratorCradle>({
     injectionMode: InjectionMode.PROXY,
     strict: true,
   });
 
   container.register({
-    // ── Config & values ───────────────────────────────────────────────────────
-    config:          asValue(config),
-    preExecuteHooks: asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
+    // ── Config slices ─────────────────────────────────────────────────────────
+    jiraConfig:        asValue(config.jira),
+    outputConfig:      asValue(config.output),
+    dashboardConfig:   asValue(config.dashboard),
+    secrets:           asValue(config.secrets),
+    profiles:          asValue(config.profiles),
+    promptAuditConfig: asValue(config.promptAudit),
+    excludeFields:     asValue(config.excludeFields),
+    allowedUsers:      asValue(config.allowedUsers),
+    enableContinuation: asValue(config.enableContinuation),
+    preExecuteHooks:   asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
 
     // ── Infrastructure ────────────────────────────────────────────────────────
     activityLog:     asClass(ActivityLog).singleton(),
@@ -123,24 +132,11 @@ export function createOrchestratorDeps(config: IAppConfig): OrchestratorDeps {
     taskRunner: asClass(TaskRunner).singleton(),
 
     // ── Optional ──────────────────────────────────────────────────────────────
-    heartbeat: asFunction(({ config: cfg, logger }) =>
-                 cfg.dashboard.enabled
-                   ? new HeartbeatSender({ config: cfg, logger })
+    heartbeat: asFunction(({ dashboardConfig, logger }) =>
+                 dashboardConfig.enabled
+                   ? new HeartbeatSender({ dashboardConfig, logger })
                    : null).singleton(),
   });
 
-  const { cradle } = container;
-  return {
-    config,
-    activityLog:    cradle.activityLog,
-    poller:         cradle.poller,
-    router:         cradle.router,
-    issueManager:   cradle.issueManager,
-    resources:      cradle.resources,
-    taskRunner:     cradle.taskRunner,
-    triggerScanner: cradle.triggerScanner,
-    ledger:         cradle.ledger,
-    heartbeat:      cradle.heartbeat,
-    logger:         cradle.logger,
-  };
+  return container.cradle;
 }

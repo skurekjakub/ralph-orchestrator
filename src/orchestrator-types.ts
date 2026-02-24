@@ -1,38 +1,7 @@
 import { TaskStatus } from "./container/types.js";
-import type { IAgentProfile, IAppConfig } from "./config.js";
+import type { IAgentProfile } from "./config.js";
 import type { IContainerManager } from "./container/manager.js";
 import type { JiraIssue } from "./jira/types.js";
-import type { IJiraPoller } from "./jira/poller.js";
-import type { IActivityLog } from "./services/activity-log.js";
-import type { IProfileRouter } from "./services/profile-router.js";
-import type { ITaskRunner } from "./services/task-runner.js";
-import type { ITriggerScanner } from "./services/trigger-scanner.js";
-import type { IOperationLedger } from "./services/operation-ledger.js";
-import type { IHeartbeatSender } from "./services/heartbeat.js";
-import type { Logger } from "./logger.js";
-
-import type { IIssueManager } from "./services/jira-issue-manager.js";
-import type { IResourceManager } from "./services/task-resource-manager.js";
-
-/**
- * Pre-built service dependencies injected into the Orchestrator.
- *
- * Created by {@link createOrchestratorDeps} (or manually in tests).
- * The orchestrator owns lifecycle (start/stop) but not construction.
- */
-export interface OrchestratorDeps {
-  config: IAppConfig;
-  activityLog: IActivityLog;
-  poller: IJiraPoller;
-  router: IProfileRouter;
-  issueManager: IIssueManager;
-  resources: IResourceManager;
-  taskRunner: ITaskRunner;
-  triggerScanner: ITriggerScanner;
-  ledger: IOperationLedger;
-  heartbeat: IHeartbeatSender | null;
-  logger: Logger;
-}
 
 /** Tracks the currently executing task. Null when the orchestrator is idle. */
 export interface ActiveTask {
