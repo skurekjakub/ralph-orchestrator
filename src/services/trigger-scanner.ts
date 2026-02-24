@@ -1,13 +1,13 @@
 import { extractAdfText } from "../jira/adf-converter.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile, IAppConfig } from "../config.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 import type { Logger } from "../logger.js";
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { toErrorMessage } from "../util/error.js";
 
 /** Escape a trigger string for use in a RegExp. */
@@ -44,7 +44,7 @@ export { matchesTrigger, parseTriggerParams };
 /** Public contract for the comment trigger scanner. */
 export interface ITriggerScanner {
   /** Scan a batch of polled issues for trigger comments. Returns the number of new operations planned. */
-  scan(issues: JiraIssue[], profiles: readonly AgentProfile[]): Promise<number>;
+  scan(issues: JiraIssue[], profiles: readonly IAgentProfile[]): Promise<number>;
   /** Clear the scan cache (e.g. for testing). */
   clearCache(): void;
 }
@@ -74,27 +74,37 @@ export class TriggerScanner implements ITriggerScanner {
    * Used to skip comment fetching for issues that haven't changed.
    */
   private lastScanTimestamps = new Map<string, string>();
+  private cacheLoaded = false;
 
-  /** Path to the on-disk JSON cache file. Null = in-memory only (tests). */
-  private readonly cachePath: string | null;
+  /** Path to the on-disk JSON cache file. Null = in-memory only. Settable for test injection. */
+  cachePath: string | null = join("cache", "trigger-cache.json");
 
-  constructor(
-    private issueManager: IIssueManager,
-    private router: IProfileRouter,
-    private ledger: IOperationLedger,
-    private logger: Logger,
-    cachePath?: string,
-    private allowedUsers: string[] = [],
-  ) {
-    this.cachePath = cachePath ?? null;
-    this.loadCache();
+  private issueManager: IIssueManager;
+  private router: IProfileRouter;
+  private ledger: IOperationLedger;
+  private logger: Logger;
+  private allowedUsers: readonly string[];
+
+  constructor({ issueManager, router, ledger, logger, config }: {
+    issueManager: IIssueManager;
+    router: IProfileRouter;
+    ledger: IOperationLedger;
+    logger: Logger;
+    config: IAppConfig;
+  }) {
+    this.issueManager = issueManager;
+    this.router = router;
+    this.ledger = ledger;
+    this.logger = logger;
+    this.allowedUsers = config.allowedUsers ?? [];
   }
 
   /**
    * Scan a batch of polled issues for trigger comments.
    * @returns The number of new operations planned.
    */
-  async scan(issues: JiraIssue[], profiles: readonly AgentProfile[]): Promise<number> {
+  async scan(issues: JiraIssue[], profiles: readonly IAgentProfile[]): Promise<number> {
+    this.ensureCacheLoaded();
     const startMs = Date.now();
     let planned = 0;
     let skipped = 0;
@@ -225,6 +235,13 @@ export class TriggerScanner implements ITriggerScanner {
   clearCache(): void {
     this.lastScanTimestamps.clear();
     this.persistCache();
+  }
+
+  /** Load cache on first access (lazy). */
+  private ensureCacheLoaded(): void {
+    if (this.cacheLoaded) return;
+    this.cacheLoaded = true;
+    this.loadCache();
   }
 
   /** Load the timestamp cache from disk. Silently ignores missing/corrupt files. */

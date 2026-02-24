@@ -41,7 +41,11 @@ export interface IContinuationRunner {
  * and exponential backoff until the block appears or attempts are exhausted.
  */
 export class ContinuationRunner implements IContinuationRunner {
-  constructor(private readonly logger: Logger) {}
+  private readonly logger: Logger;
+
+  constructor({ logger }: { logger: Logger }) {
+    this.logger = logger;
+  }
 
   async run(
     executor: ICliExecutor,

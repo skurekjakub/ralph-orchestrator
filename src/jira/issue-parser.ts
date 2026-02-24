@@ -24,7 +24,7 @@ export class JiraIssueParser {
    * @param excludedFieldIds Custom field IDs to always exclude
    *   (e.g. `["customfield_19181", "customfield_19222"]`).
    */
-  constructor(excludedFieldIds: string[] = []) {
+  constructor(excludedFieldIds: readonly string[] = []) {
     this.excludedFieldIds = new Set(excludedFieldIds);
   }
 

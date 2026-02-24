@@ -10,7 +10,7 @@ let ledger: OperationLedger;
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "ledger-test-"));
-  ledger = new OperationLedger(tempDir);
+  ledger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
 });
 
 afterEach(() => {
@@ -217,12 +217,12 @@ describe("OperationLedger", () => {
     it("survives re-instantiation", () => {
       ledger.plan("DF-1", { variant: "v", triggerCommentId: "C100", commentTimestamp: "2026-01-01T00:00:00Z" });
 
-      const ledger2 = new OperationLedger(tempDir);
+      const ledger2 = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
       expect(ledger2.getOperations("DF-1")).toHaveLength(1);
     });
 
     it("handles corrupt files gracefully", () => {
-      writeFileSync(join(tempDir, "DF-999.json"), "not json at all");
+      writeFileSync(join(tempDir, "history", "DF-999.json"), "not json at all");
 
       expect(ledger.getOperations("DF-999")).toEqual([]);
       ledger.plan("DF-999", { variant: "v", triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });

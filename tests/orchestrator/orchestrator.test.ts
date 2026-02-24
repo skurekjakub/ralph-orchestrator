@@ -14,7 +14,7 @@ describe("Orchestrator core integration", () => {
     it("routes issues to the correct profile by project", async () => {
       const docsProfile = makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" } });
       const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } });
-      const router = new ProfileRouter([docsProfile, vscodeProfile]);
+      const router = new ProfileRouter({ config: { profiles: [docsProfile, vscodeProfile] } as any });
 
       const issue1 = makeIssue("DF-100", "Update docs for API");
       const route1 = await router.match(issue1);
@@ -27,7 +27,7 @@ describe("Orchestrator core integration", () => {
 
     it("skips issues that match no profile", async () => {
       const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: "@ralph" } });
-      const router = new ProfileRouter([profile]);
+      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
 
       const issue = makeIssue("DF-100", "Some issue");
       const route = await router.match(issue);
@@ -38,7 +38,7 @@ describe("Orchestrator core integration", () => {
       const profile = makeProfile({
         match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: "@ralph" },
       });
-      const router = new ProfileRouter([profile]);
+      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
 
       const newIssue = makeIssue("DF-300", "New task", "Defect Found");
       const route = await router.match(newIssue);
@@ -49,7 +49,7 @@ describe("Orchestrator core integration", () => {
       const profile = makeProfile({
         match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
       });
-      const router = new ProfileRouter([profile]);
+      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
 
       expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "New"), profile)).toBe(true);
       expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "Done"), profile)).toBe(false);

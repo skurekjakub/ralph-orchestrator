@@ -1,4 +1,4 @@
-import type { JiraConfig } from "../config.js";
+import type { IAppConfig, IJiraConfig } from "../config.js";
 import type { IJiraClient } from "./client.js";
 import type { JiraIssue } from "./types.js";
 import type { Logger } from "../logger.js";
@@ -36,16 +36,16 @@ export class JiraPoller implements IJiraPoller {
   private buffer = new Map<string, JiraIssue>();
   private issuesCallback: (() => void) | null = null;
 
-  /**
-   * @param client JIRA REST client for search queries.
-   * @param config JIRA settings including JQL queries and poll interval.
-   * @param logger Optional logger; defaults to {@link consoleLogger}.
-   */
-  constructor(
-    private client: IJiraClient,
-    private config: JiraConfig,
-    logger?: Logger,
-  ) {
+  private client: IJiraClient;
+  private config: IJiraConfig;
+
+  constructor({ jiraClient, config, logger }: {
+    jiraClient: IJiraClient;
+    config: IAppConfig;
+    logger?: Logger;
+  }) {
+    this.client = jiraClient;
+    this.config = config.jira;
     this.logger = logger ?? consoleLogger;
   }
 

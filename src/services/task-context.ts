@@ -1,11 +1,11 @@
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
   readonly issue: JiraIssue;
-  readonly profile: AgentProfile;
+  readonly profile: IAgentProfile;
   readonly taskId: string;
   readonly triggerParams: Record<string, string>;
   readonly isRevision: boolean;
@@ -19,7 +19,7 @@ export interface TaskContext {
  */
 export function buildTaskContext(
   issue: JiraIssue,
-  profile: AgentProfile,
+  profile: IAgentProfile,
   taskId: string,
   triggerParams?: string[],
 ): TaskContext {

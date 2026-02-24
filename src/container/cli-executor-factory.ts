@@ -1,4 +1,4 @@
-import type { AgentProfile, AppConfig } from "../config.js";
+import type { IAgentProfile, IAppConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 import type { IComposeClient } from "./compose-client.js";
 import type { ContainerExecResult, CliPaths } from "./types.js";
@@ -31,14 +31,18 @@ export interface ICliExecutor {
  */
 export interface ICliExecutorFactory {
   /** Create a CLI executor for the given profile. Throws if required credentials are missing. */
-  create(compose: IComposeClient, profile: AgentProfile, cliLogger: Logger): ICliExecutor;
+  create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor;
 }
 
 /** Default implementation — creates a {@link CopilotExecutor} when GH_TOKEN is available. */
 export class CliExecutorFactory implements ICliExecutorFactory {
-  constructor(private readonly appConfig: AppConfig) {}
+  private readonly appConfig: IAppConfig;
 
-  create(compose: IComposeClient, profile: AgentProfile, cliLogger: Logger): ICliExecutor {
+  constructor({ config }: { config: IAppConfig }) {
+    this.appConfig = config;
+  }
+
+  create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor {
     if (this.appConfig.secrets.ghToken) {
       return new CopilotExecutor(compose, profile, cliLogger);
     }

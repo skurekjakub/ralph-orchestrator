@@ -19,7 +19,8 @@
       "Bash(npx tsc --noEmit 2>&1)",
       "Bash(npx vitest run tests/container/lifecycle.test.ts tests/container/manager.test.ts 2>&1 | tail -25)",
       "Bash(npx vitest run tests/container/lifecycle.test.ts tests/container/manager.test.ts 2>&1 | tail -15)",
-      "Bash(npx tsc --noEmit 2>&1 && npx vitest run tests/container/manager.test.ts tests/container/continuation-loop.test.ts 2>&1 | tail -10)"
+      "Bash(npx tsc --noEmit 2>&1 && npx vitest run tests/container/manager.test.ts tests/container/continuation-loop.test.ts 2>&1 | tail -10)",
+      "Bash(npm run lint 2>&1)"
     ]
   },
   "spinnerTipsEnabled": false

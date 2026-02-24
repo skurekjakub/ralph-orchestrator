@@ -27,10 +27,13 @@ export interface IContainerWorkspaceCleaner {
  *    (`cleanPaths`). Removed as vscode (agent-created files).
  */
 export class ContainerWorkspaceCleaner implements IContainerWorkspaceCleaner {
-  constructor(
-    private readonly compose: IComposeClient,
-    private readonly logger: Logger,
-  ) {}
+  private readonly compose: IComposeClient;
+  private readonly logger: Logger;
+
+  constructor({ compose, logger }: { compose: IComposeClient; logger: Logger }) {
+    this.compose = compose;
+    this.logger = logger;
+  }
 
   /**
    * Ensure the Copilot CLI config directory (`/workspace/.ralph`) and its

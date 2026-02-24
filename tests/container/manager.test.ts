@@ -122,11 +122,17 @@ function createHarness(overrides?: Partial<Harness>): Harness {
   const logger = overrides?.logger ?? createSilentLogger();
   const profile = makeProfile();
 
-  const manager = new ContainerManager(
-    profile, compose as unknown as IComposeClient, executor, logs as unknown as IContainerLogCollector,
-    cleaner as unknown as IContainerWorkspaceCleaner, logRegistry as unknown as ILogSourceRegistry,
-    continuationRunner as unknown as IContinuationRunner, promptBuilder, logger,
-  );
+  const manager = new ContainerManager({
+    profile,
+    compose: compose as unknown as IComposeClient,
+    executor,
+    logs: logs as unknown as IContainerLogCollector,
+    cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
+    logRegistry: logRegistry as unknown as ILogSourceRegistry,
+    continuationRunner: continuationRunner as unknown as IContinuationRunner,
+    promptBuilder,
+    logger,
+  });
 
   return { manager, compose, executor, logs, cleaner, logRegistry, continuationRunner, promptBuilder, logger };
 }
@@ -315,19 +321,18 @@ describe("ContainerManager", () => {
       const continuationRunner = createMockContinuationRunner();
       const profile = makeProfile();
       const { compose, executor, logs, cleaner, logRegistry, promptBuilder, logger } = createHarness();
-      const manager = new ContainerManager(
+      const manager = new ContainerManager({
         profile,
-        compose as unknown as IComposeClient,
+        compose: compose as unknown as IComposeClient,
         executor,
-        logs as unknown as IContainerLogCollector,
-        cleaner as unknown as IContainerWorkspaceCleaner,
-        logRegistry as unknown as ILogSourceRegistry,
-        continuationRunner as unknown as IContinuationRunner,
+        logs: logs as unknown as IContainerLogCollector,
+        cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
+        logRegistry: logRegistry as unknown as ILogSourceRegistry,
+        continuationRunner: continuationRunner as unknown as IContinuationRunner,
         promptBuilder,
         logger,
-        undefined,
-        true, // enableContinuation
-      );
+        enableContinuation: true,
+      });
 
       await manager.execute(makeIssue("DF-601"));
 

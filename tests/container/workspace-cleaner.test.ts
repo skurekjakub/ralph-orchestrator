@@ -7,7 +7,7 @@ describe("ContainerWorkspaceCleaner", () => {
     it("chowns the config dir and creates writable subdirectories", async () => {
       const { compose, exec } = createMockCompose();
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.prepareConfigDir("/workspace/.ralph", ["session-state", "logs/cli-debug"]);
 
@@ -23,7 +23,7 @@ describe("ContainerWorkspaceCleaner", () => {
     it("handles empty writable dirs list", async () => {
       const { compose, exec } = createMockCompose();
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.prepareConfigDir("/workspace/.ralph", []);
 
@@ -35,7 +35,7 @@ describe("ContainerWorkspaceCleaner", () => {
       const { compose, exec } = createMockCompose();
       exec.mockRejectedValueOnce(new Error("Permission denied"));
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.prepareConfigDir("/workspace/.ralph", ["session-state"]);
 
@@ -47,7 +47,7 @@ describe("ContainerWorkspaceCleaner", () => {
     it("removes, recreates, and chowns the log directory as root", async () => {
       const { compose, exec } = createMockCompose();
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.cleanDirectory("/workspace/.ralph/logs/session.audit.jsonl");
 
@@ -62,7 +62,7 @@ describe("ContainerWorkspaceCleaner", () => {
       const { compose, exec } = createMockCompose();
       exec.mockRejectedValueOnce(new Error("Permission denied"));
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.cleanDirectory("/workspace/.ralph/logs/audit.jsonl");
 
@@ -74,7 +74,7 @@ describe("ContainerWorkspaceCleaner", () => {
     it("removes each path as root", async () => {
       const { compose, exec } = createMockCompose();
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.cleanPaths(["/workspace/resources/chats", "/workspace/.tmp"]);
 
@@ -90,7 +90,7 @@ describe("ContainerWorkspaceCleaner", () => {
         .mockRejectedValueOnce(new Error("Permission denied"))
         .mockResolvedValueOnce({ stdout: "", stderr: "" });
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.cleanPaths(["/workspace/a", "/workspace/b"]);
 
@@ -101,7 +101,7 @@ describe("ContainerWorkspaceCleaner", () => {
     it("does nothing for empty paths array", async () => {
       const { compose, exec } = createMockCompose();
       const logger = createMockLogger();
-      const cleaner = new ContainerWorkspaceCleaner(compose, logger);
+      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
 
       await cleaner.cleanPaths([]);
 

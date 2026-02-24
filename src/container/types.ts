@@ -1,4 +1,4 @@
-import { AgentProfile } from "../config.js";
+import { IAgentProfile } from "../config.js";
 import { IContainerManager } from "./manager.js";
 
 /** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */
@@ -31,9 +31,9 @@ export enum CliType {
  * Factory for creating {@link ContainerManager} instances.
  */
 export interface ContainerManagerFactory {
-  create(profile: AgentProfile): IContainerManager;
+  create(profile: IAgentProfile): IContainerManager;
   /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
-  forceDown(profile: AgentProfile): Promise<void>;
+  forceDown(profile: IAgentProfile): Promise<void>;
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */

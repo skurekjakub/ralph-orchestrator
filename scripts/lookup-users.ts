@@ -23,11 +23,7 @@ if (!issueKey) {
 
 async function main() {
   const config = loadConfig();
-  const client = new JiraClient(
-    config.jira,
-    config.secrets.jiraEmail,
-    config.secrets.jiraPat,
-  );
+  const client = new JiraClient({ config });
 
   console.log(`Fetching comments for ${issueKey}...\n`);
   const comments = await client.getComments(issueKey);

@@ -26,6 +26,7 @@
     "reset-testenv:very-hard-admin": "tsx scripts/reset-issue.ts --very-hard-admin"
   },
   "dependencies": {
+    "awilix": "^13.0.0",
     "dotenv": "^17.3.1",
     "execa": "^9.6.1",
     "ink": "^6.7.0",

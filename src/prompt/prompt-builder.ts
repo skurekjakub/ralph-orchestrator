@@ -7,6 +7,7 @@
  * should treat prompt preparation as a black box handled by this class.
  */
 
+import type { IAppConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import { JiraIssueParser } from "../jira/issue-parser.js";
 import type { IssueContext } from "./prompt.js";
@@ -47,13 +48,16 @@ export interface BuiltPrompt {
  */
 export class PromptBuilder {
   private readonly parser: JiraIssueParser;
+  private readonly mode: AuditMode;
+  private readonly logger: Logger;
 
-  constructor(
-    private readonly mode: AuditMode,
-    private readonly logger: Logger,
-    excludeFields: string[] = [],
-  ) {
-    this.parser = new JiraIssueParser(excludeFields);
+  constructor({ config, logger }: {
+    config: IAppConfig;
+    logger: Logger;
+  }) {
+    this.mode = config.promptAudit.mode;
+    this.logger = logger;
+    this.parser = new JiraIssueParser(config.excludeFields);
   }
 
   /**

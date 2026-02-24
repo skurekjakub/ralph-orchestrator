@@ -1,5 +1,5 @@
 import { TaskStatus } from "./container/types.js";
-import type { AgentProfile, AppConfig } from "./config.js";
+import type { IAgentProfile, IAppConfig } from "./config.js";
 import type { IContainerManager } from "./container/manager.js";
 import type { JiraIssue } from "./jira/types.js";
 import type { IJiraPoller } from "./jira/poller.js";
@@ -21,7 +21,7 @@ import type { IResourceManager } from "./services/task-resource-manager.js";
  * The orchestrator owns lifecycle (start/stop) but not construction.
  */
 export interface OrchestratorDeps {
-  config: AppConfig;
+  config: IAppConfig;
   activityLog: IActivityLog;
   poller: IJiraPoller;
   router: IProfileRouter;
@@ -37,7 +37,7 @@ export interface OrchestratorDeps {
 /** Tracks the currently executing task. Null when the orchestrator is idle. */
 export interface ActiveTask {
   issue: JiraIssue;
-  profile: AgentProfile;
+  profile: IAgentProfile;
   container: IContainerManager | null;
   startedAt: number;
 }

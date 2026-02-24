@@ -13,7 +13,7 @@ let ledger: OperationLedger;
 
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "comment-flow-"));
-  ledger = new OperationLedger(tempDir);
+  ledger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
 });
 
 afterEach(() => {
@@ -99,7 +99,7 @@ describe("Comment-driven orchestration flow", () => {
       const profile = makeProfile({
         match: makeMatch({ statuses: ["New"], commentTrigger: "@ralph" }),
       });
-      const router = new ProfileRouter([profile]);
+      const router = new ProfileRouter({ config: { profiles: [profile] } as any });
 
       const validIssue = makeIssue("DF-1", "task", "New");
       expect(router.matchesProjectAndStatus(validIssue, profile)).toBe(true);
@@ -161,7 +161,7 @@ describe("Comment-driven orchestration flow", () => {
       });
       ledger.transition("DF-1", opId, OperationStatus.Active);
 
-      const newLedger = new OperationLedger(tempDir);
+      const newLedger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
       const recovered = newLedger.recoverActiveOperations();
 
       expect(recovered).toHaveLength(1);
@@ -176,7 +176,7 @@ describe("Comment-driven orchestration flow", () => {
         commentTimestamp: "2026-01-01T00:00:00Z",
       });
 
-      const newLedger = new OperationLedger(tempDir);
+      const newLedger = new OperationLedger({ config: { output: { logDir: tempDir } } as any });
       const pending = newLedger.getAllPending();
 
       expect(pending).toHaveLength(1);

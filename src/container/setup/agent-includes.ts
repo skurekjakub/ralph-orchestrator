@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
-import type { AgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config.js";
 import type { JiraIssue } from "../../jira/types.js";
 import { extractAdfText } from "../../jira/adf-converter.js";
 import { normalizeContent } from "../../prompt/normalizer.js";
@@ -75,7 +75,7 @@ export interface TemplateContext {
   /** Human-friendly agent name (e.g. `ralph`). */
   displayName: string;
   /** MCP servers deployed for this profile. */
-  mcpServers: string[];
+  mcpServers: readonly string[];
 
   /** JIRA issue key (e.g. `DF-2704`). */
   issueKey: string;
@@ -131,7 +131,7 @@ export interface TemplateContext {
  * as Liquid variables without re-reading `profile.json` from disk.
  */
 export function buildTemplateContext(
-  profile: AgentProfile,
+  profile: IAgentProfile,
   issue: JiraIssue,
   isRevision: boolean,
   triggerParams: string[] | Record<string, string> = [],
@@ -211,10 +211,10 @@ export interface IAgentTemplateRenderer {
  * runtime data like `{% if isRevision %}` or `{{ issueKey }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
-  constructor(private readonly rootDir?: string) {}
+  constructor() {}
 
   async render(profileId: string, context: TemplateContext, logger?: Logger): Promise<void> {
-    const root = this.rootDir ?? process.cwd();
+    const root = process.cwd();
     const includesDir = resolve(root, "shared/agent-includes");
 
     if (!existsSync(includesDir)) {

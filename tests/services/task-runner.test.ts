@@ -45,7 +45,7 @@ describe("TaskRunner", () => {
     const { container, spies } = createMockContainer({ issueKey: "DF-100", prUrl: "https://github.com/pr/1" });
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), issueManager, createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
     expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
@@ -64,7 +64,7 @@ describe("TaskRunner", () => {
   it("returns container reference for caller to stop", async () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { container: returnedContainer } = await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -90,7 +90,7 @@ describe("TaskRunner", () => {
     const jitMcpConfig = createMockJitMcpConfigWriter({
       write: vi.fn().mockImplementation(() => { callOrder.push("jitMcpConfig"); }),
     });
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), renderer, jitMcpConfig);
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig });
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
     expect(callOrder).toEqual(["renderTemplates", "jitMcpConfig", "start", "check", "prepareConfig", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
@@ -101,7 +101,7 @@ describe("TaskRunner", () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), issueManager, createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile: profileNoTransition, taskId }));
 
@@ -112,7 +112,7 @@ describe("TaskRunner", () => {
     const { container, spies } = createMockContainer();
     spies.start.mockRejectedValue(new Error("Docker not running"));
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -124,7 +124,7 @@ describe("TaskRunner", () => {
     const { container, spies } = createMockContainer();
     spies.execute.mockRejectedValue(new Error("CLI crashed"));
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -134,7 +134,7 @@ describe("TaskRunner", () => {
   it("propagates onToolOutput to the container", async () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
     const onToolOutput = vi.fn();
     runner.onToolOutput = onToolOutput;
 
@@ -146,7 +146,7 @@ describe("TaskRunner", () => {
   it("propagates onPreToolUse to the container", async () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
     const onPreToolUse = vi.fn();
     runner.onPreToolUse = onPreToolUse;
 
@@ -166,7 +166,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const resources = createMockResources();
     const renderer = createMockTemplateRenderer();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager(), renderer, createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000"));
 
@@ -182,7 +182,7 @@ describe("TaskRunner", () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), renderer, createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -198,7 +198,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer();
     const jitMcpConfig = createMockJitMcpConfigWriter();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), renderer, jitMcpConfig);
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig });
 
     await runner.run(buildTaskContext(issue, profile, taskId, ["codesamples", "verbose"]));
 
@@ -216,7 +216,7 @@ describe("TaskRunner", () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const jitMcpConfig = createMockJitMcpConfigWriter();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), jitMcpConfig);
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig });
 
     await runner.run(buildTaskContext(issue, profile, taskId, ["target_branch=develop", "verbose"]));
 
@@ -229,7 +229,7 @@ describe("TaskRunner", () => {
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const resources = createMockResources();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -243,7 +243,7 @@ describe("TaskRunner", () => {
     ]);
     const factory = createMockFactory(container);
     const resources = createMockResources();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -257,7 +257,7 @@ describe("TaskRunner", () => {
     ]);
     const factory = createMockFactory(container);
     const resources = createMockResources();
-    const runner = new TaskRunner(createMockLogCollector(), logger, factory, resources, createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+    const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
@@ -276,11 +276,11 @@ describe("TaskRunner", () => {
     };
 
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(
-      createMockLogCollector(), logger, factory, createMockResources(),
-      createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter(),
-      [mockHook],
-    );
+    const runner = new TaskRunner({
+      logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(),
+      issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
+      preExecuteHooks: [mockHook],
+    });
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
     expect(callOrder).toEqual(["setup", "hook", "execute"]);
@@ -298,11 +298,11 @@ describe("TaskRunner", () => {
     const hook2 = { name: "hook-2", execute: vi.fn().mockImplementation(async () => { callOrder.push("hook-2"); }) };
 
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(
-      createMockLogCollector(), logger, factory, createMockResources(),
-      createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter(),
-      [hook1, hook2],
-    );
+    const runner = new TaskRunner({
+      logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(),
+      issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
+      preExecuteHooks: [hook1, hook2],
+    });
     await runner.run(makeTaskContext({ issue, profile, taskId }));
 
     expect(callOrder).toEqual(["hook-1", "hook-2"]);
@@ -316,11 +316,11 @@ describe("TaskRunner", () => {
     };
 
     const factory = createMockFactory(container);
-    const runner = new TaskRunner(
-      createMockLogCollector(), logger, factory, createMockResources(),
-      createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter(),
-      [failingHook],
-    );
+    const runner = new TaskRunner({
+      logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(),
+      issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
+      preExecuteHooks: [failingHook],
+    });
     const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
 
     expect(result.status).toBe(TaskStatus.Error);
@@ -331,7 +331,7 @@ describe("TaskRunner", () => {
     it("calls container.stop() when container is provided", async () => {
       const { container, spies } = createMockContainer();
       const factory = createMockFactory(container);
-      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+      const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
       await runner.teardown(profile, container);
 
@@ -343,7 +343,7 @@ describe("TaskRunner", () => {
       const { container, spies } = createMockContainer();
       spies.stop.mockRejectedValue(new Error("compose down failed"));
       const factory = createMockFactory(container);
-      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+      const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
       await runner.teardown(profile, container);
 
@@ -355,7 +355,7 @@ describe("TaskRunner", () => {
     it("calls forceDown directly when container is null", async () => {
       const { container } = createMockContainer();
       const factory = createMockFactory(container);
-      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+      const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
       await runner.teardown(profile, null);
 
@@ -367,7 +367,7 @@ describe("TaskRunner", () => {
       spies.stop.mockRejectedValue(new Error("stop failed"));
       const factory = createMockFactory(container);
       vi.mocked(factory.forceDown).mockRejectedValue(new Error("forceDown failed"));
-      const runner = new TaskRunner(createMockLogCollector(), logger, factory, createMockResources(), createMockIssueManager(), createMockTemplateRenderer(), createMockJitMcpConfigWriter());
+      const runner = new TaskRunner({ logCollector: createMockLogCollector(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
       await expect(runner.teardown(profile, container)).resolves.toBeUndefined();
 

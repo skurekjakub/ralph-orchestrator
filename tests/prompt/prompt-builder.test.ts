@@ -10,6 +10,11 @@ import { PromptBuilder } from "../../src/prompt/prompt-builder.js";
 import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 import { createMockLogger } from "../helpers/mocks.js";
 import { makeIssue } from "../helpers/factories.js";
+import type { Logger } from "../../src/logger.js";
+
+function makeBuilder(mode: AuditMode, logger: Logger, excludeFields: string[] = []) {
+  return new PromptBuilder({ config: { promptAudit: { mode }, excludeFields } as any, logger });
+}
 
 /** Create an issue with an injected description that triggers critical findings. */
 function makeInjectionIssue() {
@@ -35,7 +40,7 @@ function makeSafeIssue() {
 describe("PromptBuilder", () => {
   describe("AuditMode.Off", () => {
     it("skips auditing and returns safe=true regardless of content", () => {
-      const builder = new PromptBuilder(AuditMode.Off, createMockLogger());
+      const builder = makeBuilder(AuditMode.Off, createMockLogger());
       const { text, audit } = builder.build(makeInjectionIssue());
 
       expect(audit.safe).toBe(true);
@@ -45,7 +50,7 @@ describe("PromptBuilder", () => {
 
     it("does not log any warnings", () => {
       const logger = createMockLogger();
-      const builder = new PromptBuilder(AuditMode.Off, logger);
+      const builder = makeBuilder(AuditMode.Off, logger);
       builder.build(makeInjectionIssue());
 
       expect(logger.warn).not.toHaveBeenCalled();
@@ -55,7 +60,7 @@ describe("PromptBuilder", () => {
   describe("AuditMode.Warn", () => {
     it("detects critical injection patterns but returns the prompt", () => {
       const logger = createMockLogger();
-      const builder = new PromptBuilder(AuditMode.Warn, logger);
+      const builder = makeBuilder(AuditMode.Warn, logger);
       const { text, audit } = builder.build(makeInjectionIssue());
 
       expect(audit.findings.length).toBeGreaterThan(0);
@@ -65,7 +70,7 @@ describe("PromptBuilder", () => {
 
     it("logs warnings for detected patterns", () => {
       const logger = createMockLogger();
-      const builder = new PromptBuilder(AuditMode.Warn, logger);
+      const builder = makeBuilder(AuditMode.Warn, logger);
       builder.build(makeInjectionIssue());
 
       expect(logger.warn).toHaveBeenCalled();
@@ -74,7 +79,7 @@ describe("PromptBuilder", () => {
     });
 
     it("returns safe=true for clean content", () => {
-      const builder = new PromptBuilder(AuditMode.Warn, createMockLogger());
+      const builder = makeBuilder(AuditMode.Warn, createMockLogger());
       const { audit } = builder.build(makeSafeIssue());
 
       expect(audit.safe).toBe(true);
@@ -84,7 +89,7 @@ describe("PromptBuilder", () => {
 
   describe("AuditMode.Block", () => {
     it("throws on critical findings", () => {
-      const builder = new PromptBuilder(AuditMode.Block, createMockLogger());
+      const builder = makeBuilder(AuditMode.Block, createMockLogger());
 
       expect(() => builder.build(makeInjectionIssue())).toThrow(
         /Prompt audit blocked execution for SEC-100.*critical finding/,
@@ -92,7 +97,7 @@ describe("PromptBuilder", () => {
     });
 
     it("does not throw on warning-only findings", () => {
-      const builder = new PromptBuilder(AuditMode.Block, createMockLogger());
+      const builder = makeBuilder(AuditMode.Block, createMockLogger());
       const { audit } = builder.build(makeWarningIssue());
 
       // Warning-level findings don't block
@@ -100,7 +105,7 @@ describe("PromptBuilder", () => {
     });
 
     it("does not throw for safe content", () => {
-      const builder = new PromptBuilder(AuditMode.Block, createMockLogger());
+      const builder = makeBuilder(AuditMode.Block, createMockLogger());
       const { text, audit } = builder.build(makeSafeIssue());
 
       expect(audit.safe).toBe(true);
@@ -114,7 +119,7 @@ describe("PromptBuilder", () => {
         customfield_99999: "should be excluded",
         description: "Keep this",
       });
-      const builder = new PromptBuilder(AuditMode.Off, createMockLogger(), ["customfield_99999"]);
+      const builder = makeBuilder(AuditMode.Off, createMockLogger(), ["customfield_99999"]);
       const { text } = builder.build(issue);
 
       expect(text).not.toContain("should be excluded");

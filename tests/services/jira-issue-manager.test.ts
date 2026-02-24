@@ -12,7 +12,8 @@ describe("JiraIssueManager", () => {
   beforeEach(() => {
     jira = createMockJiraClient();
     logger = createMockLogger();
-    manager = new JiraIssueManager(jira, logger, { delayMs: 1 });
+    manager = new JiraIssueManager({ jiraClient: jira, logger });
+    manager.retryOptions = { delayMs: 1 };
   });
 
   describe("transitionIssue", () => {

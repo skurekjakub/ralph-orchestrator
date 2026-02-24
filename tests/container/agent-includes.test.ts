@@ -9,12 +9,16 @@ import { createMockLogger } from "../helpers/mocks.js";
 import { makeProfile, makeIssue, makeTemplateContext } from "../helpers/factories.js";
 
 let tmpDir: string;
+let originalCwd: string;
 
 beforeEach(async () => {
+  originalCwd = process.cwd();
   tmpDir = await mkdtemp(join(tmpdir(), "agent-includes-test-"));
+  process.chdir(tmpDir);
 });
 
 afterEach(async () => {
+  process.chdir(originalCwd);
   await rm(tmpDir, { recursive: true, force: true });
 });
 
@@ -165,7 +169,7 @@ describe("AgentTemplateRenderer", () => {
 
     await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ issueKey }}");
 
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     await renderer.render("my-profile", makeTemplateContext({
       profileId: "my-profile",
       repo: "/my/repo",
@@ -187,7 +191,7 @@ describe("AgentTemplateRenderer", () => {
 
     await writeFile(join(agentDir, "test.agent.md"), "Project: {{ issueProject }}, Status: {{ issueStatus }}, Summary: {{ issueSummary }}");
 
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     await renderer.render("test-profile", makeTemplateContext({
       profileId: "test-profile",
       issueProject: "DOC",
@@ -200,7 +204,7 @@ describe("AgentTemplateRenderer", () => {
   });
 
   it("warns and skips when includes directory is missing", async () => {
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     const logger = createMockLogger();
 
     await renderer.render("nonexistent", makeTemplateContext(), logger);
@@ -215,7 +219,7 @@ describe("AgentTemplateRenderer", () => {
     await mkdir(includesDir, { recursive: true });
     await mkdir(join(tmpDir, "profiles", "empty-profile"), { recursive: true });
 
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     const logger = createMockLogger();
 
     await renderer.render("empty-profile", makeTemplateContext(), logger);
@@ -236,7 +240,7 @@ describe("AgentTemplateRenderer", () => {
     await writeFile(join(includesDir, "greeting.md"), "Hello from include");
     await writeFile(join(agentDir, "test.agent.md"), "{% render 'greeting' %}\nRevision: {{ isRevision }}");
 
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     await renderer.render("inc-profile", makeTemplateContext({ isRevision: false }));
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
@@ -255,7 +259,7 @@ describe("AgentTemplateRenderer", () => {
     await writeFile(join(agentDir, "x.agent.md"), "Content");
 
     const logger = createMockLogger();
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     await renderer.render("test-profile", makeTemplateContext(), logger);
 
     expect(logger.info).toHaveBeenCalledWith(
@@ -523,7 +527,7 @@ describe("SectionTag", () => {
       '{% section "security" %}{% render "rules" %}{% endsection %}',
     );
 
-    const renderer = new AgentTemplateRenderer(tmpDir);
+    const renderer = new AgentTemplateRenderer();
     await renderer.render("sec-profile", makeTemplateContext({ issueKey: "DOC-99" }));
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");

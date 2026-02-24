@@ -1,4 +1,4 @@
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { RalphResult, ContainerManagerFactory } from "../container/types.js";
 import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
@@ -27,7 +27,7 @@ export interface ITaskRunner {
   /** Run the full pipeline for a single issue + profile combination. */
   run(ctx: TaskContext): Promise<{ result: RalphResult; container: IContainerManager }>;
   /** Tear down containers — tries graceful stop, falls back to raw compose down. */
-  teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void>;
+  teardown(profile: IAgentProfile, container: IContainerManager | null): Promise<void>;
 }
 
 /**
@@ -46,16 +46,34 @@ export interface ITaskRunner {
  * This is a stateless service — all per-task state is scoped to the `run()` call.
  */
 export class TaskRunner implements ITaskRunner {
-  constructor(
-    private readonly logCollector: ILogCollector,
-    private readonly logger: Logger,
-    private readonly containerFactory: ContainerManagerFactory,
-    private readonly resources: IResourceManager,
-    private readonly issueManager: IIssueManager,
-    private readonly templateRenderer: IAgentTemplateRenderer,
-    private readonly jitMcpConfig: IJitMcpConfigWriter,
-    private readonly preExecuteHooks: readonly ILifecycleHook[] = [],
-  ) {}
+  private readonly logCollector: ILogCollector;
+  private readonly logger: Logger;
+  private readonly containerFactory: ContainerManagerFactory;
+  private readonly resources: IResourceManager;
+  private readonly issueManager: IIssueManager;
+  private readonly templateRenderer: IAgentTemplateRenderer;
+  private readonly jitMcpConfig: IJitMcpConfigWriter;
+  private readonly preExecuteHooks: readonly ILifecycleHook[];
+
+  constructor({ logCollector, logger, containerFactory, resources, issueManager, templateRenderer, jitMcpConfig, preExecuteHooks = [] }: {
+    logCollector: ILogCollector;
+    logger: Logger;
+    containerFactory: ContainerManagerFactory;
+    resources: IResourceManager;
+    issueManager: IIssueManager;
+    templateRenderer: IAgentTemplateRenderer;
+    jitMcpConfig: IJitMcpConfigWriter;
+    preExecuteHooks?: readonly ILifecycleHook[];
+  }) {
+    this.logCollector = logCollector;
+    this.logger = logger;
+    this.containerFactory = containerFactory;
+    this.resources = resources;
+    this.issueManager = issueManager;
+    this.templateRenderer = templateRenderer;
+    this.jitMcpConfig = jitMcpConfig;
+    this.preExecuteHooks = preExecuteHooks;
+  }
 
   /** Optional callback invoked for each real-time tool output line from the container. */
   onToolOutput?: (line: string) => void;
@@ -69,7 +87,7 @@ export class TaskRunner implements ITaskRunner {
    * Attempts `container.stop()` first. If the container reference is null or
    * stop fails, delegates to the factory's `forceDown()` fallback.
    */
-  async teardown(profile: AgentProfile, container: IContainerManager | null): Promise<void> {
+  async teardown(profile: IAgentProfile, container: IContainerManager | null): Promise<void> {
     if (container) {
       try {
         await container.stop();

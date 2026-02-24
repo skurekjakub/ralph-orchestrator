@@ -12,7 +12,7 @@ import { createMockLogger, createMockIssueManager, createMockResources, createMo
 import type { Mocked } from "../helpers/mocks.js";
 import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
-import type { AgentProfile } from "../../src/config.js";
+import type { IAgentProfile } from "../../src/config.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
@@ -29,7 +29,7 @@ const silentLogger = createMockLogger();
 export function buildMockDeps(
   tempDir: string,
   options: {
-    profile?: AgentProfile;
+    profile?: IAgentProfile;
     issues?: JiraIssue[];
     comments?: Record<string, JiraComment[]>;
     searchResults?: Record<string, JiraIssue[]>;
@@ -55,9 +55,9 @@ export function buildMockDeps(
   mkdirSync(historyDir, { recursive: true });
   config.output.logDir = logDir;
 
-  const activityLog = new ActivityLog(logDir);
-  const router = new ProfileRouter([profile]);
-  const ledger = new OperationLedger(historyDir);
+  const activityLog = new ActivityLog({ config: { output: { logDir } } as any });
+  const router = new ProfileRouter({ config: { profiles: [profile] } as any });
+  const ledger = new OperationLedger({ config: { output: { logDir } } as any });
 
   const issuesToDrain = [...(options.issues ?? [])];
   const commentsMap = options.comments ?? {};
@@ -96,12 +96,14 @@ export function buildMockDeps(
         })),
   });
 
-  const triggerScanner = new TriggerScanner(
+  const triggerScanner = new TriggerScanner({
     issueManager,
     router,
     ledger,
-    silentLogger,
-  );
+    logger: silentLogger,
+    config: { allowedUsers: [] } as any,
+  });
+  triggerScanner.cachePath = null;
 
   let drainCount = 0;
   const poller = createMockPoller({
@@ -163,7 +165,7 @@ export async function runUntil(
 export function buildBaseDeps(
   tempDir: string,
   options: {
-    profiles: AgentProfile[];
+    profiles: IAgentProfile[];
     issueManager?: Partial<Mocked<IIssueManager>>;
     taskRunner?: Partial<Mocked<ITaskRunner>>;
     logDirName?: string;
@@ -175,20 +177,29 @@ export function buildBaseDeps(
   mkdirSync(historyDir, { recursive: true });
   config.output.logDir = logDir;
 
-  const ledger = new OperationLedger(historyDir);
-  const router = new ProfileRouter(options.profiles);
+  const ledger = new OperationLedger({ config: { output: { logDir } } as any });
+  const router = new ProfileRouter({ config: { profiles: options.profiles } as any });
   const issueManager = createMockIssueManager(options.issueManager);
   const taskRunner = createMockTaskRunner(options.taskRunner);
 
+  const scanner = new TriggerScanner({
+    issueManager,
+    router,
+    ledger,
+    logger: silentLogger,
+    config: { allowedUsers: [] } as any,
+  });
+  scanner.cachePath = null;
+
   return {
     config,
-    activityLog: new ActivityLog(logDir),
+    activityLog: new ActivityLog({ config: { output: { logDir } } as any }),
     issueManager,
     resources: createMockResources(),
     poller: createMockPoller(),
     router,
     taskRunner,
-    triggerScanner: new TriggerScanner(issueManager, router, ledger, silentLogger),
+    triggerScanner: scanner,
     ledger,
     heartbeat: null,
     logger: silentLogger,

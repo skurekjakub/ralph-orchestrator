@@ -1,4 +1,4 @@
-import type { AgentProfile } from "./config.js";
+import type { IAgentProfile } from "./config.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
@@ -192,7 +192,7 @@ export class Orchestrator {
   }
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
-  private resolveProfile(issueKey: string, operation: Operation): AgentProfile | null {
+  private resolveProfile(issueKey: string, operation: Operation): IAgentProfile | null {
     const profile = this.deps.config.profiles.find(
       (p) => p.variantKey === operation.variant,
     );
@@ -222,7 +222,7 @@ export class Orchestrator {
   }
 
   /** Verify the issue's current status still matches the profile. Returns `false` if rejected. */
-  private validateStatusMatch(issue: JiraIssue, profile: AgentProfile, operation: Operation): boolean {
+  private validateStatusMatch(issue: JiraIssue, profile: IAgentProfile, operation: Operation): boolean {
     if (this.deps.router.matchesProjectAndStatus(issue, profile)) return true;
     this.log(
       `Rejected ${issue.key}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
@@ -239,7 +239,7 @@ export class Orchestrator {
   /** Run a preflight check. Uses the profile's configured check or an explicit name. Returns `false` if the check fails. */
   private async runPreflight(
     issue: JiraIssue,
-    profile: AgentProfile,
+    profile: IAgentProfile,
     operation: Operation,
     checkName?: string,
   ): Promise<boolean> {
@@ -274,7 +274,7 @@ export class Orchestrator {
   /** Execute the task runner, record completion/error, and handle teardown. */
   private async runTask(
     issue: JiraIssue,
-    profile: AgentProfile,
+    profile: IAgentProfile,
     operation: Operation,
   ): Promise<void> {
     this.activeTask = {
@@ -357,7 +357,7 @@ export class Orchestrator {
   }
 
   /** Delegate container teardown to the task runner (graceful stop + fallback). */
-  private async teardownContainer(profile: AgentProfile): Promise<void> {
+  private async teardownContainer(profile: IAgentProfile): Promise<void> {
     this.log("Stopping containers...");
     await this.deps.taskRunner.teardown(profile, this.activeTask?.container ?? null);
     this.log("Containers stopped");

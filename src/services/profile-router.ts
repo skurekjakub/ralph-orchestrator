@@ -1,9 +1,9 @@
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile, IAppConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 
 /** Result of a profile match. */
 export interface ProfileMatchResult {
-  profile: AgentProfile;
+  profile: IAgentProfile;
 }
 
 /**
@@ -17,7 +17,7 @@ export interface IProfileRouter {
   /** Match a JIRA issue to the first matching agent profile. */
   match(issue: JiraIssue): Promise<ProfileMatchResult | null>;
   /** Check if an issue matches a specific profile's project and status filters. */
-  matchesProjectAndStatus(issue: JiraIssue, profile: AgentProfile): boolean;
+  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean;
   /** Get all configured profile IDs. */
   readonly profileIds: string[];
 }
@@ -33,10 +33,16 @@ export interface IProfileRouter {
  * Profile order in the config matters — first match wins.
  */
 export class ProfileRouter implements IProfileRouter {
-  constructor(
-    private profiles: readonly AgentProfile[],
-    private fetchComments?: CommentFetcher,
-  ) {}
+  private profiles: readonly IAgentProfile[];
+  private fetchComments?: CommentFetcher;
+
+  constructor({ config, fetchComments }: {
+    config: IAppConfig;
+    fetchComments?: CommentFetcher;
+  }) {
+    this.profiles = config.profiles;
+    this.fetchComments = fetchComments;
+  }
 
   /**
    * Match a JIRA issue to the first matching agent profile.
@@ -83,7 +89,7 @@ export class ProfileRouter implements IProfileRouter {
    * Check if an issue matches a specific profile's project and status filters.
    * Used by the orchestrator to verify an issue still matches before execution.
    */
-  matchesProjectAndStatus(issue: JiraIssue, profile: AgentProfile): boolean {
+  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean {
     const issueProject = issue.key.split("-")[0];
     if (!profile.match.projects.includes(issueProject)) return false;
 
