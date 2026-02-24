@@ -96,7 +96,7 @@ function createMcpServer(): McpServer {
       });
 
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ success: true, commentId: res.data.id, issueKey }) }],
+        content: [{ type: "text" as const, text: JSON.stringify({ success: true, commentId: res.data.id }) }],
       };
     } catch (err: unknown) {
       const status = axios.isAxiosError(err) ? err.response?.status ?? 0 : 0;

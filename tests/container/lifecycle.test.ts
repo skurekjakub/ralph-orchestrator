@@ -31,7 +31,7 @@ describe("RepoSyncHook", () => {
     await new RepoSyncHook().execute(container, taskCtx, logger);
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
-    expect(calls[0]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("test-pat"), "fetch", "origin", "main"]);
+    expect(calls[0]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader=Authorization: Basic"), "fetch", "origin", "main"]);
     expect(calls[1]).toEqual(["-C", profile.repoPath, "checkout", "main"]);
     expect(calls[2]).toEqual(["-C", profile.repoPath, "reset", "--hard", "origin/main"]);
   });
