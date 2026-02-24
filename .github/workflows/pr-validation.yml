@@ -1,0 +1,119 @@
+name: PR Validation
+
+on:
+  pull_request:
+
+jobs:
+  orchestrator:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check (tsc --noEmit)
+        run: npm run lint
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Build
+        run: npm run build
+
+  mcp-servers:
+    name: "MCP: ${{ matrix.serverName }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - serverDir: shared/mcp-servers/ado
+            serverName: ADO
+          - serverDir: shared/mcp-servers/discord-hitl
+            serverName: Discord HITL
+          - serverDir: shared/mcp-servers/jira-kentico
+            serverName: JIRA Kentico
+          - serverDir: shared/mcp-servers/microsoft-docs
+            serverName: Microsoft Docs
+          - serverDir: shared/mcp-servers/web-fetch
+            serverName: Web Fetch
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.serverDir }}
+
+      - name: Type-check (tsc --noEmit)
+        run: npm run lint
+        working-directory: ${{ matrix.serverDir }}
+
+      - name: Run tests (if available)
+        run: |
+          if node -e "const p=require('./package.json'); process.exit(p.scripts?.test ? 0 : 1)"; then
+            npm test
+          else
+            echo "No test script — skipping"
+          fi
+        working-directory: ${{ matrix.serverDir }}
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ matrix.serverDir }}
+
+  dashboard-local:
+    name: Local Dashboard — Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: dashboard-local
+
+      - name: Type-check (tsc --noEmit)
+        run: npm run lint
+        working-directory: dashboard-local
+
+      - name: Build (vite)
+        run: npm run build
+        working-directory: dashboard-local
+
+  dashboard-vercel:
+    name: Vercel Dashboard — Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ralph-dashboard
+
+      - name: Type-check (tsc --noEmit)
+        run: npm run lint
+        working-directory: ralph-dashboard
+
+      - name: Build (next)
+        run: npm run build
+        working-directory: ralph-dashboard
