@@ -107,7 +107,7 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 - **ComposeClient** — Low-level `docker compose` wrapper. Handles the three-file merge and injects process environment (secrets, JIRA config, host paths).
 - **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs `git checkout main && git pull` to ensure a clean starting point.
-- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution. Copilot uses `--config-dir`, `--agent`, `--share` (transcript export); Claude uses `--mcp-config`, `--strict-mcp-config`.
+- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution. Copilot uses `--config-dir` (for copilot-config.json), `--additional-mcp-config @<path>` (for MCP config), `--agent`, `--share` (transcript export); Claude uses `--mcp-config`, `--strict-mcp-config`.
 - **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
@@ -196,8 +196,12 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   └── agents/
 │   │       ├── ralph.ralph.agent.md     # Meta-agent template (with Liquid tags)
 │   │       ├── ralph.ralph-researcher.agent.md  # Research sub-agent (docs + source code)
-│   │       ├── ralph.reviewer.agent.md
-│   │       └── ralph.malph.agent.md     # Review agent template (observer)
+│   │       ├── ralph.ralph-reviewer.agent.md    # Review sub-agent
+│   │       ├── ralph.malph.agent.md     # Review agent template (observer)
+│   │       ├── ralph.malph-investigator.agent.md  # Investigator sub-agent for Malph
+│   │       ├── ralph.overralph.agent.md           # Overralph meta-agent
+│   │       ├── ralph.overralph-researcher.agent.md # Overralph research sub-agent
+│   │       └── ralph.mcp-probe.agent.md           # MCP diagnostic agent
 │   └── ralph-vscode/
 │       ├── profile.json
 │       ├── Dockerfile
@@ -207,7 +211,8 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       └── agents/
 │           ├── ralph.ralph.agent.md
 │           ├── ralph.ralph-analyst.agent.md  # Analysis sub-agent (read-only, Sonnet)
-│           └── ralph.malph.agent.md     # Review agent template (observer)
+│           ├── ralph.malph.agent.md     # Review agent template (observer)
+│           └── ralph.malph-investigator.agent.md  # Investigator sub-agent for Malph
 ├── shared/
 │   ├── security/                        # Container security infrastructure
 │   │   ├── docker-compose.security.yml  # Squid sidecar, network isolation, resource limits
@@ -250,7 +255,7 @@ Currently configured target repos:
 
 ### Agent Phases (inside container)
 
-1. **Setup** — Parse JIRA issue, `git checkout master && git pull`, create branch
+1. **Setup** — Parse JIRA issue, `git checkout main && git reset --hard origin/main` (branch configurable via `source_branch` trigger param), create branch
 2. **Research** — Delegate to researcher sub-agent (explores docs + Xperience source code)
 3. **Write** — Meta-agent implements documentation changes directly
 4. **Build** — Validate with `npm run build`
@@ -320,7 +325,7 @@ The security overlay (`shared/security/docker-compose.security.yml`) is merged w
 
 Each profile declares MCP servers in `profile.json` (`mcpServers` array). At startup, `resolveAllProfileSetup()` resolves server names to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files per profile in `.build/`:
 
-1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains only `{ type, url }` entries — no secrets. Copilot reads it via `--config-dir`; Claude Code via `--mcp-config --strict-mcp-config`.
+1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains only `{ type, url }` entries — no secrets. Copilot reads it via `--additional-mcp-config @<path>`; Claude Code via `--mcp-config --strict-mcp-config`.
 2. **`gateway.json`** — Per-profile sidecar config with server commands, args, ports, and embedded secrets. The sidecar only starts servers the profile declares — a profile with `["jira-kentico", "ado"]` never spawns `discord-hitl`.
 3. **`docker-compose.overlay.yml`** — Injects base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, Copilot CLI config, and resource files.
 4. **`squid.conf`** — Copied from the shared baseline (`shared/security/squid.conf`). No per-profile customization — MCP server `proxyDomains` declarations are no longer injected here since the sidecar has direct internet access.

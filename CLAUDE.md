@@ -59,7 +59,7 @@ Custom Liquid tags: `{% section "name" %}...{% endsection %}` wraps content in `
 
 Each profile declares `mcpServers` in `profile.json`. This drives three things simultaneously:
 - **Tools:** Agent only sees tools from declared servers
-- **Network:** MCP sidecar has unrestricted direct internet access via `ralph-sidecar-external`; agent's Squid allowlist is restricted to AI providers + package registries + ADO git
+- **Network:** MCP sidecar has unrestricted direct internet access via `ralph-sidecar-external`; agent's Squid allowlist is restricted to AI providers + package registries
 - **Credentials:** MCP secrets go into `gateway.json` inside the sidecar — agent container gets URL-only `mcp-config.json`
 
 MCP sidecar uses `supergateway` to bridge stdio servers to Streamable HTTP.
@@ -146,5 +146,6 @@ output/logs/
     <key>-<ts>-sidecar.log
     <key>-<ts>-summary.json
   activity-YYYY-MM-DD.log   — Persistent daily activity log
+  container-YYYY-MM-DD.log  — Persistent container output log
   history/<issueKey>.json   — Operation ledger
 ```

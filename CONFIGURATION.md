@@ -23,6 +23,8 @@ Secrets and credentials live in `.env`. Never commit this file.
 | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |
 | `DASHBOARD_URL` | Ralph status dashboard URL | No |
 | `DASHBOARD_SECRET` | Shared secret for dashboard authentication | No |
+| `DISCORD_BOT_TOKEN` | Discord bot token for the discord-hitl MCP server | When using discord-hitl |
+| `DISCORD_CHANNEL_ID` | Discord channel ID where HITL threads are created | When using discord-hitl |
 
 > At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set. The orchestrator selects the CLI based on each profile's preference, falling back to the other if the preferred credential is missing.
 
@@ -34,7 +36,11 @@ Secrets and credentials live in `.env`. Never commit this file.
 {
   "jira": { ... },
   "output": { ... },
-  "dashboard": { ... }
+  "dashboard": { ... },
+  "promptAudit": { ... },
+  "excludeFields": [],
+  "allowedUsers": [],
+  "enableContinuation": true
 }
 ```
 
@@ -98,12 +104,12 @@ shared/
   ],
   "resources": { "mountBase": "resources/ralph-resources" },
   "cleanPaths": ["/workspace/resources/chats"],
-  "beforeAgent": { "targetStatus": "In Progress" },
-  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     {
       "agent": "ralph.ralph",
-      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
+      "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
+      "beforeAgent": { "targetStatus": "In Progress" },
+      "afterAgent": { "targetStatus": "Ready for Review" }
     }
   ]
 }
@@ -140,6 +146,10 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
 | `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive word-boundary match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. Supports optional parenthesized parameters — see below. |
 | `variant.match.revisionStatuses` | Statuses that indicate a revision task (e.g. `["Defect Found"]`). When the issue is in one of these statuses, the agent follows the revision workflow instead of starting fresh. Empty `[]` = never treat as revision. |
+| `variant.beforeAgent` | JIRA transition config `{ targetStatus }` to execute before the agent runs. Empty `{}` = no transition. |
+| `variant.afterAgent` | JIRA transition config `{ targetStatus }` to execute after successful completion. Empty `{}` = no transition. |
+| `variant.preflight` | Named preflight check to run before agent invocation. If it fails, the agent is not invoked. Optional. |
+| `variant.failureComment` | JIRA comment posted when preflight fails. Falls back to a generic message. Optional. |
 
 **Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
@@ -346,6 +356,14 @@ Multiple orchestrator instances can report to the same dashboard — each genera
 
 The auditor scans untrusted JIRA data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
 
+### Additional Global Settings
+
+| Field | Description | Default |
+|---|---|---|
+| `excludeFields` | Array of JIRA custom field IDs to exclude from agent prompts | `[]` |
+| `allowedUsers` | Array of JIRA `accountId` values allowed to trigger agent invocations. Empty = unrestricted. | `[]` |
+| `enableContinuation` | Allow agents to retry via `--continue` when no result block is produced. Requires `maxContinuations > 0` in the profile. | `false` |
+
 ## Example Configurations
 
 ### `config.json` (Global Settings)
@@ -369,8 +387,6 @@ The auditor scans untrusted JIRA data (description, comments, custom fields, han
 {
   "repo": "~/repositories/kentico-docs-jekyll",
   "timeoutMs": 1800000,
-  "beforeAgent": { "targetStatus": "In Progress" },
-  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -379,7 +395,9 @@ The auditor scans untrusted JIRA data (description, comments, custom fields, han
         "statuses": ["New", "To Do", "Defect Found"],
         "commentTrigger": "@RalphDf",
         "revisionStatuses": ["Defect Found"]
-      }
+      },
+      "beforeAgent": { "targetStatus": "In Progress" },
+      "afterAgent": { "targetStatus": "Ready for Review" }
     }
   ]
 }
@@ -425,10 +443,13 @@ In this setup, the same Docker infrastructure serves both variants. Comments wit
   "repo": "~/repositories/kentico-docs-autocomplete-vscode",
   "cli": "claude",
   "timeoutMs": 1800000,
-  "beforeAgent": { "targetStatus": "In Progress" },
-  "afterAgent": { "targetStatus": "Ready for Review" },
   "variants": [
-    { "agent": "ralph.ralph", "match": { "projects": ["DOC"], "commentTrigger": "@RalphAutocomplete" } }
+    {
+      "agent": "ralph.ralph",
+      "match": { "projects": ["DOC"], "commentTrigger": "@RalphAutocomplete" },
+      "beforeAgent": { "targetStatus": "In Progress" },
+      "afterAgent": { "targetStatus": "Ready for Review" }
+    }
   ]
 }
 ```

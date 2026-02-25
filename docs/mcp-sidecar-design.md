@@ -1,6 +1,6 @@
 # MCP Sidecar Design — Agent Filesystem Isolation
 
-> **Status:** Implemented. Some sections below reflect the original design proposal. Key post-implementation changes: custom servers now use **stateless per-request** `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), sidecar PID limit raised to 300, Playwright uses the pre-installed `playwright-mcp` binary. See [001-ado-server-crash-session-loss.md](past-issues/001-ado-server-crash-session-loss.md) for details.
+> **Status:** Implemented. Some sections below reflect the original design proposal. Key post-implementation changes: custom servers now use **stateless per-request** `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), sidecar PID limit raised to 300, Playwright uses the pre-installed `playwright-mcp` binary, and the sidecar connects to `ralph-sidecar-external` for **direct internet access** (does NOT route through Squid). See [001-ado-server-crash-session-loss.md](past-issues/001-ado-server-crash-session-loss.md) for details.
 
 ## Problem
 
@@ -68,8 +68,8 @@ The MCP SDK v1.x (currently used by our custom servers at `^1.26.0`) includes `S
 
 ### What Stays the Same
 
-- Squid egress proxy — MCP sidecar uses the same internal network, routes through Squid
 - Security overlay — `cap_drop: ALL`, `no-new-privileges`, resource limits apply to sidecar too
+- MCP sidecar has direct internet access via `ralph-sidecar-external` network (does not route through Squid)
 - Profile's `mcpServers` declaration — still controls which servers are available
 - Tool allowlists in manifests — enforced via `tools` field in mcp-config.json
 - Compose three-file merge — overlay now generates sidecar config too
@@ -226,10 +226,11 @@ RUN cd /opt/mcp/gateway && npm ci --production
 # Gateway code
 COPY --chown=mcp:mcp dist/ /opt/mcp/gateway/dist/
 
-# Proxy config (routes through Squid sidecar)
-ENV HTTP_PROXY="http://egress-proxy:3128"
-ENV HTTPS_PROXY="http://egress-proxy:3128"
-ENV NO_PROXY="localhost,127.0.0.1,app,egress-proxy"
+# Note: proxy env vars removed in implementation — sidecar has direct internet
+# via ralph-sidecar-external network instead of routing through Squid.
+# ENV HTTP_PROXY="http://egress-proxy:3128"
+# ENV HTTPS_PROXY="http://egress-proxy:3128"
+# ENV NO_PROXY="localhost,127.0.0.1,app,egress-proxy"
 
 USER mcp
 WORKDIR /opt/mcp
@@ -259,6 +260,7 @@ services:
       - ${MCP_GATEWAY_CONFIG_PATH}:/opt/mcp/config/gateway.json:ro
     networks:
       ralph-internal:
+      ralph-sidecar-external:  # Direct internet access (not through Squid)
     security_opt:
       - "no-new-privileges:true"
     cap_drop:
@@ -269,9 +271,7 @@ services:
           memory: 4G
           cpus: "1.0"
           pids: 300
-    depends_on:
-      egress-proxy:
-        condition: service_healthy
+    # Note: no depends_on egress-proxy — sidecar has direct internet
 
   app:
     depends_on:

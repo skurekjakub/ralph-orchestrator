@@ -4,7 +4,7 @@ How to structure agent prompts in this project — what to inline, what to defer
 
 ## Current Architecture
 
-Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials from `shared/agent-includes/*.md`. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, JIRA issue data (key, summary, status, type, priority, labels, components, project), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags. The `triggerParams` enables runtime parameterization of agent behavior — see [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference. Resolved files go to `.build/` and are mounted read-only into containers.
+Agent templates live in `profiles/<id>/agents/` as `.agent.md` files. They use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials from `shared/agent-includes/*.md`. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, JIRA issue data (key, summary, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags. The `triggerParams` enables runtime parameterization of agent behavior — see [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference. Resolved files go to `.build/` and are mounted read-only into containers.
 
 The agent receives the fully resolved prompt as its system instructions. All includes are baked in before the CLI is invoked.
 
