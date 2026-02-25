@@ -279,5 +279,22 @@ describe("Compose Overlay", () => {
 
       rmSync(mcpDir, { recursive: true, force: true });
     });
+
+    it("includes extra_hosts for host.docker.internal resolution", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
+
+      const sidecarServiceIdx = overlay.indexOf("  mcp-sidecar:\n    build:");
+      const sidecarSection = overlay.slice(sidecarServiceIdx);
+      expect(sidecarSection).toContain("extra_hosts:");
+      expect(sidecarSection).toContain("host.docker.internal:host-gateway");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
   });
 });
