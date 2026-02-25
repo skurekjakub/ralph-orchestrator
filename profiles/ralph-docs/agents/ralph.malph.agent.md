@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous PR reviewer — the vigilante Kentico deserves'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'malph'
 user-invocable: false
 agents: ['malph-investigator']

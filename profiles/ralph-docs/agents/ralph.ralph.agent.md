@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous documentation agent — researches, writes, reviews, and delivers JIRA-driven doc tasks'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'ralph'
 user-invocable: false
 agents: ['ralph-researcher', 'ralph-reviewer']
