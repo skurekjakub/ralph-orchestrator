@@ -4,6 +4,7 @@ import { makeIssue, makeComment, makeJiraConfig } from "../helpers/factories.js"
 import { createMockLogger } from "../helpers/mocks.js";
 
 const mockConfig = makeJiraConfig({ jql: ['project = DF AND summary ~ "Ralph"'] });
+const mockSecrets = { jiraEmail: "test@test.com", jiraPat: "test-token" } as any;
 
 const mockLogger = createMockLogger();
 
@@ -32,7 +33,7 @@ describe("JiraClient", () => {
   let client: JiraClient;
 
   beforeEach(() => {
-    client = new JiraClient(mockConfig, "test@test.com", "test-token");
+    client = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets });
   });
 
   it("constructs correct auth header", () => {
@@ -96,7 +97,7 @@ describe("JiraClient", () => {
     it("throws on HTTP error", async () => {
       stubFetchError(401, "Unauthorized", "Bad token");
 
-      const retryClient = new JiraClient(mockConfig, "test@test.com", "test-token", mockLogger, { delayMs: 1 });
+      const retryClient = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets, logger: mockLogger }, { delayMs: 1 });
       await expect(retryClient.searchIssues("project = DF")).rejects.toThrow(
         "401"
       );
@@ -118,7 +119,7 @@ describe("JiraClient", () => {
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(mockResponse) }),
       );
 
-      const retryClient = new JiraClient(mockConfig, "test@test.com", "test-token", mockLogger, { delayMs: 1 });
+      const retryClient = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets, logger: mockLogger }, { delayMs: 1 });
       const issues = await retryClient.searchIssues("project = DF");
 
       expect(fetch).toHaveBeenCalledTimes(2);

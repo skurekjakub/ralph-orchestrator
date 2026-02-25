@@ -1,4 +1,4 @@
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { IContainerLogCollector } from "./log-collector.js";
 import { CaptureMode } from "./log-collector.js";
 import type { CliPaths } from "./types.js";
@@ -24,7 +24,7 @@ export interface ILogSourceRegistry {
    */
   registerAll(
     logs: IContainerLogCollector,
-    profile: AgentProfile,
+    profile: IAgentProfile,
     issueKey: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
@@ -47,7 +47,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
 
   registerAll(
     logs: IContainerLogCollector,
-    profile: AgentProfile,
+    profile: IAgentProfile,
     issueKey: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,

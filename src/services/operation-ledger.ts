@@ -1,13 +1,7 @@
-import {
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  mkdirSync,
-  renameSync,
-  readdirSync,
-} from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import type { IOutputConfig } from "../config.js";
 import { TaskStatus } from "../container/types.js";
 import { assertValidIssueKey } from "../util/jira.js";
 
@@ -112,10 +106,12 @@ export interface IOperationLedger {
  */
 export class OperationLedger implements IOperationLedger {
   private pendingCallback: (() => void) | null = null;
+  private historyDir: string;
 
-  constructor(private historyDir: string) {
-    if (!existsSync(historyDir)) {
-      mkdirSync(historyDir, { recursive: true });
+  constructor({ outputConfig }: { outputConfig: IOutputConfig }) {
+    this.historyDir = join(outputConfig.logDir, "history");
+    if (!existsSync(this.historyDir)) {
+      mkdirSync(this.historyDir, { recursive: true });
     }
   }
 

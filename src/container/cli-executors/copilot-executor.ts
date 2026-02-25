@@ -1,5 +1,5 @@
 import type { ResultPromise } from "execa";
-import type { AgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config.js";
 import { DEFAULT_MODEL } from "../../config.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
@@ -48,7 +48,7 @@ export class CopilotExecutor implements ICliExecutor {
 
   constructor(
     private readonly compose: IComposeClient,
-    private readonly profile: AgentProfile,
+    private readonly profile: IAgentProfile,
     private readonly containerLogger: Logger,
   ) {}
 

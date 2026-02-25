@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous meta-agent that develops vscode extensions.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'ralph'
 agents: ["ralph-analyst"]
 user-invocable: false

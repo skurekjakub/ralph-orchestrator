@@ -1,4 +1,4 @@
-import type { JiraConfig } from "../config.js";
+import type { IJiraConfig, ISecretsConfig } from "../config.js";
 import type { Logger } from "../logger.js";
 import type { RetryOptions } from "../retry.js";
 import { withRetry } from "../retry.js";
@@ -35,21 +35,22 @@ export class JiraClient implements IJiraClient {
   private baseUrl: string;
   private authHeader: string;
 
-  /**
-   * @param config JIRA connection settings (base URL, cloud ID).
-   * @param email Atlassian account email for Basic auth.
-   * @param apiToken API token from id.atlassian.com.
-   */
-  constructor(
-    config: JiraConfig,
-    private email: string,
-    private apiToken: string,
-    private logger?: Logger,
-    private retryOptions?: RetryOptions,
-  ) {
-    // Cloud API: https://api.atlassian.com/ex/jira/{cloudId}
-    const base = config.baseUrl.replace(/\/+$/, "");
-    this.baseUrl = `${base}/${config.cloudId}`;
+  private email: string;
+  private apiToken: string;
+  private logger?: Logger;
+  private retryOptions?: RetryOptions;
+
+  constructor({ jiraConfig, secrets, logger }: {
+    jiraConfig: IJiraConfig;
+    secrets: ISecretsConfig;
+    logger?: Logger;
+  }, retryOptions?: RetryOptions) {
+    this.email = secrets.jiraEmail;
+    this.apiToken = secrets.jiraPat;
+    this.logger = logger;
+    this.retryOptions = retryOptions;
+    const base = jiraConfig.baseUrl.replace(/\/+$/, "");
+    this.baseUrl = `${base}/${jiraConfig.cloudId}`;
     this.authHeader =
       "Basic " +
       Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");

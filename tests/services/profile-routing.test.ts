@@ -7,7 +7,7 @@ function matchProfile(
   issue: ReturnType<typeof makeIssue>,
   profiles: ReturnType<typeof makeProfile>[],
 ) {
-  return new ProfileRouter(profiles).match(issue);
+  return new ProfileRouter({ profiles }).match(issue);
 }
 
 describe("Profile routing", () => {
@@ -141,7 +141,7 @@ describe("Comment trigger matching", () => {
     commentTexts: string[],
   ) {
     const fetcher = async () => commentTexts;
-    return new ProfileRouter(profiles, fetcher).match(issue);
+    return new ProfileRouter({ profiles }, fetcher).match(issue);
   }
 
   it("matches when a comment contains the trigger string", async () => {
@@ -215,7 +215,7 @@ describe("Comment trigger matching", () => {
         match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
-    const result = await new ProfileRouter(profiles).match(makeIssue("DF-1", "Some issue"));
+    const result = await new ProfileRouter({ profiles }).match(makeIssue("DF-1", "Some issue"));
     expect(result?.profile.id).toBe("ralph-triggered");
   });
 
@@ -235,7 +235,7 @@ describe("Comment trigger matching", () => {
         match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" },
       }),
     ];
-    const result = await new ProfileRouter(profiles, fetcher).match(
+    const result = await new ProfileRouter({ profiles }, fetcher).match(
       makeIssue("DF-1", "Some issue"),
     );
     expect(result?.profile.id).toBe("ralph-b");

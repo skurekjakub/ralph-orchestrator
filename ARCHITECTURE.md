@@ -47,19 +47,21 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Data Flow
 
 ```
-1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Trigger Scanner ──▶ Operation Ledger
-2. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup)──▶ Profile selected
-3. Orchestrator ──(transition + ack comment)──▶ JIRA Cloud
-4. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
-5. TaskRunner ──(lifecycle hooks: git sync)──▶ App container
-6. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
-7. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
-8. Agent ──(git push)──▶ ADO Git (via Squid proxy)
-9. Agent ──(MCP: create PR, comment, attach handoff)──▶ MCP Sidecar ──▶ JIRA/ADO
-10. Orchestrator ──(exec cat / compose logs)──▶ Collect logs from all containers
-11. Orchestrator ──(save execution summary)──▶ output/logs/<key>-<startTs>/
-12. Orchestrator ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
-13. Orchestrator ──▶ resume polling (back to step 1)
+1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Trigger Scanner ──(ack comment)──▶ JIRA Cloud
+2. Trigger Scanner ──(plan pending ops)──▶ Operation Ledger
+3. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup)──▶ Profile selected
+4. TaskRunner ──(render templates + JIT gateway.json)──▶ Profile .build/
+5. TaskRunner ──(JIRA beforeAgent transition + start comment)──▶ JIRA Cloud
+6. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
+7. TaskRunner ──(lifecycle hooks: git sync)──▶ App container
+8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
+9. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
+10. Agent ──(git push)──▶ ADO Git (via Squid proxy)
+11. Agent ──(MCP: create PR, comment, attach handoff)──▶ MCP Sidecar ──▶ JIRA/ADO
+12. TaskResultWriter ──(exec cat / compose logs)──▶ Collect logs from all containers
+13. TaskResultWriter ──(attach transcript + save summary)──▶ JIRA Cloud + output/logs/<key>-<startTs>/
+14. Orchestrator ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
+15. Orchestrator ──▶ resume polling (back to step 1)
 ```
 
 ## Component Details
@@ -117,15 +119,35 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 Main loop: poll → scan triggers → execute pending operations → repeat.
 
-**Dependency injection:** The `createOrchestratorDeps()` factory builds all service instances from config. The orchestrator constructor receives an `OrchestratorDeps` bag — services can be replaced with mocks in tests.
+**Dependency injection:** The `createCradle()` factory in `src/awilix-cradle.ts` registers all service classes with **awilix** (`InjectionMode.PROXY`, `strict: true`) and returns the resolved cradle. The orchestrator constructor destructures services from the cradle — services can be replaced with mocks in tests. Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `excludeFields`, `allowedUsers`, `enableContinuation`) rather than a monolithic config object.
 
 **Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each profile's trigger string, and plans unconsumed triggers as pending operations in the ledger. An ack comment is posted for each new trigger. If the trigger comment includes parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`), they are extracted and stored in the operation as `triggerParams`.
 
 The scanner caches each issue's `updated` timestamp between cycles. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
 
-**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. The task runner transitions JIRA (beforeAgent) → start containers → clean audit logs → register log sources → run setup → lifecycle hooks (git sync) → fetch comments/handoff context → execute agent → collect logs + transcript → save summary → attach transcript to JIRA → return result. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
+**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
+
+**Task callbacks:** The `DashboardServer` needs tool-output events from the `TaskRunner`, but depends on the orchestrator (which in turn depends on the task runner) — creating a circular init-order dependency. This is resolved via `setTaskCallbacks(callbacks: TaskCallbacks)` on the orchestrator, which passes the callbacks to each `TaskRunner.run()` invocation. `TaskCallbacks` is an immutable interface with optional `onToolOutput` and `onPreToolUse` hooks, defined in `src/services/task-context.ts`.
 
 **State observation:** The `OrchestratorObserver` builds state snapshots and heartbeat payloads from live orchestrator data. The Ink dashboard subscribes to it directly (`orchestrator.observer`). This separation keeps state aggregation out of the main orchestration loop.
+
+### TaskRunner (`src/services/task-runner.ts`)
+
+Stateless, single-issue execution pipeline. All per-task state is scoped to the `run(ctx, callbacks?)` call. Dependencies are injected from the cradle: `logger`, `containerFactory`, `resources`, `resultWriter`, `issueManager`, `templateRenderer`, `jitMcpConfig`, `preExecuteHooks`.
+
+The `run()` pipeline has four phases:
+1. **`prepareProfile`** — Render Liquid agent templates (JIT) and resolve task-scoped MCP macro params into `gateway.json`.
+2. **`transitionIssue`** — Transition JIRA to the `beforeAgent` status and post a start comment (extracted from container lifecycle for clarity).
+3. **`prepareContainer`** — `docker compose up -d --build`, run `setup.sh`, register log sources, execute lifecycle hooks (git sync).
+4. **`executeAgent`** — Build prompt, audit for injection, run the CLI (Copilot or Claude Code) with continuation loop.
+
+After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`.
+
+### TaskResultWriter (`src/services/task-result-writer.ts`)
+
+Extracted service responsible for all post-execution artifacts:
+- **`collectLogs(container, result)`** — Calls `container.logs.collectAll()`, records collected log paths on the result object. Swallows errors so log collection failures don't abort the pipeline.
+- **`collectResults(ctx, container, result)`** — Calls `collectLogs`, attaches the session transcript to the JIRA issue, and saves the execution summary via `ILogCollector`.
 
 ### Log Collection
 

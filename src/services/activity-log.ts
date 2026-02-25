@@ -1,6 +1,7 @@
 import type { LogEntry } from "../orchestrator-types.js";
 import { LogLevel, LogSource } from "../orchestrator-types.js";
 import type { Logger } from "../logger.js";
+import type { IOutputConfig } from "../config.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -47,16 +48,17 @@ export class ActivityLog implements IActivityLog {
   private taskFilePath: string | null = null;
   private onChange: (() => void) | null = null;
   private logDir: string;
+  private maxLines: number;
 
   /**
-   * @param logDir Directory for activity JSONL files.
-   * @param maxLines Ring buffer size (default 50).
+   * @param opts.outputConfig Output config (reads `logDir`).
+   * @param opts.maxLines Ring buffer size (default 500).
    */
-  constructor(
-    logDir: string,
-    private maxLines = 500
-  ) {
-    this.logDir = resolve(process.cwd(), logDir);
+  constructor({ outputConfig }: {
+    outputConfig: IOutputConfig;
+  }, maxLines = 500) {
+    this.maxLines = maxLines;
+    this.logDir = resolve(process.cwd(), outputConfig.logDir);
     mkdirSync(this.logDir, { recursive: true });
     const date = new Date().toISOString().slice(0, 10);
     this.filePath = join(this.logDir, `activity-${date}.log`);

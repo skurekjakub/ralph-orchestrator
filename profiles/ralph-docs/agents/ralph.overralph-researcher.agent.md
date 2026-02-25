@@ -1,6 +1,6 @@
 ---
 description: 'Technical research sub-agent — investigates documentation site infrastructure, Liquid tags, navigation, build system, and source code to inform planning'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'overralph-researcher'
 user-invocable: false
 ---

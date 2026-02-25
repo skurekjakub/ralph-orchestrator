@@ -1,4 +1,4 @@
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 
 /**
  * Build JQL queries dynamically from agent profile matching rules.
@@ -9,7 +9,7 @@ import type { AgentProfile } from "../config.js";
  *
  * Returned queries are deduplicated (identical strings removed).
  */
-export function buildJqlFromProfiles(profiles: readonly AgentProfile[]): string[] {
+export function buildJqlFromProfiles(profiles: readonly IAgentProfile[]): string[] {
   const queries = new Set<string>();
 
   for (const profile of profiles) {

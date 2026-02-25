@@ -2,7 +2,7 @@ import type { Logger } from "./logger.js";
 import { resolveAllProfileSetup } from "./container/setup/profile-setup.js";
 import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
 import { loadConfig } from "./config.js";
-import type { AppConfig } from "./config.js";
+import type { IAppConfig } from "./config.js";
 import { validatePrerequisites, printValidationResults } from "./validate/index.js";
 import type { ValidationResult } from "./validate/index.js";
 
@@ -10,7 +10,7 @@ import type { ValidationResult } from "./validate/index.js";
 export interface AppStartupDeps {
   validate(logger?: Logger): Promise<ValidationResult>;
   printResults(result: ValidationResult): boolean;
-  loadConfig(): AppConfig;
+  loadConfig(): IAppConfig;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
 }
@@ -18,7 +18,7 @@ export interface AppStartupDeps {
 /** Public contract for the startup pipeline. */
 export interface IAppStartup {
   /** Run the full startup pipeline: validate → load config → initialize profiles. */
-  run(logger?: Logger): Promise<AppConfig>;
+  run(logger?: Logger): Promise<IAppConfig>;
 }
 
 /** Default production deps wired to the real implementations. */
@@ -51,7 +51,7 @@ export class AppStartup implements IAppStartup {
    *
    * Exits the process if validation fails.
    */
-  async run(logger?: Logger): Promise<AppConfig> {
+  async run(logger?: Logger): Promise<IAppConfig> {
     const log = logger ?? console;
 
     log.info("Starting prerequisite validation");

@@ -5,7 +5,7 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Architecture
 
 ```
-JIRA poller → comment discovery → operation ledger → container lifecycle → log collection
+JIRA poller → comment discovery → operation ledger → task runner → task result writer
                                        ↓
                               docker compose exec <cli>
                                   (copilot | claude)
@@ -29,7 +29,7 @@ JIRA poller → comment discovery → operation ledger → container lifecycle �
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`), shared execution helper (`shared-exec.ts`) |
 | `src/container/setup/` | Agent template renderer (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), JIT task-scoped MCP params (`jit-mcp-params.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
 | `src/prompt/` | Prompt builder (`prompt.ts`), content normalizer (`normalizer.ts`), prompt injection auditor (`prompt-auditor.ts`) |
-| `src/services/` | Orchestration services — trigger scanner, profile router, task runner, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
+| `src/services/` | Orchestration services — trigger scanner, profile router, task runner, task result writer, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
 | `src/validate/` | Startup validation — env vars, config, profiles, Docker, security infrastructure |
 | `src/util/` | Utility functions — branch name slugification |
 | `src/logs/` | Execution summary writer |
@@ -194,7 +194,7 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 
 ## Log Collection
 
-The `ContainerLogCollector` (`src/container/log-collector.ts`) manages per-task log collection from both the `app` and sidecar containers. Log sources are registered with a capture mode (stream or collect) and flushed to disk after execution.
+The `ContainerLogCollector` (`src/container/log-collector.ts`) manages per-task log collection from both the `app` and sidecar containers. Log sources are registered with a capture mode (stream or collect) and flushed to disk after execution. The `TaskResultWriter` (`src/services/task-result-writer.ts`) orchestrates log collection, transcript attachment to JIRA, and execution summary saving.
 
 Each task gets its own timestamped directory under `output/logs/<key>-<startTs>/`. After each task, the orchestrator collects:
 - `<key>-<ts>-audit.jsonl` — Audit trail from hooks
@@ -224,9 +224,9 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 
 ### Dependency Interfaces
 
-Every service class injected via `OrchestratorDeps` has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/jira/client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
+Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/jira/client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
 
-Only the **factory** (`orchestrator-factory.ts`) imports concrete classes for instantiation. This ensures `Mocked<Interface>` is structurally compatible without `as any` casts. See `DEPENDENCY-INJECTION.md` for rationale.
+Only the **cradle factory** (`awilix-cradle.ts`) imports concrete classes for instantiation. This ensures `Mocked<Interface>` is structurally compatible without `as any` casts. See `DEPENDENCY-INJECTION.md` for rationale.
 
 ### Comments
 

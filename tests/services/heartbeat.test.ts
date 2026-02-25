@@ -3,6 +3,7 @@ import { HeartbeatSender } from "../../src/services/heartbeat.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import type { HeartbeatPayload } from "../../src/services/heartbeat.js";
 import { createMockLogger } from "../helpers/mocks.js";
+import type { Logger } from "../../src/logger.js";
 
 function makePayload(overrides: Partial<HeartbeatPayload> = {}): HeartbeatPayload {
   return {
@@ -19,6 +20,13 @@ function makePayload(overrides: Partial<HeartbeatPayload> = {}): HeartbeatPayloa
   };
 }
 
+function makeHeartbeat(url: string, secret: string, intervalMs: number, logger?: Logger) {
+  return new HeartbeatSender({
+    dashboardConfig: { enabled: true, url, secret, intervalMs },
+    logger,
+  });
+}
+
 describe("HeartbeatSender", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -31,7 +39,7 @@ describe("HeartbeatSender", () => {
   });
 
   it("sends an immediate heartbeat on start", () => {
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 30000);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 30000);
     const provider = () => makePayload();
 
     sender.start(provider);
@@ -48,7 +56,7 @@ describe("HeartbeatSender", () => {
   });
 
   it("sends heartbeats on the configured interval", async () => {
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000);
     sender.start(() => makePayload());
 
     expect(fetch).toHaveBeenCalledTimes(1); // immediate
@@ -63,7 +71,7 @@ describe("HeartbeatSender", () => {
   });
 
   it("stop() clears the interval", async () => {
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000);
     sender.start(() => makePayload());
 
     sender.stop();
@@ -73,7 +81,7 @@ describe("HeartbeatSender", () => {
   });
 
   it("start() is idempotent — calling twice does not create duplicate timers", async () => {
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000);
     const provider = () => makePayload();
 
     sender.start(provider);
@@ -91,7 +99,7 @@ describe("HeartbeatSender", () => {
     const logger = createMockLogger();
     vi.mocked(fetch).mockRejectedValue(new Error("Network down"));
 
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000, logger);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000, logger);
     sender.start(() => makePayload());
 
     // Wait for the immediate send to complete
@@ -112,7 +120,7 @@ describe("HeartbeatSender", () => {
       .mockRejectedValueOnce(new Error("Timeout"))
       .mockRejectedValueOnce(new Error("DNS failure"));
 
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000, logger);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000, logger);
     sender.start(() => makePayload());
 
     await vi.advanceTimersByTimeAsync(0);
@@ -131,7 +139,7 @@ describe("HeartbeatSender", () => {
       .mockRejectedValueOnce(new Error("Down"))
       .mockResolvedValueOnce({ ok: true } as Response);
 
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000, logger);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000, logger);
     sender.start(() => makePayload());
 
     await vi.advanceTimersByTimeAsync(0);
@@ -144,7 +152,7 @@ describe("HeartbeatSender", () => {
   });
 
   it("strips trailing slash from dashboard URL", () => {
-    const sender = new HeartbeatSender("https://dashboard.test/", "secret", 5000);
+    const sender = makeHeartbeat("https://dashboard.test/", "secret", 5000);
     sender.start(() => makePayload());
 
     const [url] = vi.mocked(fetch).mock.calls[0];
@@ -159,7 +167,7 @@ describe("HeartbeatSender", () => {
       currentTask: "DOC-100",
       queueSize: 3,
     });
-    const sender = new HeartbeatSender("https://dashboard.test", "secret", 5000);
+    const sender = makeHeartbeat("https://dashboard.test", "secret", 5000);
     sender.start(() => payload);
 
     const opts = vi.mocked(fetch).mock.calls[0][1];

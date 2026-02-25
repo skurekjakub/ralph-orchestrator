@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config.js";
 
 /**
  * Resolves the set of Docker Compose files for a given agent profile.
@@ -21,7 +21,7 @@ export class ComposeFileResolver {
   }
 
   /** Resolve compose file paths for a profile, applying the three-file merge pattern. */
-  resolve(profile: AgentProfile): string[] {
+  resolve(profile: IAgentProfile): string[] {
     const base = resolve(this.rootDir, profile.composeFile);
     const security = resolve(this.rootDir, "shared/security/docker-compose.security.yml");
     const overlay = resolve(this.rootDir, "profiles", profile.id, ".build/docker-compose.overlay.yml");

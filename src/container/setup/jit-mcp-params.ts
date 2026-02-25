@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
-import type { AgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config.js";
 import type { JiraIssue } from "../../jira/types.js";
 import type { Logger } from "../../logger.js";
 import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
@@ -52,7 +52,7 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: AgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
+  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
 }
 
 /**
@@ -66,7 +66,7 @@ export interface IJitMcpConfigWriter {
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: AgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
+  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 
@@ -101,7 +101,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
     }
   }
 
-  private resolveGatewayPath(profile: AgentProfile): string {
+  private resolveGatewayPath(profile: IAgentProfile): string {
     const profileDir = resolve(process.cwd(), "profiles", profile.id);
     return join(profileDir, ".build", "gateway.json");
   }

@@ -2,7 +2,7 @@
 
 ## Pattern
 
-Every service class injected via `OrchestratorDeps` has a corresponding `I`-prefixed interface defined **in the same file** as the implementation:
+Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined **in the same file** as the implementation:
 
 ```typescript
 // src/jira/client.ts
@@ -19,9 +19,9 @@ export class JiraClient implements IJiraClient {
 
 ## Rules
 
-1. **Consumers depend on the interface** — never the concrete class. All constructor parameters, `OrchestratorDeps` fields, and function arguments use `IJiraClient`, `ITaskRunner`, etc.
+1. **Consumers depend on the interface** — never the concrete class. All constructor parameters, `OrchestratorCradle` entries, and function arguments use `IJiraClient`, `ITaskRunner`, etc.
 
-2. **Only the factory imports concrete classes** — `orchestrator-factory.ts` is the single file that imports `JiraClient`, `TaskRunner`, and other implementations for instantiation. Everything else imports only the `I`-prefixed interface.
+2. **Only the cradle factory imports concrete classes** — `awilix-cradle.ts` is the single file that imports `JiraClient`, `TaskRunner`, and other implementations for registration with awilix. Everything else imports only the `I`-prefixed interface.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
@@ -41,25 +41,34 @@ const runner: Mocked<TaskRunner> = createMockTaskRunner(); // type error
 
 This eliminates `as any` casts in tests and ensures mocks are type-safe.
 
-## OrchestratorDeps
+## OrchestratorCradle
 
-The `OrchestratorDeps` interface (defined in `orchestrator-types.ts`) is the dependency bag injected into the `Orchestrator` constructor. It contains all service interfaces:
+The `OrchestratorCradle` interface (defined in `src/container/cradle.ts`) is the type of the awilix container cradle. It contains all service interfaces and config slices:
 
 ```typescript
-interface OrchestratorDeps {
-  poller: IPoller;
+interface OrchestratorCradle {
+  // Config slices
+  jiraConfig: IJiraConfig;
+  outputConfig: IOutputConfig;
+  profiles: readonly IAgentProfile[];
+  secrets: ISecretsConfig;
+  // ... etc.
+
+  // Services
+  poller: IJiraPoller;
   triggerScanner: ITriggerScanner;
   taskRunner: ITaskRunner;
+  resultWriter: ITaskResultWriter;
   ledger: IOperationLedger;
   // ... etc.
 }
 ```
 
-The factory (`orchestrator-factory.ts`) builds the concrete instances and returns the bag. The orchestrator never knows which classes were instantiated.
+The cradle factory (`awilix-cradle.ts`) registers all concrete classes with awilix using `InjectionMode.PROXY` and `strict: true`. Configuration is injected as individual **config slices** rather than a monolithic config object. The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 
 ## Adding a New Service
 
 1. Define the `I`-prefixed interface and the implementation class in the same file.
-2. Add the interface to `OrchestratorDeps` (if the orchestrator needs it).
-3. Import the concrete class **only** in `orchestrator-factory.ts`.
+2. Add the interface to `OrchestratorCradle` (if other services need it).
+3. Import the concrete class **only** in `awilix-cradle.ts` and register it with `asClass(...).singleton()`.
 4. Add a `createMock<Service>()` factory in `tests/helpers/` using `Mocked<IService>`.

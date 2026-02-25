@@ -1,6 +1,6 @@
 ---
 description: 'Research sub-agent — explores documentation and Xperience source code to inform implementation'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'ralph-researcher'
 user-invocable: false
 ---

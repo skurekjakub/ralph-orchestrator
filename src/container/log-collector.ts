@@ -74,16 +74,14 @@ export class ContainerLogCollector implements IContainerLogCollector {
   private attached = false;
   private issueKey: string | null = null;
 
-  /**
-   * @param compose  Compose client for executing commands inside containers.
-   * @param logDir   Local directory where collected logs are written.
-   * @param logger   Logger for status messages.
-   */
-  constructor(
-    private readonly compose: IComposeClient,
-    private readonly logDir: string,
-    private readonly logger: Logger,
-  ) {
+  private readonly compose: IComposeClient;
+  private readonly logDir: string;
+  private readonly logger: Logger;
+
+  constructor({ compose, logDir, logger }: { compose: IComposeClient; logDir: string; logger: Logger }) {
+    this.compose = compose;
+    this.logDir = logDir;
+    this.logger = logger;
     mkdirSync(logDir, { recursive: true });
   }
 

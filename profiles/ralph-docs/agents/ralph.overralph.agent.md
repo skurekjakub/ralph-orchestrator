@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous planning agent — researches change requests, asks clarifying questions via Discord, produces specification, plan, and task breakdown'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'overralph'
 user-invocable: false
 agents: ['overralph-researcher']

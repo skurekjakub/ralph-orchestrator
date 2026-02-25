@@ -16,7 +16,8 @@ describe("TaskResourceManager", () => {
   beforeEach(() => {
     jira = createMockJiraClient();
     logger = createMockLogger();
-    resources = new TaskJiraResourceManager(jira, logger, { delayMs: 1 });
+    resources = new TaskJiraResourceManager({ jiraClient: jira, logger });
+    resources.retryOptions = { delayMs: 1 };
   });
 
   describe("fetchComments", () => {

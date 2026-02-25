@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { AgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";
@@ -57,7 +57,7 @@ export interface IContainerManager {
  * Manages the full container lifecycle for a single agent profile using
  * `docker compose` directly.
  *
- * Each ContainerManager is bound to one {@link AgentProfile} (repo, compose file,
+ * Each ContainerManager is bound to one {@link IAgentProfile} (repo, compose file,
  * agent name, timeout). The Orchestrator creates one per task.
  *
  * Delegates low-level concerns to:
@@ -77,7 +77,7 @@ export class ContainerManager implements IContainerManager {
   private readonly continuationRunner: IContinuationRunner;
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
-  private readonly profile: AgentProfile;
+  private readonly profile: IAgentProfile;
   private readonly promptBuilder: PromptBuilder;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
@@ -97,32 +97,31 @@ export class ContainerManager implements IContainerManager {
   /** Optional callback invoked for each line of real-time pre-tool invocation output. */
   onPreToolUse?: (line: string) => void;
 
-  /**
-   * @param profile Agent profile with repo, compose file, agent name, and timeout.
-   * @param compose Pre-built compose client for Docker Compose process spawning.
-   * @param executor CLI executor for running the agent inside the container.
-   * @param logs Per-task log collector for streaming and collection.
-   * @param cleaner Handles cleanup of workspace paths and log directories.
-   * @param logRegistry Registers standard log sources for a task.
-   * @param continuationRunner Handles the continuation retry loop.
-   * @param promptBuilder Prompt builder for constructing and auditing CLI prompts.
-   * @param logger Logger for orchestrator lifecycle messages.
-   * @param containerLogger Logger for CLI output streaming. Falls back to `logger`.
-   * @param enableContinuation Whether to use the continuation retry loop. Controlled by global config.
-   */
-  constructor(
-    profile: AgentProfile,
-    compose: IComposeClient,
-    executor: ICliExecutor,
-    logs: IContainerLogCollector,
-    cleaner: IContainerWorkspaceCleaner,
-    logRegistry: ILogSourceRegistry,
-    continuationRunner: IContinuationRunner,
-    promptBuilder: PromptBuilder,
-    logger: Logger,
-    containerLogger?: Logger,
+  constructor({
+    profile,
+    compose,
+    executor,
+    logs,
+    cleaner,
+    logRegistry,
+    continuationRunner,
+    promptBuilder,
+    logger,
+    containerLogger,
     enableContinuation = false,
-  ) {
+  }: {
+    profile: IAgentProfile;
+    compose: IComposeClient;
+    executor: ICliExecutor;
+    logs: IContainerLogCollector;
+    cleaner: IContainerWorkspaceCleaner;
+    logRegistry: ILogSourceRegistry;
+    continuationRunner: IContinuationRunner;
+    promptBuilder: PromptBuilder;
+    logger: Logger;
+    containerLogger?: Logger;
+    enableContinuation?: boolean;
+  }) {
     this.profile = profile;
     this.promptBuilder = promptBuilder;
     this.logger = logger;

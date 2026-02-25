@@ -10,9 +10,10 @@ import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
 import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
 import type { Mocked } from "../helpers/mocks.js";
-import type { OrchestratorDeps } from "../../src/orchestrator-types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
-import type { AgentProfile } from "../../src/config.js";
+import type { IAgentProfile } from "../../src/config.js";
+
+type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
 import type { RalphResult } from "../../src/container/types.js";
 import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
@@ -20,7 +21,7 @@ import type { ITaskRunner } from "../../src/services/task-runner.js";
 const silentLogger = createMockLogger();
 
 /**
- * Build a complete OrchestratorDeps with mock dependencies for E2E tests.
+ * Build a complete OrchestratorOpts with mock dependencies for E2E tests.
  *
  * The poller drains the provided issues exactly once, then returns empty.
  * Comments are served from the `comments` map keyed by issue key.
@@ -29,14 +30,14 @@ const silentLogger = createMockLogger();
 export function buildMockDeps(
   tempDir: string,
   options: {
-    profile?: AgentProfile;
+    profile?: IAgentProfile;
     issues?: JiraIssue[];
     comments?: Record<string, JiraComment[]>;
     searchResults?: Record<string, JiraIssue[]>;
     taskResult?: Partial<RalphResult>;
     taskError?: Error;
   },
-): OrchestratorDeps {
+): OrchestratorOpts {
   const profile =
     options.profile ??
     makeProfile({
@@ -53,11 +54,10 @@ export function buildMockDeps(
   const logDir = join(tempDir, "logs");
   const historyDir = join(logDir, "history");
   mkdirSync(historyDir, { recursive: true });
-  config.output.logDir = logDir;
 
-  const activityLog = new ActivityLog(logDir);
-  const router = new ProfileRouter([profile]);
-  const ledger = new OperationLedger(historyDir);
+  const activityLog = new ActivityLog({ outputConfig: { logDir, handoffDir: "" } });
+  const router = new ProfileRouter({ profiles: [profile] });
+  const ledger = new OperationLedger({ outputConfig: { logDir, handoffDir: "" } });
 
   const issuesToDrain = [...(options.issues ?? [])];
   const commentsMap = options.comments ?? {};
@@ -96,12 +96,14 @@ export function buildMockDeps(
         })),
   });
 
-  const triggerScanner = new TriggerScanner(
+  const triggerScanner = new TriggerScanner({
     issueManager,
     router,
     ledger,
-    silentLogger,
-  );
+    logger: silentLogger,
+    allowedUsers: [],
+  });
+  triggerScanner.cachePath = null;
 
   let drainCount = 0;
   const poller = createMockPoller({
@@ -115,7 +117,8 @@ export function buildMockDeps(
   });
 
   return {
-    config,
+    jiraConfig: config.jira,
+    profiles: config.profiles,
     activityLog,
     issueManager,
     resources,
@@ -154,7 +157,7 @@ export async function runUntil(
 }
 
 /**
- * Build OrchestratorDeps from an explicit set of profiles with direct mock overrides.
+ * Build OrchestratorOpts from an explicit set of profiles with direct mock overrides.
  *
  * Unlike {@link buildMockDeps}, this function does not set up automated
  * issue/comment plumbing. Use it for tests that need custom ledger state,
@@ -163,32 +166,41 @@ export async function runUntil(
 export function buildBaseDeps(
   tempDir: string,
   options: {
-    profiles: AgentProfile[];
+    profiles: IAgentProfile[];
     issueManager?: Partial<Mocked<IIssueManager>>;
     taskRunner?: Partial<Mocked<ITaskRunner>>;
     logDirName?: string;
   },
-): OrchestratorDeps {
+): OrchestratorOpts {
   const config = makeConfig(options.profiles);
   const logDir = join(tempDir, options.logDirName ?? "logs");
   const historyDir = join(logDir, "history");
   mkdirSync(historyDir, { recursive: true });
-  config.output.logDir = logDir;
 
-  const ledger = new OperationLedger(historyDir);
-  const router = new ProfileRouter(options.profiles);
+  const ledger = new OperationLedger({ outputConfig: { logDir, handoffDir: "" } });
+  const router = new ProfileRouter({ profiles: options.profiles });
   const issueManager = createMockIssueManager(options.issueManager);
   const taskRunner = createMockTaskRunner(options.taskRunner);
 
+  const scanner = new TriggerScanner({
+    issueManager,
+    router,
+    ledger,
+    logger: silentLogger,
+    allowedUsers: [],
+  });
+  scanner.cachePath = null;
+
   return {
-    config,
-    activityLog: new ActivityLog(logDir),
+    jiraConfig: config.jira,
+    profiles: config.profiles,
+    activityLog: new ActivityLog({ outputConfig: { logDir, handoffDir: "" } }),
     issueManager,
     resources: createMockResources(),
     poller: createMockPoller(),
     router,
     taskRunner,
-    triggerScanner: new TriggerScanner(issueManager, router, ledger, silentLogger),
+    triggerScanner: scanner,
     ledger,
     heartbeat: null,
     logger: silentLogger,

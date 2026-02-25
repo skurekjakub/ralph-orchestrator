@@ -91,13 +91,13 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
   const logRegistry: ILogSourceRegistry = {
     registerAll: vi.fn(),
   };
-  const continuationRunner = new ContinuationRunner(logger);
+  const continuationRunner = new ContinuationRunner({ logger });
 
-  return new ContainerManager(
+  return new ContainerManager({
     profile, compose, executor, logs, cleaner,
     logRegistry, continuationRunner, promptBuilder, logger,
-    undefined, true, // enableContinuation
-  );
+    enableContinuation: true,
+  });
 }
 
 // ── Backoff unit tests ──────────────────────────────────────────────────────

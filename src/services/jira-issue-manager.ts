@@ -26,11 +26,18 @@ export interface IIssueManager {
  * never calls the JIRA REST client directly.
  */
 export class JiraIssueManager implements IIssueManager {
-  constructor(
-    private readonly jiraClient: IJiraClient,
-    private readonly logger: Logger,
-    private readonly retryOptions?: RetryOptions,
-  ) {}
+  private readonly jiraClient: IJiraClient;
+  private readonly logger: Logger;
+  /** Retry options — settable for test injection (not part of the DI cradle). */
+  retryOptions?: RetryOptions;
+
+  constructor({ jiraClient, logger }: {
+    jiraClient: IJiraClient;
+    logger: Logger;
+  }) {
+    this.jiraClient = jiraClient;
+    this.logger = logger;
+  }
 
   /**
    * Re-fetch a single issue from JIRA by key.

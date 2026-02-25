@@ -5,6 +5,7 @@
  */
 
 import type { Logger } from "../logger.js";
+import type { IDashboardConfig } from "../config.js";
 import { toErrorMessage } from "../util/error.js";
 
 /** Heartbeat lifecycle status sent to the dashboard. */
@@ -44,19 +45,20 @@ export interface IHeartbeatSender {
 export class HeartbeatSender implements IHeartbeatSender {
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastError: string | null = null;
+  private dashboardUrl: string;
+  private secret: string;
+  private intervalMs: number;
+  private logger?: Logger;
 
-  /**
-   * @param dashboardUrl  Base URL of the Ralph dashboard (e.g. `https://ralph-dashboard.vercel.app`)
-   * @param secret        Bearer token shared with the dashboard
-   * @param intervalMs    How often to send heartbeats (default: 30 000 ms)
-   * @param logger        Logger for warnings/errors
-   */
-  constructor(
-    private dashboardUrl: string,
-    private secret: string,
-    private intervalMs: number = 30_000,
-    private logger?: Logger,
-  ) {}
+  constructor({ dashboardConfig, logger }: {
+    dashboardConfig: IDashboardConfig;
+    logger?: Logger;
+  }) {
+    this.dashboardUrl = dashboardConfig.url;
+    this.secret = dashboardConfig.secret;
+    this.intervalMs = dashboardConfig.intervalMs;
+    this.logger = logger;
+  }
 
   /** Start sending heartbeats on an interval. */
   start(stateProvider: HeartbeatStateProvider): void {

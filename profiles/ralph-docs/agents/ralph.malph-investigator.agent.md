@@ -1,6 +1,6 @@
 ---
 description: 'Review verification sub-agent — checks technical claims in PR diffs against the Xperience source code'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'malph-investigator'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous documentation reviewer — no user interaction'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'ralph-reviewer'
 user-invocable: false
 ---

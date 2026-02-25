@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { AppConfig } from "../config.js";
+import type { IOutputConfig } from "../config.js";
 import type { RalphResult } from "../container/types.js";
 
 /** Public contract for execution summary persistence. */
@@ -23,8 +23,10 @@ export interface ILogCollector {
  * Each execution produces a `<key>-<timestamp>-summary.json` file.
  */
 export class LogCollector implements ILogCollector {
-  /** @param config Output directory paths. */
-  constructor(private config: AppConfig["output"]) {
+  private config: IOutputConfig;
+
+  constructor({ outputConfig }: { outputConfig: IOutputConfig }) {
+    this.config = outputConfig;
     mkdirSync(this.config.logDir, { recursive: true });
     mkdirSync(this.config.handoffDir, { recursive: true });
   }

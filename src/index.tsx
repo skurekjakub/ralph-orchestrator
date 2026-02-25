@@ -2,27 +2,29 @@ import React from "react";
 import { render } from "ink";
 import { App } from "./dashboard/App.js";
 import { Orchestrator } from "./orchestrator.js";
-import { createOrchestratorDeps } from "./orchestrator-factory.js";
+import { createCradle } from "./awilix-cradle.js";
 import { AppStartup } from "./app-startup.js";
 import { DashboardServer } from "./services/dashboard-server.js";
 
 async function main(): Promise<void> {
   const startup = new AppStartup();
   const config = await startup.run();
-  const deps = createOrchestratorDeps(config);
+  const cradle = createCradle(config);
 
-  const orchestrator = new Orchestrator(deps);
+  const orchestrator = new Orchestrator(cradle);
 
   // Start the local WebSocket dashboard server
   const dashboardServer = new DashboardServer(
     orchestrator.observer,
-    deps.logger,
+    cradle.logger,
   );
   dashboardServer.start();
 
   // Wire real-time tool output streaming to the dashboard
-  deps.taskRunner.onToolOutput = (line) => dashboardServer.pushToolOutput(line);
-  deps.taskRunner.onPreToolUse = (line) => dashboardServer.pushPreToolUse(line);
+  orchestrator.setTaskCallbacks({
+    onToolOutput: (line) => dashboardServer.pushToolOutput(line),
+    onPreToolUse: (line) => dashboardServer.pushPreToolUse(line),
+  });
 
   const { unmount } = render(
     React.createElement(App, { observer: orchestrator.observer })

@@ -124,119 +124,120 @@ const profileFileSchema = z.object({
 // Runtime types (post-resolution)
 // ---------------------------------------------------------------------------
 
-export interface JiraConfig {
-  baseUrl: string;
-  cloudId: string;
-  jql: string[];
-  pollIntervalMs: number;
+export interface IJiraConfig {
+  readonly baseUrl: string;
+  readonly cloudId: string;
+  readonly jql: readonly string[];
+  readonly pollIntervalMs: number;
 }
 
-export interface ProfileMatch {
-  projects: string[];
-  statuses: string[];
+export interface IProfileMatch {
+  readonly projects: readonly string[];
+  readonly statuses: readonly string[];
   /** Comment trigger string — at least one comment must contain this (case-insensitive) for the variant to match. */
-  commentTrigger: string;
+  readonly commentTrigger: string;
   /** Statuses that indicate a revision task (e.g. "Defect Found"). When the issue is in one of these statuses, the agent follows the revision workflow. */
-  revisionStatuses: string[];
+  readonly revisionStatuses: readonly string[];
 }
 
 /** Optional JIRA transition to execute before or after agent work. Empty = no transition (observer). */
-export interface AgentTransition {
-  targetStatus?: string;
+export interface IAgentTransition {
+  readonly targetStatus?: string;
 }
 
-export interface AgentProfile {
-  id: string;
-  repoPath: string;
+export interface IAgentProfile {
+  readonly id: string;
+  readonly repoPath: string;
   /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
-  composeFile: string;
+  readonly composeFile: string;
   /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). Used as the `--agent` argument. */
-  agentName: string;
+  readonly agentName: string;
   /** Human-friendly agent name for JIRA comments and logs (strips `ralph.` prefix). */
-  displayName: string;
+  readonly displayName: string;
   /** Unique variant identifier: `<profileId>:<agentName>:<commentTrigger>`. Used for ledger dedup and profile lookup. */
-  variantKey: string;
+  readonly variantKey: string;
   /** Which CLI to use for agent execution. */
-  cli: CliType;
+  readonly cli: CliType;
   /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
-  model?: string;
-  timeoutMs: number;
+  readonly model?: string;
+  readonly timeoutMs: number;
   /** Absolute path to the setup script inside the container. */
-  setupScript: string;
+  readonly setupScript: string;
   /** Absolute path to the audit JSONL log inside the container. */
-  auditLogPath: string;
+  readonly auditLogPath: string;
   /** Docker compose project label for container lookup. */
-  composeProjectLabel: string;
+  readonly composeProjectLabel: string;
   /** Absolute paths inside the container to delete before each agent run. */
-  cleanPaths: string[];
+  readonly cleanPaths: readonly string[];
   /** Max continuation attempts when the agent doesn't produce a result block. 0 = disabled. */
-  maxContinuations: number;
+  readonly maxContinuations: number;
   /** MCP server names to deploy into the container (from shared/mcp-servers/). */
-  mcpServers: string[];
+  readonly mcpServers: readonly string[];
   /** Per-server env var overrides from profile config. Maps server name → env var name → value (static or $macro). */
-  mcpServerConfigs: Record<string, Record<string, string>>;
+  readonly mcpServerConfigs: Readonly<Record<string, Readonly<Record<string, string>>>>;
   /**
    * Control the bundled GitHub MCP server in Copilot CLI.
    * - `false` (default): server disabled (`--disable-builtin-mcps`)
    * - `["get_file_contents", ...]`: enable only the listed tools (`--add-github-mcp-tool`)
    */
-  githubMcpTools: false | string[];
-  match: ProfileMatch;
+  readonly githubMcpTools: false | readonly string[];
+  readonly match: IProfileMatch;
   /** JIRA transition to execute before agent work. Empty = no transition. */
-  beforeAgent: AgentTransition;
+  readonly beforeAgent: IAgentTransition;
   /** JIRA transition to execute after agent work. Empty = no transition. */
-  afterAgent: AgentTransition;
+  readonly afterAgent: IAgentTransition;
   /** Named preflight check to run before agent invocation. If it fails, the agent is not invoked. */
-  preflight?: string;
+  readonly preflight?: string;
   /** JIRA comment posted when preflight fails. Falls back to a generic message. */
-  failureComment?: string;
+  readonly failureComment?: string;
 }
 
-export interface OutputConfig {
-  logDir: string;
-  handoffDir: string;
+export interface IOutputConfig {
+  readonly logDir: string;
+  readonly handoffDir: string;
 }
 
-export interface SecretsConfig {
-  ghToken: string;
-  adoPat: string;
-  adoPatXperience: string;
-  jiraPat: string;
-  jiraEmail: string;
+export interface ISecretsConfig {
+  readonly ghToken: string;
+  readonly adoPat: string;
+  readonly adoPatXperience: string;
+  readonly jiraPat: string;
+  readonly jiraEmail: string;
   /** Anthropic API key for Claude Code CLI. Optional — only needed when a profile uses `cli: "claude"`. */
-  anthropicApiKey: string;
+  readonly anthropicApiKey: string;
   /** Discord bot token for the discord-hitl MCP server. Optional — only needed when a profile uses the discord-hitl MCP server. */
-  discordBotToken: string;
+  readonly discordBotToken: string;
   /** Discord channel ID where HITL threads are created. Optional — paired with discordBotToken. */
-  discordChannelId: string;
+  readonly discordChannelId: string;
 }
 
-export interface DashboardConfig {
-  enabled: boolean;
-  url: string;
-  secret: string;
-  intervalMs: number;
+export interface IDashboardConfig {
+  readonly enabled: boolean;
+  readonly url: string;
+  readonly secret: string;
+  readonly intervalMs: number;
 }
 
 /** Configuration for the prompt injection auditor. */
-export interface PromptAuditConfig {
+export interface IPromptAuditConfig {
   /** How the auditor handles findings: "block" rejects critical findings, "warn" logs only, "off" skips auditing. */
-  mode: AuditMode;
+  readonly mode: AuditMode;
 }
 
-export interface AppConfig {
-  jira: JiraConfig;
-  profiles: AgentProfile[];
-  output: OutputConfig;
-  dashboard: DashboardConfig;
-  promptAudit: PromptAuditConfig;
+/** Readonly contract for the application configuration bag. All consumers depend on this interface. */
+export interface IAppConfig {
+  readonly jira: IJiraConfig;
+  readonly profiles: readonly IAgentProfile[];
+  readonly output: IOutputConfig;
+  readonly dashboard: IDashboardConfig;
+  readonly promptAudit: IPromptAuditConfig;
   /** Custom field IDs to exclude from agent prompts. */
-  excludeFields: string[];
+  readonly excludeFields: readonly string[];
   /** JIRA accountIds allowed to trigger agent invocations. Empty = unrestricted. */
-  allowedUsers: string[];
+  readonly allowedUsers: readonly string[];
   /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
-  enableContinuation: boolean;
-  secrets: SecretsConfig;
+  readonly enableContinuation: boolean;
+  readonly secrets: ISecretsConfig;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,10 +248,10 @@ export interface AppConfig {
  * Discover and load all profile.json files from `profiles/` subdirectories.
  *
  * Each `profiles/<id>/profile.json` is validated with Zod, then "exploded"
- * into one {@link AgentProfile} per variant. The `id` is derived from the
+ * into one {@link IAgentProfile} per variant. The `id` is derived from the
  * directory name; `composeFile` is `profiles/<id>/docker-compose.yml`.
  */
-function loadProfiles(profilesDir: string): AgentProfile[] {
+function loadProfiles(profilesDir: string): IAgentProfile[] {
   let dirs: string[];
   try {
     dirs = readdirSync(profilesDir, { withFileTypes: true })
@@ -264,7 +265,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
     throw new Error(`No profile directories found in ${profilesDir}`);
   }
 
-  const profiles: AgentProfile[] = [];
+  const profiles: IAgentProfile[] = [];
 
   for (const dirName of dirs) {
     const profileJsonPath = join(profilesDir, dirName, "profile.json");
@@ -349,7 +350,7 @@ function loadProfiles(profilesDir: string): AgentProfile[] {
  * Throws a descriptive {@link ZodError} if config.json has invalid structure,
  * or a plain {@link Error} for missing environment variables.
  */
-export function loadConfig(): AppConfig {
+export function loadConfig(): IAppConfig {
   const configPath = resolve(process.cwd(), "config.json");
 
   let rawJson: unknown;
@@ -375,7 +376,7 @@ export function loadConfig(): AppConfig {
     throw new Error("GH_TOKEN and ADO_PAT must be set in .env");
   }
 
-  const secrets: SecretsConfig = {
+  const secrets: ISecretsConfig = {
     ghToken,
     adoPat,
     adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
@@ -388,7 +389,7 @@ export function loadConfig(): AppConfig {
 
   const dashboardUrl = process.env.DASHBOARD_URL ?? "";
   const dashboardSecret = process.env.DASHBOARD_SECRET ?? "";
-  const dashboard: DashboardConfig = {
+  const dashboard: IDashboardConfig = {
     enabled: (parsed.dashboard?.enabled ?? true) && !!dashboardUrl && !!dashboardSecret,
     url: dashboardUrl,
     secret: dashboardSecret,

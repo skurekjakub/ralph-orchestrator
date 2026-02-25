@@ -1,5 +1,5 @@
 import type { ResultPromise } from "execa";
-import type { AgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { IComposeClient } from "../compose-client.js";
@@ -34,7 +34,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
 
   constructor(
     private readonly compose: IComposeClient,
-    private readonly profile: AgentProfile,
+    private readonly profile: IAgentProfile,
     private readonly containerLogger: Logger,
   ) {}
 

@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { AppConfig, AgentProfile, JiraConfig, ProfileMatch } from "../../src/config.js";
+import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../../src/config.js";
 import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
@@ -67,8 +67,8 @@ export function makeResult(
 
 // ── Profile / Config ─────────────────────────────────────────────────────────
 
-/** Create a minimal JiraConfig with sensible defaults. */
-export function makeJiraConfig(overrides: Partial<JiraConfig> = {}): JiraConfig {
+/** Create a minimal IJiraConfig with sensible defaults. */
+export function makeJiraConfig(overrides: Partial<IJiraConfig> = {}): IJiraConfig {
   return {
     baseUrl: "https://api.atlassian.com/ex/jira",
     cloudId: "test-cloud-id",
@@ -78,8 +78,8 @@ export function makeJiraConfig(overrides: Partial<JiraConfig> = {}): JiraConfig 
   };
 }
 
-/** Create a ProfileMatch with sensible defaults. Only `commentTrigger` is typically needed. */
-export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, "commentTrigger">): ProfileMatch {
+/** Create a IProfileMatch with sensible defaults. Only `commentTrigger` is typically needed. */
+export function makeMatch(overrides: Partial<IProfileMatch> & Pick<IProfileMatch, "commentTrigger">): IProfileMatch {
   return {
     projects: ["DF"],
     statuses: [],
@@ -88,13 +88,13 @@ export function makeMatch(overrides: Partial<ProfileMatch> & Pick<ProfileMatch, 
   };
 }
 
-/** Create a minimal AgentProfile for testing. */
+/** Create a minimal IAgentProfile for testing. */
 export function makeProfile(
-  overrides: Partial<Omit<AgentProfile, "match">> & { match?: Partial<ProfileMatch> } = {},
-): AgentProfile {
+  overrides: Partial<Omit<IAgentProfile, "match">> & { match?: Partial<IProfileMatch> } = {},
+): IAgentProfile {
   const id = overrides.id ?? "ralph-default";
   const agentName = overrides.agentName ?? "ralph";
-  const match: ProfileMatch = {
+  const match: IProfileMatch = {
     projects: ["DF"],
     statuses: [],
     commentTrigger: "@ralph",
@@ -129,8 +129,8 @@ export function makeProfile(
   };
 }
 
-/** Create a minimal AppConfig for testing. */
-export function makeConfig(profiles?: AgentProfile[]): AppConfig {
+/** Create a minimal IAppConfig for testing. */
+export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
   return {
     jira: makeJiraConfig(),
     profiles: profiles ?? [makeProfile()],

@@ -17,11 +17,18 @@ export interface IResourceManager {
  * downloading attachments, and uploading artifacts.
  */
 export class TaskJiraResourceManager implements IResourceManager {
-  constructor(
-    private readonly jiraClient: IJiraClient,
-    private readonly logger: Logger,
-    private readonly retryOptions?: RetryOptions,
-  ) {}
+  private readonly jiraClient: IJiraClient;
+  private readonly logger: Logger;
+  /** Retry options — settable for test injection (not part of the DI cradle). */
+  retryOptions?: RetryOptions;
+
+  constructor({ jiraClient, logger }: {
+    jiraClient: IJiraClient;
+    logger: Logger;
+  }) {
+    this.jiraClient = jiraClient;
+    this.logger = logger;
+  }
 
   /**
    * Fetch and format all JIRA comments for an issue.

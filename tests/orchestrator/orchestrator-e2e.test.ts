@@ -8,7 +8,7 @@ import { OperationStatus } from "../../src/services/operation-ledger.js";
 import { makeProfile, makeIssue, makeComment, makeResult } from "../helpers/factories.js";
 import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
-import type { AgentProfile } from "../../src/config.js";
+import type { IAgentProfile } from "../../src/config.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import { buildMockDeps, buildBaseDeps, runUntil } from "./e2e-helpers.js";
@@ -56,6 +56,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
+      expect.any(Object),
     );
     expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
       "DF-100",
@@ -510,7 +511,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile1, profile2],
       taskRunner: {
-        teardown: vi.fn().mockImplementation(async (profile: AgentProfile) => {
+        teardown: vi.fn().mockImplementation(async (profile: IAgentProfile) => {
           if (profile.id === "ralph-docs") throw new Error("compose stuck");
         }),
       },

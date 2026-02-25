@@ -61,7 +61,7 @@ describe("ContainerLogCollector", () => {
       "/var/log/squid/access.log": "1234 TCP_TUNNEL/200 proxy.example.com\n",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-100");
     collector.addSource({
@@ -89,7 +89,7 @@ describe("ContainerLogCollector", () => {
       "/var/log/squid/access.log": "1234 TCP_DENIED/403 blocked.com\n",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-200");
     collector.addSource({
@@ -136,7 +136,7 @@ describe("ContainerLogCollector", () => {
       "/var/log/squid/access.log": "   \n  ",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-300");
     collector.addSource({
@@ -156,7 +156,7 @@ describe("ContainerLogCollector", () => {
   it("returns null path when container file does not exist", async () => {
     const compose = makeMockCompose({});
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-400");
     collector.addSource({
@@ -176,7 +176,7 @@ describe("ContainerLogCollector", () => {
   it("throws when collectAll is called without setting issue key", async () => {
     const compose = makeMockCompose({});
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.addSource({
       id: "proxy",
@@ -195,7 +195,7 @@ describe("ContainerLogCollector", () => {
       "/path/b.log": "content b",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-500");
     collector.addSource({
@@ -227,7 +227,7 @@ describe("ContainerLogCollector", () => {
       "/var/log/squid/access.log": "proxy data",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-600");
     collector.addSource({
@@ -259,7 +259,7 @@ describe("ContainerLogCollector", () => {
   it("detach is safe to call when nothing is streaming", () => {
     const compose = makeMockCompose({});
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     // Should not throw
     collector.detach();
@@ -268,7 +268,7 @@ describe("ContainerLogCollector", () => {
   it("collectAll returns empty array when no sources registered", async () => {
     const compose = makeMockCompose({});
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
     collector.setTaskId("DOC-700");
 
     const results = await collector.collectAll();
@@ -281,7 +281,7 @@ describe("ContainerLogCollector", () => {
       "/path/exists.log": "real data",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-800");
     collector.addSource({
@@ -314,7 +314,7 @@ describe("ContainerLogCollector", () => {
       "/var/log/squid/access.log": "1234 TCP_DENIED/403 aka.ms\n1235 TCP_DENIED/403 pypi.org\n",
     });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-900");
 
@@ -354,7 +354,7 @@ describe("ContainerLogCollector", () => {
   it("uses compose.logs() instead of exec when useComposeLogs is set", async () => {
     const compose = makeMockCompose({}, { stdout: "[gateway] Starting 2 MCP server(s)\n" });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-1000");
     collector.addSource({
@@ -381,7 +381,7 @@ describe("ContainerLogCollector", () => {
       { stdout: "[gateway] sidecar output\n" },
     );
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-1100");
     collector.addSource({
@@ -413,7 +413,7 @@ describe("ContainerLogCollector", () => {
   it("returns null when useComposeLogs yields empty stdout", async () => {
     const compose = makeMockCompose({}, { stdout: "  \n  " });
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-1200");
     collector.addSource({
@@ -434,7 +434,7 @@ describe("ContainerLogCollector", () => {
   it("returns null when useComposeLogs throws", async () => {
     const compose = makeMockCompose({}, new Error("container not running"));
     const logger = createMockLogger();
-    const collector = new ContainerLogCollector(compose, tempDir, logger);
+    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
     collector.setTaskId("DOC-1300");
     collector.addSource({
