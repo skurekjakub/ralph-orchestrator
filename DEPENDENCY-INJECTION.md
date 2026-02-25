@@ -43,16 +43,20 @@ This eliminates `as any` casts in tests and ensures mocks are type-safe.
 
 ## OrchestratorCradle
 
-The `OrchestratorCradle` interface (defined in `src/container/cradle.ts`) is the type of the awilix container cradle. It contains all service interfaces and config slices:
+The `OrchestratorCradle` interface (defined in `src/awlix-cradle-types.ts`) is the type of the awilix container cradle. It contains all service interfaces and config slices:
 
 ```typescript
 interface OrchestratorCradle {
   // Config slices
   jiraConfig: IJiraConfig;
   outputConfig: IOutputConfig;
-  profiles: readonly IAgentProfile[];
+  dashboardConfig: IDashboardConfig;
   secrets: ISecretsConfig;
-  // ... etc.
+  profiles: readonly IAgentProfile[];
+  promptAuditConfig: IPromptAuditConfig;
+  excludeFields: readonly string[];
+  allowedUsers: readonly string[];
+  enableContinuation: boolean;
 
   // Services
   poller: IJiraPoller;

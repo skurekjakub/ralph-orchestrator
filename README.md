@@ -40,12 +40,12 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      "repo": "~/repositories/kentico-docs-jekyll",
      "cli": "copilot",
      "timeoutMs": 3600000,
-     "beforeAgent": { "targetStatus": "In Progress" },
-     "afterAgent": { "targetStatus": "Ready for Review" },
      "variants": [
        {
          "agent": "ralph.ralph",
-         "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" }
+         "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
+         "beforeAgent": { "targetStatus": "In Progress" },
+         "afterAgent": { "targetStatus": "Ready for Review" }
        }
      ]
    }
@@ -72,7 +72,7 @@ npm start
 # Run tests
 npm test
 
-# Type-check without emitting
+# Type-check + lint
 npm run lint
 ```
 

@@ -49,10 +49,12 @@ Auto-generated at startup by `generateComposeOverlay()`. Injects environment var
 **MCP sidecar container (`mcp-sidecar`)** — only generated when `mcpServers` is non-empty:
 - Builds from `shared/mcp-sidecar/Dockerfile`
 - MCP server code mount (`shared/mcp-servers/` → `/opt/mcp/servers:ro`)
+- Gateway compiled code mount (`shared/mcp-sidecar/dist/` → `/opt/mcp/gateway/dist:ro`)
 - Gateway config mount (`gateway.json` → `/opt/mcp/config/gateway.json:ro`) — contains commands, args, and embedded secrets
-- Connected to `ralph-internal` network (same as agent + egress proxy)
+- Shared attachment exchange directory (`attachments/` → `/tmp/mcp-attachments:ro`) — sidecar reads files the agent writes
+- Target repo volume mount (`${TARGET_REPO_PATH}:/workspace`) — for git operations (push, create PR)
+- Connected to `ralph-internal` (agent tool calls) and `ralph-sidecar-external` (direct internet access)
 - Hardened: `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs)
-- `depends_on: egress-proxy` (needs proxy for external API calls)
 - Health check via gateway's `GET /health` endpoint
 
 No MCP server code, secrets, or gateway configuration is mounted into the agent container.

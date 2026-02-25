@@ -66,11 +66,11 @@ Containers are managed via `docker compose` with a **three-file merge** pattern:
 The agent container and MCP sidecar have separate, intentionally different network access:
 
 ```
-Agent container   → ralph-internal (internal: true) → Squid proxy → AI providers + pkg registries + ADO git
+Agent container   → ralph-internal (internal: true) → Squid proxy → AI providers + pkg registries
 MCP Sidecar       → ralph-internal + ralph-sidecar-external → direct internet (unrestricted)
 ```
 
-**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, restricted to AI provider backends (GitHub Copilot, Anthropic), Azure DevOps for git push/pull, and package registries. Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet.
+**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, restricted to AI provider backends (GitHub Copilot, Anthropic) and package registries. Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet.
 
 **MCP Sidecar:** Connected to both `ralph-internal` (agent tool calls) and `ralph-sidecar-external` (bridge network with direct internet access). All arbitrary outbound calls (JIRA, ADO REST, documentation, web fetch) happen exclusively through MCP tools — the agent never makes those requests directly.
 
@@ -85,7 +85,7 @@ MCP Sidecar       → ralph-internal + ralph-sidecar-external → direct interne
 - **User-writable npm prefix** — `~/.npm-global` allows `npm install -g` without root
 - **Proxy log collection** — Squid access logs collected per task for allowlist tuning
 
-The allowlist (`shared/security/squid.conf`) is restricted to the specific domains the agent itself needs (LLM backends, ADO git, package registries). MCP server domains are not in the allowlist — they're accessed directly by the sidecar.
+The allowlist (`shared/security/squid.conf`) is restricted to the specific domains the agent itself needs (LLM backends, package registries). MCP server domains are not in the allowlist — they're accessed directly by the sidecar.
 
 ### Compose Commands
 
@@ -205,6 +205,7 @@ Each task gets its own timestamped directory under `output/logs/<key>-<startTs>/
 - `<key>-<ts>-summary.json` — Execution metadata
 - `<key>-<ts>.log` — Per-task streaming log (real-time container output)
 - `activity-YYYY-MM-DD.log` — Persistent daily activity log
+- `container-YYYY-MM-DD.log` — Persistent container output log
 - `history/<issueKey>.json` — Operation ledger
 
 Session transcripts are also attached to the JIRA issue. Proxy logs are collected even on error (for allowlist debugging).
@@ -217,7 +218,7 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 - `execa` v9 for all subprocess management
 - Tests use `vitest` in `tests/` directory
 - All components accept a `Logger` interface for centralized log routing
-- Copilot CLI: `--config-dir /workspace/.ralph`, `--allow-all-tools`, `--allow-all-paths`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
+- Copilot CLI: `--config-dir /workspace/.ralph`, `--additional-mcp-config @<path>`, `--allow-all-tools`, `--allow-all-paths`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
 - Claude Code CLI: `-p <prompt>`, `--dangerously-skip-permissions`, `--mcp-config /workspace/.ralph/mcp-config.json`, `--strict-mcp-config`
 - Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations)
 - NEVER REEXPORT, update original imports instead

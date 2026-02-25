@@ -31,13 +31,13 @@ Agent → HTTP_PROXY → Squid → host.docker.internal:<port> → host service
 Allowed ports are configured in `shared/security/squid.conf` under the "Host loopback access" section:
 
 ```squid
-acl host_loopback_ports port 80 443        # ← add your ports here
+acl host_loopback_ports port 4500        # ← add your ports here
 ```
 
 To allow port 8080 (e.g. a local RAG API):
 
 ```squid
-acl host_loopback_ports port 80 443 8080
+acl host_loopback_ports port 4500 8080
 ```
 
 The agent then calls `http://host.docker.internal:8080/...`. Requests to unlisted ports are denied by the `deny host_loopback` fallback rule.
@@ -52,12 +52,11 @@ The allowlist (`shared/security/squid.conf`) permits only domains the agent need
 
 | Category | Domains |
 |---|---|
-| AI/LLM backends | `.githubcopilot.com`, `.anthropic.com`, `api.github.com`, `github.com`, `.githubusercontent.com` |
-| JIRA | `.atlassian.com`, `.atlassian.net` |
-| Azure DevOps | `.dev.azure.com`, `.visualstudio.com` |
-| Azure infrastructure | `aka.ms`, `.blob.core.windows.net` |
-| Package registries | `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org` |
-| Documentation sites | `.kentico.com`, `.microsoft.com`, `.xperience.io` |
+| AI/LLM backends | `.githubcopilot.com`, `.anthropic.com`, `api.github.com`, `github.com` |
+| Azure infrastructure | `aka.ms` |
+| Package registries | `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org` |
+
+Domains previously in the allowlist (JIRA, Azure DevOps, documentation sites) are now accessed exclusively through MCP tools running in the sidecar container, which has direct internet access via `ralph-sidecar-external`. The agent's Squid allowlist is intentionally minimal — only AI providers and package registries are needed for the agent itself.
 
 All other domains are blocked. Squid access logs (allowed + denied) are collected per task for tuning.
 
@@ -294,7 +293,7 @@ Restart or rebuild the containers for the change to take effect. The domain will
 Add the port to the host loopback allowlist in `shared/security/squid.conf`:
 
 ```squid
-acl host_loopback_ports port 80 443 8080
+acl host_loopback_ports port 4500 8080
 ```
 
 The agent calls `http://host.docker.internal:8080/...` — traffic is routed through the Squid proxy. See [Host Loopback Access](#host-loopback-access) for details.

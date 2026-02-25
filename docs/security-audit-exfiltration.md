@@ -4,6 +4,14 @@
 **Scope:** Prompt-injected or jailbroken AI agent running inside the Ralph-Orchestrator Docker environment
 **Methodology:** Read-only codebase analysis — no modifications made
 
+> **⚠️ Staleness warning (as of latest review):**
+>
+> Several findings below reference a **stale Squid allowlist** and **incorrect sidecar network topology**:
+>
+> - **Squid domains changed.** `.dev.azure.com`, `.githubusercontent.com`, `.atlassian.com`, `.atlassian.net`, `.visualstudio.com`, `.blob.core.windows.net`, `.kentico.com`, `.microsoft.com`, `.xperience.io` have been **removed** from `squid.conf`. The current allowlist is: `.githubcopilot.com`, `api.github.com`, `github.com`, `.anthropic.com`, `aka.ms`, `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org`. This significantly reduces H1's attack surface.
+> - **Sidecar has direct internet.** The MCP sidecar now connects to `ralph-sidecar-external` (bridge network with direct internet) and does **NOT** route through Squid. This makes H5's impact assessment **understated** — a compromised sidecar has unrestricted egress.
+> - **Playwright tools renamed.** `playwright_navigate`/`playwright_evaluate` (M12) are now `browser_navigate`/`browser_evaluate`.
+
 ---
 
 ## Executive Summary
