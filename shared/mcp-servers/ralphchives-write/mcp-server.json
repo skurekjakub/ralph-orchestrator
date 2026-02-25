@@ -1,0 +1,15 @@
+{
+  "name": "ralphchives-write",
+  "description": "Ralphchives Write Path — agents post task reports and observations to the knowledge archive",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/ralphchives-write",
+  "sidecarPort": 9106,
+  "requiredEnv": ["NODEBB_API_TOKEN"],
+  "requiredConfig": ["NODEBB_CATEGORY_ID"],
+  "tools": [
+    "post_task_report",
+    "post_observation"
+  ]
+}

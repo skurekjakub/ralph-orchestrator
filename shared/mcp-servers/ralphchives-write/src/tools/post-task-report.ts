@@ -1,0 +1,56 @@
+import { z } from "zod";
+import { type ToolDefinition, errorResult, nodebbPost, NODEBB_CATEGORY_ID } from "../shared.js";
+
+interface TopicResponse {
+  tid: number;
+  slug: string;
+  mainPid: number;
+}
+
+const inputSchema: Record<string, z.ZodTypeAny> = {
+  title: z.string().describe("Topic title — use the JIRA issue key as prefix (e.g. 'DF-123: Migrated API docs')"),
+  content: z.string().describe("Full task report in markdown — include changes made, PR links, observations"),
+  tags: z.array(z.string()).optional().describe("Tags for categorization (e.g. JIRA key, topic area)"),
+};
+
+if (!NODEBB_CATEGORY_ID) {
+  inputSchema.categoryId = z.number().describe("NodeBB category ID to post into");
+}
+
+export const tool: ToolDefinition = {
+  name: "post_task_report",
+  config: {
+    description:
+      "Post a task report to Ralphchives after completing a JIRA task. " +
+      "Creates a new topic in the profile's category with a structured summary " +
+      "of what was done, what changed, and any observations.",
+    inputSchema,
+  },
+  handler: async (args) => {
+    const cid = NODEBB_CATEGORY_ID ?? Number(args.categoryId);
+    const { title, content, tags } = args;
+
+    try {
+      const topic = await nodebbPost<TopicResponse>("/api/v3/topics", {
+        cid,
+        title: String(title),
+        content: String(content),
+        tags: Array.isArray(tags) ? tags.map(String) : [],
+      });
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({
+            success: true,
+            topicId: topic.tid,
+            slug: topic.slug,
+            message: "Task report posted to Ralphchives",
+          }),
+        }],
+      };
+    } catch (err: unknown) {
+      return errorResult(err);
+    }
+  },
+};

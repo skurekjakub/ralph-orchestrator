@@ -7,15 +7,18 @@
     "dev": "tsx watch src/sync-runner.ts",
     "build": "tsc",
     "start": "node dist/sync-runner.js",
-    "sync:full": "tsx src/sync-runner.ts --full"
+    "sync:full": "tsx src/sync-runner.ts --full",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "neo4j-driver": "^5.28.0",
+    "neo4j-driver": "^6.0.1",
     "ollama": "^0.6.3"
   },
   "devDependencies": {
-    "typescript": "^5.8.0",
-    "tsx": "^4.19.0",
-    "@types/node": "^22.15.0"
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

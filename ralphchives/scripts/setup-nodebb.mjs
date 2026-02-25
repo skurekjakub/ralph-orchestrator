@@ -232,6 +232,23 @@ async function createVariantUsers(profiles) {
   return created;
 }
 
+// ── User permissions ─────────────────────────────────────────────────────
+
+async function grantAdminToUsers(users) {
+  for (const user of users) {
+    try {
+      await apiPut(`/api/v3/groups/administrators/membership/${user.uid}`, {});
+      console.log(`  ✓ Granted admin to "${user.username}"`);
+    } catch (err) {
+      if (err.message.includes("already")) {
+        console.log(`  ⏭ "${user.username}" already admin`);
+      } else {
+        console.error(`  ✗ Failed to grant admin to "${user.username}": ${err.message}`);
+      }
+    }
+  }
+}
+
 // ── Token management ─────────────────────────────────────────────────────
 
 async function getExistingTokens() {
@@ -300,6 +317,10 @@ async function main() {
   // Create users per variant
   console.log("\n── Creating variant users ──");
   const users = await createVariantUsers(profiles);
+
+  // Grant admin permissions (bypasses post queue)
+  console.log("\n── Granting admin permissions ──");
+  await grantAdminToUsers(users);
 
   // Create API tokens per user
   console.log("\n── Generating API tokens ──");

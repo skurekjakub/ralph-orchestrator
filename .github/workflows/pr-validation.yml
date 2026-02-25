@@ -43,6 +43,10 @@ jobs:
             serverName: Microsoft Docs
           - serverDir: shared/mcp-servers/web-fetch
             serverName: Web Fetch
+          - serverDir: shared/mcp-servers/ralphchives-read
+            serverName: Ralphchives read
+          - serverDir: shared/mcp-servers/ralphchives-write
+            serverName: Ralphchives write
     steps:
       - uses: actions/checkout@v4
 
