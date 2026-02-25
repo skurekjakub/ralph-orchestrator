@@ -1,3 +1,4 @@
+{% if ralphchivesEnabled %}
 ## Ralphchives Knowledge Base
 
 You have access to **Ralphchives** — a persistent knowledge base shared by all agents. It contains task reports and observations from previous work sessions across this profile.
@@ -33,3 +34,4 @@ Before the exit phase, post a task report using `post_task_report`:
 - **Tags:** `["{{ issueKey }}", "{{ issueProject }}"]`
 
 This report becomes searchable for future agents working on related tasks.
+{% endif %}

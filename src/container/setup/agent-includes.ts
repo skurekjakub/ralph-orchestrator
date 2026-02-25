@@ -3,11 +3,11 @@ import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
-import type { IAgentProfile } from "../../config.js";
 import type { JiraIssue } from "../../jira/types.js";
 import { extractAdfText } from "../../jira/adf-converter.js";
 import { normalizeContent } from "../../prompt/normalizer.js";
 import { registerCustomTags } from "./liquid-tags.js";
+import { TaskContext } from "../../services/task-context.js";
 
 /**
  * Render agent templates to resolved `.agent.md` files in `.build/`.
@@ -120,6 +120,8 @@ export interface TemplateContext {
    */
   triggerParams: Record<string, string>;
 
+  ralphchivesEnabled: boolean;
+
   /** Whether this task is a revision of a previous attempt. */
   isRevision: boolean;
 }
@@ -131,40 +133,39 @@ export interface TemplateContext {
  * as Liquid variables without re-reading `profile.json` from disk.
  */
 export function buildTemplateContext(
-  profile: IAgentProfile,
-  issue: JiraIssue,
-  isRevision: boolean,
-  triggerParams: string[] | Record<string, string> = [],
+  ctx: TaskContext
 ): TemplateContext {
-  const resolvedParams = Array.isArray(triggerParams)
-    ? buildTriggerParams(triggerParams)
-    : triggerParams;
+  const resolvedParams = Array.isArray(ctx.triggerParams)
+    ? buildTriggerParams(ctx.triggerParams)
+    : ctx.triggerParams;
 
   return {
-    profileId: profile.id,
-    repo: profile.repoPath,
-    cli: profile.cli,
-    model: profile.model ?? "",
-    agentName: profile.agentName,
-    displayName: profile.displayName,
-    mcpServers: profile.mcpServers,
+    profileId: ctx.profile.id,
+    repo: ctx.profile.repoPath,
+    cli: ctx.profile.cli,
+    model: ctx.profile.model ?? "",
+    agentName: ctx.profile.agentName,
+    displayName: ctx.profile.displayName,
+    mcpServers: ctx.profile.mcpServers,
 
-    issueKey: issue.key,
-    issueSummary: issue.fields.summary,
-    issueStatus: issue.fields.status.name,
-    issueType: issue.fields.issuetype?.name ?? "",
-    issuePriority: issue.fields.priority?.name ?? "",
-    issueLabels: issue.fields.labels ?? [],
-    issueComponents: (issue.fields.components ?? []).map((c) => c.name),
-    issueProject: issue.key.split("-")[0],
-    issueDescription: extractDescription(issue),
-    issueCreated: issue.fields.created,
-    issueUpdated: issue.fields.updated ?? "",
+    issueKey: ctx.issue.key,
+    issueSummary: ctx.issue.fields.summary,
+    issueStatus: ctx.issue.fields.status.name,
+    issueType: ctx.issue.fields.issuetype?.name ?? "",
+    issuePriority: ctx.issue.fields.priority?.name ?? "",
+    issueLabels: ctx.issue.fields.labels ?? [],
+    issueComponents: (ctx.issue.fields.components ?? []).map((c) => c.name),
+    issueProject: ctx.issue.key.split("-")[0],
+    issueDescription: extractDescription(ctx.issue),
+    issueCreated: ctx.issue.fields.created,
+    issueUpdated: ctx.issue.fields.updated ?? "",
 
-    commentTrigger: profile.match.commentTrigger,
+    commentTrigger: ctx.profile.match.commentTrigger,
     triggerParams: resolvedParams,
 
-    isRevision,
+    ralphchivesEnabled: ctx.appConfig.ralphchives.enabled,
+
+    isRevision: ctx.isRevision,
   };
 }
 

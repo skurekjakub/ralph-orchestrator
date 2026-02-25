@@ -146,7 +146,7 @@ export class TaskRunner implements ITaskRunner {
     this.logger.info("Rendering agent templates...");
     await this.templateRenderer.render(
       ctx.profile.id,
-      buildTemplateContext(ctx.profile, ctx.issue, ctx.isRevision, ctx.triggerParams),
+      buildTemplateContext(ctx),
       this.logger,
     );
 
