@@ -90,6 +90,10 @@ Do not modify files outside this path unless strictly necessary (e.g. navigation
 {% endsection %}
 {%- endif %}
 
+{% section "ralphchives" %}
+{% render 'ralphchives' %}
+{% endsection %}
+
 {% section "workflow" %}
 {% if isRevision %}
 {% render 'ralph-docs/ralph-revision-workflow' %}

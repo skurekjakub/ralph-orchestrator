@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, nodebbGet, NODEBB_CATEGORY_ID } from "../shared.js";
+import { type ToolDefinition, errorResult, nodebbGet, NODEBB_CATEGORY_ID, unavailableReason } from "../shared.js";
 
 interface SearchPost {
   pid: number;
@@ -34,6 +34,7 @@ export const tool: ToolDefinition = {
     inputSchema,
   },
   handler: async (args) => {
+    if (unavailableReason) return errorResult(unavailableReason);
     const cid = NODEBB_CATEGORY_ID ?? Number(args.categoryId);
     const query = String(args.query);
     const limit = Number(args.limit ?? 10);

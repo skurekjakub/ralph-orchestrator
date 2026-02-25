@@ -87,9 +87,16 @@ export class NodeBBFetcher {
       if (batch.length === 0) break;
 
       for (const t of batch) {
-        if (t.timestamp <= afterTimestamp) return topics;
-        topics.push(t);
+        if (t.timestamp > afterTimestamp) {
+          topics.push(t);
+        }
       }
+
+      // NodeBB sorts by last activity — if the oldest topic in this page
+      // was created before the high-water mark, all subsequent pages will
+      // also be older, so we can stop paginating.
+      const oldestInBatch = Math.min(...batch.map((t) => t.timestamp));
+      if (oldestInBatch <= afterTimestamp) return topics;
       page++;
     }
     return topics;

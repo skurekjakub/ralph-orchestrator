@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, nodebbGet } from "../shared.js";
+import { type ToolDefinition, errorResult, nodebbGet, unavailableReason } from "../shared.js";
 
 interface PostData {
   pid: number;
@@ -31,6 +31,7 @@ export const tool: ToolDefinition = {
     },
   },
   handler: async (args) => {
+    if (unavailableReason) return errorResult(unavailableReason);
     const tid = Number(args.topicId);
 
     try {

@@ -97,6 +97,10 @@ CI pipeline (`pipelines/prValidation.yml`): compile → lint:ci (zero warnings) 
 
 ---
 
+{% section "ralphchives" %}
+{% render 'ralphchives' %}
+{% endsection %}
+
 {% section "workflow" %}
 ## Reading & Replying to PR Comments
 

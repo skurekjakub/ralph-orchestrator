@@ -116,5 +116,25 @@ describe("AppStartup", () => {
       expect(deps.buildMcpServers).toHaveBeenCalled();
       expect(deps.resolveMcpConfigs).toHaveBeenCalled();
     });
+
+    it("starts Ralphchives stack when enabled", async () => {
+      const config = { ...makeConfig(), ralphchives: { enabled: true, nodebbApiUrl: "", neo4jUri: "", neo4jUser: "" } };
+      const deps = createMockStartupDeps({ loadConfig: vi.fn().mockReturnValue(config) });
+      const logger = createMockLogger();
+
+      const startup = new AppStartup(deps);
+      await startup.run(logger);
+
+      expect(deps.startRalphchives).toHaveBeenCalledWith(logger);
+    });
+
+    it("skips Ralphchives stack when disabled", async () => {
+      const deps = createMockStartupDeps({ loadConfig: vi.fn().mockReturnValue(makeConfig()) });
+
+      const startup = new AppStartup(deps);
+      await startup.run(createMockLogger());
+
+      expect(deps.startRalphchives).not.toHaveBeenCalled();
+    });
   });
 });

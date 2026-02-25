@@ -150,6 +150,12 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
     enableContinuation: false,
     excludeFields: [],
     allowedUsers: [],
+    ralphchives: {
+      enabled: false,
+      nodebbApiUrl: "http://localhost:4567",
+      neo4jUri: "bolt://localhost:7687",
+      neo4jUser: "neo4j",
+    },
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",

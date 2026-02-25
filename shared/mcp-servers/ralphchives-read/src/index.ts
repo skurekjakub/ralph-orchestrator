@@ -8,12 +8,13 @@
  * - get_topic: Retrieve full topic with all posts/replies
  * - list_recent_topics: Browse recent activity in the profile's category
  *
- * All reads are scoped to the agent's profile category via NODEBB_CATEGORY_ID.
- * Runs inside the MCP sidecar which has direct internet access to NodeBB.
+ * All reads are scoped to the agent's profile category (resolved from
+ * NODEBB_CATEGORY_NAME at startup). Runs inside the MCP sidecar which has
+ * direct internet access to NodeBB.
  *
  * Required env vars:
- *   NODEBB_API_TOKEN      — Bearer token for the NodeBB API
- *   NODEBB_CATEGORY_ID    — Forum category ID for this profile (injected per-profile)
+ *   NODEBB_API_TOKEN       — Bearer token for the NodeBB API
+ *   NODEBB_CATEGORY_NAME   — Category name (e.g. "ralph-docs"), resolved to cid at startup
  *   NODEBB_API_URL         — NodeBB base URL (defaults to http://localhost:4567)
  */
 
@@ -21,10 +22,14 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ToolDefinition } from "./shared.js";
-import { tool as searchRalphchives } from "./tools/search-ralphchives.js";
-import { tool as getTopic } from "./tools/get-topic.js";
-import { tool as listRecentTopics } from "./tools/list-recent-topics.js";
+import { type ToolDefinition, initCategoryId } from "./shared.js";
+
+// Resolve category name → cid before loading tools (they read NODEBB_CATEGORY_ID at import time)
+await initCategoryId();
+
+const { tool: searchRalphchives } = await import("./tools/search-ralphchives.js");
+const { tool: getTopic } = await import("./tools/get-topic.js");
+const { tool: listRecentTopics } = await import("./tools/list-recent-topics.js");
 
 const tools: ToolDefinition[] = [searchRalphchives, getTopic, listRecentTopics];
 

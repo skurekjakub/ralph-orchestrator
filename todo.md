@@ -6,7 +6,7 @@ add validation to allowed triggerparams =>
 `const defaultBranch: string = taskCtx.triggerParams['source_branch'] ?? "main";`
 
     lines.push("    environment:");
-    lines.push('      REPO_ROOT: "/workspace"');
+    lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
 -------------------------------------------------------------
 

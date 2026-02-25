@@ -246,30 +246,40 @@ ollama pull bge-m3    # 1024 dims, 567M params, multilingual, MTEB competitive
 ## Build Order
 
 ### Phase 0 — Infrastructure Bootstrap
-- [ ] Docker Compose stack: NodeBB + MongoDB (NodeBB's default DB) + Neo4j 5.x (separate compose, not per-profile)
-- [ ] Add `ralphchives` section to orchestrator `config.json` (enabled flag, connection URLs)
-- [ ] NodeBB initial setup: categories (per-profile), ralph-bot API user, JSON API enabled
-- [ ] Neo4j schema script (constraints, indexes, vector indexes)
-- [ ] Pull models into Ollama: `ollama pull bge-m3` + `ollama pull gemma3:8b`
-- **Deliverable:** Forum running, Neo4j empty but schema ready, Ollama models loaded
+- [x] Docker Compose stack: NodeBB + MongoDB (NodeBB's default DB) + Neo4j 5.x (separate compose, not per-profile)
+- [x] Add `ralphchives` section to orchestrator `config.json` (enabled flag, connection URLs)
+- [x] NodeBB initial setup: categories (per-profile), ralph-bot API user, JSON API enabled
+- [x] Neo4j schema script (constraints, indexes, vector indexes)
+- [x] Pull models into Ollama: `ollama pull bge-m3` + `ollama pull gemma3:8b`
+- **Deliverable:** ✅ Forum running, Neo4j schema ready, Ollama models loaded
 
-### Phase 1 — Write Path (MCP `ralphchives` server)
-- [ ] `shared/mcp-servers/ralphchives/` — manifest, TypeScript server
-- [ ] Tools: `post_session_result`, `post_observation`, `reply_to_thread`, `search_ralphchives`
-- [ ] Profile updates: add `"ralphchives"` to `mcpServers` arrays
-- [ ] Agent template updates: add "post to ralphchives" instructions in exit phase
-- [ ] Test: agent posts a session result → visible in NodeBB
-- **Deliverable:** Agents can write to the forum
+### Phase 1 — Write Path + Read Path (MCP servers)
+- [x] `shared/mcp-servers/ralphchives-write/` — manifest, TypeScript server (port 9106)
+- [x] Tools: `post_task_report`, `post_observation`
+- [x] `shared/mcp-servers/ralphchives-read/` — manifest, TypeScript server (port 9107)
+- [x] Tools: `search_ralphchives`, `get_topic`, `list_recent_topics`
+- [x] Tests: 17 (write) + 19 (read) = 36 passing
+- [x] Dynamic profile sync script (`scripts/sync-profiles.mjs`)
+- [x] Profile updates: add `"ralphchives-write"` and `"ralphchives-read"` to `mcpServers` arrays
+- [x] Agent template updates: shared `ralphchives.md` partial + wired into 5 agent templates
+- [x] Per-variant token injection via `$variantEnv.NODEBB_TOKEN` JIT macro
+- [x] Scripts auto-write `NODEBB_TOKEN_*` env vars to orchestrator `.env`
+- [ ] End-to-end test: agent posts a session result → visible in NodeBB
+- **Deliverable:** MCP servers built, tested, and wired to profiles. E2E validation pending.
 
 ### Phase 2 — Sync + Enrichment Pipeline (TypeScript)
-- [ ] Project: `ralphchives-pipeline/` — TypeScript, `neo4j-driver` + `ollama` deps
-- [ ] Sync: `nodebb-fetcher.ts`, `graph-writer.ts`, `sync-runner.ts`
-- [ ] Enrichment: `embedder.ts`, `embedding-writer.ts`, `entity-extractor.ts`, `entity-resolver.ts`, `entity-linker.ts`, `enrichment-runner.ts`
-- [ ] Daemon or cron setup (5-15 min sync interval)
-- [ ] Test: `npx tsx sync-runner.ts --full` → forum data in Neo4j with embeddings + entities
-- **Deliverable:** Neo4j mirrors forum structure with vector embeddings and entity graph
+- [x] Project: `ralphchives/sync/` — TypeScript, `neo4j-driver` + `ollama` deps
+- [x] Sync: `nodebb-fetcher.ts`, `graph-writer.ts`, `sync-runner.ts`
+- [x] Enrichment: `embedder.ts`, `entity-extractor.ts` (entity-resolver and entity-linker deferred)
+- [x] Daemon container in Docker Compose stack (configurable interval)
+- [x] Tests: 28 passing (nodebb-fetcher, graph-writer, entity-extractor)
+- [ ] End-to-end test: `npx tsx sync-runner.ts --full` → forum data in Neo4j with embeddings + entities
+- **Deliverable:** Sync pipeline built and tested; end-to-end validation pending
 
-### Phase 3 — Read Path (MCP `archives` server)
+### Phase 3 — GraphRAG Read Path (MCP `archives` server)
+
+> **Scope change:** The basic read path (search + browse via NodeBB API) was moved to Phase 1 as `ralphchives-read`. This phase covers the advanced GraphRAG retrieval via Neo4j vector + graph search.
+
 - [ ] `shared/mcp-servers/archives/` — manifest, TypeScript server, `neo4j-driver` + `ollama` deps
 - [ ] Tools: `consult_the_archives` (quick/thorough), `get_thread`, `find_related_topics`, `entity_lookup`
 - [ ] Profile updates: add `"archives"` to `mcpServers` arrays

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, nodebbPost, NODEBB_CATEGORY_ID } from "../shared.js";
+import { type ToolDefinition, errorResult, nodebbPost, NODEBB_CATEGORY_ID, unavailableReason } from "../shared.js";
 
 interface TopicResponse {
   tid: number;
@@ -27,6 +27,7 @@ export const tool: ToolDefinition = {
     inputSchema,
   },
   handler: async (args) => {
+    if (unavailableReason) return errorResult(unavailableReason);
     const cid = NODEBB_CATEGORY_ID ?? Number(args.categoryId);
     const { title, content, tags } = args;
 

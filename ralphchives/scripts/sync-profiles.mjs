@@ -12,12 +12,14 @@
 // Usage: node ralphchives/scripts/sync-profiles.mjs
 
 import { readdir, readFile } from "node:fs/promises";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const NODEBB_URL = process.env.NODEBB_URL || "http://localhost:4567";
 const ADMIN_USER = process.env.NODEBB_ADMIN_USER || "admin";
 const ADMIN_PASS = process.env.NODEBB_ADMIN_PASS || "RalphAdmin123!";
 const PROFILES_DIR = resolve(import.meta.dirname, "../../profiles");
+const ROOT_ENV_PATH = resolve(import.meta.dirname, "../../.env");
 
 let cookies;
 let csrf;
@@ -222,6 +224,46 @@ async function syncAdminPermissions(users) {
   if (granted === 0) console.log("  (no new grants needed)");
 }
 
+// ── .env writer ───────────────────────────────────────────────────────────
+
+/**
+ * Append new per-variant NODEBB_TOKEN_* entries to the orchestrator's root .env file.
+ * Also ensures NODEBB_API_URL is present.
+ */
+function writeNewTokensToEnv(newTokens) {
+  const envPath = ROOT_ENV_PATH;
+  const existing = existsSync(envPath) ? readFileSync(envPath, "utf-8") : "";
+  const lines = existing.split("\n");
+
+  const updates = new Map();
+  // Ensure NODEBB_API_URL is always present
+  if (!lines.some((l) => l.startsWith("NODEBB_API_URL="))) {
+    updates.set("NODEBB_API_URL", "http://host.docker.internal:4567");
+  }
+  for (const t of newTokens) {
+    const envKey = `NODEBB_TOKEN_${t.username.toUpperCase().replace(/-/g, "_")}`;
+    updates.set(envKey, t.token);
+  }
+
+  if (updates.size === 0) return;
+
+  for (const [key, value] of updates) {
+    const idx = lines.findIndex((l) => l.startsWith(`${key}=`));
+    if (idx >= 0) {
+      lines[idx] = `${key}=${value}`;
+    } else {
+      if (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.splice(lines.length - 1, 0, `${key}=${value}`);
+      } else {
+        lines.push(`${key}=${value}`);
+      }
+    }
+  }
+
+  writeFileSync(envPath, lines.join("\n"), "utf-8");
+  console.log(`  ✓ Written ${updates.size} entries to ${envPath}`);
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -264,11 +306,15 @@ async function main() {
   }
 
   if (newTokens.length > 0) {
-    console.log("\nNew user tokens (add to .env / profile config):");
+    console.log("\nNew user tokens:");
     for (const t of newTokens) {
       const envKey = `NODEBB_TOKEN_${t.username.toUpperCase().replace(/-/g, "_")}`;
       console.log(`  ${envKey}=${t.token}`);
     }
+
+    // Auto-write new tokens to orchestrator .env
+    console.log("\n── Writing new tokens to orchestrator .env ──");
+    writeNewTokensToEnv(newTokens);
   }
 
   console.log("\nFull category mapping:");

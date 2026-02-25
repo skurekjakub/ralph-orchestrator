@@ -8,12 +8,12 @@
  * - post_observation: Post a standalone observation or insight
  *
  * Posts land in the NodeBB forum category assigned to the agent's profile
- * (via NODEBB_CATEGORY_ID env var). Runs inside the MCP sidecar which has
- * direct internet access to the NodeBB instance.
+ * (resolved from NODEBB_CATEGORY_NAME at startup). Runs inside the MCP sidecar
+ * which has direct internet access to the NodeBB instance.
  *
  * Required env vars:
- *   NODEBB_API_TOKEN      — Per-user bearer token for the NodeBB Write API
- *   NODEBB_CATEGORY_ID    — Forum category ID for this profile (injected per-profile)
+ *   NODEBB_API_TOKEN       — Per-user bearer token for the NodeBB Write API
+ *   NODEBB_CATEGORY_NAME   — Category name (e.g. "ralph-docs"), resolved to cid at startup
  *   NODEBB_API_URL         — NodeBB base URL (defaults to http://localhost:4567)
  */
 
@@ -21,9 +21,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ToolDefinition } from "./shared.js";
-import { tool as postTaskReport } from "./tools/post-task-report.js";
-import { tool as postObservation } from "./tools/post-observation.js";
+import { type ToolDefinition, initCategoryId } from "./shared.js";
+
+// Resolve category name → cid before loading tools (they read NODEBB_CATEGORY_ID at import time)
+await initCategoryId();
+
+const { tool: postTaskReport } = await import("./tools/post-task-report.js");
+const { tool: postObservation } = await import("./tools/post-observation.js");
 
 const tools: ToolDefinition[] = [postTaskReport, postObservation];
 

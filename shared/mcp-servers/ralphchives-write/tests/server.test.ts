@@ -36,14 +36,14 @@ describe("Ralphchives Write MCP Server manifest", () => {
     expect(manifest.sidecarPort).toBe(9106);
   });
 
-  it("requires NODEBB_API_TOKEN env var", () => {
+  it("requires NODEBB_API_URL env var", () => {
     const manifest = loadManifest();
-    expect(manifest.requiredEnv).toEqual(["NODEBB_API_TOKEN"]);
+    expect(manifest.requiredEnv).toEqual(["NODEBB_API_URL"]);
   });
 
-  it("requires NODEBB_CATEGORY_ID config", () => {
+  it("requires NODEBB_API_TOKEN and NODEBB_CATEGORY_NAME config", () => {
     const manifest = loadManifest();
-    expect(manifest.requiredConfig).toEqual(["NODEBB_CATEGORY_ID"]);
+    expect(manifest.requiredConfig).toEqual(["NODEBB_API_TOKEN", "NODEBB_CATEGORY_NAME"]);
   });
 
   it("lists both tool names", () => {

@@ -64,11 +64,11 @@ Each profile declares `mcpServers` in `profile.json`. This drives three things s
 
 MCP sidecar uses `supergateway` to bridge stdio servers to Streamable HTTP.
 
-Available servers: `ado`, `jira-kentico`, `discord-hitl`, `playwright`, `web-fetch`, `microsoft-docs`.
+Available servers: `ado`, `jira-kentico`, `discord-hitl`, `playwright`, `web-fetch`, `microsoft-docs`, `ralphchives-write`, `ralphchives-read`.
 
 ### Task-Scoped Parameters (JIT)
 
-Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
+Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
 
 ### Operation Ledger
 

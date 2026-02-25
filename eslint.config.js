@@ -48,4 +48,24 @@ export default [
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+
+  // Ralphchives — standalone scripts (plain JS/MJS with Node.js globals)
+  {
+    files: ["ralphchives/**/*.{js,mjs}"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        db: "readonly",
+      },
+    },
+    rules: { ...sharedRules },
+  },
+
+  // Ralphchives — TypeScript (sync pipeline + tests)
+  {
+    files: ["ralphchives/**/*.ts"],
+    rules: { ...sharedRules },
+  },
 ];

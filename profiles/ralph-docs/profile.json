@@ -20,7 +20,21 @@
       }
     },
     { "name": "web-fetch" },
-    { "name": "microsoft-docs" }
+    { "name": "microsoft-docs" },
+    {
+      "name": "ralphchives-write",
+      "env": {
+        "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN",
+        "NODEBB_CATEGORY_NAME": "ralph-docs"
+      }
+    },
+    {
+      "name": "ralphchives-read",
+      "env": {
+        "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN",
+        "NODEBB_CATEGORY_NAME": "ralph-docs"
+      }
+    }
   ],
   "githubMcpTools": ["get_file_contents"],
   "resources": {

@@ -33,6 +33,10 @@ Your prompt will be a structured text block from the orchestrator containing the
 
 ---
 
+{% section "ralphchives" %}
+{% render 'ralphchives' %}
+{% endsection %}
+
 {% section "workflow" %}
 ## Working Directory
 

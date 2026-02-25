@@ -3,7 +3,7 @@
  * All operations are idempotent.
  */
 
-import neo4j, { type Driver, type Session } from "neo4j-driver";
+import neo4j, { type Driver } from "neo4j-driver";
 import type {
   NodeBBCategory,
   NodeBBTopic,
