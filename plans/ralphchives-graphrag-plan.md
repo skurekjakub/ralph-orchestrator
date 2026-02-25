@@ -31,11 +31,29 @@ Agent container ─────────────────────�
 |---|---|---|
 | Forum | NodeBB (v4.x) | Docker container, persistent volume |
 | Graph + Vector DB | Neo4j 5.x Community | Docker container, persistent volume |
-| Sync + Enrichment | Python scripts | Cron on host (or sidecar container) |
+| Sync + Enrichment | TypeScript (Node.js) | Runs as a daemon/cron in the infra stack |
 | Embedding | Ollama (bge-m3, 1024 dims) | Already available locally |
-| Entity extraction LLM | Gemini Flash / local Ollama | Cheapest available model |
+| Entity extraction LLM | Local Ollama (gemma-3 8B) | Local, free, private |
 | Write MCP server | `post_to_ralphchives` (TypeScript) | Runs in Ralph's MCP sidecar |
-| Read MCP server | `consult_the_archives` (Python/FastMCP) | Separate process or sidecar |
+| Read MCP server | `consult_the_archives` (TypeScript) | Runs in Ralph's MCP sidecar |
+
+### Deployment Model
+
+Separate Docker Compose stack, always running independently of agent task cycles. Enabled/disabled via the primary orchestrator `config.json`. The orchestrator does not start/stop this stack — it's managed separately (manual or systemd). This keeps the forum + graph DB persistent and decoupled from per-task container lifecycle.
+
+### Profile Isolation
+
+Knowledge is isolated per profile (currently profile = repository). Each profile gets its own NodeBB category tree. The `consult_the_archives` tool only returns results from the querying profile's category. Cross-profile queries are not supported in v1 — agents see only their own profile's knowledge.
+
+### Language Decision: TypeScript (no LangChain)
+
+The entire pipeline is TypeScript. LangChain.js was evaluated and rejected:
+- **Dependency bloat:** `@langchain/community` is 11MB / 3370 files for one `Neo4jVectorStore` wrapper
+- **Wrong abstraction:** Neo4jVectorStore models a document store; our system is a graph with vector indexes, custom traversals, and entity relationships
+- **Ollama SDK is better than the wrapper:** `ollama.embed()` and `ollama.chat()` with native JSON mode are typed one-liners
+- **Escape-hatch problem:** Every LangChain retrieval call would fall through to raw Cypher anyway for graph traversals
+
+**Direct stack:** `neo4j-driver` (official Bolt client) + `ollama` (official SDK) + `@modelcontextprotocol/sdk`. Two runtime deps, zero lock-in, matches existing MCP server patterns.
 
 ---
 
@@ -92,37 +110,38 @@ Lives in `shared/mcp-servers/ralphchives/`. Runs in the existing Ralph MCP sidec
 
 The `search_ralphchives` tool provides a quick non-RAG search for agents that just need to check if prior work exists on a topic. Uses NodeBB's built-in search API.
 
-### 3. Sync Pipeline: NodeBB → Neo4j (Python)
+### 3. Sync Pipeline: NodeBB → Neo4j (TypeScript)
 
-Structural ingestion — no LLM calls. Runs as a cron job (every 5-15 min) or a lightweight daemon.
-
-**Components:**
-- `nodebb_fetcher.py` — Paginate NodeBB JSON API (`/api/categories`, `/api/topics`, `/api/posts`, `/api/users`). Track high-water marks in Neo4j `(:SyncState)`.
-- `graph_writer.py` — Batch MERGE operations (500/tx) into Neo4j. Idempotent.
-- `sync_runner.py` — Orchestrate fetch → write. Modes: `--full` (first run) or incremental (default).
-
-### 4. Enrichment Pipeline (Python, LLM-powered)
-
-Runs after sync. Processes posts that lack embeddings/entities.
+Structural ingestion — no LLM calls. Runs as a daemon in the infrastructure Docker Compose stack (or cron, every 5-15 min).
 
 **Components:**
-- `embedder.py` — Ollama client wrapping `bge-m3` (1024 dims). Batch interface.
-- `embedding_writer.py` — Backfill embeddings on posts missing them.
-- `entity_extractor.py` — LLM extracts entities (concept, product, error, feature, version, library, person) from post content. Uses cheapest available model.
-- `entity_resolver.py` — Deduplicate entities (exact match → fulltext → embedding similarity). Maintain aliases.
-- `entity_linker.py` — Create `RELATED_TO` edges between entities co-occurring in posts.
-- `enrichment_runner.py` — Orchestrate: embed → extract → resolve → link. Resumable, batched, rate-limited.
+- `nodebb-fetcher.ts` — Paginate NodeBB JSON API (`/api/categories`, `/api/topics`, `/api/posts`, `/api/users`). Track high-water marks in Neo4j `(:SyncState)`.
+- `graph-writer.ts` — Batch MERGE operations (500/tx) into Neo4j via `neo4j-driver`. Idempotent.
+- `sync-runner.ts` — Orchestrate fetch → write. Modes: `--full` (first run) or incremental (default).
+
+### 4. Enrichment Pipeline (TypeScript, LLM-powered)
+
+Runs after sync. Processes posts that lack embeddings/entities. Same Node.js process as the sync pipeline.
+
+**Components:**
+- `embedder.ts` — Wraps `ollama.embed({ model: 'bge-m3', input: texts })`. Batch interface.
+- `embedding-writer.ts` — Backfill embeddings on posts missing them: `UNWIND $data AS row MATCH (p:Post {pid: row.pid}) SET p.embedding = row.embedding`.
+- `entity-extractor.ts` — Calls `ollama.chat({ model: 'gemma3:8b', messages: [...], format: 'json' })` to extract entities (concept, product, error, feature, version, library, person) from post content. Local, free, private.
+- `entity-resolver.ts` — Deduplicate entities (exact match → fulltext → embedding similarity). Maintain aliases.
+- `entity-linker.ts` — Create `RELATED_TO` edges between entities co-occurring in posts.
+- `enrichment-runner.ts` — Orchestrate: embed → extract → resolve → link. Resumable, batched, rate-limited.
 
 ### 5. MCP Server: `consult_the_archives` (read path)
 
-Python FastMCP server exposing the GraphRAG retrieval engine. Queries Neo4j.
+TypeScript MCP server exposing the GraphRAG retrieval engine. Lives in `shared/mcp-servers/archives/`. Runs in the existing Ralph MCP sidecar — same pattern as every other MCP server in the codebase. Queries Neo4j via `neo4j-driver`, generates query embeddings via `ollama`.
 
 **Single primary tool with depth parameter:**
 | Depth | What it does |
 |---|---|
 | `quick` | Vector similarity search only. Returns top 3 posts with metadata. |
 | `thorough` | Vector + full thread context + mentioned entities + related entities. |
-| `deep` | All of thorough + community summaries + expert users + expanded results (10 posts). |
+
+(`deep` depth with community summaries deferred — see "Deferred: Community Detection" below.)
 
 **Additional tools:**
 | Tool | Description |
@@ -131,17 +150,30 @@ Python FastMCP server exposing the GraphRAG retrieval engine. Queries Neo4j.
 | `find_related_topics` | Given a topic ID, find related via graph connections |
 | `entity_lookup` | Look up an entity and find all posts mentioning it |
 
-**Integration question:** This server is Python (FastMCP), not TypeScript like existing Ralph MCP servers. Options:
-- A. Run as a standalone service (its own container, own port), add to sidecar compose
-- B. Bundle as an npm MCP server via `supergateway` (bridges stdio→HTTP, but it's Python, not Node)
-- C. Run as a sidecar to Neo4j in the infrastructure compose stack, agents connect via URL
+**Manifest (`mcp-server.json`):**
+```json
+{
+  "name": "archives",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/archives",
+  "sidecarPort": 9105,
+  "requiredEnv": ["NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "OLLAMA_BASE_URL"],
+  "tools": ["consult_the_archives", "get_thread", "find_related_topics", "entity_lookup"],
+  "proxyDomains": []
+}
+```
 
-### 6. Community Detection & Summarization (Phase 3)
+The sidecar has direct internet access via `ralph-sidecar-external`, so reaching Neo4j and Ollama on the host is straightforward (`host.docker.internal` or Docker network).
 
-Weekly batch job:
-- **Leiden algorithm** on entity co-occurrence graph (Neo4j GDS)
-- **LLM summarization** of each community (themes, problems, solutions)
-- Stored as `(:CommunitySummary)` nodes
+### 6. Deferred: Community Detection & Summarization
+
+> **Skipped for v1.** Neo4j Community Edition does not include GDS (Graph Data Science library). Community detection algorithms like Leiden require GDS or a custom implementation. Revisit when the knowledge base has enough volume to make cluster summaries valuable.
+
+**What it would do:** Analyze the entity co-occurrence graph to find clusters of densely related concepts (e.g., "all posts about Xperience page builder" form a community). An LLM then generates a summary of each community's themes, common problems, and solutions. Agents asking broad questions get a pre-computed summary instead of individual posts.
+
+**When to revisit:** After 100+ topics in the forum, when agents start surfacing too many individual results and need higher-level summaries.
 
 ---
 
@@ -159,8 +191,9 @@ Weekly batch job:
 ### Semantic Layer (Phase 2)
 ```
 (:Entity {name, type, description, embedding})
-(:CommunitySummary {id, scope, scopeValue, summary, themes[], generatedAt})
 ```
+
+> `(:CommunitySummary)` nodes deferred to post-v1 \u2014 requires community detection.
 
 ### Relationships
 ```
@@ -213,88 +246,72 @@ ollama pull bge-m3    # 1024 dims, 567M params, multilingual, MTEB competitive
 ## Build Order
 
 ### Phase 0 — Infrastructure Bootstrap
-- [ ] Docker Compose stack for NodeBB + MongoDB (NodeBB's default DB) + Neo4j 5.x
+- [ ] Docker Compose stack: NodeBB + MongoDB (NodeBB's default DB) + Neo4j 5.x (separate compose, not per-profile)
+- [ ] Add `ralphchives` section to orchestrator `config.json` (enabled flag, connection URLs)
 - [ ] NodeBB initial setup: categories (per-profile), ralph-bot API user, JSON API enabled
 - [ ] Neo4j schema script (constraints, indexes, vector indexes)
-- [ ] Pull bge-m3 into Ollama (`ollama pull bge-m3`)
-- **Deliverable:** Forum running, Neo4j empty but schema ready, Ollama embedding model loaded
+- [ ] Pull models into Ollama: `ollama pull bge-m3` + `ollama pull gemma3:8b`
+- **Deliverable:** Forum running, Neo4j empty but schema ready, Ollama models loaded
 
 ### Phase 1 — Write Path (MCP `ralphchives` server)
-- [ ] `shared/mcp-servers/ralphchives/` — manifest, TypeScript server, tools: `post_session_result`, `post_observation`, `reply_to_thread`, `search_ralphchives`
+- [ ] `shared/mcp-servers/ralphchives/` — manifest, TypeScript server
+- [ ] Tools: `post_session_result`, `post_observation`, `reply_to_thread`, `search_ralphchives`
 - [ ] Profile updates: add `"ralphchives"` to `mcpServers` arrays
 - [ ] Agent template updates: add "post to ralphchives" instructions in exit phase
 - [ ] Test: agent posts a session result → visible in NodeBB
 - **Deliverable:** Agents can write to the forum
 
-### Phase 2 — Structural Sync Pipeline
-- [ ] Python project: `ralphchives-pipeline/` (or similar)
-- [ ] `nodebb_fetcher.py`, `graph_writer.py`, `sync_runner.py`
-- [ ] Test: `python sync_runner.py --full` → forum data in Neo4j, browsable
-- [ ] Cron or daemon setup (5-15 min interval)
-- **Deliverable:** Neo4j mirrors forum structure in near-real-time
+### Phase 2 — Sync + Enrichment Pipeline (TypeScript)
+- [ ] Project: `ralphchives-pipeline/` — TypeScript, `neo4j-driver` + `ollama` deps
+- [ ] Sync: `nodebb-fetcher.ts`, `graph-writer.ts`, `sync-runner.ts`
+- [ ] Enrichment: `embedder.ts`, `embedding-writer.ts`, `entity-extractor.ts`, `entity-resolver.ts`, `entity-linker.ts`, `enrichment-runner.ts`
+- [ ] Daemon or cron setup (5-15 min sync interval)
+- [ ] Test: `npx tsx sync-runner.ts --full` → forum data in Neo4j with embeddings + entities
+- **Deliverable:** Neo4j mirrors forum structure with vector embeddings and entity graph
 
-### Phase 3 — Semantic Enrichment
-- [ ] `embedder.py` (Ollama bge-m3 wrapper)
-- [ ] `embedding_writer.py` (backfill embeddings)
-- [ ] `entity_extractor.py` + `entity_resolver.py` + `entity_linker.py`
-- [ ] `enrichment_runner.py` (orchestrator, chained after sync)
-- [ ] Test: embeddings + entities populated for all posts
-- **Deliverable:** Posts have vector embeddings, entity graph exists
-
-### Phase 4 — Read Path (MCP `consult_the_archives` server)
-- [ ] Python FastMCP server with `consult_the_archives` tool (3 depth levels)
-- [ ] Additional tools: `get_thread`, `find_related_topics`, `entity_lookup`
-- [ ] Integration with Ralph's compose stack (standalone service or sidecar)
-- [ ] Profile updates: add to `mcpServers` arrays
+### Phase 3 — Read Path (MCP `archives` server)
+- [ ] `shared/mcp-servers/archives/` — manifest, TypeScript server, `neo4j-driver` + `ollama` deps
+- [ ] Tools: `consult_the_archives` (quick/thorough), `get_thread`, `find_related_topics`, `entity_lookup`
+- [ ] Profile updates: add `"archives"` to `mcpServers` arrays
 - [ ] Agent template updates: add "consult the archives" instructions in research phase
 - [ ] Test: agent queries archives → gets relevant prior work
-- **Deliverable:** Agents can search historical knowledge via RAG
+- **Deliverable:** Agents can search historical knowledge via GraphRAG
 
-### Phase 5 — Community Detection & Summarization
-- [ ] `community_detector.py` (Neo4j GDS Leiden)
-- [ ] `community_summarizer.py` (LLM generates summaries)
-- [ ] `deep` depth option in retrieval engine
-- [ ] Weekly cron
-- **Deliverable:** Full depth spectrum working
-
-### Phase 6 — Hardening
+### Phase 4 — Hardening & Backfill
+- [ ] Seed existing handoff files (`output/handoffs/`) into the forum as initial content
 - [ ] Entity resolution QA (manual sampling)
 - [ ] Cypher query optimization + caching
 - [ ] Latency profiling (p50/p95 per depth level)
-- [ ] LLM cost monitoring dashboard
-- [ ] Seed existing handoff files into the forum (backfill)
+- [ ] Monitoring: sync lag, enrichment queue depth, Neo4j memory
+- **Deliverable:** Production-ready with seed data
+
+### Future — Community Detection (post-v1)
+- [ ] Evaluate Neo4j GDS alternatives (Enterprise license, Python networkx, or custom Leiden)
+- [ ] LLM-generated community summaries
+- [ ] `deep` depth level in `consult_the_archives`
+- **Gate:** 100+ topics in the forum
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-### Infrastructure Deployment
+| # | Question | Decision |
+|---|---|---|
+| 1 | Deployment model | Separate Docker Compose stack, always running, enabled via orchestrator `config.json` |
+| 2 | Compose isolation | Independent of per-task lifecycle — NodeBB + Neo4j persist across agent runs |
+| 3 | Sidecar → forum networking | Infra services expose host ports; MCP sidecar reaches them via `host.docker.internal` |
+| 4 | Read path integration | TypeScript MCP server in the existing sidecar (same as write path) |
+| 5 | Availability | Opt-in per profile via `mcpServers` (standard least-privilege model) |
+| 6 | Backfill | Yes — seed `output/handoffs/` into forum in Phase 4 |
+| 7 | Cross-profile visibility | Isolated per profile (profile = repository). Category-scoped queries. |
+| 8 | Posting model | Agent-only via MCP tool (no orchestrator auto-post) |
+| 9 | Entity extraction model | Local Ollama gemma-3 8B (free, private) |
+| 10 | Community detection | Skipped for v1. Revisit after 100+ topics. |
+| 11 | Pipeline language | TypeScript (no LangChain). Direct `neo4j-driver` + `ollama` SDK. |
+| 12 | NodeBB database | MongoDB (NodeBB's default/recommended) |
+| 13 | NodeBB auth | Per-profile API users (ralph-bot-docs, ralph-bot-vscode, etc.) |
+| 14 | Embedding warm start | No — accept ~10s cold start on first call after Ollama restart |
+| 15 | Post format | Markdown, maximum freedom. Minimal structure in agent prompt, iterate based on output. |
+| 16 | Sync pipeline | Daemon container in the infra Docker Compose stack |
 
-1. **Where does the NodeBB + Neo4j stack run?** Same machine as the orchestrator? Separate compose stack? The Ralph sidecar has resource limits (4G memory, 1 CPU) — Neo4j alone may need more than that.
-
-2. **Compose isolation:** Should this be a completely separate docker-compose stack (always running, independent of agent task cycles), or integrated into the per-profile compose merge? Leaning toward separate — the forum and graph DB should persist across agent runs, not start/stop with each task.
-
-3. **Network access from sidecar:** The `post_to_ralphchives` MCP server runs in the existing sidecar (has `ralph-sidecar-external` direct internet). Does NodeBB run on the host or in a separate Docker network? The sidecar would need to reach it — either via `host.docker.internal` or by connecting to the forum's Docker network.
-
-### Read Path Integration
-
-4. **How does the `consult_the_archives` Python server connect to agents?** Options:
-   - A. Run as a standalone HTTP service (own container), agents connect via URL in `mcp-config.json`
-   - B. Use supergateway to bridge Python stdio→Streamable HTTP, run in the Ralph sidecar
-   - C. Run alongside Neo4j in the infrastructure compose stack
-
-5. **Should `consult_the_archives` be available to all profiles or opt-in?** (Same least-privilege model as other MCP servers — profiles declare which servers they need.)
-
-### Content Strategy
-
-6. **Backfill:** Should existing handoff files (in `output/handoffs/`) be imported into the forum as seed content?
-
-7. **Cross-profile visibility:** The ralphchives doc says "none — ralph-docs isolated from ralph-vscode." Should the `consult_the_archives` tool enforce this (only return posts from the querying profile's category), or should agents see all profiles' knowledge?
-
-8. **Orchestrator vs agent posting:** Should the orchestrator auto-create the forum thread after each task (reliable, structured data only), and the agent *optionally* add freeform commentary via the MCP tool during its run? (Hybrid approach from the ralphchives doc.)
-
-### Embedding & Extraction
-
-9. **Entity extraction model:** Use local Ollama (e.g. gemma-3 8B) or cloud API (Gemini Flash)? Local is cheaper/private but potentially lower quality.
-
-10. **Neo4j GDS:** Community edition of Neo4j doesn't include GDS (Graph Data Science). Options: use Neo4j Enterprise (license), self-implement Leiden in Python, or skip community detection initially.
+All questions resolved. Ready for Phase 0 implementation.

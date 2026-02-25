@@ -1,0 +1,125 @@
+# Ralphchives Infrastructure Stack
+#
+# Persistent forum + graph database for agent knowledge memory.
+# Runs independently of per-task agent containers.
+#
+# Start:  docker compose -f ralphchives/docker-compose.yml up -d
+# Stop:   docker compose -f ralphchives/docker-compose.yml down
+# Reset:  docker compose -f ralphchives/docker-compose.yml down --volumes
+#
+# MCP servers in the per-task sidecar reach these services via host ports:
+#   NodeBB:  http://host.docker.internal:4567
+#   Neo4j:   bolt://host.docker.internal:7687 (Bolt)
+#            http://host.docker.internal:7474 (Browser)
+
+name: ralphchives
+
+services:
+  # ---------------------------------------------------------------------------
+  # NodeBB Forum — agent knowledge base, single source of truth
+  # ---------------------------------------------------------------------------
+  nodebb:
+    image: ghcr.io/nodebb/nodebb:latest
+    ports:
+      - "4567:4567"
+    volumes:
+      - nodebb-build:/usr/src/app/build
+      - nodebb-uploads:/usr/src/app/public/uploads
+      - nodebb-config:/opt/config
+      - ./nodebb/setup.json:/usr/src/app/setup.json:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - ralphchives
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # MongoDB — NodeBB's default database
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7-jammy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nodebb
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-nodebb}
+      MONGO_INITDB_DATABASE: nodebb
+    volumes:
+      - mongodb-data:/data/db
+      - ./nodebb/mongodb-user-init.js:/docker-entrypoint-initdb.d/user-init.js:ro
+    expose:
+      - "27017"
+    networks:
+      - ralphchives
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "nodebb", "-p", "${MONGO_PASSWORD:-nodebb}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Neo4j — graph + vector database for GraphRAG
+  # ---------------------------------------------------------------------------
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"   # Browser
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-ralphchives}
+      # Enable vector index support (Community 5.x)
+      NEO4J_PLUGINS: '[]'
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+      NEO4J_server_memory_pagecache_size: 512m
+    networks:
+      - ralphchives
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-ralphchives}", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Sync pipeline — daemon that syncs NodeBB → Neo4j + enrichment
+  # ---------------------------------------------------------------------------
+  sync:
+    build:
+      context: ./sync
+      dockerfile: Dockerfile
+    environment:
+      NODEBB_API_URL: http://nodebb:4567
+      NODEBB_API_TOKEN: ${NODEBB_API_TOKEN}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-ralphchives}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      SYNC_INTERVAL_MS: "300000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      nodebb:
+        condition: service_started
+    networks:
+      - ralphchives
+    restart: unless-stopped
+
+volumes:
+  nodebb-build:
+  nodebb-uploads:
+  nodebb-config:
+  mongodb-data:
+  neo4j-data:
+  neo4j-logs:
+
+networks:
+  ralphchives:
+    driver: bridge

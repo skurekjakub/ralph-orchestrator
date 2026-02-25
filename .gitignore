@@ -10,6 +10,10 @@ profiles/**/.build/
 shared/mcp-servers/*/dist/
 shared/mcp-servers/*/node_modules/
 
+# Ralphchives sync pipeline build artifacts
+ralphchives/sync/dist/
+ralphchives/sync/node_modules/
+
 # Secrets
 .env
 

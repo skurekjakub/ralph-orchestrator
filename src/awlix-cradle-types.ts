@@ -1,4 +1,4 @@
-import type { IJiraConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IAgentProfile } from "./config.js";
+import type { IJiraConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IRalphchivesConfig, IAgentProfile } from "./config.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { Logger } from "./logger.js";
 import type { IJiraClient } from "./jira/client.js";
@@ -35,6 +35,7 @@ export interface OrchestratorCradle {
   secrets: ISecretsConfig;
   profiles: readonly IAgentProfile[];
   promptAuditConfig: IPromptAuditConfig;
+  ralphchivesConfig: IRalphchivesConfig;
   excludeFields: readonly string[];
   allowedUsers: readonly string[];
   enableContinuation: boolean;

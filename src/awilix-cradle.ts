@@ -98,6 +98,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     secrets:           asValue(config.secrets),
     profiles:          asValue(config.profiles),
     promptAuditConfig: asValue(config.promptAudit),
+    ralphchivesConfig: asValue(config.ralphchives),
     excludeFields:     asValue(config.excludeFields),
     allowedUsers:      asValue(config.allowedUsers),
     enableContinuation: asValue(config.enableContinuation),
