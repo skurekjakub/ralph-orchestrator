@@ -148,3 +148,87 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: ralphchives/sync
+
+  # ralphchives-integration:
+  #   name: Ralphchives Integration Tests
+  #   runs-on: satriel-ralph
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Use Node.js 22.x
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '22.x'
+
+  #     - name: Ensure Docker is available
+  #       id: docker-check
+  #       run: |
+  #         if ! command -v docker &>/dev/null; then
+  #           echo "Docker not found — installing via get.docker.com..."
+  #           curl -fsSL https://get.docker.com | sudo sh
+  #           sudo usermod -aG docker "$USER"
+  #         fi
+  #         # Ensure daemon is running
+  #         if ! sudo docker info &>/dev/null 2>&1; then
+  #           echo "Docker daemon not running — starting dockerd..."
+  #           sudo dockerd &>/tmp/dockerd.log &
+  #           # Wait up to 30s for the socket to appear
+  #           for i in $(seq 1 30); do
+  #             sudo docker info &>/dev/null 2>&1 && break
+  #             sleep 1
+  #           done
+  #           sudo docker info &>/dev/null 2>&1 || { echo "::error::dockerd failed to start"; cat /tmp/dockerd.log; exit 1; }
+  #         fi
+  #         if ! docker compose version &>/dev/null 2>&1; then
+  #           if ! sudo docker compose version &>/dev/null 2>&1; then
+  #             echo "Docker Compose plugin not found — installing..."
+  #             COMPOSE_VERSION=$(curl -fsSL https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+  #             sudo mkdir -p /usr/local/lib/docker/cli-plugins
+  #             sudo curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
+  #               -o /usr/local/lib/docker/cli-plugins/docker-compose
+  #             sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+  #           fi
+  #           # Group membership not yet active — use sudo for this job
+  #           echo "DOCKER_CMD=sudo docker" >> "$GITHUB_ENV"
+  #         else
+  #           echo "DOCKER_CMD=docker" >> "$GITHUB_ENV"
+  #         fi
+  #         ${DOCKER_CMD:-docker} compose version
+
+  #     - name: Start NodeBB + MongoDB
+  #       id: start-nodebb
+  #       run: ${DOCKER_CMD:-docker} compose -f ralphchives/docker-compose.ci.yml up -d --wait --wait-timeout 300
+
+  #     - name: Seed test data
+  #       id: seed
+  #       run: |
+  #         node ralphchives/scripts/seed-test-data.mjs > /tmp/seed-env.txt
+  #         cat /tmp/seed-env.txt >> "$GITHUB_ENV"
+
+  #     - name: Install ralphchives-read dependencies
+  #       run: npm ci
+  #       working-directory: shared/mcp-servers/ralphchives-read
+
+  #     - name: Run ralphchives-read integration tests
+  #       run: npx vitest run tests/search-integration.test.ts
+  #       working-directory: shared/mcp-servers/ralphchives-read
+  #       env:
+  #         NODEBB_API_TOKEN: ${{ env.NODEBB_API_TOKEN }}
+  #         NODEBB_CATEGORY_ID: ${{ env.NODEBB_CATEGORY_ID }}
+  #         NODEBB_API_URL: ${{ env.NODEBB_API_URL }}
+
+  #     - name: Install ralphchives-write dependencies
+  #       run: npm ci
+  #       working-directory: shared/mcp-servers/ralphchives-write
+
+  #     - name: Run ralphchives-write integration tests
+  #       run: npx vitest run tests/write-integration.test.ts
+  #       working-directory: shared/mcp-servers/ralphchives-write
+  #       env:
+  #         NODEBB_API_TOKEN: ${{ env.NODEBB_API_TOKEN }}
+  #         NODEBB_CATEGORY_ID: ${{ env.NODEBB_CATEGORY_ID }}
+  #         NODEBB_API_URL: ${{ env.NODEBB_API_URL }}
+
+  #     - name: Teardown NodeBB
+  #       if: always() && steps.start-nodebb.outcome != 'skipped'
+  #       run: ${DOCKER_CMD:-docker} compose -f ralphchives/docker-compose.ci.yml down --volumes --remove-orphans

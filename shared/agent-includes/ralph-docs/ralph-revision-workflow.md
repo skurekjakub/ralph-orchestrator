@@ -11,7 +11,8 @@ Your prompt already contains:
 
 1. **Read the previous handoff file** embedded in your prompt — understand what was done, what decisions were made, and the PR details
 2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
-3. You are revising **{{ issueKey }}: {{ issueSummary }}** — use this key for branch/commit naming
+3. **Search ralphchives** (skill: **ralph-ralphchives**) for any observations or gotchas related to this issue from previous runs
+4. You are revising **{{ issueKey }}: {{ issueSummary }}** — use this key for branch/commit naming
 
 ### Revision Phase 2: Find Existing PR & Branch
 
@@ -71,6 +72,7 @@ If the changes are substantial, delegate to the **ralph-reviewer** sub-agent for
 1. **Update the handoff file** at `/tmp/mcp-attachments/handoff-{{ issueKey }}.md` — add a "Revision" section at the top documenting what feedback was addressed and what changed
 2. **Attach the updated handoff** to **{{ issueKey }}** using the `jira_add_attachment` MCP tool with file name `handoff.md`
 3. **Post a completion comment** on **{{ issueKey }}** summarizing what was changed and linking to the PR
+4. **Post to ralphchives** (skill: **ralph-ralphchives**) — post a task report summarizing the revision changes
 
 ### Revision Phase 7: Exit
 

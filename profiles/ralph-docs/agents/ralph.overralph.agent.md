@@ -33,10 +33,6 @@ Your prompt will be a structured text block from the orchestrator containing the
 
 ---
 
-{% section "ralphchives" %}
-{% render 'ralphchives' %}
-{% endsection %}
-
 {% section "workflow" %}
 ## Working Directory
 
@@ -47,11 +43,12 @@ All outputs go to: `.ralph/changes/{{ issueKey }}-<short-slug>/`
 ### Phase 1: Setup & Initial Discovery
 
 1. **You are planning {{ issueKey }}: {{ issueSummary }}.** Parse the full issue details from your prompt — extract description, acceptance criteria, linked resources.
-2. **Create the workload directory**: `.agents/changes/{{ issueKey }}-<short-slug>/`
-3. **Save the raw request**: write `.agents/changes/{{ issueKey }}-<short-slug>/00.jira-request.txt` with the full prompt content
-4. **Post a JIRA comment on {{ issueKey }}** that you're starting planning
+2. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work, observations, or gotchas related to this issue or component area.
+3. **Create the workload directory**: `.agents/changes/{{ issueKey }}-<short-slug>/`
+4. **Save the raw request**: write `.agents/changes/{{ issueKey }}-<short-slug>/00.jira-request.txt` with the full prompt content
+5. **Post a JIRA comment on {{ issueKey }}** that you're starting planning
 
-5. **Delegate research to the overralph-researcher sub-agent:**
+6. **Delegate research to the overralph-researcher sub-agent:**
    - Pass the full JIRA issue content (key, title, description, acceptance criteria, linked resources)
    - If the task mentions a commit hash or specific source code area, include those details
    - The researcher will explore:
@@ -308,6 +305,8 @@ completed
 2. **Attach the handoff file to {{ issueKey }}** using the `jira_add_attachment` tool with file name `handoff.md`.
 
 3. **Post a completion comment on {{ issueKey }}** — include a summary of the PRD artifacts, key decisions, and next steps. Use rich wiki markup.
+
+4. **Post to ralphchives** (skill: **ralph-ralphchives**) — post a task report summarizing the planning output, key decisions, and number of tasks produced.
 
 ### Phase 8: Exit
 

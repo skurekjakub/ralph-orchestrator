@@ -71,11 +71,12 @@ describe("generateSkillVolumeMounts", () => {
     expect(generateSkillVolumeMounts(tempDir, [])).toEqual([]);
   });
 
-  it("generates directory mounts for declared skills", () => {
+  it("generates directory mounts for declared skills from build dir", () => {
     const mounts = generateSkillVolumeMounts(tempDir, ["git-workflow", "jira-conventions"]);
+    const buildDir = join(tempDir, ".build");
 
     expect(mounts).toHaveLength(2);
-    expect(mounts[0]).toContain(`${join(tempDir, "git-workflow")}:/workspace/.github/skills/git-workflow:ro`);
-    expect(mounts[1]).toContain(`${join(tempDir, "jira-conventions")}:/workspace/.github/skills/jira-conventions:ro`);
+    expect(mounts[0]).toContain(`${join(buildDir, "git-workflow")}:/workspace/.github/skills/git-workflow:ro`);
+    expect(mounts[1]).toContain(`${join(buildDir, "jira-conventions")}:/workspace/.github/skills/jira-conventions:ro`);
   });
 });

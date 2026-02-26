@@ -44,7 +44,7 @@ Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient
 ```
 profiles/<id>/docker-compose.yml          (base: services, volumes, env)
 + shared/security/docker-compose.security.yml  (Squid proxy, network isolation, resource limits)
-+ profiles/<id>/.build/docker-compose.overlay.yml  (MCP sidecar, resource mounts — generated at startup)
++ profiles/<id>/.build/docker-compose.overlay.yml  (MCP sidecar, skill mounts, resource mounts — generated at startup)
 ```
 
 `ComposeClient` merges all three automatically via `-f` flags. The overlay is skipped if absent.
@@ -83,6 +83,10 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | File | Role |
 |---|---|
 | `src/orchestrator.ts` | Main event loop |
+| `src/config/types.ts` | Runtime config interfaces (`IJiraConfig`, `IAgentProfile`, `IAppConfig`, etc.) |
+| `src/config/schemas.ts` | Zod validation schemas for `config.json` and `profile.json` |
+| `src/config/loader.ts` | `loadConfig()` — reads config.json + .env, discovers profiles |
+| `src/config/constants.ts` | Shared constants (`DEFAULT_MODEL`) |
 | `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
 | `src/app-startup.ts` | Startup pipeline: validate → load config → setup profiles |
 | `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
@@ -130,6 +134,7 @@ shared/
   agent-includes/     — Shared Liquid partials (*.md)
   mcp-servers/<name>/ — mcp-server.json manifest + optional src/dist for custom servers
   mcp-sidecar/          — Gateway container (supergateway process manager, git for push/PR tools)
+  skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
 ```
 
 Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display.

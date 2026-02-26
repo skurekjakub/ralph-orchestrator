@@ -22,6 +22,7 @@ import { ContainerManager } from "./container/manager.js";
 import { ComposeClient } from "./container/compose-client.js";
 import { ComposeFileResolver } from "./container/setup/compose-files.js";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes.js";
+import { SkillTemplateRenderer } from "./container/setup/skill-includes.js";
 import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
 import { CliExecutorFactory } from "./container/cli-executor-factory.js";
 import { RepoSyncHook, type ILifecycleHook } from "./container/lifecycle.js";
@@ -127,6 +128,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     promptBuilder:    asClass(PromptBuilder).singleton(),
     executorFactory:  asClass(CliExecutorFactory).singleton(),
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
+    skillRenderer:    asClass(SkillTemplateRenderer).singleton(),
     jitMcpConfig:     asClass(JitMcpConfigWriter).singleton(),
     containerFactory: asFunction(buildContainerFactory).singleton(),
 

@@ -37,6 +37,19 @@
     }
   ],
   "githubMcpTools": ["get_file_contents"],
+  "skills": [
+    "ralph-code-samples",
+    "ralph-ado-pr-workflow",
+    "ralph-source-references",
+    "ralph-ralphchives",
+    "ralph-new-page-creation",
+    "ralph-documentation-syntax",
+    "ralph-style-guide-review",
+    "ralph-codesamples-project",
+    "ralph-screenshots",
+    "ralph-training-modules",
+    "ralph-write-release-notes"
+  ],
   "resources": {
     "mountBase": "resources/ralph-resources"
   },

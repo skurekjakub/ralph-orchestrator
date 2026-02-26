@@ -16,6 +16,7 @@ import type { ILogCollector } from "../../src/logs/collector.js";
 import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
+import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
@@ -250,6 +251,14 @@ export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {
 
 /** Create a mock AgentTemplateRenderer with all methods stubbed. */
 export function createMockTemplateRenderer(overrides: Partial<Mocked<IAgentTemplateRenderer>> = {}): Mocked<IAgentTemplateRenderer> {
+  return {
+    render: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/** Create a mock SkillTemplateRenderer with all methods stubbed. */
+export function createMockSkillRenderer(overrides: Partial<Mocked<ISkillTemplateRenderer>> = {}): Mocked<ISkillTemplateRenderer> {
   return {
     render: vi.fn().mockResolvedValue(undefined),
     ...overrides,

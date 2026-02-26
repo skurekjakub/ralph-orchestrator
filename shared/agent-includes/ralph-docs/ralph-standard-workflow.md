@@ -7,7 +7,8 @@
    Example: `ralph/{{ issueKey }}-<short-slug>`
 3. **Create the workload directory**: `resources/chats/{{ issueKey }}/`
 4. **Create the scratchpad file**: `resources/chats/{{ issueKey }}/state.md` — use this to track decisions, identifiers, and file paths as you go. Re-read it before each phase to maintain consistency across the full task.
-5. Comment on **{{ issueKey }}** that you're starting work.
+5. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ issueKey }} primarily.
+6. Comment on **{{ issueKey }}** that you're starting work.
 
 ### Phase 2: Research (Sub-agent)
 
@@ -31,14 +32,14 @@ If any section is missing or empty, note the gap in `state.md` and compensate in
 
 Now YOU implement all documentation changes based on the researcher's report:
 
-1. **Read the style guides** before writing:
+1. **Read the style guides** before writing — also consult the **ralph-style-guide-review** skill for a quick-reference checklist:
    - `.github/resources/styleguides/docs-style-guide.md`
    - `.github/resources/styleguides/typography.md`
    - `.github/resources/styleguides/word-list.md`
-   - `.github/resources/markdown-syntax.md` for Jekyll/Liquid syntax
+   - for syntax, see `ralph-documentation-syntax` skill.
 
 2. **Implement changes** — create new pages, update existing ones, remove obsolete content:
-   - Follow [new-page-creation](../resources/new-page-creation.md) guidelines for new pages
+   - Follow the **ralph-new-page-creation** skill guidelines for new pages
    - Every page needs: Introduction (what/why/when), Body (structured content), Result (expected outcomes)
    - Use proper Jekyll frontmatter with all required fields
    - File naming: kebab-case matching the page title
@@ -94,11 +95,7 @@ git commit -m "docs({{ issueKey }}): <brief description of changes>"
 
 ### Phase 7: Create Pull Request
 
-{% section "api-reference" %}
-{% render 'ado-api' %}
-
-{% render 'ado-pr-format' %}
-{% endsection %}
+Consult the **ralph-ado-pr-workflow** skill for ADO error handling and PR description format.
 
 Use the Azure DevOps REST API to create a draft PR for this branch.
 
@@ -153,9 +150,9 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 
 3. **Post a completion comment** on **{{ issueKey }}** using `jira_add_comment`. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
-   **Source code evidence:** If any documentation claims are based on exploring the Xperience source code, include a "Source References" section in the comment listing the exact file paths and method names that back each claim.
+   **Source code evidence:** If any documentation claims are based on exploring the Xperience source code, include a "Source References" section in the comment. Consult the **ralph-source-references** skill for the source browser URL format.
 
-   {% render 'source-references' %}
+4. **Post to ralphchives** (skill: **ralph-ralphchives**) — post a task report summarizing what was accomplished, key decisions, and any remaining gaps.
 
 ### Phase 9: Exit
 

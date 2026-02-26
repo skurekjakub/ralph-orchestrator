@@ -10,7 +10,7 @@
  * Use the accountIds in config.json's `allowedUsers` array.
  */
 import "dotenv/config";
-import { loadConfig } from "../src/config.js";
+import { loadConfig } from "../src/config/loader.js";
 import { JiraClient } from "../src/jira/client.js";
 
 const issueKey = process.argv[2];
@@ -23,7 +23,7 @@ if (!issueKey) {
 
 async function main() {
   const config = loadConfig();
-  const client = new JiraClient({ config });
+  const client = new JiraClient({ jiraConfig: config.jira, secrets: config.secrets });
 
   console.log(`Fetching comments for ${issueKey}...\n`);
   const comments = await client.getComments(issueKey);

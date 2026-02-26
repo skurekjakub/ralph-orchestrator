@@ -9,6 +9,7 @@ import type { ITaskResultWriter } from "./task-result-writer.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import type { IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
 import { buildTemplateContext } from "../container/setup/agent-includes.js";
+import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
 import type { ILifecycleHook } from "../container/lifecycle.js";
 import { TransitionPhase } from "../orchestrator-types.js";
@@ -39,7 +40,6 @@ export interface ITaskRunner {
  * - {@link transitionToReview} — move issue to "Ready for Review"
  * - {@link postErrorComment} — post error details when a task fails
  *
- * This is a stateless service — all per-task state is scoped to the `run()` call.
  */
 export class TaskRunner implements ITaskRunner {
   private readonly logger: Logger;
@@ -48,16 +48,18 @@ export class TaskRunner implements ITaskRunner {
   private readonly resultWriter: ITaskResultWriter;
   private readonly issueManager: IIssueManager;
   private readonly templateRenderer: IAgentTemplateRenderer;
+  private readonly skillRenderer: ISkillTemplateRenderer;
   private readonly jitMcpConfig: IJitMcpConfigWriter;
   private readonly preExecuteHooks: readonly ILifecycleHook[];
 
-  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, jitMcpConfig, preExecuteHooks = [] }: {
+  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, skillRenderer, jitMcpConfig, preExecuteHooks = [] }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
     resources: IResourceManager;
     resultWriter: ITaskResultWriter;
     issueManager: IIssueManager;
     templateRenderer: IAgentTemplateRenderer;
+    skillRenderer: ISkillTemplateRenderer;
     jitMcpConfig: IJitMcpConfigWriter;
     preExecuteHooks?: readonly ILifecycleHook[];
   }) {
@@ -67,6 +69,7 @@ export class TaskRunner implements ITaskRunner {
     this.resultWriter = resultWriter;
     this.issueManager = issueManager;
     this.templateRenderer = templateRenderer;
+    this.skillRenderer = skillRenderer;
     this.jitMcpConfig = jitMcpConfig;
     this.preExecuteHooks = preExecuteHooks;
   }
@@ -143,12 +146,17 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async prepareProfile(ctx: TaskContext): Promise<void> {
+    const templateContext = buildTemplateContext(ctx);
+
     this.logger.info("Rendering agent templates...");
     await this.templateRenderer.render(
       ctx.profile.id,
-      buildTemplateContext(ctx),
+      templateContext,
       this.logger,
     );
+
+    this.logger.info("Rendering skill templates...");
+    await this.skillRenderer.render(templateContext, this.logger);
 
     this.jitMcpConfig.write(ctx.profile, ctx.issue, this.logger, ctx.triggerParams);
   }

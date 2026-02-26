@@ -125,6 +125,9 @@ export interface TemplateContext {
 
   /** Whether this task is a revision of a previous attempt. */
   isRevision: boolean;
+
+  /** Skill folder names deployed for this profile. */
+  skills: readonly string[];
 }
 
 /**
@@ -167,6 +170,8 @@ export function buildTemplateContext(
     ralphchivesEnabled: ctx.ralphchivesEnabled,
 
     isRevision: ctx.isRevision,
+
+    skills: ctx.profile.skills,
   };
 }
 

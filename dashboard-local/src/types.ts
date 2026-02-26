@@ -46,6 +46,7 @@ export interface TaskLogGroup {
     audit?: string;
     transcript?: string;
     toolOutput?: string;
+    preTool?: string;
   };
   summary?: {
     issueKey?: string;
