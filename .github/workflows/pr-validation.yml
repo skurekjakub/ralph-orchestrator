@@ -168,6 +168,12 @@ jobs:
             curl -fsSL https://get.docker.com | sudo sh
             sudo usermod -aG docker "$USER"
           fi
+          # Ensure daemon is running
+          if ! sudo docker info &>/dev/null 2>&1; then
+            echo "Docker daemon not running — starting..."
+            sudo systemctl enable docker
+            sudo systemctl start docker
+          fi
           if ! docker compose version &>/dev/null 2>&1; then
             if ! sudo docker compose version &>/dev/null 2>&1; then
               echo "Docker Compose plugin not found — installing..."
@@ -185,6 +191,7 @@ jobs:
           ${DOCKER_CMD:-docker} compose version
 
       - name: Start NodeBB + MongoDB
+        id: start-nodebb
         run: ${DOCKER_CMD:-docker} compose -f ralphchives/docker-compose.ci.yml up -d --wait --wait-timeout 300
 
       - name: Seed test data
@@ -218,5 +225,5 @@ jobs:
           NODEBB_API_URL: ${{ env.NODEBB_API_URL }}
 
       - name: Teardown NodeBB
-        if: always() && steps.docker-check.outcome == 'success'
+        if: always() && steps.start-nodebb.outcome != 'skipped'
         run: ${DOCKER_CMD:-docker} compose -f ralphchives/docker-compose.ci.yml down --volumes --remove-orphans
