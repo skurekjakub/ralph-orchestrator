@@ -60,14 +60,6 @@ async function apiPost(path, body) {
   return data.response;
 }
 
-async function apiGet(path) {
-  const res = await fetch(`${NODEBB_URL}${path}`, {
-    headers: { Cookie: cookies },
-  });
-  if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
-  return res.json();
-}
-
 // ── Seed data ────────────────────────────────────────────────────────────
 
 const SEED_TOPICS = [
