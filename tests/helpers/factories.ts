@@ -227,6 +227,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     taskId: "DF-100-1234567890000",
     triggerParams: {},
     isRevision: false,
+    ralphchivesEnabled: false,
     ...overrides,
   };
 }

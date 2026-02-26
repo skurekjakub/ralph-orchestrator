@@ -6,6 +6,7 @@
  * Provides tools for agents to post knowledge to the Ralphchives archive:
  * - post_task_report: Post a structured task report after completing a JIRA task
  * - post_observation: Post a standalone observation or insight
+ * - reply_to_thread: Reply to an existing topic with follow-up information
  *
  * Posts land in the NodeBB forum category assigned to the agent's profile
  * (resolved from NODEBB_CATEGORY_NAME at startup). Runs inside the MCP sidecar
@@ -28,8 +29,9 @@ await initCategoryId();
 
 const { tool: postTaskReport } = await import("./tools/post-task-report.js");
 const { tool: postObservation } = await import("./tools/post-observation.js");
+const { tool: replyToThread } = await import("./tools/reply-to-thread.js");
 
-const tools: ToolDefinition[] = [postTaskReport, postObservation];
+const tools: ToolDefinition[] = [postTaskReport, postObservation, replyToThread];
 
 /** Create a fresh McpServer with all tools registered. */
 function createMcpServer(): McpServer {

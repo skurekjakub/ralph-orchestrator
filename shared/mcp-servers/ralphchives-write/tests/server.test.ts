@@ -48,15 +48,16 @@ describe("Ralphchives Write MCP Server manifest", () => {
 
   it("lists both tool names", () => {
     const manifest = loadManifest();
-    expect(manifest.tools).toEqual(["post_task_report", "post_observation"]);
+    expect(manifest.tools).toEqual(["post_task_report", "post_observation", "reply_to_thread"]);
   });
 });
 
 describe("Ralphchives Write MCP Server source", () => {
-  it("defines both tools", () => {
+  it("defines all three tools", () => {
     const source = readAllSources();
     expect(source).toContain('"post_task_report"');
     expect(source).toContain('"post_observation"');
+    expect(source).toContain('"reply_to_thread"');
   });
 
   it("validates NODEBB_API_TOKEN env var at startup", () => {
@@ -73,6 +74,17 @@ describe("Ralphchives Write MCP Server source", () => {
   it("posts to /api/v3/topics endpoint", () => {
     const source = readAllSources();
     expect(source).toContain("/api/v3/topics");
+  });
+
+  it("reply_to_thread posts to /api/v3/topics/:tid endpoint", () => {
+    const source = readAllSources();
+    expect(source).toContain("/api/v3/topics/${topicId}");
+  });
+
+  it("reply_to_thread returns postId and topicId on success", () => {
+    const source = readAllSources();
+    expect(source).toContain("postId: post.pid");
+    expect(source).toContain("topicId: post.tid");
   });
 
   it("conditionally includes categoryId in schema when NODEBB_CATEGORY_ID is not set", () => {

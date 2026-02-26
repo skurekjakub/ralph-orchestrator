@@ -45,6 +45,7 @@ export async function resolveAgentIncludes(
   for (const file of templates) {
     const templatePath = join(agentDir, file);
     const content = await readFile(templatePath, "utf-8");
+    logger?.info(`  → ${file}: rendering`);
     const rendered = await engine.parseAndRender(content, context);
     await writeFile(join(buildDir, file), rendered, "utf-8");
     logger?.info(`  → ${file}: rendered`);
@@ -163,7 +164,7 @@ export function buildTemplateContext(
     commentTrigger: ctx.profile.match.commentTrigger,
     triggerParams: resolvedParams,
 
-    ralphchivesEnabled: ctx.appConfig.ralphchives.enabled,
+    ralphchivesEnabled: ctx.ralphchivesEnabled,
 
     isRevision: ctx.isRevision,
   };

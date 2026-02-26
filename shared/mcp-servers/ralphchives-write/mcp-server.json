@@ -10,6 +10,7 @@
   "requiredConfig": ["NODEBB_API_TOKEN", "NODEBB_CATEGORY_NAME"],
   "tools": [
     "post_task_report",
-    "post_observation"
+    "post_observation",
+    "reply_to_thread"
   ]
 }

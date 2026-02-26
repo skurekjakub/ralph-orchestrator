@@ -1,4 +1,5 @@
 {% if ralphchivesEnabled %}
+{% section "ralphchives" %}
 ## Ralphchives Knowledge Base
 
 You have access to **Ralphchives** — a persistent knowledge base shared by all agents. It contains task reports and observations from previous work sessions across this profile.
@@ -20,7 +21,7 @@ When you discover something notable that would help future agents on similar tas
 - Patterns that worked well or approaches that failed
 - Source code locations that are important but not well-known
 
-Don't over-post — only record insights that would genuinely save time for a future agent encountering the same area.
+If you find an existing topic that's related to your observation, use `reply_to_thread` to add your insight as a reply instead of creating a new topic. This keeps related knowledge grouped together.
 
 ### After Completing Work — Post Task Report
 
@@ -34,4 +35,5 @@ Before the exit phase, post a task report using `post_task_report`:
 - **Tags:** `["{{ issueKey }}", "{{ issueProject }}"]`
 
 This report becomes searchable for future agents working on related tasks.
+{% endsection %}
 {% endif %}
