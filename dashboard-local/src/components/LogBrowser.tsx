@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useLogBrowser } from "../useLogBrowser";
 import type { IssueGroup } from "./log-browser/utils";
 import { IssueGroupSection } from "./log-browser/IssueGroupSection";
 import { DailyLogsSection } from "./log-browser/DailyLogsSection";
 import { FileViewer } from "./log-browser/FileViewer";
+import { ToolTimeline } from "./log-browser/ToolTimeline";
 import { Button, ButtonVariant } from "./Button";
 
 export function LogBrowser() {
@@ -16,6 +17,15 @@ export function LogBrowser() {
     selectFile,
     refresh,
   } = useLogBrowser();
+
+  const [timelineFiles, setTimelineFiles] = useState<{ preTool: string; toolOutput?: string } | null>(null);
+
+  const openTimeline = useCallback((preToolFile: string, toolOutputFile?: string) => {
+    setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile });
+    selectFile(null); // Clear file view when opening timeline
+  }, [selectFile]);
+
+  const closeTimeline = useCallback(() => setTimelineFiles(null), []);
 
   const taskGroups = groups.filter((g) => g.timestamp);
   const dailyLogs = groups.filter((g) => !g.timestamp);
@@ -55,8 +65,8 @@ export function LogBrowser() {
         <Button onClick={refresh} variant={ButtonVariant.Ghost} className="ml-auto text-info hover:underline">
           Refresh
         </Button>
-        {selectedFile && (
-          <Button onClick={() => selectFile(null)} variant={ButtonVariant.Ghost}>
+        {(selectedFile || timelineFiles) && (
+          <Button onClick={() => { selectFile(null); closeTimeline(); }} variant={ButtonVariant.Ghost}>
             ← Back
           </Button>
         )}
@@ -66,6 +76,11 @@ export function LogBrowser() {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="text-dim text-sm p-4">Loading logs...</div>
+        ) : timelineFiles ? (
+          <ToolTimeline
+            preToolFile={timelineFiles.preTool}
+            toolOutputFile={timelineFiles.toolOutput}
+          />
         ) : selectedFile ? (
           <FileViewer
             filename={selectedFile}
@@ -79,6 +94,7 @@ export function LogBrowser() {
                 key={ig.issueKey}
                 group={ig}
                 onSelectFile={selectFile}
+                onOpenTimeline={openTimeline}
               />
             ))}
 

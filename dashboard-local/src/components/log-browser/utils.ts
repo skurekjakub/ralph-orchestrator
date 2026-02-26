@@ -31,6 +31,7 @@ export const fileLabels: Record<string, { label: string; icon: string }> = {
   audit: { label: "Audit", icon: "🔍" },
   transcript: { label: "Transcript", icon: "💬" },
   toolOutput: { label: "Tool Output", icon: "🔧" },
+  preTool: { label: "Tool Log", icon: "📋" },
 };
 
 export interface IssueGroup {

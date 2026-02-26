@@ -6,9 +6,11 @@ import { Button, ButtonVariant } from "../Button";
 export function IssueGroupSection({
   group,
   onSelectFile,
+  onOpenTimeline,
 }: {
   group: IssueGroup;
   onSelectFile: (filename: string) => void;
+  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const latest = group.executions[0];
@@ -68,6 +70,7 @@ export function IssueGroupSection({
               key={exec.id}
               group={exec}
               onSelectFile={onSelectFile}
+              onOpenTimeline={onOpenTimeline}
             />
           ))}
         </div>

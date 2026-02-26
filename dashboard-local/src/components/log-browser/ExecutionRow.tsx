@@ -5,9 +5,11 @@ import { Button, ButtonVariant, ButtonSize } from "../Button";
 export function ExecutionRow({
   group,
   onSelectFile,
+  onOpenTimeline,
 }: {
   group: TaskLogGroup;
   onSelectFile: (filename: string) => void;
+  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string) => void;
 }) {
   const status = group.summary?.status ?? "unknown";
   const badge = statusBadge[status] ?? "bg-border text-dim";
@@ -59,6 +61,17 @@ export function ExecutionRow({
               </Button>
             );
           }
+        )}
+        {group.files.preTool && onOpenTimeline && (
+          <Button
+            onClick={() => onOpenTimeline(group.files.preTool!, group.files.toolOutput)}
+            variant={ButtonVariant.Subtle}
+            size={ButtonSize.XS}
+            className="flex items-center gap-1 !bg-purple-500/20 !text-purple-400 hover:!bg-purple-500/30"
+          >
+            <span>⏱</span>
+            Timeline
+          </Button>
         )}
       </div>
     </div>

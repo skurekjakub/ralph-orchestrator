@@ -2,7 +2,7 @@
 name: ralph-documentation-syntax
 description: "Complete reference for all Liquid tags, formatting, and components available in the Xperience by Kentico Jekyll documentation site. Use this skill whenever writing or editing documentation pages, inserting Liquid tags (admonitions, code blocks, images, page links, tables, columns, cards), adding assets, creating anchors, or using any documentation-specific component. This is the authoritative syntax reference — consult it instead of guessing tag syntax."
 ---
-
+{% raw %}
 # Documentation Syntax Skill
 
 Reference for all Liquid tags, formatting, and components available in the Xperience by Kentico Jekyll documentation site.
@@ -158,3 +158,5 @@ If the target file cannot be found or has no `identifier`, do not fabricate an I
 - Lowercase, hyphenated filenames reflecting page titles (e.g., `administration-interface-basics.md`).
 - Filenames determine URL slugs.
 - Keep related content within the same collection; use consistent naming.
+
+{% endraw %}

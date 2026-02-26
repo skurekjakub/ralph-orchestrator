@@ -23,6 +23,7 @@ interface CategoryTopic {
   mainPid: number;
   teaser?: { content?: string; pid?: number; user?: { username: string } };
   user?: { username: string };
+  tags?: { value: string }[];
   timestamp: number;
 }
 
@@ -37,6 +38,7 @@ interface SearchCandidate {
   pid: number;
   title: string;
   content: string;
+  tags: string;
   slug: string;
   author: string;
   timestamp: number;
@@ -60,6 +62,7 @@ async function fetchCategoryTopics(cid: number, maxPages = 50): Promise<SearchCa
           pid: topic.mainPid,
           title: topic.title,
           content: topic.teaser?.content ?? "",
+          tags: (topic.tags ?? []).map((t) => t.value).join(" "),
           slug: topic.slug,
           author: topic.teaser?.user?.username ?? topic.user?.username ?? "unknown",
           timestamp: topic.timestamp,
@@ -76,7 +79,7 @@ async function fetchCategoryTopics(cid: number, maxPages = 50): Promise<SearchCa
 }
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
-  query: z.string().describe("Search query — fuzzy-matches against topic titles and post content"),
+  query: z.string().describe("Search query — fuzzy-matches against topic titles, tags, and post content"),
   limit: z.number().int().min(1).max(50).optional().describe("Max results to return (default: 10)"),
 };
 
@@ -89,7 +92,7 @@ export const tool: ToolDefinition = {
   config: {
     description:
       "Search the Ralphchives knowledge archive for topics and posts matching a query. " +
-      "Supports fuzzy/typo-tolerant matching — misspellings and partial terms still return results. " +
+      "Matches against topic titles, tags, and post content with fuzzy/typo-tolerant matching. " +
       "Results are always scoped to your profile's category. Use this to find prior task " +
       "reports, observations, and discussions from your past incarnations.",
     inputSchema,
@@ -122,16 +125,17 @@ export const tool: ToolDefinition = {
         pid: post.pid,
         title: post.topic.title,
         content: post.content,
+        tags: "",
         slug: post.topic.slug,
         author: post.user.username,
         timestamp: post.timestamp,
       }));
 
-      // Merge — search results first (they have full content), then category topics.
-      // Dedup by tid so we don't double-count.
+      // Merge — category topics first (they include tags), then search results
+      // (which have full post content). Dedup by tid.
       const seen = new Set<number>();
       const merged: SearchCandidate[] = [];
-      for (const c of [...searchCandidates, ...categoryTopics]) {
+      for (const c of [...categoryTopics, ...searchCandidates]) {
         if (!seen.has(c.tid)) {
           seen.add(c.tid);
           merged.push(c);
@@ -144,6 +148,7 @@ export const tool: ToolDefinition = {
       const fuse = new Fuse(merged, {
         keys: [
           { name: "title", weight: 2 },
+          { name: "tags", weight: 2 },
           { name: "content", weight: 1 },
         ],
         threshold: 0.4,

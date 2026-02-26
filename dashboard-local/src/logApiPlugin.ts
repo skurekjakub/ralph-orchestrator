@@ -46,6 +46,7 @@ interface TaskLogGroup {
     audit?: string;
     transcript?: string;
     toolOutput?: string;
+    preTool?: string;
   };
   summary?: Record<string, unknown>;
 }
@@ -104,6 +105,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
         else if (ext === "jsonl") group.files.audit = relPath;
         else if (suffix === "transcript" && ext === "md") group.files.transcript = relPath;
         else if (suffix === "tool-output" && ext === "log") group.files.toolOutput = relPath;
+        else if (suffix === "pre-tool" && ext === "log") group.files.preTool = relPath;
       }
     }
 

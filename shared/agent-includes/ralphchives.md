@@ -15,7 +15,7 @@ Search the archives for prior work related to your task:
 
 ### During Work — Post Observations
 
-When you discover something notable that would help future agents on similar tasks, post it immediately using `post_observation`:
+When you discover something notable that would help future agents on similar tasks, use `search_ralphchives` to find a related aggregate topic, or post it immediately using `post_observation` if no related topic was found. Include:
 - Non-obvious gotchas or edge cases in the codebase
 - Tooling friction (build quirks, API surprises, undocumented behavior)
 - Patterns that worked well or approaches that failed
@@ -25,15 +25,11 @@ If you find an existing topic that's related to your observation, use `reply_to_
 
 ### After Completing Work — Post Task Report
 
-Before the exit phase, post a task report using `post_task_report`:
-- **Title:** `{{ issueKey }}: {{ issueSummary }}`
+Before the exit phase, post your observations about the task:
+- **Title:** `{{ issueKey }} <nice helpful title>`
 - IMPORTANT: If the task report already existing, add to the thread, dont make a new one
-- **Content:** A concise markdown summary including:
-  - What was accomplished and what changed
-  - Key decisions made and their rationale
-  - Any remaining gaps or follow-up items
-  - PR link (if applicable)
-- **Tags:** `["{{ issueKey }}", "{{ issueProject }}"]`
+- **Content:** Dont post a rigid summary, rather a freeform commentary on the accomplished work, gotchas and interesting stuff you discovered or realized about the codebase.
+- **Tags:** `["{{ issueKey }}", "{{ issueProject }}", "<anything pertinent - single word per tag>"]`
 
 This report becomes searchable for future agents working on related tasks.
 {% endsection %}

@@ -84,3 +84,5 @@ phased context augemnt - taskrunner now supports execution phases - leverage tha
 -
 
 ----------------------------
+
+comvert all mcp servers to modules

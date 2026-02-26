@@ -36,7 +36,7 @@ Now YOU implement all documentation changes based on the researcher's report:
    - `.github/resources/styleguides/docs-style-guide.md`
    - `.github/resources/styleguides/typography.md`
    - `.github/resources/styleguides/word-list.md`
-   - `.github/resources/markdown-syntax.md` for Jekyll/Liquid syntax (also available as the **ralph-documentation-syntax** skill)
+   - for syntax, see `ralph-documentation-syntax` skill.
 
 2. **Implement changes** — create new pages, update existing ones, remove obsolete content:
    - Follow the **ralph-new-page-creation** skill guidelines for new pages

@@ -69,21 +69,14 @@ These are observed failure modes from previous review runs.
 
 ---
 {%- if triggerParams.codesamples %}
-
 {% section "codesamples-context" %}
 ## Code Samples Project — Review Context
 
-This task involves the **ASP.NET code samples project** at `src/_code/src/`. Code is pulled into documentation pages via `{% raw %}{% code_link %}{% endraw %}` Liquid tags. When reviewing, verify:
-
-- Every `{% raw %}{% code_link source="..." %}{% endraw %}` path matches an actual file under `src/_code/src/`
-- Code samples use explicit types (not `var`)
-- The project builds cleanly: `npm run codesamples:build`
-- Files in `Generated/` are not manually edited
-- New `.cs` files follow the namespace pattern `Codesamples.*` and match the directory organization of existing samples
+This task involves the **ASP.NET code samples project** at `src/_code/src/`. See the `ralph-code-samples` skill.
 {% endsection %}
 {%- endif %}
-{%- if triggerParams.branch_name %}
 
+{%- if triggerParams.branch_name %}
 {% section "source-branch-context" %}
 ## Xperience Source Branch — Review Context
 

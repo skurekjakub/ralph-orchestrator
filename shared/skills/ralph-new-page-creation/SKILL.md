@@ -63,7 +63,7 @@ The following properties must appear at the top of the `.md` file between triple
 - **Page Level:** Set `license: 1` for standard tier. Consult dev team for higher tiers.
 - **Inline (Partial) Licensing:** Do not use frontmatter for section-specific licensing. Instead, use the Liquid tag:
   ```liquid
-  {% license_info %} Custom message for specific feature {% endlicense_info %}
+  {% raw %}{% license_info %} Custom message for specific feature {% endlicense_info %}{% endraw %}
   ```
   *Note: Content inside license tags is excluded from search indexing.*
 

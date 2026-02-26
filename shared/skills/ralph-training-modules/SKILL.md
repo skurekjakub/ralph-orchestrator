@@ -107,7 +107,7 @@ license: 1
 [Hook paragraph - why this matters to their work]
 
 In this module, you'll learn how to:
-
+{% raw %}
 {% info icon=false %}
 - [Key outcome 1]
 - [Key outcome 2]
@@ -157,3 +157,4 @@ Here's a quick recap of what you learned in this module. You now can:
 - [Key skill/outcome 3]
 {% endkey %}
 ```
+{% endraw %}
