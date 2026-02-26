@@ -23,7 +23,8 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 
 | Directory | Purpose |
 |---|---|
-| `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), config loading, logger, retry utility |
+| `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), logger, retry utility |
+| `src/config/` | Configuration types (`types.ts`), Zod validation schemas (`schemas.ts`), config + profile loader (`loader.ts`), constants (`constants.ts`) |
 | `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
 | `src/container/` | Container lifecycle (`manager.ts`), lifecycle hooks (`lifecycle.ts`), docker compose wrapper (`compose-client.ts`), CLI path types (`types.ts`), result parser, log collector, streaming capture |
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`), shared execution helper (`shared-exec.ts`) |
@@ -39,6 +40,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `shared/hooks/` | Copilot CLI audit hooks (session logging) |
 | `shared/agent-includes/` | Shared Liquid partials for agent templates (`*.md` — ADO API, prompt security, personality, source references, workflow includes). Supports subdirectories (e.g. `personality/`, `ralph-docs/`). |
 | `shared/mcp-servers/` | MCP server manifests and custom server code (one subdirectory per server) |
+| `shared/skills/` | Shared agent skill folders, mounted per-profile into `.github/skills/` inside containers |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 | `dashboard-local/` | Local development dashboard (Vite + React) |
 | `tests/` | Vitest test suite |
@@ -57,9 +59,9 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 Containers are managed via `docker compose` with a **three-file merge** pattern:
 1. **Base compose** — `profiles/<id>/docker-compose.yml` (services, volumes, build config)
 2. **Security overlay** — `shared/security/docker-compose.security.yml` (proxy sidecar, network isolation, resource limits)
-3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (MCP sidecar service, URL-only MCP config, resource file mounts — auto-generated at startup)
+3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (MCP sidecar service, URL-only MCP config, skill folder mounts, resource file mounts — auto-generated at startup)
 
-`ComposeClient` automatically injects all files: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay is only included if it exists (profiles with no MCP servers or resources skip it).
+`ComposeClient` automatically injects all files: `docker compose -f base.yml -f security.yml -f overlay.yml <command>`. The overlay is only included if it exists (profiles with no MCP servers, skills, or resources skip it).
 
 ### Network Isolation
 
@@ -145,6 +147,7 @@ shared/
       mcp-server.json   — Server manifest (type, command, args, env, sidecarPort, proxyDomains)
       src/ dist/         — Custom server source/bundle (type: "custom" only)
   mcp-sidecar/          — MCP sidecar container (gateway process manager + Dockerfile)
+  skills/               — Shared agent skill definitions (mounted into .github/skills/ per profile)
 ```
 
 Agent templates use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`, `{% section "name" %}`) with partials from `shared/agent-includes/*.md` (supports subdirectories, e.g. `{% render 'personality/ralph' %}`). The custom `{% section "name" %}...{% endsection %}` block tag wraps content in `<name>...</name>` XML boundaries for LLM recall and injection isolation. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, JIRA issue data (key, summary, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in `src/container/setup/agent-includes.ts`. Resolved files go to `.build/` and are mounted read-only into containers.

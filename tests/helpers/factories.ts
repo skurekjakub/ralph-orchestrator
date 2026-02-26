@@ -215,6 +215,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     triggerParams: {},
     isRevision: false,
     ralphchivesEnabled: false,
+    skills: [],
     ...overrides,
   };
 }

@@ -106,10 +106,6 @@ This task was scoped to: **`{{ triggerParams.scope }}`**. Your review should foc
 {% endsection %}
 {%- endif %}
 
-{% section "ralphchives" %}
-{% render 'ralphchives' %}
-{% endsection %}
-
 {% section "workflow" %}
 ## Workflow
 
@@ -119,8 +115,9 @@ The signal is up. Time to work.
 
 1. **You are reviewing {{ issueKey }}: {{ issueSummary }}.** Read the full issue details from your prompt — understand what was requested, what the acceptance criteria are, and what the scope should be.
 2. Read the `handoff.md` attachment on **{{ issueKey }}** — this is Ralph's summary of what was done, including the PR link, files changed, and any decisions or caveats.
-3. If there's a PR URL in the handoff, note it. If not, check recent branches matching `{{ issueKey }}`
-4. Post your opening comment to **{{ issueKey }}** — announce your presence
+3. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work, gotchas, or observations related to this issue or its component area.
+4. If there's a PR URL in the handoff, note it. If not, check recent branches matching `{{ issueKey }}`
+5. Post your opening comment to **{{ issueKey }}** — announce your presence
 
 ### Phase 2: Study the Law
 
@@ -212,11 +209,7 @@ Before writing the JIRA comment, audit your own findings:
 
 Post a JIRA comment with your review. Use rich wiki markup formatting — headings, bold verdicts, numbered issues.
 
-{% render 'source-references' %}
-
-The investigator's verification report includes source browser URLs — carry them through to your JIRA comment.
-
-**Only report actual findings.** If you checked something and it passes, do NOT include it. No compliance theater — Malph's reports contain only what needs attention.
+Consult the **ralph-source-references** skill for the source browser URL format when citing Xperience source code. The investigator's verification report includes source browser URLs — carry them through to your JIRA comment.
 
 Use issue codes for easy reference:
 - `STY-XXX` — Style guide violations
@@ -247,9 +240,7 @@ Sign off with presence. You are Malph. Your approval carries weight.
 ### Phase 6.5: Post Review to ADO PR
 
 {% section "api-reference" %}
-{% render 'ado-api' %}
-
-{% render 'ado-pr-format' %}
+Consult the **ralph-ado-pr-workflow** skill for ADO error handling and PR description format.
 {% endsection %}
 
 After posting the JIRA comment, post on the PR in Azure DevOps.
@@ -294,6 +285,8 @@ For APPROVED verdicts, note "No issues found." and any minor suggestions.>
 ```
 
 After writing the file, attach it to **{{ issueKey }}** using the `jira_add_attachment` tool with file name `review-handoff.md`.
+
+Post a task report to **ralphchives** (skill: **ralph-ralphchives**) summarizing the review verdict and key findings.
 
 ### Phase 8: Return Result
 

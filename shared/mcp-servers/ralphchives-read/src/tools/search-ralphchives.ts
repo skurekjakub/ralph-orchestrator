@@ -138,7 +138,9 @@ export const tool: ToolDefinition = {
         }
       }
 
-      // Fuzzy rank with Fuse.js — title weighted 2x over content
+      // Fuzzy rank with Fuse.js — title weighted 2x over content.
+      // Automatically OR every whitespace-separated word so each term
+      // independently matches (e.g. "migration jekyll" → "migration" OR "jekyll").
       const fuse = new Fuse(merged, {
         keys: [
           { name: "title", weight: 2 },
@@ -147,9 +149,12 @@ export const tool: ToolDefinition = {
         threshold: 0.4,
         distance: 200,
         includeScore: true,
+        useExtendedSearch: true,
       });
 
-      const fuzzyResults = fuse.search(query, { limit });
+      // Build OR expression: split on whitespace, join with " | "
+      const orQuery = query.trim().split(/\s+/).join(" | ");
+      const fuzzyResults = fuse.search(orQuery, { limit });
 
       const results = fuzzyResults.map((r) => ({
         topicId: r.item.tid,

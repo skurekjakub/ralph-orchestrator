@@ -103,6 +103,7 @@ shared/
     { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$jira.branch" } }
   ],
   "resources": { "mountBase": "resources/ralph-resources" },
+  "skills": ["git-workflow"],
   "cleanPaths": ["/workspace/resources/chats"],
   "variants": [
     {
@@ -131,6 +132,7 @@ shared/
 | `cleanPaths` | Array of absolute container paths to delete before each agent run. | `[]` |
 | `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
 | `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
+| `skills` | Array of skill folder names from `shared/skills/` to mount into the container at `.github/skills/`. Each name must match a subdirectory in `shared/skills/`. Validated at startup. | `[]` |
 
 The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
 
@@ -276,6 +278,18 @@ Profiles can auto-mount files from a `resources/` directory into the container. 
 ```
 
 All files in `profiles/<id>/resources/` are recursively discovered and mounted read-only at `/workspace/<mountBase>/<relative-path>`. Mounts are included in the auto-generated compose overlay.
+
+#### Skills
+
+Profiles can mount shared skill folders into the container. Skills live in `shared/skills/<name>/` and are mounted at `/workspace/.github/skills/<name>/` (the standard Copilot CLI skills path, sibling to `.github/agents/`).
+
+```json
+{
+  "skills": ["git-workflow", "code-review"]
+}
+```
+
+Each skill name must match a subdirectory in `shared/skills/`. Skills are validated at startup — missing directories cause a startup error. Mounts are read-only and included in the auto-generated compose overlay.
 
 #### Clean Paths
 

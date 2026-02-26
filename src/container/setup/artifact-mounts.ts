@@ -26,8 +26,9 @@ export function generateAgentVolumeMounts(profileDir: string): string[] {
 /**
  * Generate Docker Compose volume mounts for skill folders.
  *
- * Each skill is a directory under `shared/skills/<name>/` containing arbitrary
- * files. The entire directory is mounted read-only at `/workspace/.github/skills/<name>/`.
+ * Skills are rendered to `shared/skills/.build/<name>/` at task time (Liquid templates).
+ * This function generates mount lines pointing from the skills build directory
+ * to `/workspace/.github/skills/<name>/` inside the container.
  *
  * @param skillsDir Absolute path to `shared/skills/` on the host.
  * @param skillNames List of skill names declared by the profile.
@@ -37,7 +38,8 @@ export function generateSkillVolumeMounts(
   skillsDir: string,
   skillNames: string[],
 ): string[] {
+  const buildDir = join(skillsDir, ".build");
   return skillNames.map((name) =>
-    `      - ${join(skillsDir, name)}:/workspace/.github/skills/${name}:ro`,
+    `      - ${join(buildDir, name)}:/workspace/.github/skills/${name}:ro`,
   );
 }

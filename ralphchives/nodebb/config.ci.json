@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:4567",
+  "secret": "ci-test-secret",
+  "database": "mongo",
+  "mongo": {
+    "host": "mongodb",
+    "port": "27017",
+    "username": "nodebb",
+    "password": "nodebb",
+    "database": "nodebb",
+    "uri": "mongodb://nodebb:nodebb@mongodb:27017/nodebb?authSource=admin"
+  }
+}

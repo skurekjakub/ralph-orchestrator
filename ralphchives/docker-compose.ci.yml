@@ -1,0 +1,46 @@
+# Ralphchives CI Stack
+#
+# Minimal NodeBB + MongoDB for integration tests.
+# No Neo4j, no persistent volumes — ephemeral per CI run.
+#
+# Usage:
+#   docker compose -f ralphchives/docker-compose.ci.yml up -d --wait
+#   docker compose -f ralphchives/docker-compose.ci.yml down --volumes
+
+name: ralphchives-ci
+
+services:
+  nodebb:
+    image: ghcr.io/nodebb/nodebb:latest
+    ports:
+      - "4567:4567"
+    volumes:
+      - ./nodebb/config.ci.json:/tmp/config.ci.json:ro
+      - ./nodebb/entrypoint.ci.sh:/usr/src/app/entrypoint.ci.sh:ro
+    entrypoint: ["bash", "/usr/src/app/entrypoint.ci.sh"]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4567/api/config"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 60s
+
+  mongodb:
+    image: mongo:7-jammy
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nodebb
+      MONGO_INITDB_ROOT_PASSWORD: nodebb
+      MONGO_INITDB_DATABASE: nodebb
+    volumes:
+      - ./nodebb/mongodb-user-init.js:/docker-entrypoint-initdb.d/user-init.js:ro
+    expose:
+      - "27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "nodebb", "-p", "nodebb", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s

@@ -10,6 +10,7 @@ import type { IProfileRouter } from "./services/profile-router.js";
 import type { IIssueManager } from "./services/jira-issue-manager.js";
 import type { IResourceManager } from "./services/task-resource-manager.js";
 import type { IAgentTemplateRenderer } from "./container/setup/agent-includes.js";
+import type { ISkillTemplateRenderer } from "./container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
 import type { ITriggerScanner } from "./services/trigger-scanner.js";
 import type { ITaskRunner } from "./services/task-runner.js";
@@ -61,6 +62,7 @@ export interface OrchestratorCradle {
   promptBuilder: PromptBuilder;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
+  skillRenderer: ISkillTemplateRenderer;
   jitMcpConfig: IJitMcpConfigWriter;
   containerFactory: ContainerManagerFactory;
   preExecuteHooks: readonly ILifecycleHook[];

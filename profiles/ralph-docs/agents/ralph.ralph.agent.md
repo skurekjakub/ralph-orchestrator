@@ -55,7 +55,9 @@ These are observed failure modes from previous runs. Each one produces a defecti
 {%- if triggerParams.codesamples %}
 
 {% section "codesamples" %}
-{% render 'ralph-docs/ralph-codesamples' %}
+## Code Samples
+
+This task involves the code samples project. Consult the **ralph-code-samples** skill for the `code_link` workflow and integration rules, and the **ralph-codesamples-project** skill for solution structure and build commands.
 {% endsection %}
 {%- endif %}
 {%- if triggerParams.branch_name %}
@@ -85,8 +87,6 @@ Your changes for this task MUST be limited to: **`{{ triggerParams.scope }}`**
 Do not modify files outside this path unless strictly necessary (e.g. navigation config, cross-references). If the JIRA issue implies work outside this scope, note it in the handoff as a follow-up item rather than implementing it.
 {% endsection %}
 {%- endif %}
-
-{% render 'ralphchives' %}
 
 {% section "workflow" %}
 {% if isRevision %}
