@@ -13,6 +13,12 @@ vi.mock("../src/shared.js", () => ({
 const shared = await import("../src/shared.js");
 const { tool } = await import("../src/tools/post-observation.js");
 
+function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
+  const item = result.content[0];
+  if (item.type !== "text") throw new Error(`Expected text content, got ${item.type}`);
+  return item.text;
+}
+
 describe("post_observation handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,7 +74,7 @@ describe("post_observation handler", () => {
 
     const result = await tool.handler({ title: "t", content: "c" }, {} as never);
 
-    const body = JSON.parse(result.content[0].text as string);
+    const body = JSON.parse(textContent(result));
     expect(body.success).toBe(true);
     expect(body.topicId).toBe(10);
     expect(body.slug).toBe("test-slug");

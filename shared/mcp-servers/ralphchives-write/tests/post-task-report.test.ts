@@ -13,6 +13,12 @@ vi.mock("../src/shared.js", () => ({
 const shared = await import("../src/shared.js");
 const { tool } = await import("../src/tools/post-task-report.js");
 
+function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
+  const item = result.content[0];
+  if (item.type !== "text") throw new Error(`Expected text content, got ${item.type}`);
+  return item.text;
+}
+
 describe("post_task_report handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,7 +51,7 @@ describe("post_task_report handler", () => {
       content: "Changes made...",
       tags: ["DF-100", "api"],
     });
-    const body = JSON.parse(result.content[0].text as string);
+    const body = JSON.parse(textContent(result));
     expect(body.success).toBe(true);
     expect(body.topicId).toBe(42);
   });
