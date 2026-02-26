@@ -126,6 +126,12 @@ export function buildMockDeps(
     router,
     taskRunner,
     triggerScanner,
+    ralphchivesConfig: {
+      enabled: false,
+      neo4jUri: "",
+      neo4jUser: "",
+      nodebbApiUrl: ""
+    },
     ledger,
     heartbeat: null,
     logger: silentLogger,
@@ -200,6 +206,12 @@ export function buildBaseDeps(
     poller: createMockPoller(),
     router,
     taskRunner,
+    ralphchivesConfig: {
+      enabled: false,
+      neo4jUri: "",
+      neo4jUser: "",
+      nodebbApiUrl: ""
+    },
     triggerScanner: scanner,
     ledger,
     heartbeat: null,

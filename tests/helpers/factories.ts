@@ -213,6 +213,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     commentTrigger: "@ralph",
     triggerParams: {},
     isRevision: false,
+    ralphchivesEnabled: false,
     ...overrides,
   };
 }
