@@ -1,7 +1,7 @@
 import type { LogEntry } from "../orchestrator-types.js";
 import { LogLevel, LogSource } from "../orchestrator-types.js";
 import type { Logger } from "../logger.js";
-import type { IOutputConfig } from "../config.js";
+import type { IOutputConfig } from "../config/types.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 

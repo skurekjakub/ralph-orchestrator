@@ -140,8 +140,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       }
     }
 
-    validateAgentMounts(composePath, agentsDir, agentFiles, prefix, errors);
     validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
+    validateSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
 
     if (Array.isArray(p.githubMcpTools) && p.githubMcpTools.length === 0) {
       errors.push(
@@ -154,31 +154,25 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 }
 
 /**
- * Verify that every .agent.md template has a matching volume mount
- * in docker-compose.yml sourcing from .build/<name>.agent.md.
+ * Validate that all skills referenced by a profile exist in shared/skills/.
  */
-function validateAgentMounts(
-  composePath: string,
-  _agentsDir: string,
-  agentFiles: string[],
+function validateSkills(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
+  profile: any,
+  skillsDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  if (!existsSync(composePath) || agentFiles.length === 0) return;
+  const skills: unknown[] = profile.skills ?? [];
+  if (skills.length === 0) return;
 
-  let composeContent: string;
-  try {
-    composeContent = readFileSync(composePath, "utf-8");
-  } catch {
-    return;
-  }
-
-  for (const agentFile of agentFiles) {
-    const expectedMount = `./.build/${agentFile}`;
-    if (!composeContent.includes(expectedMount)) {
+  for (const skill of skills) {
+    if (typeof skill !== "string") continue;
+    const skillPath = join(skillsDir, skill);
+    if (!existsSync(skillPath)) {
       errors.push(
-        `${prefix}: agent file "${agentFile}" has no volume mount in docker-compose.yml\n` +
-        `  Add a mount: ${expectedMount}:/workspace/.github/agents/${agentFile}:ro`
+        `${prefix}: skill "${skill}" not found in shared/skills/\n` +
+        `  Create shared/skills/${skill}/`
       );
     }
   }

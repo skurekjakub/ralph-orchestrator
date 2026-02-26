@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { IContainerLogCollector } from "./log-collector.js";
 import { CaptureMode } from "./log-collector.js";
 import type { CliPaths } from "./types.js";

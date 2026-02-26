@@ -1,4 +1,4 @@
-import type { IJiraConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IRalphchivesConfig, IAgentProfile } from "./config.js";
+import type { IJiraConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IRalphchivesConfig, IAgentProfile } from "./config/types.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { Logger } from "./logger.js";
 import type { IJiraClient } from "./jira/client.js";

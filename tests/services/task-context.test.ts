@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { makeIssue, makeProfile } from "../helpers/factories.js";
-import type { IRalphchivesConfig } from "../../src/config.js";
+import type { IRalphchivesConfig } from "../../src/config/types.js";
 
 const ralphchivesConfig: IRalphchivesConfig = {
   enabled: false,

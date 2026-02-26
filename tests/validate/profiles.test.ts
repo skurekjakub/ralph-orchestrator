@@ -41,10 +41,7 @@ function writeValidProfile(
   }
 
   if (!overrides.skipCompose) {
-    const compose = overrides.composeContent ??
-      agentFiles.map((f) => {
-        return `      - ./.build/${f}:/workspace/.github/agents/${f}:ro`;
-      }).join("\n");
+    const compose = overrides.composeContent ?? "      - ./some/volume:/workspace/x:ro";
     writeFileSync(join(dir, "docker-compose.yml"), `services:\n  app:\n    volumes:\n${compose}\n`);
   }
 
@@ -269,26 +266,35 @@ describe("validateProfiles", () => {
     expect(c.errors.filter((e) => e.includes("revisionStatuses"))).toHaveLength(0);
   });
 
-  describe("agent mount validation", () => {
-    it("errors when agent file has no volume mount in compose", () => {
+  describe("skill validation", () => {
+    it("errors when referenced skill does not exist", () => {
+      mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
       writeValidProfile("test", {
-        agentFiles: ["ralph.agent.md"],
-        composeContent: "      - ./some/other/mount:/workspace/x:ro",
+        profileJson: {
+          repo: tempDir,
+          skills: ["nonexistent-skill"],
+          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        },
       });
       const c = collector();
       validateProfiles(c);
-      expect(c.errors.some((e) => e.includes("has no volume mount"))).toBe(true);
-      expect(c.errors.some((e) => e.includes("ralph.agent.md"))).toBe(true);
+      expect(c.errors.some((e) => e.includes('skill "nonexistent-skill" not found'))).toBe(true);
     });
 
-    it("passes when agent file has a matching volume mount", () => {
+    it("passes when referenced skill exists", () => {
+      const skillDir = join(tempDir, "shared", "skills", "my-skill");
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), "# Skill");
       writeValidProfile("test", {
-        agentFiles: ["ralph.agent.md"],
-        composeContent: "      - ./.build/ralph.agent.md:/workspace/.github/agents/ralph.agent.md:ro",
+        profileJson: {
+          repo: tempDir,
+          skills: ["my-skill"],
+          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        },
       });
       const c = collector();
       validateProfiles(c);
-      expect(c.errors.filter((e) => e.includes("volume mount"))).toHaveLength(0);
+      expect(c.errors.filter((e) => e.includes("skill"))).toHaveLength(0);
     });
   });
 

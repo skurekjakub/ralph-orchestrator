@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loadConfig } from "../src/config.js";
+import { loadConfig } from "../src/config/loader.js";
 import { readFileSync, readdirSync } from "node:fs";
 
 vi.mock("node:fs", async () => {

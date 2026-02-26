@@ -1,4 +1,4 @@
-import { IAgentProfile } from "../config.js";
+import { IAgentProfile } from "../config/types.js";
 import { IContainerManager } from "./manager.js";
 
 /** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */

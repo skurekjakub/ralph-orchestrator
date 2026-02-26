@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { JiraIssue } from "../jira/types.js";
 import type { RalphResult, CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";

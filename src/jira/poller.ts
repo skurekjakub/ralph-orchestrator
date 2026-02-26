@@ -1,4 +1,4 @@
-import type { IJiraConfig } from "../config.js";
+import type { IJiraConfig } from "../config/types.js";
 import type { IJiraClient } from "./client.js";
 import type { JiraIssue } from "./types.js";
 import type { Logger } from "../logger.js";

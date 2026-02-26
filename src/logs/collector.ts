@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { IOutputConfig } from "../config.js";
+import type { IOutputConfig } from "../config/types.js";
 import type { RalphResult } from "../container/types.js";
 
 /** Public contract for execution summary persistence. */

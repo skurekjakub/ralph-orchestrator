@@ -8,7 +8,7 @@ import { OperationStatus } from "../../src/services/operation-ledger.js";
 import { makeProfile, makeIssue, makeComment, makeResult } from "../helpers/factories.js";
 import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
-import type { IAgentProfile } from "../../src/config.js";
+import type { IAgentProfile } from "../../src/config/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import { buildMockDeps, buildBaseDeps, runUntil } from "./e2e-helpers.js";

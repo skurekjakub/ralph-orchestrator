@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 
 /**
  * Build JQL queries dynamically from agent profile matching rules.

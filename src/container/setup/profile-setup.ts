@@ -5,6 +5,7 @@ import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
 import { generateProfileSquidConf } from "./squid-config.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
+import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
 import { writeCopilotConfig } from "./url-restrictions.js";
 import { discoverMcpServers } from "./mcp-manifest.js";
 
@@ -28,6 +29,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
   const root = rootDir ?? process.cwd();
   const mcpServersDir = resolve(root, "shared/mcp-servers");
   const sidecarDir = resolve(root, "shared/mcp-sidecar");
+  const skillsDir = resolve(root, "shared/skills");
   const profilesDir = resolve(root, "profiles");
   const baselineSquidPath = resolve(root, "shared/security/squid.conf");
 
@@ -53,7 +55,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig };
+    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; skills?: string[] };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -95,8 +97,13 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const resourceVolumes = parsed.resources
       ? generateResourceVolumeMounts(profileDir, parsed.resources)
       : [];
+    const agentVolumes = generateAgentVolumeMounts(profileDir);
+    const skillNames = parsed.skills ?? [];
+    const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
 
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, resourceVolumes);
+    const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
+
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes);
     writeFileSync(
       join(buildDir, "docker-compose.overlay.yml"),
       overlay,

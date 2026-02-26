@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
-import type { IAppConfig, IAgentProfile } from "./config.js";
+import type { IAppConfig, IAgentProfile } from "./config/types.js";
 import type { OrchestratorCradle } from "./awlix-cradle-types.js";
 import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";

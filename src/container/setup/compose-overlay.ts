@@ -71,7 +71,7 @@ export function generateComposeOverlay(
   lines.push("      # Hides .ralph/ from git (blocks everything including itself)");
   lines.push(`      - ${join(buildDir, ".gitignore")}:/workspace/.ralph/.gitignore:ro`);
   if (extraVolumes.length > 0) {
-    lines.push("      # Resource files");
+    lines.push("      # Agent definitions, skills, and resource files");
     lines.push(...extraVolumes);
   }
   if (serverNames.length > 0) {

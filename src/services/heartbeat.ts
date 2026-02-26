@@ -5,7 +5,7 @@
  */
 
 import type { Logger } from "../logger.js";
-import type { IDashboardConfig } from "../config.js";
+import type { IDashboardConfig } from "../config/types.js";
 import { toErrorMessage } from "../util/error.js";
 
 /** Heartbeat lifecycle status sent to the dashboard. */

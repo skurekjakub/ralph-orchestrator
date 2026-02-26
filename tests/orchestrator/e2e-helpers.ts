@@ -11,7 +11,7 @@ import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
 import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
 import type { Mocked } from "../helpers/mocks.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
-import type { IAgentProfile } from "../../src/config.js";
+import type { IAgentProfile } from "../../src/config/types.js";
 
 type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
 import type { RalphResult } from "../../src/container/types.js";
