@@ -8,6 +8,8 @@ add validation to allowed triggerparams =>
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
+dashboard attached to process and allows remote kill????
+
 -------------------------------------------------------------
 
 when you're done throughly audit your changes look for bugs, edge cases, missed tests, bugs possible refactoring opportunities and implement, 

@@ -3,6 +3,10 @@ import type { IContainerLogCollector } from "./log-collector.js";
 import { CaptureMode } from "./log-collector.js";
 import type { CliPaths } from "./types.js";
 
+/** Path to the CLI session-state directory inside the container. */
+const SESSION_STATE_PATH = "/workspace/.ralph/session-state";
+const SESSION_STATE_DB = "/workspace/.ralph/session-store.db";
+
 /** Optional callbacks wired into streamed log sources. */
 export interface LogSourceCallbacks {
   /** Invoked for each line of real-time tool output. */
@@ -112,6 +116,18 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       extension: "log",
       mode: CaptureMode.Collect,
       useComposeLogs: true,
+    });
+
+    logs.addExport({
+      id: "session-state",
+      service: "app",
+      containerPath: SESSION_STATE_PATH,
+    });
+
+    logs.addExport({
+      id: "session-db",
+      service: "app",
+      containerPath: SESSION_STATE_DB,
     });
 
     logs.attach();

@@ -36,11 +36,21 @@ export interface LogSourceDef {
   onLine?: (line: string) => void;
 }
 
+/** Definition of a folder to export wholesale from the container via `docker compose cp`. */
+export interface FolderExportDef {
+  /** Short identifier used in filenames and log messages (e.g. `"session-state"`). */
+  id: string;
+  /** Docker Compose service name that hosts the folder. */
+  service: string;
+  /** Absolute path to the folder inside the container. */
+  containerPath: string;
+}
+
 /** Result of collecting a single log source. */
 export interface CollectedLog {
   /** The source `id` from the definition. */
   id: string;
-  /** Local filesystem path to the saved file, or `null` if nothing was captured. */
+  /** Local filesystem path to the saved file or directory, or `null` if nothing was captured. */
   path: string | null;
 }
 
@@ -50,6 +60,8 @@ export interface IContainerLogCollector {
   setTaskId(key: string): void;
   /** Register a log source to be collected. */
   addSource(source: LogSourceDef): void;
+  /** Register a folder to be exported wholesale from the container after the task. */
+  addExport(folder: FolderExportDef): void;
   /** Start streaming for all `"stream"` mode sources. */
   attach(): void;
   /** Stop all active streaming processes. */
@@ -70,6 +82,7 @@ export interface IContainerLogCollector {
  */
 export class ContainerLogCollector implements IContainerLogCollector {
   private readonly sources: LogSourceDef[] = [];
+  private readonly exports: FolderExportDef[] = [];
   private readonly streamProcs = new Map<string, ResultPromise>();
   private attached = false;
   private issueKey: string | null = null;
@@ -96,6 +109,11 @@ export class ContainerLogCollector implements IContainerLogCollector {
     if (this.attached && source.mode === CaptureMode.Stream) {
       this.startStream(source);
     }
+  }
+
+  /** Register a folder to be exported wholesale from the container after the task. */
+  addExport(folder: FolderExportDef): void {
+    this.exports.push(folder);
   }
 
   /**
@@ -158,6 +176,20 @@ export class ContainerLogCollector implements IContainerLogCollector {
       } catch {
         this.logger.warn(`Failed to collect ${source.id} log`);
         results.push({ id: source.id, path: null });
+      }
+    }
+
+    for (const folder of this.exports) {
+      const localDir = join(issueDir, `${this.issueKey}-${timestamp}-${folder.id}`);
+      try {
+        await this.compose.compose([
+          "cp", `${folder.service}:${folder.containerPath}`, localDir,
+        ]);
+        this.logger.info(`${folder.id} export saved: ${localDir}`);
+        results.push({ id: folder.id, path: localDir });
+      } catch {
+        this.logger.warn(`Failed to export ${folder.id} folder`);
+        results.push({ id: folder.id, path: null });
       }
     }
 

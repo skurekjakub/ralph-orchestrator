@@ -63,6 +63,7 @@ function createMockLogCollector(): Mocked<IContainerLogCollector> {
   return {
     setTaskId: vi.fn(),
     addSource: vi.fn(),
+    addExport: vi.fn(),
     attach: vi.fn(),
     detach: vi.fn(),
     collectAll: vi.fn().mockResolvedValue([]),

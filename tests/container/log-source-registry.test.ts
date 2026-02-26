@@ -9,13 +9,15 @@ function createMockCollector(): {
   collector: IContainerLogCollector;
   setTaskId: ReturnType<typeof vi.fn>;
   addSource: ReturnType<typeof vi.fn>;
+  addExport: ReturnType<typeof vi.fn>;
   attach: ReturnType<typeof vi.fn>;
 } {
   const setTaskId = vi.fn();
   const addSource = vi.fn();
+  const addExport = vi.fn();
   const attach = vi.fn();
-  const collector: IContainerLogCollector = { setTaskId, addSource, attach, detach: vi.fn(), collectAll: vi.fn() };
-  return { collector, setTaskId, addSource, attach };
+  const collector: IContainerLogCollector = { setTaskId, addSource, addExport, attach, detach: vi.fn(), collectAll: vi.fn() };
+  return { collector, setTaskId, addSource, addExport, attach };
 }
 
 describe("LogSourceRegistry", () => {
@@ -187,6 +189,18 @@ describe("LogSourceRegistry", () => {
           collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
         }),
       );
+    });
+
+    it("registers session-state folder export", () => {
+      const { collector, addExport } = createMockCollector();
+
+      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+
+      expect(addExport).toHaveBeenCalledWith({
+        id: "session-state",
+        service: "app",
+        containerPath: "/workspace/.ralph/session-state",
+      });
     });
   });
 });
