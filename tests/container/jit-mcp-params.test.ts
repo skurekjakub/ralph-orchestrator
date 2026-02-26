@@ -265,7 +265,7 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
     expect(() => writer.write(profile, issue, createSilentLogger())).toThrow("Unknown macro");
-    expect(() => writer.write(profile, issue, createSilentLogger())).toThrow("$trigger.<key>");
+    expect(() => writer.write(profile, issue, createSilentLogger())).toThrow("$variantEnv.<PREFIX>");
   });
 
   it("resolves $trigger.<key> from triggerParams", () => {
@@ -344,5 +344,105 @@ describe("JitMcpConfigWriter", () => {
 
     // Should not write since the only config is for a server not in mcpServers
     expect(writeFileSync).not.toHaveBeenCalled();
+  });
+
+  describe("$variantEnv macros", () => {
+    it("resolves $variantEnv.PREFIX from process.env using variant-scoped name", () => {
+      process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-ralph-123";
+      const profile = makeProfile({
+        id: "ralph-docs",
+        agentName: "ralph",
+        mcpServers: ["ralphchives-write"],
+        mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
+      });
+      const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+      writer.write(profile, issue, createSilentLogger());
+
+      const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+      expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-ralph-123");
+      delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;
+    });
+
+    it("resolves different env vars for different variants of the same profile", () => {
+      process.env.NODEBB_TOKEN_RALPH_DOCS_MALPH = "tok-malph-456";
+      const profile = makeProfile({
+        id: "ralph-docs",
+        agentName: "malph",
+        mcpServers: ["ralphchives-write"],
+        mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
+      });
+      const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+      writer.write(profile, issue, createSilentLogger());
+
+      const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+      expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-malph-456");
+      delete process.env.NODEBB_TOKEN_RALPH_DOCS_MALPH;
+    });
+
+    it("throws when the variant env var is missing from process.env", () => {
+      delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;
+      const profile = makeProfile({
+        id: "ralph-docs",
+        agentName: "ralph",
+        mcpServers: ["ralphchives-write"],
+        mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
+      });
+      const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+      expect(() => writer.write(profile, issue, createSilentLogger())).toThrow(
+        'Missing env var "NODEBB_TOKEN_RALPH_DOCS_RALPH"',
+      );
+    });
+
+    it("normalizes dashes to underscores and uppercases the env var name", () => {
+      process.env.NODEBB_TOKEN_RALPH_VSCODE_RALPH = "tok-vscode";
+      const profile = makeProfile({
+        id: "ralph-vscode",
+        agentName: "ralph",
+        mcpServers: ["ralphchives-write"],
+        mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
+      });
+      const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+      writer.write(profile, issue, createSilentLogger());
+
+      const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+      expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-vscode");
+      delete process.env.NODEBB_TOKEN_RALPH_VSCODE_RALPH;
+    });
+
+    it("mixes $variantEnv with static values and other macros", () => {
+      process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-mixed";
+      const profile = makeProfile({
+        id: "ralph-docs",
+        agentName: "ralph",
+        mcpServers: ["ralphchives-write"],
+        mcpServerConfigs: {
+          "ralphchives-write": {
+            NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN",
+            NODEBB_CATEGORY_NAME: "ralph-docs",
+            JIRA_KEY: "$jira.key",
+          },
+        },
+      });
+      const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+      writer.write(profile, issue, createSilentLogger());
+
+      const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+      expect(written.servers[0].env).toEqual({
+        NODEBB_API_TOKEN: "tok-mixed",
+        NODEBB_CATEGORY_NAME: "ralph-docs",
+        JIRA_KEY: "DOC-3143",
+      });
+      delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;
+    });
   });
 });

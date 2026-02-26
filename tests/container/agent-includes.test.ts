@@ -6,7 +6,7 @@ import { resolveAgentIncludes, AgentTemplateRenderer, buildTemplateContext, buil
 import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
-import { makeProfile, makeIssue, makeTemplateContext } from "../helpers/factories.js";
+import { makeProfile, makeIssue, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -285,7 +285,7 @@ describe("buildTemplateContext", () => {
       components: [{ name: "Frontend" }, { name: "API" }],
     });
 
-    const ctx = buildTemplateContext(profile, issue, false);
+    const ctx = buildTemplateContext(makeTaskContext({ profile, issue, isRevision: false }));
 
     expect(ctx.profileId).toBe("ralph-docs");
     expect(ctx.repo).toBe("/home/user/repos/docs");
@@ -310,10 +310,7 @@ describe("buildTemplateContext", () => {
   });
 
   it("defaults optional fields to empty strings/arrays", () => {
-    const profile = makeProfile();
-    const issue = makeIssue("DF-100");
-
-    const ctx = buildTemplateContext(profile, issue, true);
+    const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }));
 
     expect(ctx.model).toBe("");
     expect(ctx.issueType).toBe("");
@@ -331,7 +328,7 @@ describe("buildTemplateContext", () => {
         content: [{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] }],
       },
     });
-    const ctx = buildTemplateContext(makeProfile(), issue, false);
+    const ctx = buildTemplateContext(makeTaskContext({ issue }));
     expect(ctx.issueDescription).toBe("Hello world");
   });
 
@@ -339,47 +336,46 @@ describe("buildTemplateContext", () => {
     const issue = makeIssue("DOC-201", "Test", "New", undefined, {
       description: "Plain text desc",
     });
-    const ctx = buildTemplateContext(makeProfile(), issue, false);
+    const ctx = buildTemplateContext(makeTaskContext({ issue }));
     expect(ctx.issueDescription).toBe("Plain text desc");
   });
 
   it("populates issueCreated and issueUpdated", () => {
     const issue = makeIssue("DOC-202", "Test", "New", "2026-02-15T12:00:00.000+0000");
-    const ctx = buildTemplateContext(makeProfile(), issue, false);
+    const ctx = buildTemplateContext(makeTaskContext({ issue }));
     expect(ctx.issueCreated).toBe("2026-01-01T00:00:00.000+0000");
     expect(ctx.issueUpdated).toBe("2026-02-15T12:00:00.000+0000");
   });
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(profile, makeIssue("DF-50"), false);
+    const ctx = buildTemplateContext(makeTaskContext({ profile, issue: makeIssue("DF-50") }));
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
   it("derives issueProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeProfile(), makeIssue("DOC-3143"), false);
-
+    const ctx = buildTemplateContext(makeTaskContext({ issue: makeIssue("DOC-3143") }));
     expect(ctx.issueProject).toBe("DOC");
   });
 
   it("builds triggerParams from bare params when provided", () => {
-    const ctx = buildTemplateContext(makeProfile(), makeIssue("DF-100"), false, ["codesamples", "verbose"]);
+    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: { codesamples: "true", verbose: "true" } }));
     expect(ctx.triggerParams).toEqual({ codesamples: "true", verbose: "true" });
   });
 
   it("defaults triggerParams to empty object", () => {
-    const ctx = buildTemplateContext(makeProfile(), makeIssue("DF-100"), false);
+    const ctx = buildTemplateContext(makeTaskContext());
     expect(ctx.triggerParams).toEqual({});
   });
 
   it("builds triggerParams from key=value params", () => {
-    const ctx = buildTemplateContext(makeProfile(), makeIssue("DF-100"), false, ["codesamples", "branch_name=feature-xyz"]);
+    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: { codesamples: "true", branch_name: "feature-xyz" } }));
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch_name: "feature-xyz" });
   });
 
   it("passes through a pre-built Record<string,string> without re-parsing", () => {
     const preBuilt = { flag: "true", ref: "refs/heads/main" };
-    const ctx = buildTemplateContext(makeProfile(), makeIssue("DF-100"), false, preBuilt);
+    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }));
     expect(ctx.triggerParams).toEqual({ flag: "true", ref: "refs/heads/main" });
   });
 });

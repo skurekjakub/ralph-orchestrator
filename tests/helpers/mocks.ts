@@ -272,6 +272,7 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
     loadConfig: vi.fn().mockReturnValue({}),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
     resolveMcpConfigs: vi.fn(),
+    startRalphchives: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

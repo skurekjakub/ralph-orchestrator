@@ -150,6 +150,12 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
     enableContinuation: false,
     excludeFields: [],
     allowedUsers: [],
+    ralphchives: {
+      enabled: false,
+      nodebbApiUrl: "http://localhost:4567",
+      neo4jUri: "bolt://localhost:7687",
+      neo4jUser: "neo4j",
+    },
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",
@@ -207,6 +213,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     commentTrigger: "@ralph",
     triggerParams: {},
     isRevision: false,
+    ralphchivesEnabled: false,
     ...overrides,
   };
 }
@@ -221,6 +228,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     taskId: "DF-100-1234567890000",
     triggerParams: {},
     isRevision: false,
+    ralphchivesEnabled: false,
     ...overrides,
   };
 }

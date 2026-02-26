@@ -107,6 +107,8 @@ export function generateComposeOverlay(
     lines.push('      - "${TARGET_REPO_PATH}:/workspace"');
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"');
+    lines.push("    extra_hosts:");
+    lines.push('      - "host.docker.internal:host-gateway"');
     lines.push("    networks:");
     lines.push("      ralph-internal:");
     lines.push("      ralph-sidecar-external:");

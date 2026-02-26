@@ -34,6 +34,8 @@ shared/mcp-servers/
   playwright/       — Browser automation (npm: @playwright/mcp)
   web-fetch/        — Fetch any URL and return as text (custom, direct access)
   microsoft-docs/   — Search Microsoft Learn documentation (custom, direct access)
+  ralphchives-write/ — Ralphchives knowledge base write path (custom, NodeBB)
+  ralphchives-read/  — Ralphchives knowledge base read path (custom, NodeBB)
 shared/mcp-sidecar/
   Dockerfile        — Sidecar container image
   src/gateway.ts    — Process manager + health endpoint
@@ -50,6 +52,8 @@ shared/mcp-sidecar/
 | `playwright` | npm | `browser_navigate`, `browser_navigate_back`, `browser_take_screenshot`, `browser_network_requests`, `browser_click`, `browser_fill_form`, `browser_evaluate`, `browser_press_key` | — |
 | `web-fetch` | custom | `web_fetch` | — |
 | `microsoft-docs` | custom | `microsoft_docs_search` | — |
+| `ralphchives-write` | custom | `post_task_report`, `post_observation` | — |
+| `ralphchives-read` | custom | `search_ralphchives`, `list_recent_topics`, `get_topic` | — |
 
 ## Server Types
 

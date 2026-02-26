@@ -1,0 +1,23 @@
+{
+  "name": "ralphchives-sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/sync-runner.ts",
+    "build": "tsc",
+    "start": "node dist/sync-runner.js",
+    "sync:full": "tsx src/sync-runner.ts --full",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "neo4j-driver": "^6.0.1",
+    "ollama": "^0.6.3"    
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

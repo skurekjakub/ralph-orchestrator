@@ -106,6 +106,10 @@ This task was scoped to: **`{{ triggerParams.scope }}`**. Your review should foc
 {% endsection %}
 {%- endif %}
 
+{% section "ralphchives" %}
+{% render 'ralphchives' %}
+{% endsection %}
+
 {% section "workflow" %}
 ## Workflow
 

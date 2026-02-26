@@ -36,6 +36,10 @@ This is a revision task. Follow the [Revision Workflow](../../resources/ralph-re
 {% render 'prompt-security' %}
 {% endsection %}
 
+{% section "ralphchives" %}
+{% render 'ralphchives' %}
+{% endsection %}
+
 {% section "workflow" %}
 # Standard Workflow
 

@@ -5,6 +5,8 @@ import { loadConfig } from "./config.js";
 import type { IAppConfig } from "./config.js";
 import { validatePrerequisites, printValidationResults } from "./validate/index.js";
 import type { ValidationResult } from "./validate/index.js";
+import { execa } from "execa";
+import { resolve } from "node:path";
 
 /** Injectable hooks for the startup pipeline steps. */
 export interface AppStartupDeps {
@@ -13,12 +15,30 @@ export interface AppStartupDeps {
   loadConfig(): IAppConfig;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
+  startRalphchives(logger: Logger): Promise<void>;
 }
 
 /** Public contract for the startup pipeline. */
 export interface IAppStartup {
   /** Run the full startup pipeline: validate → load config → initialize profiles. */
   run(logger?: Logger): Promise<IAppConfig>;
+}
+
+/** Start the Ralphchives docker compose stack (NodeBB + Neo4j + sync). */
+async function startRalphchivesStack(logger: Logger): Promise<void> {
+  const composeFile = resolve("ralphchives/docker-compose.yml");
+  logger.info("Starting Ralphchives stack");
+  try {
+    await execa("docker", ["compose", "-f", composeFile, "up", "-d"], {
+      stdio: "pipe",
+      timeout: 120_000,
+    });
+  } catch (err) {
+    const stderr = (err as { stderr?: string }).stderr;
+    if (stderr) logger.error(`Ralphchives docker compose output:\n${stderr}`);
+    throw err;
+  }
+  logger.info("Ralphchives stack started");
 }
 
 /** Default production deps wired to the real implementations. */
@@ -29,6 +49,7 @@ function defaultDeps(): AppStartupDeps {
     loadConfig,
     buildMcpServers: buildCustomMcpServers,
     resolveMcpConfigs: (logger) => resolveAllProfileSetup(undefined, logger),
+    startRalphchives: startRalphchivesStack,
   };
 }
 
@@ -63,6 +84,10 @@ export class AppStartup implements IAppStartup {
 
     const config = this.deps.loadConfig();
     log.info("Loaded configuration");
+
+    if (config.ralphchives?.enabled) {
+      await this.deps.startRalphchives(log);
+    }
 
     await this.initializeProfiles(log);
     return config;

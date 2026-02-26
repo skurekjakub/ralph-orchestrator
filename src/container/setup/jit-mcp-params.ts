@@ -15,14 +15,31 @@ const MACROS: Record<string, (issue: JiraIssue) => string> = {
 };
 
 const TRIGGER_PREFIX = "$trigger.";
+const VARIANT_ENV_PREFIX = "$variantEnv.";
+
+/**
+ * Build a process.env variable name from a prefix, profile id, and variant display name.
+ *
+ * Example: `("NODEBB_TOKEN", "ralph-docs", "ralph")` → `"NODEBB_TOKEN_RALPH_DOCS_RALPH"`
+ */
+export function buildVariantEnvName(prefix: string, profileId: string, displayName: string): string {
+  return `${prefix}_${profileId}_${displayName}`.toUpperCase().replace(/[-./]/g, "_");
+}
 
 /**
  * Resolve an env var value — either a static string, a `$macro` reference,
- * or a `$trigger.<key>` reference resolved from JIRA comment trigger params.
+ * a `$trigger.<key>` reference resolved from JIRA comment trigger params,
+ * or a `$variantEnv.PREFIX` reference resolved from process.env using a
+ * variant-scoped env var name (`PREFIX_PROFILEID_DISPLAYNAME`).
  *
  * @throws If a `$`-prefixed value doesn't match any known macro or trigger prefix.
  */
-function resolveEnvValue(value: string, issue: JiraIssue, triggerParams?: Record<string, string>): string {
+function resolveEnvValue(
+  value: string,
+  issue: JiraIssue,
+  triggerParams?: Record<string, string>,
+  profile?: IAgentProfile,
+): string {
   if (!value.startsWith("$")) return value;
 
   if (value.startsWith(TRIGGER_PREFIX)) {
@@ -30,10 +47,24 @@ function resolveEnvValue(value: string, issue: JiraIssue, triggerParams?: Record
     return triggerParams?.[key] ?? "";
   }
 
+  if (value.startsWith(VARIANT_ENV_PREFIX)) {
+    if (!profile) throw new Error(`$variantEnv macros require profile context`);
+    const prefix = value.slice(VARIANT_ENV_PREFIX.length);
+    const envVarName = buildVariantEnvName(prefix, profile.id, profile.displayName);
+    const envValue = process.env[envVarName];
+    if (envValue === undefined) {
+      throw new Error(
+        `Missing env var "${envVarName}" for ${value} macro. ` +
+        `Add it to .env or run the Ralphchives setup scripts.`,
+      );
+    }
+    return envValue;
+  }
+
   const resolver = MACROS[value];
   if (!resolver) {
     const known = Object.keys(MACROS).join(", ");
-    throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>`);
+    throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
   }
   return resolver(issue);
 }
@@ -89,7 +120,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
       }
 
       for (const [envVar, rawValue] of Object.entries(envConfig)) {
-        const value = resolveEnvValue(rawValue, issue, triggerParams);
+        const value = resolveEnvValue(rawValue, issue, triggerParams, profile);
         entry.env[envVar] = value;
         injected++;
       }

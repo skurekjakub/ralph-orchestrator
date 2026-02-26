@@ -50,6 +50,12 @@ stages:
             web-fetch:
               serverDir: shared/mcp-servers/web-fetch
               serverName: Web Fetch
+            ralphchives-read:
+              serverDir: shared/mcp-servers/ralphchives-read
+              serverName: Ralphchives Read
+            ralphchives-write:
+              serverDir: shared/mcp-servers/ralphchives-write
+              serverName: Ralphchives Write
         steps:
           - task: UseNode@1
             inputs:
@@ -120,3 +126,31 @@ stages:
           - script: npm run build
             workingDirectory: ralph-dashboard
             displayName: Build (next)
+
+  - stage: Ralphchives
+    displayName: Ralphchives
+    dependsOn: []
+    jobs:
+      - job: RalphchivesSync
+        displayName: Ralphchives Sync — Lint, Test & Build
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: ralphchives/sync
+            displayName: Install dependencies
+
+          - script: npx tsc --noEmit
+            workingDirectory: ralphchives/sync
+            displayName: Type-check (tsc --noEmit)
+
+          - script: npx vitest run
+            workingDirectory: ralphchives/sync
+            displayName: Run tests
+
+          - script: npm run build
+            workingDirectory: ralphchives/sync
+            displayName: Build

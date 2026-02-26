@@ -1,0 +1,16 @@
+{
+  "name": "ralphchives-read",
+  "description": "Ralphchives Read Path — agents search and retrieve knowledge from the archive, scoped to their profile category",
+  "type": "custom",
+  "command": "node",
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/ralphchives-read",
+  "sidecarPort": 9107,
+  "requiredEnv": ["NODEBB_API_URL"],
+  "requiredConfig": ["NODEBB_API_TOKEN", "NODEBB_CATEGORY_NAME"],
+  "tools": [
+    "search_ralphchives",
+    "get_topic",
+    "list_recent_topics"
+  ]
+}

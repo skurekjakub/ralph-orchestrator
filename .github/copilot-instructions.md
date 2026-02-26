@@ -140,7 +140,8 @@ shared/
   hooks/                — Copilot CLI audit hooks (shared across all profiles)
   agent-includes/       — Shared Liquid partials for agent templates (*.md)
   mcp-servers/          — MCP server manifests + custom server code (ado, jira-kentico,
-    <name>/               discord-hitl, playwright, web-fetch, microsoft-docs)
+    <name>/               discord-hitl, playwright, web-fetch, microsoft-docs,
+                          ralphchives-write, ralphchives-read)
       mcp-server.json   — Server manifest (type, command, args, env, sidecarPort, proxyDomains)
       src/ dist/         — Custom server source/bundle (type: "custom" only)
   mcp-sidecar/          — MCP sidecar container (gateway process manager + Dockerfile)
@@ -160,7 +161,7 @@ Each profile declares exactly which MCP servers it needs via `mcpServers` in `pr
 
 ### Task-Scoped Parameters (JIT)
 
-Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
+Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
 
 ## JIRA Integration
 

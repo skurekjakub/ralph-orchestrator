@@ -40,11 +40,19 @@ const rawPromptAuditSchema = z.object({
   mode: z.enum(["block", "warn", "off"]).default("warn"),
 }).optional();
 
+const rawRalphchivesSchema = z.object({
+  enabled: z.boolean().default(false),
+  nodebbApiUrl: z.url().default("http://localhost:4567"),
+  neo4jUri: z.string().default("bolt://localhost:7687"),
+  neo4jUser: z.string().default("neo4j"),
+}).optional();
+
 const configFileSchema = z.object({
   jira: rawJiraSchema,
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,
+  ralphchives: rawRalphchivesSchema,
   /** Custom field IDs to exclude from agent prompts (e.g. boilerplate form templates). */
   excludeFields: z.array(z.string()).default([]),
   /** JIRA accountIds allowed to trigger agent invocations. Empty array = unrestricted. */
@@ -224,6 +232,14 @@ export interface IPromptAuditConfig {
   readonly mode: AuditMode;
 }
 
+/** Configuration for the Ralphchives knowledge base infrastructure. */
+export interface IRalphchivesConfig {
+  readonly enabled: boolean;
+  readonly nodebbApiUrl: string;
+  readonly neo4jUri: string;
+  readonly neo4jUser: string;
+}
+
 /** Readonly contract for the application configuration bag. All consumers depend on this interface. */
 export interface IAppConfig {
   readonly jira: IJiraConfig;
@@ -231,6 +247,7 @@ export interface IAppConfig {
   readonly output: IOutputConfig;
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;
+  readonly ralphchives: IRalphchivesConfig;
   /** Custom field IDs to exclude from agent prompts. */
   readonly excludeFields: readonly string[];
   /** JIRA accountIds allowed to trigger agent invocations. Empty = unrestricted. */
@@ -416,6 +433,12 @@ export function loadConfig(): IAppConfig {
     dashboard,
     promptAudit: {
       mode: (parsed.promptAudit?.mode ?? AuditMode.Warn) as AuditMode,
+    },
+    ralphchives: {
+      enabled: parsed.ralphchives?.enabled ?? false,
+      nodebbApiUrl: parsed.ralphchives?.nodebbApiUrl ?? "http://localhost:4567",
+      neo4jUri: parsed.ralphchives?.neo4jUri ?? "bolt://localhost:7687",
+      neo4jUser: parsed.ralphchives?.neo4jUser ?? "neo4j",
     },
     excludeFields: parsed.excludeFields ?? [],
     allowedUsers: parsed.allowedUsers ?? [],

@@ -16,6 +16,20 @@
         "ADO_REPO": "kentico-docs-autocomplete-vscode",
         "TASK_BRANCH": "$jira.branch"
       }
+    },
+    {
+      "name": "ralphchives-write",
+      "env": {
+        "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN",
+        "NODEBB_CATEGORY_NAME": "ralph-vscode"
+      }
+    },
+    {
+      "name": "ralphchives-read",
+      "env": {
+        "NODEBB_API_TOKEN": "$variantEnv.NODEBB_TOKEN",
+        "NODEBB_CATEGORY_NAME": "ralph-vscode"
+      }
     }
   ],
   "githubMcpTools": ["get_file_contents"],

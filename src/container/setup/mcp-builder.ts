@@ -18,6 +18,8 @@ export async function buildCustomMcpServers(logger: Logger, rootDir?: string): P
   const root = rootDir ?? process.cwd();
   const mcpServersDir = resolve(root, "shared/mcp-servers");
 
+  const buildTasks: Promise<void>[] = [];
+
   if (existsSync(mcpServersDir)) {
     const serverDirs = readdirSync(mcpServersDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
@@ -30,16 +32,20 @@ export async function buildCustomMcpServers(logger: Logger, rootDir?: string): P
       const serverDir = join(mcpServersDir, dir.name);
       if (!existsSync(join(serverDir, "package.json"))) continue;
 
-      logger.info(`Building MCP server: ${dir.name}`);
-
-      await execa("npm", ["install"], { cwd: serverDir, stdio: "pipe" });
-      await execa("npm", ["run", "build"], { cwd: serverDir, stdio: "pipe" });
-
-      logger.info(`MCP server built: ${dir.name}`);
+      buildTasks.push(buildServer(dir.name, serverDir, logger));
     }
   }
 
-  await buildSidecarGateway(root, logger);
+  buildTasks.push(buildSidecarGateway(root, logger));
+
+  await Promise.all(buildTasks);
+}
+
+async function buildServer(name: string, serverDir: string, logger: Logger): Promise<void> {
+  logger.info(`Building MCP server: ${name}`);
+  await execa("npm", ["install"], { cwd: serverDir, stdio: "pipe" });
+  await execa("npm", ["run", "build"], { cwd: serverDir, stdio: "pipe" });
+  logger.info(`MCP server built: ${name}`);
 }
 
 /**

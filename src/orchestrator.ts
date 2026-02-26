@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "./config.js";
+import type { IAgentProfile, IRalphchivesConfig } from "./config.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
@@ -51,6 +51,7 @@ export class Orchestrator {
   private readonly taskRunner: ITaskRunner;
   private readonly triggerScanner: ITriggerScanner;
   private readonly ledger: IOperationLedger;
+  private readonly ralphchivesConfig: IRalphchivesConfig;
   private readonly heartbeat: IHeartbeatSender | null;
   private taskCallbacks: TaskCallbacks = {};
 
@@ -76,6 +77,7 @@ export class Orchestrator {
     triggerScanner,
     ledger,
     heartbeat,
+    ralphchivesConfig,
   }: {
     jiraConfig: IJiraConfig;
     profiles: readonly IAgentProfile[];
@@ -88,6 +90,7 @@ export class Orchestrator {
     triggerScanner: ITriggerScanner;
     ledger: IOperationLedger;
     heartbeat: IHeartbeatSender | null;
+    ralphchivesConfig: IRalphchivesConfig;
     logger?: Logger;
   }) {
     this.jiraConfig = jiraConfig;
@@ -99,6 +102,7 @@ export class Orchestrator {
     this.resources = resources;
     this.taskRunner = taskRunner;
     this.triggerScanner = triggerScanner;
+    this.ralphchivesConfig = ralphchivesConfig;
     this.ledger = ledger;
     this.heartbeat = heartbeat;
 
@@ -355,7 +359,7 @@ export class Orchestrator {
 
     try {
       this.activityLog.startTaskLog(taskId);
-      const ctx = buildTaskContext(issue, profile, taskId, operation.triggerParams);
+      const ctx = buildTaskContext(issue, profile, taskId, this.ralphchivesConfig, operation.triggerParams);
       const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
       this.activeTask.container = container;
 

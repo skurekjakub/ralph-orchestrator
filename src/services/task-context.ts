@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile, IRalphchivesConfig } from "../config.js";
 import type { JiraIssue } from "../jira/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
 
@@ -9,6 +9,7 @@ export interface TaskContext {
   readonly taskId: string;
   readonly triggerParams: Record<string, string>;
   readonly isRevision: boolean;
+  readonly ralphchivesEnabled: boolean;
 }
 
 /** Optional callbacks for real-time streaming during task execution. */
@@ -27,6 +28,7 @@ export function buildTaskContext(
   issue: JiraIssue,
   profile: IAgentProfile,
   taskId: string,
+  ralphchivesConfig: IRalphchivesConfig,
   triggerParams?: string[],
 ): TaskContext {
   const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
@@ -41,5 +43,6 @@ export function buildTaskContext(
     taskId,
     triggerParams: buildTriggerParams(triggerParams ?? []),
     isRevision,
+    ralphchivesEnabled: ralphchivesConfig.enabled,
   };
 }

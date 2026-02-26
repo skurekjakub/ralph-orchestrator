@@ -11,7 +11,7 @@ import { TaskStatus } from "../../src/container/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import type { ContainerManagerFactory } from "../../src/container/types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
-import { makeIssue, makeProfile, makeResult, makeTaskContext } from "../helpers/factories.js";
+import { makeIssue, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { createMockLogger, createMockContainer, createMockResultWriter, createMockResources, createMockIssueManager, createMockTemplateRenderer, createMockJitMcpConfigWriter } from "../helpers/mocks.js";
 
@@ -170,7 +170,7 @@ describe("TaskRunner", () => {
     const renderer = createMockTemplateRenderer();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    await runner.run(buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000"));
+    await runner.run(buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000", makeConfig().ralphchives));
 
     expect(resources.fetchHandoff).toHaveBeenCalledWith("DF-200");
     expect(renderer.render).toHaveBeenCalledWith(
@@ -202,7 +202,7 @@ describe("TaskRunner", () => {
     const jitMcpConfig = createMockJitMcpConfigWriter();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, jitMcpConfig });
 
-    await runner.run(buildTaskContext(issue, profile, taskId, ["codesamples", "verbose"]));
+    await runner.run(buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, ["codesamples", "verbose"]));
 
     expect(renderer.render).toHaveBeenCalledWith(
       "ralph-docs",
@@ -220,7 +220,7 @@ describe("TaskRunner", () => {
     const jitMcpConfig = createMockJitMcpConfigWriter();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), jitMcpConfig });
 
-    await runner.run(buildTaskContext(issue, profile, taskId, ["target_branch=develop", "verbose"]));
+    await runner.run(buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, ["target_branch=develop", "verbose"]));
 
     expect(jitMcpConfig.write).toHaveBeenCalledWith(
       profile, issue, logger, { target_branch: "develop", verbose: "true" },
