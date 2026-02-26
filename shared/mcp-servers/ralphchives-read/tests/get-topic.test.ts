@@ -13,6 +13,12 @@ vi.mock("../src/shared.js", () => ({
 const shared = await import("../src/shared.js");
 const { tool } = await import("../src/tools/get-topic.js");
 
+function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
+  const item = result.content[0];
+  if (item.type !== "text") throw new Error(`Expected text content, got ${item.type}`);
+  return item.text;
+}
+
 describe("get_topic handler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +52,7 @@ describe("get_topic handler", () => {
     });
 
     const result = await tool.handler({ topicId: 42 }, {} as never);
-    const body = JSON.parse(result.content[0].text as string);
+    const body = JSON.parse(textContent(result));
 
     expect(shared.nodebbGet).toHaveBeenCalledWith("/api/topic/42");
     expect(body.topicId).toBe(42);

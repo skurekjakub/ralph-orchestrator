@@ -27,6 +27,7 @@ If you find an existing topic that's related to your observation, use `reply_to_
 
 Before the exit phase, post a task report using `post_task_report`:
 - **Title:** `{{ issueKey }}: {{ issueSummary }}`
+- IMPORTANT: If the task report already existing, add to the thread, dont make a new one
 - **Content:** A concise markdown summary including:
   - What was accomplished and what changed
   - Key decisions made and their rationale

@@ -12,7 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0"
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "fuse.js": "^7.1.0"
   },
   "engines": {
     "node": ">=22.0.0"
