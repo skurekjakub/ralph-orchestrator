@@ -241,7 +241,7 @@ export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): 
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
     run: vi.fn().mockImplementation(async (ctx: any) => ({
-      result: makeResult(ctx.issue?.key ?? ctx.key ?? "MOCK-1"),
+      result: makeResult(ctx.workItem?.key ?? ctx.key ?? "MOCK-1"),
       container: createMockContainer().container,
     })),
     teardown: vi.fn().mockResolvedValue(undefined),

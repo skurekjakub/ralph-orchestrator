@@ -64,8 +64,8 @@ export class OrchestratorObserver {
           : OrchestratorStatus.Idle,
       currentIssue: task
         ? {
-            key: task.issue.key,
-            summary: task.issue.fields.summary,
+            key: task.workItem.key,
+            summary: task.workItem.fields.summary,
           }
         : null,
       currentProfile: task?.profile.variantKey ?? null,
@@ -92,7 +92,7 @@ export class OrchestratorObserver {
       agentId: this.agentId,
       status: (!ctx.running ? HeartbeatStatus.Stopped : task ? HeartbeatStatus.Working : HeartbeatStatus.Polling),
       queueSize: ctx.pendingOps.length,
-      currentTask: task?.issue.key ?? null,
+      currentTask: task?.workItem.key ?? null,
       currentTaskStartedAt: task
         ? new Date(task.startedAt).toISOString()
         : null,

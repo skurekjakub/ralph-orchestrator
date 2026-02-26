@@ -234,26 +234,26 @@ export class Orchestrator {
     const profile = this.resolveProfile(issueKey, operation);
     if (!profile) return;
 
-    const issue = await this.refreshIssue(issueKey, operation);
-    if (!issue) return;
+    const workItem = await this.refreshIssue(issueKey, operation);
+    if (!workItem) return;
 
-    if (!this.validateStatusMatch(issue, profile, operation)) return;
+    if (!this.validateStatusMatch(workItem, profile, operation)) return;
 
     if (profile.preflight) {
-      if (!await this.runPreflight(issue, profile, operation)) return;
+      if (!await this.runPreflight(workItem, profile, operation)) return;
     }
 
     // Auto-preflight for revision tasks — requires an existing PR and handoff.
     const revisionStatuses = profile.match.revisionStatuses ?? [];
-    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+    const itemStatus = workItem.fields.status?.name?.toLowerCase() ?? "";
     const isRevision = revisionStatuses.some(
-      (s) => s.toLowerCase() === issueStatus,
+      (s) => s.toLowerCase() === itemStatus,
     );
     if (isRevision) {
-      if (!await this.runPreflight(issue, profile, operation, "revision-ready")) return;
+      if (!await this.runPreflight(workItem, profile, operation, "revision-ready")) return;
     }
 
-    await this.runTask(issue, profile, operation);
+    await this.runTask(workItem, profile, operation);
   }
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
@@ -274,8 +274,8 @@ export class Orchestrator {
 
   /** Re-fetch the issue from JIRA to get its current status. Returns `null` on failure or not found. */
   private async refreshIssue(issueKey: string, operation: Operation): Promise<JiraIssue | null> {
-    const issue = await this.issueManager.refreshIssue(issueKey);
-    if (!issue) {
+    const workItem = await this.issueManager.refreshIssue(issueKey);
+    if (!workItem) {
       this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
       this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
         reason: "Issue not found or unreachable in JIRA",
@@ -283,27 +283,27 @@ export class Orchestrator {
       this.emitState();
       return null;
     }
-    return issue;
+    return workItem;
   }
 
   /** Verify the issue's current status still matches the profile. Returns `false` if rejected. */
-  private validateStatusMatch(issue: JiraIssue, profile: IAgentProfile, operation: Operation): boolean {
-    if (this.router.matchesProjectAndStatus(issue, profile)) return true;
+  private validateStatusMatch(workItem: JiraIssue, profile: IAgentProfile, operation: Operation): boolean {
+    if (this.router.matchesProjectAndStatus(workItem, profile)) return true;
     this.log(
-      `Rejected ${issue.key}: status "${issue.fields.status.name}" no longer matches profile ${profile.displayName}`,
+      `Rejected ${workItem.key}: status "${workItem.fields.status.name}" no longer matches profile ${profile.displayName}`,
     );
-    this.ledger.transition(issue.key, operation.id, OperationStatus.Rejected, {
-      reason: `Issue status "${issue.fields.status.name}" no longer matches profile`,
+    this.ledger.transition(workItem.key, operation.id, OperationStatus.Rejected, {
+      reason: `Issue status "${workItem.fields.status.name}" no longer matches profile`,
     });
     this.issueManager
-      .postStaleStatusComment(issue.key, profile.displayName, issue.fields.status.name);
+      .postStaleStatusComment(workItem.key, profile.displayName, workItem.fields.status.name);
     this.emitState();
     return false;
   }
 
   /** Run a preflight check. Uses the profile's configured check or an explicit name. Returns `false` if the check fails. */
   private async runPreflight(
-    issue: JiraIssue,
+    workItem: JiraIssue,
     profile: IAgentProfile,
     operation: Operation,
     checkName?: string,
@@ -311,60 +311,60 @@ export class Orchestrator {
     const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
-    const comments = await this.issueManager.getComments(issue.key);
+    const comments = await this.issueManager.getComments(workItem.key);
     const ctx = await buildPreflightContext(
       this.resources,
-      issue.key,
+      workItem.key,
       comments,
     );
-    const result = runPreflight(name, issue, ctx);
+    const result = runPreflight(name, workItem, ctx);
     if (result.ok) return true;
 
     const comment =
       profile.failureComment ??
       `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
     this.ledger.transition(
-      issue.key,
+      workItem.key,
       operation.id,
       OperationStatus.Rejected,
       { reason: `preflight:${name} — ${result.reason}` },
     );
-    await this.issueManager.postComment(issue.key, comment);
+    await this.issueManager.postComment(workItem.key, comment);
     this.log(
-      `Preflight failed for ${issue.key} (${name}): ${result.reason}`,
+      `Preflight failed for ${workItem.key} (${name}): ${result.reason}`,
     );
     return false;
   }
 
   /** Execute the task runner, record completion/error, and handle teardown. */
   private async runTask(
-    issue: JiraIssue,
+    workItem: JiraIssue,
     profile: IAgentProfile,
     operation: Operation,
   ): Promise<void> {
     this.activeTask = {
-      issue,
+      workItem,
       profile,
       container: null,
       startedAt: Date.now(),
     };
 
     this.log(
-      `Picked up ${issue.key}: ${issue.fields.summary} (${operation.variant})`,
+      `Picked up ${workItem.key}: ${workItem.fields.summary} (${operation.variant})`,
     );
-    this.ledger.transition(issue.key, operation.id, OperationStatus.Active);
+    this.ledger.transition(workItem.key, operation.id, OperationStatus.Active);
 
-    const taskId = `${issue.key}-${this.activeTask.startedAt}`;
+    const taskId = `${workItem.key}-${this.activeTask.startedAt}`;
 
     try {
       this.activityLog.startTaskLog(taskId);
-      const ctx = buildTaskContext(issue, profile, taskId, this.ralphchivesConfig, operation.triggerParams);
+      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams);
       const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
-        key: issue.key,
-        summary: issue.fields.summary,
+        key: workItem.key,
+        summary: workItem.fields.summary,
         profileId: profile.id,
         status: result.status,
         durationMs: result.durationMs || Date.now() - this.activeTask.startedAt,
@@ -373,13 +373,13 @@ export class Orchestrator {
       });
 
       this.log(
-        `Done ${issue.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
+        `Done ${workItem.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
       );
 
       const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
 
       this.ledger.transition(
-        issue.key,
+        workItem.key,
         operation.id,
         isSuccess ? OperationStatus.Completed : OperationStatus.Error,
         {
@@ -389,31 +389,31 @@ export class Orchestrator {
       );
 
       if (isSuccess) {
-        await this.issueManager.transitionIssue(issue.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
+        await this.issueManager.transitionIssue(workItem.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
       } else {
         await this.issueManager.postErrorComment(
-          issue.key,
+          workItem.key,
           result.stderr || `Agent finished with status: ${result.status}`,
         );
       }
     } catch (err) {
       const errorMsg = toErrorMessage(err);
-      this.logError(`Error processing ${issue.key}: ${errorMsg}`);
+      this.logError(`Error processing ${workItem.key}: ${errorMsg}`);
 
       this.observer.recordCompletion({
-        key: issue.key,
-        summary: issue.fields.summary,
+        key: workItem.key,
+        summary: workItem.fields.summary,
         profileId: profile.id,
         status: TaskStatus.Error,
         durationMs: Date.now() - this.activeTask.startedAt,
         completedAt: Date.now(),
       });
 
-      this.ledger.transition(issue.key, operation.id, OperationStatus.Error, {
+      this.ledger.transition(workItem.key, operation.id, OperationStatus.Error, {
         reason: errorMsg,
       });
 
-      await this.issueManager.postErrorComment(issue.key, errorMsg);
+      await this.issueManager.postErrorComment(workItem.key, errorMsg);
     } finally {
       this.activityLog.endTaskLog();
       await this.teardownContainer(profile);

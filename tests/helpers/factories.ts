@@ -225,7 +225,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
 /** Create a minimal TaskContext for testing. */
 export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskContext {
   return {
-    issue: makeIssue("DF-100"),
+    workItem: makeIssue("DF-100"),
     profile: makeProfile(),
     taskId: "DF-100-1234567890000",
     triggerParams: {},

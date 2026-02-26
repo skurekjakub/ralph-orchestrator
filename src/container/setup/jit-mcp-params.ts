@@ -7,11 +7,11 @@ import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
 import { slugifyBranchName } from "../../util/branch.js";
 
 /** Known runtime macros resolved from the current JIRA issue context. */
-const MACROS: Record<string, (issue: JiraIssue) => string> = {
-  "$jira.key": (issue) => issue.key,
-  "$jira.project": (issue) => issue.key.split("-")[0],
-  "$jira.branch": (issue) => slugifyBranchName(issue.key, issue.fields.summary ?? ""),
-  "$jira.summary": (issue) => issue.fields.summary ?? "",
+const MACROS: Record<string, (workItem: JiraIssue) => string> = {
+  "$jira.key": (workItem) => workItem.key,
+  "$jira.project": (workItem) => workItem.key.split("-")[0],
+  "$jira.branch": (workItem) => slugifyBranchName(workItem.key, workItem.fields.summary ?? ""),
+  "$jira.summary": (workItem) => workItem.fields.summary ?? "",
 };
 
 const TRIGGER_PREFIX = "$trigger.";
@@ -36,7 +36,7 @@ export function buildVariantEnvName(prefix: string, profileId: string, displayNa
  */
 function resolveEnvValue(
   value: string,
-  issue: JiraIssue,
+  workItem: JiraIssue,
   triggerParams?: Record<string, string>,
   profile?: IAgentProfile,
 ): string {
@@ -66,7 +66,7 @@ function resolveEnvValue(
     const known = Object.keys(MACROS).join(", ");
     throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
   }
-  return resolver(issue);
+  return resolver(workItem);
 }
 
 /** Public contract for JIT MCP param injection. */
@@ -83,7 +83,7 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
+  write(profile: IAgentProfile, workItem: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
 }
 
 /**
@@ -97,7 +97,7 @@ export interface IJitMcpConfigWriter {
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
+  write(profile: IAgentProfile, workItem: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 
@@ -120,7 +120,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
       }
 
       for (const [envVar, rawValue] of Object.entries(envConfig)) {
-        const value = resolveEnvValue(rawValue, issue, triggerParams, profile);
+        const value = resolveEnvValue(rawValue, workItem, triggerParams, profile);
         entry.env[envVar] = value;
         injected++;
       }
@@ -128,7 +128,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
 
     if (injected > 0) {
       writeFileSync(gatewayPath, JSON.stringify(gateway, null, 2) + "\n", "utf-8");
-      logger.info(`Injected ${injected} env var(s) into gateway.json for ${issue.key}`);
+      logger.info(`Injected ${injected} env var(s) into gateway.json for ${workItem.key}`);
     }
   }
 

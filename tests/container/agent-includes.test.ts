@@ -285,7 +285,7 @@ describe("buildTemplateContext", () => {
       components: [{ name: "Frontend" }, { name: "API" }],
     });
 
-    const ctx = buildTemplateContext(makeTaskContext({ profile, issue, isRevision: false }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }));
 
     expect(ctx.profileId).toBe("ralph-docs");
     expect(ctx.repo).toBe("/home/user/repos/docs");
@@ -328,7 +328,7 @@ describe("buildTemplateContext", () => {
         content: [{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] }],
       },
     });
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
     expect(ctx.issueDescription).toBe("Hello world");
   });
 
@@ -336,25 +336,25 @@ describe("buildTemplateContext", () => {
     const issue = makeIssue("DOC-201", "Test", "New", undefined, {
       description: "Plain text desc",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
     expect(ctx.issueDescription).toBe("Plain text desc");
   });
 
   it("populates issueCreated and issueUpdated", () => {
     const issue = makeIssue("DOC-202", "Test", "New", "2026-02-15T12:00:00.000+0000");
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
     expect(ctx.issueCreated).toBe("2026-01-01T00:00:00.000+0000");
     expect(ctx.issueUpdated).toBe("2026-02-15T12:00:00.000+0000");
   });
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(makeTaskContext({ profile, issue: makeIssue("DF-50") }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeIssue("DF-50") }));
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
   it("derives issueProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ issue: makeIssue("DOC-3143") }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeIssue("DOC-3143") }));
     expect(ctx.issueProject).toBe("DOC");
   });
 

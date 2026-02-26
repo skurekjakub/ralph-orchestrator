@@ -46,7 +46,7 @@ export interface PromptWithSections {
  * @see buildPrompt — convenience wrapper that returns only the string.
  */
 export function buildPromptWithSections(
-  issue: JiraIssue,
+  workItem: JiraIssue,
   context?: IssueContext,
 ): PromptWithSections {
   const parts: string[] = [];
@@ -60,7 +60,7 @@ export function buildPromptWithSections(
         `This is a revision of a previous attempt. The issue has been reviewed and moved back to revision status.`,
         ``,
         `You MUST follow the Revision Workflow (not the standard workflow):`,
-        `1. Find the existing pull request (branch pattern: ralph/${issue.key}-*)`,
+        `1. Find the existing pull request (branch pattern: ralph/${workItem.key}-*)`,
         `2. Read ALL PR review threads/comments for inline feedback`,
         `3. Switch to the existing branch and make the requested changes`,
         `4. Do NOT create a new branch — work on the existing one`,
@@ -78,38 +78,38 @@ export function buildPromptWithSections(
   }
 
   parts.push(
-    `JIRA Issue: ${issue.key}`,
-    `Title: ${issue.fields.summary}`,
+    `JIRA Issue: ${workItem.key}`,
+    `Title: ${workItem.fields.summary}`,
   );
 
   // ── Untrusted data boundary ──
   const untrustedParts: string[] = [];
 
-  if (issue.fields.description) {
+  if (workItem.fields.description) {
     const rawDesc =
-      typeof issue.fields.description === "string"
-        ? issue.fields.description
-        : extractAdfText(issue.fields.description);
+      typeof workItem.fields.description === "string"
+        ? workItem.fields.description
+        : extractAdfText(workItem.fields.description);
     const descStr = normalizeContent(rawDesc);
     untrustedParts.push(`Description:\n${descStr}`);
     sections.push({ source: PromptSectionSource.JiraField, fieldName: "description", content: descStr });
   }
 
-  if (issue.fields.labels && issue.fields.labels.length > 0) {
-    untrustedParts.push(`Labels: ${issue.fields.labels.join(", ")}`);
+  if (workItem.fields.labels && workItem.fields.labels.length > 0) {
+    untrustedParts.push(`Labels: ${workItem.fields.labels.join(", ")}`);
   }
 
-  if (issue.fields.components && issue.fields.components.length > 0) {
+  if (workItem.fields.components && workItem.fields.components.length > 0) {
     untrustedParts.push(
-      `Components: ${issue.fields.components.map((c) => c.name).join(", ")}`
+      `Components: ${workItem.fields.components.map((c) => c.name).join(", ")}`
     );
   }
 
-  if (issue.fields.priority) {
-    untrustedParts.push(`Priority: ${issue.fields.priority.name}`);
+  if (workItem.fields.priority) {
+    untrustedParts.push(`Priority: ${workItem.fields.priority.name}`);
   }
 
-  for (const field of fieldExtractor.extractCustomFields(issue)) {
+  for (const field of fieldExtractor.extractCustomFields(workItem)) {
     const normalized = normalizeContent(field.value);
     untrustedParts.push(`${field.label}: ${normalized}`);
     sections.push({ source: PromptSectionSource.JiraField, fieldName: field.label, content: normalized });
@@ -146,6 +146,6 @@ export function buildPromptWithSections(
  *
  * Custom field extraction is delegated to {@link JiraFieldExtractor}.
  */
-export function buildPrompt(issue: JiraIssue, context?: IssueContext): string {
-  return buildPromptWithSections(issue, context).prompt;
+export function buildPrompt(workItem: JiraIssue, context?: IssueContext): string {
+  return buildPromptWithSections(workItem, context).prompt;
 }

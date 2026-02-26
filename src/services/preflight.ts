@@ -15,7 +15,7 @@ export interface PreflightContext {
   prUrl: string | null;
 }
 
-type PreflightCheck = (issue: JiraIssue, ctx: PreflightContext) => PreflightResult;
+type PreflightCheck = (workItem: JiraIssue, ctx: PreflightContext) => PreflightResult;
 
 const PR_URL_PATTERN = /https?:\/\/(?:github\.com|dev\.azure\.com|bitbucket\.org)[^\s)>]+\/pull(?:request|-requests)?\/\d+/i;
 
@@ -31,12 +31,12 @@ function findPrUrl(comments: JiraComment[]): string | null {
 }
 
 const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
-  "review-ready": (_issue, ctx) => {
+  "review-ready": (_workItem, ctx) => {
     if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments" };
     if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found" };
     return { ok: true };
   },
-  "revision-ready": (_issue, ctx) => {
+  "revision-ready": (_workItem, ctx) => {
     if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments — revision requires an existing pull request" };
     if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found — revision requires a previous handoff" };
     return { ok: true };
@@ -70,10 +70,10 @@ export async function buildPreflightContext(
  */
 export function runPreflight(
   name: string,
-  issue: JiraIssue,
+  workItem: JiraIssue,
   ctx: PreflightContext,
 ): PreflightResult {
   const check = PREFLIGHT_CHECKS[name];
   if (!check) return { ok: true };
-  return check(issue, ctx);
+  return check(workItem, ctx);
 }

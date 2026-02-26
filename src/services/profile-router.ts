@@ -15,9 +15,9 @@ export type CommentFetcher = (issueKey: string) => Promise<string[]>;
 /** Public contract for profile-based issue routing. */
 export interface IProfileRouter {
   /** Match a JIRA issue to the first matching agent profile. */
-  match(issue: JiraIssue): Promise<ProfileMatchResult | null>;
+  match(workItem: JiraIssue): Promise<ProfileMatchResult | null>;
   /** Check if an issue matches a specific profile's project and status filters. */
-  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean;
+  matchesProjectAndStatus(workItem: JiraIssue, profile: IAgentProfile): boolean;
   /** Get all configured profile IDs. */
   readonly profileIds: string[];
 }
@@ -53,9 +53,9 @@ export class ProfileRouter implements IProfileRouter {
    *
    * @returns The matched profile and revision flag, or null if no profile matches.
    */
-  async match(issue: JiraIssue): Promise<ProfileMatchResult | null> {
-    const issueProject = issue.key.split("-")[0];
-    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+  async match(workItem: JiraIssue): Promise<ProfileMatchResult | null> {
+    const issueProject = workItem.key.split("-")[0];
+    const issueStatus = workItem.fields.status?.name?.toLowerCase() ?? "";
 
     let commentTexts: string[] | null = null;
 
@@ -71,7 +71,7 @@ export class ProfileRouter implements IProfileRouter {
 
       if (profile.match.commentTrigger && this.fetchComments) {
         if (!commentTexts) {
-          commentTexts = await this.fetchComments(issue.key);
+          commentTexts = await this.fetchComments(workItem.key);
         }
         const triggerLower = profile.match.commentTrigger.toLowerCase();
         const found = commentTexts.some((t) => t.toLowerCase().includes(triggerLower));
@@ -88,14 +88,14 @@ export class ProfileRouter implements IProfileRouter {
    * Check if an issue matches a specific profile's project and status filters.
    * Used by the orchestrator to verify an issue still matches before execution.
    */
-  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean {
-    const issueProject = issue.key.split("-")[0];
+  matchesProjectAndStatus(workItem: JiraIssue, profile: IAgentProfile): boolean {
+    const issueProject = workItem.key.split("-")[0];
     if (!profile.match.projects.includes(issueProject)) return false;
 
     const statuses = profile.match.statuses ?? [];
     if (statuses.length === 0) return true;
 
-    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+    const issueStatus = workItem.fields.status?.name?.toLowerCase() ?? "";
     return statuses.some((s) => s.toLowerCase() === issueStatus);
   }
 

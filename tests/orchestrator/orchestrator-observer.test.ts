@@ -22,7 +22,7 @@ const fakeIssue = makeIssue("DOC-100", "Test issue");
 const fakeProfile = makeProfile({ id: "ralph-docs", agentName: "ralph" });
 
 function makeActiveTask(startedAt = 1000) {
-  return { issue: fakeIssue, profile: fakeProfile, container: null, startedAt };
+  return { workItem: fakeIssue, profile: fakeProfile, container: null, startedAt };
 }
 
 describe("OrchestratorObserver", () => {

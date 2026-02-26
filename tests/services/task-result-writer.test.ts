@@ -66,7 +66,7 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        issue: makeIssue("DF-100"),
+        workItem: makeIssue("DF-100"),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
@@ -85,7 +85,7 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        issue: makeIssue("DF-100"),
+        workItem: makeIssue("DF-100"),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
@@ -101,7 +101,7 @@ describe("TaskResultWriter", () => {
       const logCollector = createMockLogCollector();
       const writer = new TaskResultWriter({ logCollector, resources: createMockResources(), logger });
       const ctx = makeTaskContext({
-        issue: makeIssue("DF-100"),
+        workItem: makeIssue("DF-100"),
         profile: makeProfile(),
         taskId: "DF-100-123",
       });

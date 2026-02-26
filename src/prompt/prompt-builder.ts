@@ -70,12 +70,12 @@ export class PromptBuilder {
    * result's `audit.safe` will be `false` for critical findings — the caller
    * is responsible for throwing.
    *
-   * @param issue JIRA issue to process.
+   * @param workItem JIRA issue to process.
    * @param context Pre-fetched issue context (comments, revision handoff).
    * @returns The assembled prompt text and audit result.
    */
-  build(issue: JiraIssue, context?: IssueContext): BuiltPrompt {
-    const cleaned = this.parser.parse(issue);
+  build(workItem: JiraIssue, context?: IssueContext): BuiltPrompt {
+    const cleaned = this.parser.parse(workItem);
     const { prompt, sections } = buildPromptWithSections(cleaned, context);
 
     if (this.mode === AuditMode.Off) {
@@ -93,7 +93,7 @@ export class PromptBuilder {
         (f) => f.severity === AuditSeverity.Critical,
       ).length;
       throw new Error(
-        `Prompt audit blocked execution for ${issue.key}: ${criticalCount} critical finding(s) detected`,
+        `Prompt audit blocked execution for ${workItem.key}: ${criticalCount} critical finding(s) detected`,
       );
     }
 

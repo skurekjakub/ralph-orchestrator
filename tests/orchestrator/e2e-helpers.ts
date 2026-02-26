@@ -91,7 +91,7 @@ export function buildMockDeps(
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
       : vi.fn().mockImplementation(async (ctx: any) => ({
-          result: makeResult(ctx.issue.key, options.taskResult),
+          result: makeResult(ctx.workItem.key, options.taskResult),
           container: mockContainer,
         })),
   });

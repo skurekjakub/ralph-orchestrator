@@ -124,11 +124,11 @@ export class TaskRunner implements ITaskRunner {
       return { result, container };
     } catch (err) {
       this.logger.error(
-        `Error processing ${ctx.issue.key}: ${toErrorMessage(err)}`
+        `Error processing ${ctx.workItem.key}: ${toErrorMessage(err)}`
       );
 
       const errorResult: RalphResult = {
-        issueKey: ctx.issue.key,
+        issueKey: ctx.workItem.key,
         status: TaskStatus.Error,
         durationMs: 0,
         exitCode: 1,
@@ -158,12 +158,12 @@ export class TaskRunner implements ITaskRunner {
     this.logger.info("Rendering skill templates...");
     await this.skillRenderer.render(templateContext, this.logger);
 
-    this.jitMcpConfig.write(ctx.profile, ctx.issue, this.logger, ctx.triggerParams);
+    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
-    await this.issueManager.transitionIssue(ctx.issue.key, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
-    await this.issueManager.postStartComment(ctx.issue.key, ctx.profile.displayName, ctx.profile.id);
+    await this.issueManager.transitionIssue(ctx.workItem.key, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
+    await this.issueManager.postStartComment(ctx.workItem.key, ctx.profile.displayName, ctx.profile.id);
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
@@ -200,14 +200,14 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async executeAgent(ctx: TaskContext, container: IContainerManager): Promise<RalphResult> {
-    this.logger.info(`Fetching JIRA comments for ${ctx.issue.key}...`);
-    const comments = await this.resources.fetchComments(ctx.issue.key);
-    this.logger.info(`Found ${comments.length} comments on ${ctx.issue.key}`);
+    this.logger.info(`Fetching JIRA comments for ${ctx.workItem.key}...`);
+    const comments = await this.resources.fetchComments(ctx.workItem.key);
+    this.logger.info(`Found ${comments.length} comments on ${ctx.workItem.key}`);
 
     let handoffContent: string | null = null;
     if (ctx.isRevision) {
-      this.logger.info(`Issue is in revision status ("${ctx.issue.fields.status?.name}") — fetching handoff...`);
-      handoffContent = await this.resources.fetchHandoff(ctx.issue.key);
+      this.logger.info(`Issue is in revision status ("${ctx.workItem.fields.status?.name}") — fetching handoff...`);
+      handoffContent = await this.resources.fetchHandoff(ctx.workItem.key);
       this.logger.info(
         `Handoff context: ${handoffContent ? "found" : "not found"}`
       );
@@ -221,9 +221,9 @@ export class TaskRunner implements ITaskRunner {
 
     const timeoutSec = Math.round(ctx.profile.timeoutMs / 1000);
     this.logger.info(
-      `Executing ${ctx.profile.displayName} agent for ${ctx.issue.key} (timeout: ${timeoutSec}s)...`
+      `Executing ${ctx.profile.displayName} agent for ${ctx.workItem.key} (timeout: ${timeoutSec}s)...`
     );
-    const result = await container.execute(ctx.issue, issueContext);
+    const result = await container.execute(ctx.workItem, issueContext);
     this.logger.info(
       `Agent finished: status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
     );
@@ -234,7 +234,7 @@ export class TaskRunner implements ITaskRunner {
 
     if (result.status === TaskStatus.Partial) {
       this.logger.warn(
-        `${ctx.issue.key} completed with partial status — check handoff for details`
+        `${ctx.workItem.key} completed with partial status — check handoff for details`
       );
     }
 

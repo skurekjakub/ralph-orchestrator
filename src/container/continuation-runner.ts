@@ -21,14 +21,14 @@ export interface IContinuationRunner {
    *
    * @param executor     CLI executor to invoke.
    * @param prompt       Initial prompt for the first run.
-   * @param issue        JIRA issue (used in continuation prompt).
+   * @param workItem        JIRA issue (used in continuation prompt).
    * @param maxContinuations  Maximum retry attempts (0 = no retries).
    * @returns Accumulated output from all invocations.
    */
   run(
     executor: ICliExecutor,
     prompt: string,
-    issue: JiraIssue,
+    workItem: JiraIssue,
     maxContinuations: number,
   ): Promise<ContinuationResult>;
 }
@@ -50,7 +50,7 @@ export class ContinuationRunner implements IContinuationRunner {
   async run(
     executor: ICliExecutor,
     prompt: string,
-    issue: JiraIssue,
+    workItem: JiraIssue,
     maxContinuations: number,
   ): Promise<ContinuationResult> {
     let result = await executor.run(prompt);
@@ -86,7 +86,7 @@ export class ContinuationRunner implements IContinuationRunner {
           `[RALPH CONTINUATION ${attempt}/${maxContinuations}]\n\n` +
           `Your previous session ended without producing the required ===RALPH_RESULT_START=== block.\n` +
           `Continue working on the task. When complete, output the result block as instructed.\n\n` +
-          `Original issue: ${issue.key} — ${issue.fields.summary}`;
+          `Original issue: ${workItem.key} — ${workItem.fields.summary}`;
 
         result = await executor.continueSession(continuationPrompt);
         combinedStdout += "\n" + result.stdout;

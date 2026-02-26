@@ -14,7 +14,7 @@ describe("buildTaskContext", () => {
   it("builds context with default values", () => {
     const ctx = buildTaskContext(makeIssue("DF-100"), makeProfile(), "DF-100-123", ralphchivesConfig);
 
-    expect(ctx.issue.key).toBe("DF-100");
+    expect(ctx.workItem.key).toBe("DF-100");
     expect(ctx.profile).toBeDefined();
     expect(ctx.taskId).toBe("DF-100-123");
     expect(ctx.triggerParams).toEqual({});

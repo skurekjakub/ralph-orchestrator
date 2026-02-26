@@ -5,7 +5,7 @@ import type { JiraIssue } from "./jira/types.js";
 
 /** Tracks the currently executing task. Null when the orchestrator is idle. */
 export interface ActiveTask {
-  issue: JiraIssue;
+  workItem: JiraIssue;
   profile: IAgentProfile;
   container: IContainerManager | null;
   startedAt: number;

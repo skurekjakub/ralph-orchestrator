@@ -52,7 +52,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
-        issue: expect.objectContaining({ key: "DF-100" }),
+        workItem: expect.objectContaining({ key: "DF-100" }),
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
