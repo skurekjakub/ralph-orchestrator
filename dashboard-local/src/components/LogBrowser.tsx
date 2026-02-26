@@ -73,7 +73,7 @@ export function LogBrowser() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 min-h-0 ${timelineFiles ? "" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="text-dim text-sm p-4">Loading logs...</div>
         ) : timelineFiles ? (

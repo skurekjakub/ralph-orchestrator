@@ -2,15 +2,24 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   buildTimeline,
   getToolCategory,
-  categoryColors,
   type ToolCallEntry,
 } from "./timeline-parser";
+
+/** Hex color palette matching the Tailwind theme tokens. */
+const CAT_HEX: Record<ReturnType<typeof getToolCategory>, string> = {
+  skill: "#a855f7",
+  mcp: "#58a6ff",
+  edit: "#3fb950",
+  shell: "#d29922",
+  nav: "#7d8590",
+  other: "#e6edf3",
+};
 
 /**
  * Visual timeline of all tool calls in a task execution.
  *
- * Shows a proportional bar chart of tool call durations, a legend by category,
- * a skill inventory, and an expandable list of all calls with args/return values.
+ * Sequential event table with inline duration bars, category legend,
+ * skill inventory, and expandable detail views for args/return values.
  */
 export function ToolTimeline({
   preToolFile,
@@ -65,19 +74,32 @@ export function ToolTimeline({
   }
 
   const totalDuration = timeline[timeline.length - 1].ts - timeline[0].ts;
+  const maxDuration = Math.max(...timeline.map((e) => e.durationMs ?? 0));
 
   return (
-    <div className="flex flex-col gap-3 p-3 h-full overflow-y-auto">
-      <TimelineHeader timeline={timeline} totalDuration={totalDuration} />
-      <TimelineBar timeline={timeline} totalDuration={totalDuration} onSelect={toggleExpand} />
-      <div className="flex gap-4 flex-wrap">
-        <CategoryLegend timeline={timeline} />
-        <SkillInventory timeline={timeline} />
+    <div className="flex flex-col min-h-0 h-full">
+      {/* Sticky header area */}
+      <div className="flex flex-col gap-2 p-3 pb-2 shrink-0">
+        <TimelineHeader timeline={timeline} totalDuration={totalDuration} />
+        <div className="flex gap-4 flex-wrap">
+          <CategoryLegend timeline={timeline} />
+          <SkillInventory timeline={timeline} />
+        </div>
       </div>
-      <CallList timeline={timeline} expandedIndex={expandedIndex} onToggle={toggleExpand} />
+      {/* Scrollable call list */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+        <CallList
+          timeline={timeline}
+          expandedIndex={expandedIndex}
+          onToggle={toggleExpand}
+          maxDuration={maxDuration}
+        />
+      </div>
     </div>
   );
 }
+
+/* ── Header ─────────────────────────────────────────────── */
 
 function TimelineHeader({ timeline, totalDuration }: { timeline: ToolCallEntry[]; totalDuration: number }) {
   const startTime = new Date(timeline[0].ts).toLocaleTimeString("en-GB", { hour12: false });
@@ -109,48 +131,7 @@ function TimelineHeader({ timeline, totalDuration }: { timeline: ToolCallEntry[]
   );
 }
 
-/**
- * Proportional horizontal bar showing all tool calls as colored segments.
- * Each segment width is proportional to the call's duration relative to total.
- */
-function TimelineBar({
-  timeline,
-  totalDuration,
-  onSelect,
-}: {
-  timeline: ToolCallEntry[];
-  totalDuration: number;
-  onSelect: (index: number) => void;
-}) {
-  if (totalDuration === 0) return null;
-
-  return (
-    <div className="flex w-full h-6 rounded overflow-hidden bg-bg-panel border border-border">
-      {timeline.map((entry) => {
-        const pct = ((entry.durationMs ?? 0) / totalDuration) * 100;
-        // Skip tiny slivers below 0.3% for visual clarity
-        if (pct < 0.3) return null;
-        const cat = getToolCategory(entry.tool);
-        const colors = categoryColors[cat];
-
-        return (
-          <div
-            key={entry.index}
-            className={`${colors.bar} opacity-70 hover:opacity-100 cursor-pointer transition-opacity relative group`}
-            style={{ width: `${pct}%`, minWidth: pct > 0.5 ? "2px" : "1px" }}
-            onClick={() => onSelect(entry.index)}
-            title={`${entry.tool} (${formatMs(entry.durationMs ?? 0)})`}
-          >
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 rounded bg-bg-header border border-border text-[9px] text-text whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
-              {entry.tool}
-              <span className="text-dim ml-1">{formatMs(entry.durationMs ?? 0)}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+/* ── Legend & Inventory ─────────────────────────────────── */
 
 function CategoryLegend({ timeline }: { timeline: ToolCallEntry[] }) {
   const categories = useMemo(() => {
@@ -164,14 +145,16 @@ function CategoryLegend({ timeline }: { timeline: ToolCallEntry[] }) {
 
   return (
     <div className="flex gap-2 flex-wrap items-center">
-      {categories.map(([cat, count]) => {
-        const colors = categoryColors[cat];
-        return (
-          <span key={cat} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text}`}>
-            <span className={`w-2 h-2 rounded-sm ${colors.bar}`} /> {cat} ({count})
-          </span>
-        );
-      })}
+      {categories.map(([cat, count]) => (
+        <span
+          key={cat}
+          className="inline-flex items-center gap-1.5 text-[10px] px-1.5 py-0.5 rounded font-medium"
+          style={{ backgroundColor: `${CAT_HEX[cat]}22`, color: CAT_HEX[cat] }}
+        >
+          <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: CAT_HEX[cat] }} />
+          {cat} ({count})
+        </span>
+      ))}
     </div>
   );
 }
@@ -180,17 +163,14 @@ function SkillInventory({ timeline }: { timeline: ToolCallEntry[] }) {
   const skills = useMemo(() => {
     return timeline.filter((e) => e.isSkill).map((e) => e.skillName ?? "unknown");
   }, [timeline]);
-
   if (skills.length === 0) return null;
-
-  // Deduplicate for display while preserving order
   const uniqueSkills = [...new Set(skills)];
 
   return (
     <div className="flex gap-1.5 flex-wrap items-center">
       <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">Skills:</span>
       {uniqueSkills.map((name) => (
-        <span key={name} className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 font-mono">
+        <span key={name} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#a855f722", color: "#a855f7" }}>
           {name}
         </span>
       ))}
@@ -198,36 +178,39 @@ function SkillInventory({ timeline }: { timeline: ToolCallEntry[] }) {
   );
 }
 
+/* ── Call List ───────────────────────────────────────────── */
+
 function CallList({
   timeline,
   expandedIndex,
   onToggle,
+  maxDuration,
 }: {
   timeline: ToolCallEntry[];
   expandedIndex: number | null;
   onToggle: (index: number) => void;
+  maxDuration: number;
 }) {
   const startTs = timeline[0].ts;
 
   return (
     <div className="flex flex-col border border-border rounded overflow-hidden">
       {/* Table header */}
-      <div className="flex items-center gap-2 px-2 py-1 bg-bg-header text-[10px] text-dim uppercase tracking-wider font-semibold border-b border-border">
+      <div className="flex items-center gap-2 px-2 py-1 bg-bg-header text-[10px] text-dim uppercase tracking-wider font-semibold border-b border-border sticky top-0 z-10">
         <span className="w-6 text-center">#</span>
         <span className="w-16">Offset</span>
         <span className="w-16">Duration</span>
+        <span className="w-24">Bar</span>
         <span className="flex-1">Tool</span>
         <span className="w-16 text-center">Status</span>
       </div>
 
       {timeline.map((entry) => {
         const cat = getToolCategory(entry.tool);
-        const colors = categoryColors[cat];
         const isExpanded = expandedIndex === entry.index;
         const offset = entry.ts - startTs;
-        const displayName = entry.isSkill
-          ? `skill → ${entry.skillName ?? "?"}`
-          : entry.tool;
+        const displayName = entry.isSkill ? `skill → ${entry.skillName ?? "?"}` : entry.tool;
+        const barPct = maxDuration > 0 ? Math.max(((entry.durationMs ?? 0) / maxDuration) * 100, 1) : 0;
 
         return (
           <div key={entry.index} className="border-b border-border/30 last:border-b-0">
@@ -238,8 +221,16 @@ function CallList({
               <span className="w-6 text-center text-[10px] text-dim">{entry.index + 1}</span>
               <span className="w-16 text-[10px] font-mono text-dim">+{formatMs(offset)}</span>
               <span className="w-16 text-[10px] font-mono text-dim">{formatMs(entry.durationMs ?? 0)}</span>
-              <span className={`flex-1 text-[11px] font-mono ${colors.text} flex items-center gap-1.5`}>
-                <span className={`w-2 h-2 rounded-sm shrink-0 ${colors.bar}`} />
+              <span className="w-24">
+                <div className="h-2.5 rounded-sm bg-border/30 overflow-hidden">
+                  <div
+                    className="h-full rounded-sm transition-all"
+                    style={{ width: `${barPct}%`, backgroundColor: CAT_HEX[cat], opacity: 0.75 }}
+                  />
+                </div>
+              </span>
+              <span className="flex-1 text-[11px] font-mono flex items-center gap-1.5" style={{ color: CAT_HEX[cat] }}>
+                <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[cat] }} />
                 {displayName}
               </span>
               <span className="w-16 text-center">
@@ -252,9 +243,7 @@ function CallList({
               <span className="text-dim text-[10px] w-4 text-center">{isExpanded ? "▾" : "▸"}</span>
             </div>
 
-            {isExpanded && (
-              <ExpandedDetail entry={entry} />
-            )}
+            {isExpanded && <ExpandedDetail entry={entry} />}
           </div>
         );
       })}
@@ -303,6 +292,8 @@ function ExpandedDetail({ entry }: { entry: ToolCallEntry }) {
     </div>
   );
 }
+
+/* ── Helpers ─────────────────────────────────────────────── */
 
 function formatMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
