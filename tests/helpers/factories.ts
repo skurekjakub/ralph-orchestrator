@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../../src/config.js";
+import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../../src/config/types.js";
 import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
@@ -120,6 +120,7 @@ export function makeProfile(
     mcpServers: [],
     mcpServerConfigs: {},
     githubMcpTools: false,
+    skills: [],
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied

@@ -1,4 +1,4 @@
-import type { IJiraConfig, ISecretsConfig } from "../config.js";
+import type { IJiraConfig, ISecretsConfig } from "../config/types.js";
 import type { Logger } from "../logger.js";
 import type { RetryOptions } from "../retry.js";
 import { withRetry } from "../retry.js";

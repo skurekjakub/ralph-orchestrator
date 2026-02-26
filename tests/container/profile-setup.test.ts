@@ -230,7 +230,55 @@ describe("Profile Setup", () => {
       expect(existsSync(overlayPath)).toBe(true);
 
       const overlay = readFileSync(overlayPath, "utf-8");
-      expect(overlay).not.toContain("# Resource files");
+      expect(overlay).not.toContain("# Agent definitions, skills, and resource files");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("includes agent mounts from agents/ directory in the overlay", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+
+      writeFileSync(join(profileDir, "agents", "ralph.ralph.agent.md"), "# Agent");
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: [] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const overlayPath = join(profileDir, ".build/docker-compose.overlay.yml");
+      const overlay = readFileSync(overlayPath, "utf-8");
+      expect(overlay).toContain("ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("includes skill mounts from shared/skills/ in the overlay", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const skillsDir = join(rootDir, "shared/skills");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+      mkdirSync(join(skillsDir, "git-workflow"), { recursive: true });
+      writeFileSync(join(skillsDir, "git-workflow", "SKILL.md"), "# Skill");
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: [], skills: ["git-workflow"] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const overlayPath = join(profileDir, ".build/docker-compose.overlay.yml");
+      const overlay = readFileSync(overlayPath, "utf-8");
+      expect(overlay).toContain("git-workflow:/workspace/.github/skills/git-workflow:ro");
 
       rmSync(rootDir, { recursive: true, force: true });
     });

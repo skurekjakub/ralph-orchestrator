@@ -7,7 +7,7 @@
  * should treat prompt preparation as a black box handled by this class.
  */
 
-import type { IPromptAuditConfig } from "../config.js";
+import type { IPromptAuditConfig } from "../config/types.js";
 import type { JiraIssue } from "../jira/types.js";
 import { JiraIssueParser } from "../jira/issue-parser.js";
 import type { IssueContext } from "./prompt.js";

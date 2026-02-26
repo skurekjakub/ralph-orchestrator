@@ -23,7 +23,7 @@ describe("Compose Overlay", () => {
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, extraVolumes);
 
-      expect(overlay).toContain("# Resource files");
+      expect(overlay).toContain("# Agent definitions, skills, and resource files");
       expect(overlay).toContain("./resources/data.md:/workspace/res/data.md:ro");
       expect(overlay).toContain("copilot-config.json:/workspace/.ralph/config.json:ro");
 
@@ -40,7 +40,7 @@ describe("Compose Overlay", () => {
 
       const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir, extraVolumes);
 
-      expect(overlay).toContain("# Resource files");
+      expect(overlay).toContain("# Agent definitions, skills, and resource files");
       expect(overlay).toContain("./resources/guide.md:/workspace/res/guide.md:ro");
       expect(overlay).toContain("copilot-config.json:/workspace/.ralph/config.json:ro");
 

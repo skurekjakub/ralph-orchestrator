@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { IOutputConfig } from "../config.js";
+import type { IOutputConfig } from "../config/types.js";
 import { TaskStatus } from "../container/types.js";
 import { assertValidIssueKey } from "../util/jira.js";
 

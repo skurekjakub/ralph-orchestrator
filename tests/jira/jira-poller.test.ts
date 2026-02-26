@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraPoller } from "../../src/jira/poller.js";
-import type { IJiraConfig } from "../../src/config.js";
+import type { IJiraConfig } from "../../src/config/types.js";
 import { makeIssue, makeJiraConfig } from "../helpers/factories.js";
 import { createMockJiraClient } from "../helpers/mocks.js";
 

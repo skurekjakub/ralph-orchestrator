@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { RalphResult, ContainerManagerFactory } from "../container/types.js";
 import { TaskStatus } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";

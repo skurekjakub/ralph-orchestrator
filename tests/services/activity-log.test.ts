@@ -4,7 +4,7 @@ import { LogLevel, LogSource } from "../../src/orchestrator-types.js";
 import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { IOutputConfig } from "../../src/config.js";
+import type { IOutputConfig } from "../../src/config/types.js";
 
 function makeTmpDir(): string {
   const dir = join(tmpdir(), `ralph-test-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);

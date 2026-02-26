@@ -1,4 +1,4 @@
-import type { IAgentProfile, IRalphchivesConfig } from "./config.js";
+import type { IAgentProfile, IRalphchivesConfig, IJiraConfig } from "./config/types.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
@@ -9,7 +9,6 @@ import type { ActiveTask } from "./orchestrator-types.js";
 import { buildTaskContext } from "./services/task-context.js";
 import type { TaskCallbacks } from "./services/task-context.js";
 import { toErrorMessage } from "./util/error.js";
-import type { IJiraConfig } from "./config.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { IJiraPoller } from "./jira/poller.js";
 import type { IProfileRouter } from "./services/profile-router.js";

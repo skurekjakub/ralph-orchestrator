@@ -1,7 +1,7 @@
 import { extractAdfText } from "../jira/adf-converter.js";
 import type { IIssueManager } from "./jira-issue-manager.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";

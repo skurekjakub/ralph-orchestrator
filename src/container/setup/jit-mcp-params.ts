@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
-import type { IAgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config/types.js";
 import type { JiraIssue } from "../../jira/types.js";
 import type { Logger } from "../../logger.js";
 import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";

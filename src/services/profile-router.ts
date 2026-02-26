@@ -1,4 +1,4 @@
-import type { IAgentProfile } from "../config.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { JiraIssue } from "../jira/types.js";
 
 /** Result of a profile match. */

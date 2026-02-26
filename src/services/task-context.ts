@@ -1,4 +1,4 @@
-import type { IAgentProfile, IRalphchivesConfig } from "../config.js";
+import type { IAgentProfile, IRalphchivesConfig } from "../config/types.js";
 import type { JiraIssue } from "../jira/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
 

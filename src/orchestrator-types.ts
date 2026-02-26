@@ -1,5 +1,5 @@
 import { TaskStatus } from "./container/types.js";
-import type { IAgentProfile } from "./config.js";
+import type { IAgentProfile } from "./config/types.js";
 import type { IContainerManager } from "./container/manager.js";
 import type { JiraIssue } from "./jira/types.js";
 

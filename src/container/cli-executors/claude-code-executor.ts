@@ -1,5 +1,5 @@
 import type { ResultPromise } from "execa";
-import type { IAgentProfile } from "../../config.js";
+import type { IAgentProfile } from "../../config/types.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { IComposeClient } from "../compose-client.js";

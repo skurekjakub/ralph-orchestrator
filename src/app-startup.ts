@@ -1,8 +1,8 @@
 import type { Logger } from "./logger.js";
 import { resolveAllProfileSetup } from "./container/setup/profile-setup.js";
 import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
-import { loadConfig } from "./config.js";
-import type { IAppConfig } from "./config.js";
+import { loadConfig } from "./config/loader.js";
+import type { IAppConfig } from "./config/types.js";
 import { validatePrerequisites, printValidationResults } from "./validate/index.js";
 import type { ValidationResult } from "./validate/index.js";
 import { execa } from "execa";
