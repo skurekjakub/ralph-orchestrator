@@ -170,9 +170,14 @@ jobs:
           fi
           # Ensure daemon is running
           if ! sudo docker info &>/dev/null 2>&1; then
-            echo "Docker daemon not running — starting..."
-            sudo systemctl enable docker
-            sudo systemctl start docker
+            echo "Docker daemon not running — starting dockerd..."
+            sudo dockerd &>/tmp/dockerd.log &
+            # Wait up to 30s for the socket to appear
+            for i in $(seq 1 30); do
+              sudo docker info &>/dev/null 2>&1 && break
+              sleep 1
+            done
+            sudo docker info &>/dev/null 2>&1 || { echo "::error::dockerd failed to start"; cat /tmp/dockerd.log; exit 1; }
           fi
           if ! docker compose version &>/dev/null 2>&1; then
             if ! sudo docker compose version &>/dev/null 2>&1; then
