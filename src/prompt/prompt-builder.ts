@@ -8,8 +8,7 @@
  */
 
 import type { IPromptAuditConfig } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
-import { JiraIssueParser } from "../jira/issue-parser.js";
+import type { WorkItem } from "../datasource/types.js";
 import type { IssueContext } from "./prompt.js";
 import { buildPromptWithSections } from "./prompt.js";
 import {
@@ -47,18 +46,15 @@ export interface BuiltPrompt {
  * ```
  */
 export class PromptBuilder {
-  private readonly parser: JiraIssueParser;
   private readonly mode: AuditMode;
   private readonly logger: Logger;
 
-  constructor({ promptAuditConfig, excludeFields, logger }: {
+  constructor({ promptAuditConfig, logger }: {
     promptAuditConfig: IPromptAuditConfig;
-    excludeFields: readonly string[];
     logger: Logger;
   }) {
     this.mode = promptAuditConfig.mode;
     this.logger = logger;
-    this.parser = new JiraIssueParser(excludeFields);
   }
 
   /**
@@ -74,9 +70,8 @@ export class PromptBuilder {
    * @param context Pre-fetched issue context (comments, revision handoff).
    * @returns The assembled prompt text and audit result.
    */
-  build(workItem: JiraIssue, context?: IssueContext): BuiltPrompt {
-    const cleaned = this.parser.parse(workItem);
-    const { prompt, sections } = buildPromptWithSections(cleaned, context);
+  build(workItem: WorkItem, context?: IssueContext): BuiltPrompt {
+    const { prompt, sections } = buildPromptWithSections(workItem, context);
 
     if (this.mode === AuditMode.Off) {
       return { text: prompt, audit: { safe: true, findings: [] } };
@@ -93,7 +88,7 @@ export class PromptBuilder {
         (f) => f.severity === AuditSeverity.Critical,
       ).length;
       throw new Error(
-        `Prompt audit blocked execution for ${workItem.key}: ${criticalCount} critical finding(s) detected`,
+        `Prompt audit blocked execution for ${workItem.id}: ${criticalCount} critical finding(s) detected`,
       );
     }
 

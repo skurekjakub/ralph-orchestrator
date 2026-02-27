@@ -7,7 +7,7 @@
  */
 
 import type { IJiraClient } from "../../../jira/client.js";
-import type { IFullDataSourceConnector, SourceQuery } from "../../connector.js";
+import type { IDataSourceConnector, ISupportsAttachments, ISupportsTransitions, SourceQuery } from "../../connector.js";
 import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types.js";
 import type { Logger } from "../../../logger.js";
 import {
@@ -21,22 +21,24 @@ import {
 const JIRA_KEY_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;
 
 /**
- * Implements {@link IFullDataSourceConnector} for Atlassian JIRA Cloud.
+ * Implements {@link IDataSourceConnector} for Atlassian JIRA Cloud.
  *
  * Supports all capabilities: discovery, comments, transitions, and attachments.
  * Delegates HTTP calls to {@link IJiraClient} and uses the mapper functions
  * to convert JIRA responses into generic work item types.
  */
-export class JiraConnector implements IFullDataSourceConnector {
+export class JiraConnector implements IDataSourceConnector, ISupportsTransitions, ISupportsAttachments {
   readonly name = "JIRA";
   readonly sourceKey: string;
 
   private readonly client: IJiraClient;
+  private readonly excludeFields: string[];
   private readonly logger?: Logger;
 
-  constructor(sourceKey: string, client: IJiraClient, logger?: Logger) {
+  constructor(sourceKey: string, client: IJiraClient, excludeFields: string[] = [], logger?: Logger) {
     this.sourceKey = sourceKey;
     this.client = client;
+    this.excludeFields = excludeFields;
     this.logger = logger;
   }
 
@@ -67,13 +69,13 @@ export class JiraConnector implements IFullDataSourceConnector {
 
   async searchWorkItems(query: SourceQuery, pageSize?: number): Promise<WorkItem[]> {
     const issues = await this.client.searchIssues(query, pageSize);
-    return issues.map(i => mapIssueToWorkItem(i, this.sourceKey));
+    return issues.map(i => mapIssueToWorkItem(i, this.sourceKey, this.excludeFields));
   }
 
   async refreshWorkItem(workItemId: string): Promise<WorkItem> {
     const issues = await this.client.searchIssues(`key = "${workItemId}"`, 1);
     if (!issues[0]) throw new Error(`Work item ${workItemId} not found in JIRA`);
-    return mapIssueToWorkItem(issues[0], this.sourceKey);
+    return mapIssueToWorkItem(issues[0], this.sourceKey, this.excludeFields);
   }
 
   isValidItemId(id: string): boolean {

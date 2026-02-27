@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeConfig, makeCompletion } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeConfig, makeCompletion } from "../helpers/factories.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
 
@@ -16,11 +16,11 @@ describe("Orchestrator core integration", () => {
       const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } });
       const router = new ProfileRouter({ profiles: [docsProfile, vscodeProfile] });
 
-      const issue1 = makeIssue("DF-100", "Update docs for API");
+      const issue1 = makeWorkItem("DF-100", "Update docs for API");
       const route1 = await router.match(issue1);
       expect(route1?.profile.id).toBe("ralph-docs");
 
-      const issue2 = makeIssue("DOC-200", "Fix vscode autocomplete");
+      const issue2 = makeWorkItem("DOC-200", "Fix vscode autocomplete");
       const route2 = await router.match(issue2);
       expect(route2?.profile.id).toBe("ralph-vscode");
     });
@@ -29,7 +29,7 @@ describe("Orchestrator core integration", () => {
       const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: "@ralph" } });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const issue = makeIssue("DF-100", "Some issue");
+      const issue = makeWorkItem("DF-100", "Some issue");
       const route = await router.match(issue);
       expect(route).toBeNull();
     });
@@ -40,7 +40,7 @@ describe("Orchestrator core integration", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const newIssue = makeIssue("DF-300", "New task", "Defect Found");
+      const newIssue = makeWorkItem("DF-300", "New task", "Defect Found");
       const route = await router.match(newIssue);
       expect(route?.profile.id).toBe("ralph-default");
     });
@@ -51,9 +51,9 @@ describe("Orchestrator core integration", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "New"), profile)).toBe(true);
-      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "Done"), profile)).toBe(false);
-      expect(router.matchesProjectAndStatus(makeIssue("XO-1", "x", "New"), profile)).toBe(false);
+      expect(router.matchesProjectAndStatus(makeWorkItem("DF-1", "x", "New"), profile)).toBe(true);
+      expect(router.matchesProjectAndStatus(makeWorkItem("DF-1", "x", "Done"), profile)).toBe(false);
+      expect(router.matchesProjectAndStatus(makeWorkItem("XO-1", "x", "New"), profile)).toBe(false);
     });
   });
 

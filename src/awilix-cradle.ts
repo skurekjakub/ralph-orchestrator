@@ -6,6 +6,7 @@ import type { OrchestratorCradle } from "./awlix-cradle-types.js";
 import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import { JiraClient } from "./jira/client.js";
+import { JiraConnector } from "./datasource/connectors/jira/jira-connector.js";
 import { JiraPoller } from "./jira/poller.js";
 import { LogCollector } from "./logs/collector.js";
 import { PromptBuilder } from "./prompt/prompt-builder.js";
@@ -13,8 +14,8 @@ import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
 import { TaskRunner } from "./services/task-runner.js";
 import { TaskResultWriter } from "./services/task-result-writer.js";
-import { TaskJiraResourceManager } from "./services/task-resource-manager.js";
-import { JiraIssueManager } from "./services/jira-issue-manager.js";
+import { TaskResourceManager } from "./services/task-resource-manager.js";
+import { IssueManager } from "./services/issue-manager.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
 import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
@@ -114,8 +115,10 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
 
     // ── JIRA ──────────────────────────────────────────────────────────────────
     jiraClient:   asClass(JiraClient).singleton(),
-    issueManager: asClass(JiraIssueManager).singleton(),
-    resources:    asClass(TaskJiraResourceManager).singleton(),
+    connector:    asFunction(({ jiraClient, excludeFields, logger }) =>
+                    new JiraConnector("jira", jiraClient, excludeFields, logger)).singleton(),
+    issueManager: asClass(IssueManager).singleton(),
+    resources:    asClass(TaskResourceManager).singleton(),
     poller:       asClass(JiraPoller).singleton(),
 
     // ── Orchestration ─────────────────────────────────────────────────────────

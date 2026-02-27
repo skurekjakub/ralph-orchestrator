@@ -11,7 +11,7 @@ import { TaskStatus } from "../../src/container/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import type { ContainerManagerFactory } from "../../src/container/types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
-import { makeIssue, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { createMockLogger, createMockContainer, createMockResultWriter, createMockResources, createMockIssueManager, createMockTemplateRenderer, createMockSkillRenderer, createMockJitMcpConfigWriter } from "../helpers/mocks.js";
 
@@ -34,7 +34,7 @@ describe("TaskRunner", () => {
     beforeAgent: { targetStatus: "In Progress" },
     afterAgent: { targetStatus: "Ready for Review" },
   });
-  const issue = makeIssue("DF-100");
+  const issue = makeWorkItem("DF-100");
 
   beforeEach(() => {
     logger = createMockLogger();
@@ -49,7 +49,7 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
-    expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
     expect(issueManager.postStartComment).toHaveBeenCalledWith("DF-100", "ralph", "ralph-docs");
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe("TaskRunner", () => {
 
     await runner.run(makeTaskContext({ workItem: issue, profile: profileNoTransition, taskId }));
 
-    expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", undefined, TransitionPhase.BeforeAgent);
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith("DF-100", undefined, TransitionPhase.BeforeAgent);
   });
 
   it("returns error result when container start fails", async () => {
@@ -163,7 +163,7 @@ describe("TaskRunner", () => {
       agentName: "ralph",
       match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: ["Defect Found"] },
     });
-    const revisionIssue = makeIssue("DF-200", "Revision issue", "Defect Found");
+    const revisionIssue = makeWorkItem("DF-200", "Revision issue", "Defect Found");
     const { container } = createMockContainer({ issueKey: "DF-200" });
     const factory = createMockFactory(container);
     const resources = createMockResources();

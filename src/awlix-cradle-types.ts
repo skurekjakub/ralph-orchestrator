@@ -7,7 +7,7 @@ import type { ILogCollector } from "./logs/collector.js";
 import type { PromptBuilder } from "./prompt/prompt-builder.js";
 import type { ICliExecutorFactory } from "./container/cli-executor-factory.js";
 import type { IProfileRouter } from "./services/profile-router.js";
-import type { IIssueManager } from "./services/jira-issue-manager.js";
+import type { IIssueManager } from "./services/issue-manager.js";
 import type { IResourceManager } from "./services/task-resource-manager.js";
 import type { IAgentTemplateRenderer } from "./container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "./container/setup/skill-includes.js";
@@ -18,6 +18,7 @@ import type { ITaskResultWriter } from "./services/task-result-writer.js";
 import type { IJiraPoller } from "./jira/poller.js";
 import type { IHeartbeatSender } from "./services/heartbeat.js";
 import type { ContainerManagerFactory } from "./container/types.js";
+import type { IDataSourceConnector } from "./datasource/connector.js";
 import type { ILifecycleHook } from "./container/lifecycle.js";
 
 /**
@@ -48,6 +49,7 @@ export interface OrchestratorCradle {
 
   // JIRA
   jiraClient: IJiraClient;
+  connector: IDataSourceConnector;
   issueManager: IIssueManager;
   resources: IResourceManager;
   poller: IJiraPoller;

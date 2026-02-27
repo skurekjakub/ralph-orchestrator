@@ -16,7 +16,7 @@ import type { IContinuationRunner } from "../../src/container/continuation-runne
 import type { PromptBuilder } from "../../src/prompt/prompt-builder.js";
 import type { CliPaths } from "../../src/container/types.js";
 import { TaskStatus } from "../../src/container/types.js";
-import { makeProfile, makeIssue } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem } from "../helpers/factories.js";
 import { createSilentLogger, type Mocked } from "../helpers/mocks.js";
 import type { Logger } from "../../src/logger.js";
 import type { ResultPromise } from "execa";
@@ -251,7 +251,7 @@ describe("ContainerManager", () => {
     it("builds prompt and delegates to continuation runner", async () => {
       const promptBuilder = createMockPromptBuilder();
       const continuationRunner = createMockContinuationRunner();
-      const issue = makeIssue("DF-200");
+      const issue = makeWorkItem("DF-200");
       const { manager } = createHarness({ promptBuilder, continuationRunner });
 
       await manager.execute(issue);
@@ -269,7 +269,7 @@ describe("ContainerManager", () => {
       });
       const { manager } = createHarness({ continuationRunner });
 
-      const result = await manager.execute(makeIssue("DF-300"));
+      const result = await manager.execute(makeWorkItem("DF-300"));
 
       expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
       expect(result.status).toBe(TaskStatus.Completed);
@@ -284,7 +284,7 @@ describe("ContainerManager", () => {
       });
       const { manager } = createHarness({ continuationRunner });
 
-      const result = await manager.execute(makeIssue("DF-400"));
+      const result = await manager.execute(makeWorkItem("DF-400"));
 
       expect(result.issueKey).toBe("DF-400");
       expect(result.status).toBe(TaskStatus.Partial);
@@ -299,10 +299,10 @@ describe("ContainerManager", () => {
       const context = { previousHandoff: "some handoff", comments: [], isRevision: false };
       const { manager } = createHarness({ promptBuilder });
 
-      await manager.execute(makeIssue("DF-500"), context);
+      await manager.execute(makeWorkItem("DF-500"), context);
 
       expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(
-        expect.objectContaining({ key: "DF-500" }),
+        expect.objectContaining({ id: "DF-500" }),
         context,
       );
     });
@@ -311,7 +311,7 @@ describe("ContainerManager", () => {
       const continuationRunner = createMockContinuationRunner();
       const { manager } = createHarness({ continuationRunner });
 
-      await manager.execute(makeIssue("DF-600"));
+      await manager.execute(makeWorkItem("DF-600"));
 
       expect(continuationRunner.run).toHaveBeenCalledWith(
         expect.anything(), expect.anything(), expect.anything(), 0,
@@ -335,7 +335,7 @@ describe("ContainerManager", () => {
         enableContinuation: true,
       });
 
-      await manager.execute(makeIssue("DF-601"));
+      await manager.execute(makeWorkItem("DF-601"));
 
       expect(continuationRunner.run).toHaveBeenCalledWith(
         expect.anything(), expect.anything(), expect.anything(), profile.maxContinuations,

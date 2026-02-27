@@ -1,5 +1,5 @@
 import type { ContainerExecResult } from "./types.js";
-import type { JiraIssue } from "../jira/types.js";
+import type { WorkItem } from "../datasource/types.js";
 import type { Logger } from "../logger.js";
 import { parseResultBlock } from "./result-parser.js";
 import { ICliExecutor } from "./cli-executor-factory.js";
@@ -28,7 +28,7 @@ export interface IContinuationRunner {
   run(
     executor: ICliExecutor,
     prompt: string,
-    workItem: JiraIssue,
+    workItem: WorkItem,
     maxContinuations: number,
   ): Promise<ContinuationResult>;
 }
@@ -50,7 +50,7 @@ export class ContinuationRunner implements IContinuationRunner {
   async run(
     executor: ICliExecutor,
     prompt: string,
-    workItem: JiraIssue,
+    workItem: WorkItem,
     maxContinuations: number,
   ): Promise<ContinuationResult> {
     let result = await executor.run(prompt);
@@ -86,7 +86,7 @@ export class ContinuationRunner implements IContinuationRunner {
           `[RALPH CONTINUATION ${attempt}/${maxContinuations}]\n\n` +
           `Your previous session ended without producing the required ===RALPH_RESULT_START=== block.\n` +
           `Continue working on the task. When complete, output the result block as instructed.\n\n` +
-          `Original issue: ${workItem.key} — ${workItem.fields.summary}`;
+          `Original issue: ${workItem.id} — ${workItem.title}`;
 
         result = await executor.continueSession(continuationPrompt);
         combinedStdout += "\n" + result.stdout;

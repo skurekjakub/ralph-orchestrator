@@ -1,7 +1,7 @@
 /**
  * Integration test: full prompt pipeline with realistic JIRA data.
  *
- * Runs a real JIRA issue fixture through JiraIssueParser → buildPrompt →
+ * Runs a real JIRA issue fixture through JiraIssueMapper → buildPrompt →
  * prompt auditor and asserts the final prompt matches a snapshot file.
  *
  * No network calls — uses a static JSON fixture.
@@ -14,8 +14,10 @@ import { AuditMode } from "../../src/prompt/prompt-auditor.js";
 import type { JiraIssue } from "../../src/jira/types.js";
 import type { IssueContext } from "../../src/prompt/prompt.js";
 import { createSilentLogger } from "../helpers/mocks.js";
+import { mapIssueToWorkItem } from "../../src/datasource/connectors/jira/jira-mapper.js";
 
 const FIXTURES_DIR = resolve(import.meta.dirname, "fixtures");
+const EXCLUDE_FIELDS = ["customfield_19181", "customfield_19222", "customfield_11500"];
 
 function loadFixture(name: string): { issue: JiraIssue; comments: string[] } {
   const raw = JSON.parse(readFileSync(resolve(FIXTURES_DIR, name), "utf-8"));
@@ -23,23 +25,26 @@ function loadFixture(name: string): { issue: JiraIssue; comments: string[] } {
   return { issue: issue as JiraIssue, comments: comments ?? [] };
 }
 
+function loadWorkItem(name: string) {
+  const { issue, comments } = loadFixture(name);
+  return { workItem: mapIssueToWorkItem(issue, "jira", EXCLUDE_FIELDS), comments };
+}
+
 function snapshotPath(name: string): string {
   return resolve(FIXTURES_DIR, name.replace(".json", ".prompt.snap"));
 }
 
 describe("Prompt pipeline integration", () => {
-  const EXCLUDE_FIELDS = ["customfield_19181", "customfield_19222", "customfield_11500"];
-
   it("DOC-3122: standard task with ADF description, custom fields, and comments", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = {
       comments,
       isRevision: false,
     };
 
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     const snapFile = snapshotPath("DOC-3122-issue.json");
 
@@ -55,8 +60,8 @@ describe("Prompt pipeline integration", () => {
   });
 
   it("DOC-3122: revision task includes handoff and revision header", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = {
       comments,
@@ -72,7 +77,7 @@ describe("Prompt pipeline integration", () => {
       ].join("\n"),
     };
 
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     expect(text).toContain("Mode: REVISION");
     expect(text).toContain("Previous Handoff File:");
@@ -84,11 +89,11 @@ describe("Prompt pipeline integration", () => {
   });
 
   it("excluded fields are stripped from the prompt", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     // Boilerplate templates should not appear
     expect(text).not.toContain("Please copy and use this template");
@@ -98,11 +103,11 @@ describe("Prompt pipeline integration", () => {
   });
 
   it("ADF description is converted to readable Markdown", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     // ADF JSON structure should NOT appear
     expect(text).not.toContain('"type": "doc"');
@@ -115,21 +120,21 @@ describe("Prompt pipeline integration", () => {
   });
 
   it("unknown custom fields with long values are included", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     expect(text).toContain("This is an unknown custom field with a long enough value to be included");
   });
 
   it("comments are included in the prompt", () => {
-    const { issue, comments } = loadFixture("DOC-3122-issue.json");
-    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, excludeFields: EXCLUDE_FIELDS, logger: createSilentLogger() });
+    const { workItem, comments } = loadWorkItem("DOC-3122-issue.json");
+    const builder = new PromptBuilder({ promptAuditConfig: { mode: AuditMode.Off }, logger: createSilentLogger() });
 
     const context: IssueContext = { comments, isRevision: false };
-    const { text } = builder.build(issue, context);
+    const { text } = builder.build(workItem, context);
 
     expect(text).toContain("JIRA Comments (oldest first):");
     expect(text).toContain("Ralph here! Starting work on DOC-3122");

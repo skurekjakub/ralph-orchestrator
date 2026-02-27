@@ -53,6 +53,12 @@ interface IAgentProfile {
 }
 ```
 
+**Move JIRA-specific top-level fields into the data source `connection` block:**
+- `excludeFields` (JIRA custom field IDs to strip from issues) → `connection.excludeFields`
+- `allowedUsers` (Atlassian account IDs for trigger authorization) → `connection.allowedUsers`
+
+These are currently on `IAppConfig` but are JIRA-specific. `JiraConnector` reads them from its connection config and passes to `JiraIssueParser` / exposes for `TriggerScanner` respectively. Non-JIRA connectors would have their own auth/filtering mechanisms in their connection blocks.
+
 **Update `ISecretsConfig`:**
 - Remove `jiraEmail` and `jiraApiToken` — JIRA credentials move into the data source `connection` block or remain as env vars read by the JIRA connector directly.
 

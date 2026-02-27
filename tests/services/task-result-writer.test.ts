@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskResultWriter } from "../../src/services/task-result-writer.js";
-import { makeIssue, makeProfile, makeResult, makeTaskContext } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile, makeResult, makeTaskContext } from "../helpers/factories.js";
 import { createMockLogger, createMockContainer, createMockLogCollector, createMockResources } from "../helpers/mocks.js";
 
 describe("TaskResultWriter", () => {
@@ -66,7 +66,7 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        workItem: makeIssue("DF-100"),
+        workItem: makeWorkItem("DF-100"),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
@@ -85,7 +85,7 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        workItem: makeIssue("DF-100"),
+        workItem: makeWorkItem("DF-100"),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
@@ -101,7 +101,7 @@ describe("TaskResultWriter", () => {
       const logCollector = createMockLogCollector();
       const writer = new TaskResultWriter({ logCollector, resources: createMockResources(), logger });
       const ctx = makeTaskContext({
-        workItem: makeIssue("DF-100"),
+        workItem: makeWorkItem("DF-100"),
         profile: makeProfile(),
         taskId: "DF-100-123",
       });

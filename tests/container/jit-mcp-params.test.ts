@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GatewayConfig } from "../../src/container/setup/mcp-config.js";
 import { McpServerType } from "../../src/container/setup/mcp-manifest.js";
-import { makeIssue, makeProfile } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile } from "../helpers/factories.js";
 import { createSilentLogger, createMockLogger } from "../helpers/mocks.js";
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -27,7 +27,7 @@ function makeGatewayServer(name: string, env: Record<string, string> = {}): Gate
 
 describe("JitMcpConfigWriter", () => {
   const writer = new JitMcpConfigWriter();
-  const issue = makeIssue("DOC-3143", "Update API docs for v2");
+  const issue = makeWorkItem("DOC-3143", "Update API docs for v2");
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -6,7 +6,7 @@ import { resolveAgentIncludes, AgentTemplateRenderer, buildTemplateContext, buil
 import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
-import { makeProfile, makeIssue, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -278,11 +278,13 @@ describe("buildTemplateContext", () => {
       model: "claude-opus-4.6",
       mcpServers: ["playwright", "jira-kentico"],
     });
-    const issue = makeIssue("DOC-500", "Add widget documentation", "To Do", undefined, {
-      issuetype: { name: "Task" },
-      priority: { name: "High" },
+    const issue = makeWorkItem("DOC-500", {
+      title: "Add widget documentation",
+      status: "To Do",
+      type: "Task",
+      priority: "High",
       labels: ["docs", "widget"],
-      components: [{ name: "Frontend" }, { name: "API" }],
+      components: ["Frontend", "API"],
     });
 
     const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }));
@@ -321,19 +323,16 @@ describe("buildTemplateContext", () => {
     expect(ctx.isRevision).toBe(true);
   });
 
-  it("extracts plain-text description from ADF", () => {
-    const issue = makeIssue("DOC-200", "Test", "New", undefined, {
-      description: {
-        type: "doc",
-        content: [{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] }],
-      },
+  it("uses description from work item", () => {
+    const issue = makeWorkItem("DOC-200", {
+      description: "Hello world",
     });
     const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
     expect(ctx.issueDescription).toBe("Hello world");
   });
 
-  it("extracts plain string description", () => {
-    const issue = makeIssue("DOC-201", "Test", "New", undefined, {
+  it("uses plain string description", () => {
+    const issue = makeWorkItem("DOC-201", {
       description: "Plain text desc",
     });
     const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
@@ -341,7 +340,9 @@ describe("buildTemplateContext", () => {
   });
 
   it("populates issueCreated and issueUpdated", () => {
-    const issue = makeIssue("DOC-202", "Test", "New", "2026-02-15T12:00:00.000+0000");
+    const issue = makeWorkItem("DOC-202", {
+      updated: "2026-02-15T12:00:00.000+0000",
+    });
     const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
     expect(ctx.issueCreated).toBe("2026-01-01T00:00:00.000+0000");
     expect(ctx.issueUpdated).toBe("2026-02-15T12:00:00.000+0000");
@@ -349,12 +350,12 @@ describe("buildTemplateContext", () => {
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeIssue("DF-50") }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }));
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
   it("derives issueProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeIssue("DOC-3143") }));
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeWorkItem("DOC-3143") }));
     expect(ctx.issueProject).toBe("DOC");
   });
 

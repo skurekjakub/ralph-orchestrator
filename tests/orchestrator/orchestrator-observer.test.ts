@@ -4,7 +4,7 @@ import type { ObservableContext } from "../../src/orchestrator-observer.js";
 import type { LogEntry } from "../../src/orchestrator-types.js";
 import { OrchestratorStatus, LogLevel, LogSource } from "../../src/orchestrator-types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import { makeIssue, makeProfile, makeCompletion } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile, makeCompletion } from "../helpers/factories.js";
 
 function makeContext(overrides: Partial<ObservableContext> = {}): ObservableContext {
   return {
@@ -17,7 +17,7 @@ function makeContext(overrides: Partial<ObservableContext> = {}): ObservableCont
   };
 }
 
-const fakeIssue = makeIssue("DOC-100", "Test issue");
+const fakeIssue = makeWorkItem("DOC-100", "Test issue");
 
 const fakeProfile = makeProfile({ id: "ralph-docs", agentName: "ralph" });
 

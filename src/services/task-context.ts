@@ -1,10 +1,10 @@
 import type { IAgentProfile, IRalphchivesConfig } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
+import type { WorkItem } from "../datasource/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
-  readonly workItem: JiraIssue;
+  readonly workItem: WorkItem;
   readonly profile: IAgentProfile;
   readonly taskId: string;
   readonly triggerParams: Record<string, string>;
@@ -25,13 +25,13 @@ export interface TaskCallbacks {
  * determines whether the issue is in a revision status.
  */
 export function buildTaskContext(
-  workItem: JiraIssue,
+  workItem: WorkItem,
   profile: IAgentProfile,
   taskId: string,
   ralphchivesConfig: IRalphchivesConfig,
   triggerParams?: string[],
 ): TaskContext {
-  const issueStatus = workItem.fields.status?.name?.toLowerCase() ?? "";
+  const issueStatus = workItem.status.toLowerCase();
   const revisionStatuses = profile.match.revisionStatuses ?? [];
   const isRevision = revisionStatuses.some(
     (s) => s.toLowerCase() === issueStatus,

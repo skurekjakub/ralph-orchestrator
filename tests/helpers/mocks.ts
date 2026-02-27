@@ -8,10 +8,11 @@
 import { vi, type Mock } from "vitest";
 import type { Logger } from "../../src/logger.js";
 import type { IJiraClient } from "../../src/jira/client.js";
-import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
+import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IResourceManager } from "../../src/services/task-resource-manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerManager } from "../../src/container/manager.js";
+import type { IDataSourceConnector, IDataSourceIdentity, ISupportsAttachments, ISupportsTransitions } from "../../src/datasource/connector.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
 import type { IJiraPoller } from "../../src/jira/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
@@ -88,13 +89,13 @@ export function createMockJiraClient(overrides: Partial<Mocked<IJiraClient>> = {
   } as Mocked<IJiraClient>;
 }
 
-/** Create a mock JiraIssueManager with all methods stubbed. */
+/** Create a mock IssueManager with all methods stubbed. */
 export function createMockIssueManager(overrides: Partial<Mocked<IIssueManager>> = {}): Mocked<IIssueManager> {
   return {
     getComments: vi.fn().mockResolvedValue([]),
     postAckComment: vi.fn().mockResolvedValue(undefined),
-    refreshIssue: vi.fn().mockResolvedValue(null),
-    transitionIssue: vi.fn().mockResolvedValue(undefined),
+    refreshWorkItem: vi.fn().mockResolvedValue(null),
+    transitionWorkItem: vi.fn().mockResolvedValue(undefined),
     postStartComment: vi.fn().mockResolvedValue(undefined),
     postErrorComment: vi.fn().mockResolvedValue(undefined),
     postCrashRecoveryComment: vi.fn().mockResolvedValue(undefined),
@@ -104,7 +105,7 @@ export function createMockIssueManager(overrides: Partial<Mocked<IIssueManager>>
   } as Mocked<IIssueManager>;
 }
 
-/** Create a mock TaskJiraResourceManager with all methods stubbed. */
+/** Create a mock TaskResourceManager with all methods stubbed. */
 export function createMockResources(overrides: Partial<Mocked<IResourceManager>> = {}): Mocked<IResourceManager> {
   return {
     fetchHandoff: vi.fn().mockResolvedValue(null),
@@ -112,6 +113,28 @@ export function createMockResources(overrides: Partial<Mocked<IResourceManager>>
     attachTranscript: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as Mocked<IResourceManager>;
+}
+
+/** Create a mock IDataSourceConnector with all capabilities (transitions + attachments). */
+export function createMockConnector(
+  overrides: Partial<IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>> = {},
+): IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments> {
+  return {
+    name: "MockConnector",
+    sourceKey: "mock",
+    buildQueries: vi.fn().mockReturnValue([]),
+    searchWorkItems: vi.fn().mockResolvedValue([]),
+    refreshWorkItem: vi.fn().mockResolvedValue(null),
+    isValidItemId: vi.fn().mockReturnValue(true),
+    getComments: vi.fn().mockResolvedValue([]),
+    addComment: vi.fn().mockResolvedValue(undefined),
+    getTransitions: vi.fn().mockResolvedValue([]),
+    transitionWorkItem: vi.fn().mockResolvedValue(undefined),
+    getAttachments: vi.fn().mockResolvedValue([]),
+    downloadAttachment: vi.fn().mockResolvedValue(""),
+    addAttachment: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  } as IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>;
 }
 
 // ── Container mocks ──────────────────────────────────────────────────────────
@@ -241,7 +264,7 @@ export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): 
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
     run: vi.fn().mockImplementation(async (ctx: any) => ({
-      result: makeResult(ctx.workItem?.key ?? ctx.key ?? "MOCK-1"),
+      result: makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1"),
       container: createMockContainer().container,
     })),
     teardown: vi.fn().mockResolvedValue(undefined),

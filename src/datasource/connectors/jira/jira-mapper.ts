@@ -10,7 +10,7 @@ import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition 
 import { extractAdfText } from "../../../jira/adf-converter.js";
 
 /** Convert a JIRA issue to a generic WorkItem. */
-export function mapIssueToWorkItem(issue: JiraIssue, source: string): WorkItem {
+export function mapIssueToWorkItem(issue: JiraIssue, source: string, excludeFields: string[] = []): WorkItem {
   return {
     id: issue.key,
     source,
@@ -24,7 +24,7 @@ export function mapIssueToWorkItem(issue: JiraIssue, source: string): WorkItem {
     components: (issue.fields.components ?? []).map(c => c.name),
     created: issue.fields.created,
     updated: issue.fields.updated ?? "",
-    customFields: extractCustomFields(issue),
+    customFields: extractCustomFields(issue, excludeFields),
     sourceData: issue,
   };
 }
@@ -70,15 +70,31 @@ const KNOWN_CUSTOM_FIELDS: Record<string, string> = {
   customfield_14704: "How can we make this page more helpful?",
 };
 
-function extractCustomFields(issue: JiraIssue): ReadonlyMap<string, string> {
+function extractCustomFields(issue: JiraIssue, excludeFields: string[]): ReadonlyMap<string, string> {
   const fields = new Map<string, string>();
+  const excluded = new Set(excludeFields);
 
   for (const [fieldId, label] of Object.entries(KNOWN_CUSTOM_FIELDS)) {
+    if (excluded.has(fieldId)) continue;
     const value = issue.fields[fieldId];
     if (!value) continue;
     const text = extractFieldValue(value);
     if (text.trim()) {
       fields.set(label, text.trim());
+    }
+  }
+
+  // Unknown custom fields — catch-all for long string values
+  for (const [key, value] of Object.entries(issue.fields)) {
+    if (
+      key.startsWith("customfield_") &&
+      !excluded.has(key) &&
+      !(key in KNOWN_CUSTOM_FIELDS) &&
+      value &&
+      typeof value === "string" &&
+      value.length > 10
+    ) {
+      fields.set(key, value);
     }
   }
 

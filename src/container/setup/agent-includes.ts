@@ -3,8 +3,6 @@ import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
-import type { JiraIssue } from "../../jira/types.js";
-import { extractAdfText } from "../../jira/adf-converter.js";
 import { normalizeContent } from "../../prompt/normalizer.js";
 import { registerCustomTags } from "./liquid-tags.js";
 import { TaskContext } from "../../services/task-context.js";
@@ -152,17 +150,17 @@ export function buildTemplateContext(
     displayName: ctx.profile.displayName,
     mcpServers: ctx.profile.mcpServers,
 
-    issueKey: ctx.workItem.key,
-    issueSummary: ctx.workItem.fields.summary,
-    issueStatus: ctx.workItem.fields.status.name,
-    issueType: ctx.workItem.fields.issuetype?.name ?? "",
-    issuePriority: ctx.workItem.fields.priority?.name ?? "",
-    issueLabels: ctx.workItem.fields.labels ?? [],
-    issueComponents: (ctx.workItem.fields.components ?? []).map((c) => c.name),
-    issueProject: ctx.workItem.key.split("-")[0],
-    issueDescription: extractDescription(ctx.workItem),
-    issueCreated: ctx.workItem.fields.created,
-    issueUpdated: ctx.workItem.fields.updated ?? "",
+    issueKey: ctx.workItem.id,
+    issueSummary: ctx.workItem.title,
+    issueStatus: ctx.workItem.status,
+    issueType: ctx.workItem.type,
+    issuePriority: ctx.workItem.priority,
+    issueLabels: [...ctx.workItem.labels],
+    issueComponents: [...ctx.workItem.components],
+    issueProject: ctx.workItem.project,
+    issueDescription: ctx.workItem.description ? normalizeContent(ctx.workItem.description) : "",
+    issueCreated: ctx.workItem.created,
+    issueUpdated: ctx.workItem.updated,
 
     commentTrigger: ctx.profile.match.commentTrigger,
     triggerParams: resolvedParams,
@@ -192,16 +190,6 @@ export function buildTriggerParams(params: string[]): Record<string, string> {
     }
   }
   return map;
-}
-
-/** Extract plain text from a JIRA issue description (ADF or string). */
-function extractDescription(issue: JiraIssue): string {
-  if (!issue.fields.description) return "";
-  const raw =
-    typeof issue.fields.description === "string"
-      ? issue.fields.description
-      : extractAdfText(issue.fields.description);
-  return normalizeContent(raw);
 }
 
 /** Public contract for JIT agent template rendering. */

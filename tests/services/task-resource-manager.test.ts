@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { TaskJiraResourceManager } from "../../src/services/task-resource-manager.js";
-import { makeComment } from "../helpers/factories.js";
-import { createMockJiraClient, createMockLogger } from "../helpers/mocks.js";
+import { TaskResourceManager } from "../../src/services/task-resource-manager.js";
+import { makeWorkItemComment } from "../helpers/factories.js";
+import { createMockConnector, createMockLogger } from "../helpers/mocks.js";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -9,22 +9,22 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 describe("TaskResourceManager", () => {
-  let jira: ReturnType<typeof createMockJiraClient>;
+  let connector: ReturnType<typeof createMockConnector>;
   let logger: ReturnType<typeof createMockLogger>;
-  let resources: TaskJiraResourceManager;
+  let resources: TaskResourceManager;
 
   beforeEach(() => {
-    jira = createMockJiraClient();
+    connector = createMockConnector();
     logger = createMockLogger();
-    resources = new TaskJiraResourceManager({ jiraClient: jira, logger });
+    resources = new TaskResourceManager({ connector, logger });
     resources.retryOptions = { delayMs: 1 };
   });
 
   describe("fetchComments", () => {
     it("formats comments with timestamp and author", async () => {
-      jira.getComments.mockResolvedValue([
-        makeComment("1", "First comment", "2026-01-15T10:00:00Z"),
-        makeComment("2", "Second comment", "2026-01-15T11:00:00Z"),
+      connector.getComments.mockResolvedValue([
+        makeWorkItemComment("1", "First comment", "2026-01-15T10:00:00Z"),
+        makeWorkItemComment("2", "Second comment", "2026-01-15T11:00:00Z"),
       ]);
 
       const result = await resources.fetchComments("DF-100");
@@ -34,24 +34,18 @@ describe("TaskResourceManager", () => {
       expect(result[1]).toBe("[2026-01-15T11:00:00Z] Test User:\nSecond comment");
     });
 
-    it("extracts text from ADF comment bodies", async () => {
-      jira.getComments.mockResolvedValue([
-        makeComment("1", {
-          type: "doc",
-          content: [{
-            type: "paragraph",
-            content: [{ type: "text", text: "ADF content" }],
-          }],
-        }, "2026-01-15T10:00:00Z"),
+    it("returns plain-text comment body directly", async () => {
+      connector.getComments.mockResolvedValue([
+        makeWorkItemComment("1", "Plain text content", "2026-01-15T10:00:00Z"),
       ]);
 
       const result = await resources.fetchComments("DF-100");
 
-      expect(result[0]).toContain("ADF content");
+      expect(result[0]).toContain("Plain text content");
     });
 
     it("returns empty array when getComments fails", async () => {
-      jira.getComments.mockRejectedValue(new Error("JIRA down"));
+      connector.getComments.mockRejectedValue(new Error("Connector down"));
 
       const result = await resources.fetchComments("DF-100");
 
@@ -64,31 +58,31 @@ describe("TaskResourceManager", () => {
 
   describe("fetchHandoff", () => {
     it("returns content of the most recent handoff.md", async () => {
-      jira.getAttachments.mockResolvedValue([
-        { id: "1", filename: "handoff.md", content: "https://jira/att/1", created: "2026-01-10T00:00:00Z" },
-        { id: "2", filename: "handoff.md", content: "https://jira/att/2", created: "2026-01-15T00:00:00Z" },
+      connector.getAttachments.mockResolvedValue([
+        { id: "1", filename: "handoff.md", created: "2026-01-10T00:00:00Z" },
+        { id: "2", filename: "handoff.md", created: "2026-01-15T00:00:00Z" },
       ]);
-      jira.downloadAttachment.mockResolvedValue("# Handoff v2");
+      connector.downloadAttachment.mockResolvedValue("# Handoff v2");
 
       const result = await resources.fetchHandoff("DF-100");
 
       expect(result).toBe("# Handoff v2");
-      expect(jira.downloadAttachment).toHaveBeenCalledWith("https://jira/att/2");
+      expect(connector.downloadAttachment).toHaveBeenCalledWith("DF-100", "2");
     });
 
     it("returns null when no handoff.md exists", async () => {
-      jira.getAttachments.mockResolvedValue([
-        { id: "1", filename: "other.txt", content: "https://jira/att/1", created: "2026-01-10T00:00:00Z" },
+      connector.getAttachments.mockResolvedValue([
+        { id: "1", filename: "other.txt", created: "2026-01-10T00:00:00Z" },
       ]);
 
       const result = await resources.fetchHandoff("DF-100");
 
       expect(result).toBeNull();
-      expect(jira.downloadAttachment).not.toHaveBeenCalled();
+      expect(connector.downloadAttachment).not.toHaveBeenCalled();
     });
 
     it("returns null when getAttachments fails", async () => {
-      jira.getAttachments.mockRejectedValue(new Error("Network error"));
+      connector.getAttachments.mockRejectedValue(new Error("Network error"));
 
       const result = await resources.fetchHandoff("DF-100");
 
@@ -99,10 +93,10 @@ describe("TaskResourceManager", () => {
     });
 
     it("returns null when download fails", async () => {
-      jira.getAttachments.mockResolvedValue([
-        { id: "1", filename: "handoff.md", content: "https://jira/att/1", created: "2026-01-10T00:00:00Z" },
+      connector.getAttachments.mockResolvedValue([
+        { id: "1", filename: "handoff.md", created: "2026-01-10T00:00:00Z" },
       ]);
-      jira.downloadAttachment.mockRejectedValue(new Error("403 Forbidden"));
+      connector.downloadAttachment.mockRejectedValue(new Error("403 Forbidden"));
 
       const result = await resources.fetchHandoff("DF-100");
 
@@ -125,7 +119,7 @@ describe("TaskResourceManager", () => {
 
       await resources.attachTranscript("DF-100", "/tmp/transcript.md", "ralph");
 
-      expect(jira.addAttachment).toHaveBeenCalledWith(
+      expect(connector.addAttachment).toHaveBeenCalledWith(
         "DF-100",
         "session-transcript-ralph-15-03-2026.md",
         "transcript content",
@@ -138,7 +132,7 @@ describe("TaskResourceManager", () => {
     it("logs warning when attachment fails", async () => {
       const { readFileSync } = await import("node:fs");
       vi.mocked(readFileSync).mockReturnValue("content");
-      jira.addAttachment.mockRejectedValue(new Error("Upload failed"));
+      connector.addAttachment.mockRejectedValue(new Error("Upload failed"));
 
       await resources.attachTranscript("DF-100", "/tmp/transcript.md", "ralph");
 

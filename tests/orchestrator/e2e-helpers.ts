@@ -10,12 +10,14 @@ import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
 import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
 import type { Mocked } from "../helpers/mocks.js";
-import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import type { JiraIssue } from "../../src/jira/types.js";
+import type { WorkItemComment } from "../../src/datasource/types.js";
+import { mapIssueToWorkItem } from "../../src/datasource/connectors/jira/jira-mapper.js";
 import type { IAgentProfile } from "../../src/config/types.js";
 
 type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
 import type { RalphResult } from "../../src/container/types.js";
-import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
+import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 
 const silentLogger = createMockLogger();
@@ -32,7 +34,7 @@ export function buildMockDeps(
   options: {
     profile?: IAgentProfile;
     issues?: JiraIssue[];
-    comments?: Record<string, JiraComment[]>;
+    comments?: Record<string, WorkItemComment[]>;
     searchResults?: Record<string, JiraIssue[]>;
     taskResult?: Partial<RalphResult>;
     taskError?: Error;
@@ -80,8 +82,9 @@ export function buildMockDeps(
     getComments: vi.fn().mockImplementation(async (key: string) => {
       return commentsMap[key] ?? [];
     }),
-    refreshIssue: vi.fn().mockImplementation(async (key: string) => {
-      return issueMap[key] ?? null;
+    refreshWorkItem: vi.fn().mockImplementation(async (key: string) => {
+      const issue = issueMap[key];
+      return issue ? mapIssueToWorkItem(issue, "jira") : null;
     }),
   });
 
@@ -91,7 +94,7 @@ export function buildMockDeps(
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
       : vi.fn().mockImplementation(async (ctx: any) => ({
-          result: makeResult(ctx.workItem.key, options.taskResult),
+          result: makeResult(ctx.workItem.id, options.taskResult),
           container: mockContainer,
         })),
   });
@@ -118,6 +121,7 @@ export function buildMockDeps(
 
   return {
     jiraConfig: config.jira,
+    excludeFields: [],
     profiles: config.profiles,
     activityLog,
     issueManager,
@@ -199,6 +203,7 @@ export function buildBaseDeps(
 
   return {
     jiraConfig: config.jira,
+    excludeFields: [],
     profiles: config.profiles,
     activityLog: new ActivityLog({ outputConfig: { logDir, handoffDir: "" } }),
     issueManager,

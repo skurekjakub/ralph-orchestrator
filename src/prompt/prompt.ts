@@ -1,11 +1,7 @@
-import type { JiraIssue } from "../jira/types.js";
-import { JiraFieldExtractor } from "../jira/field-extractor.js";
-import { extractAdfText } from "../jira/adf-converter.js";
+import type { WorkItem } from "../datasource/types.js";
 import type { PromptSection } from "./prompt-auditor.js";
 import { PromptSectionSource } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
-
-const fieldExtractor = new JiraFieldExtractor();
 
 /** Delimiter wrapping untrusted JIRA data in the prompt. */
 const UNTRUSTED_BEGIN = "--- BEGIN UNTRUSTED JIRA DATA ---";
@@ -46,7 +42,7 @@ export interface PromptWithSections {
  * @see buildPrompt — convenience wrapper that returns only the string.
  */
 export function buildPromptWithSections(
-  workItem: JiraIssue,
+  workItem: WorkItem,
   context?: IssueContext,
 ): PromptWithSections {
   const parts: string[] = [];
@@ -60,7 +56,7 @@ export function buildPromptWithSections(
         `This is a revision of a previous attempt. The issue has been reviewed and moved back to revision status.`,
         ``,
         `You MUST follow the Revision Workflow (not the standard workflow):`,
-        `1. Find the existing pull request (branch pattern: ralph/${workItem.key}-*)`,
+        `1. Find the existing pull request (branch pattern: ralph/${workItem.id}-*)`,
         `2. Read ALL PR review threads/comments for inline feedback`,
         `3. Switch to the existing branch and make the requested changes`,
         `4. Do NOT create a new branch — work on the existing one`,
@@ -78,41 +74,37 @@ export function buildPromptWithSections(
   }
 
   parts.push(
-    `JIRA Issue: ${workItem.key}`,
-    `Title: ${workItem.fields.summary}`,
+    `JIRA Issue: ${workItem.id}`,
+    `Title: ${workItem.title}`,
   );
 
   // ── Untrusted data boundary ──
   const untrustedParts: string[] = [];
 
-  if (workItem.fields.description) {
-    const rawDesc =
-      typeof workItem.fields.description === "string"
-        ? workItem.fields.description
-        : extractAdfText(workItem.fields.description);
-    const descStr = normalizeContent(rawDesc);
+  if (workItem.description) {
+    const descStr = normalizeContent(workItem.description);
     untrustedParts.push(`Description:\n${descStr}`);
     sections.push({ source: PromptSectionSource.JiraField, fieldName: "description", content: descStr });
   }
 
-  if (workItem.fields.labels && workItem.fields.labels.length > 0) {
-    untrustedParts.push(`Labels: ${workItem.fields.labels.join(", ")}`);
+  if (workItem.labels.length > 0) {
+    untrustedParts.push(`Labels: ${workItem.labels.join(", ")}`);
   }
 
-  if (workItem.fields.components && workItem.fields.components.length > 0) {
+  if (workItem.components.length > 0) {
     untrustedParts.push(
-      `Components: ${workItem.fields.components.map((c) => c.name).join(", ")}`
+      `Components: ${workItem.components.join(", ")}`
     );
   }
 
-  if (workItem.fields.priority) {
-    untrustedParts.push(`Priority: ${workItem.fields.priority.name}`);
+  if (workItem.priority) {
+    untrustedParts.push(`Priority: ${workItem.priority}`);
   }
 
-  for (const field of fieldExtractor.extractCustomFields(workItem)) {
-    const normalized = normalizeContent(field.value);
-    untrustedParts.push(`${field.label}: ${normalized}`);
-    sections.push({ source: PromptSectionSource.JiraField, fieldName: field.label, content: normalized });
+  for (const [label, value] of workItem.customFields) {
+    const normalized = normalizeContent(value);
+    untrustedParts.push(`${label}: ${normalized}`);
+    sections.push({ source: PromptSectionSource.JiraField, fieldName: label, content: normalized });
   }
 
   if (context?.comments && context.comments.length > 0) {
@@ -146,6 +138,6 @@ export function buildPromptWithSections(
  *
  * Custom field extraction is delegated to {@link JiraFieldExtractor}.
  */
-export function buildPrompt(workItem: JiraIssue, context?: IssueContext): string {
+export function buildPrompt(workItem: WorkItem, context?: IssueContext): string {
   return buildPromptWithSections(workItem, context).prompt;
 }

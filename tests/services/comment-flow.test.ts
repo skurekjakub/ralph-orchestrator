@@ -6,7 +6,7 @@ import { OperationLedger, OperationStatus } from "../../src/services/operation-l
 import { TaskStatus } from "../../src/container/types.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { extractAdfText } from "../../src/jira/adf-converter.js";
-import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
 
 let tempDir: string;
 let ledger: OperationLedger;
@@ -31,9 +31,9 @@ describe("Comment-driven orchestration flow", () => {
       const variant = profile.variantKey;
 
       const comments = [
-        makeComment("C1", "Regular comment", "2026-01-01T00:00:00Z"),
-        makeComment("C2", "@RalphDocs please handle this", "2026-01-01T01:00:00Z"),
-        makeComment("C3", "Another regular comment", "2026-01-01T02:00:00Z"),
+        makeWorkItemComment("C1", "Regular comment", "2026-01-01T00:00:00Z"),
+        makeWorkItemComment("C2", "@RalphDocs please handle this", "2026-01-01T01:00:00Z"),
+        makeWorkItemComment("C3", "Another regular comment", "2026-01-01T02:00:00Z"),
       ];
 
       const trigger = profile.match.commentTrigger!;
@@ -101,10 +101,10 @@ describe("Comment-driven orchestration flow", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const validIssue = makeIssue("DF-1", "task", "New");
+      const validIssue = makeWorkItem("DF-1", "task", "New");
       expect(router.matchesProjectAndStatus(validIssue, profile)).toBe(true);
 
-      const staleIssue = makeIssue("DF-1", "task", "In Progress");
+      const staleIssue = makeWorkItem("DF-1", "task", "In Progress");
       expect(router.matchesProjectAndStatus(staleIssue, profile)).toBe(false);
     });
   });

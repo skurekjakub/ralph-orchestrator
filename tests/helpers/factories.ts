@@ -52,22 +52,27 @@ export function makeComment(
 /** Create a minimal WorkItem with sensible defaults. */
 export function makeWorkItem(
   id: string,
-  overrides: Partial<WorkItem> = {},
+  summaryOrOverrides: string | Partial<WorkItem> = {},
+  status = "New",
+  updated?: string,
 ): WorkItem {
+  const overrides = typeof summaryOrOverrides === "string"
+    ? { title: summaryOrOverrides, status, ...(updated !== undefined ? { updated } : {}) }
+    : summaryOrOverrides;
   return {
     id,
     source: "jira",
-    project: "DF",
+    project: id.split("-")[0] ?? "DF",
     title: `Test work item ${id}`,
     description: "",
     status: "New",
-    type: "Task",
-    priority: "Medium",
+    type: "",
+    priority: "",
     labels: [],
     components: [],
     created: "2026-01-01T00:00:00.000+0000",
     updated: "",
-    customFields: new Map(),
+    customFields: new Map<string, string>(),
     sourceData: null,
     ...overrides,
   };
@@ -77,8 +82,12 @@ export function makeWorkItem(
 export function makeWorkItemComment(
   id: string,
   body: string,
-  overrides: Partial<WorkItemComment> = {},
+  createdOrOverrides: string | Partial<WorkItemComment> = {},
+  accountId = "test-account-id",
 ): WorkItemComment {
+  const overrides = typeof createdOrOverrides === "string"
+    ? { created: createdOrOverrides, authorId: accountId }
+    : createdOrOverrides;
   return {
     id,
     authorName: "Test User",
@@ -268,7 +277,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
 /** Create a minimal TaskContext for testing. */
 export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskContext {
   return {
-    workItem: makeIssue("DF-100"),
+    workItem: makeWorkItem("DF-100"),
     profile: makeProfile(),
     taskId: "DF-100-1234567890000",
     triggerParams: {},

@@ -1,6 +1,6 @@
 import { execa } from "execa";
 import type { IAgentProfile } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
+import type { WorkItem } from "../datasource/types.js";
 import type { RalphResult, CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { PromptBuilder } from "../prompt/prompt-builder.js";
@@ -38,7 +38,7 @@ export interface IContainerManager {
   /** Register standard log sources for a task and start streaming. */
   registerLogSources(issueKey: string): void;
   /** Execute the agent CLI inside the running container. */
-  execute(workItem: JiraIssue, context?: IssueContext): Promise<RalphResult>;
+  execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Tear down all containers and associated resources. */
   stop(): Promise<void>;
   /** Per-task log collector. */
@@ -209,7 +209,7 @@ export class ContainerManager implements IContainerManager {
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */
-  async execute(workItem: JiraIssue, context?: IssueContext): Promise<RalphResult> {
+  async execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
     const { text: prompt } = this.promptBuilder.build(workItem, context);
 
     const startTime = Date.now();
@@ -228,7 +228,7 @@ export class ContainerManager implements IContainerManager {
     const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
 
     return {
-      issueKey: workItem.key,
+      issueKey: workItem.id,
       status,
       durationMs,
       exitCode: lastResult.exitCode,

@@ -4,15 +4,16 @@ import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
 import type { Operation, IOperationLedger } from "./services/operation-ledger.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
-import type { JiraIssue } from "./jira/types.js";
+import type { WorkItem } from "./datasource/types.js";
 import type { ActiveTask } from "./orchestrator-types.js";
 import { buildTaskContext } from "./services/task-context.js";
 import type { TaskCallbacks } from "./services/task-context.js";
 import { toErrorMessage } from "./util/error.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { IJiraPoller } from "./jira/poller.js";
+import { mapIssueToWorkItem } from "./datasource/connectors/jira/jira-mapper.js";
 import type { IProfileRouter } from "./services/profile-router.js";
-import type { IIssueManager } from "./services/jira-issue-manager.js";
+import type { IIssueManager } from "./services/issue-manager.js";
 import type { IResourceManager } from "./services/task-resource-manager.js";
 import type { ITaskRunner } from "./services/task-runner.js";
 import type { ITriggerScanner } from "./services/trigger-scanner.js";
@@ -41,6 +42,7 @@ import type { Logger } from "./logger.js";
  */
 export class Orchestrator {
   private readonly jiraConfig: IJiraConfig;
+  private readonly excludeFields: readonly string[];
   private readonly profiles: readonly IAgentProfile[];
   private readonly activityLog: IActivityLog;
   private readonly poller: IJiraPoller;
@@ -66,6 +68,7 @@ export class Orchestrator {
 
   constructor({
     jiraConfig,
+    excludeFields,
     profiles,
     activityLog,
     poller,
@@ -79,6 +82,7 @@ export class Orchestrator {
     ralphchivesConfig,
   }: {
     jiraConfig: IJiraConfig;
+    excludeFields: readonly string[];
     profiles: readonly IAgentProfile[];
     activityLog: IActivityLog;
     poller: IJiraPoller;
@@ -93,6 +97,7 @@ export class Orchestrator {
     logger?: Logger;
   }) {
     this.jiraConfig = jiraConfig;
+    this.excludeFields = excludeFields;
     this.profiles = profiles;
     this.activityLog = activityLog;
     this.poller = poller;
@@ -174,7 +179,7 @@ export class Orchestrator {
     await this.cleanupAbandonedContainers();
 
     while (this.running) {
-      const discovered = this.poller.drain();
+      const discovered = this.poller.drain().map(issue => mapIssueToWorkItem(issue, "jira", [...this.excludeFields]));
       if (discovered.length > 0) {
         const planned = await this.triggerScanner.scan(
           discovered,
@@ -245,7 +250,7 @@ export class Orchestrator {
 
     // Auto-preflight for revision tasks — requires an existing PR and handoff.
     const revisionStatuses = profile.match.revisionStatuses ?? [];
-    const itemStatus = workItem.fields.status?.name?.toLowerCase() ?? "";
+    const itemStatus = workItem.status.toLowerCase();
     const isRevision = revisionStatuses.some(
       (s) => s.toLowerCase() === itemStatus,
     );
@@ -272,9 +277,9 @@ export class Orchestrator {
     return profile;
   }
 
-  /** Re-fetch the issue from JIRA to get its current status. Returns `null` on failure or not found. */
-  private async refreshIssue(issueKey: string, operation: Operation): Promise<JiraIssue | null> {
-    const workItem = await this.issueManager.refreshIssue(issueKey);
+  /** Re-fetch the work item to get its current status. Returns `null` on failure or not found. */
+  private async refreshIssue(issueKey: string, operation: Operation): Promise<WorkItem | null> {
+    const workItem = await this.issueManager.refreshWorkItem(issueKey);
     if (!workItem) {
       this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
       this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
@@ -286,24 +291,24 @@ export class Orchestrator {
     return workItem;
   }
 
-  /** Verify the issue's current status still matches the profile. Returns `false` if rejected. */
-  private validateStatusMatch(workItem: JiraIssue, profile: IAgentProfile, operation: Operation): boolean {
+  /** Verify the work item's current status still matches the profile. Returns `false` if rejected. */
+  private validateStatusMatch(workItem: WorkItem, profile: IAgentProfile, operation: Operation): boolean {
     if (this.router.matchesProjectAndStatus(workItem, profile)) return true;
     this.log(
-      `Rejected ${workItem.key}: status "${workItem.fields.status.name}" no longer matches profile ${profile.displayName}`,
+      `Rejected ${workItem.id}: status "${workItem.status}" no longer matches profile ${profile.displayName}`,
     );
-    this.ledger.transition(workItem.key, operation.id, OperationStatus.Rejected, {
-      reason: `Issue status "${workItem.fields.status.name}" no longer matches profile`,
+    this.ledger.transition(workItem.id, operation.id, OperationStatus.Rejected, {
+      reason: `Issue status "${workItem.status}" no longer matches profile`,
     });
     this.issueManager
-      .postStaleStatusComment(workItem.key, profile.displayName, workItem.fields.status.name);
+      .postStaleStatusComment(workItem.id, profile.displayName, workItem.status);
     this.emitState();
     return false;
   }
 
   /** Run a preflight check. Uses the profile's configured check or an explicit name. Returns `false` if the check fails. */
   private async runPreflight(
-    workItem: JiraIssue,
+    workItem: WorkItem,
     profile: IAgentProfile,
     operation: Operation,
     checkName?: string,
@@ -311,10 +316,10 @@ export class Orchestrator {
     const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
-    const comments = await this.issueManager.getComments(workItem.key);
+    const comments = await this.issueManager.getComments(workItem.id);
     const ctx = await buildPreflightContext(
       this.resources,
-      workItem.key,
+      workItem.id,
       comments,
     );
     const result = runPreflight(name, workItem, ctx);
@@ -324,21 +329,21 @@ export class Orchestrator {
       profile.failureComment ??
       `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
     this.ledger.transition(
-      workItem.key,
+      workItem.id,
       operation.id,
       OperationStatus.Rejected,
       { reason: `preflight:${name} — ${result.reason}` },
     );
-    await this.issueManager.postComment(workItem.key, comment);
+    await this.issueManager.postComment(workItem.id, comment);
     this.log(
-      `Preflight failed for ${workItem.key} (${name}): ${result.reason}`,
+      `Preflight failed for ${workItem.id} (${name}): ${result.reason}`,
     );
     return false;
   }
 
   /** Execute the task runner, record completion/error, and handle teardown. */
   private async runTask(
-    workItem: JiraIssue,
+    workItem: WorkItem,
     profile: IAgentProfile,
     operation: Operation,
   ): Promise<void> {
@@ -350,11 +355,11 @@ export class Orchestrator {
     };
 
     this.log(
-      `Picked up ${workItem.key}: ${workItem.fields.summary} (${operation.variant})`,
+      `Picked up ${workItem.id}: ${workItem.title} (${operation.variant})`,
     );
-    this.ledger.transition(workItem.key, operation.id, OperationStatus.Active);
+    this.ledger.transition(workItem.id, operation.id, OperationStatus.Active);
 
-    const taskId = `${workItem.key}-${this.activeTask.startedAt}`;
+    const taskId = `${workItem.id}-${this.activeTask.startedAt}`;
 
     try {
       this.activityLog.startTaskLog(taskId);
@@ -363,8 +368,8 @@ export class Orchestrator {
       this.activeTask.container = container;
 
       this.observer.recordCompletion({
-        key: workItem.key,
-        summary: workItem.fields.summary,
+        key: workItem.id,
+        summary: workItem.title,
         profileId: profile.id,
         status: result.status,
         durationMs: result.durationMs || Date.now() - this.activeTask.startedAt,
@@ -373,13 +378,13 @@ export class Orchestrator {
       });
 
       this.log(
-        `Done ${workItem.key}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
+        `Done ${workItem.id}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
       );
 
       const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
 
       this.ledger.transition(
-        workItem.key,
+        workItem.id,
         operation.id,
         isSuccess ? OperationStatus.Completed : OperationStatus.Error,
         {
@@ -389,31 +394,31 @@ export class Orchestrator {
       );
 
       if (isSuccess) {
-        await this.issueManager.transitionIssue(workItem.key, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
+        await this.issueManager.transitionWorkItem(workItem.id, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
       } else {
         await this.issueManager.postErrorComment(
-          workItem.key,
+          workItem.id,
           result.stderr || `Agent finished with status: ${result.status}`,
         );
       }
     } catch (err) {
       const errorMsg = toErrorMessage(err);
-      this.logError(`Error processing ${workItem.key}: ${errorMsg}`);
+      this.logError(`Error processing ${workItem.id}: ${errorMsg}`);
 
       this.observer.recordCompletion({
-        key: workItem.key,
-        summary: workItem.fields.summary,
+        key: workItem.id,
+        summary: workItem.title,
         profileId: profile.id,
         status: TaskStatus.Error,
         durationMs: Date.now() - this.activeTask.startedAt,
         completedAt: Date.now(),
       });
 
-      this.ledger.transition(workItem.key, operation.id, OperationStatus.Error, {
+      this.ledger.transition(workItem.id, operation.id, OperationStatus.Error, {
         reason: errorMsg,
       });
 
-      await this.issueManager.postErrorComment(workItem.key, errorMsg);
+      await this.issueManager.postErrorComment(workItem.id, errorMsg);
     } finally {
       this.activityLog.endTaskLog();
       await this.teardownContainer(profile);

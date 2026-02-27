@@ -5,10 +5,10 @@ import { tmpdir } from "node:os";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { OperationLedger } from "../../src/services/operation-ledger.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeMatch, makeComment } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
 import { createMockLogger } from "../helpers/mocks.js";
 import { makeMockIssueManager } from "./trigger-test-helpers.js";
-import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
+import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
 import type { IOperationLedger } from "../../src/services/operation-ledger.js";
 import type { Logger } from "../../src/logger.js";
@@ -53,16 +53,16 @@ describe("TriggerScanner cache persistence", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
+    const mgr = makeMockIssueManager([makeWorkItemComment("C1", "@go")]);
 
     const scanner1 = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    const issue = makeWorkItem("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
     await scanner1.scan([issue], [profile]);
 
     expect(mgr.getComments).toHaveBeenCalledTimes(1);
 
     // Create a new scanner instance loading from the same cache file
-    const mgr2 = makeMockIssueManager([makeComment("C1", "@go")]);
+    const mgr2 = makeMockIssueManager([makeWorkItemComment("C1", "@go")]);
     const scanner2 = makeCacheScanner(mgr2, router, ledger, silentLogger, cachePath);
 
     // Same issue, same updated timestamp — should be skipped
@@ -76,17 +76,17 @@ describe("TriggerScanner cache persistence", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
+    const mgr = makeMockIssueManager([makeWorkItemComment("C1", "@go")]);
 
     const scanner1 = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    const issue = makeWorkItem("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
     await scanner1.scan([issue], [profile]);
 
     // New instance, but issue has a newer updated timestamp
-    const mgr2 = makeMockIssueManager([makeComment("C1", "@go")]);
+    const mgr2 = makeMockIssueManager([makeWorkItemComment("C1", "@go")]);
     const scanner2 = makeCacheScanner(mgr2, router, ledger, silentLogger, cachePath);
 
-    const updatedIssue = makeIssue("DF-100", "Test", "New", "2026-02-15T11:00:00Z");
+    const updatedIssue = makeWorkItem("DF-100", "Test", "New", "2026-02-15T11:00:00Z");
     await scanner2.scan([updatedIssue], [profile]);
 
     expect(mgr2.getComments).toHaveBeenCalledTimes(1);
@@ -97,11 +97,11 @@ describe("TriggerScanner cache persistence", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([makeComment("C1", "@go")]);
+    const mgr = makeMockIssueManager([makeWorkItemComment("C1", "@go")]);
 
     // No cachePath — should not throw, works in-memory only
     const scanner = makeCacheScanner(mgr, router, ledger, silentLogger);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    const issue = makeWorkItem("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
     await scanner.scan([issue], [profile]);
     expect(mgr.getComments).toHaveBeenCalledTimes(1);
   });
@@ -112,10 +112,10 @@ describe("TriggerScanner cache persistence", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([makeComment("C1", "no trigger")]);
+    const mgr = makeMockIssueManager([makeWorkItemComment("C1", "no trigger")]);
 
     const scanner = makeCacheScanner(mgr, router, ledger, silentLogger, cachePath);
-    const issue = makeIssue("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
+    const issue = makeWorkItem("DF-100", "Test", "New", "2026-02-15T10:00:00Z");
     await scanner.scan([issue], [profile]);
 
     // Cache file should exist and be valid JSON

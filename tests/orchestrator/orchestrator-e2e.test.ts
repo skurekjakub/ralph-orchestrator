@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import { Orchestrator } from "../../src/orchestrator.js";
 import { OperationStatus } from "../../src/services/operation-ledger.js";
-import { makeProfile, makeIssue, makeComment, makeResult } from "../helpers/factories.js";
+import { makeProfile, makeIssue, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories.js";
 import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IAgentProfile } from "../../src/config/types.js";
@@ -36,7 +36,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-100": [makeComment("C1", "@docs please handle this")],
+        "DF-100": [makeWorkItemComment("C1", "@docs please handle this")],
       },
     });
 
@@ -52,13 +52,13 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
-        workItem: expect.objectContaining({ key: "DF-100" }),
+        workItem: expect.objectContaining({ id: "DF-100" }),
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
       expect.any(Object),
     );
-    expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
       "DF-100",
       undefined,
       TransitionPhase.AfterAgent,
@@ -79,7 +79,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-150": [makeComment("C1", "@docs handle this")],
+        "DF-150": [makeWorkItemComment("C1", "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Error,
@@ -99,7 +99,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       "DF-150",
       "No such agent: ralph",
     );
-    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
@@ -115,7 +115,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-151": [makeComment("C1", "@docs handle this")],
+        "DF-151": [makeWorkItemComment("C1", "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Blocked,
@@ -138,7 +138,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       "DF-151",
       "Missing required context",
     );
-    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
@@ -150,7 +150,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-152": [makeComment("C1", "@docs handle this")],
+        "DF-152": [makeWorkItemComment("C1", "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Partial,
@@ -169,7 +169,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const ops = deps.ledger.getOperations("DF-152");
     expect(ops[0].status).toBe(OperationStatus.Completed);
     expect(ops[0].resultStatus).toBe(TaskStatus.Partial);
-    expect(deps.issueManager.transitionIssue).toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
       "DF-152",
       undefined,
       TransitionPhase.AfterAgent,
@@ -182,7 +182,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-200": [makeComment("C1", "@docs handle this")],
+        "DF-200": [makeWorkItemComment("C1", "@docs handle this")],
       },
       taskError: new Error("Container build failed"),
     });
@@ -204,7 +204,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const ops = deps.ledger.getOperations("DF-200");
     expect(ops[0].status).toBe(OperationStatus.Error);
-    expect(deps.issueManager.transitionIssue).not.toHaveBeenCalledWith(
+    expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
@@ -229,7 +229,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       profile,
       issues: [issueAtPoll],
       comments: {
-        "DF-300": [makeComment("C1", "@docs go")],
+        "DF-300": [makeWorkItemComment("C1", "@docs go")],
       },
       searchResults: {
         "DF-300": [issueAtExec],
@@ -253,7 +253,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "OTHER-1": [makeComment("C1", "@docs go")],
+        "OTHER-1": [makeWorkItemComment("C1", "@docs go")],
       },
     });
 
@@ -273,8 +273,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue1, issue2],
       comments: {
-        "DF-400": [makeComment("C1", "@docs first")],
-        "DF-401": [makeComment("C2", "@docs second")],
+        "DF-400": [makeWorkItemComment("C1", "@docs first")],
+        "DF-401": [makeWorkItemComment("C2", "@docs second")],
       },
     });
 
@@ -339,7 +339,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-600": [makeComment("C1", "@docs go")],
+        "DF-600": [makeWorkItemComment("C1", "@docs go")],
       },
     });
 
@@ -364,7 +364,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-700": [makeComment("C1", "@docs go")],
+        "DF-700": [makeWorkItemComment("C1", "@docs go")],
       },
     });
 
@@ -388,7 +388,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-800": [makeComment("C1", "@docs handle please")],
+        "DF-800": [makeWorkItemComment("C1", "@docs handle please")],
       },
     });
 
@@ -436,13 +436,13 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(dfProfile.variantKey).toBe("ralph-docs:ralph:@RalphDf");
     expect(docProfile.variantKey).toBe("ralph-docs:ralph:@RalphDocs");
 
-    const docIssue = makeIssue("DOC-100", "VS Code docs", "To Do");
+    const docIssue = makeWorkItem("DOC-100", "VS Code docs", "To Do");
     const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [dfProfile, docProfile],
       issueManager: {
-        refreshIssue: vi.fn().mockResolvedValue(docIssue),
+        refreshWorkItem: vi.fn().mockResolvedValue(docIssue),
       },
       taskRunner: {
         run: vi.fn().mockResolvedValue({
@@ -538,15 +538,15 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       },
     });
 
-    const issue = makeIssue("DF-900", "Revision without PR", "Defect Found");
+    const issue = makeWorkItem("DF-900", "Revision without PR", "Defect Found");
     const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
       issueManager: {
-        refreshIssue: vi.fn().mockResolvedValue(issue),
+        refreshWorkItem: vi.fn().mockResolvedValue(issue),
         getComments: vi.fn().mockResolvedValue([
-          makeComment("C1", "No PR link here"),
+          makeWorkItemComment("C1", "No PR link here"),
         ]),
       },
       taskRunner: {
@@ -595,15 +595,15 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       },
     });
 
-    const issue = makeIssue("DF-901", "Revision with PR", "Defect Found");
+    const issue = makeWorkItem("DF-901", "Revision with PR", "Defect Found");
     const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
       issueManager: {
-        refreshIssue: vi.fn().mockResolvedValue(issue),
+        refreshWorkItem: vi.fn().mockResolvedValue(issue),
         getComments: vi.fn().mockResolvedValue([
-          makeComment("C1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
+          makeWorkItemComment("C1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
         ]),
       },
       taskRunner: {
@@ -647,13 +647,13 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     // Issue is in "New" — not a revision status
-    const issue = makeIssue("DF-902", "Standard task", "New");
+    const issue = makeWorkItem("DF-902", "Standard task", "New");
     const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
       issueManager: {
-        refreshIssue: vi.fn().mockResolvedValue(issue),
+        refreshWorkItem: vi.fn().mockResolvedValue(issue),
         // No getComments mock needed — revision preflight should not run
       },
       taskRunner: {

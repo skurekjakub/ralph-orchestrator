@@ -1,17 +1,17 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { IAgentProfile } from "../../config/types.js";
-import type { JiraIssue } from "../../jira/types.js";
+import type { WorkItem } from "../../datasource/types.js";
 import type { Logger } from "../../logger.js";
 import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
 import { slugifyBranchName } from "../../util/branch.js";
 
-/** Known runtime macros resolved from the current JIRA issue context. */
-const MACROS: Record<string, (workItem: JiraIssue) => string> = {
-  "$jira.key": (workItem) => workItem.key,
-  "$jira.project": (workItem) => workItem.key.split("-")[0],
-  "$jira.branch": (workItem) => slugifyBranchName(workItem.key, workItem.fields.summary ?? ""),
-  "$jira.summary": (workItem) => workItem.fields.summary ?? "",
+/** Known runtime macros resolved from the current work item context. */
+const MACROS: Record<string, (workItem: WorkItem) => string> = {
+  "$jira.key": (workItem) => workItem.id,
+  "$jira.project": (workItem) => workItem.project,
+  "$jira.branch": (workItem) => slugifyBranchName(workItem.id, workItem.title),
+  "$jira.summary": (workItem) => workItem.title,
 };
 
 const TRIGGER_PREFIX = "$trigger.";
@@ -36,7 +36,7 @@ export function buildVariantEnvName(prefix: string, profileId: string, displayNa
  */
 function resolveEnvValue(
   value: string,
-  workItem: JiraIssue,
+  workItem: WorkItem,
   triggerParams?: Record<string, string>,
   profile?: IAgentProfile,
 ): string {
@@ -83,7 +83,7 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: IAgentProfile, workItem: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void;
 }
 
 /**
@@ -97,7 +97,7 @@ export interface IJitMcpConfigWriter {
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: IAgentProfile, workItem: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 
@@ -128,7 +128,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
 
     if (injected > 0) {
       writeFileSync(gatewayPath, JSON.stringify(gateway, null, 2) + "\n", "utf-8");
-      logger.info(`Injected ${injected} env var(s) into gateway.json for ${workItem.key}`);
+      logger.info(`Injected ${injected} env var(s) into gateway.json for ${workItem.id}`);
     }
   }
 
