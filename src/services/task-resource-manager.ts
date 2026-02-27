@@ -7,9 +7,9 @@ import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for work item resource interactions (comments, attachments, transcripts). */
 export interface IResourceManager {
-  fetchComments(workItemId: string): Promise<string[]>;
-  fetchHandoff(workItemId: string): Promise<string | null>;
-  attachTranscript(workItemId: string, localPath: string, variantName: string): Promise<void>;
+  fetchComments(source: string, workItemId: string): Promise<string[]>;
+  fetchHandoff(source: string, workItemId: string): Promise<string | null>;
+  attachTranscript(source: string, workItemId: string, localPath: string, variantName: string): Promise<void>;
 }
 
 /**
@@ -17,27 +17,35 @@ export interface IResourceManager {
  * downloading attachments, and uploading artifacts.
  */
 export class TaskResourceManager implements IResourceManager {
-  private readonly connector: IDataSourceConnector;
-  private readonly attachments: ISupportsAttachments | null;
+  private readonly connectors: ReadonlyMap<string, IDataSourceConnector>;
   private readonly logger: Logger;
   /** Retry options — settable for test injection (not part of the DI cradle). */
   retryOptions?: RetryOptions;
 
-  constructor({ connector, logger }: {
-    connector: IDataSourceConnector;
+  constructor({ connectors, logger }: {
+    connectors: ReadonlyMap<string, IDataSourceConnector>;
     logger: Logger;
   }) {
-    this.connector = connector;
-    this.attachments = supportsAttachments(connector) ? connector : null;
+    this.connectors = connectors;
     this.logger = logger;
   }
 
-  /**
-   * Fetch and format all comments for a work item.
-   * Comment bodies are already plain text (the connector handles format conversion).
-   */
-  async fetchComments(workItemId: string): Promise<string[]> {
-    const comments = await this.connector.getComments(workItemId).catch((err) => {
+  private resolveConnector(source: string): IDataSourceConnector {
+    const connector = this.connectors.get(source);
+    if (!connector) {
+      throw new Error(`No connector registered for data source "${source}"`);
+    }
+    return connector;
+  }
+
+  private resolveAttachments(source: string): ISupportsAttachments | null {
+    const connector = this.resolveConnector(source);
+    return supportsAttachments(connector) ? connector : null;
+  }
+
+  async fetchComments(source: string, workItemId: string): Promise<string[]> {
+    const connector = this.resolveConnector(source);
+    const comments = await connector.getComments(workItemId).catch((err) => {
       this.logger.warn(
         `Failed to fetch comments for ${workItemId}: ${toErrorMessage(err)}`
       );
@@ -49,14 +57,11 @@ export class TaskResourceManager implements IResourceManager {
     );
   }
 
-  /**
-   * Download the most recent `handoff.md` attachment for a revision task.
-   * Returns `null` if the connector does not support attachments.
-   */
-  async fetchHandoff(workItemId: string): Promise<string | null> {
-    if (!this.attachments) return null;
+  async fetchHandoff(source: string, workItemId: string): Promise<string | null> {
+    const attachments = this.resolveAttachments(source);
+    if (!attachments) return null;
 
-    const attachmentList = await this.attachments.getAttachments(workItemId).catch((err) => {
+    const attachmentList = await attachments.getAttachments(workItemId).catch((err) => {
       this.logger.warn(
         `Failed to fetch attachments for ${workItemId}: ${toErrorMessage(err)}`
       );
@@ -70,7 +75,7 @@ export class TaskResourceManager implements IResourceManager {
     if (handoffAttachments.length === 0) return null;
 
     try {
-      return await this.attachments.downloadAttachment(
+      return await attachments.downloadAttachment(
         workItemId,
         handoffAttachments[0].id,
       );
@@ -82,12 +87,9 @@ export class TaskResourceManager implements IResourceManager {
     }
   }
 
-  /**
-   * Attach the session transcript to the work item with variant name and date.
-   * No-op if the connector does not support attachments.
-   */
-  async attachTranscript(workItemId: string, localPath: string, variantName: string): Promise<void> {
-    if (!this.attachments) return;
+  async attachTranscript(source: string, workItemId: string, localPath: string, variantName: string): Promise<void> {
+    const attachments = this.resolveAttachments(source);
+    if (!attachments) return;
 
     try {
       const { readFileSync } = await import("node:fs");
@@ -97,7 +99,6 @@ export class TaskResourceManager implements IResourceManager {
       const mm = String(now.getMonth() + 1).padStart(2, "0");
       const yyyy = now.getFullYear();
       const filename = `session-transcript-${variantName}-${dd}-${mm}-${yyyy}.md`;
-      const attachments = this.attachments;
       await withRetry(
         () => attachments.addAttachment(workItemId, filename, content),
         `attach transcript to ${workItemId}`,

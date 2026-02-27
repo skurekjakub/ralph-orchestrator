@@ -1,18 +1,20 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import "dotenv/config";
-import { buildJqlFromProfiles } from "../jira/jql-builder.js";
 import { resolvePath } from "../util/path.js";
 import { AuditMode } from "../prompt/prompt-auditor.js";
 import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
-import { configFileSchema, profileFileSchema } from "./schemas.js";
+import { configFileSchema, jiraConnectionSchema, profileFileSchema } from "./schemas.js";
 import type {
   IAppConfig,
   IAgentProfile,
+  IDataSourceConfig,
+  IJiraConnectionConfig,
   ISecretsConfig,
   IDashboardConfig,
 } from "./types.js";
+import { DataSourceType } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Profile discovery
@@ -80,6 +82,7 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
 
       profiles.push({
         id: profileId,
+        dataSource: parsed.dataSource,
         repoPath: resolvePath(parsed.repo),
         composeFile: `profiles/${profileId}/docker-compose.yml`,
         agentName: variant.agent,
@@ -139,12 +142,39 @@ export function loadConfig(): IAppConfig {
 
   const parsed = configFileSchema.parse(rawJson);
 
-  const jiraPat = process.env.JIRA_PAT;
-  const jiraEmail = process.env.JIRA_EMAIL;
-  if (!jiraPat || !jiraEmail) {
-    throw new Error("JIRA_PAT and JIRA_EMAIL must be set in .env");
+  // ── Data sources ──────────────────────────────────────────────────────────
+  const dataSources: Record<string, IDataSourceConfig> = {};
+  for (const [key, raw] of Object.entries(parsed.dataSources)) {
+    const envKey = key.toUpperCase().replace(/-/g, "_");
+    if (raw.type === DataSourceType.Jira) {
+      const conn = jiraConnectionSchema.parse(raw.connection);
+      const pat = process.env[`JIRA_PAT_${envKey}`];
+      const email = process.env[`JIRA_EMAIL_${envKey}`];
+      if (!pat || !email) {
+        throw new Error(
+          `JIRA_PAT_${envKey} and JIRA_EMAIL_${envKey} must be set in .env for data source "${key}"`,
+        );
+      }
+      const jiraConn: IJiraConnectionConfig = {
+        baseUrl: conn.baseUrl,
+        cloudId: conn.cloudId,
+        excludeFields: conn.excludeFields,
+        allowedUsers: conn.allowedUsers,
+        email,
+        apiToken: pat,
+      };
+      dataSources[key] = {
+        type: raw.type,
+        connection: jiraConn as unknown as Readonly<Record<string, unknown>>,
+        pollIntervalMs: raw.pollIntervalMs,
+        maxResults: raw.maxResults,
+      };
+    } else {
+      throw new Error(`Unsupported data source type "${raw.type}" for "${key}"`);
+    }
   }
 
+  // ── Global secrets ────────────────────────────────────────────────────────
   const ghToken = process.env.GH_TOKEN;
   const adoPat = process.env.ADO_PAT;
   if (!ghToken || !adoPat) {
@@ -155,8 +185,6 @@ export function loadConfig(): IAppConfig {
     ghToken,
     adoPat,
     adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
-    jiraPat,
-    jiraEmail,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
     discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
     discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",
@@ -174,15 +202,18 @@ export function loadConfig(): IAppConfig {
   const profilesDir = resolve(process.cwd(), "profiles");
   const profiles = loadProfiles(profilesDir);
 
-  const jql = buildJqlFromProfiles(profiles);
+  // Validate profile dataSource references
+  for (const profile of profiles) {
+    if (!dataSources[profile.dataSource]) {
+      throw new Error(
+        `Profile "${profile.id}" variant "${profile.displayName}" references unknown data source "${profile.dataSource}". ` +
+        `Available: ${Object.keys(dataSources).join(", ")}`,
+      );
+    }
+  }
 
   return {
-    jira: {
-      baseUrl: parsed.jira.baseUrl,
-      cloudId: parsed.jira.cloudId,
-      jql,
-      pollIntervalMs: parsed.jira.pollIntervalMs,
-    },
+    dataSources,
     profiles,
     output: {
       logDir: resolve(process.cwd(), parsed.output?.logDir ?? "./output/logs"),
@@ -198,8 +229,6 @@ export function loadConfig(): IAppConfig {
       neo4jUri: parsed.ralphchives?.neo4jUri ?? "bolt://localhost:7687",
       neo4jUser: parsed.ralphchives?.neo4jUser ?? "neo4j",
     },
-    excludeFields: parsed.excludeFields ?? [],
-    allowedUsers: parsed.allowedUsers ?? [],
     enableContinuation: parsed.enableContinuation ?? false,
     secrets,
   };

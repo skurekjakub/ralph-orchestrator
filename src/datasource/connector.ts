@@ -33,6 +33,12 @@ export interface IDataSourceIdentity {
    * Must match the key used in `config.json`.
    */
   readonly sourceKey: string;
+
+  /**
+   * User IDs allowed to trigger agent invocations for this source.
+   * Empty array means unrestricted (all users allowed).
+   */
+  getAllowedUsers(): readonly string[];
 }
 
 // ── Discovery (mandatory) ─────────────────────────────────────────────────────

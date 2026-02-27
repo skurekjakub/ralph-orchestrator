@@ -15,7 +15,7 @@ let tempDir: string;
 let origCwd: string;
 let savedEnv: Record<string, string | undefined>;
 
-const REQUIRED_VARS = ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT"];
+const REQUIRED_VARS = ["GH_TOKEN", "ADO_PAT"];
 const OPTIONAL_VARS = ["ADO_PAT_XPERIENCE", "DASHBOARD_URL", "DASHBOARD_SECRET"];
 
 function collector(): ValidationCollector {
@@ -73,8 +73,6 @@ describe("validateEnvFile", () => {
 
   it("no errors when all required env vars are in .env file", () => {
     writeEnv({
-      JIRA_PAT: "token",
-      JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
       ADO_PAT: "ado_abc",
     });
@@ -85,8 +83,6 @@ describe("validateEnvFile", () => {
 
   it("accepts required env vars from process.env (not just .env file)", () => {
     writeEnv({}); // empty file
-    process.env.JIRA_PAT = "from-env";
-    process.env.JIRA_EMAIL = "from-env";
     process.env.GH_TOKEN = "from-env";
     process.env.ADO_PAT = "from-env";
 
@@ -97,8 +93,6 @@ describe("validateEnvFile", () => {
 
   it("warns for missing optional env vars", () => {
     writeEnv({
-      JIRA_PAT: "token",
-      JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
       ADO_PAT: "ado_abc",
     });
@@ -112,8 +106,6 @@ describe("validateEnvFile", () => {
 
   it("no warnings when optional env vars are set", () => {
     writeEnv({
-      JIRA_PAT: "token",
-      JIRA_EMAIL: "test@test.com",
       GH_TOKEN: "ghp_abc",
       ADO_PAT: "ado_abc",
       ADO_PAT_XPERIENCE: "xp_abc",

@@ -8,6 +8,8 @@ import { TaskResultWriter } from "../../src/services/task-result-writer.js";
 import { makeWorkItem, makeProfile, makeResult, makeTaskContext } from "../helpers/factories.js";
 import { createMockLogger, createMockContainer, createMockLogCollector, createMockResources } from "../helpers/mocks.js";
 
+const DS = "jira";
+
 describe("TaskResultWriter", () => {
   let logger: ReturnType<typeof createMockLogger>;
 
@@ -74,7 +76,7 @@ describe("TaskResultWriter", () => {
 
       await writer.collectResults(ctx, container, result);
 
-      expect(resources.attachTranscript).toHaveBeenCalledWith("DF-100", "/tmp/logs/DF-100-transcript.md", "ralph");
+      expect(resources.attachTranscript).toHaveBeenCalledWith(DS, "DF-100", "/tmp/logs/DF-100-transcript.md", "ralph");
     });
 
     it("does not attach transcript when not collected", async () => {

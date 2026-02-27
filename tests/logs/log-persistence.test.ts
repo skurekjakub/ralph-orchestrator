@@ -124,11 +124,11 @@ describe("Poller logging", () => {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     const source = readFileSync(
-      resolve(import.meta.dirname, "../../src/jira/poller.ts"),
+      resolve(import.meta.dirname, "../../src/datasource/connectors/jira/jira-poller.ts"),
       "utf-8"
     );
 
     expect(source).toContain("Polling");
-    expect(source).toContain("candidate issues");
+    expect(source).toContain("candidate items");
   });
 });

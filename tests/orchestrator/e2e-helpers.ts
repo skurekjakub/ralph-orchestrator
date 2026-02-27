@@ -8,11 +8,10 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner } from "../helpers/mocks.js";
+import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner, createMockConnector } from "../helpers/mocks.js";
 import type { Mocked } from "../helpers/mocks.js";
-import type { JiraIssue } from "../../src/jira/types.js";
-import type { WorkItemComment } from "../../src/datasource/types.js";
-import { mapIssueToWorkItem } from "../../src/datasource/connectors/jira/jira-mapper.js";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
+import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IAgentProfile } from "../../src/config/types.js";
 
 type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
@@ -20,12 +19,13 @@ import type { RalphResult } from "../../src/container/types.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 
+const DS = "jira";
 const silentLogger = createMockLogger();
 
 /**
  * Build a complete OrchestratorOpts with mock dependencies for E2E tests.
  *
- * The poller drains the provided issues exactly once, then returns empty.
+ * The poller drains the provided work items exactly once, then returns empty.
  * Comments are served from the `comments` map keyed by issue key.
  * Task results default to success unless overridden.
  */
@@ -33,9 +33,9 @@ export function buildMockDeps(
   tempDir: string,
   options: {
     profile?: IAgentProfile;
-    issues?: JiraIssue[];
+    issues?: WorkItem[];
     comments?: Record<string, WorkItemComment[]>;
-    searchResults?: Record<string, JiraIssue[]>;
+    searchResults?: Record<string, WorkItem[]>;
     taskResult?: Partial<RalphResult>;
     taskError?: Error;
   },
@@ -61,30 +61,29 @@ export function buildMockDeps(
   const router = new ProfileRouter({ profiles: [profile] });
   const ledger = new OperationLedger({ outputConfig: { logDir, handoffDir: "" } });
 
-  const issuesToDrain = [...(options.issues ?? [])];
+  const itemsToDrain = [...(options.issues ?? [])];
   const commentsMap = options.comments ?? {};
-  const searchMap = options.searchResults ?? {};
+  const searchMap: Record<string, WorkItem[]> = options.searchResults ?? {};
 
-  for (const issue of issuesToDrain) {
-    if (!searchMap[issue.key]) {
-      searchMap[issue.key] = [issue];
+  for (const item of itemsToDrain) {
+    if (!searchMap[item.id]) {
+      searchMap[item.id] = [item];
     }
   }
 
-  const issueMap: Record<string, JiraIssue> = {};
-  for (const [key, issues] of Object.entries(searchMap)) {
-    if (issues.length > 0) issueMap[key] = issues[0];
+  const itemMap: Record<string, WorkItem> = {};
+  for (const [key, items] of Object.entries(searchMap)) {
+    if (items.length > 0) itemMap[key] = items[0];
   }
 
   const { container: mockContainer } = createMockContainer();
 
   const issueManager = createMockIssueManager({
-    getComments: vi.fn().mockImplementation(async (key: string) => {
+    getComments: vi.fn().mockImplementation(async (_source: string, key: string) => {
       return commentsMap[key] ?? [];
     }),
-    refreshWorkItem: vi.fn().mockImplementation(async (key: string) => {
-      const issue = issueMap[key];
-      return issue ? mapIssueToWorkItem(issue, "jira") : null;
+    refreshWorkItem: vi.fn().mockImplementation(async (_source: string, key: string) => {
+      return itemMap[key] ?? null;
     }),
   });
 
@@ -104,29 +103,29 @@ export function buildMockDeps(
     router,
     ledger,
     logger: silentLogger,
-    allowedUsers: [],
+    connectors: new Map<string, IDataSourceConnector>([[DS, createMockConnector({ sourceKey: DS })]]),
   });
   triggerScanner.cachePath = null;
 
   let drainCount = 0;
   const poller = createMockPoller({
+    sourceKey: DS,
     drain: vi.fn().mockImplementation(() => {
       if (drainCount === 0) {
         drainCount++;
-        return issuesToDrain;
+        return itemsToDrain;
       }
       return [];
     }),
   });
 
   return {
-    jiraConfig: config.jira,
-    excludeFields: [],
+    dataSources: config.dataSources,
     profiles: config.profiles,
     activityLog,
     issueManager,
     resources,
-    poller,
+    pollers: new Map([[DS, poller]]),
     router,
     taskRunner,
     triggerScanner,
@@ -197,18 +196,17 @@ export function buildBaseDeps(
     router,
     ledger,
     logger: silentLogger,
-    allowedUsers: [],
+    connectors: new Map<string, IDataSourceConnector>([[DS, createMockConnector({ sourceKey: DS })]]),
   });
   scanner.cachePath = null;
 
   return {
-    jiraConfig: config.jira,
-    excludeFields: [],
+    dataSources: config.dataSources,
     profiles: config.profiles,
     activityLog: new ActivityLog({ outputConfig: { logDir, handoffDir: "" } }),
     issueManager,
     resources: createMockResources(),
-    poller: createMockPoller(),
+    pollers: new Map([[DS, createMockPoller({ sourceKey: DS })]]),
     router,
     taskRunner,
     ralphchivesConfig: {

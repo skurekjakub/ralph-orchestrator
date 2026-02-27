@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TaskResourceManager } from "../../src/services/task-resource-manager.js";
 import { makeWorkItemComment } from "../helpers/factories.js";
 import { createMockConnector, createMockLogger } from "../helpers/mocks.js";
+import type { IDataSourceConnector } from "../../src/datasource/connector.js";
+
+const DS = "mock";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -16,7 +19,7 @@ describe("TaskResourceManager", () => {
   beforeEach(() => {
     connector = createMockConnector();
     logger = createMockLogger();
-    resources = new TaskResourceManager({ connector, logger });
+    resources = new TaskResourceManager({ connectors: new Map<string, IDataSourceConnector>([[DS, connector]]), logger });
     resources.retryOptions = { delayMs: 1 };
   });
 
@@ -27,7 +30,7 @@ describe("TaskResourceManager", () => {
         makeWorkItemComment("2", "Second comment", "2026-01-15T11:00:00Z"),
       ]);
 
-      const result = await resources.fetchComments("DF-100");
+      const result = await resources.fetchComments(DS, "DF-100");
 
       expect(result).toHaveLength(2);
       expect(result[0]).toBe("[2026-01-15T10:00:00Z] Test User:\nFirst comment");
@@ -39,7 +42,7 @@ describe("TaskResourceManager", () => {
         makeWorkItemComment("1", "Plain text content", "2026-01-15T10:00:00Z"),
       ]);
 
-      const result = await resources.fetchComments("DF-100");
+      const result = await resources.fetchComments(DS, "DF-100");
 
       expect(result[0]).toContain("Plain text content");
     });
@@ -47,7 +50,7 @@ describe("TaskResourceManager", () => {
     it("returns empty array when getComments fails", async () => {
       connector.getComments.mockRejectedValue(new Error("Connector down"));
 
-      const result = await resources.fetchComments("DF-100");
+      const result = await resources.fetchComments(DS, "DF-100");
 
       expect(result).toEqual([]);
       expect(logger.warn).toHaveBeenCalledWith(
@@ -64,7 +67,7 @@ describe("TaskResourceManager", () => {
       ]);
       connector.downloadAttachment.mockResolvedValue("# Handoff v2");
 
-      const result = await resources.fetchHandoff("DF-100");
+      const result = await resources.fetchHandoff(DS, "DF-100");
 
       expect(result).toBe("# Handoff v2");
       expect(connector.downloadAttachment).toHaveBeenCalledWith("DF-100", "2");
@@ -75,7 +78,7 @@ describe("TaskResourceManager", () => {
         { id: "1", filename: "other.txt", created: "2026-01-10T00:00:00Z" },
       ]);
 
-      const result = await resources.fetchHandoff("DF-100");
+      const result = await resources.fetchHandoff(DS, "DF-100");
 
       expect(result).toBeNull();
       expect(connector.downloadAttachment).not.toHaveBeenCalled();
@@ -84,7 +87,7 @@ describe("TaskResourceManager", () => {
     it("returns null when getAttachments fails", async () => {
       connector.getAttachments.mockRejectedValue(new Error("Network error"));
 
-      const result = await resources.fetchHandoff("DF-100");
+      const result = await resources.fetchHandoff(DS, "DF-100");
 
       expect(result).toBeNull();
       expect(logger.warn).toHaveBeenCalledWith(
@@ -98,7 +101,7 @@ describe("TaskResourceManager", () => {
       ]);
       connector.downloadAttachment.mockRejectedValue(new Error("403 Forbidden"));
 
-      const result = await resources.fetchHandoff("DF-100");
+      const result = await resources.fetchHandoff(DS, "DF-100");
 
       expect(result).toBeNull();
       expect(logger.warn).toHaveBeenCalledWith(
@@ -117,7 +120,7 @@ describe("TaskResourceManager", () => {
       vi.mocked(readFileSync).mockReturnValue("transcript content");
       vi.useFakeTimers({ now: new Date("2026-03-15T12:00:00Z") });
 
-      await resources.attachTranscript("DF-100", "/tmp/transcript.md", "ralph");
+      await resources.attachTranscript(DS, "DF-100", "/tmp/transcript.md", "ralph");
 
       expect(connector.addAttachment).toHaveBeenCalledWith(
         "DF-100",
@@ -134,7 +137,7 @@ describe("TaskResourceManager", () => {
       vi.mocked(readFileSync).mockReturnValue("content");
       connector.addAttachment.mockRejectedValue(new Error("Upload failed"));
 
-      await resources.attachTranscript("DF-100", "/tmp/transcript.md", "ralph");
+      await resources.attachTranscript(DS, "DF-100", "/tmp/transcript.md", "ralph");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to attach transcript"),
@@ -145,7 +148,7 @@ describe("TaskResourceManager", () => {
       const { readFileSync } = await import("node:fs");
       vi.mocked(readFileSync).mockImplementation(() => { throw new Error("ENOENT"); });
 
-      await resources.attachTranscript("DF-100", "/tmp/missing.md", "ralph");
+      await resources.attachTranscript(DS, "DF-100", "/tmp/missing.md", "ralph");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to attach transcript"),

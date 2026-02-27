@@ -1,14 +1,21 @@
 {
-  "jira": {
-    "baseUrl": "https://api.atlassian.com/ex/jira",
-    "cloudId": "<your-jira-cloud-id>",
-    "pollIntervalMs": 60000
+  "dataSources": {
+    "my-jira": {
+      "type": "jira",
+      "connection": {
+        "baseUrl": "https://api.atlassian.com/ex/jira",
+        "cloudId": "<your-jira-cloud-id>",
+        "excludeFields": [],
+        "allowedUsers": []
+      },
+      "pollIntervalMs": 60000
+    }
   },
   "dashboard": {
     "enabled": false,
     "intervalMs": 30000
   },
-   "ralphchives": {
+  "ralphchives": {
     "enabled": false,
     "nodebbApiUrl": "http://localhost:4567",
     "neo4jUri": "bolt://localhost:7687",
@@ -20,7 +27,5 @@
   },
   "promptAudit": {
     "mode": "warn"
-  },
-  "excludeFields": [],
-  "allowedUsers": []
+  }
 }

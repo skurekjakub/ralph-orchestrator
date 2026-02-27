@@ -8,6 +8,8 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
 import { createMockLogger } from "../helpers/mocks.js";
 import { makeMockIssueManager } from "./trigger-test-helpers.js";
+import { createMockConnector } from "../helpers/mocks.js";
+import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
 import type { IOperationLedger } from "../../src/services/operation-ledger.js";
@@ -25,7 +27,7 @@ function makeCacheScanner(
     router,
     ledger,
     logger,
-    allowedUsers: [],
+    connectors: new Map<string, IDataSourceConnector>([["jira", createMockConnector({ sourceKey: "jira" })]]),
   });
   scanner.cachePath = cachePath;
   return scanner;

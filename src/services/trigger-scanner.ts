@@ -1,5 +1,6 @@
 import type { IIssueManager } from "./issue-manager.js";
 import type { WorkItem, WorkItemComment } from "../datasource/types.js";
+import type { IDataSourceConnector } from "../datasource/connector.js";
 import type { IAgentProfile } from "../config/types.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
@@ -82,20 +83,20 @@ export class TriggerScanner implements ITriggerScanner {
   private router: IProfileRouter;
   private ledger: IOperationLedger;
   private logger: Logger;
-  private allowedUsers: readonly string[];
+  private connectors: ReadonlyMap<string, IDataSourceConnector>;
 
-  constructor({ issueManager, router, ledger, logger, allowedUsers }: {
+  constructor({ issueManager, router, ledger, logger, connectors }: {
     issueManager: IIssueManager;
     router: IProfileRouter;
     ledger: IOperationLedger;
     logger: Logger;
-    allowedUsers: readonly string[];
+    connectors: ReadonlyMap<string, IDataSourceConnector>;
   }) {
     this.issueManager = issueManager;
     this.router = router;
     this.ledger = ledger;
     this.logger = logger;
-    this.allowedUsers = allowedUsers ?? [];
+    this.connectors = connectors;
   }
 
   /**
@@ -137,7 +138,7 @@ export class TriggerScanner implements ITriggerScanner {
 
         if (!comments) {
           try {
-            comments = await this.issueManager.getComments(item.id);
+            comments = await this.issueManager.getComments(item.source, item.id);
             commentsFetched++;
           } catch (err) {
             this.logger.warn(
@@ -147,7 +148,7 @@ export class TriggerScanner implements ITriggerScanner {
           }
         }
 
-        const consumedIds = this.ledger.getConsumedTriggerIds(item.id, variant);
+        const consumedIds = this.ledger.getConsumedTriggerIds(item.source, item.id, variant);
 
         for (const comment of comments) {
           if (consumedIds.has(comment.id)) {
@@ -160,11 +161,13 @@ export class TriggerScanner implements ITriggerScanner {
 
           if (!matchesTrigger(text, trigger)) continue;
 
-          if (this.allowedUsers.length > 0 && !this.allowedUsers.includes(comment.authorId)) {
+          const allowedUsers = this.connectors.get(item.source)?.getAllowedUsers() ?? [];
+          if (allowedUsers.length > 0 && !allowedUsers.includes(comment.authorId)) {
             const reason = `User ${comment.authorName} (${comment.authorId}) not in allowedUsers`;
             this.logger.info(`Rejecting trigger on ${item.id} — ${reason}`);
 
             this.ledger.reject(item.id, {
+              dataSource: item.source,
               variant,
               triggerCommentId: comment.id,
               commentTimestamp: comment.created,
@@ -172,6 +175,7 @@ export class TriggerScanner implements ITriggerScanner {
             });
 
             await this.issueManager.postComment(
+              item.source,
               item.id,
               OrchestratorComments.userNotAllowed(profile.displayName, comment.authorName),
             ).catch((err) => {
@@ -184,6 +188,7 @@ export class TriggerScanner implements ITriggerScanner {
           const triggerParams = parseTriggerParams(text, trigger);
 
           this.ledger.plan(item.id, {
+            dataSource: item.source,
             variant,
             triggerCommentId: comment.id,
             commentTimestamp: comment.created,
@@ -197,6 +202,7 @@ export class TriggerScanner implements ITriggerScanner {
           );
 
           await this.issueManager.postAckComment(
+            item.source,
             item.id,
             profile.displayName,
             triggerParams,

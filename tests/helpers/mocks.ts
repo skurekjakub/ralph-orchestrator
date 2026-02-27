@@ -14,7 +14,7 @@ import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerManager } from "../../src/container/manager.js";
 import type { IDataSourceConnector, IDataSourceIdentity, ISupportsAttachments, ISupportsTransitions } from "../../src/datasource/connector.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
-import type { IJiraPoller } from "../../src/jira/poller.js";
+import type { IWorkItemPoller } from "../../src/datasource/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
@@ -122,6 +122,7 @@ export function createMockConnector(
   return {
     name: "MockConnector",
     sourceKey: "mock",
+    getAllowedUsers: vi.fn().mockReturnValue([]),
     buildQueries: vi.fn().mockReturnValue([]),
     searchWorkItems: vi.fn().mockResolvedValue([]),
     refreshWorkItem: vi.fn().mockResolvedValue(null),
@@ -249,15 +250,16 @@ export function createMockResultWriter(overrides: Partial<Mocked<ITaskResultWrit
   };
 }
 
-/** Create a mock JiraPoller with all methods stubbed. */
-export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): Mocked<IJiraPoller> {
+/** Create a mock WorkItemPoller with all methods stubbed. */
+export function createMockPoller(overrides: Partial<Mocked<IWorkItemPoller>> & { sourceKey?: string } = {}): Mocked<IWorkItemPoller> & { sourceKey: string } {
   return {
+    sourceKey: overrides.sourceKey ?? "test-source",
     start: vi.fn(),
     stop: vi.fn(),
-    onIssues: vi.fn(),
+    onItems: vi.fn(),
     drain: vi.fn().mockReturnValue([]),
     ...overrides,
-  };
+  } as Mocked<IWorkItemPoller> & { sourceKey: string };
 }
 
 /** Create a mock TaskRunner with all methods stubbed. */

@@ -33,13 +33,19 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
 
   private readonly client: IJiraClient;
   private readonly excludeFields: string[];
+  private readonly allowedUsers: readonly string[];
   private readonly logger?: Logger;
 
-  constructor(sourceKey: string, client: IJiraClient, excludeFields: string[] = [], logger?: Logger) {
+  constructor(sourceKey: string, client: IJiraClient, excludeFields: string[] = [], allowedUsers: readonly string[] = [], logger?: Logger) {
     this.sourceKey = sourceKey;
     this.client = client;
     this.excludeFields = excludeFields;
+    this.allowedUsers = allowedUsers;
     this.logger = logger;
+  }
+
+  getAllowedUsers(): readonly string[] {
+    return this.allowedUsers;
   }
 
   // ── IWorkItemSource ─────────────────────────────────────────

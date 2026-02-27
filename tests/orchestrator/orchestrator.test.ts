@@ -92,8 +92,9 @@ describe("Orchestrator core integration", () => {
       const config = makeConfig();
       expect(config.secrets.ghToken).toBeTruthy();
       expect(config.secrets.adoPat).toBeTruthy();
-      expect(config.secrets.jiraPat).toBeTruthy();
-      expect(config.secrets.jiraEmail).toBeTruthy();
+      const ds = Object.values(config.dataSources)[0];
+      expect(ds.connection.apiToken).toBeTruthy();
+      expect(ds.connection.email).toBeTruthy();
     });
   });
 

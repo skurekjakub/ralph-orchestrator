@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { JiraClient } from "../../src/jira/client.js";
-import { makeIssue, makeComment, makeJiraConfig } from "../helpers/factories.js";
+import { makeIssue, makeComment } from "../helpers/factories.js";
 import { createMockLogger } from "../helpers/mocks.js";
+import type { IJiraConnectionConfig } from "../../src/config/types.js";
 
-const mockConfig = makeJiraConfig({ jql: ['project = DF AND summary ~ "Ralph"'] });
-const mockSecrets = { jiraEmail: "test@test.com", jiraPat: "test-token" } as any;
+const mockConnection: IJiraConnectionConfig = {
+  baseUrl: "https://api.atlassian.com/ex/jira",
+  cloudId: "test-cloud-id",
+  excludeFields: [],
+  allowedUsers: [],
+  email: "test@test.com",
+  apiToken: "test-token",
+};
 
 const mockLogger = createMockLogger();
 
@@ -33,7 +40,7 @@ describe("JiraClient", () => {
   let client: JiraClient;
 
   beforeEach(() => {
-    client = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets });
+    client = new JiraClient({ connection: mockConnection });
   });
 
   it("constructs correct auth header", () => {
@@ -97,7 +104,7 @@ describe("JiraClient", () => {
     it("throws on HTTP error", async () => {
       stubFetchError(401, "Unauthorized", "Bad token");
 
-      const retryClient = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets, logger: mockLogger }, { delayMs: 1 });
+      const retryClient = new JiraClient({ connection: mockConnection, logger: mockLogger }, { delayMs: 1 });
       await expect(retryClient.searchIssues("project = DF")).rejects.toThrow(
         "401"
       );
@@ -119,7 +126,7 @@ describe("JiraClient", () => {
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(mockResponse) }),
       );
 
-      const retryClient = new JiraClient({ jiraConfig: mockConfig, secrets: mockSecrets, logger: mockLogger }, { delayMs: 1 });
+      const retryClient = new JiraClient({ connection: mockConnection, logger: mockLogger }, { delayMs: 1 });
       const issues = await retryClient.searchIssues("project = DF");
 
       expect(fetch).toHaveBeenCalledTimes(2);

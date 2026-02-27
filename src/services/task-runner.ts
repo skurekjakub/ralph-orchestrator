@@ -162,8 +162,8 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
-    await this.issueManager.transitionWorkItem(ctx.workItem.id, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
-    await this.issueManager.postStartComment(ctx.workItem.id, ctx.profile.displayName, ctx.profile.id);
+    await this.issueManager.transitionWorkItem(ctx.workItem.source, ctx.workItem.id, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
+    await this.issueManager.postStartComment(ctx.workItem.source, ctx.workItem.id, ctx.profile.displayName, ctx.profile.id);
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
@@ -201,13 +201,13 @@ export class TaskRunner implements ITaskRunner {
 
   private async executeAgent(ctx: TaskContext, container: IContainerManager): Promise<RalphResult> {
     this.logger.info(`Fetching comments for ${ctx.workItem.id}...`);
-    const comments = await this.resources.fetchComments(ctx.workItem.id);
+    const comments = await this.resources.fetchComments(ctx.workItem.source, ctx.workItem.id);
     this.logger.info(`Found ${comments.length} comments on ${ctx.workItem.id}`);
 
     let handoffContent: string | null = null;
     if (ctx.isRevision) {
       this.logger.info(`Issue is in revision status ("${ctx.workItem.status}") — fetching handoff...`);
-      handoffContent = await this.resources.fetchHandoff(ctx.workItem.id);
+      handoffContent = await this.resources.fetchHandoff(ctx.workItem.source, ctx.workItem.id);
       this.logger.info(
         `Handoff context: ${handoffContent ? "found" : "not found"}`
       );

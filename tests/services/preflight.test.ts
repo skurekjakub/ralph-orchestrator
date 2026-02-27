@@ -80,6 +80,7 @@ describe("runPreflight", () => {
 });
 
 describe("buildPreflightContext", () => {
+  const DS = "jira";
   const mockResources = createMockResources();
 
   beforeEach(() => {
@@ -94,6 +95,7 @@ describe("buildPreflightContext", () => {
 
     const ctx = await buildPreflightContext(
       mockResources,
+      DS,
       "DF-1",
       comments,
     );
@@ -108,22 +110,22 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, DS, "DF-1", comments);
     expect(ctx.prUrl).toBe("https://github.com/org/repo/pull/42");
   });
 
   it("downloads handoff attachment", async () => {
     mockResources.fetchHandoff.mockResolvedValue("## Handoff content");
 
-    const ctx = await buildPreflightContext(mockResources, "DF-1", []);
+    const ctx = await buildPreflightContext(mockResources, DS, "DF-1", []);
     expect(ctx.handoffContent).toBe("## Handoff content");
-    expect(mockResources.fetchHandoff).toHaveBeenCalledWith("DF-1");
+    expect(mockResources.fetchHandoff).toHaveBeenCalledWith(DS, "DF-1");
   });
 
   it("returns null handoff when fetchHandoff returns null", async () => {
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, "DF-1", []);
+    const ctx = await buildPreflightContext(mockResources, DS, "DF-1", []);
     expect(ctx.handoffContent).toBeNull();
     expect(ctx.prUrl).toBeNull();
   });
@@ -134,7 +136,7 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, DS, "DF-1", comments);
     expect(ctx.prUrl).toBe("https://dev.azure.com/org/proj/_git/repo/pullrequest/99");
   });
 
@@ -144,7 +146,7 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, "DF-1", comments);
+    const ctx = await buildPreflightContext(mockResources, DS, "DF-1", comments);
     expect(ctx.prUrl).toContain("bitbucket.org");
   });
 });

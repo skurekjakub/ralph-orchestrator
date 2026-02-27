@@ -12,15 +12,21 @@ vi.mock("node:fs", async () => {
 });
 
 const VALID_GLOBAL_CONFIG = JSON.stringify({
-  jira: {
-    baseUrl: "https://api.atlassian.com/ex/jira",
-    cloudId: "test-cloud-id",
-    pollIntervalMs: 60000,
+  dataSources: {
+    "test-source": {
+      type: "jira",
+      connection: {
+        baseUrl: "https://api.atlassian.com/ex/jira",
+        cloudId: "test-cloud-id",
+      },
+      pollIntervalMs: 60000,
+    },
   },
 });
 
 const VALID_PROFILE = JSON.stringify({
   repo: "/tmp/test-repo",
+  dataSource: "test-source",
   variants: [
     {
       agent: "ralph",
@@ -31,9 +37,11 @@ const VALID_PROFILE = JSON.stringify({
   ],
 });
 
+const ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE", "GH_TOKEN", "ADO_PAT"];
+
 function setRequiredEnv() {
-  process.env.JIRA_PAT = "jira-token";
-  process.env.JIRA_EMAIL = "test@test.com";
+  process.env.JIRA_PAT_TEST_SOURCE = "jira-token";
+  process.env.JIRA_EMAIL_TEST_SOURCE = "test@test.com";
   process.env.GH_TOKEN = "gh-token";
   process.env.ADO_PAT = "ado-token";
 }
@@ -41,7 +49,7 @@ function setRequiredEnv() {
 const savedEnv: Record<string, string | undefined> = {};
 
 function saveEnv() {
-  for (const k of ["JIRA_PAT", "JIRA_EMAIL", "GH_TOKEN", "ADO_PAT"]) {
+  for (const k of ENV_KEYS) {
     savedEnv[k] = process.env[k];
   }
 }
@@ -88,16 +96,15 @@ describe("loadConfig", () => {
     restoreEnv();
   });
 
-  it("throws when JIRA credentials are missing", () => {
-    delete process.env.JIRA_PAT;
-    delete process.env.JIRA_EMAIL;
+  it("throws when JIRA credentials are missing for a data source", () => {
+    delete process.env.JIRA_PAT_TEST_SOURCE;
+    delete process.env.JIRA_EMAIL_TEST_SOURCE;
 
-    expect(() => loadConfig()).toThrow("JIRA_PAT");
+    expect(() => loadConfig()).toThrow("JIRA_PAT_TEST_SOURCE");
   });
 
   it("throws when GH_TOKEN is missing", () => {
-    process.env.JIRA_PAT = "test";
-    process.env.JIRA_EMAIL = "test@test.com";
+    setRequiredEnv();
     delete process.env.GH_TOKEN;
 
     expect(() => loadConfig()).toThrow("GH_TOKEN");
@@ -113,7 +120,7 @@ describe("loadConfig", () => {
     expect(config.profiles[0].repoPath).toBe("/tmp/test-repo");
     expect(config.profiles[0].agentName).toBe("ralph");
     expect(config.profiles[0].match).toBeDefined();
-    expect(config.secrets.jiraPat).toBe("jira-token");
+    expect(config.profiles[0].dataSource).toBe("test-source");
     expect(config.secrets.ghToken).toBe("gh-token");
     expect(config.secrets.adoPat).toBe("ado-token");
   });
@@ -125,12 +132,17 @@ describe("loadConfig", () => {
     expect(() => loadConfig()).toThrow("No profile directories found");
   });
 
-  it("Zod rejects config with invalid jira.baseUrl", () => {
+  it("Zod rejects config with invalid baseUrl in data source connection", () => {
     setRequiredEnv();
 
     vi.mocked(readFileSync).mockImplementation(((path: string) => {
       if (path.endsWith("config.json")) return JSON.stringify({
-        jira: { baseUrl: "not-a-url", cloudId: "abc" },
+        dataSources: {
+          "test-source": {
+            type: "jira",
+            connection: { baseUrl: "not-a-url", cloudId: "abc" },
+          },
+        },
       });
       if (path.endsWith("profile.json")) return VALID_PROFILE;
       throw new Error(`Unexpected: ${path}`);
@@ -143,6 +155,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "~/repositories/test",
+      dataSource: "test-source",
       variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } }],
     }));
 
@@ -158,6 +171,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "/tmp/test",
+      dataSource: "test-source",
       variants: [{
         agent: "ralph",
         match: {
@@ -174,6 +188,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(JSON.stringify({
       repo: "/tmp/test",
+      dataSource: "test-source",
       variants: [
         { agent: "ralph.docs", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@Ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
@@ -195,6 +210,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         model: "claude-sonnet-4",
         variants: [
           { agent: "ralph", model: "claude-opus-4.6", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
@@ -210,6 +226,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         model: "claude-sonnet-4",
         variants: [
           { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
@@ -225,6 +242,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         variants: [
           { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         ],
@@ -239,6 +257,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         model: "claude-sonnet-4",
         variants: [
           { agent: "ralph.docs", model: "claude-opus-4.6", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
@@ -258,6 +277,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         mcpServers: ["jira-kentico", "ado"],
         variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
       }));
@@ -270,6 +290,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         mcpServers: [
           { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$task.id" } },
           "playwright",
@@ -289,6 +310,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         mcpServers: [{ env: { FOO: "bar" } }],
         variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
       }));
@@ -299,6 +321,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         mcpServers: [{ name: "ado", env: {} }],
         variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
       }));
@@ -311,6 +334,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
+        dataSource: "test-source",
         mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
         variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
       }));

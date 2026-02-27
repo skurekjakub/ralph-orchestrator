@@ -6,12 +6,20 @@ import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { OperationLedger } from "../../src/services/operation-ledger.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
 import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { createMockLogger, createMockConnector } from "../helpers/mocks.js";
 import { makeMockIssueManager } from "./trigger-test-helpers.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
 import type { IOperationLedger } from "../../src/services/operation-ledger.js";
 import type { Logger } from "../../src/logger.js";
+import type { IDataSourceConnector } from "../../src/datasource/connector.js";
+
+const DS = "jira";
+const TS = "2026-01-01T00:00:00Z";
+
+function makeConnectorsMap(allowedUsers: string[] = []): ReadonlyMap<string, IDataSourceConnector> {
+  return new Map([[DS, createMockConnector({ getAllowedUsers: vi.fn().mockReturnValue(allowedUsers) })]]);
+}
 
 function makeScanner(
   mgr: IIssueManager,
@@ -25,7 +33,7 @@ function makeScanner(
     router,
     ledger,
     logger,
-    allowedUsers: opts?.allowedUsers ?? [],
+    connectors: makeConnectorsMap(opts?.allowedUsers ?? []),
   });
   scanner.cachePath = null;
   return scanner;
@@ -77,7 +85,7 @@ describe("TriggerScanner", () => {
       makeWorkItemComment("C1", "@RalphDocs handle this"),
     ]);
 
-    ledger.plan("DF-100", { variant, triggerCommentId: "C1", commentTimestamp: "2026-01-01T00:00:00Z" });
+    ledger.plan("DF-100", { dataSource: DS, variant, triggerCommentId: "C1", commentTimestamp: TS });
 
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
     const planned = await scanner.scan([makeWorkItem("DF-100")], [profile]);
@@ -100,7 +108,7 @@ describe("TriggerScanner", () => {
     await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
     expect(mgr.postAckComment).toHaveBeenCalledTimes(2);
-    expect(mgr.postAckComment.mock.calls[0][0]).toBe("DF-100");
+    expect(mgr.postAckComment.mock.calls[0][1]).toBe("DF-100");
   });
 
   it("passes trigger params to ack comment when present", async () => {
@@ -117,7 +125,7 @@ describe("TriggerScanner", () => {
     await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
     expect(mgr.postAckComment).toHaveBeenCalledWith(
-      "DF-100", "ralph", ["codesamples", "branch=xyz"],
+      DS, "DF-100", "ralph", ["codesamples", "branch=xyz"],
     );
   });
 
@@ -135,7 +143,7 @@ describe("TriggerScanner", () => {
     await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
     expect(mgr.postAckComment).toHaveBeenCalledWith(
-      "DF-100", "ralph", [],
+      DS, "DF-100", "ralph", [],
     );
   });
 
@@ -265,7 +273,7 @@ describe("TriggerScanner", () => {
     const planned = await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
     expect(planned).toBe(1);
-    const ops = ledger.getOperations("DF-100");
+    const ops = ledger.getOperations(DS, "DF-100");
     expect(ops).toHaveLength(1);
     expect(ops[0].triggerParams).toEqual(["codesamples", "verbose"]);
   });
@@ -283,7 +291,7 @@ describe("TriggerScanner", () => {
 
     await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
-    const ops = ledger.getOperations("DF-100");
+    const ops = ledger.getOperations(DS, "DF-100");
     expect(ops[0].triggerParams).toBeUndefined();
   });
 
@@ -467,7 +475,7 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+        makeWorkItemComment("C1", "@go please", TS, "blocked-user"),
       ]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
@@ -476,7 +484,7 @@ describe("TriggerScanner", () => {
       expect(planned).toBe(0);
       expect(ledger.getAllPending()).toHaveLength(0);
 
-      const ops = ledger.getOperations("DF-100");
+      const ops = ledger.getOperations(DS, "DF-100");
       expect(ops).toHaveLength(1);
       expect(ops[0].status).toBe("rejected");
       expect(ops[0].reason).toContain("blocked-user");
@@ -489,16 +497,17 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+        makeWorkItemComment("C1", "@go please", TS, "blocked-user"),
       ]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       await scanner.scan([makeWorkItem("DF-100")], [profile]);
 
       expect(mgr.postComment).toHaveBeenCalledTimes(1);
-      expect(mgr.postComment.mock.calls[0][0]).toBe("DF-100");
-      expect(mgr.postComment.mock.calls[0][1]).toContain("not authorized");
-      expect(mgr.postComment.mock.calls[0][1]).toContain("Test User");
+      expect(mgr.postComment.mock.calls[0][0]).toBe(DS);
+      expect(mgr.postComment.mock.calls[0][1]).toBe("DF-100");
+      expect(mgr.postComment.mock.calls[0][2]).toContain("not authorized");
+      expect(mgr.postComment.mock.calls[0][2]).toContain("Test User");
     });
 
     it("does not re-reject already-consumed trigger comments", async () => {
@@ -507,18 +516,18 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go please", "2026-01-01T00:00:00Z", "blocked-user"),
+        makeWorkItemComment("C1", "@go please", TS, "blocked-user"),
       ]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       await scanner.scan([makeWorkItem("DF-100")], [profile]);
-      expect(ledger.getOperations("DF-100")).toHaveLength(1);
+      expect(ledger.getOperations(DS, "DF-100")).toHaveLength(1);
 
       mgr.postComment.mockClear();
 
       // Second scan — comment C1 is already consumed (rejected), should not re-reject
       await scanner.scan([makeWorkItem("DF-100", "Test", "New", "2026-02-01T00:00:00Z")], [profile]);
-      expect(ledger.getOperations("DF-100")).toHaveLength(1);
+      expect(ledger.getOperations(DS, "DF-100")).toHaveLength(1);
       expect(mgr.postComment).not.toHaveBeenCalled();
     });
 
@@ -528,7 +537,7 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go please", "2026-01-01T00:00:00Z", "allowed-user"),
+        makeWorkItemComment("C1", "@go please", TS, "allowed-user"),
       ]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
@@ -543,7 +552,7 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go please", "2026-01-01T00:00:00Z", "any-random-user"),
+        makeWorkItemComment("C1", "@go please", TS, "any-random-user"),
       ]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: [] });
 
@@ -558,7 +567,7 @@ describe("TriggerScanner", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
       const mgr = makeMockIssueManager([
-        makeWorkItemComment("C1", "@go first", "2026-01-01T00:00:00Z", "user-a"),
+        makeWorkItemComment("C1", "@go first", TS, "user-a"),
         makeWorkItemComment("C2", "@go second", "2026-01-01T01:00:00Z", "user-b"),
         makeWorkItemComment("C3", "@go third", "2026-01-01T02:00:00Z", "user-c"),
       ]);
@@ -568,7 +577,7 @@ describe("TriggerScanner", () => {
 
       expect(planned).toBe(2);
       // user-b should be rejected
-      const rejected = ledger.getOperations("DF-100").filter(op => op.status === "rejected");
+      const rejected = ledger.getOperations(DS, "DF-100").filter(op => op.status === "rejected");
       expect(rejected).toHaveLength(1);
       expect(rejected[0].reason).toContain("user-b");
     });

@@ -10,45 +10,52 @@ import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for work item lifecycle operations. */
 export interface IIssueManager {
-  refreshWorkItem(workItemId: string): Promise<WorkItem | null>;
-  getComments(workItemId: string): Promise<WorkItemComment[]>;
-  transitionWorkItem(workItemId: string, targetStatus: string | undefined, phase: TransitionPhase): Promise<void>;
-  postStartComment(workItemId: string, displayName: string, profileId: string): Promise<void>;
-  postErrorComment(workItemId: string, error: string): Promise<void>;
-  postCrashRecoveryComment(workItemId: string, variant: string): Promise<void>;
-  postStaleStatusComment(workItemId: string, displayName: string, currentStatus: string): Promise<void>;
-  postAckComment(workItemId: string, displayName: string, triggerParams?: string[]): Promise<void>;
-  postComment(workItemId: string, body: string): Promise<void>;
+  refreshWorkItem(source: string, workItemId: string): Promise<WorkItem | null>;
+  getComments(source: string, workItemId: string): Promise<WorkItemComment[]>;
+  transitionWorkItem(source: string, workItemId: string, targetStatus: string | undefined, phase: TransitionPhase): Promise<void>;
+  postStartComment(source: string, workItemId: string, displayName: string, profileId: string): Promise<void>;
+  postErrorComment(source: string, workItemId: string, error: string): Promise<void>;
+  postCrashRecoveryComment(source: string, workItemId: string, variant: string): Promise<void>;
+  postStaleStatusComment(source: string, workItemId: string, displayName: string, currentStatus: string): Promise<void>;
+  postAckComment(source: string, workItemId: string, displayName: string, triggerParams?: string[]): Promise<void>;
+  postComment(source: string, workItemId: string, body: string): Promise<void>;
 }
 
 /**
  * Manages work item lifecycle operations — transitions, orchestrator comments,
- * and item lookups. Delegates to an {@link IDataSourceConnector} so the rest of
- * the orchestrator never calls the data source directly.
+ * and item lookups. Delegates to the appropriate {@link IDataSourceConnector}
+ * based on the source key.
  */
 export class IssueManager implements IIssueManager {
-  private readonly connector: IDataSourceConnector;
-  private readonly transitions: ISupportsTransitions | null;
+  private readonly connectors: ReadonlyMap<string, IDataSourceConnector>;
   private readonly logger: Logger;
   /** Retry options — settable for test injection (not part of the DI cradle). */
   retryOptions?: RetryOptions;
 
-  constructor({ connector, logger }: {
-    connector: IDataSourceConnector;
+  constructor({ connectors, logger }: {
+    connectors: ReadonlyMap<string, IDataSourceConnector>;
     logger: Logger;
   }) {
-    this.connector = connector;
-    this.transitions = supportsTransitions(connector) ? connector : null;
+    this.connectors = connectors;
     this.logger = logger;
   }
 
-  /**
-   * Re-fetch a single work item by ID.
-   * @returns The work item, or `null` if not found or the request fails.
-   */
-  async refreshWorkItem(workItemId: string): Promise<WorkItem | null> {
+  private resolveConnector(source: string): IDataSourceConnector {
+    const connector = this.connectors.get(source);
+    if (!connector) {
+      throw new Error(`No connector registered for data source "${source}"`);
+    }
+    return connector;
+  }
+
+  private resolveTransitions(source: string): ISupportsTransitions | null {
+    const connector = this.resolveConnector(source);
+    return supportsTransitions(connector) ? connector : null;
+  }
+
+  async refreshWorkItem(source: string, workItemId: string): Promise<WorkItem | null> {
     try {
-      return await this.connector.refreshWorkItem(workItemId);
+      return await this.resolveConnector(source).refreshWorkItem(workItemId);
     } catch (err) {
       this.logger.warn(
         `Failed to refresh ${workItemId}: ${toErrorMessage(err)}`,
@@ -57,34 +64,24 @@ export class IssueManager implements IIssueManager {
     }
   }
 
-  /** Fetch all comments on a work item. */
-  async getComments(workItemId: string): Promise<WorkItemComment[]> {
-    return this.connector.getComments(workItemId);
+  async getComments(source: string, workItemId: string): Promise<WorkItemComment[]> {
+    return this.resolveConnector(source).getComments(workItemId);
   }
 
-  /**
-   * Transition a work item to a target status.
-   *
-   * If the connector does not support transitions, logs a warning and returns.
-   * Otherwise delegates to the connector with retry, and posts a failure
-   * comment if all retries are exhausted.
-   *
-   * @param workItemId    Work item identifier (e.g. "DF-100").
-   * @param targetStatus  Target status name (e.g. "In Progress"). Skipped if undefined.
-   * @param phase         Identifies whether this is a pre- or post-agent transition.
-   */
-  async transitionWorkItem(workItemId: string, targetStatus: string | undefined, phase: TransitionPhase): Promise<void> {
+  async transitionWorkItem(source: string, workItemId: string, targetStatus: string | undefined, phase: TransitionPhase): Promise<void> {
     if (!targetStatus) return;
 
-    if (!this.transitions) {
+    const connector = this.resolveConnector(source);
+    const transitions = this.resolveTransitions(source);
+
+    if (!transitions) {
       this.logger.warn(
-        `Connector "${this.connector.name}" does not support transitions — skipping ${phase} for ${workItemId}`
+        `Connector "${connector.name}" does not support transitions — skipping ${phase} for ${workItemId}`
       );
       return;
     }
 
     this.logger.info(`Resolving ${phase} transition for ${workItemId} → "${targetStatus}"...`);
-    const transitions = this.transitions;
     try {
       await withRetry(
         () => transitions.transitionWorkItem(workItemId, targetStatus),
@@ -98,20 +95,20 @@ export class IssueManager implements IIssueManager {
       this.logger.warn(
         `Failed to transition ${workItemId} (${phase}): ${message}`
       );
-      this.connector.addComment(
+      connector.addComment(
         workItemId,
         OrchestratorComments.transitionFailed(phase, targetStatus, message),
       ).catch(() => {});
     }
   }
 
-  /** Post a start comment. */
-  async postStartComment(workItemId: string, displayName: string, profileId: string): Promise<void> {
+  async postStartComment(source: string, workItemId: string, displayName: string, profileId: string): Promise<void> {
     this.logger.info(`Posting start comment on ${workItemId}...`);
     const startMessage = OrchestratorComments.start(displayName, profileId);
+    const connector = this.resolveConnector(source);
     try {
       await withRetry(
-        () => this.connector.addComment(workItemId, startMessage),
+        () => connector.addComment(workItemId, startMessage),
         `comment on ${workItemId}`,
         this.logger,
         this.retryOptions,
@@ -124,12 +121,12 @@ export class IssueManager implements IIssueManager {
     }
   }
 
-  /** Post an error comment when a task fails. */
-  async postErrorComment(workItemId: string, error: string): Promise<void> {
+  async postErrorComment(source: string, workItemId: string, error: string): Promise<void> {
     const message = OrchestratorComments.error(error);
+    const connector = this.resolveConnector(source);
     try {
       await withRetry(
-        () => this.connector.addComment(workItemId, message),
+        () => connector.addComment(workItemId, message),
         `error comment on ${workItemId}`,
         this.logger,
         this.retryOptions,
@@ -142,10 +139,9 @@ export class IssueManager implements IIssueManager {
     }
   }
 
-  /** Post a crash-recovery comment for an operation found active on startup. */
-  async postCrashRecoveryComment(workItemId: string, variant: string): Promise<void> {
+  async postCrashRecoveryComment(source: string, workItemId: string, variant: string): Promise<void> {
     const displayName = variant.split(":")[1];
-    await this.connector
+    await this.resolveConnector(source)
       .addComment(workItemId, OrchestratorComments.crashRecovery(displayName))
       .catch((err) => {
         this.logger.warn(
@@ -154,9 +150,8 @@ export class IssueManager implements IIssueManager {
       });
   }
 
-  /** Post a stale-status comment when an item no longer matches the profile. */
-  async postStaleStatusComment(workItemId: string, displayName: string, currentStatus: string): Promise<void> {
-    await this.connector
+  async postStaleStatusComment(source: string, workItemId: string, displayName: string, currentStatus: string): Promise<void> {
+    await this.resolveConnector(source)
       .addComment(workItemId, OrchestratorComments.staleStatus(displayName, currentStatus))
       .catch((err) => {
         this.logger.warn(
@@ -165,9 +160,8 @@ export class IssueManager implements IIssueManager {
       });
   }
 
-  /** Post an ack comment when a trigger comment is discovered. */
-  async postAckComment(workItemId: string, displayName: string, triggerParams?: string[]): Promise<void> {
-    await this.connector
+  async postAckComment(source: string, workItemId: string, displayName: string, triggerParams?: string[]): Promise<void> {
+    await this.resolveConnector(source)
       .addComment(workItemId, OrchestratorComments.ack(displayName, triggerParams))
       .catch((err) => {
         this.logger.warn(
@@ -176,9 +170,8 @@ export class IssueManager implements IIssueManager {
       });
   }
 
-  /** Post an arbitrary comment (used for preflight failures with custom text). */
-  async postComment(workItemId: string, body: string): Promise<void> {
-    await this.connector
+  async postComment(source: string, workItemId: string, body: string): Promise<void> {
+    await this.resolveConnector(source)
       .addComment(workItemId, body)
       .catch((err) => {
         this.logger.warn(

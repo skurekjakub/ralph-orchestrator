@@ -1,17 +1,16 @@
-import type { IAgentProfile, IRalphchivesConfig, IJiraConfig } from "./config/types.js";
+import type { IAgentProfile, IDataSourceConfig, IRalphchivesConfig } from "./config/types.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase } from "./orchestrator-types.js";
 import { OperationStatus } from "./services/operation-ledger.js";
 import type { Operation, IOperationLedger } from "./services/operation-ledger.js";
 import { OrchestratorObserver } from "./orchestrator-observer.js";
 import type { WorkItem } from "./datasource/types.js";
+import type { IWorkItemPoller } from "./datasource/poller.js";
 import type { ActiveTask } from "./orchestrator-types.js";
 import { buildTaskContext } from "./services/task-context.js";
 import type { TaskCallbacks } from "./services/task-context.js";
 import { toErrorMessage } from "./util/error.js";
 import type { IActivityLog } from "./services/activity-log.js";
-import type { IJiraPoller } from "./jira/poller.js";
-import { mapIssueToWorkItem } from "./datasource/connectors/jira/jira-mapper.js";
 import type { IProfileRouter } from "./services/profile-router.js";
 import type { IIssueManager } from "./services/issue-manager.js";
 import type { IResourceManager } from "./services/task-resource-manager.js";
@@ -32,7 +31,7 @@ import type { Logger } from "./logger.js";
  * 4. Track completion and emit state updates
  *
  * The loop is event-driven: it awaits a {@link workSignal} that the
- * {@link JiraPoller} and {@link OperationLedger} resolve when new work arrives.
+ * pollers and {@link OperationLedger} resolve when new work arrives.
  * No polling / sleep timers inside the loop.
  *
  * All heavy lifting is delegated to focused services:
@@ -41,11 +40,10 @@ import type { Logger } from "./logger.js";
  * - {@link TaskRunner} -- single-issue pipeline
  */
 export class Orchestrator {
-  private readonly jiraConfig: IJiraConfig;
-  private readonly excludeFields: readonly string[];
+  private readonly dataSources: Readonly<Record<string, IDataSourceConfig>>;
   private readonly profiles: readonly IAgentProfile[];
   private readonly activityLog: IActivityLog;
-  private readonly poller: IJiraPoller;
+  private readonly pollers: ReadonlyMap<string, IWorkItemPoller>;
   private readonly router: IProfileRouter;
   private readonly issueManager: IIssueManager;
   private readonly resources: IResourceManager;
@@ -67,11 +65,10 @@ export class Orchestrator {
   private workSignalResolve: (() => void) | null = null;
 
   constructor({
-    jiraConfig,
-    excludeFields,
+    dataSources,
     profiles,
     activityLog,
-    poller,
+    pollers,
     router,
     issueManager,
     resources,
@@ -81,11 +78,10 @@ export class Orchestrator {
     heartbeat,
     ralphchivesConfig,
   }: {
-    jiraConfig: IJiraConfig;
-    excludeFields: readonly string[];
+    dataSources: Readonly<Record<string, IDataSourceConfig>>;
     profiles: readonly IAgentProfile[];
     activityLog: IActivityLog;
-    poller: IJiraPoller;
+    pollers: ReadonlyMap<string, IWorkItemPoller>;
     router: IProfileRouter;
     issueManager: IIssueManager;
     resources: IResourceManager;
@@ -96,11 +92,10 @@ export class Orchestrator {
     ralphchivesConfig: IRalphchivesConfig;
     logger?: Logger;
   }) {
-    this.jiraConfig = jiraConfig;
-    this.excludeFields = excludeFields;
+    this.dataSources = dataSources;
     this.profiles = profiles;
     this.activityLog = activityLog;
-    this.poller = poller;
+    this.pollers = pollers;
     this.router = router;
     this.issueManager = issueManager;
     this.resources = resources;
@@ -122,7 +117,9 @@ export class Orchestrator {
     }));
 
     this.ledger.onPending(() => this.wakeUp());
-    this.poller.onIssues(() => this.wakeUp());
+    for (const poller of this.pollers.values()) {
+      poller.onItems(() => this.wakeUp());
+    }
   }
 
   /** Set callbacks for real-time streaming during task execution. */
@@ -154,17 +151,18 @@ export class Orchestrator {
   async start(): Promise<void> {
     this.running = true;
 
-    this.poller.start();
+    for (const poller of this.pollers.values()) {
+      poller.start();
+    }
 
     if (this.heartbeat) {
       this.heartbeat.start(() => this.observer.getHeartbeatPayload());
       this.log("Dashboard heartbeat enabled");
     }
 
-    this.log("Orchestrator started -- polling JIRA for new tasks");
+    this.log("Orchestrator started -- polling data sources for new tasks");
     this.log(`Agent ID: ${this.observer.agentId}`);
-    this.log(`Poll interval: ${this.jiraConfig.pollIntervalMs / 1000}s`);
-    this.log(`JQL queries: ${this.jiraConfig.jql.length}`);
+    this.log(`Data sources: ${Object.keys(this.dataSources).join(", ")}`);
     this.log(`Agent profiles: ${this.router.profileIds.join(", ")}`);
 
     const recovered = this.ledger.recoverActiveOperations();
@@ -172,14 +170,17 @@ export class Orchestrator {
       this.warn(
         `Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`,
       );
-      await this.issueManager.postCrashRecoveryComment(issueKey, operation.variant);
+      await this.issueManager.postCrashRecoveryComment(operation.dataSource, issueKey, operation.variant);
     }
 
     // Tear down any containers abandoned by a previous SIGINT.
     await this.cleanupAbandonedContainers();
 
     while (this.running) {
-      const discovered = this.poller.drain().map(issue => mapIssueToWorkItem(issue, "jira", [...this.excludeFields]));
+      const discovered: WorkItem[] = [];
+      for (const poller of this.pollers.values()) {
+        discovered.push(...poller.drain());
+      }
       if (discovered.length > 0) {
         const planned = await this.triggerScanner.scan(
           discovered,
@@ -198,7 +199,9 @@ export class Orchestrator {
       await this.executeOperation(next.issueKey, next.operation);
     }
 
-    this.poller.stop();
+    for (const poller of this.pollers.values()) {
+      poller.stop();
+    }
     this.log("Orchestrator stopped");
   }
 
@@ -213,7 +216,9 @@ export class Orchestrator {
   async shutdown(): Promise<void> {
     this.log("Shutting down gracefully...");
     this.running = false;
-    this.poller.stop();
+    for (const poller of this.pollers.values()) {
+      poller.stop();
+    }
     this.heartbeat?.stop();
     this.wakeUp();
     this.emitState();
@@ -268,7 +273,7 @@ export class Orchestrator {
     );
     if (!profile) {
       this.log(`Operation on ${issueKey} failed: profile ${operation.variant} no longer exists`);
-      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+      this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, {
         reason: `Profile ${operation.variant} no longer exists`,
       });
       this.emitState();
@@ -279,10 +284,10 @@ export class Orchestrator {
 
   /** Re-fetch the work item to get its current status. Returns `null` on failure or not found. */
   private async refreshIssue(issueKey: string, operation: Operation): Promise<WorkItem | null> {
-    const workItem = await this.issueManager.refreshWorkItem(issueKey);
+    const workItem = await this.issueManager.refreshWorkItem(operation.dataSource, issueKey);
     if (!workItem) {
       this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
-      this.ledger.transition(issueKey, operation.id, OperationStatus.Error, {
+      this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, {
         reason: "Issue not found or unreachable in JIRA",
       });
       this.emitState();
@@ -297,11 +302,11 @@ export class Orchestrator {
     this.log(
       `Rejected ${workItem.id}: status "${workItem.status}" no longer matches profile ${profile.displayName}`,
     );
-    this.ledger.transition(workItem.id, operation.id, OperationStatus.Rejected, {
+    this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Rejected, {
       reason: `Issue status "${workItem.status}" no longer matches profile`,
     });
     this.issueManager
-      .postStaleStatusComment(workItem.id, profile.displayName, workItem.status);
+      .postStaleStatusComment(workItem.source, workItem.id, profile.displayName, workItem.status);
     this.emitState();
     return false;
   }
@@ -316,9 +321,10 @@ export class Orchestrator {
     const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
-    const comments = await this.issueManager.getComments(workItem.id);
+    const comments = await this.issueManager.getComments(workItem.source, workItem.id);
     const ctx = await buildPreflightContext(
       this.resources,
+      workItem.source,
       workItem.id,
       comments,
     );
@@ -329,12 +335,13 @@ export class Orchestrator {
       profile.failureComment ??
       `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
     this.ledger.transition(
+      operation.dataSource,
       workItem.id,
       operation.id,
       OperationStatus.Rejected,
       { reason: `preflight:${name} — ${result.reason}` },
     );
-    await this.issueManager.postComment(workItem.id, comment);
+    await this.issueManager.postComment(workItem.source, workItem.id, comment);
     this.log(
       `Preflight failed for ${workItem.id} (${name}): ${result.reason}`,
     );
@@ -357,7 +364,7 @@ export class Orchestrator {
     this.log(
       `Picked up ${workItem.id}: ${workItem.title} (${operation.variant})`,
     );
-    this.ledger.transition(workItem.id, operation.id, OperationStatus.Active);
+    this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Active);
 
     const taskId = `${workItem.id}-${this.activeTask.startedAt}`;
 
@@ -384,6 +391,7 @@ export class Orchestrator {
       const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
 
       this.ledger.transition(
+        operation.dataSource,
         workItem.id,
         operation.id,
         isSuccess ? OperationStatus.Completed : OperationStatus.Error,
@@ -394,9 +402,10 @@ export class Orchestrator {
       );
 
       if (isSuccess) {
-        await this.issueManager.transitionWorkItem(workItem.id, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
+        await this.issueManager.transitionWorkItem(workItem.source, workItem.id, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
       } else {
         await this.issueManager.postErrorComment(
+          workItem.source,
           workItem.id,
           result.stderr || `Agent finished with status: ${result.status}`,
         );
@@ -414,11 +423,11 @@ export class Orchestrator {
         completedAt: Date.now(),
       });
 
-      this.ledger.transition(workItem.id, operation.id, OperationStatus.Error, {
+      this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Error, {
         reason: errorMsg,
       });
 
-      await this.issueManager.postErrorComment(workItem.id, errorMsg);
+      await this.issueManager.postErrorComment(workItem.source, workItem.id, errorMsg);
     } finally {
       this.activityLog.endTaskLog();
       await this.teardownContainer(profile);

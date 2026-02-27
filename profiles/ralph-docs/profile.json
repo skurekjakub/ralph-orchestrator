@@ -1,5 +1,6 @@
 {
   "repo": "~/repositories/ralph-repositories/kentico-docs-jekyll",
+  "dataSource": "kentico-jira",
   "cli": "copilot",
   "timeoutMs": 7200000,
   "cleanPaths": ["/workspace/resources/chats"],

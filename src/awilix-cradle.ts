@@ -1,13 +1,16 @@
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
-import type { IAppConfig, IAgentProfile } from "./config/types.js";
+import type { IAppConfig, IAgentProfile, IJiraConnectionConfig, IDataSourceConfig } from "./config/types.js";
+import { DataSourceType } from "./config/types.js";
 import type { OrchestratorCradle } from "./awlix-cradle-types.js";
 import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";
 import { JiraClient } from "./jira/client.js";
 import { JiraConnector } from "./datasource/connectors/jira/jira-connector.js";
-import { JiraPoller } from "./jira/poller.js";
+import { JiraWorkItemPoller } from "./datasource/connectors/jira/jira-poller.js";
+import type { IDataSourceConnector } from "./datasource/connector.js";
+import type { IWorkItemPoller } from "./datasource/poller.js";
 import { LogCollector } from "./logs/collector.js";
 import { PromptBuilder } from "./prompt/prompt-builder.js";
 import { ActivityLog } from "./services/activity-log.js";
@@ -31,6 +34,7 @@ import { ContainerLogCollector } from "./container/log-collector.js";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
 import { ContinuationRunner } from "./container/continuation-runner.js";
+import { buildJqlFromProfiles } from "./jira/jql-builder.js";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
@@ -80,6 +84,38 @@ function buildContainerFactory({
 }
 
 /**
+ * Build per-data-source connectors and pollers from the config.
+ * Each data source gets its own connector + poller instance keyed by source name.
+ */
+function buildDataSourceMaps(
+  config: IAppConfig,
+  logger?: { info: (msg: string) => void },
+): { connectors: Map<string, IDataSourceConnector>; pollers: Map<string, IWorkItemPoller> } {
+  const connectors = new Map<string, IDataSourceConnector>();
+  const pollers = new Map<string, IWorkItemPoller>();
+
+  for (const [key, ds] of Object.entries(config.dataSources)) {
+    if (ds.type === DataSourceType.Jira) {
+      const conn = ds.connection as unknown as IJiraConnectionConfig;
+      const client = new JiraClient({ connection: conn });
+      const connector = new JiraConnector(key, client, [...conn.excludeFields], conn.allowedUsers);
+      connectors.set(key, connector);
+
+      // Build JQL from profiles that reference this data source
+      const sourceProfiles = config.profiles.filter((p) => p.dataSource === key);
+      const queries = buildJqlFromProfiles(sourceProfiles);
+
+      const poller = new JiraWorkItemPoller(connector, queries, ds.pollIntervalMs);
+      pollers.set(key, poller);
+
+      logger?.info(`Data source "${key}" (JIRA): ${queries.length} queries, poll ${ds.pollIntervalMs / 1000}s`);
+    }
+  }
+
+  return { connectors, pollers };
+}
+
+/**
  * Create the awilix DI container with all registered services.
  *
  * Returns the full cradle proxy — services are lazily resolved on access.
@@ -92,17 +128,17 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     strict: true,
   });
 
+  const { connectors, pollers } = buildDataSourceMaps(config);
+
   container.register({
     // ── Config slices ─────────────────────────────────────────────────────────
-    jiraConfig:        asValue(config.jira),
+    dataSources:       asValue(config.dataSources),
     outputConfig:      asValue(config.output),
     dashboardConfig:   asValue(config.dashboard),
     secrets:           asValue(config.secrets),
     profiles:          asValue(config.profiles),
     promptAuditConfig: asValue(config.promptAudit),
     ralphchivesConfig: asValue(config.ralphchives),
-    excludeFields:     asValue(config.excludeFields),
-    allowedUsers:      asValue(config.allowedUsers),
     enableContinuation: asValue(config.enableContinuation),
     preExecuteHooks:   asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
 
@@ -113,13 +149,11 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     containerLogger: asFunction(({ activityLog }) =>
                        activityLog.createContainerLogger()).singleton(),
 
-    // ── JIRA ──────────────────────────────────────────────────────────────────
-    jiraClient:   asClass(JiraClient).singleton(),
-    connector:    asFunction(({ jiraClient, excludeFields, logger }) =>
-                    new JiraConnector("jira", jiraClient, excludeFields, logger)).singleton(),
-    issueManager: asClass(IssueManager).singleton(),
-    resources:    asClass(TaskResourceManager).singleton(),
-    poller:       asClass(JiraPoller).singleton(),
+    // ── Data sources ──────────────────────────────────────────────────────────
+    connectors:    asValue(connectors),
+    pollers:       asValue(pollers),
+    issueManager:  asClass(IssueManager).singleton(),
+    resources:     asClass(TaskResourceManager).singleton(),
 
     // ── Orchestration ─────────────────────────────────────────────────────────
     ledger:         asClass(OperationLedger).singleton(),

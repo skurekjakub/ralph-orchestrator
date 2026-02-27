@@ -21,7 +21,8 @@ describe("createCradle", () => {
     const cradle = createCradle(config);
 
     expect(cradle.activityLog).toBeDefined();
-    expect(cradle.poller).toBeDefined();
+    expect(cradle.pollers).toBeDefined();
+    expect(cradle.connectors).toBeDefined();
     expect(cradle.router).toBeDefined();
     expect(cradle.issueManager).toBeDefined();
     expect(cradle.resources).toBeDefined();
@@ -31,11 +32,11 @@ describe("createCradle", () => {
     expect(cradle.logger).toBeDefined();
   });
 
-  it("returns jiraConfig and profiles from the config", () => {
+  it("returns dataSources and profiles from the config", () => {
     const config = makeConfig();
     const cradle = createCradle(config);
 
-    expect(cradle.jiraConfig).toBe(config.jira);
+    expect(cradle.dataSources).toBe(config.dataSources);
     expect(cradle.profiles).toBe(config.profiles);
   });
 

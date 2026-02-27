@@ -15,6 +15,8 @@ import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } fr
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { createMockLogger, createMockContainer, createMockResultWriter, createMockResources, createMockIssueManager, createMockTemplateRenderer, createMockSkillRenderer, createMockJitMcpConfigWriter } from "../helpers/mocks.js";
 
+const DS = "jira";
+
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
   return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn() };
@@ -49,8 +51,8 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
-    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
-    expect(issueManager.postStartComment).toHaveBeenCalledWith("DF-100", "ralph", "ralph-docs");
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, "DF-100", "In Progress", TransitionPhase.BeforeAgent);
+    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, "DF-100", "ralph", "ralph-docs");
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
@@ -108,7 +110,7 @@ describe("TaskRunner", () => {
 
     await runner.run(makeTaskContext({ workItem: issue, profile: profileNoTransition, taskId }));
 
-    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith("DF-100", undefined, TransitionPhase.BeforeAgent);
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, "DF-100", undefined, TransitionPhase.BeforeAgent);
   });
 
   it("returns error result when container start fails", async () => {
@@ -172,7 +174,7 @@ describe("TaskRunner", () => {
 
     await runner.run(buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000", makeConfig().ralphchives));
 
-    expect(resources.fetchHandoff).toHaveBeenCalledWith("DF-200");
+    expect(resources.fetchHandoff).toHaveBeenCalledWith(DS, "DF-200");
     expect(renderer.render).toHaveBeenCalledWith(
       "ralph-docs",
       expect.objectContaining({ isRevision: true, taskId: "DF-200", taskStatus: "Defect Found" }),

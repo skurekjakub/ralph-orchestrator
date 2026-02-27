@@ -5,13 +5,16 @@ import { tmpdir } from "node:os";
 
 import { Orchestrator } from "../../src/orchestrator.js";
 import { OperationStatus } from "../../src/services/operation-ledger.js";
-import { makeProfile, makeIssue, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories.js";
+import { makeProfile, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories.js";
 import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IAgentProfile } from "../../src/config/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import { buildMockDeps, buildBaseDeps, runUntil } from "./e2e-helpers.js";
+
+const DS = "jira";
+const TS = "2026-01-01T00:00:00Z";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -32,7 +35,7 @@ afterEach(() => {
 
 describe("Orchestrator E2E loop (mock deps)", () => {
   it("completes full cycle: poll -> trigger scan -> execute -> completion", async () => {
-    const issue = makeIssue("DF-100", "Update API docs", "New");
+    const issue = makeWorkItem("DF-100", "Update API docs", "New");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -47,8 +50,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
-    expect(deps.poller.start).toHaveBeenCalled();
-    expect(deps.poller.stop).toHaveBeenCalled();
+    expect(deps.pollers.get(DS)!.start).toHaveBeenCalled();
+    expect(deps.pollers.get(DS)!.stop).toHaveBeenCalled();
     expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -59,6 +62,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       expect.any(Object),
     );
     expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
+      DS,
       "DF-100",
       undefined,
       TransitionPhase.AfterAgent,
@@ -69,13 +73,13 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(state.completedToday[0].key).toBe("DF-100");
     expect(state.completedToday[0].status).toBe(TaskStatus.Completed);
 
-    const ops = deps.ledger.getOperations("DF-100");
+    const ops = deps.ledger.getOperations(DS, "DF-100");
     expect(ops).toHaveLength(1);
     expect(ops[0].status).toBe(OperationStatus.Completed);
   });
 
   it("posts error comment when agent returns error status without throwing", async () => {
-    const issue = makeIssue("DF-150", "Agent CLI fails");
+    const issue = makeWorkItem("DF-150", "Agent CLI fails");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -96,22 +100,24 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     );
 
     expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
+      DS,
       "DF-150",
       "No such agent: ralph",
     );
     expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
+      expect.anything(),
       TransitionPhase.AfterAgent,
     );
 
-    const ops = deps.ledger.getOperations("DF-150");
+    const ops = deps.ledger.getOperations(DS, "DF-150");
     expect(ops[0].status).toBe(OperationStatus.Error);
     expect(ops[0].resultStatus).toBe(TaskStatus.Error);
   });
 
   it("maps TaskStatus.Blocked to OperationStatus.Error in the ledger", async () => {
-    const issue = makeIssue("DF-151", "Agent blocked by missing context");
+    const issue = makeWorkItem("DF-151", "Agent blocked by missing context");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -131,14 +137,16 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
-    const ops = deps.ledger.getOperations("DF-151");
+    const ops = deps.ledger.getOperations(DS, "DF-151");
     expect(ops[0].status).toBe(OperationStatus.Error);
     expect(ops[0].resultStatus).toBe(TaskStatus.Blocked);
     expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
+      DS,
       "DF-151",
       "Missing required context",
     );
     expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
+      expect.anything(),
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
@@ -146,7 +154,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
   });
 
   it("maps TaskStatus.Partial to OperationStatus.Completed in the ledger", async () => {
-    const issue = makeIssue("DF-152", "Agent partial success");
+    const issue = makeWorkItem("DF-152", "Agent partial success");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -166,10 +174,11 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       () => orchestrator.observer.getState().completedToday.length > 0,
     );
 
-    const ops = deps.ledger.getOperations("DF-152");
+    const ops = deps.ledger.getOperations(DS, "DF-152");
     expect(ops[0].status).toBe(OperationStatus.Completed);
     expect(ops[0].resultStatus).toBe(TaskStatus.Partial);
     expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
+      DS,
       "DF-152",
       undefined,
       TransitionPhase.AfterAgent,
@@ -178,7 +187,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
   });
 
   it("handles task runner errors gracefully", async () => {
-    const issue = makeIssue("DF-200", "Broken task");
+    const issue = makeWorkItem("DF-200", "Broken task");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -198,13 +207,15 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(state.completedToday).toHaveLength(1);
     expect(state.completedToday[0].status).toBe(TaskStatus.Error);
     expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
+      DS,
       "DF-200",
       "Container build failed",
     );
 
-    const ops = deps.ledger.getOperations("DF-200");
+    const ops = deps.ledger.getOperations(DS, "DF-200");
     expect(ops[0].status).toBe(OperationStatus.Error);
     expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
+      expect.anything(),
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
@@ -222,8 +233,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         revisionStatuses: [],
       },
     });
-    const issueAtPoll = makeIssue("DF-300", "Task that moved", "New");
-    const issueAtExec = makeIssue("DF-300", "Task that moved", "Done");
+    const issueAtPoll = makeWorkItem("DF-300", "Task that moved", "New");
+    const issueAtExec = makeWorkItem("DF-300", "Task that moved", "Done");
 
     const deps = buildMockDeps(tempDir, {
       profile,
@@ -239,17 +250,17 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const orchestrator = new Orchestrator(deps);
 
     await runUntil(orchestrator, () => {
-      const ops = deps.ledger.getOperations("DF-300");
+      const ops = deps.ledger.getOperations(DS, "DF-300");
       return ops.length > 0 && ops[0].status === OperationStatus.Rejected;
     });
 
-    const ops = deps.ledger.getOperations("DF-300");
+    const ops = deps.ledger.getOperations(DS, "DF-300");
     expect(ops[0].status).toBe(OperationStatus.Rejected);
     expect(deps.taskRunner.run).not.toHaveBeenCalled();
   });
 
   it("skips issues that match no profile", async () => {
-    const issue = makeIssue("OTHER-1", "Wrong project");
+    const issue = makeWorkItem("OTHER-1", "Wrong project");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -267,8 +278,8 @@ describe("Orchestrator E2E loop (mock deps)", () => {
   });
 
   it("processes multiple operations sequentially", async () => {
-    const issue1 = makeIssue("DF-400", "First task");
-    const issue2 = makeIssue("DF-401", "Second task");
+    const issue1 = makeWorkItem("DF-400", "First task");
+    const issue2 = makeWorkItem("DF-401", "Second task");
 
     const deps = buildMockDeps(tempDir, {
       issues: [issue1, issue2],
@@ -313,29 +324,31 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // Simulate a previously crashed operation
     deps.ledger.plan("DF-500", {
+      dataSource: DS,
       variant: "ralph-docs:ralph:@docs",
       triggerCommentId: "C1",
-      commentTimestamp: "2026-01-01T00:00:00Z",
+      commentTimestamp: TS,
     });
-    const ops = deps.ledger.getOperations("DF-500");
-    deps.ledger.transition("DF-500", ops[0].id, OperationStatus.Active);
+    const ops = deps.ledger.getOperations(DS, "DF-500");
+    deps.ledger.transition(DS, "DF-500", ops[0].id, OperationStatus.Active);
 
     const orchestrator = new Orchestrator(deps);
 
     // Recovery happens at startup, then loop idles -> timeout stops it
     await runUntil(orchestrator, () => false, 200);
 
-    const recoveredOps = deps.ledger.getOperations("DF-500");
+    const recoveredOps = deps.ledger.getOperations(DS, "DF-500");
     expect(recoveredOps[0].status).toBe(OperationStatus.Error);
 
     expect(deps.issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(
+      DS,
       "DF-500",
       "ralph-docs:ralph:@docs",
     );
   });
 
   it("tracks state transitions during execution", async () => {
-    const issue = makeIssue("DF-600", "State tracking test");
+    const issue = makeWorkItem("DF-600", "State tracking test");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -360,7 +373,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
   });
 
   it("emits heartbeat payload with correct shape", async () => {
-    const issue = makeIssue("DF-700", "Heartbeat test");
+    const issue = makeWorkItem("DF-700", "Heartbeat test");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -384,7 +397,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
   });
 
   it("deduplicates trigger comments across multiple poll cycles", async () => {
-    const issue = makeIssue("DF-800", "Dedup test");
+    const issue = makeWorkItem("DF-800", "Dedup test");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
@@ -394,7 +407,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // Return the same issue on every drain call — the trigger scanner
     // should only plan one operation because the comment is already consumed.
-    deps.poller.drain = vi.fn().mockReturnValue([issue]);
+    deps.pollers.get(DS)!.drain = vi.fn().mockReturnValue([issue]);
 
     const orchestrator = new Orchestrator(deps);
 
@@ -405,7 +418,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // Despite the issue being returned on every drain, only 1 op was executed
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
-    const ops = deps.ledger.getOperations("DF-800");
+    const ops = deps.ledger.getOperations(DS, "DF-800");
     expect(ops).toHaveLength(1);
   });
 
@@ -455,9 +468,10 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // Plan an operation for the DOC variant
     deps.ledger.plan("DOC-100", {
+      dataSource: DS,
       variant: docProfile.variantKey,
       triggerCommentId: "C1",
-      commentTimestamp: "2026-01-01T00:00:00Z",
+      commentTimestamp: TS,
     });
 
     const orchestrator = new Orchestrator(deps);
@@ -562,22 +576,24 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     vi.mocked(deps.resources.fetchHandoff).mockResolvedValue(null);
 
     deps.ledger.plan("DF-900", {
+      dataSource: DS,
       variant: profile.variantKey,
       triggerCommentId: "C1",
-      commentTimestamp: "2026-01-01T00:00:00Z",
+      commentTimestamp: TS,
     });
 
     const orchestrator = new Orchestrator(deps);
     await runUntil(orchestrator, () => {
-      const ops = deps.ledger.getOperations("DF-900");
+      const ops = deps.ledger.getOperations(DS, "DF-900");
       return ops.length > 0 && ops[0].status === OperationStatus.Rejected;
     });
 
-    const ops = deps.ledger.getOperations("DF-900");
+    const ops = deps.ledger.getOperations(DS, "DF-900");
     expect(ops[0].status).toBe(OperationStatus.Rejected);
     expect(ops[0].reason).toContain("revision-ready");
     expect(deps.taskRunner.run).not.toHaveBeenCalled();
     expect(deps.issueManager.postComment).toHaveBeenCalledWith(
+      DS,
       "DF-900",
       expect.stringContaining("can't proceed"),
     );
@@ -618,9 +634,10 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     vi.mocked(deps.resources.fetchHandoff).mockResolvedValue("## Handoff\nPrevious work done.");
 
     deps.ledger.plan("DF-901", {
+      dataSource: DS,
       variant: profile.variantKey,
       triggerCommentId: "C1",
-      commentTimestamp: "2026-01-01T00:00:00Z",
+      commentTimestamp: TS,
     });
 
     const orchestrator = new Orchestrator(deps);
@@ -630,7 +647,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     );
 
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
-    const ops = deps.ledger.getOperations("DF-901");
+    const ops = deps.ledger.getOperations(DS, "DF-901");
     expect(ops[0].status).toBe(OperationStatus.Completed);
   });
 
@@ -666,9 +683,10 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     deps.ledger.plan("DF-902", {
+      dataSource: DS,
       variant: profile.variantKey,
       triggerCommentId: "C1",
-      commentTimestamp: "2026-01-01T00:00:00Z",
+      commentTimestamp: TS,
     });
 
     const orchestrator = new Orchestrator(deps);

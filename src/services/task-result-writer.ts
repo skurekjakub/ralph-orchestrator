@@ -41,7 +41,7 @@ export class TaskResultWriter implements ITaskResultWriter {
 
     const transcriptPath = result.collectedLogs["transcript"];
     if (transcriptPath) {
-      await this.resources.attachTranscript(ctx.workItem.id, transcriptPath, ctx.profile.agentName);
+      await this.resources.attachTranscript(ctx.workItem.source, ctx.workItem.id, transcriptPath, ctx.profile.agentName);
     }
 
     this.logCollector.saveExecutionSummary(result, undefined, ctx.taskId);

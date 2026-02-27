@@ -5,7 +5,8 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../../src/config/types.js";
+import type { IAppConfig, IAgentProfile, IDataSourceConfig, IProfileMatch } from "../../src/config/types.js";
+import { DataSourceType } from "../../src/config/types.js";
 import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
@@ -119,13 +120,20 @@ export function makeResult(
 
 // ── Profile / Config ─────────────────────────────────────────────────────────
 
-/** Create a minimal IJiraConfig with sensible defaults. */
-export function makeJiraConfig(overrides: Partial<IJiraConfig> = {}): IJiraConfig {
+/** Create a minimal data source config for testing. */
+export function makeDataSourceConfig(overrides: Partial<IDataSourceConfig> = {}): IDataSourceConfig {
   return {
-    baseUrl: "https://api.atlassian.com/ex/jira",
-    cloudId: "test-cloud-id",
-    jql: ["project = DF"],
+    type: DataSourceType.Jira,
+    connection: {
+      baseUrl: "https://api.atlassian.com/ex/jira",
+      cloudId: "test-cloud-id",
+      excludeFields: [],
+      allowedUsers: [],
+      email: "test@test.com",
+      apiToken: "test-jira-pat",
+    },
     pollIntervalMs: 60000,
+    maxResults: 100,
     ...overrides,
   };
 }
@@ -173,6 +181,7 @@ export function makeProfile(
     mcpServerConfigs: {},
     githubMcpTools: false,
     skills: [],
+    dataSource: "test-source",
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied
@@ -185,7 +194,7 @@ export function makeProfile(
 /** Create a minimal IAppConfig for testing. */
 export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
   return {
-    jira: makeJiraConfig(),
+    dataSources: { "test-source": makeDataSourceConfig() },
     profiles: profiles ?? [makeProfile()],
     output: {
       logDir: "/tmp/test-output/logs",
@@ -201,8 +210,6 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       mode: AuditMode.Warn,
     },
     enableContinuation: false,
-    excludeFields: [],
-    allowedUsers: [],
     ralphchives: {
       enabled: false,
       nodebbApiUrl: "http://localhost:4567",
@@ -213,8 +220,6 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",
       adoPatXperience: "test-ado-xp-pat",
-      jiraPat: "test-jira-pat",
-      jiraEmail: "test@test.com",
       anthropicApiKey: "",
       discordBotToken: "",
       discordChannelId: "",

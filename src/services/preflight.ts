@@ -48,10 +48,11 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
  */
 export async function buildPreflightContext(
   resources: IResourceManager,
+  source: string,
   workItemId: string,
   comments: WorkItemComment[],
 ): Promise<PreflightContext> {
-  const handoffContent = await resources.fetchHandoff(workItemId);
+  const handoffContent = await resources.fetchHandoff(source, workItemId);
 
   return {
     comments,
