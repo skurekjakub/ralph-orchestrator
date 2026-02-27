@@ -1,9 +1,7 @@
 import type { Logger } from "../logger.js";
-import type { IDataSourceConnector, ISupportsTransitions } from "../datasource/connector.js";
-import { supportsTransitions } from "../datasource/connector.js";
+import { supportsTransitions, type IDataSourceConnector, type ISupportsTransitions } from "../datasource/connector.js";
 import type { WorkItem, WorkItemComment } from "../datasource/types.js";
-import type { RetryOptions } from "../retry.js";
-import { withRetry } from "../retry.js";
+import { withRetry, type RetryOptions } from "../retry.js";
 import { TransitionPhase } from "../orchestrator-types.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 import { toErrorMessage } from "../util/error.js";

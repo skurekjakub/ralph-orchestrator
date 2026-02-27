@@ -9,8 +9,7 @@
 import type { IWorkItemSource } from "../../connector.js";
 import type { IWorkItemPoller } from "../../poller.js";
 import type { WorkItem } from "../../types.js";
-import type { Logger } from "../../../logger.js";
-import { consoleLogger } from "../../../logger.js";
+import { consoleLogger, type Logger } from "../../../logger.js";
 import { toErrorMessage } from "../../../util/error.js";
 
 /**

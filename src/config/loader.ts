@@ -6,15 +6,15 @@ import { AuditMode } from "../prompt/prompt-auditor.js";
 import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
 import { configFileSchema, jiraConnectionSchema, profileFileSchema } from "./schemas.js";
-import type {
-  IAppConfig,
-  IAgentProfile,
-  IDataSourceConfig,
-  IJiraConnectionConfig,
-  ISecretsConfig,
-  IDashboardConfig,
+import {
+  DataSourceType,
+  type IAppConfig,
+  type IAgentProfile,
+  type IDataSourceConfig,
+  type IJiraConnectionConfig,
+  type ISecretsConfig,
+  type IDashboardConfig,
 } from "./types.js";
-import { DataSourceType } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Profile discovery

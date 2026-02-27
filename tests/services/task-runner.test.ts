@@ -7,15 +7,16 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
-import type { ContainerManagerFactory } from "../../src/container/types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
 import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { createMockLogger, createMockContainer, createMockResultWriter, createMockResources, createMockIssueManager, createMockTemplateRenderer, createMockSkillRenderer, createMockJitMcpConfigWriter } from "../helpers/mocks.js";
 
 const DS = "jira";
+const KEY = "DF-100";
+const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -30,13 +31,13 @@ describe("TaskRunner", () => {
   let logger: ReturnType<typeof createMockLogger>;
   const taskId = "DF-100-1234567890000";
   const profile = makeProfile({
-    id: "ralph-docs",
+    id: PID,
     agentName: "ralph",
     match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
     beforeAgent: { targetStatus: "In Progress" },
     afterAgent: { targetStatus: "Ready for Review" },
   });
-  const issue = makeWorkItem("DF-100");
+  const issue = makeWorkItem(KEY);
 
   beforeEach(() => {
     logger = createMockLogger();
@@ -44,15 +45,15 @@ describe("TaskRunner", () => {
   });
 
   it("executes the full pipeline: transition → comment → start → setup → execute → collect", async () => {
-    const { container, spies } = createMockContainer({ taskId: "DF-100", prUrl: "https://github.com/pr/1" });
+    const { container, spies } = createMockContainer({ taskId: KEY, prUrl: "https://github.com/pr/1" });
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
     const resultWriter = createMockResultWriter();
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
     const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
-    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, "DF-100", "In Progress", TransitionPhase.BeforeAgent);
-    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, "DF-100", "ralph", "ralph-docs");
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, "In Progress", TransitionPhase.BeforeAgent);
+    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, KEY, "ralph", PID);
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
@@ -61,7 +62,7 @@ describe("TaskRunner", () => {
     expect(spies.execute).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
-    expect(result.taskId).toBe("DF-100");
+    expect(result.taskId).toBe(KEY);
   });
 
   it("returns container reference for caller to stop", async () => {
@@ -83,7 +84,7 @@ describe("TaskRunner", () => {
     spies.cleanPaths.mockImplementation(() => { callOrder.push("cleanPaths"); return Promise.resolve(); });
     spies.registerLogSources.mockImplementation(() => { callOrder.push("registerLogs"); });
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult("DF-100")); });
+    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer({
@@ -102,7 +103,7 @@ describe("TaskRunner", () => {
   });
 
   it("skips beforeAgent transition when not configured", async () => {
-    const profileNoTransition = makeProfile({ id: "ralph-docs", agentName: "ralph", beforeAgent: {} });
+    const profileNoTransition = makeProfile({ id: PID, agentName: "ralph", beforeAgent: {} });
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
@@ -110,7 +111,7 @@ describe("TaskRunner", () => {
 
     await runner.run(makeTaskContext({ workItem: issue, profile: profileNoTransition, taskId }));
 
-    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, "DF-100", undefined, TransitionPhase.BeforeAgent);
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, undefined, TransitionPhase.BeforeAgent);
   });
 
   it("returns error result when container start fails", async () => {
@@ -161,7 +162,7 @@ describe("TaskRunner", () => {
 
   it("fetches handoff when issue is in a revision status", async () => {
     const revisionProfile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       agentName: "ralph",
       match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: ["Defect Found"] },
     });
@@ -176,7 +177,7 @@ describe("TaskRunner", () => {
 
     expect(resources.fetchHandoff).toHaveBeenCalledWith(DS, "DF-200");
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
+      PID,
       expect.objectContaining({ isRevision: true, taskId: "DF-200", taskStatus: "Defect Found" }),
       logger,
     );
@@ -191,8 +192,8 @@ describe("TaskRunner", () => {
     await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
-      expect.objectContaining({ isRevision: false, taskId: "DF-100", profileId: "ralph-docs", triggerParams: {} }),
+      PID,
+      expect.objectContaining({ isRevision: false, taskId: KEY, profileId: PID, triggerParams: {} }),
       logger,
     );
   });
@@ -207,7 +208,7 @@ describe("TaskRunner", () => {
     await runner.run(buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, ["codesamples", "verbose"]));
 
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
+      PID,
       expect.objectContaining({ triggerParams: { codesamples: "true", verbose: "true" } }),
       logger,
     );
@@ -244,7 +245,7 @@ describe("TaskRunner", () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult("DF-100")); });
+    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const mockHook = {
       name: "test-hook",

@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { buildJqlFromProfiles } from "../../src/jira/jql-builder.js";
 import { makeProfile } from "../helpers/factories.js";
+const PROJECT_DOC = "DOC";
+const PROJECT = "DF";
+const TRIGGER = "@ralph";
 
 describe("buildJqlFromProfiles", () => {
   it("builds JQL with statuses", () => {
     const profiles = [
       makeProfile({
-        match: { projects: ["DF"], statuses: ["New", "To Do"], commentTrigger: "@ralph" },
+        match: { projects: [PROJECT], statuses: ["New", "To Do"], commentTrigger: TRIGGER },
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
@@ -18,7 +21,7 @@ describe("buildJqlFromProfiles", () => {
 
   it("builds catch-all JQL when statuses are empty", () => {
     const profiles = [
-      makeProfile({ match: { projects: ["DF"], statuses: [], commentTrigger: "@ralph" } }),
+      makeProfile({ match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER } }),
     ];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries[0]).toBe('project = "DF" ORDER BY created ASC');
@@ -27,7 +30,7 @@ describe("buildJqlFromProfiles", () => {
   it("builds JQL with single status", () => {
     const profiles = [
       makeProfile({
-        match: { projects: ["DOC"], statuses: ["TODO"], commentTrigger: "@ralph" },
+        match: { projects: [PROJECT_DOC], statuses: ["TODO"], commentTrigger: TRIGGER },
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
@@ -40,11 +43,11 @@ describe("buildJqlFromProfiles", () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@docs" },
+        match: { projects: [PROJECT], statuses: ["New"], commentTrigger: "@docs" },
       }),
       makeProfile({
         id: "ralph-vscode",
-        match: { projects: ["DOC"], statuses: ["TODO"], commentTrigger: "@vscode" },
+        match: { projects: [PROJECT_DOC], statuses: ["TODO"], commentTrigger: "@vscode" },
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
@@ -61,11 +64,11 @@ describe("buildJqlFromProfiles", () => {
     const profiles = [
       makeProfile({
         id: "ralph-docs",
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@docs" },
+        match: { projects: [PROJECT], statuses: ["New"], commentTrigger: "@docs" },
       }),
       makeProfile({
         id: "ralph-docs-2",
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@docs2" },
+        match: { projects: [PROJECT], statuses: ["New"], commentTrigger: "@docs2" },
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
@@ -75,7 +78,7 @@ describe("buildJqlFromProfiles", () => {
   it("generates queries for multi-project profiles", () => {
     const profiles = [
       makeProfile({
-        match: { projects: ["DF", "DOC"], statuses: [], commentTrigger: "@ralph" },
+        match: { projects: [PROJECT, PROJECT_DOC], statuses: [], commentTrigger: TRIGGER },
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
@@ -96,9 +99,9 @@ describe("buildJqlFromProfiles", () => {
     const profiles = [
       makeProfile({
         match: {
-          projects: ["DF"],
+          projects: [PROJECT],
           statuses: ["New", "New"],
-          commentTrigger: "@ralph",
+          commentTrigger: TRIGGER,
         },
       }),
     ];

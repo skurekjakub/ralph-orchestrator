@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
-import type { OrchestratorState } from "../orchestrator-types.js";
-import { OrchestratorStatus } from "../orchestrator-types.js";
+import { OrchestratorStatus, type OrchestratorState } from "../orchestrator-types.js";
 
 interface StatusPanelProps {
   state: OrchestratorState;

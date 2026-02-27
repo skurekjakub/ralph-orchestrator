@@ -14,6 +14,7 @@ const mockConnection: IJiraConnectionConfig = {
 };
 
 const mockLogger = createMockLogger();
+const KEY = "DF-1";
 
 /** Stub global fetch with an OK JSON response. */
 function stubFetchJson(data: unknown, status = 200) {
@@ -50,7 +51,7 @@ describe("JiraClient", () => {
   describe("searchIssues", () => {
     it("makes a GET request with JQL", async () => {
       stubFetchJson({
-        issues: [makeIssue("DF-1")],
+        issues: [makeIssue(KEY)],
         total: 1,
         maxResults: 100,
         startAt: 0,
@@ -65,12 +66,12 @@ describe("JiraClient", () => {
       expect(callUrl).toContain("jql=");
 
       expect(issues).toHaveLength(1);
-      expect(issues[0].key).toBe("DF-1");
+      expect(issues[0].key).toBe(KEY);
     });
 
     it("auto-paginates using nextPageToken", async () => {
       const page1 = {
-        issues: [makeIssue("DF-1", "A")],
+        issues: [makeIssue(KEY, "A")],
         total: 2,
         maxResults: 1,
         startAt: 0,
@@ -98,7 +99,7 @@ describe("JiraClient", () => {
       const url2 = vi.mocked(fetch).mock.calls[1][0] as string;
       expect(url2).toContain("nextPageToken=tok-page2");
       expect(issues).toHaveLength(2);
-      expect(issues.map((i) => i.key)).toEqual(["DF-1", "DF-2"]);
+      expect(issues.map((i) => i.key)).toEqual([KEY, "DF-2"]);
     });
 
     it("throws on HTTP error", async () => {
@@ -112,7 +113,7 @@ describe("JiraClient", () => {
 
     it("retries on transient fetch failure", async () => {
       const mockResponse = {
-        issues: [makeIssue("DF-1")],
+        issues: [makeIssue(KEY)],
         total: 1,
         maxResults: 100,
         startAt: 0,
@@ -139,7 +140,7 @@ describe("JiraClient", () => {
     it("sends ADF-formatted comment body", async () => {
       stubFetchJson({}, 201);
 
-      await client.addComment("DF-1", "Test comment");
+      await client.addComment(KEY, "Test comment");
 
       expect(fetch).toHaveBeenCalledOnce();
       const [url, init] = vi.mocked(fetch).mock.calls[0];
@@ -156,7 +157,7 @@ describe("JiraClient", () => {
     it("sends transition request", async () => {
       stubFetchJson(undefined, 204);
 
-      await client.transitionIssue("DF-1", "21");
+      await client.transitionIssue(KEY, "21");
 
       expect(fetch).toHaveBeenCalledOnce();
       const [url, init] = vi.mocked(fetch).mock.calls[0];
@@ -180,7 +181,7 @@ describe("JiraClient", () => {
         ],
       });
 
-      const comments = await client.getComments("DF-1");
+      const comments = await client.getComments(KEY);
 
       expect(fetch).toHaveBeenCalledOnce();
       expect(comments).toHaveLength(2);
@@ -208,7 +209,7 @@ describe("JiraClient", () => {
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) }),
       );
 
-      const comments = await client.getComments("DF-1");
+      const comments = await client.getComments(KEY);
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(comments).toHaveLength(150);
@@ -229,7 +230,7 @@ describe("JiraClient", () => {
         ],
       });
 
-      const transitions = await client.getTransitions("DF-1");
+      const transitions = await client.getTransitions(KEY);
 
       expect(transitions).toHaveLength(2);
       expect(transitions[0]).toEqual({ id: "51", name: "Start progress", to: { name: "In progress" } });
@@ -248,7 +249,7 @@ describe("JiraClient", () => {
         ],
       });
 
-      const id = await client.findTransitionId("DF-1", "in progress");
+      const id = await client.findTransitionId(KEY, "in progress");
       expect(id).toBe("51");
     });
 
@@ -259,7 +260,7 @@ describe("JiraClient", () => {
         ],
       });
 
-      const id = await client.findTransitionId("DF-1", "Done");
+      const id = await client.findTransitionId(KEY, "Done");
       expect(id).toBeUndefined();
     });
   });
@@ -275,7 +276,7 @@ describe("JiraClient", () => {
         },
       });
 
-      const attachments = await client.getAttachments("DF-1");
+      const attachments = await client.getAttachments(KEY);
 
       expect(attachments).toHaveLength(2);
       expect(attachments[0].filename).toBe("handoff.md");
@@ -286,7 +287,7 @@ describe("JiraClient", () => {
     it("returns empty array when attachment field is missing", async () => {
       stubFetchJson({ fields: {} });
 
-      const attachments = await client.getAttachments("DF-1");
+      const attachments = await client.getAttachments(KEY);
 
       expect(attachments).toEqual([]);
     });
@@ -316,7 +317,7 @@ describe("JiraClient", () => {
     it("uploads file with multipart form and X-Atlassian-Token header", async () => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
-      await client.addAttachment("DF-1", "transcript.md", "# Session transcript");
+      await client.addAttachment(KEY, "transcript.md", "# Session transcript");
 
       expect(fetch).toHaveBeenCalledOnce();
       const [url, init] = vi.mocked(fetch).mock.calls[0];
@@ -329,7 +330,7 @@ describe("JiraClient", () => {
     it("throws on upload failure", async () => {
       stubFetchError(413, "Request Entity Too Large", "File too big");
 
-      await expect(client.addAttachment("DF-1", "big.bin", "x".repeat(1000)))
+      await expect(client.addAttachment(KEY, "big.bin", "x".repeat(1000)))
         .rejects.toThrow("413");
     });
   });

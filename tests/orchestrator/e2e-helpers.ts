@@ -8,8 +8,7 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner, createMockConnector } from "../helpers/mocks.js";
-import type { Mocked } from "../helpers/mocks.js";
+import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner, createMockConnector, type Mocked } from "../helpers/mocks.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IAgentProfile } from "../../src/config/types.js";
@@ -19,7 +18,7 @@ import type { RalphResult } from "../../src/container/types.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 
-const DS = "jira";
+export const DS = "jira";
 const silentLogger = createMockLogger();
 
 /**

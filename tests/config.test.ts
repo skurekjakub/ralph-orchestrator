@@ -11,6 +11,9 @@ vi.mock("node:fs", async () => {
   };
 });
 
+const PROJECT = "DF";
+const TRIGGER = "@ralph";
+
 const VALID_GLOBAL_CONFIG = JSON.stringify({
   dataSources: {
     "test-source": {
@@ -30,7 +33,7 @@ const VALID_PROFILE = JSON.stringify({
   variants: [
     {
       agent: "ralph",
-      match: { projects: ["DF"], commentTrigger: "@ralph" },
+      match: { projects: [PROJECT], commentTrigger: TRIGGER },
       beforeAgent: { targetStatus: "In Progress" },
       afterAgent: { targetStatus: "Ready for Review" },
     },
@@ -156,7 +159,7 @@ describe("loadConfig", () => {
     stubProfiles(JSON.stringify({
       repo: "~/repositories/test",
       dataSource: "test-source",
-      variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } }],
+      variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } }],
     }));
 
     const config = loadConfig();
@@ -175,7 +178,7 @@ describe("loadConfig", () => {
       variants: [{
         agent: "ralph",
         match: {
-          projects: ["DF"],
+          projects: [PROJECT],
           statuses: ["New"],
         },
       }],
@@ -191,7 +194,7 @@ describe("loadConfig", () => {
       dataSource: "test-source",
       variants: [
         { agent: "ralph.docs", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@Ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+        { agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@Ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
       ],
     }));
 
@@ -201,7 +204,7 @@ describe("loadConfig", () => {
     expect(config.profiles[0].agentName).toBe("ralph.docs");
     expect(config.profiles[0].match.projects).toEqual(["DOCS"]);
     expect(config.profiles[1].agentName).toBe("ralph");
-    expect(config.profiles[1].match.projects).toEqual(["DF"]);
+    expect(config.profiles[1].match.projects).toEqual([PROJECT]);
     expect(config.profiles[0].id).toBe(config.profiles[1].id);
   });
 
@@ -213,7 +216,7 @@ describe("loadConfig", () => {
         dataSource: "test-source",
         model: "claude-sonnet-4",
         variants: [
-          { agent: "ralph", model: "claude-opus-4.6", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+          { agent: "ralph", model: "claude-opus-4.6", match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         ],
       }));
 
@@ -229,7 +232,7 @@ describe("loadConfig", () => {
         dataSource: "test-source",
         model: "claude-sonnet-4",
         variants: [
-          { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+          { agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         ],
       }));
 
@@ -244,7 +247,7 @@ describe("loadConfig", () => {
         repo: "/tmp/test",
         dataSource: "test-source",
         variants: [
-          { agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+          { agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         ],
       }));
 
@@ -261,7 +264,7 @@ describe("loadConfig", () => {
         model: "claude-sonnet-4",
         variants: [
           { agent: "ralph.docs", model: "claude-opus-4.6", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-          { agent: "ralph.probe", match: { projects: ["DF"], commentTrigger: "@McpProbe" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
+          { agent: "ralph.probe", match: { projects: [PROJECT], commentTrigger: "@McpProbe" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
         ],
       }));
 
@@ -279,7 +282,7 @@ describe("loadConfig", () => {
         repo: "/tmp/test",
         dataSource: "test-source",
         mcpServers: ["jira-kentico", "ado"],
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
       }));
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "ado"]);
@@ -296,7 +299,7 @@ describe("loadConfig", () => {
           "playwright",
           { name: "ado", env: { ADO_PROJECT: "Proj" } },
         ],
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
       }));
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "playwright", "ado"]);
@@ -312,7 +315,7 @@ describe("loadConfig", () => {
         repo: "/tmp/test",
         dataSource: "test-source",
         mcpServers: [{ env: { FOO: "bar" } }],
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
       }));
       expect(() => loadConfig()).toThrow();
     });
@@ -323,7 +326,7 @@ describe("loadConfig", () => {
         repo: "/tmp/test",
         dataSource: "test-source",
         mcpServers: [{ name: "ado", env: {} }],
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
       }));
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["ado"]);
@@ -336,7 +339,7 @@ describe("loadConfig", () => {
         repo: "/tmp/test",
         dataSource: "test-source",
         mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@ralph" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
       }));
       expect(() => loadConfig()).toThrow("duplicate MCP server(s): ado");
     });

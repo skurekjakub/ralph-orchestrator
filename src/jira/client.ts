@@ -1,7 +1,6 @@
 import type { IJiraConnectionConfig } from "../config/types.js";
 import type { Logger } from "../logger.js";
-import type { RetryOptions } from "../retry.js";
-import { withRetry } from "../retry.js";
+import { withRetry, type RetryOptions } from "../retry.js";
 import type {
   JiraIssue,
   JiraSearchResponse,

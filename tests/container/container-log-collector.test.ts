@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
+const SVC_APP = "app";
+const SVC_SIDECAR = "mcp-sidecar";
 
 let tempDir: string;
 
@@ -94,14 +96,14 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-200");
     collector.addSource({
       id: "audit",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/workspace/.ralph/logs/audit.jsonl",
       extension: "jsonl",
       mode: CaptureMode.Collect,
     });
     collector.addSource({
       id: "transcript",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/workspace/.ralph/logs/session-transcript.md",
       extension: "md",
       mode: CaptureMode.Collect,
@@ -161,7 +163,7 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-400");
     collector.addSource({
       id: "audit",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/nonexistent/path.jsonl",
       extension: "jsonl",
       mode: CaptureMode.Collect,
@@ -200,14 +202,14 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-500");
     collector.addSource({
       id: "source-a",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/path/a.log",
       extension: "log",
       mode: CaptureMode.Collect,
     });
     collector.addSource({
       id: "source-b",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/path/b.log",
       extension: "log",
       mode: CaptureMode.Collect,
@@ -232,7 +234,7 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-600");
     collector.addSource({
       id: "audit",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/workspace/.ralph/logs/audit.jsonl",
       extension: "jsonl",
       mode: CaptureMode.Collect,
@@ -249,7 +251,7 @@ describe("ContainerLogCollector", () => {
 
     const execCalls = vi.mocked(compose.exec).mock.calls;
     expect(execCalls[0]).toEqual([
-      ["-T", "app", "cat", "/workspace/.ralph/logs/audit.jsonl"],
+      ["-T", SVC_APP, "cat", "/workspace/.ralph/logs/audit.jsonl"],
     ]);
     expect(execCalls[1]).toEqual([
       ["-T", "egress-proxy", "cat", "/var/log/squid/access.log"],
@@ -286,14 +288,14 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-800");
     collector.addSource({
       id: "exists",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/path/exists.log",
       extension: "log",
       mode: CaptureMode.Collect,
     });
     collector.addSource({
       id: "missing",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/path/missing.log",
       extension: "log",
       mode: CaptureMode.Collect,
@@ -320,14 +322,14 @@ describe("ContainerLogCollector", () => {
 
     collector.addSource({
       id: "audit",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/workspace/.ralph/logs/session.audit.jsonl",
       extension: "jsonl",
       mode: CaptureMode.Collect,
     });
     collector.addSource({
       id: "transcript",
-      service: "app",
+      service: SVC_APP,
       containerPath: "/workspace/.ralph/logs/session-transcript.md",
       extension: "md",
       mode: CaptureMode.Collect,
@@ -359,7 +361,7 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-1000");
     collector.addSource({
       id: "sidecar",
-      service: "mcp-sidecar",
+      service: SVC_SIDECAR,
       containerPath: "",
       extension: "log",
       mode: CaptureMode.Collect,
@@ -368,7 +370,7 @@ describe("ContainerLogCollector", () => {
 
     const results = await collector.collectAll();
 
-    expect(compose.logs).toHaveBeenCalledWith("mcp-sidecar");
+    expect(compose.logs).toHaveBeenCalledWith(SVC_SIDECAR);
     expect(compose.exec).not.toHaveBeenCalled();
     expect(results[0].path).toBeTruthy();
     const content = readFileSync(results[0].path!, "utf-8");
@@ -393,7 +395,7 @@ describe("ContainerLogCollector", () => {
     });
     collector.addSource({
       id: "sidecar",
-      service: "mcp-sidecar",
+      service: SVC_SIDECAR,
       containerPath: "",
       extension: "log",
       mode: CaptureMode.Collect,
@@ -404,7 +406,7 @@ describe("ContainerLogCollector", () => {
 
     expect(results).toHaveLength(2);
     expect(compose.exec).toHaveBeenCalledTimes(1);
-    expect(compose.logs).toHaveBeenCalledWith("mcp-sidecar");
+    expect(compose.logs).toHaveBeenCalledWith(SVC_SIDECAR);
 
     expect(readFileSync(results[0].path!, "utf-8")).toContain("TCP_TUNNEL/200");
     expect(readFileSync(results[1].path!, "utf-8")).toContain("sidecar output");
@@ -418,7 +420,7 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-1200");
     collector.addSource({
       id: "sidecar",
-      service: "mcp-sidecar",
+      service: SVC_SIDECAR,
       containerPath: "",
       extension: "log",
       mode: CaptureMode.Collect,
@@ -439,7 +441,7 @@ describe("ContainerLogCollector", () => {
     collector.setTaskId("DOC-1300");
     collector.addSource({
       id: "sidecar",
-      service: "mcp-sidecar",
+      service: SVC_SIDECAR,
       containerPath: "",
       extension: "log",
       mode: CaptureMode.Collect,

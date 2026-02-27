@@ -9,6 +9,7 @@ import { makeWorkItem, makeProfile, makeResult, makeTaskContext } from "../helpe
 import { createMockLogger, createMockContainer, createMockLogCollector, createMockResources } from "../helpers/mocks.js";
 
 const DS = "jira";
+const KEY = "DF-100";
 
 describe("TaskResultWriter", () => {
   let logger: ReturnType<typeof createMockLogger>;
@@ -26,7 +27,7 @@ describe("TaskResultWriter", () => {
         { id: "proxy", path: "/tmp/logs/proxy.log" },
       ]);
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources: createMockResources(), logger });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectLogs(container, result);
 
@@ -40,7 +41,7 @@ describe("TaskResultWriter", () => {
         { id: "transcript", path: null },
       ]);
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources: createMockResources(), logger });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectLogs(container, result);
 
@@ -51,7 +52,7 @@ describe("TaskResultWriter", () => {
       const { container, spies } = createMockContainer();
       spies.collectAll.mockRejectedValue(new Error("collect failed"));
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources: createMockResources(), logger });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectLogs(container, result);
 
@@ -68,15 +69,15 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        workItem: makeWorkItem("DF-100"),
+        workItem: makeWorkItem(KEY),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectResults(ctx, container, result);
 
-      expect(resources.attachTranscript).toHaveBeenCalledWith(DS, "DF-100", "/tmp/logs/DF-100-transcript.md", "ralph");
+      expect(resources.attachTranscript).toHaveBeenCalledWith(DS, KEY, "/tmp/logs/DF-100-transcript.md", "ralph");
     });
 
     it("does not attach transcript when not collected", async () => {
@@ -87,11 +88,11 @@ describe("TaskResultWriter", () => {
       const resources = createMockResources();
       const writer = new TaskResultWriter({ logCollector: createMockLogCollector(), resources, logger });
       const ctx = makeTaskContext({
-        workItem: makeWorkItem("DF-100"),
+        workItem: makeWorkItem(KEY),
         profile: makeProfile({ agentName: "ralph" }),
         taskId: "DF-100-123",
       });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectResults(ctx, container, result);
 
@@ -103,11 +104,11 @@ describe("TaskResultWriter", () => {
       const logCollector = createMockLogCollector();
       const writer = new TaskResultWriter({ logCollector, resources: createMockResources(), logger });
       const ctx = makeTaskContext({
-        workItem: makeWorkItem("DF-100"),
+        workItem: makeWorkItem(KEY),
         profile: makeProfile(),
         taskId: "DF-100-123",
       });
-      const result = makeResult("DF-100");
+      const result = makeResult(KEY);
 
       await writer.collectResults(ctx, container, result);
 

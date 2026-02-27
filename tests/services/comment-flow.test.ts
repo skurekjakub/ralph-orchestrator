@@ -10,6 +10,9 @@ import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../he
 
 const DS = "jira";
 const TS = "2026-01-01T00:00:00Z";
+const VARIANT = "ralph-docs:ralph";
+const KEY = "DF-1";
+const CID = "C1";
 let tempDir: string;
 let ledger: OperationLedger;
 
@@ -33,13 +36,13 @@ describe("Comment-driven orchestration flow", () => {
       const variant = profile.variantKey;
 
       const comments = [
-        makeWorkItemComment("C1", "Regular comment", "2026-01-01T00:00:00Z"),
+        makeWorkItemComment(CID, "Regular comment", "2026-01-01T00:00:00Z"),
         makeWorkItemComment("C2", "@RalphDocs please handle this", "2026-01-01T01:00:00Z"),
         makeWorkItemComment("C3", "Another regular comment", "2026-01-01T02:00:00Z"),
       ];
 
       const trigger = profile.match.commentTrigger!;
-      const consumedIds = ledger.getConsumedTriggerIds(DS, "DF-1", variant);
+      const consumedIds = ledger.getConsumedTriggerIds(DS, KEY, variant);
 
       const unconsumed = comments.filter((c) => {
         if (consumedIds.has(c.id)) return false;
@@ -52,17 +55,17 @@ describe("Comment-driven orchestration flow", () => {
     });
 
     it("marks consumed triggers as consumed", () => {
-      const variant = "ralph-docs:ralph";
+      const variant = VARIANT;
 
-      ledger.plan("DF-1", {
+      ledger.plan(KEY, {
         dataSource: DS,
         variant,
         triggerCommentId: "C2",
         commentTimestamp: "2026-01-01T01:00:00Z",
       });
 
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C2")).toBe(true);
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C3")).toBe(false);
+      expect(ledger.isConsumed(DS, KEY, variant, "C2")).toBe(true);
+      expect(ledger.isConsumed(DS, KEY, variant, "C3")).toBe(false);
     });
 
     it("case-insensitive trigger matching", () => {
@@ -88,12 +91,12 @@ describe("Comment-driven orchestration flow", () => {
       const ralphVariant = ralph.variantKey;
       const malphVariant = malph.variantKey;
 
-      ledger.plan("DF-1", { dataSource: DS, variant: ralphVariant, triggerCommentId: "C1", commentTimestamp: TS });
-      ledger.plan("DF-1", { dataSource: DS, variant: malphVariant, triggerCommentId: "C1", commentTimestamp: TS });
+      ledger.plan(KEY, { dataSource: DS, variant: ralphVariant, triggerCommentId: CID, commentTimestamp: TS });
+      ledger.plan(KEY, { dataSource: DS, variant: malphVariant, triggerCommentId: CID, commentTimestamp: TS });
 
-      expect(ledger.isConsumed(DS, "DF-1", ralphVariant, "C1")).toBe(true);
-      expect(ledger.isConsumed(DS, "DF-1", malphVariant, "C1")).toBe(true);
-      expect(ledger.getOperations(DS, "DF-1")).toHaveLength(2);
+      expect(ledger.isConsumed(DS, KEY, ralphVariant, CID)).toBe(true);
+      expect(ledger.isConsumed(DS, KEY, malphVariant, CID)).toBe(true);
+      expect(ledger.getOperations(DS, KEY)).toHaveLength(2);
     });
   });
 
@@ -104,37 +107,37 @@ describe("Comment-driven orchestration flow", () => {
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const validIssue = makeWorkItem("DF-1", "task", "New");
+      const validIssue = makeWorkItem(KEY, "task", "New");
       expect(router.matchesProjectAndStatus(validIssue, profile)).toBe(true);
 
-      const staleIssue = makeWorkItem("DF-1", "task", "In Progress");
+      const staleIssue = makeWorkItem(KEY, "task", "In Progress");
       expect(router.matchesProjectAndStatus(staleIssue, profile)).toBe(false);
     });
   });
 
   describe("lifecycle: plan → active → complete", () => {
     it("full lifecycle creates proper audit trail", () => {
-      const variant = "ralph-docs:ralph";
+      const variant = VARIANT;
 
-      const opId = ledger.plan("DF-1", {
+      const opId = ledger.plan(KEY, {
         dataSource: DS,
         variant,
         triggerCommentId: "C100",
         commentTimestamp: TS,
       });
 
-      expect(ledger.getPending(DS, "DF-1")).toHaveLength(1);
-      expect(ledger.getActive(DS, "DF-1")).toBeUndefined();
+      expect(ledger.getPending(DS, KEY)).toHaveLength(1);
+      expect(ledger.getActive(DS, KEY)).toBeUndefined();
 
-      ledger.transition(DS, "DF-1", opId, OperationStatus.Active);
-      expect(ledger.getPending(DS, "DF-1")).toHaveLength(0);
-      expect(ledger.getActive(DS, "DF-1")?.id).toBe(opId);
+      ledger.transition(DS, KEY, opId, OperationStatus.Active);
+      expect(ledger.getPending(DS, KEY)).toHaveLength(0);
+      expect(ledger.getActive(DS, KEY)?.id).toBe(opId);
 
-      ledger.transition(DS, "DF-1", opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
-      expect(ledger.getPending(DS, "DF-1")).toHaveLength(0);
-      expect(ledger.getActive(DS, "DF-1")).toBeUndefined();
+      ledger.transition(DS, KEY, opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
+      expect(ledger.getPending(DS, KEY)).toHaveLength(0);
+      expect(ledger.getActive(DS, KEY)).toBeUndefined();
 
-      const ops = ledger.getOperations(DS, "DF-1");
+      const ops = ledger.getOperations(DS, KEY);
       expect(ops).toHaveLength(1);
       expect(ops[0].status).toBe(OperationStatus.Completed);
       expect(ops[0].resultStatus).toBe(TaskStatus.Completed);
@@ -142,9 +145,9 @@ describe("Comment-driven orchestration flow", () => {
     });
 
     it("rejected operations consume the trigger", () => {
-      const variant = "ralph-docs:ralph";
+      const variant = VARIANT;
 
-      ledger.reject("DF-1", {
+      ledger.reject(KEY, {
         dataSource: DS,
         variant,
         triggerCommentId: "C100",
@@ -152,34 +155,34 @@ describe("Comment-driven orchestration flow", () => {
         reason: "Status changed",
       });
 
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C100")).toBe(true);
-      expect(ledger.getPending(DS, "DF-1")).toHaveLength(0);
+      expect(ledger.isConsumed(DS, KEY, variant, "C100")).toBe(true);
+      expect(ledger.getPending(DS, KEY)).toHaveLength(0);
     });
   });
 
   describe("crash recovery", () => {
     it("active operations from previous session are marked as errors", () => {
-      const opId = ledger.plan("DF-1", {
+      const opId = ledger.plan(KEY, {
         dataSource: DS,
-        variant: "ralph-docs:ralph",
-        triggerCommentId: "C1",
+        variant: VARIANT,
+        triggerCommentId: CID,
         commentTimestamp: TS,
       });
-      ledger.transition(DS, "DF-1", opId, OperationStatus.Active);
+      ledger.transition(DS, KEY, opId, OperationStatus.Active);
 
       const newLedger = new OperationLedger({ outputConfig: { logDir: tempDir, handoffDir: "" } });
       const recovered = newLedger.recoverActiveOperations();
 
       expect(recovered).toHaveLength(1);
-      expect(recovered[0].issueKey).toBe("DF-1");
-      expect(newLedger.getOperations(DS, "DF-1")[0].status).toBe(OperationStatus.Error);
+      expect(recovered[0].issueKey).toBe(KEY);
+      expect(newLedger.getOperations(DS, KEY)[0].status).toBe(OperationStatus.Error);
     });
 
     it("pending operations survive restart", () => {
-      ledger.plan("DF-1", {
+      ledger.plan(KEY, {
         dataSource: DS,
-        variant: "ralph-docs:ralph",
-        triggerCommentId: "C1",
+        variant: VARIANT,
+        triggerCommentId: CID,
         commentTimestamp: TS,
       });
 
@@ -187,32 +190,32 @@ describe("Comment-driven orchestration flow", () => {
       const pending = newLedger.getAllPending();
 
       expect(pending).toHaveLength(1);
-      expect(pending[0].issueKey).toBe("DF-1");
+      expect(pending[0].issueKey).toBe(KEY);
     });
   });
 
   describe("duplicate trigger suppression", () => {
     it("same trigger comment on same variant is only planned once", () => {
-      const variant = "ralph-docs:ralph";
+      const variant = VARIANT;
 
-      ledger.plan("DF-1", { dataSource: DS, variant, triggerCommentId: "C1", commentTimestamp: TS });
+      ledger.plan(KEY, { dataSource: DS, variant, triggerCommentId: CID, commentTimestamp: TS });
 
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C1")).toBe(true);
+      expect(ledger.isConsumed(DS, KEY, variant, CID)).toBe(true);
     });
 
     it("new trigger comment after completion triggers new operation", () => {
-      const variant = "ralph-docs:ralph";
+      const variant = VARIANT;
 
-      const opId = ledger.plan("DF-1", { dataSource: DS, variant, triggerCommentId: "C1", commentTimestamp: TS });
-      ledger.transition(DS, "DF-1", opId, OperationStatus.Active);
-      ledger.transition(DS, "DF-1", opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
+      const opId = ledger.plan(KEY, { dataSource: DS, variant, triggerCommentId: CID, commentTimestamp: TS });
+      ledger.transition(DS, KEY, opId, OperationStatus.Active);
+      ledger.transition(DS, KEY, opId, OperationStatus.Completed, { resultStatus: TaskStatus.Completed });
 
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C1")).toBe(true);
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C2")).toBe(false);
+      expect(ledger.isConsumed(DS, KEY, variant, CID)).toBe(true);
+      expect(ledger.isConsumed(DS, KEY, variant, "C2")).toBe(false);
 
-      ledger.plan("DF-1", { dataSource: DS, variant, triggerCommentId: "C2", commentTimestamp: "2026-01-01T02:00:00Z" });
-      expect(ledger.isConsumed(DS, "DF-1", variant, "C2")).toBe(true);
-      expect(ledger.getOperations(DS, "DF-1")).toHaveLength(2);
+      ledger.plan(KEY, { dataSource: DS, variant, triggerCommentId: "C2", commentTimestamp: "2026-01-01T02:00:00Z" });
+      expect(ledger.isConsumed(DS, KEY, variant, "C2")).toBe(true);
+      expect(ledger.getOperations(DS, KEY)).toHaveLength(2);
     });
   });
 });

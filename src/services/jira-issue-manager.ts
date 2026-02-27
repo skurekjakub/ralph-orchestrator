@@ -1,8 +1,7 @@
 import type { Logger } from "../logger.js";
 import type { IJiraClient } from "../jira/client.js";
 import type { JiraIssue, JiraComment } from "../jira/types.js";
-import type { RetryOptions } from "../retry.js";
-import { withRetry } from "../retry.js";
+import { withRetry, type RetryOptions } from "../retry.js";
 import { TransitionPhase } from "../orchestrator-types.js";
 import { OrchestratorComments } from "./orchestrator-comments.js";
 import { toErrorMessage } from "../util/error.js";

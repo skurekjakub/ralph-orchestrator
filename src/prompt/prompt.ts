@@ -1,6 +1,5 @@
 import type { WorkItem } from "../datasource/types.js";
-import type { PromptSection } from "./prompt-auditor.js";
-import { PromptSectionSource } from "./prompt-auditor.js";
+import { PromptSectionSource, type PromptSection } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
 
 /** Delimiter wrapping untrusted JIRA data in the prompt. */

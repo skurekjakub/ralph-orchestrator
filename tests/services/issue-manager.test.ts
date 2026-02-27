@@ -6,6 +6,7 @@ import { makeWorkItem } from "../helpers/factories.js";
 import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 
 const DS = "mock";
+const KEY = "DF-100";
 
 describe("IssueManager", () => {
   let connector: ReturnType<typeof createMockConnector>;
@@ -21,16 +22,16 @@ describe("IssueManager", () => {
 
   describe("transitionWorkItem", () => {
     it("delegates to connector and logs success", async () => {
-      await manager.transitionWorkItem(DS, "DF-100", "In Progress", TransitionPhase.BeforeAgent);
+      await manager.transitionWorkItem(DS, KEY, "In Progress", TransitionPhase.BeforeAgent);
 
-      expect(connector.transitionWorkItem).toHaveBeenCalledWith("DF-100", "In Progress");
+      expect(connector.transitionWorkItem).toHaveBeenCalledWith(KEY, "In Progress");
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining('transitioned (beforeAgent → "In Progress")'),
       );
     });
 
     it("skips when targetStatus is undefined", async () => {
-      await manager.transitionWorkItem(DS, "DF-100", undefined, TransitionPhase.AfterAgent);
+      await manager.transitionWorkItem(DS, KEY, undefined, TransitionPhase.AfterAgent);
 
       expect(connector.transitionWorkItem).not.toHaveBeenCalled();
     });
@@ -40,19 +41,19 @@ describe("IssueManager", () => {
         new Error('No transition to "Done" available for DF-100'),
       );
 
-      await manager.transitionWorkItem(DS, "DF-100", "Done", TransitionPhase.AfterAgent);
+      await manager.transitionWorkItem(DS, KEY, "Done", TransitionPhase.AfterAgent);
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to transition"),
       );
       expect(connector.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.stringContaining("Done"),
       );
     });
 
     it("uses phase label in log messages", async () => {
-      await manager.transitionWorkItem(DS, "DF-100", "Ready for Review", TransitionPhase.AfterAgent);
+      await manager.transitionWorkItem(DS, KEY, "Ready for Review", TransitionPhase.AfterAgent);
 
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("afterAgent"),
@@ -62,9 +63,9 @@ describe("IssueManager", () => {
 
   describe("postStartComment", () => {
     it("posts a start comment with agent name", async () => {
-      await manager.postStartComment(DS, "DF-100", "ralph", "ralph-docs");
+      await manager.postStartComment(DS, KEY, "ralph", "ralph-docs");
 
-      expect(connector.addComment).toHaveBeenCalledWith("DF-100", expect.any(String));
+      expect(connector.addComment).toHaveBeenCalledWith(KEY, expect.any(String));
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Start comment posted"),
       );
@@ -73,7 +74,7 @@ describe("IssueManager", () => {
     it("logs warning when comment fails", async () => {
       connector.addComment.mockRejectedValue(new Error("Connector down"));
 
-      await manager.postStartComment(DS, "DF-100", "ralph", "ralph-docs");
+      await manager.postStartComment(DS, KEY, "ralph", "ralph-docs");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to comment"),
@@ -83,10 +84,10 @@ describe("IssueManager", () => {
 
   describe("postErrorComment", () => {
     it("posts formatted error comment", async () => {
-      await manager.postErrorComment(DS, "DF-100", "Connection refused");
+      await manager.postErrorComment(DS, KEY, "Connection refused");
 
       expect(connector.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.stringContaining("Connection refused"),
       );
       expect(logger.info).toHaveBeenCalledWith(
@@ -97,7 +98,7 @@ describe("IssueManager", () => {
     it("logs warning when comment fails", async () => {
       connector.addComment.mockRejectedValue(new Error("Connector down"));
 
-      await manager.postErrorComment(DS, "DF-100", "some error");
+      await manager.postErrorComment(DS, KEY, "some error");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post error comment"),
@@ -143,7 +144,7 @@ describe("IssueManager", () => {
       ];
       connector.getComments.mockResolvedValue(comments);
 
-      const result = await manager.getComments(DS, "DF-100");
+      const result = await manager.getComments(DS, KEY);
 
       expect(result).toEqual(comments);
     });

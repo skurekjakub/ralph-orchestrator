@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { OrchestratorState, CompletedTask, ActiveTask, LogEntry } from "./orchestrator-types.js";
-import { OrchestratorStatus, LogSource } from "./orchestrator-types.js";
+import { OrchestratorStatus, LogSource, type OrchestratorState, type CompletedTask, type ActiveTask, type LogEntry } from "./orchestrator-types.js";
 import { HeartbeatStatus } from "./services/heartbeat.js";
 
 /** Live data the observer reads from the orchestrator on each state snapshot. */

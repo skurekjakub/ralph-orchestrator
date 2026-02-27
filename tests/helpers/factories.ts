@@ -5,10 +5,8 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { IAppConfig, IAgentProfile, IDataSourceConfig, IProfileMatch } from "../../src/config/types.js";
-import { DataSourceType } from "../../src/config/types.js";
-import { CliType, TaskStatus } from "../../src/container/types.js";
-import type { RalphResult } from "../../src/container/types.js";
+import { DataSourceType, type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch } from "../../src/config/types.js";
+import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";

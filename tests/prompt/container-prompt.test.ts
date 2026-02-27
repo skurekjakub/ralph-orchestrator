@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPrompt } from "../../src/prompt/prompt.js";
-import type { IssueContext } from "../../src/prompt/prompt.js";
+import { buildPrompt, type IssueContext } from "../../src/prompt/prompt.js";
 import { makeWorkItem } from "../helpers/factories.js";
 
 // ── Prompt building tests ────────────────────────────────

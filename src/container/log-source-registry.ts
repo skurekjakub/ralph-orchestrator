@@ -1,6 +1,5 @@
 import type { IAgentProfile } from "../config/types.js";
-import type { IContainerLogCollector } from "./log-collector.js";
-import { CaptureMode } from "./log-collector.js";
+import { CaptureMode, type IContainerLogCollector } from "./log-collector.js";
 import type { CliPaths } from "./types.js";
 
 /** Path to the CLI session-state directory inside the container. */

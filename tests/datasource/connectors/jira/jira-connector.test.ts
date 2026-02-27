@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { JiraConnector } from "../../../../src/datasource/connectors/jira/jira-connector.js";
-import { createMockJiraClient, createSilentLogger } from "../../../helpers/mocks.js";
+import { createMockJiraClient, createSilentLogger, type Mocked } from "../../../helpers/mocks.js";
 import { makeIssue, makeComment } from "../../../helpers/factories.js";
-import type { Mocked } from "../../../helpers/mocks.js";
 import type { IJiraClient } from "../../../../src/jira/client.js";
+const PROJECT = "DF";
+const KEY = "DF-100";
 
 describe("JiraConnector", () => {
   let client: Mocked<IJiraClient>;
@@ -24,7 +25,7 @@ describe("JiraConnector", () => {
   describe("buildQueries", () => {
     it("generates JQL from profile match rules", () => {
       const profiles = [
-        { match: { projects: ["DF"], statuses: ["New", "To Do"] } },
+        { match: { projects: [PROJECT], statuses: ["New", "To Do"] } },
       ];
       const queries = connector.buildQueries(profiles);
 
@@ -45,8 +46,8 @@ describe("JiraConnector", () => {
 
     it("deduplicates identical queries", () => {
       const profiles = [
-        { match: { projects: ["DF"], statuses: ["New"] } },
-        { match: { projects: ["DF"], statuses: ["New"] } },
+        { match: { projects: [PROJECT], statuses: ["New"] } },
+        { match: { projects: [PROJECT], statuses: ["New"] } },
       ];
       const queries = connector.buildQueries(profiles);
 
@@ -55,7 +56,7 @@ describe("JiraConnector", () => {
 
     it("generates one query per project", () => {
       const profiles = [
-        { match: { projects: ["DF", "DOC"] } },
+        { match: { projects: [PROJECT, "DOC"] } },
       ];
       const queries = connector.buildQueries(profiles);
 
@@ -65,14 +66,14 @@ describe("JiraConnector", () => {
 
   describe("searchWorkItems", () => {
     it("delegates to jiraClient and maps results", async () => {
-      const issue = makeIssue("DF-100", "Test", "New");
+      const issue = makeIssue(KEY, "Test", "New");
       client.searchIssues.mockResolvedValue([issue]);
 
       const items = await connector.searchWorkItems('project = "DF"');
 
       expect(client.searchIssues).toHaveBeenCalledWith('project = "DF"', undefined);
       expect(items).toHaveLength(1);
-      expect(items[0].id).toBe("DF-100");
+      expect(items[0].id).toBe(KEY);
       expect(items[0].source).toBe("jira");
     });
 
@@ -117,7 +118,7 @@ describe("JiraConnector", () => {
       expect(connector.isValidItemId("df-1")).toBe(false);
       expect(connector.isValidItemId("123")).toBe(false);
       expect(connector.isValidItemId("")).toBe(false);
-      expect(connector.isValidItemId("DF")).toBe(false);
+      expect(connector.isValidItemId(PROJECT)).toBe(false);
       expect(connector.isValidItemId("-1")).toBe(false);
     });
   });
@@ -130,7 +131,7 @@ describe("JiraConnector", () => {
       const comment = makeComment("c-1", adfBody);
       client.getComments.mockResolvedValue([comment]);
 
-      const items = await connector.getComments("DF-100");
+      const items = await connector.getComments(KEY);
 
       expect(items).toHaveLength(1);
       expect(items[0].body).toBe("hello");
@@ -140,9 +141,9 @@ describe("JiraConnector", () => {
 
   describe("addComment", () => {
     it("delegates to jiraClient", async () => {
-      await connector.addComment("DF-100", "Test comment");
+      await connector.addComment(KEY, "Test comment");
 
-      expect(client.addComment).toHaveBeenCalledWith("DF-100", "Test comment");
+      expect(client.addComment).toHaveBeenCalledWith(KEY, "Test comment");
     });
   });
 
@@ -154,7 +155,7 @@ describe("JiraConnector", () => {
         { id: "31", name: "Start", to: { name: "In Progress" } },
       ]);
 
-      const transitions = await connector.getTransitions("DF-100");
+      const transitions = await connector.getTransitions(KEY);
 
       expect(transitions).toHaveLength(1);
       expect(transitions[0].targetStatus).toBe("In Progress");
@@ -165,17 +166,17 @@ describe("JiraConnector", () => {
     it("resolves transition ID and applies it", async () => {
       client.findTransitionId.mockResolvedValue("31");
 
-      await connector.transitionWorkItem("DF-100", "In Progress");
+      await connector.transitionWorkItem(KEY, "In Progress");
 
-      expect(client.findTransitionId).toHaveBeenCalledWith("DF-100", "In Progress");
-      expect(client.transitionIssue).toHaveBeenCalledWith("DF-100", "31");
+      expect(client.findTransitionId).toHaveBeenCalledWith(KEY, "In Progress");
+      expect(client.transitionIssue).toHaveBeenCalledWith(KEY, "31");
     });
 
     it("throws when no matching transition exists", async () => {
       client.findTransitionId.mockResolvedValue(undefined);
 
       await expect(
-        connector.transitionWorkItem("DF-100", "Nonexistent"),
+        connector.transitionWorkItem(KEY, "Nonexistent"),
       ).rejects.toThrow('No transition to "Nonexistent" available for DF-100');
     });
   });
@@ -188,7 +189,7 @@ describe("JiraConnector", () => {
         { id: "att-1", filename: "handoff.md", content: "https://jira.example.com/att-1", created: "2026-01-01T00:00:00Z" },
       ]);
 
-      const attachments = await connector.getAttachments("DF-100");
+      const attachments = await connector.getAttachments(KEY);
 
       expect(attachments).toHaveLength(1);
       expect(attachments[0].filename).toBe("handoff.md");
@@ -203,7 +204,7 @@ describe("JiraConnector", () => {
       ]);
       client.downloadAttachment.mockResolvedValue("# Handoff content");
 
-      const content = await connector.downloadAttachment("DF-100", "att-1");
+      const content = await connector.downloadAttachment(KEY, "att-1");
 
       expect(client.downloadAttachment).toHaveBeenCalledWith("https://jira.example.com/att-1");
       expect(content).toBe("# Handoff content");
@@ -213,24 +214,24 @@ describe("JiraConnector", () => {
       client.getAttachments.mockResolvedValue([]);
 
       await expect(
-        connector.downloadAttachment("DF-100", "missing"),
+        connector.downloadAttachment(KEY, "missing"),
       ).rejects.toThrow("Attachment missing not found on DF-100");
     });
   });
 
   describe("addAttachment", () => {
     it("delegates string content to jiraClient", async () => {
-      await connector.addAttachment("DF-100", "transcript.md", "content");
+      await connector.addAttachment(KEY, "transcript.md", "content");
 
-      expect(client.addAttachment).toHaveBeenCalledWith("DF-100", "transcript.md", "content");
+      expect(client.addAttachment).toHaveBeenCalledWith(KEY, "transcript.md", "content");
     });
 
     it("converts Buffer content to string", async () => {
       const buf = Buffer.from("buffer content", "utf-8");
 
-      await connector.addAttachment("DF-100", "file.txt", buf);
+      await connector.addAttachment(KEY, "file.txt", buf);
 
-      expect(client.addAttachment).toHaveBeenCalledWith("DF-100", "file.txt", "buffer content");
+      expect(client.addAttachment).toHaveBeenCalledWith(KEY, "file.txt", "buffer content");
     });
   });
 });

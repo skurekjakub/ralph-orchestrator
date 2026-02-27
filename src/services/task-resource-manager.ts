@@ -1,8 +1,6 @@
 import type { Logger } from "../logger.js";
-import type { IDataSourceConnector, ISupportsAttachments } from "../datasource/connector.js";
-import { supportsAttachments } from "../datasource/connector.js";
-import type { RetryOptions } from "../retry.js";
-import { withRetry } from "../retry.js";
+import { supportsAttachments, type IDataSourceConnector, type ISupportsAttachments } from "../datasource/connector.js";
+import { withRetry, type RetryOptions } from "../retry.js";
 import { toErrorMessage } from "../util/error.js";
 
 /** Public contract for work item resource interactions (comments, attachments, transcripts). */

@@ -14,6 +14,7 @@ const sharedRules = {
   "@typescript-eslint/no-require-imports": "off",
   "no-unused-vars": "off",
   "no-misleading-character-class": "off",
+  "no-duplicate-imports": "error",
 };
 
 export default [

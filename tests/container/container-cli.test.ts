@@ -2,8 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor.js";
 import { DEFAULT_MODEL } from "../../src/config/constants.js";
-import { CliType } from "../../src/container/types.js";
-import type { CliPaths } from "../../src/container/types.js";
+import { CliType, type CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
 import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
 

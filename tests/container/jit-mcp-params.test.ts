@@ -3,6 +3,7 @@ import type { GatewayConfig } from "../../src/container/setup/mcp-config.js";
 import { McpServerType } from "../../src/container/setup/mcp-manifest.js";
 import { makeWorkItem, makeProfile } from "../helpers/factories.js";
 import { createSilentLogger, createMockLogger } from "../helpers/mocks.js";
+const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -38,7 +39,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("resolves $task.id macro into gateway.json", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["jira-kentico"],
       mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
@@ -56,7 +57,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("resolves $task.project macro from issue key prefix", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: { ado: { PROJECT: "$task.project" } },
     });
@@ -71,7 +72,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("resolves $task.branch macro to slugified branch name", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: { ado: { TASK_BRANCH: "$task.branch" } },
     });
@@ -86,7 +87,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("resolves $task.title macro to raw summary", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: { ado: { SUMMARY: "$task.title" } },
     });
@@ -101,7 +102,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("passes static values through without resolution", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: { ado: { ADO_PROJECT: "CustomerEducation", ADO_REPO: "my-repo" } },
     });
@@ -117,7 +118,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("mixes static values and macros in same server config", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: {
         ado: {
@@ -143,7 +144,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("preserves existing env vars (secrets) when injecting", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["jira-kentico"],
       mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
@@ -350,7 +351,7 @@ describe("JitMcpConfigWriter", () => {
     it("resolves $variantEnv.PREFIX from process.env using variant-scoped name", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-ralph-123";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -368,7 +369,7 @@ describe("JitMcpConfigWriter", () => {
     it("resolves different env vars for different variants of the same profile", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_MALPH = "tok-malph-456";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "malph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -386,7 +387,7 @@ describe("JitMcpConfigWriter", () => {
     it("throws when the variant env var is missing from process.env", () => {
       delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -420,13 +421,13 @@ describe("JitMcpConfigWriter", () => {
     it("mixes $variantEnv with static values and other macros", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-mixed";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: {
           "ralphchives-write": {
             NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN",
-            NODEBB_CATEGORY_NAME: "ralph-docs",
+            NODEBB_CATEGORY_NAME: PID,
             JIRA_KEY: "$task.id",
           },
         },
@@ -439,7 +440,7 @@ describe("JitMcpConfigWriter", () => {
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env).toEqual({
         NODEBB_API_TOKEN: "tok-mixed",
-        NODEBB_CATEGORY_NAME: "ralph-docs",
+        NODEBB_CATEGORY_NAME: PID,
         JIRA_KEY: "DOC-3143",
       });
       delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;

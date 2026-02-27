@@ -3,6 +3,7 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { makeProfile, makeWorkItem, makeConfig, makeCompletion } from "../helpers/factories.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
+const TRIGGER = "@ralph";
 
 /**
  * Orchestrator integration tests — exercise real logic from the core modules
@@ -26,7 +27,7 @@ describe("Orchestrator core integration", () => {
     });
 
     it("skips issues that match no profile", async () => {
-      const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: "@ralph" } });
+      const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: TRIGGER } });
       const router = new ProfileRouter({ profiles: [profile] });
 
       const issue = makeWorkItem("DF-100", "Some issue");
@@ -36,7 +37,7 @@ describe("Orchestrator core integration", () => {
 
     it("matches by project and status", async () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: TRIGGER },
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
@@ -47,7 +48,7 @@ describe("Orchestrator core integration", () => {
 
     it("validates project and status via matchesProjectAndStatus", () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: TRIGGER },
       });
       const router = new ProfileRouter({ profiles: [profile] });
 

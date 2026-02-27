@@ -1,5 +1,4 @@
-import type { RalphResult } from "./types.js";
-import { TaskStatus } from "./types.js";
+import { TaskStatus, type RalphResult } from "./types.js";
 import type { Logger } from "../logger.js";
 
 /** Valid agent-reported statuses accepted by {@link resolveStatus}. */

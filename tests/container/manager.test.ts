@@ -14,12 +14,12 @@ import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-c
 import type { ILogSourceRegistry } from "../../src/container/log-source-registry.js";
 import type { IContinuationRunner } from "../../src/container/continuation-runner.js";
 import type { PromptBuilder } from "../../src/prompt/prompt-builder.js";
-import type { CliPaths } from "../../src/container/types.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { TaskStatus, type CliPaths } from "../../src/container/types.js";
 import { makeProfile, makeWorkItem } from "../helpers/factories.js";
 import { createSilentLogger, type Mocked } from "../helpers/mocks.js";
 import type { Logger } from "../../src/logger.js";
 import type { ResultPromise } from "execa";
+const KEY = "DF-100";
 
 vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
@@ -217,12 +217,12 @@ describe("ContainerManager", () => {
   describe("registerLogSources", () => {
     it("delegates to logRegistry.registerAll", () => {
       const { manager, logRegistry, logs } = createHarness();
-      manager.registerLogSources("DF-100");
+      manager.registerLogSources(KEY);
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         logs,
         expect.any(Object), // profile
-        "DF-100",
+        KEY,
         expect.objectContaining({ onToolOutput: undefined, onPreToolUse: undefined }),
         cliPaths,
       );
@@ -235,12 +235,12 @@ describe("ContainerManager", () => {
       manager.onToolOutput = onToolOutput;
       manager.onPreToolUse = onPreToolUse;
 
-      manager.registerLogSources("DF-100");
+      manager.registerLogSources(KEY);
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        "DF-100",
+        KEY,
         expect.objectContaining({ onToolOutput, onPreToolUse }),
         cliPaths,
       );

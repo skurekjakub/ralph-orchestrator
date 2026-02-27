@@ -5,8 +5,9 @@ import {
   auditPrompt,
   auditPromptSections,
   formatAuditFindings,
+  type PromptSection,
+  type AuditFinding,
 } from "../../src/prompt/prompt-auditor.js";
-import type { PromptSection, AuditFinding } from "../../src/prompt/prompt-auditor.js";
 
 // ── Helper ──────────────────────────────────────────────
 function section(

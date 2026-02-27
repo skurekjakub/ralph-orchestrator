@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HeartbeatSender } from "../../src/services/heartbeat.js";
-import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import type { HeartbeatPayload } from "../../src/services/heartbeat.js";
+import { HeartbeatSender, HeartbeatStatus, type HeartbeatPayload } from "../../src/services/heartbeat.js";
 import { createMockLogger } from "../helpers/mocks.js";
 import type { Logger } from "../../src/logger.js";
 

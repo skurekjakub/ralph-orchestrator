@@ -9,15 +9,14 @@
 
 import type { IPromptAuditConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
-import type { IssueContext } from "./prompt.js";
-import { buildPromptWithSections } from "./prompt.js";
+import { buildPromptWithSections, type IssueContext } from "./prompt.js";
 import {
   AuditMode,
   AuditSeverity,
   auditPromptSections,
   formatAuditFindings,
+  type AuditResult,
 } from "./prompt-auditor.js";
-import type { AuditResult } from "./prompt-auditor.js";
 import type { Logger } from "../logger.js";
 
 /** Result of building and auditing a prompt. */

@@ -1,14 +1,12 @@
 import type { IAgentProfile } from "../config/types.js";
-import type { RalphResult, ContainerManagerFactory } from "../container/types.js";
-import { TaskStatus } from "../container/types.js";
+import { TaskStatus, type RalphResult, type ContainerManagerFactory } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
 import type { IContainerManager } from "../container/manager.js";
 import type { IResourceManager } from "./task-resource-manager.js";
 import type { ITaskResultWriter } from "./task-result-writer.js";
 import type { IIssueManager } from "./issue-manager.js";
-import type { IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
-import { buildTemplateContext } from "../container/setup/agent-includes.js";
+import { buildTemplateContext, type IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
 import type { ILifecycleHook } from "../container/lifecycle.js";

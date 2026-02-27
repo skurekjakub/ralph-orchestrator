@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { OrchestratorObserver } from "../../src/orchestrator-observer.js";
-import type { ObservableContext } from "../../src/orchestrator-observer.js";
-import type { LogEntry } from "../../src/orchestrator-types.js";
-import { OrchestratorStatus, LogLevel, LogSource } from "../../src/orchestrator-types.js";
+import { OrchestratorObserver, type ObservableContext } from "../../src/orchestrator-observer.js";
+import { OrchestratorStatus, LogLevel, LogSource, type LogEntry } from "../../src/orchestrator-types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import { makeWorkItem, makeProfile, makeCompletion } from "../helpers/factories.js";
+
+const PID = "ralph-docs";
 
 function makeContext(overrides: Partial<ObservableContext> = {}): ObservableContext {
   return {
@@ -12,14 +12,14 @@ function makeContext(overrides: Partial<ObservableContext> = {}): ObservableCont
     running: true,
     pendingOps: [],
     logEntries: [],
-    profileIds: ["ralph-docs"],
+    profileIds: [PID],
     ...overrides,
   };
 }
 
 const fakeIssue = makeWorkItem("DOC-100", "Test issue");
 
-const fakeProfile = makeProfile({ id: "ralph-docs", agentName: "ralph" });
+const fakeProfile = makeProfile({ id: PID, agentName: "ralph" });
 
 function makeActiveTask(startedAt = 1000) {
   return { workItem: fakeIssue, profile: fakeProfile, container: null, startedAt };
@@ -89,9 +89,9 @@ describe("OrchestratorObserver", () => {
 
     it("includes profileIds from context", () => {
       const observer = new OrchestratorObserver(() =>
-        makeContext({ profileIds: ["ralph-docs", "ralph-vscode"] })
+        makeContext({ profileIds: [PID, "ralph-vscode"] })
       );
-      expect(observer.getState().profileIds).toEqual(["ralph-docs", "ralph-vscode"]);
+      expect(observer.getState().profileIds).toEqual([PID, "ralph-vscode"]);
     });
 
     it("includes recorded completions", () => {
@@ -162,7 +162,7 @@ describe("OrchestratorObserver", () => {
       const payload = observer.getHeartbeatPayload();
       expect(payload.status).toBe(HeartbeatStatus.Working);
       expect(payload.currentTask).toBe("DOC-100");
-      expect(payload.profileId).toBe("ralph-docs");
+      expect(payload.profileId).toBe(PID);
       expect(payload.currentTaskStartedAt).toBe(new Date(1700000000000).toISOString());
     });
 

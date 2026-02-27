@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { ValidationCollector } from "../../src/validate/types.js";
 import { validateProfiles } from "../../src/validate/profiles.js";
+const PROJECT = "DF";
 
 let tempDir: string;
 let origCwd: string;
@@ -50,7 +51,7 @@ function writeValidProfile(
     variants: [
       {
         agent: agentFiles[0]?.replace(".agent.md", "") ?? "ralph",
-        match: { projects: ["DF"], commentTrigger: "@ralph" },
+        match: { projects: [PROJECT], commentTrigger: "@ralph" },
       },
     ],
   };
@@ -117,7 +118,7 @@ describe("validateProfiles", () => {
   it("errors when repo path is missing", () => {
     writeValidProfile("test", {
       profileJson: {
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -129,7 +130,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: "/nonexistent/path/12345",
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -142,7 +143,7 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         cli: "claude",
-        variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -179,7 +180,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ match: { projects: ["DF"], commentTrigger: "@go" } }],
+        variants: [{ match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -191,7 +192,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ agent: "nonexistent", match: { projects: ["DF"], commentTrigger: "@go" } }],
+        variants: [{ agent: "nonexistent", match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
       agentFiles: ["ralph.agent.md"],
     });
@@ -217,7 +218,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ agent: "ralph", match: { projects: ["DF"] } }],
+        variants: [{ agent: "ralph", match: { projects: [PROJECT] } }],
       },
     });
     const c = collector();
@@ -232,7 +233,7 @@ describe("validateProfiles", () => {
         variants: [{
           agent: "ralph",
           match: {
-            projects: ["DF"],
+            projects: [PROJECT],
             commentTrigger: "@go",
             statuses: ["In Progress", "Review"],
             revisionStatuses: ["Reopened"],
@@ -252,7 +253,7 @@ describe("validateProfiles", () => {
         variants: [{
           agent: "ralph",
           match: {
-            projects: ["DF"],
+            projects: [PROJECT],
             commentTrigger: "@go",
             statuses: ["In Progress", "Review"],
             revisionStatuses: ["Review"],
@@ -273,7 +274,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           skills: ["nonexistent-skill"],
-          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -289,7 +290,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           skills: ["my-skill"],
-          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -306,7 +307,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["nonexistent-server"],
-          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -323,7 +324,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["my-server"],
-          variants: [{ agent: "ralph", match: { projects: ["DF"], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();

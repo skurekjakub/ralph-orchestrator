@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { validateTriggerUniqueness } from "../../src/validate/profiles.js";
-import type { VariantTriggerInfo } from "../../src/validate/profiles.js";
+import { validateTriggerUniqueness, type VariantTriggerInfo } from "../../src/validate/profiles.js";
+const PROJECT_DOC = "DOC";
 
 function variant(
   profileId: string,
@@ -15,8 +15,8 @@ describe("validateTriggerUniqueness", () => {
   it("passes when triggers are distinct", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Ralph"),
-      variant("docs", 1, ["DOC"], "@Malph"),
+      variant("docs", 0, [PROJECT_DOC], "@Ralph"),
+      variant("docs", 1, [PROJECT_DOC], "@Malph"),
     ], errors);
     expect(errors).toHaveLength(0);
   });
@@ -24,7 +24,7 @@ describe("validateTriggerUniqueness", () => {
   it("passes when triggers are identical but projects don't overlap", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Ralph"),
+      variant("docs", 0, [PROJECT_DOC], "@Ralph"),
       variant("vscode", 0, ["VSC"], "@Ralph"),
     ], errors);
     expect(errors).toHaveLength(0);
@@ -33,20 +33,20 @@ describe("validateTriggerUniqueness", () => {
   it("errors when identical triggers share a project", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Ralph"),
-      variant("vscode", 0, ["DOC"], "@Ralph"),
+      variant("docs", 0, [PROJECT_DOC], "@Ralph"),
+      variant("vscode", 0, [PROJECT_DOC], "@Ralph"),
     ], errors);
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("Ambiguous comment trigger");
     expect(errors[0]).toContain("@Ralph");
-    expect(errors[0]).toContain("DOC");
+    expect(errors[0]).toContain(PROJECT_DOC);
   });
 
   it("passes when one trigger is a prefix of another (word-boundary safe)", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Ralph"),
-      variant("vscode", 0, ["DOC"], "@RalphAutocomplete"),
+      variant("docs", 0, [PROJECT_DOC], "@Ralph"),
+      variant("vscode", 0, [PROJECT_DOC], "@RalphAutocomplete"),
     ], errors);
     expect(errors).toHaveLength(0);
   });
@@ -54,8 +54,8 @@ describe("validateTriggerUniqueness", () => {
   it("passes when triggers share a prefix but differ (e.g. @Malph vs @MalphAutocomplete)", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Malph"),
-      variant("vscode", 0, ["DOC"], "@MalphAutocomplete"),
+      variant("docs", 0, [PROJECT_DOC], "@Malph"),
+      variant("vscode", 0, [PROJECT_DOC], "@MalphAutocomplete"),
     ], errors);
     expect(errors).toHaveLength(0);
   });
@@ -63,8 +63,8 @@ describe("validateTriggerUniqueness", () => {
   it("detects case-insensitive substring collisions", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@ralph"),
-      variant("vscode", 0, ["DOC"], "@RALPH"),
+      variant("docs", 0, [PROJECT_DOC], "@ralph"),
+      variant("vscode", 0, [PROJECT_DOC], "@RALPH"),
     ], errors);
     expect(errors).toHaveLength(1);
   });
@@ -72,7 +72,7 @@ describe("validateTriggerUniqueness", () => {
   it("detects partial project overlap", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC", "DF"], "@Ralph"),
+      variant("docs", 0, [PROJECT_DOC, "DF"], "@Ralph"),
       variant("vscode", 0, ["DF", "VSC"], "@Ralph"),
     ], errors);
     expect(errors).toHaveLength(1);
@@ -82,10 +82,10 @@ describe("validateTriggerUniqueness", () => {
   it("reports multiple collisions independently", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("a", 0, ["DOC"], "@Ralph"),
-      variant("b", 0, ["DOC"], "@Ralph"),
-      variant("c", 0, ["DOC"], "@Malph"),
-      variant("d", 0, ["DOC"], "@Malph"),
+      variant("a", 0, [PROJECT_DOC], "@Ralph"),
+      variant("b", 0, [PROJECT_DOC], "@Ralph"),
+      variant("c", 0, [PROJECT_DOC], "@Malph"),
+      variant("d", 0, [PROJECT_DOC], "@Malph"),
     ], errors);
     expect(errors).toHaveLength(2);
   });
@@ -99,7 +99,7 @@ describe("validateTriggerUniqueness", () => {
   it("passes with a single variant", () => {
     const errors: string[] = [];
     validateTriggerUniqueness([
-      variant("docs", 0, ["DOC"], "@Ralph"),
+      variant("docs", 0, [PROJECT_DOC], "@Ralph"),
     ], errors);
     expect(errors).toHaveLength(0);
   });

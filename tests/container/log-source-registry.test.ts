@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { LogSourceRegistry } from "../../src/container/log-source-registry.js";
-import { CaptureMode } from "../../src/container/log-collector.js";
-import type { IContainerLogCollector } from "../../src/container/log-collector.js";
+import { CaptureMode, type IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
+const KEY = "DF-100";
 
 function createMockCollector(): {
   collector: IContainerLogCollector;
@@ -34,15 +34,15 @@ describe("LogSourceRegistry", () => {
     it("sets the issue key on the collector", () => {
       const { collector, setTaskId } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
-      expect(setTaskId).toHaveBeenCalledWith("DF-100");
+      expect(setTaskId).toHaveBeenCalledWith(KEY);
     });
 
     it("registers all 7 standard log sources", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledTimes(7);
       const ids = addSource.mock.calls.map((call: unknown[]) => (call[0] as { id: string }).id);
@@ -52,7 +52,7 @@ describe("LogSourceRegistry", () => {
     it("calls attach after registering sources", () => {
       const { collector, addSource, attach } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       // attach must be called after all addSource calls
       const addSourceOrder = addSource.mock.invocationCallOrder;
@@ -63,7 +63,7 @@ describe("LogSourceRegistry", () => {
     it("registers audit source with profile auditLogPath", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -79,7 +79,7 @@ describe("LogSourceRegistry", () => {
     it("registers transcript source with cliPaths.transcriptPath", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -93,7 +93,7 @@ describe("LogSourceRegistry", () => {
     it("registers pre-tool in collect mode when no callback provided", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -108,7 +108,7 @@ describe("LogSourceRegistry", () => {
       const { collector, addSource } = createMockCollector();
       const onPreToolUse = vi.fn();
 
-      registry.registerAll(collector, profile, "DF-100", { onPreToolUse }, cliPaths);
+      registry.registerAll(collector, profile, KEY, { onPreToolUse }, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -122,7 +122,7 @@ describe("LogSourceRegistry", () => {
     it("registers tool-output in collect mode when no callback provided", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -137,7 +137,7 @@ describe("LogSourceRegistry", () => {
       const { collector, addSource } = createMockCollector();
       const onToolOutput = vi.fn();
 
-      registry.registerAll(collector, profile, "DF-100", { onToolOutput }, cliPaths);
+      registry.registerAll(collector, profile, KEY, { onToolOutput }, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,7 +151,7 @@ describe("LogSourceRegistry", () => {
     it("registers proxy source for egress-proxy service", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,7 +166,7 @@ describe("LogSourceRegistry", () => {
     it("registers sidecar source with useComposeLogs", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -181,7 +181,7 @@ describe("LogSourceRegistry", () => {
     it("registers cli-debug with glob collectArgs using cliPaths.logDir", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -194,7 +194,7 @@ describe("LogSourceRegistry", () => {
     it("registers session-state folder export", () => {
       const { collector, addExport } = createMockCollector();
 
-      registry.registerAll(collector, profile, "DF-100", {}, cliPaths);
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
       expect(addExport).toHaveBeenCalledWith({
         id: "session-state",

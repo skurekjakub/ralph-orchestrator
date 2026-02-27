@@ -3,6 +3,7 @@ import { JiraIssueManager } from "../../src/services/jira-issue-manager.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import { createMockJiraClient, createMockLogger } from "../helpers/mocks.js";
 import { makeIssue } from "../helpers/factories.js";
+const KEY = "DF-100";
 
 describe("JiraIssueManager", () => {
   let jira: ReturnType<typeof createMockJiraClient>;
@@ -18,17 +19,17 @@ describe("JiraIssueManager", () => {
 
   describe("transitionIssue", () => {
     it("finds and executes the transition", async () => {
-      await manager.transitionIssue("DF-100", "In Progress", TransitionPhase.BeforeAgent);
+      await manager.transitionIssue(KEY, "In Progress", TransitionPhase.BeforeAgent);
 
-      expect(jira.findTransitionId).toHaveBeenCalledWith("DF-100", "In Progress");
-      expect(jira.transitionIssue).toHaveBeenCalledWith("DF-100", "99");
+      expect(jira.findTransitionId).toHaveBeenCalledWith(KEY, "In Progress");
+      expect(jira.transitionIssue).toHaveBeenCalledWith(KEY, "99");
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining('transitioned (beforeAgent → "In Progress")'),
       );
     });
 
     it("skips when targetStatus is undefined", async () => {
-      await manager.transitionIssue("DF-100", undefined, TransitionPhase.AfterAgent);
+      await manager.transitionIssue(KEY, undefined, TransitionPhase.AfterAgent);
 
       expect(jira.findTransitionId).not.toHaveBeenCalled();
       expect(jira.transitionIssue).not.toHaveBeenCalled();
@@ -37,19 +38,19 @@ describe("JiraIssueManager", () => {
     it("posts failure comment when transition fails", async () => {
       jira.findTransitionId.mockResolvedValue(undefined);
 
-      await manager.transitionIssue("DF-100", "Done", TransitionPhase.AfterAgent);
+      await manager.transitionIssue(KEY, "Done", TransitionPhase.AfterAgent);
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to transition"),
       );
       expect(jira.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.stringContaining("Done"),
       );
     });
 
     it("uses phase label in log messages", async () => {
-      await manager.transitionIssue("DF-100", "Ready for Review", TransitionPhase.AfterAgent);
+      await manager.transitionIssue(KEY, "Ready for Review", TransitionPhase.AfterAgent);
 
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("afterAgent"),
@@ -59,9 +60,9 @@ describe("JiraIssueManager", () => {
 
   describe("postStartComment", () => {
     it("posts a start comment with agent name", async () => {
-      await manager.postStartComment("DF-100", "ralph", "ralph-docs");
+      await manager.postStartComment(KEY, "ralph", "ralph-docs");
 
-      expect(jira.addComment).toHaveBeenCalledWith("DF-100", expect.any(String));
+      expect(jira.addComment).toHaveBeenCalledWith(KEY, expect.any(String));
       expect(logger.info).toHaveBeenCalledWith(
         expect.stringContaining("Start comment posted"),
       );
@@ -70,7 +71,7 @@ describe("JiraIssueManager", () => {
     it("logs warning when comment fails", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA down"));
 
-      await manager.postStartComment("DF-100", "ralph", "ralph-docs");
+      await manager.postStartComment(KEY, "ralph", "ralph-docs");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to comment"),
@@ -80,10 +81,10 @@ describe("JiraIssueManager", () => {
 
   describe("postErrorComment", () => {
     it("posts formatted error to JIRA", async () => {
-      await manager.postErrorComment("DF-100", "Connection refused");
+      await manager.postErrorComment(KEY, "Connection refused");
 
       expect(jira.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.stringContaining("Connection refused"),
       );
       expect(logger.info).toHaveBeenCalledWith(
@@ -94,7 +95,7 @@ describe("JiraIssueManager", () => {
     it("logs warning when comment fails", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA down"));
 
-      await manager.postErrorComment("DF-100", "some error");
+      await manager.postErrorComment(KEY, "some error");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post error comment"),
@@ -135,10 +136,10 @@ describe("JiraIssueManager", () => {
 
   describe("postCrashRecoveryComment", () => {
     it("posts crash-recovery comment to JIRA", async () => {
-      await manager.postCrashRecoveryComment("DF-100", "ralph-docs:ralph");
+      await manager.postCrashRecoveryComment(KEY, "ralph-docs:ralph");
 
       expect(jira.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.any(String),
       );
     });
@@ -146,7 +147,7 @@ describe("JiraIssueManager", () => {
     it("logs warning on failure without throwing", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
 
-      await manager.postCrashRecoveryComment("DF-100", "ralph-docs:ralph");
+      await manager.postCrashRecoveryComment(KEY, "ralph-docs:ralph");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post crash-recovery comment"),
@@ -156,10 +157,10 @@ describe("JiraIssueManager", () => {
 
   describe("postStaleStatusComment", () => {
     it("posts stale-status comment to JIRA", async () => {
-      await manager.postStaleStatusComment("DF-100", "ralph", "Done");
+      await manager.postStaleStatusComment(KEY, "ralph", "Done");
 
       expect(jira.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.any(String),
       );
     });
@@ -167,7 +168,7 @@ describe("JiraIssueManager", () => {
     it("logs warning on failure without throwing", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
 
-      await manager.postStaleStatusComment("DF-100", "ralph", "Done");
+      await manager.postStaleStatusComment(KEY, "ralph", "Done");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post stale-status comment"),
@@ -177,10 +178,10 @@ describe("JiraIssueManager", () => {
 
   describe("postAckComment", () => {
     it("posts ack comment to JIRA", async () => {
-      await manager.postAckComment("DF-100", "ralph");
+      await manager.postAckComment(KEY, "ralph");
 
       expect(jira.addComment).toHaveBeenCalledWith(
-        "DF-100",
+        KEY,
         expect.any(String),
       );
     });
@@ -188,7 +189,7 @@ describe("JiraIssueManager", () => {
     it("logs warning on failure without throwing", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
 
-      await manager.postAckComment("DF-100", "ralph");
+      await manager.postAckComment(KEY, "ralph");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post ack comment"),
@@ -198,15 +199,15 @@ describe("JiraIssueManager", () => {
 
   describe("postComment", () => {
     it("posts arbitrary comment body to JIRA", async () => {
-      await manager.postComment("DF-100", "Custom message");
+      await manager.postComment(KEY, "Custom message");
 
-      expect(jira.addComment).toHaveBeenCalledWith("DF-100", "Custom message");
+      expect(jira.addComment).toHaveBeenCalledWith(KEY, "Custom message");
     });
 
     it("logs warning on failure without throwing", async () => {
       jira.addComment.mockRejectedValue(new Error("JIRA unreachable"));
 
-      await manager.postComment("DF-100", "Custom message");
+      await manager.postComment(KEY, "Custom message");
 
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("Failed to post comment"),

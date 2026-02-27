@@ -11,10 +11,12 @@ import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-type
 import type { IAgentProfile } from "../../src/config/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import { buildMockDeps, buildBaseDeps, runUntil } from "./e2e-helpers.js";
+import { buildMockDeps, buildBaseDeps, runUntil, DS } from "./e2e-helpers.js";
 
-const DS = "jira";
+const PROJECT = "DF";
 const TS = "2026-01-01T00:00:00Z";
+const KEY = "DF-100";
+const CID = "C1";
 
 /**
  * E2E orchestrator loop tests with mock dependencies.
@@ -35,11 +37,11 @@ afterEach(() => {
 
 describe("Orchestrator E2E loop (mock deps)", () => {
   it("completes full cycle: poll -> trigger scan -> execute -> completion", async () => {
-    const issue = makeWorkItem("DF-100", "Update API docs", "New");
+    const issue = makeWorkItem(KEY, "Update API docs", "New");
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-100": [makeWorkItemComment("C1", "@docs please handle this")],
+        [KEY]: [makeWorkItemComment(CID, "@docs please handle this")],
       },
     });
 
@@ -55,7 +57,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.issueManager.postAckComment).toHaveBeenCalled();
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
-        workItem: expect.objectContaining({ id: "DF-100" }),
+        workItem: expect.objectContaining({ id: KEY }),
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
@@ -63,17 +65,17 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     );
     expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
       DS,
-      "DF-100",
+      KEY,
       undefined,
       TransitionPhase.AfterAgent,
     );
 
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
-    expect(state.completedToday[0].key).toBe("DF-100");
+    expect(state.completedToday[0].key).toBe(KEY);
     expect(state.completedToday[0].status).toBe(TaskStatus.Completed);
 
-    const ops = deps.ledger.getOperations(DS, "DF-100");
+    const ops = deps.ledger.getOperations(DS, KEY);
     expect(ops).toHaveLength(1);
     expect(ops[0].status).toBe(OperationStatus.Completed);
   });
@@ -83,7 +85,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-150": [makeWorkItemComment("C1", "@docs handle this")],
+        "DF-150": [makeWorkItemComment(CID, "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Error,
@@ -121,7 +123,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-151": [makeWorkItemComment("C1", "@docs handle this")],
+        "DF-151": [makeWorkItemComment(CID, "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Blocked,
@@ -158,7 +160,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-152": [makeWorkItemComment("C1", "@docs handle this")],
+        "DF-152": [makeWorkItemComment(CID, "@docs handle this")],
       },
       taskResult: {
         status: TaskStatus.Partial,
@@ -191,7 +193,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-200": [makeWorkItemComment("C1", "@docs handle this")],
+        "DF-200": [makeWorkItemComment(CID, "@docs handle this")],
       },
       taskError: new Error("Container build failed"),
     });
@@ -227,7 +229,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: ["New"],
         commentTrigger: "@docs",
         revisionStatuses: [],
@@ -240,7 +242,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       profile,
       issues: [issueAtPoll],
       comments: {
-        "DF-300": [makeWorkItemComment("C1", "@docs go")],
+        "DF-300": [makeWorkItemComment(CID, "@docs go")],
       },
       searchResults: {
         "DF-300": [issueAtExec],
@@ -264,7 +266,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "OTHER-1": [makeWorkItemComment("C1", "@docs go")],
+        "OTHER-1": [makeWorkItemComment(CID, "@docs go")],
       },
     });
 
@@ -284,7 +286,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue1, issue2],
       comments: {
-        "DF-400": [makeWorkItemComment("C1", "@docs first")],
+        "DF-400": [makeWorkItemComment(CID, "@docs first")],
         "DF-401": [makeWorkItemComment("C2", "@docs second")],
       },
     });
@@ -310,7 +312,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: [],
         commentTrigger: "@docs",
         revisionStatuses: [],
@@ -326,7 +328,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     deps.ledger.plan("DF-500", {
       dataSource: DS,
       variant: "ralph-docs:ralph:@docs",
-      triggerCommentId: "C1",
+      triggerCommentId: CID,
       commentTimestamp: TS,
     });
     const ops = deps.ledger.getOperations(DS, "DF-500");
@@ -352,7 +354,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-600": [makeWorkItemComment("C1", "@docs go")],
+        "DF-600": [makeWorkItemComment(CID, "@docs go")],
       },
     });
 
@@ -377,7 +379,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-700": [makeWorkItemComment("C1", "@docs go")],
+        "DF-700": [makeWorkItemComment(CID, "@docs go")],
       },
     });
 
@@ -401,7 +403,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const deps = buildMockDeps(tempDir, {
       issues: [issue],
       comments: {
-        "DF-800": [makeWorkItemComment("C1", "@docs handle please")],
+        "DF-800": [makeWorkItemComment(CID, "@docs handle please")],
       },
     });
 
@@ -427,7 +429,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: ["To Do"],
         commentTrigger: "@RalphDf",
         revisionStatuses: [],
@@ -470,7 +472,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     deps.ledger.plan("DOC-100", {
       dataSource: DS,
       variant: docProfile.variantKey,
-      triggerCommentId: "C1",
+      triggerCommentId: CID,
       commentTimestamp: TS,
     });
 
@@ -489,7 +491,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const profile1 = makeProfile({
       id: "ralph-docs",
       agentName: "ralph",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
+      match: { projects: [PROJECT], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
     });
     const profile2 = makeProfile({
       id: "ralph-vscode",
@@ -514,7 +516,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const profile1 = makeProfile({
       id: "ralph-docs",
       agentName: "ralph",
-      match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
+      match: { projects: [PROJECT], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
     });
     const profile2 = makeProfile({
       id: "ralph-vscode",
@@ -545,7 +547,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: ["Defect Found"],
         commentTrigger: "@docs",
         revisionStatuses: ["Defect Found"],
@@ -560,7 +562,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       issueManager: {
         refreshWorkItem: vi.fn().mockResolvedValue(issue),
         getComments: vi.fn().mockResolvedValue([
-          makeWorkItemComment("C1", "No PR link here"),
+          makeWorkItemComment(CID, "No PR link here"),
         ]),
       },
       taskRunner: {
@@ -578,7 +580,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     deps.ledger.plan("DF-900", {
       dataSource: DS,
       variant: profile.variantKey,
-      triggerCommentId: "C1",
+      triggerCommentId: CID,
       commentTimestamp: TS,
     });
 
@@ -604,7 +606,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: ["Defect Found"],
         commentTrigger: "@docs",
         revisionStatuses: ["Defect Found"],
@@ -619,7 +621,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       issueManager: {
         refreshWorkItem: vi.fn().mockResolvedValue(issue),
         getComments: vi.fn().mockResolvedValue([
-          makeWorkItemComment("C1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
+          makeWorkItemComment(CID, "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
         ]),
       },
       taskRunner: {
@@ -636,7 +638,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     deps.ledger.plan("DF-901", {
       dataSource: DS,
       variant: profile.variantKey,
-      triggerCommentId: "C1",
+      triggerCommentId: CID,
       commentTimestamp: TS,
     });
 
@@ -656,7 +658,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       id: "ralph-docs",
       agentName: "ralph",
       match: {
-        projects: ["DF"],
+        projects: [PROJECT],
         statuses: ["New", "Defect Found"],
         commentTrigger: "@docs",
         revisionStatuses: ["Defect Found"],
@@ -685,7 +687,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     deps.ledger.plan("DF-902", {
       dataSource: DS,
       variant: profile.variantKey,
-      triggerCommentId: "C1",
+      triggerCommentId: CID,
       commentTimestamp: TS,
     });
 
