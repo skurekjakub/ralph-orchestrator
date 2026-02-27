@@ -52,31 +52,52 @@ export interface WorkItemTransition {
 }
 ```
 
-### 1.2 Define `IDataSourceConnector`
+### 1.2 Define `IDataSourceConnector` (segregated interfaces)
 
 **File:** `src/datasource/connector.ts`
 
 ```typescript
-export interface IDataSourceConnector {
+// Shared identity
+interface IDataSourceIdentity {
   readonly name: string;
   readonly sourceKey: string;
+}
 
-  searchWorkItems(query: string): Promise<WorkItem[]>;
-  refreshWorkItem(id: string): Promise<WorkItem | null>;
-
-  getComments(workItemId: string): Promise<WorkItemComment[]>;
-  addComment(workItemId: string, body: string): Promise<void>;
-
-  transitionWorkItem(workItemId: string, targetStatus: string): Promise<void>;
-
-  getAttachments(workItemId: string): Promise<WorkItemAttachment[]>;
-  downloadAttachment(workItemId: string, attachmentId: string): Promise<string>;
-  addAttachment(workItemId: string, filename: string, content: string): Promise<void>;
-
-  buildQueries(profiles: readonly IAgentProfile[]): string[];
+// Discovery — consumed by poller, profile router
+interface IWorkItemSource extends IDataSourceIdentity {
+  buildQueries(profiles: readonly { match: { projects: string[]; statuses?: string[] } }[]): SourceQuery[];
+  searchWorkItems(query: SourceQuery, pageSize?: number): Promise<WorkItem[]>;
+  refreshWorkItem(workItemId: string): Promise<WorkItem>;
   isValidItemId(id: string): boolean;
 }
+
+// Comments — consumed by trigger scanner, issue manager, resource manager
+interface IWorkItemComments extends IDataSourceIdentity {
+  getComments(workItemId: string): Promise<WorkItemComment[]>;
+  addComment(workItemId: string, bodyText: string): Promise<void>;
+}
+
+// Transitions — consumed by issue manager
+interface IWorkItemTransitions extends IDataSourceIdentity {
+  getTransitions(workItemId: string): Promise<WorkItemTransition[]>;
+  transitionWorkItem(workItemId: string, targetStatus: string): Promise<void>;  // throws if not found (CQS)
+}
+
+// Attachments — consumed by resource manager
+interface IWorkItemAttachments extends IDataSourceIdentity {
+  getAttachments(workItemId: string): Promise<WorkItemAttachment[]>;
+  downloadAttachment(workItemId: string, attachmentId: string): Promise<string>;
+  addAttachment(workItemId: string, filename: string, content: string | Buffer): Promise<void>;
+}
+
+// Full connector — convenience intersection for implementations and DI
+type IDataSourceConnector = IWorkItemSource & IWorkItemComments & IWorkItemTransitions & IWorkItemAttachments;
 ```
+
+**Design notes:**
+- **ISP (Interface Segregation):** Each interface covers one capability area. Consumers depend on the slice they need — e.g. `TriggerScanner` depends on `IWorkItemComments`, not the full connector.
+- **CQS (Command-Query Separation):** `transitionWorkItem` returns `void` and throws on missing transition. Callers use `getTransitions()` to query available transitions.
+- **`buildQueries`** takes a loose profile match shape (not `IAgentProfile`) for loose coupling.
 
 ### 1.3 Define `IWorkItemPoller`
 

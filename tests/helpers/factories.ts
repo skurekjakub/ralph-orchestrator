@@ -9,6 +9,7 @@ import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../.
 import { CliType, TaskStatus } from "../../src/container/types.js";
 import type { RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";
 import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
 import type { TaskContext } from "../../src/services/task-context.js";
@@ -44,6 +45,48 @@ export function makeComment(
   accountId = "test-account-id",
 ): JiraComment {
   return { id, author: { accountId, displayName: "Test User" }, body, created };
+}
+
+// ── Work item data (generic) ─────────────────────────────────────────────────
+
+/** Create a minimal WorkItem with sensible defaults. */
+export function makeWorkItem(
+  id: string,
+  overrides: Partial<WorkItem> = {},
+): WorkItem {
+  return {
+    id,
+    source: "jira",
+    project: "DF",
+    title: `Test work item ${id}`,
+    description: "",
+    status: "New",
+    type: "Task",
+    priority: "Medium",
+    labels: [],
+    components: [],
+    created: "2026-01-01T00:00:00.000+0000",
+    updated: "",
+    customFields: new Map(),
+    sourceData: null,
+    ...overrides,
+  };
+}
+
+/** Create a minimal WorkItemComment. */
+export function makeWorkItemComment(
+  id: string,
+  body: string,
+  overrides: Partial<WorkItemComment> = {},
+): WorkItemComment {
+  return {
+    id,
+    authorName: "Test User",
+    authorId: "test-account-id",
+    body,
+    created: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 // ── Container data ───────────────────────────────────────────────────────────

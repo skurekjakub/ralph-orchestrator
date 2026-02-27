@@ -58,7 +58,7 @@ Update every test file that uses `JiraIssue` / `JiraComment`:
 | `tests/services/trigger-scanner.test.ts` | `createJiraIssue()` → `createWorkItem()`, `JiraComment` → `WorkItemComment` |
 | `tests/services/profile-router.test.ts` | `createJiraIssue()` → `createWorkItem()`, field access patterns |
 | `tests/services/operation-ledger.test.ts` | Issue key references stay as `string` (no type change) |
-| `tests/services/task-runner.test.ts` | `Mocked<IJiraClient>` → `Mocked<IDataSourceConnector>`, task context update |
+| `tests/services/task-runner.test.ts` | `Mocked<IJiraClient>` → `Mocked<IDataSourceConnector>`, add capability mock helpers |
 | `tests/services/task-result-writer.test.ts` | If using JiraIssue in test context |
 | `tests/services/preflight.test.ts` | `JiraComment` → `WorkItemComment`, remove ADF extraction |
 | `tests/prompt/prompt.test.ts` | `createJiraIssue()` → `createWorkItem()`, no ADF extraction |

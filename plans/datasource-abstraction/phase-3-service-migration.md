@@ -6,7 +6,7 @@
 
 ## Goal
 
-Replace `JiraIssue` / `JiraComment` with `WorkItem` / `WorkItemComment` in all service-layer interfaces and implementations. Services that previously depended on `IJiraClient` now depend on `IDataSourceConnector`.
+Replace `JiraIssue` / `JiraComment` with `WorkItem` / `WorkItemComment` in all service-layer interfaces and implementations. Services that previously depended on `IJiraClient` now depend on `IDataSourceConnector` (base) and use type guards (`supportsTransitions`, `supportsAttachments`) for optional capabilities.
 
 This is the highest-risk phase — it touches the most files and changes real signatures.
 
@@ -19,10 +19,10 @@ This is the highest-risk phase — it touches the most files and changes real si
 | Before | After |
 |--------|-------|
 | `IIssueManager` | `IIssueManager` (same name, widened contract) |
-| Accepts `IJiraClient` | Accepts `IDataSourceConnector` |
+| Accepts `IJiraClient` | Accepts `IDataSourceConnector`, uses `supportsTransitions()` guard |
 | `refreshIssue(issueKey)` returns `JiraIssue` | `refreshWorkItem(itemId)` returns `WorkItem` |
 | `getComments(issueKey)` returns `JiraComment[]` | `getComments(itemId)` returns `WorkItemComment[]` |
-| `transitionIssue()` calls `jiraClient.findTransitionId()` + `jiraClient.transitionIssue()` | `transitionWorkItem()` calls `connector.transitionWorkItem()` |
+| `transitionIssue()` calls `jiraClient.findTransitionId()` + `jiraClient.transitionIssue()` | `transitionWorkItem()` — checks `supportsTransitions()` guard, then delegates (throws if not found) |
 | `postStartComment()`, `postErrorComment()`, etc. call `jiraClient.addComment()` | Same methods call `connector.addComment()` |
 
 ### 3.2 Resource Manager
@@ -31,10 +31,10 @@ This is the highest-risk phase — it touches the most files and changes real si
 
 | Before | After |
 |--------|-------|
-| Accepts `IJiraClient` | Accepts `IDataSourceConnector` |
+| Accepts `IJiraClient` | Accepts `IDataSourceConnector`, uses `supportsAttachments()` guard |
 | `fetchComments()` calls `jiraClient.getComments()` + `extractAdfText()` | `fetchComments()` calls `connector.getComments()` — body is already plain text |
-| `fetchHandoff()` calls `jiraClient.getAttachments()` / `downloadAttachment()` | `fetchHandoff()` calls `connector.getAttachments()` / `downloadAttachment()` |
-| `attachTranscript()` calls `jiraClient.addAttachment()` | `attachTranscript()` calls `connector.addAttachment()` |
+| `fetchHandoff()` calls `jiraClient.getAttachments()` / `downloadAttachment()` | `fetchHandoff()` — checks `supportsAttachments()` guard, then delegates |
+| `attachTranscript()` calls `jiraClient.addAttachment()` | `attachTranscript()` — checks `supportsAttachments()` guard, then delegates |
 
 Remove `extractAdfText` import — the connector already did the conversion.
 

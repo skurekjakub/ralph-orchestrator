@@ -6,7 +6,7 @@
 
 ## Goal
 
-Wrap the existing `src/jira/` code in a connector that implements `IDataSourceConnector`. This phase adds new files only — no existing code is modified. The JIRA connector must produce `WorkItem` / `WorkItemComment` objects that are structurally identical to what the orchestrator currently gets from `JiraIssue` / `JiraComment`.
+Wrap the existing `src/jira/` code in a connector that implements `IDataSourceConnector` (the intersection of `IWorkItemSource`, `IWorkItemComments`, `IWorkItemTransitions`, `IWorkItemAttachments`). This phase adds new files only — no existing code is modified. The JIRA connector must produce `WorkItem` / `WorkItemComment` objects that are structurally identical to what the orchestrator currently gets from `JiraIssue` / `JiraComment`.
 
 ## Directory Structure
 

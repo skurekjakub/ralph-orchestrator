@@ -140,14 +140,17 @@ for (const [name, dsConfig] of Object.entries(dataSources)) {
   pollers.set(name, createPoller(dsConfig, connectors.get(name)!));
 }
 
-// Register as named values
+// Register the connector and pollers
 container.register({
   connectors: asValue(connectors),
   pollers: asValue(pollers),
 });
 ```
 
-Services that need a connector receive the `connectors` map and look up their profile's `dataSource` key at call time.
+Services declare their dependencies on the base connector:
+- `IssueManager` → `{ connector: IDataSourceConnector, logger }` (uses `supportsTransitions()` guard internally)
+- `ResourceManager` → `{ connector: IDataSourceConnector, logger }` (uses `supportsAttachments()` guard internally)
+- `TriggerScanner` → `{ issueManager, ... }` (unchanged — goes through `IIssueManager`)
 
 ### 5.6 Multi-Poller Orchestrator
 
