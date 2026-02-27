@@ -59,8 +59,8 @@ describe("OrchestratorObserver", () => {
       const observer = new OrchestratorObserver(() =>
         makeContext({
           pendingOps: [
-            { issueKey: "DOC-1", variant: "tech-writer" },
-            { issueKey: "DOC-2", variant: "reviewer" },
+            { taskId: "DOC-1", variant: "tech-writer" },
+            { taskId: "DOC-2", variant: "reviewer" },
           ],
         })
       );
@@ -187,9 +187,9 @@ describe("OrchestratorObserver", () => {
       const observer = new OrchestratorObserver(() =>
         makeContext({
           pendingOps: [
-            { issueKey: "DOC-1", variant: "v1" },
-            { issueKey: "DOC-2", variant: "v2" },
-            { issueKey: "DOC-3", variant: "v3" },
+            { taskId: "DOC-1", variant: "v1" },
+            { taskId: "DOC-2", variant: "v2" },
+            { taskId: "DOC-3", variant: "v3" },
           ],
         })
       );

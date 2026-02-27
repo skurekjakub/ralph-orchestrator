@@ -33,7 +33,7 @@ If you find an existing topic that's related to your observation, use `reply_to_
 ### After Completing Work — Post Task Report
 
 Before the exit phase:
-- search by issue key for existing thread: {{ issueKey }}
+- search by issue key for existing thread: {{ taskId }}
   - if found, reply to thread with additional observations/task commentary.
   - if not found, post a task report using `post_task_report`:
 

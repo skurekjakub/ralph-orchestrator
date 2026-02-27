@@ -178,8 +178,8 @@ export function createMockContainer(
   container: IContainerManager;
   spies: Record<string, ReturnType<typeof vi.fn>>;
 } {
-  const issueKey = executeResult?.issueKey ?? "MOCK-1";
-  const result: RalphResult = makeResult(issueKey, executeResult);
+  const taskId = executeResult?.taskId ?? "MOCK-1";
+  const result: RalphResult = makeResult(taskId, executeResult);
 
   const spies = {
     start: vi.fn().mockResolvedValue(undefined),

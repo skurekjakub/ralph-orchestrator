@@ -2,13 +2,13 @@
 
 ### Phase 1: Setup
 
-1. **You are working on {{ issueKey }}: {{ issueSummary }}**. Parse the full issue details from your prompt — extract the description, acceptance criteria, and any linked resources.
+1. **You are working on {{ taskId }}: {{ taskTitle }}**. Parse the full issue details from your prompt — extract the description, acceptance criteria, and any linked resources.
 2. **Create a fresh branch** from `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`:
-   Example: `ralph/{{ issueKey }}-<short-slug>`
-3. **Create the workload directory**: `resources/chats/{{ issueKey }}/`
-4. **Create the scratchpad file**: `resources/chats/{{ issueKey }}/state.md` — use this to track decisions, identifiers, and file paths as you go. Re-read it before each phase to maintain consistency across the full task.
-5. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ issueKey }} primarily.
-6. Comment on **{{ issueKey }}** that you're starting work.
+   Example: `ralph/{{ taskId }}-<short-slug>`
+3. **Create the workload directory**: `resources/chats/{{ taskId }}/`
+4. **Create the scratchpad file**: `resources/chats/{{ taskId }}/state.md` — use this to track decisions, identifiers, and file paths as you go. Re-read it before each phase to maintain consistency across the full task.
+5. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ taskId }} primarily.
+6. Comment on **{{ taskId }}** that you're starting work.
 
 ### Phase 2: Research (Sub-agent)
 
@@ -90,7 +90,7 @@ If the reviewer returns **APPROVED** at any point, skip remaining cycles and pro
 Commit with a descriptive message:
 
 ```
-git commit -m "docs({{ issueKey }}): <brief description of changes>"
+git commit -m "docs({{ taskId }}): <brief description of changes>"
 ```
 
 ### Phase 7: Create Pull Request
@@ -101,8 +101,8 @@ Use the Azure DevOps REST API to create a draft PR for this branch.
 
 - ADO repo: `kentico-docs-jekyll`
 - Target branch: `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`
-- Title: `{{ issueKey }} - {{ issueSummary }}`
-- Source branch: `ralph/{{ issueKey }}-<short-slug>`
+- Title: `{{ taskId }} - {{ taskTitle }}`
+- Source branch: `ralph/{{ taskId }}-<short-slug>`
 
 If the API returns an unrecoverable error that isn't caused by a malformed request (such as unauthorized → expired PAT), note it in the handoff and set the PR URL to "none" in the exit block.
 
@@ -110,10 +110,10 @@ Note the PR URL/ID for the handoff file.
 
 ### Phase 8: Write Handoff & Report to JIRA
 
-1. **Create the handoff file** at `/tmp/mcp-attachments/handoff-{{ issueKey }}.md`:
+1. **Create the handoff file** at `/tmp/mcp-attachments/handoff-{{ taskId }}.md`:
 
 ```markdown
-# Handoff: {{ issueKey }} — {{ issueSummary }}
+# Handoff: {{ taskId }} — {{ taskTitle }}
 
 ## Task Status
 <!-- completed | partial | blocked -->
@@ -146,9 +146,9 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 <!-- What the human should do after reviewing -->
 ```
 
-2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` MCP tool with issue key `{{ issueKey }}` and file name `handoff.md`.
+2. **Attach the handoff file to the JIRA issue** using the `jira_add_attachment` MCP tool with issue key `{{ taskId }}` and file name `handoff.md`.
 
-3. **Post a completion comment** on **{{ issueKey }}** using `jira_add_comment`. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
+3. **Post a completion comment** on **{{ taskId }}** using `jira_add_comment`. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
 
    **Source code evidence:** If any documentation claims are based on exploring the Xperience source code, include a "Source References" section in the comment. Consult the **ralph-source-references** skill for the source browser URL format.
 
@@ -160,11 +160,11 @@ Print a final summary to stdout in this **exact format** — the orchestrator pa
 
 ```
 ===RALPH_RESULT_START===
-JIRA_KEY: {{ issueKey }}
+JIRA_KEY: {{ taskId }}
 STATUS: <completed|partial|blocked>
-BRANCH: ralph/{{ issueKey }}-<short-slug>
+BRANCH: ralph/{{ taskId }}-<short-slug>
 PR_URL: <full ADO PR URL, or "none" if PR creation failed>
-HANDOFF: /tmp/mcp-attachments/handoff-{{ issueKey }}.md
+HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
 SUMMARY: <one-line description of what was done>
 ===RALPH_RESULT_END===
 ```

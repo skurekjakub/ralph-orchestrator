@@ -1,6 +1,6 @@
 ## Revision Workflow
 
-**This is a revision of a previous attempt for {{ issueKey }}.** A human reviewer has looked at your previous work, found issues, and transitioned the JIRA issue back for fixes.
+**This is a revision of a previous attempt for {{ taskId }}.** A human reviewer has looked at your previous work, found issues, and transitioned the JIRA issue back for fixes.
 
 Your prompt already contains:
 - The **previous handoff file** (your earlier decisions and what was accomplished)
@@ -12,22 +12,22 @@ Your prompt already contains:
 1. **Read the previous handoff file** embedded in your prompt — understand what was done, what decisions were made, and the PR details
 2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
 3. **Search ralphchives** (skill: **ralph-ralphchives**) for any observations or gotchas related to this issue from previous runs
-4. You are revising **{{ issueKey }}: {{ issueSummary }}** — use this key for branch/commit naming
+4. You are revising **{{ taskId }}: {{ taskTitle }}** — use this key for branch/commit naming
 
 ### Revision Phase 2: Find Existing PR & Branch
 
-1. **Find the existing branch** matching the pattern `ralph/{{ issueKey }}-*`:
+1. **Find the existing branch** matching the pattern `ralph/{{ taskId }}-*`:
    ```bash
    git fetch origin
-   git branch -r | grep "ralph/{{ issueKey }}"
+   git branch -r | grep "ralph/{{ taskId }}"
    ```
 2. **Switch to the existing branch** (do NOT create a new one):
    ```bash
-   git checkout ralph/{{ issueKey }}-<slug>
-   git pull origin ralph/{{ issueKey }}-<slug>
+   git checkout ralph/{{ taskId }}-<slug>
+   git pull origin ralph/{{ taskId }}-<slug>
    ```
 3. **Find the existing PR** using the ADO MCP server:
-   - Use `ado_list_pull_requests` with `repositoryId: "kentico-docs-jekyll"` and `project: "CustomerEducation"`, filtering by source branch `refs/heads/ralph/{{ issueKey }}-<slug>`
+   - Use `ado_list_pull_requests` with `repositoryId: "kentico-docs-jekyll"` and `project: "CustomerEducation"`, filtering by source branch `refs/heads/ralph/{{ taskId }}-<slug>`
    - Note the PR ID from the result
 4. **Read ALL PR review threads** to understand inline feedback:
    - Use `ado_list_pull_request_threads` with the PR ID from above
@@ -59,19 +59,19 @@ If the changes are substantial, delegate to the **ralph-reviewer** sub-agent for
 1. Stage and commit changes:
    ```bash
    git add -A
-   git commit -m "docs({{ issueKey }}): address review feedback"
+   git commit -m "docs({{ taskId }}): address review feedback"
    ```
 2. Push to the **existing branch** (not a new one):
    ```bash
-   git push origin ralph/{{ issueKey }}-<slug>
+   git push origin ralph/{{ taskId }}-<slug>
    ```
 3. **Respond to PR review threads** — for each comment thread that you addressed, use `ado_reply_to_comment` with the thread ID and a brief explanation of the fix.
 
 ### Revision Phase 6: Update Handoff & Report
 
-1. **Update the handoff file** at `/tmp/mcp-attachments/handoff-{{ issueKey }}.md` — add a "Revision" section at the top documenting what feedback was addressed and what changed
-2. **Attach the updated handoff** to **{{ issueKey }}** using the `jira_add_attachment` MCP tool with file name `handoff.md`
-3. **Post a completion comment** on **{{ issueKey }}** summarizing what was changed and linking to the PR
+1. **Update the handoff file** at `/tmp/mcp-attachments/handoff-{{ taskId }}.md` — add a "Revision" section at the top documenting what feedback was addressed and what changed
+2. **Attach the updated handoff** to **{{ taskId }}** using the `jira_add_attachment` MCP tool with file name `handoff.md`
+3. **Post a completion comment** on **{{ taskId }}** summarizing what was changed and linking to the PR
 4. **Post to ralphchives** (skill: **ralph-ralphchives**) — post a task report summarizing the revision changes
 
 ### Revision Phase 7: Exit
@@ -80,11 +80,11 @@ Print the result block:
 
 ```
 ===RALPH_RESULT_START===
-JIRA_KEY: {{ issueKey }}
+JIRA_KEY: {{ taskId }}
 STATUS: <completed|partial|blocked>
-BRANCH: ralph/{{ issueKey }}-<slug>
+BRANCH: ralph/{{ taskId }}-<slug>
 PR_URL: <full ADO PR URL>
-HANDOFF: /tmp/mcp-attachments/handoff-{{ issueKey }}.md
+HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
 SUMMARY: <one-line description of revision changes>
 ===RALPH_RESULT_END===
 ```

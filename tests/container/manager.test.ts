@@ -286,7 +286,7 @@ describe("ContainerManager", () => {
 
       const result = await manager.execute(makeWorkItem("DF-400"));
 
-      expect(result.issueKey).toBe("DF-400");
+      expect(result.taskId).toBe("DF-400");
       expect(result.status).toBe(TaskStatus.Partial);
       expect(result.prUrl).toBe("https://dev.azure.com/pr/2");
       expect(result.durationMs).toBeGreaterThanOrEqual(0);

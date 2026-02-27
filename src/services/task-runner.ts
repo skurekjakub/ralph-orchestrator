@@ -128,7 +128,7 @@ export class TaskRunner implements ITaskRunner {
       );
 
       const errorResult: RalphResult = {
-        issueKey: ctx.workItem.id,
+        taskId: ctx.workItem.id,
         status: TaskStatus.Error,
         durationMs: 0,
         exitCode: 1,

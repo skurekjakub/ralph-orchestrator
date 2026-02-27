@@ -22,14 +22,14 @@ export interface ILogSourceRegistry {
    *
    * @param logs       The log collector to register sources on.
    * @param profile    Agent profile providing paths (audit log, etc.).
-   * @param issueKey   JIRA key used as the filename prefix.
+   * @param taskId     Work item id used as the filename prefix.
    * @param callbacks  Optional real-time line callbacks for streamed sources.
    * @param cliPaths   CLI-specific filesystem paths.
    */
   registerAll(
     logs: IContainerLogCollector,
     profile: IAgentProfile,
-    issueKey: string,
+    taskId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void;
@@ -52,11 +52,11 @@ export class LogSourceRegistry implements ILogSourceRegistry {
   registerAll(
     logs: IContainerLogCollector,
     profile: IAgentProfile,
-    issueKey: string,
+    taskId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void {
-    logs.setTaskId(issueKey);
+    logs.setTaskId(taskId);
 
     logs.addSource({
       id: "audit",

@@ -26,10 +26,10 @@ If you find an existing topic that's related to your observation, use `reply_to_
 ### After Completing Work — Post Task Report
 
 Before the exit phase, post your observations about the task:
-- **Title:** `{{ issueKey }} <nice helpful title>`
+- **Title:** `{{ taskId }} <nice helpful title>`
 - IMPORTANT: If a task report already exists for this issue, add to the thread — don't create a new one
 - **Content:** Don't post a rigid summary; write freeform commentary on the accomplished work, gotchas, and interesting things you discovered or realized about the codebase.
-- **Tags:** `["{{ issueKey }}", "{{ issueProject }}", "<anything pertinent - single word per tag>"]`
+- **Tags:** `["{{ taskId }}", "{{ taskProject }}", "<anything pertinent - single word per tag>"]`
 
 This report becomes searchable for future agents working on related tasks.
 {% endsection %}

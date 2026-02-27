@@ -51,8 +51,8 @@ export enum TaskStatus {
  * status) and paths to locally-saved log files.
  */
 export interface RalphResult {
-  /** JIRA issue key (e.g. `DF-2759`). */
-  issueKey: string;
+  /** Work item identifier (e.g. `DF-2759`). */
+  taskId: string;
   /** Final task status — may come from the agent's structured output block or be inferred from the exit code. */
   status: TaskStatus;
   /** Wall-clock duration in milliseconds. */

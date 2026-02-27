@@ -186,7 +186,7 @@ describe("ContainerLogCollector", () => {
       mode: CaptureMode.Collect,
     });
 
-    await expect(collector.collectAll()).rejects.toThrow("Issue key not set");
+    await expect(collector.collectAll()).rejects.toThrow("Task ID not set");
   });
 
   it("uses consistent timestamp across all sources in one collectAll call", async () => {

@@ -33,13 +33,13 @@ export function LogBrowser() {
   const issueGroups = useMemo(() => {
     const map = new Map<string, IssueGroup>();
     for (const group of taskGroups) {
-      if (!map.has(group.issueKey)) {
-        map.set(group.issueKey, {
-          issueKey: group.issueKey,
+      if (!map.has(group.taskId)) {
+        map.set(group.taskId, {
+          taskId: group.taskId,
           executions: [],
         });
       }
-      map.get(group.issueKey)!.executions.push(group);
+      map.get(group.taskId)!.executions.push(group);
     }
     for (const ig of map.values()) {
       ig.executions.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
@@ -91,7 +91,7 @@ export function LogBrowser() {
           <div className="p-2">
             {issueGroups.map((ig) => (
               <IssueGroupSection
-                key={ig.issueKey}
+                key={ig.taskId}
                 group={ig}
                 onSelectFile={selectFile}
                 onOpenTimeline={openTimeline}

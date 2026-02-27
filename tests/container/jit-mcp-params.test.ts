@@ -36,11 +36,11 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(readFileSync).mockReturnValue("{}");
   });
 
-  it("resolves $jira.key macro into gateway.json", () => {
+  it("resolves $task.id macro into gateway.json", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("jira-kentico", { JIRA_PAT: "secret" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -54,11 +54,11 @@ describe("JitMcpConfigWriter", () => {
     });
   });
 
-  it("resolves $jira.project macro from issue key prefix", () => {
+  it("resolves $task.project macro from issue key prefix", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { PROJECT: "$jira.project" } },
+      mcpServerConfigs: { ado: { PROJECT: "$task.project" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -69,11 +69,11 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.PROJECT).toBe("DOC");
   });
 
-  it("resolves $jira.branch macro to slugified branch name", () => {
+  it("resolves $task.branch macro to slugified branch name", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { TASK_BRANCH: "$jira.branch" } },
+      mcpServerConfigs: { ado: { TASK_BRANCH: "$task.branch" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -84,11 +84,11 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.TASK_BRANCH).toBe("ralph/DOC-3143-update-api-docs-for-v2");
   });
 
-  it("resolves $jira.summary macro to raw summary", () => {
+  it("resolves $task.title macro to raw summary", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { SUMMARY: "$jira.summary" } },
+      mcpServerConfigs: { ado: { SUMMARY: "$task.title" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -122,8 +122,8 @@ describe("JitMcpConfigWriter", () => {
       mcpServerConfigs: {
         ado: {
           ADO_PROJECT: "CustomerEducation",
-          TASK_BRANCH: "$jira.branch",
-          JIRA_KEY: "$jira.key",
+          TASK_BRANCH: "$task.branch",
+          JIRA_KEY: "$task.id",
         },
       },
     });
@@ -145,7 +145,7 @@ describe("JitMcpConfigWriter", () => {
     const profile = makeProfile({
       id: "ralph-docs",
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([
       makeGatewayServer("jira-kentico", { JIRA_PAT: "token123", JIRA_EMAIL: "a@b.com" }),
@@ -185,7 +185,7 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(existsSync).mockReturnValue(false);
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const logger = createMockLogger();
 
@@ -210,7 +210,7 @@ describe("JitMcpConfigWriter", () => {
   it("warns and skips when server is in config but not in gateway.json", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const gateway = makeGateway([]); // empty
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -225,7 +225,7 @@ describe("JitMcpConfigWriter", () => {
   it("handles multiple servers — only injects into those with configs", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico", "playwright"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([
       makeGatewayServer("jira-kentico", { JIRA_PAT: "s1" }),
@@ -244,7 +244,7 @@ describe("JitMcpConfigWriter", () => {
   it("logs the injection count", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("jira-kentico")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -316,7 +316,7 @@ describe("JitMcpConfigWriter", () => {
       mcpServerConfigs: {
         ado: {
           ADO_PROJECT: "CustomerEducation",
-          TASK_BRANCH: "$jira.branch",
+          TASK_BRANCH: "$task.branch",
           TARGET_BRANCH: "$trigger.target_branch",
         },
       },
@@ -335,7 +335,7 @@ describe("JitMcpConfigWriter", () => {
   it("skips server config for servers not in mcpServers list", () => {
     const profile = makeProfile({
       mcpServers: ["playwright"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("playwright")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -427,7 +427,7 @@ describe("JitMcpConfigWriter", () => {
           "ralphchives-write": {
             NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN",
             NODEBB_CATEGORY_NAME: "ralph-docs",
-            JIRA_KEY: "$jira.key",
+            JIRA_KEY: "$task.id",
           },
         },
       });

@@ -1,8 +1,53 @@
 # Phase 4: Migrate Prompt & Container Layers
 
-> **Effort:** Medium (2-3 days)
-> **Depends on:** Phase 3
-> **Prerequisite for:** Phase 5
+> **Status:** ✅ COMPLETE
+> **Completed:** All code-level type migrations (Phase 3 cascade) + naming cleanup (Phase 4)
+> **Tests:** 881/881 green, tsc clean
+
+## Summary
+
+Phase 4 was split across two sessions:
+1. **Code migrations** (completed in Phase 3) — all prompt/container/JIT layers moved from JiraIssue→WorkItem
+2. **Naming cleanup** (completed in this session) — see below
+
+## Naming Changes Applied
+
+### TemplateContext Fields (agent-includes.ts)
+- `issueKey` → `taskId`, `issueSummary` → `taskTitle`, `issueDescription` → `taskDescription`
+- `issueStatus` → `taskStatus`, `issueType` → `taskType`, `issuePriority` → `taskPriority`
+- `issueLabels` → `taskLabels`, `issueComponents` → `taskComponents`, `issueProject` → `taskProject`
+- `issueCreated` → `taskCreated`, `issueUpdated` → `taskUpdated`
+
+### Macros ($jira.* → $task.*) — jit-mcp-params.ts + profile.json
+- `$jira.key` → `$task.id`, `$jira.project` → `$task.project`
+- `$jira.branch` → `$task.branch`, `$jira.summary` → `$task.title`
+
+### RalphResult Field
+- `issueKey` → `taskId` (container/types.ts + all consumers)
+
+### Liquid Templates
+- All `{{ issueKey }}` → `{{ taskId }}`, `{{ issueSummary }}` → `{{ taskTitle }}`, etc.
+- Updated across 6 agent templates, 4 shared includes, 1 skill file
+
+### Other
+- `branch.ts`: param renamed `issueKey` → `taskId`
+- `log-collector.ts`, `log-source-registry.ts`: field/param renamed
+- `orchestrator-observer.ts`: `pendingOps.issueKey` → `pendingOps.taskId`
+- Dashboard-local: 5 files updated
+- 9 documentation files updated
+- 9 test files updated
+
+### 4.7 PromptSectionSource Enum
+- `PromptSectionSource.JiraComment` → `PromptSectionSource.Comment`
+
+## Already Completed (in Phase 3)
+
+- ✅ 4.1 Prompt Builder — `buildPrompt(WorkItem)`, no ADF/JiraFieldExtractor
+- ✅ 4.2 Template Context — `buildTemplateContext(WorkItem)`, reads from WorkItem fields
+- ✅ 4.3 JIT MCP Params — MACROS read from WorkItem fields
+- ✅ 4.4 Container Manager — `execute(WorkItem)`
+- ✅ 4.5 Continuation Runner — WorkItem throughout
+- ✅ 4.6 Container Lifecycle — WorkItem for branch naming
 
 ## Goal
 

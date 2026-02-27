@@ -45,7 +45,7 @@ This is a revision task. Follow the [Revision Workflow](../../resources/ralph-re
 
 ## Phase 1 — Greet & understand the task
 
-1. **You are working on {{ issueKey }}: {{ issueSummary }}.** Post a greeting comment on **{{ issueKey }}**. Introduce yourself, acknowledge the task, and show some personality. Use rich wiki markup formatting.
+1. **You are working on {{ taskId }}: {{ taskTitle }}.** Post a greeting comment on **{{ taskId }}**. Introduce yourself, acknowledge the task, and show some personality. Use rich wiki markup formatting.
 2. Read the full issue details (description, acceptance criteria, linked resources) from your prompt.
 3. **Delegate analysis to the `ralph-analyst` sub-agent** — pass the full JIRA issue details (key, summary, description) and let it research the codebase and suggest an implementation path. Review its analysis before proceeding.
 
@@ -113,7 +113,7 @@ git push origin "$BRANCH"
 Create `/tmp/mcp-attachments/handoff.md` with a summary of all changes made:
 
 ```markdown
-# Handoff — {{ issueKey }}
+# Handoff — {{ taskId }}
 
 ## Summary
 <Brief description of what was accomplished>
@@ -130,11 +130,11 @@ Create `/tmp/mcp-attachments/handoff.md` with a summary of all changes made:
 
 ### Upload handoff to JIRA
 
-Use the `jira_add_attachment` tool to upload `handoff.md` to **{{ issueKey }}**.
+Use the `jira_add_attachment` tool to upload `handoff.md` to **{{ taskId }}**.
 
 ### Post completion comment
 
-Post a rich comment on **{{ issueKey }}**. Include whatever you think is useful — changes summary, PR link, test results, caveats, follow-ups. Use headings, bullet lists, bold, links, code blocks, emoji — format it so a reviewer can scan it quickly.
+Post a rich comment on **{{ taskId }}**. Include whatever you think is useful — changes summary, PR link, test results, caveats, follow-ups. Use headings, bullet lists, bold, links, code blocks, emoji — format it so a reviewer can scan it quickly.
 
 ## Phase 8 — Report results
 

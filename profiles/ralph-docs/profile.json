@@ -8,7 +8,7 @@
     {
       "name": "jira-kentico",
       "env": {
-        "JIRA_ISSUE_KEY": "$jira.key"
+        "JIRA_ISSUE_KEY": "$task.id"
       }
     },
     {
@@ -16,7 +16,7 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-jekyll",
-        "TASK_BRANCH": "$jira.branch"
+        "TASK_BRANCH": "$task.branch"
       }
     },
     { "name": "web-fetch" },

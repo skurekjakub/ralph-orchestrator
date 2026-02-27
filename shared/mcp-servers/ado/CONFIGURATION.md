@@ -25,7 +25,7 @@ These are set in the orchestrator's `.env` file and injected into the sidecar at
 
 | Variable | Description | Macro support |
 |---|---|---|
-| `TASK_BRANCH` | Source branch for the task (e.g. `refs/heads/feature`) | `$jira.branch` |
+| `TASK_BRANCH` | Source branch for the task (e.g. `refs/heads/feature`) | `$task.branch` |
 
 When `ADO_PROJECT`, `ADO_REPO`, or `TASK_BRANCH` are set, the corresponding parameters are removed from tool input schemas — simplifying the agent's interface by pre-scoping tools to the task context.
 
@@ -39,12 +39,12 @@ Add to the `mcpServers` array in `profile.json`:
   "env": {
     "ADO_PROJECT": "CustomerEducation",
     "ADO_REPO": "kentico-docs-jekyll",
-    "TASK_BRANCH": "$jira.branch"
+    "TASK_BRANCH": "$task.branch"
   }
 }
 ```
 
-The `$jira.branch` macro resolves to the task's branch name at runtime (built from the JIRA issue key via `slugifyBranch()`).
+The `$task.branch` macro resolves to the task's branch name at runtime (built from the JIRA issue key via `slugifyBranch()`).
 
 ## Tools
 

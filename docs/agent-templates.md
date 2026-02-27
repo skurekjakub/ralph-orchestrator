@@ -33,7 +33,7 @@ shared/agent-includes/               — Shared Liquid partials
 
 The Liquid engine uses `extname: ".md"` — partials are referenced without extensions (e.g. `{% render 'personality/ralph' %}` resolves to `shared/agent-includes/personality/ralph.md`).
 
-Context variables are passed as **Liquid globals**, not just `parseAndRender` scope. This is critical because `{% render %}` creates an isolated scope — globals are the only way to make variables like `{{ issueKey }}` accessible inside partials.
+Context variables are passed as **Liquid globals**, not just `parseAndRender` scope. This is critical because `{% render %}` creates an isolated scope — globals are the only way to make variables like `{{ taskId }}` accessible inside partials.
 
 ## Template Variable Reference
 
@@ -51,21 +51,21 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 | `displayName` | `string` | `"ralph"` | Human-friendly name (prefix stripped) |
 | `mcpServers` | `string[]` | `["jira-kentico", "ado"]` | MCP servers available to this profile |
 
-### JIRA Issue Data
+### Task Data
 
 | Variable | Type | Example | Description |
 |---|---|---|---|
-| `issueKey` | `string` | `"DOC-3143"` | JIRA issue key |
-| `issueSummary` | `string` | `"Document custom modules"` | Issue title |
-| `issueStatus` | `string` | `"To Do"` | Current JIRA workflow status |
-| `issueType` | `string` | `"Task"` | Issue type, or empty string |
-| `issuePriority` | `string` | `"High"` | Priority, or empty string |
-| `issueLabels` | `string[]` | `["xperience", "migration"]` | Labels attached to the issue |
-| `issueComponents` | `string[]` | `["Documentation"]` | Component names |
-| `issueProject` | `string` | `"DOC"` | Project key (derived from issue key) |
-| `issueDescription` | `string` | *(normalized text)* | Plain-text description (untrusted JIRA content) |
-| `issueCreated` | `string` | `"2026-01-15T10:30:00.000+0000"` | ISO-8601 creation timestamp |
-| `issueUpdated` | `string` | `"2026-02-20T14:00:00.000+0000"` | ISO-8601 last-updated timestamp |
+| `taskId` | `string` | `"DOC-3143"` | JIRA issue key |
+| `taskTitle` | `string` | `"Document custom modules"` | Issue title |
+| `taskStatus` | `string` | `"To Do"` | Current JIRA workflow status |
+| `taskType` | `string` | `"Task"` | Issue type, or empty string |
+| `taskPriority` | `string` | `"High"` | Priority, or empty string |
+| `taskLabels` | `string[]` | `["xperience", "migration"]` | Labels attached to the issue |
+| `taskComponents` | `string[]` | `["Documentation"]` | Component names |
+| `taskProject` | `string` | `"DOC"` | Project key (derived from issue key) |
+| `taskDescription` | `string` | *(normalized text)* | Plain-text description (untrusted JIRA content) |
+| `taskCreated` | `string` | `"2026-01-15T10:30:00.000+0000"` | ISO-8601 creation timestamp |
+| `taskUpdated` | `string` | `"2026-02-20T14:00:00.000+0000"` | ISO-8601 last-updated timestamp |
 
 ### Trigger Metadata
 

@@ -271,7 +271,7 @@ describe("loadConfig", () => {
       stubProfiles(JSON.stringify({
         repo: "/tmp/test",
         mcpServers: [
-          { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$jira.key" } },
+          { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$task.id" } },
           "playwright",
           { name: "ado", env: { ADO_PROJECT: "Proj" } },
         ],
@@ -280,7 +280,7 @@ describe("loadConfig", () => {
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "playwright", "ado"]);
       expect(config.profiles[0].mcpServerConfigs).toEqual({
-        "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" },
+        "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" },
         "ado": { ADO_PROJECT: "Proj" },
       });
     });

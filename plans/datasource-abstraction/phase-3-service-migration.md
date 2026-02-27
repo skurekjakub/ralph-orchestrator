@@ -1,8 +1,12 @@
 # Phase 3: Migrate Core Services to `WorkItem`
 
+> **Status:** COMPLETE
 > **Effort:** High (4-5 days)
 > **Depends on:** Phase 2
 > **Prerequisite for:** Phase 4, Phase 5
+>
+> Phase 3 cascaded into Phase 4 — all code-level prompt/container/template changes
+> were required by type compatibility and completed here. Phase 4 reduces to naming-only tasks.
 
 ## Goal
 

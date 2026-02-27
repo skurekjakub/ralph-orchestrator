@@ -74,7 +74,7 @@ describe("Log collector", () => {
     });
 
     const summary = {
-      issueKey: result.issueKey,
+      taskId: result.taskId,
       status: result.status,
       durationMs: result.durationMs,
       exitCode: result.exitCode,
@@ -87,7 +87,7 @@ describe("Log collector", () => {
     const json = JSON.stringify(summary, null, 2);
     const parsed = JSON.parse(json);
 
-    expect(parsed.issueKey).toBe("DF-2704");
+    expect(parsed.taskId).toBe("DF-2704");
     expect(parsed.status).toBe(TaskStatus.Completed);
     expect(parsed.durationMs).toBe(120000);
     expect(parsed.prUrl).toBe("https://dev.azure.com/pr/1");

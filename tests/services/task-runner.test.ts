@@ -42,7 +42,7 @@ describe("TaskRunner", () => {
   });
 
   it("executes the full pipeline: transition → comment → start → setup → execute → collect", async () => {
-    const { container, spies } = createMockContainer({ issueKey: "DF-100", prUrl: "https://github.com/pr/1" });
+    const { container, spies } = createMockContainer({ taskId: "DF-100", prUrl: "https://github.com/pr/1" });
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
     const resultWriter = createMockResultWriter();
@@ -59,7 +59,7 @@ describe("TaskRunner", () => {
     expect(spies.execute).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
-    expect(result.issueKey).toBe("DF-100");
+    expect(result.taskId).toBe("DF-100");
   });
 
   it("returns container reference for caller to stop", async () => {
@@ -164,7 +164,7 @@ describe("TaskRunner", () => {
       match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: ["Defect Found"] },
     });
     const revisionIssue = makeWorkItem("DF-200", "Revision issue", "Defect Found");
-    const { container } = createMockContainer({ issueKey: "DF-200" });
+    const { container } = createMockContainer({ taskId: "DF-200" });
     const factory = createMockFactory(container);
     const resources = createMockResources();
     const renderer = createMockTemplateRenderer();
@@ -175,7 +175,7 @@ describe("TaskRunner", () => {
     expect(resources.fetchHandoff).toHaveBeenCalledWith("DF-200");
     expect(renderer.render).toHaveBeenCalledWith(
       "ralph-docs",
-      expect.objectContaining({ isRevision: true, issueKey: "DF-200", issueStatus: "Defect Found" }),
+      expect.objectContaining({ isRevision: true, taskId: "DF-200", taskStatus: "Defect Found" }),
       logger,
     );
   });
@@ -190,7 +190,7 @@ describe("TaskRunner", () => {
 
     expect(renderer.render).toHaveBeenCalledWith(
       "ralph-docs",
-      expect.objectContaining({ isRevision: false, issueKey: "DF-100", profileId: "ralph-docs", triggerParams: {} }),
+      expect.objectContaining({ isRevision: false, taskId: "DF-100", profileId: "ralph-docs", triggerParams: {} }),
       logger,
     );
   });

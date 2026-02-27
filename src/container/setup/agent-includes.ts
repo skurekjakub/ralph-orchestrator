@@ -53,9 +53,9 @@ export async function resolveAgentIncludes(
 /**
  * Template variables available to agent `.agent.md` templates.
  *
- * Built from the parsed profile config and the current JIRA issue,
+ * Built from the parsed profile config and the current work item,
  * so templates can tailor instructions per-task (e.g. `{% if isRevision %}`,
- * `{% if issueProject == "DOC" %}`).
+ * `{% if taskProject == "DOC" %}`).
  */
 export interface TemplateContext {
   /** Allow Liquid to access any property — known fields are typed below. */
@@ -76,34 +76,34 @@ export interface TemplateContext {
   /** MCP servers deployed for this profile. */
   mcpServers: readonly string[];
 
-  /** JIRA issue key (e.g. `DF-2704`). */
-  issueKey: string;
-  /** JIRA issue summary / title. */
-  issueSummary: string;
-  /** Current JIRA workflow status (e.g. `To Do`, `Defect Found`). */
-  issueStatus: string;
-  /** JIRA issue type (e.g. `Task`, `Story`), or empty string if unavailable. */
-  issueType: string;
-  /** JIRA issue priority (e.g. `High`), or empty string if unavailable. */
-  issuePriority: string;
-  /** JIRA labels attached to the issue. */
-  issueLabels: string[];
-  /** JIRA component names attached to the issue. */
-  issueComponents: string[];
-  /** JIRA project key derived from the issue key (e.g. `DF`). */
-  issueProject: string;
+  /** Work item identifier (e.g. `DF-2704`). */
+  taskId: string;
+  /** Work item title / summary. */
+  taskTitle: string;
+  /** Current workflow status (e.g. `To Do`, `Defect Found`). */
+  taskStatus: string;
+  /** Work item type (e.g. `Task`, `Story`), or empty string if unavailable. */
+  taskType: string;
+  /** Work item priority (e.g. `High`), or empty string if unavailable. */
+  taskPriority: string;
+  /** Labels attached to the work item. */
+  taskLabels: string[];
+  /** Component names attached to the work item. */
+  taskComponents: string[];
+  /** Project key derived from the work item id (e.g. `DF`). */
+  taskProject: string;
   /**
-   * Plain-text issue description extracted from ADF and normalized.
+   * Plain-text work item description, normalized.
    *
-   * **Contains untrusted JIRA content.** Use with care in templates —
+   * **Contains untrusted content.** Use with care in templates —
    * prefer referencing the CLI prompt for full description rendering.
-   * Useful for Liquid conditionals (e.g. `{% if issueDescription contains "migration" %}`).
+   * Useful for Liquid conditionals (e.g. `{% if taskDescription contains "migration" %}`).
    */
-  issueDescription: string;
+  taskDescription: string;
   /** ISO-8601 creation timestamp (e.g. `2026-01-15T10:30:00.000+0000`). */
-  issueCreated: string;
+  taskCreated: string;
   /** ISO-8601 last-updated timestamp, or empty string if unavailable. */
-  issueUpdated: string;
+  taskUpdated: string;
 
   /** The comment trigger string that matched this variant (e.g. `@ralph write`). */
   commentTrigger: string;
@@ -150,17 +150,17 @@ export function buildTemplateContext(
     displayName: ctx.profile.displayName,
     mcpServers: ctx.profile.mcpServers,
 
-    issueKey: ctx.workItem.id,
-    issueSummary: ctx.workItem.title,
-    issueStatus: ctx.workItem.status,
-    issueType: ctx.workItem.type,
-    issuePriority: ctx.workItem.priority,
-    issueLabels: [...ctx.workItem.labels],
-    issueComponents: [...ctx.workItem.components],
-    issueProject: ctx.workItem.project,
-    issueDescription: ctx.workItem.description ? normalizeContent(ctx.workItem.description) : "",
-    issueCreated: ctx.workItem.created,
-    issueUpdated: ctx.workItem.updated,
+    taskId: ctx.workItem.id,
+    taskTitle: ctx.workItem.title,
+    taskStatus: ctx.workItem.status,
+    taskType: ctx.workItem.type,
+    taskPriority: ctx.workItem.priority,
+    taskLabels: [...ctx.workItem.labels],
+    taskComponents: [...ctx.workItem.components],
+    taskProject: ctx.workItem.project,
+    taskDescription: ctx.workItem.description ? normalizeContent(ctx.workItem.description) : "",
+    taskCreated: ctx.workItem.created,
+    taskUpdated: ctx.workItem.updated,
 
     commentTrigger: ctx.profile.match.commentTrigger,
     triggerParams: resolvedParams,
@@ -203,7 +203,7 @@ export interface IAgentTemplateRenderer {
  *
  * Accepts a pre-built {@link TemplateContext} and renders all agent
  * templates via Liquid. Called before each task so templates can use
- * runtime data like `{% if isRevision %}` or `{{ issueKey }}`.
+ * runtime data like `{% if isRevision %}` or `{{ taskId }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
   constructor() {}

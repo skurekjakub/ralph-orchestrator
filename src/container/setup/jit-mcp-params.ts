@@ -8,10 +8,10 @@ import { slugifyBranchName } from "../../util/branch.js";
 
 /** Known runtime macros resolved from the current work item context. */
 const MACROS: Record<string, (workItem: WorkItem) => string> = {
-  "$jira.key": (workItem) => workItem.id,
-  "$jira.project": (workItem) => workItem.project,
-  "$jira.branch": (workItem) => slugifyBranchName(workItem.id, workItem.title),
-  "$jira.summary": (workItem) => workItem.title,
+  "$task.id": (workItem) => workItem.id,
+  "$task.project": (workItem) => workItem.project,
+  "$task.branch": (workItem) => slugifyBranchName(workItem.id, workItem.title),
+  "$task.title": (workItem) => workItem.title,
 };
 
 const TRIGGER_PREFIX = "$trigger.";

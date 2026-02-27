@@ -117,8 +117,8 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
    ```json
    {
      "mcpServers": [
-       { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$jira.key" } },
-       { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "TASK_BRANCH": "$jira.branch" } }
+       { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$task.id" } },
+       { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "TASK_BRANCH": "$task.branch" } }
      ]
    }
    ```
@@ -135,10 +135,10 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
 | Macro | Resolves to | Example |
 |---|---|---|
-| `$jira.key` | JIRA issue key | `DOC-3143` |
-| `$jira.project` | Project key derived from issue key | `DOC` |
-| `$jira.branch` | Branch name: `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
-| `$jira.summary` | JIRA issue summary | `Update getting started guide` |
+| `$task.id` | JIRA issue key | `DOC-3143` |
+| `$task.project` | Project key derived from issue key | `DOC` |
+| `$task.branch` | Branch name: `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
+| `$task.title` | JIRA issue summary | `Update getting started guide` |
 | `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing) | `$trigger.branch` → `feature-xyz` |
 
 ### Manifest `requiredConfig`

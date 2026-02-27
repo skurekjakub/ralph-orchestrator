@@ -114,7 +114,7 @@ export class Orchestrator {
       activeTask: this.activeTask,
       running: this.running,
       pendingOps: this.ledger.getAllPending().map((p) => ({
-        issueKey: p.issueKey,
+        taskId: p.issueKey,
         variant: p.operation.variant,
       })),
       logEntries: this.activityLog.entries,

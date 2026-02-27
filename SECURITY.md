@@ -170,7 +170,7 @@ Each finding includes the pattern name, matched text (truncated), severity, and 
 
 ### Layer 4: Agent Security Instructions (`shared/agent-includes/prompt-security.md`)
 
-A shared Liquid partial injected into all top-level agent templates via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ issueKey }}`, `{{ issueProject }}`) to scope the agent's authorization to a specific JIRA issue:
+A shared Liquid partial injected into all top-level agent templates via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ taskId }}`, `{{ taskProject }}`) to scope the agent's authorization to a specific JIRA issue:
 
 - Assigns the agent to a specific issue key and project, rejecting requests targeting other issues
 - Treats content between `BEGIN/END UNTRUSTED JIRA DATA` delimiters strictly as task information

@@ -36,7 +36,7 @@ export interface IContainerManager {
   /** Execute a command inside the mcp-sidecar container. */
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
-  registerLogSources(issueKey: string): void;
+  registerLogSources(taskId: string): void;
   /** Execute the agent CLI inside the running container. */
   execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Tear down all containers and associated resources. */
@@ -186,10 +186,10 @@ export class ContainerManager implements IContainerManager {
    * Sets up the issue key on the log collector and registers all known log
    * sources (audit, transcript, tool output, proxy).
    *
-   * @param issueKey JIRA key used as the filename prefix for all collected logs.
+   * @param taskId Work item id used as the filename prefix for all collected logs.
    */
-  registerLogSources(issueKey: string): void {
-    this.logRegistry.registerAll(this.logs, this.profile, issueKey, {
+  registerLogSources(taskId: string): void {
+    this.logRegistry.registerAll(this.logs, this.profile, taskId, {
       onToolOutput: this.onToolOutput,
       onPreToolUse: this.onPreToolUse,
     }, this.cliPaths);
@@ -228,7 +228,7 @@ export class ContainerManager implements IContainerManager {
     const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
 
     return {
-      issueKey: workItem.id,
+      taskId: workItem.id,
       status,
       durationMs,
       exitCode: lastResult.exitCode,

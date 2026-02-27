@@ -7,7 +7,7 @@ import { HeartbeatStatus } from "./services/heartbeat.js";
 export interface ObservableContext {
   activeTask: ActiveTask | null;
   running: boolean;
-  pendingOps: { issueKey: string; variant: string }[];
+  pendingOps: { taskId: string; variant: string }[];
   logEntries: readonly LogEntry[];
   profileIds: readonly string[];
 }
@@ -73,7 +73,7 @@ export class OrchestratorObserver {
       completedToday: [...this.completedToday],
       queueSize: ctx.pendingOps.length,
       queueItems: ctx.pendingOps.map((p) => ({
-        key: p.issueKey,
+        key: p.taskId,
         summary: p.variant,
       })),
       logs: ctx.logEntries,

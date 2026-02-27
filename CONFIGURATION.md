@@ -99,8 +99,8 @@ shared/
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
   "composeProjectLabel": "ralph-sandbox",
   "mcpServers": [
-    { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$jira.key" } },
-    { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$jira.branch" } }
+    { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$task.id" } },
+    { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$task.branch" } }
   ],
   "resources": { "mountBase": "resources/ralph-resources" },
   "skills": ["git-workflow"],
@@ -213,14 +213,14 @@ Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` a
   "playwright",
   {
     "name": "jira-kentico",
-    "env": { "JIRA_ISSUE_KEY": "$jira.key" }
+    "env": { "JIRA_ISSUE_KEY": "$task.id" }
   },
   {
     "name": "ado",
     "env": {
       "ADO_PROJECT": "CustomerEducation",
       "ADO_REPO": "kentico-docs-jekyll",
-      "TASK_BRANCH": "$jira.branch"
+      "TASK_BRANCH": "$task.branch"
     }
   }
 ]
@@ -232,10 +232,10 @@ Server names must match a subdirectory of `shared/mcp-servers/`. Servers declare
 
 | Macro | Resolves to |
 |---|---|
-| `$jira.key` | JIRA issue key (e.g. `DOC-3143`) |
-| `$jira.project` | Project key prefix (e.g. `DOC`) |
-| `$jira.branch` | Branch name: `ralph/<issueKey>-<slugified-summary>` (max 80 chars) |
-| `$jira.summary` | JIRA issue summary text |
+| `$task.id` | JIRA issue key (e.g. `DOC-3143`) |
+| `$task.project` | Project key prefix (e.g. `DOC`) |
+| `$task.branch` | Branch name: `ralph/<taskId>-<slugified-summary>` (max 80 chars) |
+| `$task.title` | JIRA issue summary text |
 | `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`). Returns empty string if the parameter is missing. |
 
 Static values (no `$` prefix) are passed through as-is. All env values (static + resolved macros) are injected into the server's env block in `gateway.json` before each task by `JitMcpConfigWriter`.

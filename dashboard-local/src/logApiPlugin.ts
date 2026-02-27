@@ -38,7 +38,7 @@ export function logApiPlugin(): Plugin {
 
 interface TaskLogGroup {
   id: string;
-  issueKey: string;
+  taskId: string;
   timestamp?: number;
   files: {
     log?: string;
@@ -63,7 +63,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
       if (entry.startsWith("activity-") || entry.startsWith("container-")) {
         const key = entry.replace(/\.log$/, "");
         if (!taskMap.has(key)) {
-          taskMap.set(key, { id: key, issueKey: key, files: {} });
+          taskMap.set(key, { id: key, taskId: key, files: {} });
         }
         taskMap.get(key)!.files.log = entry;
       }
@@ -76,7 +76,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
 
       // Extract issue key and timestamp from folder name
       const dirMatch = entry.match(/^(.+?)-(\d{13,})$/);
-      const dirIssueKey = dirMatch ? dirMatch[1] : entry;
+      const dirTaskId = dirMatch ? dirMatch[1] : entry;
       const dirTimestamp = dirMatch ? Number(dirMatch[2]) : undefined;
 
       const files = readdirSync(entryPath).filter(
@@ -93,7 +93,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
         if (!taskMap.has(entry)) {
           taskMap.set(entry, {
             id: entry,
-            issueKey: dirIssueKey,
+            taskId: dirTaskId,
             timestamp: dirTimestamp,
             files: {},
           });
@@ -164,7 +164,7 @@ function handleHistoryList(logDir: string, res: import("node:http").ServerRespon
     const files = readdirSync(historyDir).filter((f) => f.endsWith(".json"));
     const entries = files.map((f) => ({
       filename: f,
-      issueKey: f.replace(".json", ""),
+      taskId: f.replace(".json", ""),
       data: JSON.parse(readFileSync(join(historyDir, f), "utf-8")),
     }));
     json(res, entries);
