@@ -176,6 +176,54 @@ describe("resolveSkillIncludes", () => {
 
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("my-skill/SKILL.md"));
   });
+
+  it("discovers skills nested in subdirectories and flattens to .build/<name>/", async () => {
+    const skillsDir = join(tmpDir, "shared", "skills");
+    const includesDir = join(tmpDir, "shared", "agent-includes");
+
+    // Skill nested under domain/ subfolder
+    await mkdir(join(skillsDir, "domain", "nested-skill"), { recursive: true });
+    await mkdir(includesDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "domain", "nested-skill", "SKILL.md"),
+      "Nested skill for {{ taskId }}",
+    );
+
+    await resolveSkillIncludes(skillsDir, ["nested-skill"], includesDir, {
+      taskId: "DOC-99",
+    });
+
+    // Output is flattened to .build/nested-skill/, not .build/domain/nested-skill/
+    const output = await readFile(join(skillsDir, ".build", "nested-skill", "SKILL.md"), "utf-8");
+    expect(output).toBe("Nested skill for DOC-99");
+  });
+
+  it("renders .md files in subdirectories recursively", async () => {
+    const skillsDir = join(tmpDir, "shared", "skills");
+    const includesDir = join(tmpDir, "shared", "agent-includes");
+
+    await mkdir(join(skillsDir, "ref-skill", "references"), { recursive: true });
+    await mkdir(includesDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "ref-skill", "SKILL.md"),
+      "Main skill for {{ taskId }}",
+    );
+    await writeFile(
+      join(skillsDir, "ref-skill", "references", "guide.md"),
+      "Guide for {{ taskId }}",
+    );
+
+    await resolveSkillIncludes(skillsDir, ["ref-skill"], includesDir, {
+      taskId: "DOC-77",
+    });
+
+    const main = await readFile(join(skillsDir, ".build", "ref-skill", "SKILL.md"), "utf-8");
+    const ref = await readFile(join(skillsDir, ".build", "ref-skill", "references", "guide.md"), "utf-8");
+    expect(main).toBe("Main skill for DOC-77");
+    expect(ref).toBe("Guide for DOC-77");
+  });
 });
 
 describe("SkillTemplateRenderer", () => {

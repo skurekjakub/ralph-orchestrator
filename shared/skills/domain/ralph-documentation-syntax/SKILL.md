@@ -42,9 +42,11 @@ toc:
 - `{% warning %}...{% endwarning %}` - Warnings and cautions
 - `{% key %}...{% endkey %}` - Key points
 - Option: `icon=false` hides the icon.
+- For guidance on choosing the right severity, see the **ralph-callout-selection** skill.
 
 ### Code Blocks
 
+**Inline code block** — content directly in the tag:
 ```liquid
 {% code lang=csharp title="Example.cs" highlight="4-7,10" linenumbers=true %}
 // code
@@ -54,6 +56,17 @@ toc:
 - Params: `lang`, `title`, `highlight`, `linenumbers`, `header` (true by default).
 - Supported `lang`: bash, bicep, c, css, csharp, cshtml, git, graphql, js, java, json, jsx, html, markdown, nginx, powershell, tsx, regex, sql, typescript, yaml.
 - Use `lang=text` for no highlighting.
+- If code contains Liquid-like syntax (`{%` or `{{`), wrap the code content with raw/endraw tags to prevent Liquid interpretation.
+
+**Linked code block** — pulls from the CodeSamples project:
+```liquid
+{% code_link source="CodeSamples/FeatureArea/ClassName.cs" lang=csharp title="Title" id="section-id" exclude="inner" %}
+```
+- `source` (required) — path relative to `src/_code/src/`
+- `lang` (required) — language
+- `id` (optional) — extract only the region between `//Include:section-id` and `//EndInclude:section-id` markers in the source file
+- `exclude` (optional) — exclude a nested region within the included section
+- `title`, `highlight`, `linenumbers` — same as `{% code %}`
 
 ### Assets
 
@@ -65,6 +78,8 @@ toc:
   - `disposition`: `download` (default) or `open`.
 - Video: `{% video "https://www.youtube.com/embed/ID" height=300 width=500 %}` or `{% video "local.mp4" width=500 %}`
   - YouTube must use `/embed/` URLs.
+- Arcade demo: `{% arcade https://demo.arcade.software/ID title="Demo Title" mobile=inline desktop=inline %}`
+  - `mobile`, `desktop`: `inline` or `tab`.
 
 ### Anchors and Links
 
@@ -98,6 +113,14 @@ If the target file cannot be found or has no `identifier`, do not fabricate an I
 
 ### Layout Components
 
+- Grid (responsive card layouts):
+  ```liquid
+  {% grid columns="3" %}
+  {% grid_item %}Content{% endgrid_item %}
+  {% grid_item %}Content{% endgrid_item %}
+  {% endgrid %}
+  ```
+  - `columns` (required, 1-12).
 - Columns:
   ```liquid
   {% columns %}
@@ -143,6 +166,7 @@ If the target file cannot be found or has no `identifier`, do not fabricate an I
 
 - Row options: `header`, `secondaryHeader`, `bgcolor`.
 - Cell options: `colspan`, `rowspan`.
+- Use `insidelist=true` when a table appears inside a list item.
 
 ### Related Pages
 

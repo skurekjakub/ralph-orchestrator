@@ -1,10 +1,60 @@
 import { readFile, writeFile, mkdir, readdir, cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, relative } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
 import { registerCustomTags } from "./liquid-tags.js";
 import type { TemplateContext } from "./agent-includes.js";
+
+/**
+ * Recursively collect all `.md` file paths under `dir`.
+ */
+async function collectMdFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...await collectMdFiles(full));
+    } else if (entry.name.endsWith(".md")) {
+      results.push(full);
+    }
+  }
+  return results;
+}
+
+/**
+ * Find a skill directory by name anywhere under `skillsDir`.
+ *
+ * Skills can be organized into arbitrary subdirectories for better
+ * organization (e.g., `shared/skills/domain/ralph-build-errors/`).
+ * The search looks for `<name>/SKILL.md` recursively and returns the
+ * matching directory path, or `undefined` if not found.
+ *
+ * Skips the `.build/` output directory.
+ */
+async function findSkillDir(skillsDir: string, name: string): Promise<string | undefined> {
+  // Fast path: check flat layout first
+  const flatPath = join(skillsDir, name);
+  if (existsSync(join(flatPath, "SKILL.md"))) return flatPath;
+
+  // Recursive search for nested layout
+  const entries = await readdir(skillsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === ".build") continue;
+    if (entry.name === name && existsSync(join(skillsDir, entry.name, "SKILL.md"))) {
+      return join(skillsDir, entry.name);
+    }
+    // Search one level deeper
+    const nested = join(skillsDir, entry.name);
+    const nestedPath = join(nested, name);
+    if (existsSync(join(nestedPath, "SKILL.md"))) return nestedPath;
+    // Recurse further
+    const found = await findSkillDir(nested, name);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 /**
  * Render skill templates to resolved files in `shared/skills/.build/<name>/`.
@@ -42,24 +92,25 @@ export async function resolveSkillIncludes(
   registerCustomTags(engine);
 
   for (const name of skillNames) {
-    const srcDir = join(skillsDir, name);
-    if (!existsSync(srcDir)) {
+    const srcDir = await findSkillDir(skillsDir, name);
+    if (!srcDir) {
       logger?.warn(`Skill directory not found: ${name}, skipping`);
       continue;
     }
 
+    // Always flatten to .build/<name>/ regardless of source nesting
     const destDir = join(buildDir, name);
     // Copy the entire skill directory first (preserves non-.md files unchanged)
     await cp(srcDir, destDir, { recursive: true });
 
-    // Then render all .md files in-place through Liquid
-    const files = await readdir(destDir);
-    for (const file of files.filter((f) => f.endsWith(".md"))) {
-      const filePath = join(destDir, file);
+    // Render all .md files recursively through Liquid
+    const mdFiles = await collectMdFiles(destDir);
+    for (const filePath of mdFiles) {
       const content = await readFile(filePath, "utf-8");
       const rendered = await engine.parseAndRender(content, context);
       await writeFile(filePath, rendered, "utf-8");
-      logger?.info(`  → skill ${name}/${file}: rendered`);
+      const relPath = relative(buildDir, filePath);
+      logger?.info(`  → skill ${relPath}: rendered`);
     }
   }
 }

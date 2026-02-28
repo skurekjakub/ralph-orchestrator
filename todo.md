@@ -70,10 +70,6 @@ agent itself -> squid -> only copilot apis.
 
 mcp container full access to web -> expose web fetch tool. https://github.com/damionrashford/RivalSearchMCP
 
-disable all default web access tools.
-
-
-
 filter orchestrator comments and params from the final prompt
 
 phased context augemnt - taskrunner now supports execution phases - leverage that to progressively augment agent context as it works on long horizon tasks - means multiple calls -> expensive

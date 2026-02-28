@@ -7,86 +7,19 @@ Your prompt already contains:
 - All **JIRA comments** (including reviewer feedback)
 - The original JIRA issue details
 
-### Revision Phase 1: Understand Feedback
+Execute the following phases **in order**. Before each phase, read the corresponding skill file for detailed instructions. After each phase, update `state.md` with your progress and the skills needed for the next phase.
 
-1. **Read the previous handoff file** embedded in your prompt — understand what was done, what decisions were made, and the PR details
-2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
-3. **Search ralphchives** (skill: **ralph-ralphchives**) for any observations or gotchas related to this issue from previous runs
-4. You are revising **{{ taskId }}: {{ taskTitle }}** — use this key for branch/commit naming
+**Your `state.md` file at `resources/chats/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase. It tells you where you are, what you've done, and which skills to read next.
 
-### Revision Phase 2: Find Existing PR & Branch
+| Phase | Skill | Summary |
+|-------|-------|---------|
+| 1–2. Setup | ralph-workflow-revision-setup | Understand feedback, find existing branch & PR |
+| 3–4. Fix | ralph-workflow-revision-fix | Implement fixes, optional review |
+| 5. Commit | ralph-workflow-revision-commit | Commit, push, respond to PR threads |
+| 6–7. Handoff & Exit | ralph-workflow-revision-handoff | Update handoff, JIRA comment, exit block |
 
-1. **Find the existing branch** matching the pattern `ralph/{{ taskId }}-*`:
-   ```bash
-   git fetch origin
-   git branch -r | grep "ralph/{{ taskId }}"
-   ```
-2. **Switch to the existing branch** (do NOT create a new one):
-   ```bash
-   git checkout ralph/{{ taskId }}-<slug>
-   git pull origin ralph/{{ taskId }}-<slug>
-   ```
-3. **Find the existing PR** using the ADO MCP server:
-   - Use `ado_list_pull_requests` with `repositoryId: "kentico-docs-jekyll"` and `project: "CustomerEducation"`, filtering by source branch `refs/heads/ralph/{{ taskId }}-<slug>`
-   - Note the PR ID from the result
-4. **Read ALL PR review threads** to understand inline feedback:
-   - Use `ado_list_pull_request_threads` with the PR ID from above
-
-### Revision Phase 3: Implement Fixes
-
-Fix the specific issues raised by the reviewer — do NOT restart from scratch:
-
-1. **Address each feedback item** from the JIRA comments and PR threads
-2. **Preserve previous decisions** unless explicitly contradicted by feedback
-3. **Validate the build** with `npm run build` after each change
-
-{%- if triggerParams.skip_review %}
-
-### Revision Phase 4: Review (SKIPPED)
-
-Review was skipped for this task (`skip_review` parameter). Proceed directly to Phase 5.
-
-{%- else %}
-
-### Revision Phase 4: Review (Optional)
-
-If the changes are substantial, delegate to the **ralph-reviewer** sub-agent for a quick check. For minor fixes (typos, small corrections), skip the review and proceed directly.
-
-{%- endif %}
-
-### Revision Phase 5: Commit, Push & Respond to PR
-
-1. Stage and commit changes:
-   ```bash
-   git add -A
-   git commit -m "docs({{ taskId }}): address review feedback"
-   ```
-2. Push to the **existing branch** (not a new one):
-   ```bash
-   git push origin ralph/{{ taskId }}-<slug>
-   ```
-3. **Respond to PR review threads** — for each comment thread that you addressed, use `ado_reply_to_comment` with the thread ID and a brief explanation of the fix.
-
-### Revision Phase 6: Update Handoff & Report
-
-1. **Update the handoff file** at `/tmp/mcp-attachments/handoff-{{ taskId }}.md` — add a "Revision" section at the top documenting what feedback was addressed and what changed
-2. **Attach the updated handoff** to **{{ taskId }}** using the `jira_add_attachment` MCP tool with file name `handoff.md`
-3. **Post a completion comment** on **{{ taskId }}** summarizing what was changed and linking to the PR
-4. **Post to ralphchives** (skill: **ralph-ralphchives**) — post a task report summarizing the revision changes
-
-### Revision Phase 7: Exit
-
-Print the result block:
-
-```
-===RALPH_RESULT_START===
-JIRA_KEY: {{ taskId }}
-STATUS: <completed|partial|blocked>
-BRANCH: ralph/{{ taskId }}-<slug>
-PR_URL: <full ADO PR URL>
-HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
-SUMMARY: <one-line description of revision changes>
-===RALPH_RESULT_END===
-```
-
-**CRITICAL:** The orchestrator uses this block to detect task completion.
+**Before entering each phase:**
+1. Read `state.md`
+2. Read the phase's skill file listed above (or listed in `state.md` under "Skills for this phase")
+3. Follow the skill's instructions
+4. Update `state.md` as directed by the skill's "Before moving to Phase N" section

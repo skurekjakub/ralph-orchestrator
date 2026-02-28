@@ -65,7 +65,7 @@
         </mxCell>
 
         <!-- Phase boxes inside TaskRunner area -->
-        <mxCell id="phase1" value="&lt;b&gt;1. prepareProfile&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;Liquid templates&lt;br&gt;JIT gateway.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase1" value="&lt;b&gt;1. prepareProfile&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;Liquid templates&lt;br&gt;JIT gateway.json&lt;br&gt;skill rendering&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="160" y="350" width="120" height="55" as="geometry" />
         </mxCell>
 

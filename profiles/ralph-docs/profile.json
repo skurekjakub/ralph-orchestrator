@@ -50,7 +50,22 @@
     "ralph-codesamples-project",
     "ralph-screenshots",
     "ralph-training-modules",
-    "ralph-write-release-notes"
+    "ralph-write-release-notes",
+    "ralph-workflow-setup",
+    "ralph-workflow-research",
+    "ralph-workflow-write",
+    "ralph-workflow-review",
+    "ralph-workflow-commit",
+    "ralph-workflow-pr",
+    "ralph-workflow-handoff",
+    "ralph-workflow-revision-setup",
+    "ralph-workflow-revision-fix",
+    "ralph-workflow-revision-commit",
+    "ralph-workflow-revision-handoff",
+    "ralph-build-errors",
+    "ralph-page-removal",
+    "ralph-callout-selection",
+    "ralph-cross-version-linking"
   ],
   "resources": {
     "mountBase": "resources/ralph-resources"
