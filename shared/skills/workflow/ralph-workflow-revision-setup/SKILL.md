@@ -44,10 +44,10 @@ The PR URL from the previous run is: **{{ prUrl }}**
    git pull origin ralph/{{ taskId }}-<slug>
    ```
 3. **Find the existing PR** using the ADO MCP server:
-   - Use `ado_list_pull_requests` with `repositoryId` and `project`, filtering by source branch `refs/heads/ralph/{{ taskId }}-<slug>`
+   - Use `list-pull-requests` targetting {{ triggerParams.source_branch }}
    - Note the PR ID from the result
 4. **Read ALL PR review threads** to understand inline feedback:
-   - Use `ado_list_pull_request_threads` with the PR ID from above
+   - Use `list-pull-request-threads` with the PR ID from above
 {% endif %}
 
 ## Create or update state.md
