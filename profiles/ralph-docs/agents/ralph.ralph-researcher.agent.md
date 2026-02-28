@@ -18,6 +18,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 | Path | Contents |
 |---|---|
 | `src/_documentation/` | All documentation pages (Markdown + Jekyll frontmatter) |
+| `src/_guides/` | All guides pages (Markdown + Jekyll frontmatter) |
 | `src/_code/src/` | Code examples used in documentation |
 | `resources/repositories/xperience/` | Xperience by Kentico product source code (C#) — use `includeIgnoredFiles: true` when searching |
 | `.github/resources/styleguides/` | Style guides (docs-style-guide, typography, word-list) |

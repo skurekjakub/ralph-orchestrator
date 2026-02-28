@@ -78,6 +78,13 @@ phased context augemnt - taskrunner now supports execution phases - leverage tha
 
 ----------------------------
 
+17:19:58 [INFO] Stopping containers...
+17:19:58 [INFO] Stopped streaming pre-tool
+17:19:58 [INFO] Stopped streaming tool-output
+17:19:58 [INFO] Stopped streaming sidecar
+
+the streaming output for these doesnt work btw, dont think it ever did. i have to wait until the full log colelction step to get it
+
 comvert all mcp servers to modules
 
 expose external endpoint for cusotmization to register into di

@@ -23,7 +23,7 @@ Now YOU implement all documentation changes based on the researcher's report:
    - For choosing between callout types (tip/info/note/warning/key), see the **ralph-callout-selection** skill
 
 2. **Implement changes** — create new pages, update existing ones, remove obsolete content:
-   - Follow the **ralph-new-page-creation** skill guidelines for new pages (includes identifier conventions and documentation.yml registration)
+   - Follow the **ralph-new-page-creation** skill guidelines for new pages 
    - For cross-collection links (documentation ↔ guides ↔ api), see the **ralph-cross-version-linking** skill
    - For page removals or deprecations, follow the **ralph-page-removal** checklist
    - Every page needs: Introduction (what/why/when), Body (structured content), Result (expected outcomes)
@@ -42,7 +42,7 @@ Now YOU implement all documentation changes based on the researcher's report:
 
 ## Before moving to Phase 6
 
-Review was skipped for this task (`skip_review` parameter). Proceed directly to Phase 6: Commit & Push.
+Review using dedicated subagent is skipped for this task. Proceed directly to Phase 6: Commit & Push.
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 6: Commit & Push`

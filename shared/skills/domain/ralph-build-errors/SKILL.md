@@ -1,6 +1,6 @@
 ---
 name: ralph-build-errors
-description: "Troubleshooting guide for common npm run build errors in the Xperience docs site. Use this skill when the build fails and you need to diagnose the cause — covers broken page_link identifiers, missing anchors, duplicate identifiers in documentation.yml, code blocks missing lang parameter, circular redirects, URI path conflicts, and frontmatter issues. Read this before spending cycles debugging build failures manually."
+description: "Troubleshooting guide for common npm run build errors in the Xperience docs site. Use this skill when the build fails and you need to diagnose the cause — covers broken page_link identifiers, missing anchors, duplicate identifiers, code blocks missing lang parameter, circular redirects, URI path conflicts, and frontmatter issues. Read this before spending cycles debugging build failures manually."
 ---
 {% raw %}
 
@@ -12,13 +12,11 @@ description: "Troubleshooting guide for common npm run build errors in the Xperi
 
 **Error:** `identifier "unknownID" not found`
 
-**Cause:** A `{% page_link unknownID %}` references an identifier that doesn't exist in `documentation.yml`.
+**Cause:** A `{% page_link unknownID %}` references an identifier that doesn't exist.
 
 **Fix:**
 1. Check for typos in the identifier
-2. If the page exists but isn't registered, add it to `documentation.yml` (see **ralph-new-page-creation**)
 3. If the page was removed, update or remove the link
-4. Grep for the broken identifier to find all references: `grep -r "unknownID" src/`
 
 ## Missing anchor reference
 
@@ -35,7 +33,7 @@ description: "Troubleshooting guide for common npm run build errors in the Xperi
 
 **Error:** `Duplicate identifier "myID" in pagetree`
 
-**Cause:** Two pages use the same `identifier` value, or the same identifier appears twice in `documentation.yml`.
+**Cause:** Two pages use the same `identifier` value.
 
 **Fix:**
 1. Grep for the identifier: `grep -r "identifier: myID" src/_data/ src/_documentation/`
@@ -79,6 +77,5 @@ Common values: `csharp`, `xml`, `json`, `javascript`, `html`, `css`, `sql`, `pow
 
 1. Read the full error message — it usually includes the file path and line
 2. Run `npm run build` after every single file change, not in batches
-3. If the error is unclear, check `documentation.yml` for structural issues (bad indentation, missing fields)
 4. The build validates frontmatter, links, and tag syntax — fix issues in that order
 {% endraw %}

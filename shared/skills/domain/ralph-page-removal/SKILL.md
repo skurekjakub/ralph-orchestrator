@@ -15,12 +15,6 @@ Find every place the page's identifier is used:
 grep -r "IDENTIFIER" src/_documentation/ src/_data/
 ```
 
-This catches:
-- `{% page_link IDENTIFIER %}` references in other pages
-- `related_pages` arrays in other pages' frontmatter
-- `{% card link=IDENTIFIER %}` references
-- Navigation entries in `documentation.yml`
-
 ## 2. Update or remove page_link references
 
 For each `{% page_link IDENTIFIER %}` found:
@@ -39,13 +33,7 @@ redirect_from:
 
 If no replacement exists, consider whether a redirect to the parent section is appropriate.
 
-## 4. Remove from documentation.yml
-
-Delete the entry from `src/_data/pagetree/documentation.yml`. If the page had children:
-- Move children under a different parent, OR
-- Remove children too (and repeat this entire checklist for each)
-
-## 5. Update related_pages arrays
+## 4. Update related_pages arrays
 
 Search for the identifier in `related_pages` frontmatter fields:
 ```bash
@@ -54,7 +42,7 @@ grep -r "IDENTIFIER" src/_documentation/ --include="*.md" -l
 
 Remove the identifier from any `related_pages` arrays.
 
-## 6. Clean up orphaned assets
+## 5. Clean up orphaned assets
 
 If the page referenced images that no other page uses:
 ```bash
@@ -64,7 +52,7 @@ grep -r "image_filename.png" src/_documentation/ --include="*.md"
 
 If no other page references the image, delete it from `src/_assets/img/`.
 
-## 7. Validate
+## 6. Validate
 
 Run `npm run build` to confirm no broken references remain.
 {% endraw %}

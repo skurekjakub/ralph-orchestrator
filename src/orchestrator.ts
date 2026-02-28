@@ -6,6 +6,7 @@ import { OrchestratorObserver } from "./orchestrator-observer.js";
 import type { WorkItem } from "./datasource/types.js";
 import type { IWorkItemPoller } from "./datasource/poller.js";
 import { buildTaskContext, type TaskCallbacks } from "./services/task-context.js";
+import type { PreflightContext } from "./services/preflight.js";
 import { toErrorMessage } from "./util/error.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { IProfileRouter } from "./services/profile-router.js";
@@ -256,11 +257,14 @@ export class Orchestrator {
     const isRevision = revisionStatuses.some(
       (s) => s.toLowerCase() === itemStatus,
     );
+    let prUrl: string | null = null;
     if (isRevision) {
-      if (!await this.runPreflight(workItem, profile, operation, "revision-ready")) return;
+      const preflightCtx = await this.runPreflight(workItem, profile, operation, "revision-ready");
+      if (!preflightCtx) return;
+      prUrl = preflightCtx.prUrl;
     }
 
-    await this.runTask(workItem, profile, operation);
+    await this.runTask(workItem, profile, operation, prUrl);
   }
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
@@ -308,13 +312,13 @@ export class Orchestrator {
     return false;
   }
 
-  /** Run a preflight check. Uses the profile's configured check or an explicit name. Returns `false` if the check fails. */
+  /** Run a preflight check. Returns the {@link PreflightContext} on success, or `null` if the check fails. */
   private async runPreflight(
     workItem: WorkItem,
     profile: IAgentProfile,
     operation: Operation,
     checkName?: string,
-  ): Promise<boolean> {
+  ): Promise<PreflightContext | null> {
     const name = checkName ?? profile.preflight!;
     const { buildPreflightContext, runPreflight } =
       await import("./services/preflight.js");
@@ -326,7 +330,7 @@ export class Orchestrator {
       comments,
     );
     const result = runPreflight(name, workItem, ctx);
-    if (result.ok) return true;
+    if (result.ok) return ctx;
 
     const comment =
       profile.failureComment ??
@@ -342,7 +346,7 @@ export class Orchestrator {
     this.log(
       `Preflight failed for ${workItem.id} (${name}): ${result.reason}`,
     );
-    return false;
+    return null;
   }
 
   /** Execute the task runner, record completion/error, and handle teardown. */
@@ -350,6 +354,7 @@ export class Orchestrator {
     workItem: WorkItem,
     profile: IAgentProfile,
     operation: Operation,
+    prUrl?: string | null,
   ): Promise<void> {
     this.activeTask = {
       workItem,
@@ -367,7 +372,7 @@ export class Orchestrator {
 
     try {
       this.activityLog.startTaskLog(taskId);
-      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams);
+      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams, prUrl);
       const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
       this.activeTask.container = container;
 

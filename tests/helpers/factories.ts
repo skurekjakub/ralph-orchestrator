@@ -272,6 +272,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     commentTrigger: "@ralph",
     triggerParams: {},
     isRevision: false,
+    prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
     ...overrides,
@@ -289,6 +290,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     triggerParams: {},
     isRevision: false,
     ralphchivesEnabled: false,
+    prUrl: null,
     ...overrides,
   };
 }

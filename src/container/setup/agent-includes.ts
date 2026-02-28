@@ -124,6 +124,9 @@ export interface TemplateContext {
   /** Whether this task is a revision of a previous attempt. */
   isRevision: boolean;
 
+  /** PR URL from a previous run, extracted from work item comments. Empty string if none found. */
+  prUrl: string;
+
   /** Skill folder names deployed for this profile. */
   skills: readonly string[];
 }
@@ -168,6 +171,8 @@ export function buildTemplateContext(
     ralphchivesEnabled: ctx.ralphchivesEnabled,
 
     isRevision: ctx.isRevision,
+
+    prUrl: ctx.prUrl ?? "",
 
     skills: ctx.profile.skills,
   };

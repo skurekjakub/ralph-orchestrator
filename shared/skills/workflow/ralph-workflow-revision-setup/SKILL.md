@@ -19,6 +19,20 @@ description: "Revision workflow Phases 1-2. Read this skill at the start of ever
 
 ## Phase 2: Find Existing PR & Branch
 
+{% if prUrl != "" %}
+The PR URL from the previous run is: **{{ prUrl }}**
+
+1. **Extract the PR ID** from the URL (the last numeric segment)
+2. **Find the existing branch** — use `ado_get_pull_request` with the PR ID to get the source branch name
+3. **Switch to the existing branch** (do NOT create a new one):
+   ```bash
+   git fetch origin
+   git checkout <source-branch>
+   git pull origin <source-branch>
+   ```
+4. **Read ALL PR review threads** to understand inline feedback:
+   - Use `ado_list_pull_request_threads` with the PR ID
+{% else %}
 1. **Find the existing branch** matching the pattern `ralph/{{ taskId }}-*`:
    ```bash
    git fetch origin
@@ -30,10 +44,11 @@ description: "Revision workflow Phases 1-2. Read this skill at the start of ever
    git pull origin ralph/{{ taskId }}-<slug>
    ```
 3. **Find the existing PR** using the ADO MCP server:
-   - Use `ado_list_pull_requests` with `repositoryId: "kentico-docs-jekyll"` and `project: "CustomerEducation"`, filtering by source branch `refs/heads/ralph/{{ taskId }}-<slug>`
+   - Use `ado_list_pull_requests` with `repositoryId` and `project`, filtering by source branch `refs/heads/ralph/{{ taskId }}-<slug>`
    - Note the PR ID from the result
 4. **Read ALL PR review threads** to understand inline feedback:
    - Use `ado_list_pull_request_threads` with the PR ID from above
+{% endif %}
 
 ## Create or update state.md
 
@@ -59,7 +74,7 @@ Revision Phase 1-2: Understand Feedback & Find PR
 
 ## Tracked Identifiers
 - Branch: ralph/{{ taskId }}-<slug>
-- PR ID: (from ADO lookup)
+- PR URL: {{ prUrl }}
 (page identifiers from previous run)
 
 ## Source References

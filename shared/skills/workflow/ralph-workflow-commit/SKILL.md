@@ -14,17 +14,12 @@ description: "Standard workflow Phase 6. Read this skill when writing and review
 ## Instructions
 
 **Pre-commit checkpoint:** Re-read `state.md` and verify:
-- Every identifier recorded there appears correctly in both the page frontmatter AND `documentation.yml` (see the **ralph-new-page-creation** skill if unsure about format or registration)
 - Every source code reference noted by the researcher is accounted for in the handoff draft
 - `npm run build` passes cleanly — if it fails, consult the **ralph-build-errors** skill
 
 Stage and commit with a descriptive message:
 
-```bash
-git add -A
-git commit -m "docs({{ taskId }}): <brief description of changes>"
-git push origin ralph/{{ taskId }}-<short-slug>
-```
+- Only commit files you actively worked on.
 
 ## Before moving to Phase 7
 

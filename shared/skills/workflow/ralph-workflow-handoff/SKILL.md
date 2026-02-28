@@ -65,6 +65,8 @@ Post on **{{ taskId }}** using `jira_add_comment`. Include whatever you think is
 
 Post a task report (skill: **ralph-ralphchives**) summarizing what was accomplished, key decisions, and any remaining gaps.
 
+First search for existing threads (`search_ralphchives`) matching the issue ({{ issueKey }}) and related keywords. If not found, create a new post.
+
 ### 5. Exit
 
 Print a final summary to stdout in this **exact format** — the orchestrator parses it:
@@ -81,5 +83,3 @@ SUMMARY: <one-line description of what was done>
 ```
 
 Always include this block as the very last thing you print, even on failure.
-
-**CRITICAL:** The orchestrator uses this block to detect task completion.

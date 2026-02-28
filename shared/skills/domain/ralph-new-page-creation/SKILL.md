@@ -39,17 +39,17 @@ The following properties must appear at the top of the `.md` file between triple
 
 - **Structure:** A unique code name followed by a collection suffix.
 - **Formatting:** Snake_case.
-- **Suffixes:** `_guides`, `_xp`, or `_collection`.
+- **Suffixes:** `_guides`, `_xp` depending on target collection.
 - **Example:** For a "Website Channels" page in the guides collection, use `website_channels_guides`.
 - **Constraint:** Must be unique across the help service.
 
 **Legacy identifiers** (opaque hashes like `H5jWCQ`, `DgqiCQ`) exist from Confluence migration — never create new ones in this format. Always use the modern descriptive format.
 
-**Three-way sync:** Identifiers connect the page frontmatter, the navigation tree (`documentation.yml`), and every `page_link` referencing the page. All three must match exactly — if any are out of sync, the build fails.
+Identifiers connect the page frontmatter and every `page_link` referencing the page.
 
 Before choosing an identifier, verify it's not already taken:
 ```bash
-grep -r "identifier: my_proposed_id" src/_data/ src/_documentation/
+grep -r "identifier: my_proposed_id" src/_documentation/
 ```
 
 ### Persona Assignment Strategy
@@ -90,24 +90,3 @@ redirect_from:
   - xperience-interface-basics
 ---
 ```
-
-### Registering in documentation.yml
-
-Every new page in the documentation collection **must** have a matching entry in `src/_data/pagetree/documentation.yml` (or `guides.yml` for guides). Without it, the page won't appear in navigation and `page_link` references will fail.
-
-Find the parent section and insert:
-```yaml
-- title: Administration interface basics
-  identifier: website_channels_xp
-  order: 100
-  url: /documentation/developers-and-admins/development/administration-interface-basics
-  children: []
-```
-
-**Rules:**
-- `title` and `identifier` must match the page's frontmatter exactly
-- `url` is the generated URL path (kebab-case, derived from folder structure)
-- `order` controls sort order within siblings (use 100-increments)
-- `children` is always present (empty array `[]` for leaf pages)
-
-Run `npm run build` after adding the entry to validate identifier uniqueness and link integrity.

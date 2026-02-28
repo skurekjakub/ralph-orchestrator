@@ -71,6 +71,17 @@ describe("Compose Overlay", () => {
       rmSync(mcpDir, { recursive: true, force: true });
     });
 
+    it("always mounts .gitignore into .github directory", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+
+      const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
+
+      expect(overlay).toContain("github-gitignore:/workspace/.github/.gitignore:ro");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
     it("always injects base env vars even with no MCP servers", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");

@@ -10,6 +10,8 @@ export interface TaskContext {
   readonly triggerParams: Record<string, string>;
   readonly isRevision: boolean;
   readonly ralphchivesEnabled: boolean;
+  /** PR URL extracted from work item comments during preflight, or null. */
+  readonly prUrl: string | null;
 }
 
 /** Optional callbacks for real-time streaming during task execution. */
@@ -30,6 +32,7 @@ export function buildTaskContext(
   taskId: string,
   ralphchivesConfig: IRalphchivesConfig,
   triggerParams?: string[],
+  prUrl?: string | null,
 ): TaskContext {
   const issueStatus = workItem.status.toLowerCase();
   const revisionStatuses = profile.match.revisionStatuses ?? [];
@@ -44,5 +47,6 @@ export function buildTaskContext(
     triggerParams: buildTriggerParams(triggerParams ?? []),
     isRevision,
     ralphchivesEnabled: ralphchivesConfig.enabled,
+    prUrl: prUrl ?? null,
   };
 }

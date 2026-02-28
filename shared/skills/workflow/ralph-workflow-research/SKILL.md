@@ -18,7 +18,7 @@ Delegate to the **ralph-researcher** sub-agent:
   - If given a commit hash in the xperience repository, list modified files to give the researcher a strong starting point.
 - The researcher will explore both the existing documentation and the Xperience product source code
 - It returns a structured report — verify it contains all of the following before moving on:
-  1. **Existing Coverage**: file paths of all related existing doc pages in `src/_documentation/`
+  1. **Existing Coverage**: file paths of all related existing doc pages in `src/_documentation/` or `src/_guides`
   2. **Source Findings**: exact class names, method signatures, and file paths in the Xperience source
   3. **Recommended Changes**: specific files to create or modify, with rationale
   4. **Reference Material**: sibling pages, style guide sections, or external resources relevant to the task
