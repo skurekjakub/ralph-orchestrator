@@ -37,7 +37,7 @@ export interface IComposeClient {
  *
  * All `docker compose` invocations go through this class, which handles:
  * - Compose file path resolution (base + security + resources overlay)
- * - Environment variable injection (secrets, JIRA config) into the compose process
+ * - Environment variable injection (secrets, host paths) into the compose process
  * - The `compose` / `exec` / `down` primitives
  *
  * Does **not** contain any business logic — just process spawning.

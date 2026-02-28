@@ -2,19 +2,19 @@ import type { WorkItem } from "../datasource/types.js";
 import { PromptSectionSource, type PromptSection } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
 
-/** Delimiter wrapping untrusted JIRA data in the prompt. */
+/** Delimiter wrapping untrusted data source content in the prompt. */
 const UNTRUSTED_BEGIN = "--- BEGIN UNTRUSTED JIRA DATA ---";
 const UNTRUSTED_END = "--- END UNTRUSTED JIRA DATA ---";
 
 /**
- * Context about an issue provided to the agent alongside the JIRA fields.
+ * Context about an issue provided to the agent alongside the work item fields.
  *
- * For standard tasks, this includes any existing JIRA comments (which may
+ * For standard tasks, this includes any existing comments (which may
  * contain observations or context from human reviewers).
  * For revision tasks, this also includes the previous `handoff.md` attachment.
  */
 export interface IssueContext {
-  /** Formatted JIRA comments (author + timestamp + body text). */
+  /** Formatted comments (author + timestamp + body text). */
   comments: string[];
   /** When true, the agent follows the revision workflow. */
   isRevision: boolean;
@@ -31,7 +31,7 @@ export interface PromptWithSections {
 }
 
 /**
- * Build the CLI prompt from a JIRA issue and return both the prompt
+ * Build the CLI prompt from a work item and return both the prompt
  * string and labelled sections for prompt-injection auditing.
  *
  * Untrusted content (description, custom fields, comments, handoff) is wrapped
@@ -124,7 +124,7 @@ export function buildPromptWithSections(
 }
 
 /**
- * Build the CLI prompt from a JIRA issue.
+ * Build the CLI prompt from a work item.
  *
  * Includes: key, summary, description (ADF serialized as JSON), labels,
  * components, priority, and named custom fields.
@@ -132,10 +132,10 @@ export function buildPromptWithSections(
  * When `context.isRevision` is true, the prompt includes a revision header
  * with the previous handoff content so the agent follows the revision workflow.
  *
- * JIRA comments (if any) are always appended so the agent has human reviewer
+ * Comments (if any) are always appended so the agent has human reviewer
  * observations and feedback regardless of whether it's a standard or revision task.
  *
- * Custom field extraction is delegated to {@link JiraFieldExtractor}.
+ * Custom field extraction is delegated to the data source connector.
  */
 export function buildPrompt(workItem: WorkItem, context?: IssueContext): string {
   return buildPromptWithSections(workItem, context).prompt;

@@ -1,8 +1,8 @@
 /**
- * Centralized JIRA comment templates for all orchestrator-generated comments.
+ * Centralized comment templates for all orchestrator-generated comments.
  *
  * All comments are prefixed with `[Ralph-Orchestrator]` for easy identification
- * in the JIRA comment stream.
+ * in the work item comment stream.
  */
 
 import { TransitionPhase } from "../orchestrator-types.js";
@@ -34,7 +34,7 @@ export const OrchestratorComments = {
     return `${PREFIX} 🤖 ${displayName} can't work on this issue anymore — status changed to "${currentStatus}".`;
   },
 
-  /** Posted when a JIRA transition fails (e.g. no transition to the target status available). */
+  /** Posted when a status transition fails (e.g. no transition to the target status available). */
   transitionFailed(phase: TransitionPhase, targetStatus: string, error: string): string {
     return `${PREFIX} ⚠️ ${phase} transition to "${targetStatus}" failed: ${error}`;
   },

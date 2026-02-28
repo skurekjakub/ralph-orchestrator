@@ -42,7 +42,7 @@ export enum LogSource {
 export interface OrchestratorState {
   /** Current lifecycle phase. */
   status: OrchestratorStatus;
-  /** The JIRA issue currently being processed, or null if idle. */
+  /** The work item currently being processed, or null if idle. */
   currentIssue: { key: string; summary: string } | null;
   /** The agent profile being used for the current task, or null if idle. */
   currentProfile: string | null;
@@ -80,7 +80,7 @@ export interface LogEntry {
 export interface CompletedTask {
   /** JIRA issue key (e.g. `DF-2759`). */
   key: string;
-  /** JIRA issue summary / title. */
+  /** Work item summary / title. */
   summary: string;
   /** Agent profile ID that handled this task. */
   profileId: string;

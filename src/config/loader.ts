@@ -5,13 +5,12 @@ import { resolvePath } from "../util/path.js";
 import { AuditMode } from "../prompt/prompt-auditor.js";
 import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
-import { configFileSchema, jiraConnectionSchema, profileFileSchema } from "./schemas.js";
+import { configFileSchema, profileFileSchema } from "./schemas.js";
 import {
 
   type IAppConfig,
   type IAgentProfile,
   type IDataSourceConfig,
-  type IJiraConnectionConfig,
   type ISecretsConfig,
   type IDashboardConfig,
 } from "./types.js";
@@ -143,42 +142,16 @@ export function loadConfig(): IAppConfig {
   const parsed = configFileSchema.parse(rawJson);
 
   // ── Data sources ──────────────────────────────────────────────────────────
+  // Connection config is passed through as-is — each registered factory is
+  // responsible for its own connection validation and env var injection.
   const dataSources: Record<string, IDataSourceConfig> = {};
   for (const [key, raw] of Object.entries(parsed.dataSources)) {
-    const envKey = key.toUpperCase().replace(/-/g, "_");
-    if (raw.type === "jira") {
-      const conn = jiraConnectionSchema.parse(raw.connection);
-      const pat = process.env[`JIRA_PAT_${envKey}`];
-      const email = process.env[`JIRA_EMAIL_${envKey}`];
-      if (!pat || !email) {
-        throw new Error(
-          `JIRA_PAT_${envKey} and JIRA_EMAIL_${envKey} must be set in .env for data source "${key}"`,
-        );
-      }
-      const jiraConn: IJiraConnectionConfig = {
-        baseUrl: conn.baseUrl,
-        cloudId: conn.cloudId,
-        excludeFields: conn.excludeFields,
-        allowedUsers: conn.allowedUsers,
-        email,
-        apiToken: pat,
-      };
-      dataSources[key] = {
-        type: raw.type,
-        connection: jiraConn as unknown as Readonly<Record<string, unknown>>,
-        pollIntervalMs: raw.pollIntervalMs,
-        maxResults: raw.maxResults,
-      };
-    } else {
-      // Unknown type — pass through raw config. The registered factory
-      // is responsible for connection validation and env var injection.
-      dataSources[key] = {
-        type: raw.type,
-        connection: raw.connection as Readonly<Record<string, unknown>>,
-        pollIntervalMs: raw.pollIntervalMs,
-        maxResults: raw.maxResults,
-      };
-    }
+    dataSources[key] = {
+      type: raw.type,
+      connection: raw.connection as Readonly<Record<string, unknown>>,
+      pollIntervalMs: raw.pollIntervalMs,
+      maxResults: raw.maxResults,
+    };
   }
 
   // ── Global secrets ────────────────────────────────────────────────────────

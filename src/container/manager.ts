@@ -204,7 +204,7 @@ export class ContainerManager implements IContainerManager {
    * When `maxContinuations > 0`, re-invokes the CLI with `--continue` if the
    * result block is missing, using exponential backoff between attempts.
    *
-   * @param workItem JIRA issue to process — used to build the prompt.
+   * @param workItem Work item to process — used to build the prompt.
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */

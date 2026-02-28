@@ -56,7 +56,7 @@ export interface CollectedLog {
 
 /** Public contract for container log collection. */
 export interface IContainerLogCollector {
-  /** Set the JIRA issue key used as the filename prefix. */
+  /** Set the work item key used as the filename prefix. */
   setTaskId(key: string): void;
   /** Register a log source to be collected. */
   addSource(source: LogSourceDef): void;
@@ -98,7 +98,7 @@ export class ContainerLogCollector implements IContainerLogCollector {
     mkdirSync(logDir, { recursive: true });
   }
 
-  /** Set the JIRA issue key used as the filename prefix. Must be called before {@link collectAll}. */
+  /** Set the work item key used as the filename prefix. Must be called before {@link collectAll}. */
   setTaskId(key: string): void {
     this.taskId = key;
   }

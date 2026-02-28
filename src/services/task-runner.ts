@@ -26,7 +26,7 @@ export interface ITaskRunner {
 }
 
 /**
- * Processes a single JIRA issue end-to-end:
+ * Processes a single work item end-to-end:
  *
  * 1. Transition to "In Progress" + post start comment
  * 2. Start the containers for the matched profile

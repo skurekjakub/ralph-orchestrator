@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle.js";
 import { makeConfig } from "./helpers/factories.js";
 
@@ -13,10 +13,23 @@ import "../src/datasource/connectors/jira/factory.js";
  * `retryOptions`, `fetchComments`).
  */
 describe("createCradle", () => {
+  const savedEnv: Record<string, string | undefined> = {};
+  const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
+
   beforeEach(() => {
+    for (const k of JIRA_ENV_KEYS) savedEnv[k] = process.env[k];
+    process.env.JIRA_PAT_TEST_SOURCE = "test-jira-pat";
+    process.env.JIRA_EMAIL_TEST_SOURCE = "test@test.com";
     // Suppress console output from logger/activity-log initialization
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    for (const [k, v] of Object.entries(savedEnv)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
   });
 
   it("resolves all cradle services without AwilixResolutionError", () => {

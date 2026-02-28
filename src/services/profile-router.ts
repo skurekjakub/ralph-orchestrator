@@ -23,7 +23,7 @@ export interface IProfileRouter {
 }
 
 /**
- * Routes JIRA issues to agent profiles based on matching rules.
+ * Routes work items to agent profiles based on matching rules.
  *
  * Matching rules (evaluated per-profile, first match wins):
  * 1. Issue project key must be in `profile.match.projects`

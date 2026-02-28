@@ -22,7 +22,7 @@ export enum OperationStatus {
   Rejected = "rejected",
 }
 
-/** A single recorded agent operation on a JIRA issue. */
+/** A single recorded agent operation on a work item. */
 export interface Operation {
   /** Unique operation ID. */
   id: string;
@@ -30,9 +30,9 @@ export interface Operation {
   dataSource: string;
   /** Unique variant key: `<profileId>:<agentName>:<commentTrigger>`. */
   variant: string;
-  /** The JIRA comment ID that triggered this operation. */
+  /** The comment ID that triggered this operation. */
   triggerCommentId: string;
-  /** ISO 8601 timestamp of the JIRA comment that triggered this operation. */
+  /** ISO 8601 timestamp of the comment that triggered this operation. */
   commentTimestamp: string;
   /** ISO 8601 timestamp when the orchestrator discovered this trigger. */
   discoveredAt: string;

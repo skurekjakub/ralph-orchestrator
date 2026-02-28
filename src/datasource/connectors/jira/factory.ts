@@ -10,16 +10,40 @@ import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "..
 import type { IDataSourceConnector } from "../../connector.js";
 import type { IWorkItemPoller } from "../../poller.js";
 import { registerDataSourceFactory } from "../../registry.js";
+import { jiraConnectionSchema } from "../../../config/schemas.js";
 import { JiraClient } from "./jira-client.js";
 import { JiraConnector } from "./jira-connector.js";
 import { JiraWorkItemPoller } from "./jira-poller.js";
 import { buildJqlFromProfiles } from "./jql-builder.js";
 
 /**
+ * Resolve JIRA credentials from environment variables.
+ *
+ * Convention: `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>` where `<KEY>` is the
+ * data source key uppercased with dashes replaced by underscores.
+ *
+ * @throws if either env var is missing
+ */
+function resolveJiraCredentials(sourceKey: string): { email: string; apiToken: string } {
+  const envKey = sourceKey.toUpperCase().replace(/-/g, "_");
+  const apiToken = process.env[`JIRA_PAT_${envKey}`];
+  const email = process.env[`JIRA_EMAIL_${envKey}`];
+  if (!apiToken || !email) {
+    throw new Error(
+      `JIRA_PAT_${envKey} and JIRA_EMAIL_${envKey} must be set in .env for data source "${sourceKey}"`,
+    );
+  }
+  return { email, apiToken };
+}
+
+/**
  * Creates Jira connector + poller for a single data source entry.
  *
+ * Validates the connection config with the JIRA schema and injects
+ * credentials from environment variables.
+ *
  * @param sourceKey - Key from `config.dataSources` map
- * @param dsConfig - Data source config (connection validated by Zod at load time)
+ * @param dsConfig - Data source config (raw connection — validated + enriched here)
  * @param profiles - All profiles (filtered internally to those referencing this source)
  * @param logger - Optional logger for startup messages
  */
@@ -29,7 +53,15 @@ export function createJiraDataSource(
   profiles: readonly IAgentProfile[],
   logger?: { info: (msg: string) => void },
 ): { connector: IDataSourceConnector; poller: IWorkItemPoller } {
-  const conn = dsConfig.connection as unknown as IJiraConnectionConfig;
+  const rawConn = jiraConnectionSchema.parse(dsConfig.connection);
+  const creds = resolveJiraCredentials(sourceKey);
+  const conn: IJiraConnectionConfig = {
+    baseUrl: rawConn.baseUrl,
+    cloudId: rawConn.cloudId,
+    excludeFields: rawConn.excludeFields,
+    allowedUsers: rawConn.allowedUsers,
+    ...creds,
+  };
   const client = new JiraClient({ connection: conn });
   const connector = new JiraConnector(sourceKey, client, [...conn.excludeFields], conn.allowedUsers);
 

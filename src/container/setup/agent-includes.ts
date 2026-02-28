@@ -129,7 +129,7 @@ export interface TemplateContext {
 }
 
 /**
- * Build a {@link TemplateContext} from the already-parsed profile and JIRA issue.
+ * Build a {@link TemplateContext} from the already-parsed profile and work item.
  *
  * Called by {@link TaskRunner} before rendering so all data is available
  * as Liquid variables without re-reading `profile.json` from disk.

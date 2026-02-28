@@ -19,10 +19,10 @@ import type { Logger } from "./logger.js";
 /**
  * Main orchestration loop.
  *
- * Wires together the JIRA poller, profile router, task runner, and activity log.
- * Processes one JIRA issue at a time:
+ * Wires together the data source pollers, profile router, task runner, and activity log.
+ * Processes one work item at a time:
  *
- * 1. Poll JIRA -> enqueue matching issues
+ * 1. Poll data sources -> enqueue matching work items
  * 2. Dequeue -> route to matching profile
  * 3. Delegate to TaskRunner (transitions, container, agent, logs)
  * 4. Track completion and emit state updates
@@ -283,9 +283,9 @@ export class Orchestrator {
   private async refreshIssue(issueKey: string, operation: Operation): Promise<WorkItem | null> {
     const workItem = await this.issueManager.refreshWorkItem(operation.dataSource, issueKey);
     if (!workItem) {
-      this.log(`Operation on ${issueKey} failed: issue not found or unreachable in JIRA`);
+      this.log(`Operation on ${issueKey} failed: work item not found or unreachable`);
       this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, {
-        reason: "Issue not found or unreachable in JIRA",
+        reason: "Work item not found or unreachable",
       });
       this.emitState();
       return null;

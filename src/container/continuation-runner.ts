@@ -21,7 +21,7 @@ export interface IContinuationRunner {
    *
    * @param executor     CLI executor to invoke.
    * @param prompt       Initial prompt for the first run.
-   * @param workItem        JIRA issue (used in continuation prompt).
+   * @param workItem        Work item (used in continuation prompt).
    * @param maxContinuations  Maximum retry attempts (0 = no retries).
    * @returns Accumulated output from all invocations.
    */

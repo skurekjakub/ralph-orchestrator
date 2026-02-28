@@ -99,13 +99,6 @@ describe("loadConfig", () => {
     restoreEnv();
   });
 
-  it("throws when JIRA credentials are missing for a data source", () => {
-    delete process.env.JIRA_PAT_TEST_SOURCE;
-    delete process.env.JIRA_EMAIL_TEST_SOURCE;
-
-    expect(() => loadConfig()).toThrow("JIRA_PAT_TEST_SOURCE");
-  });
-
   it("throws when GH_TOKEN is missing", () => {
     setRequiredEnv();
     delete process.env.GH_TOKEN;
@@ -133,25 +126,6 @@ describe("loadConfig", () => {
     vi.mocked(readdirSync).mockReturnValue([] as unknown as ReturnType<typeof readdirSync>);
 
     expect(() => loadConfig()).toThrow("No profile directories found");
-  });
-
-  it("Zod rejects config with invalid baseUrl in data source connection", () => {
-    setRequiredEnv();
-
-    vi.mocked(readFileSync).mockImplementation(((path: string) => {
-      if (path.endsWith("config.json")) return JSON.stringify({
-        dataSources: {
-          "test-source": {
-            type: "jira",
-            connection: { baseUrl: "not-a-url", cloudId: "abc" },
-          },
-        },
-      });
-      if (path.endsWith("profile.json")) return VALID_PROFILE;
-      throw new Error(`Unexpected: ${path}`);
-    }) as typeof readFileSync);
-
-    expect(() => loadConfig()).toThrow("baseUrl");
   });
 
   it("resolves ~ in profile repo paths", () => {

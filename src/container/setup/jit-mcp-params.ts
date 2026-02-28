@@ -28,7 +28,7 @@ export function buildVariantEnvName(prefix: string, profileId: string, displayNa
 
 /**
  * Resolve an env var value — either a static string, a `$macro` reference,
- * a `$trigger.<key>` reference resolved from JIRA comment trigger params,
+ * a `$trigger.<key>` reference resolved from comment trigger params,
  * or a `$variantEnv.PREFIX` reference resolved from process.env using a
  * variant-scoped env var name (`PREFIX_PROFILEID_DISPLAYNAME`).
  *
@@ -75,7 +75,7 @@ export interface IJitMcpConfigWriter {
    * Inject profile-level env vars (static + resolved macros) into the profile's `gateway.json`.
    *
    * Reads the profile's `mcpServerConfigs`, resolves any `$macro` values from the
-   * current JIRA issue, and merges them into the corresponding server's `env` block
+   * current work item, and merges them into the corresponding server's `env` block
    * in `gateway.json`. Values prefixed with `$trigger.` are resolved from the
    * optional `triggerParams` map. Static values and secrets already in the env block
    * are preserved.
@@ -90,7 +90,7 @@ export interface IJitMcpConfigWriter {
  * Injects profile-level env vars into the MCP sidecar's gateway config.
  *
  * Before each task, reads the profile's `.build/gateway.json`, resolves
- * `$macro` values from the JIRA issue, merges static + resolved values
+ * `$macro` values from the work item, merges static + resolved values
  * into each server's env block, and writes the augmented config back.
  *
  * Uses synchronous I/O because `gateway.json` is small (~1-2 KB) and

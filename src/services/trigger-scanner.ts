@@ -50,7 +50,7 @@ export interface ITriggerScanner {
 }
 
 /**
- * Scans JIRA issue comments for trigger strings and plans operations in the ledger.
+ * Scans work item comments for trigger strings and plans operations in the ledger.
  *
  * For each issue × profile combination:
  * 1. Checks if the issue matches the profile's project/status rules
