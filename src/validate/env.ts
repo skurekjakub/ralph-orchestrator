@@ -29,8 +29,8 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
     }
   }
 
-  // Per-data-source JIRA credentials are validated in config loader, not here.
-  // Example: JIRA_PAT_KENTICO_JIRA, JIRA_EMAIL_KENTICO_JIRA
+  // Per-data-source credentials are validated by each connector factory, not here.
+  // Example: JIRA factory checks JIRA_PAT_<KEY>, JIRA_EMAIL_<KEY>
 
   const optional: [string, string][] = [
     ["ADO_PAT_XPERIENCE", "Azure DevOps PAT for Xperience repo — optional, skips Xperience clone if not set"],
