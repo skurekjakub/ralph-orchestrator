@@ -214,10 +214,12 @@ export class ContainerLogCollector implements IContainerLogCollector {
     if (this.streamProcs.has(source.id)) return;
 
     try {
-      const proc = this.compose.exec([
-        "--user", "vscode", source.service,
-        "tail", "-n", "0", "-f", source.containerPath,
-      ]);
+      const proc = source.useComposeLogs
+        ? this.compose.compose(["logs", "-f", "--no-color", "--no-log-prefix", source.service])
+        : this.compose.exec([
+            "--user", "vscode", source.service,
+            "tail", "-n", "0", "-f", source.containerPath,
+          ]);
 
       this.streamProcs.set(source.id, proc);
 

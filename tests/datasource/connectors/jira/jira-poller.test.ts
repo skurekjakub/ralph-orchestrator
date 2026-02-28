@@ -12,6 +12,7 @@ function createMockSource(items: ReturnType<typeof makeWorkItem>[] = []): IWorkI
     searchWorkItems: vi.fn().mockResolvedValue(items),
     refreshWorkItem: vi.fn(),
     isValidItemId: vi.fn().mockReturnValue(true),
+    getAllowedUsers: vi.fn().mockReturnValue([])
   };
 }
 

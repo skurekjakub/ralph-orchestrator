@@ -12,7 +12,7 @@ describe("JiraConnector", () => {
 
   beforeEach(() => {
     client = createMockJiraClient();
-    connector = new JiraConnector("jira", client as unknown as IJiraClient, [], createSilentLogger());
+    connector = new JiraConnector("jira", client as unknown as IJiraClient, [], [], createSilentLogger());
   });
 
   it("exposes name and sourceKey", () => {

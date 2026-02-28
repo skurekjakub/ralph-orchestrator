@@ -113,7 +113,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       service: "mcp-sidecar",
       containerPath: "",
       extension: "log",
-      mode: CaptureMode.Collect,
+      mode: CaptureMode.Stream,
       useComposeLogs: true,
     });
 

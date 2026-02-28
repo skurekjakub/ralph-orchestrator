@@ -20,7 +20,7 @@ const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
-  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn() };
+  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn(), readFileSync: vi.fn().mockReturnValue("{}") };
 });
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
@@ -75,7 +75,7 @@ describe("TaskRunner", () => {
     expect(returnedContainer).toBe(container);
   });
 
-  it("calls execution order: renderTemplates → start → checkPrerequisites → clean → registerLogs → setup → execute → collectResults", async () => {
+  it("calls execution order: renderTemplates → start → checkPrerequisites → clean → registerLogs → setup → healthSnapshot → execute → collectResults", async () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.start.mockImplementation(() => { callOrder.push("start"); return Promise.resolve(); });

@@ -163,7 +163,7 @@ describe("LogSourceRegistry", () => {
       );
     });
 
-    it("registers sidecar source with useComposeLogs", () => {
+    it("registers sidecar source with useComposeLogs in stream mode", () => {
       const { collector, addSource } = createMockCollector();
 
       registry.registerAll(collector, profile, KEY, {}, cliPaths);
@@ -173,7 +173,7 @@ describe("LogSourceRegistry", () => {
           id: "sidecar",
           service: "mcp-sidecar",
           useComposeLogs: true,
-          mode: CaptureMode.Collect,
+          mode: CaptureMode.Stream,
         }),
       );
     });

@@ -68,8 +68,8 @@ describe("RepoSyncHook", () => {
 
     await new RepoSyncHook().execute(container, customCtx, createMockLogger());
 
-    const fetchArgs = mockExeca.mock.calls[0][1]!;
-    const headerArg = fetchArgs.find((a: string) => a.startsWith("http.extraHeader"));
+    const fetchArgs = mockExeca.mock.calls[0][1] as string[];
+    const headerArg = fetchArgs.find((a) => a.startsWith("http.extraHeader"));
     expect(headerArg).toContain(Buffer.from(":custom-secret").toString("base64"));
   });
 
