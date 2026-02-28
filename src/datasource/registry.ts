@@ -9,8 +9,9 @@
  *
  * To add a new data source:
  * 1. Create a factory module that calls {@link registerDataSourceFactory}
- * 2. Ensure the module is imported before orchestrator startup
- *    (built-ins are imported in `app-startup.ts`)
+ * 2. Add the module path to `config.plugins` in `config.json`
+ *    (built-ins are listed in `BUILTIN_PLUGINS` in `app-startup.ts`)
+ * 3. See `docs/data-source-registration.md` for the full integration guide
  */
 
 import type { IAppConfig, IAgentProfile, IDataSourceConfig } from "../config/types.js";

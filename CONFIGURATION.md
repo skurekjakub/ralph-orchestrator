@@ -34,35 +34,61 @@ Secrets and credentials live in `.env`. Never commit this file.
 
 ```json
 {
-  "jira": { ... },
+  "dataSources": {
+    "<source-key>": {
+      "type": "jira",
+      "connection": { ... },
+      "pollIntervalMs": 60000
+    }
+  },
+  "plugins": [],
   "output": { ... },
   "dashboard": { ... },
   "promptAudit": { ... },
-  "excludeFields": [],
-  "allowedUsers": [],
   "enableContinuation": true
 }
 ```
 
 Agent profiles are configured separately in `profiles/*/profile.json`, not in `config.json`.
 
-### JIRA Settings
+### Data Sources
+
+Each entry in `dataSources` defines a connection to an external work item source. The key (e.g. `"kentico-jira"`) is referenced by profiles via `profile.dataSource`.
 
 ```json
-"jira": {
-  "baseUrl": "https://api.atlassian.com/ex/jira",
-  "cloudId": "<your-jira-cloud-guid>",
-  "pollIntervalMs": 60000
+"dataSources": {
+  "kentico-jira": {
+    "type": "jira",
+    "connection": {
+      "baseUrl": "https://api.atlassian.com/ex/jira",
+      "cloudId": "<your-jira-cloud-guid>",
+      "excludeFields": [],
+      "allowedUsers": []
+    },
+    "pollIntervalMs": 60000
+  }
 }
 ```
 
-| Field | Description | Default |
+| Field | Type | Description |
 |---|---|---|
-| `baseUrl` | JIRA Cloud REST API base URL | — |
-| `cloudId` | Your Atlassian Cloud site ID (GUID) | — |
-| `pollIntervalMs` | How often to poll JIRA for new issues (milliseconds) | `60000` |
+| `type` | `string` | Registered data source type (e.g. `"jira"`). Must match a factory registered via `registerDataSourceFactory()`. |
+| `connection` | `object` | Type-specific connection properties. For JIRA: `baseUrl`, `cloudId`, `excludeFields`, `allowedUsers`. Credentials (`email`, `apiToken`) are injected from `.env` at load time. |
+| `pollIntervalMs` | `number` | How often to poll for new work items (milliseconds). Default: `60000`. |
 
-**Finding your Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
+**Finding your JIRA Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
+
+### Plugins
+
+Additional data source connector modules to load at startup. Each module must call `registerDataSourceFactory()` as a side effect on import.
+
+```json
+"plugins": [
+  "my-datasource-package/factory.js"
+]
+```
+
+Built-in connectors (JIRA) are loaded automatically — they don't need to be listed here. See `docs/data-source-registration.md` for the full integration guide.
 
 ### Agent Profiles (`profiles/*/profile.json`)
 

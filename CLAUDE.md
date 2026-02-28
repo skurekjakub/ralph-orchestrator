@@ -74,6 +74,10 @@ Profile `mcpServers` entries can include `env` blocks with per-server environmen
 
 Persistent per-issue state machine at `output/logs/history/<issueKey>.json`. State flow: `pending → active → completed | error | rejected`. Enables crash recovery (active operations from crashed sessions are marked error on restart) and comment-trigger deduplication (each trigger consumed exactly once per variant).
 
+### Data Source Plugins
+
+Data source connectors are loaded as plugins via dynamic `import()` at startup. Built-in plugins (JIRA) are listed in `BUILTIN_PLUGINS` in `app-startup.ts`; user plugins are specified in `config.plugins`. Each plugin module calls `registerDataSourceFactory(type, factory)` at import time to self-register. `buildDataSourceMaps()` in `src/datasource/registry.ts` instantiates connectors from config using registered factories. See `docs/data-source-registration.md` for the full integration guide.
+
 ### Continuation Loop
 
 When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` automatically retries if the agent's session ends without the `===RALPH_RESULT_START===` block. Uses CLI `--continue` flag to resume the previous session. Exponential backoff between attempts (5s base, 30s cap). Both `CopilotExecutor` and `ClaudeCodeExecutor` implement `continueSession()`.
@@ -83,12 +87,12 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | File | Role |
 |---|---|
 | `src/orchestrator.ts` | Main event loop |
-| `src/config/types.ts` | Runtime config interfaces (`IJiraConfig`, `IAgentProfile`, `IAppConfig`, etc.) |
+| `src/config/types.ts` | Runtime config interfaces (`IDataSourceConfig`, `IAgentProfile`, `IAppConfig`, etc.) |
 | `src/config/schemas.ts` | Zod validation schemas for `config.json` and `profile.json` |
 | `src/config/loader.ts` | `loadConfig()` — reads config.json + .env, discovers profiles |
 | `src/config/constants.ts` | Shared constants (`DEFAULT_MODEL`) |
 | `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
-| `src/app-startup.ts` | Startup pipeline: validate → load config → setup profiles |
+| `src/app-startup.ts` | Startup pipeline: validate → load config → load plugins → setup profiles |
 | `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
 | `src/services/task-result-writer.ts` | Post-execution: log collection, transcript attach, summary |
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
@@ -100,6 +104,8 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git sync) |
 | `src/util/branch.ts` | Branch name slugification utility |
 | `src/container/setup/profile-setup.ts` | Profile initialization orchestrator |
+| `src/datasource/registry.ts` | Data source factory registry (`registerDataSourceFactory`, `buildDataSourceMaps`) |
+| `src/datasource/connectors/jira/factory.ts` | JIRA connector factory (self-registers at import time) |
 | `src/jira/poller.ts` | Interval-based JQL polling + dedup |
 
 ## Conventions

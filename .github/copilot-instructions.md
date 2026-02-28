@@ -25,7 +25,9 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 |---|---|
 | `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), logger, retry utility |
 | `src/config/` | Configuration types (`types.ts`), Zod validation schemas (`schemas.ts`), config + profile loader (`loader.ts`), constants (`constants.ts`) |
-| `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
+| `src/datasource/` | Data source abstraction layer — `WorkItem` types, `IDataSourceConnector` interface, `IWorkItemPoller`, plugin registry (`registry.ts`) |
+| `src/datasource/connectors/jira/` | JIRA connector — maps `JiraIssue` → `WorkItem`, self-registers via `registerDataSourceFactory("jira", ...)` |
+| `src/jira/` | JIRA REST API v3 client, JQL builder from profile match rules, field extraction (internal to JIRA connector) |
 | `src/container/` | Container lifecycle (`manager.ts`), lifecycle hooks (`lifecycle.ts`), docker compose wrapper (`compose-client.ts`), CLI path types (`types.ts`), result parser, log collector, streaming capture |
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`), shared execution helper (`shared-exec.ts`) |
 | `src/container/setup/` | Agent template renderer (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), JIT task-scoped MCP params (`jit-mcp-params.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
@@ -108,10 +110,19 @@ No piping to `head` or `tail` — always show full output.
 
 ## Configuration
 
-- `config.json` — Global settings (JIRA connection, polling interval, output paths, dashboard toggle)
+- `config.json` — Global settings (data sources, plugins, output paths, dashboard toggle)
 - `profiles/*/profile.json` — Per-profile config with agent variants, repo path, CLI preference, and match rules
 - `.env` — Secrets (JIRA token/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret)
 - See `CONFIGURATION.md` for the full configuration reference
+
+### Data Source Plugins
+
+Data source connectors are loaded as plugins — self-contained modules that register themselves via `registerDataSourceFactory(type, factory)`. Built-in plugins (JIRA) and user-specified plugins from `config.plugins` are loaded via dynamic `import()` at startup, before the DI container is created.
+
+- **Config:** `config.dataSources` maps named sources to type-specific connection configs. `config.plugins` lists additional modules to load.
+- **Registry:** `src/datasource/registry.ts` — `registerDataSourceFactory()` and `buildDataSourceMaps()`
+- **JIRA factory:** `src/datasource/connectors/jira/factory.ts` — follows the same pattern as third-party plugins
+- **See:** `docs/data-source-registration.md` for the full integration guide
 
 ### Agent Profiles
 
@@ -166,7 +177,11 @@ Each profile declares exactly which MCP servers it needs via `mcpServers` in `pr
 
 Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$task.id`, `$task.project`, `$task.branch`, `$task.title`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
 
-## JIRA Integration
+## Data Source Integration
+
+The orchestrator polls external work item sources via `IDataSourceConnector` implementations. Each profile references a data source by key (`profile.dataSource → config.dataSources.<key>`). The built-in JIRA connector is the reference implementation.
+
+### JIRA Connector
 
 - Projects: **DF**, **DOC**
 - JQL filter: auto-generated from profile match rules, results deduplicated by issue key, auto-paginated
