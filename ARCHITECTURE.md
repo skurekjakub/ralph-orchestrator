@@ -76,7 +76,7 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 
 Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). All other profile infrastructure is fully prepared before the orchestrator is instantiated.
 
-### JIRA Poller (`src/jira/poller.ts`)
+### JIRA Poller (`src/datasource/connectors/jira/jira-poller.ts`)
 
 - Runs on a configurable interval (default: 60s)
 - Executes JQL queries auto-generated from profile match rules
@@ -92,7 +92,7 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 - Crash recovery: on startup, `active` operations from previous sessions are marked as `error`
 - Pending operations survive restarts — persisted on disk and resumed after recovery
 
-### JIRA Client (`src/jira/client.ts`)
+### JIRA Client (`src/datasource/connectors/jira/jira-client.ts`)
 
 - Native `fetch` against JIRA REST API v3 (cloud endpoint)
 - Basic auth: `base64(email:apiToken)`

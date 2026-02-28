@@ -37,7 +37,7 @@ JIRA poller → comment trigger scan → operation ledger → profile router
 
 ### Dependency Injection
 
-Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/jira/client.ts`). All consumers depend on interfaces, never classes. **Only `src/awilix-cradle.ts` imports concrete classes** — this is the sole composition root (awilix `InjectionMode.PROXY`, `strict: true`). Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `profiles`, etc.) rather than a monolithic config object. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
+Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/datasource/connectors/jira/jira-client.ts`). All consumers depend on interfaces, never classes. **Only `src/awilix-cradle.ts` imports concrete classes** — this is the sole composition root (awilix `InjectionMode.PROXY`, `strict: true`). Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `profiles`, etc.) rather than a monolithic config object. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
 
 ### Container Lifecycle — Three-File Compose Merge
 
@@ -106,7 +106,6 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/container/setup/profile-setup.ts` | Profile initialization orchestrator |
 | `src/datasource/registry.ts` | Data source factory registry (`registerDataSourceFactory`, `buildDataSourceMaps`) |
 | `src/datasource/connectors/jira/factory.ts` | JIRA connector factory (self-registers at import time) |
-| `src/jira/poller.ts` | Interval-based JQL polling + dedup |
 
 ## Conventions
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractAdfText } from "../../src/jira/adf-converter.js";
+import { extractAdfText } from "../../../../src/datasource/connectors/jira/adf-converter.js";
 
 /** Shorthand for building an ADF doc with given block-level children. */
 function doc(...content: object[]) {

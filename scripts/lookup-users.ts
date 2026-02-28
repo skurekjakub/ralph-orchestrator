@@ -12,7 +12,7 @@
  */
 import "dotenv/config";
 import { loadConfig } from "../src/config/loader.js";
-import { JiraClient } from "../src/jira/client.js";
+import { JiraClient } from "../src/datasource/connectors/jira/jira-client.js";
 import type { IJiraConnectionConfig } from "../src/config/types.js";
 
 const issueKey = process.argv[2];

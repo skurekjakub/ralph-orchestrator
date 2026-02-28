@@ -1,6 +1,6 @@
-import type { IJiraConnectionConfig } from "../config/types.js";
-import type { Logger } from "../logger.js";
-import { withRetry, type RetryOptions } from "../retry.js";
+import type { IJiraConnectionConfig } from "../../../config/types.js";
+import type { Logger } from "../../../logger.js";
+import { withRetry, type RetryOptions } from "../../../retry.js";
 import type {
   JiraIssue,
   JiraSearchResponse,
@@ -9,7 +9,7 @@ import type {
   JiraAttachment,
   JiraTransition,
   JiraTransitionsResponse,
-} from "./types.js";
+} from "./jira-types.js";
 
 /** Public contract for the JIRA REST API client. */
 export interface IJiraClient {

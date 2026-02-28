@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assertValidIssueKey } from "../../src/util/jira.js";
+import { assertValidIssueKey } from "../../../../src/datasource/connectors/jira/jira-connector.js";
 
 describe("assertValidIssueKey", () => {
   it.each([

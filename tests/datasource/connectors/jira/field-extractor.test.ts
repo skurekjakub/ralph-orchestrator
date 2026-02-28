@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { JiraFieldExtractor } from "../../src/jira/field-extractor.js";
-import { makeIssue } from "../helpers/factories.js";
+import { JiraFieldExtractor } from "../../../../src/datasource/connectors/jira/field-extractor.js";
+import { makeIssue } from "../../../helpers/factories.js";
 
 const extractor = new JiraFieldExtractor();
 

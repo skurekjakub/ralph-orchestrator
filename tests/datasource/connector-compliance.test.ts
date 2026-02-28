@@ -13,8 +13,8 @@ import { supportsTransitions, supportsAttachments, type IDataSourceConnector } f
 import type { WorkItem, WorkItemComment, WorkItemTransition, WorkItemAttachment } from "../../src/datasource/types.js";
 import { createMockJiraClient } from "../helpers/mocks.js";
 import { makeIssue, makeComment } from "../helpers/factories.js";
-import type { IJiraClient } from "../../src/jira/client.js";
-import type { JiraAttachment, JiraTransition } from "../../src/jira/types.js";
+import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client.js";
+import type { JiraAttachment, JiraTransition } from "../../src/datasource/connectors/jira/jira-types.js";
 
 // ── Compliance test runner ────────────────────────────────────────────────────
 

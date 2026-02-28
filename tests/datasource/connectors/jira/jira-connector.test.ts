@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { JiraConnector } from "../../../../src/datasource/connectors/jira/jira-connector.js";
 import { createMockJiraClient, createSilentLogger, type Mocked } from "../../../helpers/mocks.js";
 import { makeIssue, makeComment } from "../../../helpers/factories.js";
-import type { IJiraClient } from "../../../../src/jira/client.js";
+import type { IJiraClient } from "../../../../src/datasource/connectors/jira/jira-client.js";
 const PROJECT = "DF";
 const KEY = "DF-100";
 

@@ -6,7 +6,7 @@
  * transition ID resolution happen inside this connector.
  */
 
-import type { IJiraClient } from "../../../jira/client.js";
+import type { IJiraClient } from "./jira-client.js";
 import type { IDataSourceConnector, ISupportsAttachments, ISupportsTransitions, SourceQuery } from "../../connector.js";
 import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types.js";
 import type { Logger } from "../../../logger.js";
@@ -19,6 +19,17 @@ import {
 
 /** JIRA issue key pattern: one or more uppercase letters, dash, one or more digits. */
 const JIRA_KEY_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;
+
+/**
+ * Throw if `key` is not a valid JIRA issue key.
+ *
+ * Guards any code that uses the key to construct filesystem paths or API calls.
+ */
+export function assertValidIssueKey(key: string): void {
+  if (!JIRA_KEY_PATTERN.test(key)) {
+    throw new Error(`Invalid JIRA issue key: "${key}"`);
+  }
+}
 
 /**
  * Implements {@link IDataSourceConnector} for Atlassian JIRA Cloud.

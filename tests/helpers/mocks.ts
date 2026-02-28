@@ -7,7 +7,7 @@
 
 import { vi, type Mock } from "vitest";
 import type { Logger } from "../../src/logger.js";
-import type { IJiraClient } from "../../src/jira/client.js";
+import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IResourceManager } from "../../src/services/task-resource-manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";

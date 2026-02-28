@@ -26,8 +26,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), logger, retry utility |
 | `src/config/` | Configuration types (`types.ts`), Zod validation schemas (`schemas.ts`), config + profile loader (`loader.ts`), constants (`constants.ts`) |
 | `src/datasource/` | Data source abstraction layer — `WorkItem` types, `IDataSourceConnector` interface, `IWorkItemPoller`, plugin registry (`registry.ts`) |
-| `src/datasource/connectors/jira/` | JIRA connector — maps `JiraIssue` → `WorkItem`, self-registers via `registerDataSourceFactory("jira", ...)` |
-| `src/jira/` | JIRA REST API v3 client, JQL builder from profile match rules, field extraction (internal to JIRA connector) |
+| `src/datasource/connectors/jira/` | JIRA connector — REST API v3 client, JQL builder, field extraction, `JiraIssue` → `WorkItem` mapper, self-registers via `registerDataSourceFactory("jira", ...)` |
 | `src/container/` | Container lifecycle (`manager.ts`), lifecycle hooks (`lifecycle.ts`), docker compose wrapper (`compose-client.ts`), CLI path types (`types.ts`), result parser, log collector, streaming capture |
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`), shared execution helper (`shared-exec.ts`) |
 | `src/container/setup/` | Agent template renderer (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), JIT task-scoped MCP params (`jit-mcp-params.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
@@ -244,7 +243,7 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 
 ### Dependency Interfaces
 
-Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/jira/client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
+Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/datasource/connectors/jira/jira-client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
 
 Only the **cradle factory** (`awilix-cradle.ts`) imports concrete classes for instantiation. This ensures `Mocked<Interface>` is structurally compatible without `as any` casts. See `DEPENDENCY-INJECTION.md` for rationale.
 

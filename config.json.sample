@@ -11,6 +11,7 @@
       "pollIntervalMs": 60000
     }
   },
+  "plugins": [],
   "dashboard": {
     "enabled": false,
     "intervalMs": 30000

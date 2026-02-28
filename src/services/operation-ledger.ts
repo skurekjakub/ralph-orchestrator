@@ -3,7 +3,15 @@ import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { IOutputConfig } from "../config/types.js";
 import { TaskStatus } from "../container/types.js";
-import { assertValidIssueKey } from "../util/jira.js";
+
+/** Work item IDs are used as filenames — reject anything with path-traversal characters. */
+const SAFE_ID_RE = /^[A-Za-z0-9][\w-]*$/;
+
+function assertSafeItemId(id: string): void {
+  if (!SAFE_ID_RE.test(id)) {
+    throw new Error(`Unsafe work item ID for filesystem use: "${id}"`);
+  }
+}
 
 /** Operation lifecycle state. */
 export enum OperationStatus {
@@ -136,7 +144,7 @@ export class OperationLedger implements IOperationLedger {
       triggerParams?: string[];
     },
   ): string {
-    assertValidIssueKey(issueKey);
+    assertSafeItemId(issueKey);
     const op: Operation = {
       id: randomUUID(),
       dataSource: opts.dataSource,
@@ -168,7 +176,7 @@ export class OperationLedger implements IOperationLedger {
       reason: string;
     },
   ): void {
-    assertValidIssueKey(issueKey);
+    assertSafeItemId(issueKey);
     const op: Operation = {
       id: randomUUID(),
       dataSource: opts.dataSource,

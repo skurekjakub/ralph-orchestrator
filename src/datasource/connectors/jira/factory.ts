@@ -10,10 +10,10 @@ import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "..
 import type { IDataSourceConnector } from "../../connector.js";
 import type { IWorkItemPoller } from "../../poller.js";
 import { registerDataSourceFactory } from "../../registry.js";
-import { JiraClient } from "../../../jira/client.js";
+import { JiraClient } from "./jira-client.js";
 import { JiraConnector } from "./jira-connector.js";
 import { JiraWorkItemPoller } from "./jira-poller.js";
-import { buildJqlFromProfiles } from "../../../jira/jql-builder.js";
+import { buildJqlFromProfiles } from "./jql-builder.js";
 
 /**
  * Creates Jira connector + poller for a single data source entry.

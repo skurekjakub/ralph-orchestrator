@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { extractAdfText } from "../../src/jira/adf-converter.js";
+import { extractAdfText } from "../../src/datasource/connectors/jira/adf-converter.js";
 import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
 
 const DS = "jira";

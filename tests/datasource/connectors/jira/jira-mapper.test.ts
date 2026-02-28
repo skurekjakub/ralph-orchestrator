@@ -5,7 +5,7 @@ import {
   mapAttachmentToWorkItemAttachment,
   mapTransitionToWorkItemTransition,
 } from "../../../../src/datasource/connectors/jira/jira-mapper.js";
-import type { JiraIssue, JiraComment, JiraAttachment, JiraTransition } from "../../../../src/jira/types.js";
+import type { JiraIssue, JiraComment, JiraAttachment, JiraTransition } from "../../../../src/datasource/connectors/jira/jira-types.js";
 import { makeIssue, makeComment } from "../../../helpers/factories.js";
 
 describe("mapIssueToWorkItem", () => {

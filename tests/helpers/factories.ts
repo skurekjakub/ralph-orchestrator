@@ -7,7 +7,7 @@
 
 import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch } from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
-import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";
 import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
