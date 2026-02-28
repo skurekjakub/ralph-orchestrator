@@ -83,7 +83,7 @@ export function buildPromptWithSections(
   if (workItem.description) {
     const descStr = normalizeContent(workItem.description);
     untrustedParts.push(`Description:\n${descStr}`);
-    sections.push({ source: PromptSectionSource.JiraField, fieldName: "description", content: descStr });
+    sections.push({ source: PromptSectionSource.WorkItemField, fieldName: "description", content: descStr });
   }
 
   if (workItem.labels.length > 0) {
@@ -103,13 +103,13 @@ export function buildPromptWithSections(
   for (const [label, value] of workItem.customFields) {
     const normalized = normalizeContent(value);
     untrustedParts.push(`${label}: ${normalized}`);
-    sections.push({ source: PromptSectionSource.JiraField, fieldName: label, content: normalized });
+    sections.push({ source: PromptSectionSource.WorkItemField, fieldName: label, content: normalized });
   }
 
   if (context?.comments && context.comments.length > 0) {
     const joined = normalizeContent(context.comments.join("\n---\n"));
     untrustedParts.push(`JIRA Comments (oldest first):\n${joined}`);
-    sections.push({ source: PromptSectionSource.JiraComment, fieldName: "comments", content: joined });
+    sections.push({ source: PromptSectionSource.Comment, fieldName: "comments", content: joined });
   }
 
   if (untrustedParts.length > 0) {

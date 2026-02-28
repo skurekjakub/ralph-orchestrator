@@ -65,8 +65,8 @@ export interface PromptSection {
 /** Provenance of a prompt section — indicates where the content originated. */
 export enum PromptSectionSource {
   System = "system",
-  JiraField = "jira-field",
-  JiraComment = "jira-comment",
+  WorkItemField = "work-item-field",
+  Comment = "comment",
   Handoff = "handoff",
 }
 
@@ -224,7 +224,7 @@ export function auditPromptSections(sections: PromptSection[]): AuditResult {
  */
 export function auditPrompt(prompt: string): AuditResult {
   return auditPromptSections([
-    { source: PromptSectionSource.JiraField, fieldName: "full-prompt", content: prompt },
+    { source: PromptSectionSource.WorkItemField, fieldName: "full-prompt", content: prompt },
   ]);
 }
 
