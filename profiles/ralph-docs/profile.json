@@ -65,7 +65,14 @@
     "ralph-build-errors",
     "ralph-page-removal",
     "ralph-callout-selection",
-    "ralph-cross-version-linking"
+    "ralph-cross-version-linking",
+    "malph-workflow-descend",
+    "malph-workflow-study",
+    "malph-workflow-investigate",
+    "malph-workflow-verify",
+    "malph-workflow-review",
+    "malph-workflow-deliver",
+    "malph-workflow-handoff"
   ],
   "resources": {
     "mountBase": "resources/ralph-resources"

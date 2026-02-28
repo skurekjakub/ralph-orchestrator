@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { Dirent, existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
 import { discoverMcpServers, loadMcpManifest } from "../container/setup/mcp-manifest.js";
@@ -165,7 +165,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 }
 
 /**
- * Validate that all skills referenced by a profile exist in shared/skills/.
+ * Validate that all skills referenced by a profile exist in shared/skills/
+ * (searching subdirectories recursively).
  */
 function validateSkills(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
@@ -179,14 +180,34 @@ function validateSkills(
 
   for (const skill of skills) {
     if (typeof skill !== "string") continue;
-    const skillPath = join(skillsDir, skill);
-    if (!existsSync(skillPath)) {
+    if (!findSkillDirSync(skillsDir, skill)) {
       errors.push(
         `${prefix}: skill "${skill}" not found in shared/skills/\n` +
         `  Create shared/skills/${skill}/`
       );
     }
   }
+}
+
+/** Synchronous recursive search for a skill directory by name. */
+function findSkillDirSync(skillsDir: string, name: string): boolean {
+  // Fast path: flat layout
+  if (existsSync(join(skillsDir, name, "SKILL.md"))) return true;
+
+  // Recursive search through subdirectories
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(skillsDir, { withFileTypes: true }) as Dirent[];
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === ".build") continue;
+    const nested = join(skillsDir, entry.name);
+    if (existsSync(join(nested, name, "SKILL.md"))) return true;
+    if (findSkillDirSync(nested, name)) return true;
+  }
+  return false;
 }
 
 export interface VariantTriggerInfo {
