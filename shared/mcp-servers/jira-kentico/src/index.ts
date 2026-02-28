@@ -30,8 +30,8 @@ import { resolve } from "node:path";
  */
 const ATTACHMENTS_DIR = "/tmp/mcp-attachments";
 
-const JIRA_PAT = process.env.JIRA_PAT;
-const JIRA_EMAIL = process.env.JIRA_EMAIL;
+const JIRA_PAT = process.env.JIRA_PAT_KENTICO_JIRA;
+const JIRA_EMAIL = process.env.JIRA_EMAIL_KENTICO_JIRA;
 
 if (!JIRA_PAT || !JIRA_EMAIL) {
   console.error("JIRA_PAT and JIRA_EMAIL must be set");
