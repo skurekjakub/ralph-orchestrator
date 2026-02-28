@@ -63,7 +63,7 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 | `taskLabels` | `string[]` | `["xperience", "migration"]` | Labels attached to the issue |
 | `taskComponents` | `string[]` | `["Documentation"]` | Component names |
 | `taskProject` | `string` | `"DOC"` | Project key (derived from issue key) |
-| `taskDescription` | `string` | *(normalized text)* | Plain-text description (untrusted JIRA content) |
+| `taskDescription` | `string` | *(normalized text)* | Plain-text description (untrusted content) |
 | `taskCreated` | `string` | `"2026-01-15T10:30:00.000+0000"` | ISO-8601 creation timestamp |
 | `taskUpdated` | `string` | `"2026-02-20T14:00:00.000+0000"` | ISO-8601 last-updated timestamp |
 

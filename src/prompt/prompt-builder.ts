@@ -3,7 +3,7 @@
  * and prompt injection auditing.
  *
  * Provides a single entry point for the rest of the framework to build
- * and validate prompts from JIRA data. The container manager and task runner
+ * and validate prompts from work item data. The container manager and task runner
  * should treat prompt preparation as a black box handled by this class.
  */
 
@@ -28,7 +28,7 @@ export interface BuiltPrompt {
 }
 
 /**
- * Builds and audits prompts from JIRA issue data.
+ * Builds and audits prompts from work item data.
  *
  * Responsibilities:
  * - Normalizes untrusted content (invisible chars, HTML comments, whitespace)
@@ -57,7 +57,7 @@ export class PromptBuilder {
   }
 
   /**
-   * Build a prompt from a JIRA issue and optional context.
+   * Build a prompt from a work item and optional context.
    *
    * Normalizes content, wraps untrusted data in delimiters, and runs the
    * prompt injection auditor. In {@link AuditMode.Warn} mode, findings are
@@ -65,7 +65,7 @@ export class PromptBuilder {
    * result's `audit.safe` will be `false` for critical findings — the caller
    * is responsible for throwing.
    *
-   * @param workItem JIRA issue to process.
+   * @param workItem Work item to process.
    * @param context Pre-fetched issue context (comments, revision handoff).
    * @returns The assembled prompt text and audit result.
    */

@@ -3,7 +3,7 @@
  * patterns before they are passed to the agent CLI.
  *
  * This is a **tripwire defense**, not a guarantee. It catches accidental or
- * lazy injection attempts from JIRA data. Sophisticated adaptive attacks can
+ * lazy injection attempts from work item data. Sophisticated adaptive attacks can
  * bypass heuristic scanning (see "The Attacker Moves Second", Oct 2025).
  *
  * The real security boundary is architectural: network isolation, Squid proxy
@@ -180,7 +180,7 @@ const INJECTION_PATTERNS: PatternRule[] = [
  * Audit a prompt's untrusted sections for common injection patterns.
  *
  * Accepts labelled {@link PromptSection}s so findings include provenance
- * (which JIRA field or comment triggered the match).
+ * (which work item field or comment triggered the match).
  *
  * Sections with `source: "system"` are skipped — only untrusted content is scanned.
  */

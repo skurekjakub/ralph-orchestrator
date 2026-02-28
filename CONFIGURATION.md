@@ -394,7 +394,7 @@ Multiple orchestrator instances can report to the same dashboard — each genera
 - `"block"` — Logs findings and **blocks execution** when critical patterns are detected (e.g., system instruction overrides, credential probing, prompt format tokens). Warnings still proceed.
 - `"off"` — Disables prompt auditing entirely. Not recommended except for debugging.
 
-The auditor scans untrusted JIRA data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
+The auditor scans untrusted data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
 
 ### Additional Global Settings
 

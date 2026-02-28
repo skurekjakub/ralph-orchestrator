@@ -2,7 +2,7 @@ JIRA Issue: DOC-3122
 
 Title: RFS usage in content types
 
---- BEGIN UNTRUSTED JIRA DATA ---
+--- BEGIN UNTRUSTED DATA ---
 
 Description:
 Implementation: [https://kentico.atlassian.net/browse/KX-12470](https://kentico.atlassian.net/browse/KX-12470)
@@ -47,4 +47,4 @@ Status: Completed. PR: PR #2913 (draft).
 [2026-02-18T08:00:20.948+0100] Jakub Skurek:
 @MalphDocs - hey, Ralph made a thing, come take a look.
 
---- END UNTRUSTED JIRA DATA ---
+--- END UNTRUSTED DATA ---

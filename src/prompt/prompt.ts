@@ -3,8 +3,8 @@ import { PromptSectionSource, type PromptSection } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
 
 /** Delimiter wrapping untrusted data source content in the prompt. */
-const UNTRUSTED_BEGIN = "--- BEGIN UNTRUSTED JIRA DATA ---";
-const UNTRUSTED_END = "--- END UNTRUSTED JIRA DATA ---";
+const UNTRUSTED_BEGIN = "--- BEGIN UNTRUSTED DATA ---";
+const UNTRUSTED_END = "--- END UNTRUSTED DATA ---";
 
 /**
  * Context about an issue provided to the agent alongside the work item fields.
@@ -35,7 +35,7 @@ export interface PromptWithSections {
  * string and labelled sections for prompt-injection auditing.
  *
  * Untrusted content (description, custom fields, comments, handoff) is wrapped
- * in `--- BEGIN/END UNTRUSTED JIRA DATA ---` delimiters so the agent can
+ * in `--- BEGIN/END UNTRUSTED DATA ---` delimiters so the agent can
  * distinguish system instructions from user-provided data.
  *
  * @see buildPrompt — convenience wrapper that returns only the string.
