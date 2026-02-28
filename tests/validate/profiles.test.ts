@@ -66,11 +66,13 @@ beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), "validate-profiles-"));
   origCwd = process.cwd();
   process.chdir(tempDir);
+  process.env.ADO_PAT = "test-ado-pat";
 });
 
 afterEach(() => {
   process.chdir(origCwd);
   rmSync(tempDir, { recursive: true, force: true });
+  delete process.env.ADO_PAT;
 });
 
 describe("validateProfiles", () => {
@@ -332,6 +334,14 @@ describe("validateProfiles", () => {
       expect(c.errors.filter((e) => e.includes("MCP server"))).toHaveLength(0);
     });
 
+  });
+
+  it("errors when repoPat env var is not set", () => {
+    delete process.env.ADO_PAT;
+    writeValidProfile("ralph-docs");
+    const c = collector();
+    validateProfiles(c);
+    expect(c.errors.some((e) => e.includes("ADO_PAT") && e.includes("not set"))).toBe(true);
   });
 
   it("validates multiple profiles in a single run", () => {

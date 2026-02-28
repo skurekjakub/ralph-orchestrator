@@ -318,4 +318,39 @@ describe("loadConfig", () => {
       expect(() => loadConfig()).toThrow("duplicate MCP server(s): ado");
     });
   });
+
+  describe("vcsProvider and repoPat", () => {
+    it("defaults vcsProvider to 'ado' and repoPat to 'ADO_PAT'", () => {
+      setRequiredEnv();
+      const config = loadConfig();
+      expect(config.profiles[0].vcsProvider).toBe("ado");
+      expect(config.profiles[0].repoPat).toBe("ADO_PAT");
+    });
+
+    it("defaults repoPat to 'GH_TOKEN' when vcsProvider is 'github'", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        dataSource: "test-source",
+        vcsProvider: "github",
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
+      }));
+      const config = loadConfig();
+      expect(config.profiles[0].vcsProvider).toBe("github");
+      expect(config.profiles[0].repoPat).toBe("GH_TOKEN");
+    });
+
+    it("uses explicit repoPat when provided", () => {
+      setRequiredEnv();
+      stubProfiles(JSON.stringify({
+        repo: "/tmp/test",
+        dataSource: "test-source",
+        vcsProvider: "ado",
+        repoPat: "CUSTOM_ADO_PAT",
+        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
+      }));
+      const config = loadConfig();
+      expect(config.profiles[0].repoPat).toBe("CUSTOM_ADO_PAT");
+    });
+  });
 });

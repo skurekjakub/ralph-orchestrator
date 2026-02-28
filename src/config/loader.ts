@@ -12,8 +12,7 @@ import {
   type IAgentProfile,
   type IDataSourceConfig,
   type ISecretsConfig,
-  type IDashboardConfig,
-} from "./types.js";
+  type IDashboardConfig,  VcsProvider,} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Profile discovery
@@ -76,6 +75,9 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
       throw new Error(`Profile "${profileId}": duplicate MCP server(s): ${[...new Set(dupes)].join(", ")}`);
     }
 
+    const vcsProvider = parsed.vcsProvider as VcsProvider;
+    const repoPat = parsed.repoPat ?? (vcsProvider === VcsProvider.GitHub ? "GH_TOKEN" : "ADO_PAT");
+
     for (let vi = 0; vi < parsed.variants.length; vi++) {
       const variant = parsed.variants[vi];
 
@@ -83,6 +85,8 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         id: profileId,
         dataSource: parsed.dataSource,
         repoPath: resolvePath(parsed.repo),
+        vcsProvider,
+        repoPat,
         composeFile: `profiles/${profileId}/docker-compose.yml`,
         agentName: variant.agent,
         displayName: variant.agent.replace(/^ralph\./, ""),

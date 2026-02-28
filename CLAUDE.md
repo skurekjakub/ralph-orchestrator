@@ -142,7 +142,7 @@ shared/
   skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display.
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 ## Output Layout
 

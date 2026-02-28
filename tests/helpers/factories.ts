@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch } from "../../src/config/types.js";
+import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
@@ -180,6 +180,8 @@ export function makeProfile(
     githubMcpTools: false,
     skills: [],
     dataSource: "test-source",
+    vcsProvider: VcsProvider.Ado,
+    repoPat: "ADO_PAT",
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied

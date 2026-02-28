@@ -100,6 +100,10 @@ export const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),
   /** Data source key — must reference an entry in config.json `dataSources`. */
   dataSource: z.string().min(1, "Profile dataSource must not be empty"),
+  /** VCS platform for the repo (determines git auth format). */
+  vcsProvider: z.enum(["ado", "github"]).default("ado"),
+  /** Env var name containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  repoPat: z.string().optional(),
   cli: z.enum(["copilot", "claude"]).default("copilot"),
   model: z.string().optional(),
   timeoutMs: z.number().positive().default(1_800_000),

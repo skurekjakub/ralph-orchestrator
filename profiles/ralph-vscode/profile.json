@@ -1,6 +1,8 @@
 {
   "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
   "dataSource": "kentico-jira",
+  "vcsProvider": "ado",
+  "repoPat": "ADO_PAT",
   "cli": "copilot",
   "timeoutMs": 7200000,
   "mcpServers": [

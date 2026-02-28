@@ -131,6 +131,8 @@ shared/
   "resources": { "mountBase": "resources/ralph-resources" },
   "skills": ["git-workflow"],
   "cleanPaths": ["/workspace/resources/chats"],
+  "vcsProvider": "ado",
+  "repoPat": "ADO_PAT",
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -159,6 +161,8 @@ shared/
 | `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
 | `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
 | `skills` | Array of skill folder names from `shared/skills/` to mount into the container at `.github/skills/`. Each name must match a subdirectory in `shared/skills/`. Validated at startup. | `[]` |
+| `vcsProvider` | VCS hosting provider for the target repo: `"ado"` (Azure DevOps) or `"github"`. Controls the auth header format used by the repo-sync hook. | `"ado"` |
+| `repoPat` | Name of the env var containing the git PAT for the repo-sync hook. | `"ADO_PAT"` (ado) or `"GH_TOKEN"` (github) |
 
 The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
 

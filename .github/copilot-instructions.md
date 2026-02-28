@@ -129,6 +129,8 @@ Each profile directory under `profiles/` contains a `profile.json` that maps JIR
 
 The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs.
 
+The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync lifecycle hook. The `repoPat` field names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+
 ## Profile Infrastructure
 
 All Docker and agent infrastructure is centralized in the orchestrator repo. Target repos contain no Ralph-specific files.

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
 import { discoverMcpServers, loadMcpManifest } from "../container/setup/mcp-manifest.js";
+import { VcsProvider } from "../config/types.js";
 import type { ValidationCollector } from "./types.js";
 
 export function validateProfiles({ errors, warnings }: ValidationCollector): void {
@@ -138,6 +139,16 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
           }
         }
       }
+    }
+
+    // Validate that the git PAT env var is set for repo sync
+    const vcsProvider = p.vcsProvider ?? VcsProvider.Ado;
+    const repoPat: string = p.repoPat ?? (vcsProvider === VcsProvider.GitHub ? "GH_TOKEN" : "ADO_PAT");
+    if (!process.env[repoPat]) {
+      errors.push(
+        `${prefix}: env var ${repoPat} is not set (required for repo-sync hook)\n` +
+        `  Set ${repoPat} in .env or change repoPat in profile.json`
+      );
     }
 
     validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);

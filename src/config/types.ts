@@ -5,6 +5,12 @@ import type { CliType } from "../container/types.js";
 // Runtime types (post-resolution)
 // ---------------------------------------------------------------------------
 
+/** VCS platform for the profile's repository. Determines git auth header format. */
+export enum VcsProvider {
+  Ado = "ado",
+  GitHub = "github",
+}
+
 /** Per-data-source connection config — type-specific fields live in `connection`. */
 export interface IDataSourceConfig {
   /** Data source type string (e.g. `"jira"`, `"github"`). Must match a registered factory. */
@@ -47,6 +53,10 @@ export interface IAgentProfile {
   /** Data source key — must reference an entry in `IAppConfig.dataSources`. */
   readonly dataSource: string;
   readonly repoPath: string;
+  /** VCS platform for the repo. Determines how the git sync hook authenticates. */
+  readonly vcsProvider: VcsProvider;
+  /** Name of the env var containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  readonly repoPat: string;
   /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
   readonly composeFile: string;
   /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). Used as the `--agent` argument. */
