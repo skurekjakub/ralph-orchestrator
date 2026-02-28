@@ -117,6 +117,14 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       useComposeLogs: true,
     });
 
+    logs.addSource({
+      id: "state",
+      service: "app",
+      containerPath: `/workspace/.ralph/tasks/${taskId}/state.md`,
+      extension: "md",
+      mode: CaptureMode.Collect,
+    });
+
     logs.addExport({
       id: "session-state",
       service: "app",

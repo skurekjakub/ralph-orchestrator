@@ -112,5 +112,5 @@ Do not modify files outside this path unless strictly necessary (e.g. navigation
 
 - Branch: `ralph/{{ taskId }}-<short-slug>` (e.g., `ralph/{{ taskId }}-custom-modules`)
 - Commit prefix: `docs({{ taskId }}):`
-- Workload dir: `resources/chats/{{ taskId }}/`
+- Workload dir: `.ralph/tasks/{{ taskId }}/`
 {% endsection %}

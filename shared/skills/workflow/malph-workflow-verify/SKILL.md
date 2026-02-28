@@ -7,7 +7,7 @@ description: "Malph review workflow Phase 4. Read this skill after investigating
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 4: Verify Technical Claims**. If you've already completed this phase, skip to the next.
 
 ## Instructions

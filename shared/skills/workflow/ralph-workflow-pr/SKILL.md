@@ -7,7 +7,7 @@ description: "Standard workflow Phase 7. Read this skill after pushing your bran
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 7. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm Phase 6 (Commit & Push) is done.
 

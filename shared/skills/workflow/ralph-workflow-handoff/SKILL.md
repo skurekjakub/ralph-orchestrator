@@ -7,7 +7,7 @@ description: "Standard workflow Phase 8 — the final phase. Read this skill whe
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 8. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm all prior phases are done. Check "Tracked Identifiers" for PR URL.
 

@@ -130,7 +130,7 @@ shared/
   ],
   "resources": { "mountBase": "resources/ralph-resources" },
   "skills": ["git-workflow"],
-  "cleanPaths": ["/workspace/resources/chats"],
+  "cleanPaths": ["/workspace/.ralph/tasks"],
   "vcsProvider": "ado",
   "repoPat": "ADO_PAT",
   "variants": [
@@ -327,7 +327,7 @@ The `cleanPaths` array lists absolute container paths that are deleted before ea
 
 ```json
 {
-  "cleanPaths": ["/workspace/resources/chats"]
+  "cleanPaths": ["/workspace/.ralph/tasks"]
 }
 ```
 

@@ -7,7 +7,7 @@ description: "Standard workflow Phases 4-5. Read this skill after implementing c
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 4. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm Phase 3 (Write) is complete with a passing build.
 

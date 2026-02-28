@@ -7,7 +7,7 @@ description: "Revision workflow Phases 3-4. Read this skill after understanding 
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Revision Phase 3. If `state.md` shows a different current phase, update it now.
 3. **Review the "Feedback Items" section** — these are the specific issues to address.
 

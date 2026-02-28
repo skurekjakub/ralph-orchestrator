@@ -7,7 +7,7 @@ description: "Malph review workflow Phase 7 — the final phase. Read this skill
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 7: Handoff & Exit**. If you've already completed this phase, you should have already printed the exit block.
 3. **Check "Review Findings"** and **"Investigator Findings"** in `state.md` — you need both for the handoff.
 

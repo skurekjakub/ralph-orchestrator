@@ -7,13 +7,13 @@ description: "Revision workflow Phases 6-7 — the final revision phase. Read th
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Revision Phase 6. If `state.md` shows a different current phase, update it now.
 3. **Review "Completed Phases"** — you need a summary of everything done.
 
 ## Phase 6: Update Handoff
 
-Update the existing handoff file at `resources/chats/{{ taskId }}/handoff.md`:
+Update the existing handoff file at `.ralph/tasks/{{ taskId }}/handoff.md`:
 
 1. **Add a "Revision" section** summarizing what was changed and why
 2. **Preserve the original handoff content** — append, don't replace

@@ -7,7 +7,7 @@ description: "Standard workflow Phase 3. Read this skill when you're ready to im
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 3. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm you have the research findings from Phase 2.
 

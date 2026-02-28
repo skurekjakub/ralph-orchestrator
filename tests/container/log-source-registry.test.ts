@@ -39,14 +39,14 @@ describe("LogSourceRegistry", () => {
       expect(setTaskId).toHaveBeenCalledWith(KEY);
     });
 
-    it("registers all 7 standard log sources", () => {
+    it("registers all 8 standard log sources", () => {
       const { collector, addSource } = createMockCollector();
 
       registry.registerAll(collector, profile, KEY, {}, cliPaths);
 
-      expect(addSource).toHaveBeenCalledTimes(7);
+      expect(addSource).toHaveBeenCalledTimes(8);
       const ids = addSource.mock.calls.map((call: unknown[]) => (call[0] as { id: string }).id);
-      expect(ids).toEqual(["audit", "transcript", "pre-tool", "tool-output", "proxy", "cli-debug", "sidecar"]);
+      expect(ids).toEqual(["audit", "transcript", "pre-tool", "tool-output", "proxy", "cli-debug", "sidecar", "state"]);
     });
 
     it("calls attach after registering sources", () => {
@@ -187,6 +187,22 @@ describe("LogSourceRegistry", () => {
         expect.objectContaining({
           id: "cli-debug",
           collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
+        }),
+      );
+    });
+
+    it("registers state.md artifact from task workload directory", () => {
+      const { collector, addSource } = createMockCollector();
+
+      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+
+      expect(addSource).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "state",
+          service: "app",
+          containerPath: `/workspace/.ralph/tasks/${KEY}/state.md`,
+          extension: "md",
+          mode: CaptureMode.Collect,
         }),
       );
     });

@@ -7,7 +7,7 @@ description: "Standard workflow Phase 1. Read this skill at the start of every n
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md` — if this is Phase 1, the file doesn't exist yet. Create it below.
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md` — if this is Phase 1, the file doesn't exist yet. Create it below.
 2. This skill is for **Phase 1: Setup**. If you've already completed setup, skip to the next phase.
 
 ## Instructions
@@ -15,8 +15,8 @@ description: "Standard workflow Phase 1. Read this skill at the start of every n
 1. **You are working on {{ taskId }}: {{ taskTitle }}**. Parse the full issue details from your prompt — extract the description, acceptance criteria, and any linked resources.
 2. **Create a fresh branch** from `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`:
    Example: `ralph/{{ taskId }}-<short-slug>`
-3. **Create the workload directory**: `resources/chats/{{ taskId }}/`
-4. **Create the scratchpad file** at `resources/chats/{{ taskId }}/state.md` using this template:
+3. **Create the workload directory**: `.ralph/tasks/{{ taskId }}/`
+4. **Create the scratchpad file** at `.ralph/tasks/{{ taskId }}/state.md` using this template:
 
 ```markdown
 # Task State: {{ taskId }} — {{ taskTitle }}

@@ -9,7 +9,7 @@ Your prompt already contains:
 
 Execute the following phases **in order**. Before each phase, read the corresponding skill file for detailed instructions. After each phase, update `state.md` with your progress and the skills needed for the next phase.
 
-**Your `state.md` file at `resources/chats/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase. It tells you where you are, what you've done, and which skills to read next.
+**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase. It tells you where you are, what you've done, and which skills to read next.
 
 | Phase | Skill | Summary |
 |-------|-------|---------|

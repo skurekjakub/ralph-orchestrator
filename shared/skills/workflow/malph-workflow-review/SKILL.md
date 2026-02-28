@@ -7,7 +7,7 @@ description: "Malph review workflow Phase 5. Read this skill after verifying tec
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 5: Review**. If you've already completed this phase, skip to the next.
 3. **Check "Investigator Findings"** in `state.md` — you need the verification report for Part B.
 

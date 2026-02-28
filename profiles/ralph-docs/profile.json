@@ -4,7 +4,7 @@
   "vcsProvider": "ado",
   "cli": "copilot",
   "timeoutMs": 7200000,
-  "cleanPaths": ["/workspace/resources/chats"],
+  "cleanPaths": ["/workspace/.ralph/tasks"],
   "maxContinuations": 3,
   "mcpServers": [
     {

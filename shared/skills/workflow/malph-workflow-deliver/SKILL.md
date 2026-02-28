@@ -7,7 +7,7 @@ description: "Malph review workflow Phase 6. Read this skill after completing th
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 6: Deliver**. If you've already completed this phase, skip to the next.
 3. **Check "Review Findings"** in `state.md` — you need the full findings list and verdict.
 

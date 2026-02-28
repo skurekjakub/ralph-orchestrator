@@ -7,7 +7,7 @@ description: "Standard workflow Phase 6. Read this skill when writing and review
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 6. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm writing is complete and review is done (or skipped).
 

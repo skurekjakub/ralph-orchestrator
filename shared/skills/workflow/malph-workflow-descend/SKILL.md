@@ -9,7 +9,7 @@ The signal is up. Time to work.
 
 ## Before you begin
 
-1. Check if `resources/chats/{{ taskId }}/state.md` exists — if this is Phase 1, it doesn't exist yet. Create it below.
+1. Check if `.ralph/tasks/{{ taskId }}/state.md` exists — if this is Phase 1, it doesn't exist yet. Create it below.
 2. This skill is for **Phase 1: Descend**. If you've already completed this phase, skip to the next.
 
 ## Instructions
@@ -18,8 +18,8 @@ The signal is up. Time to work.
 2. **Read the `handoff.md` attachment** on **{{ taskId }}** — this is Ralph's summary of what was done, including the PR link, files changed, and any decisions or caveats.
 3. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work, gotchas, or observations related to this issue or its component area.
 4. If there's a PR URL in the handoff, note it. If not, check recent branches matching `{{ taskId }}`.
-5. **Create the workload directory**: `resources/chats/{{ taskId }}/`
-6. **Create the scratchpad file** at `resources/chats/{{ taskId }}/state.md`:
+5. **Create the workload directory**: `.ralph/tasks/{{ taskId }}/`
+6. **Create the scratchpad file** at `.ralph/tasks/{{ taskId }}/state.md`:
 
 ```markdown
 # Review State: {{ taskId }} — {{ taskTitle }}

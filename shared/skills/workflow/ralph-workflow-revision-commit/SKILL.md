@@ -7,7 +7,7 @@ description: "Revision workflow Phase 5. Read this skill after fixes are impleme
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md`
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Revision Phase 5. If `state.md` shows a different current phase, update it now.
 3. **Review "Tracked Identifiers"** — you need the branch name and PR URL.
 

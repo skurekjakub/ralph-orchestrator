@@ -7,7 +7,7 @@ description: "Revision workflow Phases 1-2. Read this skill at the start of ever
 
 ## Before you begin
 
-1. **Read `state.md`** at `resources/chats/{{ taskId }}/state.md` — if this is the start of a revision, the file may not exist. Create it below.
+1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md` — if this is the start of a revision, the file may not exist. Create it below.
 2. This skill covers Revision Phases 1 and 2. If you've already completed these, skip to the next phase.
 
 ## Phase 1: Understand Feedback
@@ -37,7 +37,7 @@ description: "Revision workflow Phases 1-2. Read this skill at the start of ever
 
 ## Create or update state.md
 
-If `state.md` doesn't exist, create it at `resources/chats/{{ taskId }}/state.md`:
+If `state.md` doesn't exist, create it at `.ralph/tasks/{{ taskId }}/state.md`:
 
 ```markdown
 # Task State: {{ taskId }} — {{ taskTitle }} (REVISION)
