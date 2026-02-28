@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { DataSourceType } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for config.json (global settings only)
@@ -15,7 +14,7 @@ export const jiraConnectionSchema = z.object({
 
 /** Per-data-source entry in the `dataSources` config map. */
 export const dataSourceConfigSchema = z.object({
-  type: z.nativeEnum(DataSourceType, { message: "Unsupported data source type" }),
+  type: z.string().min(1, "Data source type must not be empty"),
   connection: z.record(z.string(), z.unknown()),
   pollIntervalMs: z.number().positive().default(60_000),
   maxResults: z.number().positive().default(100),
@@ -48,6 +47,8 @@ export const configFileSchema = z.object({
     (ds) => Object.keys(ds).length > 0,
     "At least one data source must be defined",
   ),
+  /** Module specifiers loaded before the DI container is created. Each module should self-register (e.g. call registerDataSourceFactory). */
+  plugins: z.array(z.string()).default([]),
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,

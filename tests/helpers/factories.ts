@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import { DataSourceType, type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch } from "../../src/config/types.js";
+import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch } from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
@@ -121,7 +121,7 @@ export function makeResult(
 /** Create a minimal data source config for testing. */
 export function makeDataSourceConfig(overrides: Partial<IDataSourceConfig> = {}): IDataSourceConfig {
   return {
-    type: DataSourceType.Jira,
+    type: "jira",
     connection: {
       baseUrl: "https://api.atlassian.com/ex/jira",
       cloudId: "test-cloud-id",
@@ -214,6 +214,7 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       neo4jUri: "bolt://localhost:7687",
       neo4jUser: "neo4j",
     },
+    plugins: [],
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",

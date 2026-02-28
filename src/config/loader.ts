@@ -7,7 +7,7 @@ import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
 import { configFileSchema, jiraConnectionSchema, profileFileSchema } from "./schemas.js";
 import {
-  DataSourceType,
+
   type IAppConfig,
   type IAgentProfile,
   type IDataSourceConfig,
@@ -146,7 +146,7 @@ export function loadConfig(): IAppConfig {
   const dataSources: Record<string, IDataSourceConfig> = {};
   for (const [key, raw] of Object.entries(parsed.dataSources)) {
     const envKey = key.toUpperCase().replace(/-/g, "_");
-    if (raw.type === DataSourceType.Jira) {
+    if (raw.type === "jira") {
       const conn = jiraConnectionSchema.parse(raw.connection);
       const pat = process.env[`JIRA_PAT_${envKey}`];
       const email = process.env[`JIRA_EMAIL_${envKey}`];
@@ -170,7 +170,14 @@ export function loadConfig(): IAppConfig {
         maxResults: raw.maxResults,
       };
     } else {
-      throw new Error(`Unsupported data source type "${raw.type}" for "${key}"`);
+      // Unknown type — pass through raw config. The registered factory
+      // is responsible for connection validation and env var injection.
+      dataSources[key] = {
+        type: raw.type,
+        connection: raw.connection as Readonly<Record<string, unknown>>,
+        pollIntervalMs: raw.pollIntervalMs,
+        maxResults: raw.maxResults,
+      };
     }
   }
 
@@ -215,6 +222,7 @@ export function loadConfig(): IAppConfig {
   return {
     dataSources,
     profiles,
+    plugins: parsed.plugins ?? [],
     output: {
       logDir: resolve(process.cwd(), parsed.output?.logDir ?? "./output/logs"),
       handoffDir: resolve(process.cwd(), parsed.output?.handoffDir ?? "./output/handoffs"),

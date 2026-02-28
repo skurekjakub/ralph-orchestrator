@@ -23,7 +23,7 @@ import type { ITaskResultWriter } from "../../src/services/task-result-writer.js
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
 import type { ResultPromise } from "execa";
-import { makeResult } from "./factories.js";
+import { makeConfig, makeResult } from "./factories.js";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
 
@@ -303,7 +303,8 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
   return {
     validate: vi.fn().mockResolvedValue({ ok: true, errors: [], warnings: [] }),
     printResults: vi.fn().mockReturnValue(true),
-    loadConfig: vi.fn().mockReturnValue({}),
+    loadConfig: vi.fn().mockReturnValue(makeConfig()),
+    loadPlugins: vi.fn().mockResolvedValue(undefined),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
     resolveMcpConfigs: vi.fn(),
     startRalphchives: vi.fn().mockResolvedValue(undefined),

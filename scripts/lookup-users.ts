@@ -14,7 +14,6 @@ import "dotenv/config";
 import { loadConfig } from "../src/config/loader.js";
 import { JiraClient } from "../src/jira/client.js";
 import type { IJiraConnectionConfig } from "../src/config/types.js";
-import { DataSourceType } from "../src/config/types.js";
 
 const issueKey = process.argv[2];
 const sourceKey = process.argv[3];
@@ -29,7 +28,7 @@ async function main() {
   const config = loadConfig();
 
   // Find the JIRA data source to use
-  const jiraSources = Object.entries(config.dataSources).filter(([, ds]) => ds.type === DataSourceType.Jira);
+  const jiraSources = Object.entries(config.dataSources).filter(([, ds]) => ds.type === "jira");
   if (jiraSources.length === 0) {
     console.error("No JIRA data sources configured in config.json");
     process.exit(1);

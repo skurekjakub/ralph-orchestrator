@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle.js";
 import { makeConfig } from "./helpers/factories.js";
 
+// Ensure built-in data source factories are registered
+import "../src/datasource/connectors/jira/factory.js";
+
 /**
  * Verifies that awilix resolves all cradle services without errors.
  *

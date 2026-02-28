@@ -20,6 +20,7 @@ describe("AppStartup", () => {
           callOrder.push("loadConfig");
           return makeConfig();
         }),
+        loadPlugins: vi.fn().mockImplementation(async () => callOrder.push("loadPlugins")),
         buildMcpServers: vi.fn().mockImplementation(async () => callOrder.push("buildMcpServers")),
         resolveMcpConfigs: vi.fn().mockImplementation(() => callOrder.push("resolveMcpConfigs")),
       });
@@ -31,6 +32,7 @@ describe("AppStartup", () => {
         "validate",
         "printResults",
         "loadConfig",
+        "loadPlugins",
         "buildMcpServers",
         "resolveMcpConfigs",
       ]);

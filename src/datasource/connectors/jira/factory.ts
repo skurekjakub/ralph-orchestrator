@@ -2,13 +2,14 @@
  * Jira data source factory.
  *
  * Creates a {@link JiraConnector} and {@link JiraWorkItemPoller} from config.
- * Registered with the data source registry so `awilix-cradle` never imports
- * Jira-specific internals.
+ * Self-registers with the data source registry at import time — the same
+ * pattern available to third-party integrations.
  */
 
 import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "../../../config/types.js";
 import type { IDataSourceConnector } from "../../connector.js";
 import type { IWorkItemPoller } from "../../poller.js";
+import { registerDataSourceFactory } from "../../registry.js";
 import { JiraClient } from "../../../jira/client.js";
 import { JiraConnector } from "./jira-connector.js";
 import { JiraWorkItemPoller } from "./jira-poller.js";
@@ -41,3 +42,6 @@ export function createJiraDataSource(
 
   return { connector, poller };
 }
+
+// Self-register — imported as side-effect in app-startup.ts
+registerDataSourceFactory("jira", createJiraDataSource);

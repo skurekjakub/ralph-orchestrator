@@ -5,16 +5,10 @@ import type { CliType } from "../container/types.js";
 // Runtime types (post-resolution)
 // ---------------------------------------------------------------------------
 
-/** Supported data source types. */
-export enum DataSourceType {
-  Jira = "jira",
-  GitHub = "github"
-}
-
 /** Per-data-source connection config — type-specific fields live in `connection`. */
 export interface IDataSourceConfig {
-  /** Data source type (drives connector + poller instantiation). */
-  readonly type: DataSourceType;
+  /** Data source type string (e.g. `"jira"`, `"github"`). Must match a registered factory. */
+  readonly type: string;
   /** Type-specific connection properties (validated by the connector). */
   readonly connection: Readonly<Record<string, unknown>>;
   readonly pollIntervalMs: number;
@@ -142,6 +136,8 @@ export interface IAppConfig {
   /** Named data source configurations (e.g. "kentico-jira" → JIRA instance). */
   readonly dataSources: Readonly<Record<string, IDataSourceConfig>>;
   readonly profiles: readonly IAgentProfile[];
+  /** Plugin module specifiers — loaded before the DI container is created. */
+  readonly plugins: readonly string[];
   readonly output: IOutputConfig;
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;
