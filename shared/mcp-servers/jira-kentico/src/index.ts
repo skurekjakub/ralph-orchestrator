@@ -70,11 +70,10 @@ function createMcpServer(): McpServer {
 
   server.registerTool("jira_add_comment", {
     description:
-      "Add a comment to a JIRA issue. The comment body uses JIRA wiki markup " +
+      `Add a comment to a JIRA issue ${JIRA_ISSUE_KEY}. The comment body uses JIRA wiki markup ` +
       "(h3. for headings, {{code}} for inline code, {code:lang}...{code} for blocks, " +
       "bq. for blockquotes, regular markdown for the rest). " +
-      "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences." +
-      (JIRA_ISSUE_KEY ? ` The issue key is pre-configured to ${JIRA_ISSUE_KEY}.` : ""),
+      "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
     inputSchema: JIRA_ISSUE_KEY
       ? { body: z.string().describe("Comment body in JIRA wiki markup") }
       : {
@@ -114,8 +113,7 @@ function createMcpServer(): McpServer {
 
   server.registerTool("jira_add_attachment", {
     description:
-      "Attach a file to a JIRA issue. The file must be placed in /tmp/mcp-attachments/" +
-      (JIRA_ISSUE_KEY ? ` The issue key is pre-configured to ${JIRA_ISSUE_KEY}.` : ""),
+      `Attach a file to a JIRA issue ${JIRA_ISSUE_KEY}. The file must be placed in /tmp/mcp-attachments/`,
     inputSchema: JIRA_ISSUE_KEY
       ? { fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") }
       : {
