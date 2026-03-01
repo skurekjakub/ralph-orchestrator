@@ -22,15 +22,8 @@ Now YOU implement all documentation changes based on the researcher's report.
    - **ralph-documentation-syntax** — full Liquid tag reference and syntax
    - **ralph-callout-selection** — choosing between callout types (tip/info/note/warning/key)
 
-2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section:
+2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section and create a `todo` list:
 
-```markdown
-## Subtasks
-(from researcher's Recommended Changes)
-- [ ] CREATE-XXX — <brief description>
-- [ ] UPDATE-XXX — <brief description>
-- [ ] MODIFY-XXX — <brief description>
-```
 {%- if triggerParams.release_notes %}
 
 3. **Add a release notes subtask** — this task was triggered with the `release_notes` parameter. After recording the researcher's subtasks, add one more:
