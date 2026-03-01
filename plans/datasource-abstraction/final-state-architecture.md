@@ -651,7 +651,7 @@ export interface TemplateContext {
 
 ```liquid
 {%- comment -%} BEFORE {%- endcomment -%}
-You are working on JIRA issue {{ issueKey }}: {{ issueSummary }}
+You are working on JIRA issue {{ taskId }}: {{ issueSummary }}
 Status: {{ issueStatus }}
 
 {%- comment -%} AFTER {%- endcomment -%}

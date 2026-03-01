@@ -64,7 +64,7 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 
 ### 2. Attach the handoff file
 
-Attach to JIRA using `jira_add_attachment` and file name `handoff-{{ issueKey }}.md`.
+Attach to JIRA using `jira_add_attachment` and file name `handoff-{{ taskId }}.md`.
 
 {%- if triggerParams.release_notes %}
 
@@ -86,7 +86,7 @@ Post on **{{ taskId }}** using `jira_add_comment`. Include whatever you think is
 
 Post a task report (skill: **ralph-ralphchives**) summarizing what was accomplished, key decisions, and any remaining gaps.
 
-First search for existing threads (`search_ralphchives`) matching the issue ({{ issueKey }}) and related keywords. If not found, create a new post.
+First search for existing threads (`search_ralphchives`) matching the issue ({{ taskId }}) and related keywords. If not found, create a new post.
 
 ### 5. Exit
 

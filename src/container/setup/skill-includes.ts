@@ -126,7 +126,7 @@ export interface ISkillTemplateRenderer {
  *
  * Renders all skill templates declared by the profile through Liquid,
  * writing output to `shared/skills/.build/<name>/`. Called before each
- * task so skills can use runtime data like `{{ issueKey }}`.
+ * task so skills can use runtime data like `{{ taskId }}`.
  */
 export class SkillTemplateRenderer implements ISkillTemplateRenderer {
   constructor() {}

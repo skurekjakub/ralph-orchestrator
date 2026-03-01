@@ -26,7 +26,7 @@ Phase 4 was split across two sessions:
 - `issueKey` → `taskId` (container/types.ts + all consumers)
 
 ### Liquid Templates
-- All `{{ issueKey }}` → `{{ taskId }}`, `{{ issueSummary }}` → `{{ taskTitle }}`, etc.
+- All `{{ taskId }}` → `{{ taskId }}`, `{{ issueSummary }}` → `{{ taskTitle }}`, etc.
 - Updated across 6 agent templates, 4 shared includes, 1 skill file
 
 ### Other
