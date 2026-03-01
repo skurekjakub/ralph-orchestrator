@@ -1,6 +1,5 @@
 import type { IAgentProfile } from "../config/types.js";
-import type { IContainerLogCollector } from "./log-collector.js";
-import { CaptureMode } from "./log-collector.js";
+import { CaptureMode, type IContainerLogCollector } from "./log-collector.js";
 import type { CliPaths } from "./types.js";
 
 /** Path to the CLI session-state directory inside the container. */
@@ -22,14 +21,14 @@ export interface ILogSourceRegistry {
    *
    * @param logs       The log collector to register sources on.
    * @param profile    Agent profile providing paths (audit log, etc.).
-   * @param issueKey   JIRA key used as the filename prefix.
+   * @param taskId     Work item id used as the filename prefix.
    * @param callbacks  Optional real-time line callbacks for streamed sources.
    * @param cliPaths   CLI-specific filesystem paths.
    */
   registerAll(
     logs: IContainerLogCollector,
     profile: IAgentProfile,
-    issueKey: string,
+    taskId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void;
@@ -52,11 +51,11 @@ export class LogSourceRegistry implements ILogSourceRegistry {
   registerAll(
     logs: IContainerLogCollector,
     profile: IAgentProfile,
-    issueKey: string,
+    taskId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void {
-    logs.setTaskId(issueKey);
+    logs.setTaskId(taskId);
 
     logs.addSource({
       id: "audit",
@@ -114,8 +113,16 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       service: "mcp-sidecar",
       containerPath: "",
       extension: "log",
-      mode: CaptureMode.Collect,
+      mode: CaptureMode.Stream,
       useComposeLogs: true,
+    });
+
+    logs.addSource({
+      id: "state",
+      service: "app",
+      containerPath: `/workspace/.ralph/tasks/${taskId}/state.md`,
+      extension: "md",
+      mode: CaptureMode.Collect,
     });
 
     logs.addExport({

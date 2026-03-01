@@ -76,7 +76,7 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 
 Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). All other profile infrastructure is fully prepared before the orchestrator is instantiated.
 
-### JIRA Poller (`src/jira/poller.ts`)
+### JIRA Poller (`src/datasource/connectors/jira/jira-poller.ts`)
 
 - Runs on a configurable interval (default: 60s)
 - Executes JQL queries auto-generated from profile match rules
@@ -92,7 +92,7 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 - Crash recovery: on startup, `active` operations from previous sessions are marked as `error`
 - Pending operations survive restarts — persisted on disk and resumed after recovery
 
-### JIRA Client (`src/jira/client.ts`)
+### JIRA Client (`src/datasource/connectors/jira/jira-client.ts`)
 
 - Native `fetch` against JIRA REST API v3 (cloud endpoint)
 - Basic auth: `base64(email:apiToken)`
@@ -111,7 +111,7 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 - **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
-**Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted JIRA content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `BEGIN/END UNTRUSTED JIRA DATA` delimiters. The assembled prompt is passed through the prompt injection auditor.
+**Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `BEGIN/END UNTRUSTED DATA` delimiters. The assembled prompt is passed through the prompt injection auditor.
 
 **CLI selection:** Based on the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 
@@ -223,7 +223,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── agent-includes/                  # Shared Liquid partials for agent templates
 │   │   ├── ado-api.md               # ADO MCP tool reference (PR creation, threads, replies)
 │   │   ├── ado-pr-format.md         # PR description template
-│   │   ├── prompt-security.md       # Context-aware prompt injection defense (uses {{ issueKey }}, {{ issueProject }})
+│   │   ├── prompt-security.md       # Context-aware prompt injection defense (uses {{ taskId }}, {{ taskProject }})
 │   │   ├── source-references.md     # Xperience source browser URL format
 │   │   ├── personality/             # Agent personality partials
 │   │   │   ├── ralph.md             # Ralph writer personality traits
@@ -246,7 +246,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 ├── shared/skills/                       # Shared agent skill folders (mounted per-profile into .github/skills/)
 ```
 
-Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), JIRA issue data (key, summary, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
+Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
 
 **Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config for the agent, skill folder mounts, and resource file mounts. Profiles with no MCP servers, skills, or resources skip the overlay.
 

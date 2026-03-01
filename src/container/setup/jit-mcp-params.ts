@@ -1,17 +1,17 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { IAgentProfile } from "../../config/types.js";
-import type { JiraIssue } from "../../jira/types.js";
+import type { WorkItem } from "../../datasource/types.js";
 import type { Logger } from "../../logger.js";
 import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
 import { slugifyBranchName } from "../../util/branch.js";
 
-/** Known runtime macros resolved from the current JIRA issue context. */
-const MACROS: Record<string, (issue: JiraIssue) => string> = {
-  "$jira.key": (issue) => issue.key,
-  "$jira.project": (issue) => issue.key.split("-")[0],
-  "$jira.branch": (issue) => slugifyBranchName(issue.key, issue.fields.summary ?? ""),
-  "$jira.summary": (issue) => issue.fields.summary ?? "",
+/** Known runtime macros resolved from the current work item context. */
+const MACROS: Record<string, (workItem: WorkItem) => string> = {
+  "$task.id": (workItem) => workItem.id,
+  "$task.project": (workItem) => workItem.project,
+  "$task.branch": (workItem) => slugifyBranchName(workItem.id, workItem.title),
+  "$task.title": (workItem) => workItem.title,
 };
 
 const TRIGGER_PREFIX = "$trigger.";
@@ -28,7 +28,7 @@ export function buildVariantEnvName(prefix: string, profileId: string, displayNa
 
 /**
  * Resolve an env var value — either a static string, a `$macro` reference,
- * a `$trigger.<key>` reference resolved from JIRA comment trigger params,
+ * a `$trigger.<key>` reference resolved from comment trigger params,
  * or a `$variantEnv.PREFIX` reference resolved from process.env using a
  * variant-scoped env var name (`PREFIX_PROFILEID_DISPLAYNAME`).
  *
@@ -36,7 +36,7 @@ export function buildVariantEnvName(prefix: string, profileId: string, displayNa
  */
 function resolveEnvValue(
   value: string,
-  issue: JiraIssue,
+  workItem: WorkItem,
   triggerParams?: Record<string, string>,
   profile?: IAgentProfile,
 ): string {
@@ -66,7 +66,7 @@ function resolveEnvValue(
     const known = Object.keys(MACROS).join(", ");
     throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
   }
-  return resolver(issue);
+  return resolver(workItem);
 }
 
 /** Public contract for JIT MCP param injection. */
@@ -75,7 +75,7 @@ export interface IJitMcpConfigWriter {
    * Inject profile-level env vars (static + resolved macros) into the profile's `gateway.json`.
    *
    * Reads the profile's `mcpServerConfigs`, resolves any `$macro` values from the
-   * current JIRA issue, and merges them into the corresponding server's `env` block
+   * current work item, and merges them into the corresponding server's `env` block
    * in `gateway.json`. Values prefixed with `$trigger.` are resolved from the
    * optional `triggerParams` map. Static values and secrets already in the env block
    * are preserved.
@@ -83,21 +83,21 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void;
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void;
 }
 
 /**
  * Injects profile-level env vars into the MCP sidecar's gateway config.
  *
  * Before each task, reads the profile's `.build/gateway.json`, resolves
- * `$macro` values from the JIRA issue, merges static + resolved values
+ * `$macro` values from the work item, merges static + resolved values
  * into each server's env block, and writes the augmented config back.
  *
  * Uses synchronous I/O because `gateway.json` is small (~1-2 KB) and
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: IAgentProfile, issue: JiraIssue, logger: Logger, triggerParams?: Record<string, string>): void {
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 
@@ -120,7 +120,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
       }
 
       for (const [envVar, rawValue] of Object.entries(envConfig)) {
-        const value = resolveEnvValue(rawValue, issue, triggerParams, profile);
+        const value = resolveEnvValue(rawValue, workItem, triggerParams, profile);
         entry.env[envVar] = value;
         injected++;
       }
@@ -128,7 +128,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
 
     if (injected > 0) {
       writeFileSync(gatewayPath, JSON.stringify(gateway, null, 2) + "\n", "utf-8");
-      logger.info(`Injected ${injected} env var(s) into gateway.json for ${issue.key}`);
+      logger.info(`Injected ${injected} env var(s) into gateway.json for ${workItem.id}`);
     }
   }
 

@@ -7,13 +7,14 @@
 
 import { vi, type Mock } from "vitest";
 import type { Logger } from "../../src/logger.js";
-import type { IJiraClient } from "../../src/jira/client.js";
-import type { IIssueManager } from "../../src/services/jira-issue-manager.js";
+import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client.js";
+import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IResourceManager } from "../../src/services/task-resource-manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerManager } from "../../src/container/manager.js";
+import type { IDataSourceConnector, IDataSourceIdentity, ISupportsAttachments, ISupportsTransitions } from "../../src/datasource/connector.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
-import type { IJiraPoller } from "../../src/jira/poller.js";
+import type { IWorkItemPoller } from "../../src/datasource/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
@@ -22,7 +23,7 @@ import type { ITaskResultWriter } from "../../src/services/task-result-writer.js
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
 import type { ResultPromise } from "execa";
-import { makeResult } from "./factories.js";
+import { makeConfig, makeResult } from "./factories.js";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
 
@@ -88,13 +89,13 @@ export function createMockJiraClient(overrides: Partial<Mocked<IJiraClient>> = {
   } as Mocked<IJiraClient>;
 }
 
-/** Create a mock JiraIssueManager with all methods stubbed. */
+/** Create a mock IssueManager with all methods stubbed. */
 export function createMockIssueManager(overrides: Partial<Mocked<IIssueManager>> = {}): Mocked<IIssueManager> {
   return {
     getComments: vi.fn().mockResolvedValue([]),
     postAckComment: vi.fn().mockResolvedValue(undefined),
-    refreshIssue: vi.fn().mockResolvedValue(null),
-    transitionIssue: vi.fn().mockResolvedValue(undefined),
+    refreshWorkItem: vi.fn().mockResolvedValue(null),
+    transitionWorkItem: vi.fn().mockResolvedValue(undefined),
     postStartComment: vi.fn().mockResolvedValue(undefined),
     postErrorComment: vi.fn().mockResolvedValue(undefined),
     postCrashRecoveryComment: vi.fn().mockResolvedValue(undefined),
@@ -104,7 +105,7 @@ export function createMockIssueManager(overrides: Partial<Mocked<IIssueManager>>
   } as Mocked<IIssueManager>;
 }
 
-/** Create a mock TaskJiraResourceManager with all methods stubbed. */
+/** Create a mock TaskResourceManager with all methods stubbed. */
 export function createMockResources(overrides: Partial<Mocked<IResourceManager>> = {}): Mocked<IResourceManager> {
   return {
     fetchHandoff: vi.fn().mockResolvedValue(null),
@@ -112,6 +113,29 @@ export function createMockResources(overrides: Partial<Mocked<IResourceManager>>
     attachTranscript: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as Mocked<IResourceManager>;
+}
+
+/** Create a mock IDataSourceConnector with all capabilities (transitions + attachments). */
+export function createMockConnector(
+  overrides: Partial<IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>> = {},
+): IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments> {
+  return {
+    name: "MockConnector",
+    sourceKey: "mock",
+    getAllowedUsers: vi.fn().mockReturnValue([]),
+    buildQueries: vi.fn().mockReturnValue([]),
+    searchWorkItems: vi.fn().mockResolvedValue([]),
+    refreshWorkItem: vi.fn().mockResolvedValue(null),
+    isValidItemId: vi.fn().mockReturnValue(true),
+    getComments: vi.fn().mockResolvedValue([]),
+    addComment: vi.fn().mockResolvedValue(undefined),
+    getTransitions: vi.fn().mockResolvedValue([]),
+    transitionWorkItem: vi.fn().mockResolvedValue(undefined),
+    getAttachments: vi.fn().mockResolvedValue([]),
+    downloadAttachment: vi.fn().mockResolvedValue(""),
+    addAttachment: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  } as IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>;
 }
 
 // ── Container mocks ──────────────────────────────────────────────────────────
@@ -155,8 +179,8 @@ export function createMockContainer(
   container: IContainerManager;
   spies: Record<string, ReturnType<typeof vi.fn>>;
 } {
-  const issueKey = executeResult?.issueKey ?? "MOCK-1";
-  const result: RalphResult = makeResult(issueKey, executeResult);
+  const taskId = executeResult?.taskId ?? "MOCK-1";
+  const result: RalphResult = makeResult(taskId, executeResult);
 
   const spies = {
     start: vi.fn().mockResolvedValue(undefined),
@@ -226,22 +250,23 @@ export function createMockResultWriter(overrides: Partial<Mocked<ITaskResultWrit
   };
 }
 
-/** Create a mock JiraPoller with all methods stubbed. */
-export function createMockPoller(overrides: Partial<Mocked<IJiraPoller>> = {}): Mocked<IJiraPoller> {
+/** Create a mock WorkItemPoller with all methods stubbed. */
+export function createMockPoller(overrides: Partial<Mocked<IWorkItemPoller>> & { sourceKey?: string } = {}): Mocked<IWorkItemPoller> & { sourceKey: string } {
   return {
+    sourceKey: overrides.sourceKey ?? "test-source",
     start: vi.fn(),
     stop: vi.fn(),
-    onIssues: vi.fn(),
+    onItems: vi.fn(),
     drain: vi.fn().mockReturnValue([]),
     ...overrides,
-  };
+  } as Mocked<IWorkItemPoller> & { sourceKey: string };
 }
 
 /** Create a mock TaskRunner with all methods stubbed. */
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
     run: vi.fn().mockImplementation(async (ctx: any) => ({
-      result: makeResult(ctx.issue?.key ?? ctx.key ?? "MOCK-1"),
+      result: makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1"),
       container: createMockContainer().container,
     })),
     teardown: vi.fn().mockResolvedValue(undefined),
@@ -278,7 +303,8 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
   return {
     validate: vi.fn().mockResolvedValue({ ok: true, errors: [], warnings: [] }),
     printResults: vi.fn().mockReturnValue(true),
-    loadConfig: vi.fn().mockReturnValue({}),
+    loadConfig: vi.fn().mockReturnValue(makeConfig()),
+    loadPlugins: vi.fn().mockResolvedValue(undefined),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
     resolveMcpConfigs: vi.fn(),
     startRalphchives: vi.fn().mockResolvedValue(undefined),

@@ -1,12 +1,15 @@
 {
   "repo": "~/repositories/ralph-repositories/kentico-docs-autocomplete-vscode",
+  "dataSource": "kentico-jira",
+  "vcsProvider": "ado",
+  "repoPat": "ADO_PAT",
   "cli": "copilot",
   "timeoutMs": 7200000,
   "mcpServers": [
     {
       "name": "jira-kentico",
       "env": {
-        "JIRA_ISSUE_KEY": "$jira.key"
+        "JIRA_ISSUE_KEY": "$task.id"
       }
     },
     {
@@ -14,7 +17,7 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-autocomplete-vscode",
-        "TASK_BRANCH": "$jira.branch"
+        "TASK_BRANCH": "$task.branch"
       }
     },
     {

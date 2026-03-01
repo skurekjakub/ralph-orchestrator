@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeIssue, makeConfig, makeCompletion } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeConfig, makeCompletion } from "../helpers/factories.js";
 import { OrchestratorStatus } from "../../src/orchestrator-types.js";
 import { TaskStatus } from "../../src/container/types.js";
+const TRIGGER = "@ralph";
 
 /**
  * Orchestrator integration tests — exercise real logic from the core modules
@@ -16,44 +17,44 @@ describe("Orchestrator core integration", () => {
       const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } });
       const router = new ProfileRouter({ profiles: [docsProfile, vscodeProfile] });
 
-      const issue1 = makeIssue("DF-100", "Update docs for API");
+      const issue1 = makeWorkItem("DF-100", "Update docs for API");
       const route1 = await router.match(issue1);
       expect(route1?.profile.id).toBe("ralph-docs");
 
-      const issue2 = makeIssue("DOC-200", "Fix vscode autocomplete");
+      const issue2 = makeWorkItem("DOC-200", "Fix vscode autocomplete");
       const route2 = await router.match(issue2);
       expect(route2?.profile.id).toBe("ralph-vscode");
     });
 
     it("skips issues that match no profile", async () => {
-      const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: "@ralph" } });
+      const profile = makeProfile({ match: { projects: ["OTHER"], statuses: [], commentTrigger: TRIGGER } });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const issue = makeIssue("DF-100", "Some issue");
+      const issue = makeWorkItem("DF-100", "Some issue");
       const route = await router.match(issue);
       expect(route).toBeNull();
     });
 
     it("matches by project and status", async () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: ["New", "Defect Found"], commentTrigger: TRIGGER },
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      const newIssue = makeIssue("DF-300", "New task", "Defect Found");
+      const newIssue = makeWorkItem("DF-300", "New task", "Defect Found");
       const route = await router.match(newIssue);
       expect(route?.profile.id).toBe("ralph-default");
     });
 
     it("validates project and status via matchesProjectAndStatus", () => {
       const profile = makeProfile({
-        match: { projects: ["DF"], statuses: ["New"], commentTrigger: "@ralph" },
+        match: { projects: ["DF"], statuses: ["New"], commentTrigger: TRIGGER },
       });
       const router = new ProfileRouter({ profiles: [profile] });
 
-      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "New"), profile)).toBe(true);
-      expect(router.matchesProjectAndStatus(makeIssue("DF-1", "x", "Done"), profile)).toBe(false);
-      expect(router.matchesProjectAndStatus(makeIssue("XO-1", "x", "New"), profile)).toBe(false);
+      expect(router.matchesProjectAndStatus(makeWorkItem("DF-1", "x", "New"), profile)).toBe(true);
+      expect(router.matchesProjectAndStatus(makeWorkItem("DF-1", "x", "Done"), profile)).toBe(false);
+      expect(router.matchesProjectAndStatus(makeWorkItem("XO-1", "x", "New"), profile)).toBe(false);
     });
   });
 
@@ -92,8 +93,9 @@ describe("Orchestrator core integration", () => {
       const config = makeConfig();
       expect(config.secrets.ghToken).toBeTruthy();
       expect(config.secrets.adoPat).toBeTruthy();
-      expect(config.secrets.jiraPat).toBeTruthy();
-      expect(config.secrets.jiraEmail).toBeTruthy();
+      const ds = Object.values(config.dataSources)[0];
+      expect(ds.connection.apiToken).toBeTruthy();
+      expect(ds.connection.email).toBeTruthy();
     });
   });
 

@@ -3,23 +3,21 @@ import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types.js";
 import type { OrchestratorCradle } from "./awlix-cradle-types.js";
-import type { IComposeClient } from "./container/compose-client.js";
 import type { ContainerManagerFactory } from "./container/types.js";
-import { JiraClient } from "./jira/client.js";
-import { JiraPoller } from "./jira/poller.js";
+import { buildDataSourceMaps } from "./datasource/registry.js";
 import { LogCollector } from "./logs/collector.js";
 import { PromptBuilder } from "./prompt/prompt-builder.js";
 import { ActivityLog } from "./services/activity-log.js";
 import { ProfileRouter } from "./services/profile-router.js";
 import { TaskRunner } from "./services/task-runner.js";
 import { TaskResultWriter } from "./services/task-result-writer.js";
-import { TaskJiraResourceManager } from "./services/task-resource-manager.js";
-import { JiraIssueManager } from "./services/jira-issue-manager.js";
+import { TaskResourceManager } from "./services/task-resource-manager.js";
+import { IssueManager } from "./services/issue-manager.js";
 import { HeartbeatSender } from "./services/heartbeat.js";
 import { OperationLedger } from "./services/operation-ledger.js";
 import { TriggerScanner } from "./services/trigger-scanner.js";
 import { ContainerManager } from "./container/manager.js";
-import { ComposeClient } from "./container/compose-client.js";
+import { ComposeClient, type IComposeClient } from "./container/compose-client.js";
 import { ComposeFileResolver } from "./container/setup/compose-files.js";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes.js";
 import { SkillTemplateRenderer } from "./container/setup/skill-includes.js";
@@ -91,17 +89,17 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     strict: true,
   });
 
+  const { connectors, pollers } = buildDataSourceMaps(config);
+
   container.register({
     // ── Config slices ─────────────────────────────────────────────────────────
-    jiraConfig:        asValue(config.jira),
+    dataSources:       asValue(config.dataSources),
     outputConfig:      asValue(config.output),
     dashboardConfig:   asValue(config.dashboard),
     secrets:           asValue(config.secrets),
     profiles:          asValue(config.profiles),
     promptAuditConfig: asValue(config.promptAudit),
     ralphchivesConfig: asValue(config.ralphchives),
-    excludeFields:     asValue(config.excludeFields),
-    allowedUsers:      asValue(config.allowedUsers),
     enableContinuation: asValue(config.enableContinuation),
     preExecuteHooks:   asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
 
@@ -112,11 +110,11 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     containerLogger: asFunction(({ activityLog }) =>
                        activityLog.createContainerLogger()).singleton(),
 
-    // ── JIRA ──────────────────────────────────────────────────────────────────
-    jiraClient:   asClass(JiraClient).singleton(),
-    issueManager: asClass(JiraIssueManager).singleton(),
-    resources:    asClass(TaskJiraResourceManager).singleton(),
-    poller:       asClass(JiraPoller).singleton(),
+    // ── Data sources ──────────────────────────────────────────────────────────
+    connectors:    asValue(connectors),
+    pollers:       asValue(pollers),
+    issueManager:  asClass(IssueManager).singleton(),
+    resources:     asClass(TaskResourceManager).singleton(),
 
     // ── Orchestration ─────────────────────────────────────────────────────────
     ledger:         asClass(OperationLedger).singleton(),

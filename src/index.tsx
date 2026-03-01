@@ -1,6 +1,6 @@
 import React from "react";
 import { render } from "ink";
-import { App } from "./dashboard/App.js";
+import { App } from "./cli-dashboard/App.js";
 import { Orchestrator } from "./orchestrator.js";
 import { createCradle } from "./awilix-cradle.js";
 import { AppStartup } from "./app-startup.js";

@@ -16,6 +16,8 @@ vi.mock("execa", () => ({
 }));
 
 import { ComposeClient } from "../../src/container/compose-client.js";
+const SVC_APP = "app";
+const SVC_SIDECAR = "mcp-sidecar";
 
 describe("ComposeClient", () => {
   const testConfig = {
@@ -53,18 +55,18 @@ describe("ComposeClient", () => {
 
   it("exec prepends exec subcommand", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
-    client.exec(["--user", "vscode", "app", "cat", "/file"]);
+    client.exec(["--user", "vscode", SVC_APP, "cat", "/file"]);
 
     const [, args] = mockExeca.mock.calls[0];
     expect(args).toContain("exec");
     expect(args).toContain("--user");
     expect(args).toContain("vscode");
-    expect(args).toContain("app");
+    expect(args).toContain(SVC_APP);
   });
 
   it("execWithTimeout passes timeout option", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
-    client.execWithTimeout(["app", "echo", "hello"], 60000);
+    client.execWithTimeout([SVC_APP, "echo", "hello"], 60000);
 
     const opts = mockExeca.mock.calls[0][2];
     expect(opts.timeout).toBe(60000);
@@ -73,8 +75,8 @@ describe("ComposeClient", () => {
   it("uses same env for compose, exec, and execWithTimeout", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
     client.compose(["config"]);
-    client.exec(["app", "echo"]);
-    client.execWithTimeout(["app", "echo"], 5000);
+    client.exec([SVC_APP, "echo"]);
+    client.execWithTimeout([SVC_APP, "echo"], 5000);
 
     const env1 = mockExeca.mock.calls[0][2]?.env;
     const env2 = mockExeca.mock.calls[1][2]?.env;
@@ -86,20 +88,20 @@ describe("ComposeClient", () => {
 
   it("logs passes correct args for service log retrieval", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
-    client.logs("mcp-sidecar");
+    client.logs(SVC_SIDECAR);
 
     const [cmd, args] = mockExeca.mock.calls[0];
     expect(cmd).toBe("docker");
     expect(args).toEqual([
       "compose", "-f", "/fake/compose.yml",
-      "logs", "--no-color", "--no-log-prefix", "mcp-sidecar",
+      "logs", "--no-color", "--no-log-prefix", SVC_SIDECAR,
     ]);
   });
 
   it("logs uses same env as compose and exec", () => {
     const client = new ComposeClient("/fake/compose.yml", testConfig);
     client.compose(["config"]);
-    client.logs("mcp-sidecar");
+    client.logs(SVC_SIDECAR);
 
     const env1 = mockExeca.mock.calls[0][2]?.env;
     const env2 = mockExeca.mock.calls[1][2]?.env;

@@ -405,7 +405,7 @@ Similar to identifiers, branch names that vary across runs produce structurally 
 
 ```markdown
 Your branch name MUST follow this format exactly:
-ralph/{{ issueKey | downcase }}-{{ issueSummary | slugify | truncate: 30 }}
+ralph/{{ taskId | downcase }}-{{ issueSummary | slugify | truncate: 30 }}
 
 Example for DOC-3143 "Add ContentItemManager reference": ralph/doc-3143-add-contentitemmanager-ref
 ```
@@ -422,7 +422,7 @@ For complex tasks (Tier 3–4, 50–150 tool calls), late-trajectory variance is
 
 ```markdown
 PHASE 0 (mandatory, do before anything else):
-Create resources/chats/{{ issueKey }}/state.md with this template:
+Create resources/chats/{{ taskId }}/state.md with this template:
 ```
 IDENTIFIER: [your chosen identifier]
 PARENT_SECTION: [navigation parent identifier]
@@ -502,7 +502,7 @@ The 5-item handoff structure (what was done, files changed, challenges, remainin
 **Lever**: A non-optional handoff template, rendered as the required final output before PR creation:
 
 ```markdown
-Your handoff MUST be written to resources/chats/{{ issueKey }}/handoff.md using EXACTLY this structure:
+Your handoff MUST be written to resources/chats/{{ taskId }}/handoff.md using EXACTLY this structure:
 
 ## What Was Done
 [2–5 sentences describing what was accomplished]

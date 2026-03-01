@@ -31,12 +31,12 @@ describe("resolveSkillIncludes", () => {
 
     await writeFile(
       join(skillsDir, "my-skill", "SKILL.md"),
-      "Skill for {{ issueKey }} in {{ issueProject }}",
+      "Skill for {{ taskId }} in {{ taskProject }}",
     );
 
     await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {
-      issueKey: "DOC-42",
-      issueProject: "DOC",
+      taskId: "DOC-42",
+      taskProject: "DOC",
     });
 
     const output = await readFile(join(skillsDir, ".build", "my-skill", "SKILL.md"), "utf-8");
@@ -51,13 +51,13 @@ describe("resolveSkillIncludes", () => {
     await mkdir(includesDir, { recursive: true });
 
     await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "# Skill");
-    await writeFile(join(skillsDir, "my-skill", "helper.sh"), "#!/bin/bash\necho {{ issueKey }}");
+    await writeFile(join(skillsDir, "my-skill", "helper.sh"), "#!/bin/bash\necho {{ taskId }}");
 
     await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {});
 
     const script = await readFile(join(skillsDir, ".build", "my-skill", "helper.sh"), "utf-8");
     // Non-.md files are copied as-is, NOT rendered through Liquid
-    expect(script).toBe("#!/bin/bash\necho {{ issueKey }}");
+    expect(script).toBe("#!/bin/bash\necho {{ taskId }}");
   });
 
   it("resolves Liquid includes from agent-includes partials", async () => {
@@ -110,11 +110,11 @@ describe("resolveSkillIncludes", () => {
     await mkdir(join(skillsDir, "skill-b"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(join(skillsDir, "skill-a", "SKILL.md"), "Skill A: {{ issueKey }}");
-    await writeFile(join(skillsDir, "skill-b", "SKILL.md"), "Skill B: {{ issueKey }}");
+    await writeFile(join(skillsDir, "skill-a", "SKILL.md"), "Skill A: {{ taskId }}");
+    await writeFile(join(skillsDir, "skill-b", "SKILL.md"), "Skill B: {{ taskId }}");
 
     await resolveSkillIncludes(skillsDir, ["skill-a", "skill-b"], includesDir, {
-      issueKey: "DF-10",
+      taskId: "DF-10",
     });
 
     const a = await readFile(join(skillsDir, ".build", "skill-a", "SKILL.md"), "utf-8");
@@ -176,6 +176,54 @@ describe("resolveSkillIncludes", () => {
 
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("my-skill/SKILL.md"));
   });
+
+  it("discovers skills nested in subdirectories and flattens to .build/<name>/", async () => {
+    const skillsDir = join(tmpDir, "shared", "skills");
+    const includesDir = join(tmpDir, "shared", "agent-includes");
+
+    // Skill nested under domain/ subfolder
+    await mkdir(join(skillsDir, "domain", "nested-skill"), { recursive: true });
+    await mkdir(includesDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "domain", "nested-skill", "SKILL.md"),
+      "Nested skill for {{ taskId }}",
+    );
+
+    await resolveSkillIncludes(skillsDir, ["nested-skill"], includesDir, {
+      taskId: "DOC-99",
+    });
+
+    // Output is flattened to .build/nested-skill/, not .build/domain/nested-skill/
+    const output = await readFile(join(skillsDir, ".build", "nested-skill", "SKILL.md"), "utf-8");
+    expect(output).toBe("Nested skill for DOC-99");
+  });
+
+  it("renders .md files in subdirectories recursively", async () => {
+    const skillsDir = join(tmpDir, "shared", "skills");
+    const includesDir = join(tmpDir, "shared", "agent-includes");
+
+    await mkdir(join(skillsDir, "ref-skill", "references"), { recursive: true });
+    await mkdir(includesDir, { recursive: true });
+
+    await writeFile(
+      join(skillsDir, "ref-skill", "SKILL.md"),
+      "Main skill for {{ taskId }}",
+    );
+    await writeFile(
+      join(skillsDir, "ref-skill", "references", "guide.md"),
+      "Guide for {{ taskId }}",
+    );
+
+    await resolveSkillIncludes(skillsDir, ["ref-skill"], includesDir, {
+      taskId: "DOC-77",
+    });
+
+    const main = await readFile(join(skillsDir, ".build", "ref-skill", "SKILL.md"), "utf-8");
+    const ref = await readFile(join(skillsDir, ".build", "ref-skill", "references", "guide.md"), "utf-8");
+    expect(main).toBe("Main skill for DOC-77");
+    expect(ref).toBe("Guide for DOC-77");
+  });
 });
 
 describe("SkillTemplateRenderer", () => {
@@ -186,11 +234,11 @@ describe("SkillTemplateRenderer", () => {
     await mkdir(join(skillsDir, "test-skill"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(join(skillsDir, "test-skill", "SKILL.md"), "Skill for {{ issueKey }}");
+    await writeFile(join(skillsDir, "test-skill", "SKILL.md"), "Skill for {{ taskId }}");
 
     const renderer = new SkillTemplateRenderer();
     await renderer.render(makeTemplateContext({
-      issueKey: "DOC-55",
+      taskId: "DOC-55",
       skills: ["test-skill"],
     }));
 

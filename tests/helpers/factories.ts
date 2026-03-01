@@ -5,10 +5,10 @@
  * with sensible defaults and optional overrides.
  */
 
-import type { IAppConfig, IAgentProfile, IJiraConfig, IProfileMatch } from "../../src/config/types.js";
-import { CliType, TaskStatus } from "../../src/container/types.js";
-import type { RalphResult } from "../../src/container/types.js";
-import type { JiraIssue, JiraComment } from "../../src/jira/types.js";
+import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
+import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
+import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";
 import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
 import type { TaskContext } from "../../src/services/task-context.js";
@@ -46,15 +46,66 @@ export function makeComment(
   return { id, author: { accountId, displayName: "Test User" }, body, created };
 }
 
+// ── Work item data (generic) ─────────────────────────────────────────────────
+
+/** Create a minimal WorkItem with sensible defaults. */
+export function makeWorkItem(
+  id: string,
+  summaryOrOverrides: string | Partial<WorkItem> = {},
+  status = "New",
+  updated?: string,
+): WorkItem {
+  const overrides = typeof summaryOrOverrides === "string"
+    ? { title: summaryOrOverrides, status, ...(updated !== undefined ? { updated } : {}) }
+    : summaryOrOverrides;
+  return {
+    id,
+    source: "jira",
+    project: id.split("-")[0] ?? "DF",
+    title: `Test work item ${id}`,
+    description: "",
+    status: "New",
+    type: "",
+    priority: "",
+    labels: [],
+    components: [],
+    created: "2026-01-01T00:00:00.000+0000",
+    updated: "",
+    customFields: new Map<string, string>(),
+    sourceData: null,
+    ...overrides,
+  };
+}
+
+/** Create a minimal WorkItemComment. */
+export function makeWorkItemComment(
+  id: string,
+  body: string,
+  createdOrOverrides: string | Partial<WorkItemComment> = {},
+  accountId = "test-account-id",
+): WorkItemComment {
+  const overrides = typeof createdOrOverrides === "string"
+    ? { created: createdOrOverrides, authorId: accountId }
+    : createdOrOverrides;
+  return {
+    id,
+    authorName: "Test User",
+    authorId: "test-account-id",
+    body,
+    created: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
 // ── Container data ───────────────────────────────────────────────────────────
 
 /** Create a mock RalphResult with sensible defaults. */
 export function makeResult(
-  issueKey: string,
+  taskId: string,
   overrides: Partial<RalphResult> = {},
 ): RalphResult {
   return {
-    issueKey,
+    taskId,
     status: TaskStatus.Completed,
     durationMs: 5000,
     exitCode: 0,
@@ -67,13 +118,20 @@ export function makeResult(
 
 // ── Profile / Config ─────────────────────────────────────────────────────────
 
-/** Create a minimal IJiraConfig with sensible defaults. */
-export function makeJiraConfig(overrides: Partial<IJiraConfig> = {}): IJiraConfig {
+/** Create a minimal data source config for testing. */
+export function makeDataSourceConfig(overrides: Partial<IDataSourceConfig> = {}): IDataSourceConfig {
   return {
-    baseUrl: "https://api.atlassian.com/ex/jira",
-    cloudId: "test-cloud-id",
-    jql: ["project = DF"],
+    type: "jira",
+    connection: {
+      baseUrl: "https://api.atlassian.com/ex/jira",
+      cloudId: "test-cloud-id",
+      excludeFields: [],
+      allowedUsers: [],
+      email: "test@test.com",
+      apiToken: "test-jira-pat",
+    },
     pollIntervalMs: 60000,
+    maxResults: 100,
     ...overrides,
   };
 }
@@ -121,6 +179,9 @@ export function makeProfile(
     mcpServerConfigs: {},
     githubMcpTools: false,
     skills: [],
+    dataSource: "test-source",
+    vcsProvider: VcsProvider.Ado,
+    repoPat: "ADO_PAT",
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied
@@ -133,7 +194,7 @@ export function makeProfile(
 /** Create a minimal IAppConfig for testing. */
 export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
   return {
-    jira: makeJiraConfig(),
+    dataSources: { "test-source": makeDataSourceConfig() },
     profiles: profiles ?? [makeProfile()],
     output: {
       logDir: "/tmp/test-output/logs",
@@ -149,20 +210,17 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       mode: AuditMode.Warn,
     },
     enableContinuation: false,
-    excludeFields: [],
-    allowedUsers: [],
     ralphchives: {
       enabled: false,
       nodebbApiUrl: "http://localhost:4567",
       neo4jUri: "bolt://localhost:7687",
       neo4jUser: "neo4j",
     },
+    plugins: [],
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",
       adoPatXperience: "test-ado-xp-pat",
-      jiraPat: "test-jira-pat",
-      jiraEmail: "test@test.com",
       anthropicApiKey: "",
       discordBotToken: "",
       discordChannelId: "",
@@ -200,20 +258,21 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     agentName: "ralph",
     displayName: "ralph",
     mcpServers: [],
-    issueKey: "DF-100",
-    issueSummary: "Test issue DF-100",
-    issueStatus: "New",
-    issueType: "",
-    issuePriority: "",
-    issueLabels: [],
-    issueComponents: [],
-    issueProject: "DF",
-    issueDescription: "",
-    issueCreated: "2026-01-01T00:00:00.000+0000",
-    issueUpdated: "",
+    taskId: "DF-100",
+    taskTitle: "Test issue DF-100",
+    taskStatus: "New",
+    taskType: "",
+    taskPriority: "",
+    taskLabels: [],
+    taskComponents: [],
+    taskProject: "DF",
+    taskDescription: "",
+    taskCreated: "2026-01-01T00:00:00.000+0000",
+    taskUpdated: "",
     commentTrigger: "@ralph",
     triggerParams: {},
     isRevision: false,
+    prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
     ...overrides,
@@ -225,12 +284,13 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
 /** Create a minimal TaskContext for testing. */
 export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskContext {
   return {
-    issue: makeIssue("DF-100"),
+    workItem: makeWorkItem("DF-100"),
     profile: makeProfile(),
     taskId: "DF-100-1234567890000",
     triggerParams: {},
     isRevision: false,
     ralphchivesEnabled: false,
+    prUrl: null,
     ...overrides,
   };
 }

@@ -32,7 +32,7 @@ export function IssueGroupSection({
           ▶
         </span>
         <span className="font-semibold font-mono text-[13px] text-info">
-          {group.issueKey}
+          {group.taskId}
         </span>
         <span
           className={`text-[10px] px-1.5 py-px rounded-full font-medium ${badge}`}

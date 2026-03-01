@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { Dirent, existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { resolvePath } from "../util/path.js";
 import { discoverMcpServers, loadMcpManifest } from "../container/setup/mcp-manifest.js";
+import { VcsProvider } from "../config/types.js";
 import type { ValidationCollector } from "./types.js";
 
 export function validateProfiles({ errors, warnings }: ValidationCollector): void {
@@ -140,8 +141,18 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       }
     }
 
+    // Validate that the git PAT env var is set for repo sync
+    const vcsProvider = p.vcsProvider ?? VcsProvider.Ado;
+    const repoPat: string = p.repoPat ?? (vcsProvider === VcsProvider.GitHub ? "GH_TOKEN" : "ADO_PAT");
+    if (!process.env[repoPat]) {
+      errors.push(
+        `${prefix}: env var ${repoPat} is not set (required for repo-sync hook)\n` +
+        `  Set ${repoPat} in .env or change repoPat in profile.json`
+      );
+    }
+
     validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
-    validateSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
+    validateVariantSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
 
     if (Array.isArray(p.githubMcpTools) && p.githubMcpTools.length === 0) {
       errors.push(
@@ -154,28 +165,54 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 }
 
 /**
- * Validate that all skills referenced by a profile exist in shared/skills/.
+ * Validate that all skills referenced by each variant exist in shared/skills/
+ * (searching subdirectories recursively).
  */
-function validateSkills(
+function validateVariantSkills(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
   profile: any,
   skillsDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  const skills: unknown[] = profile.skills ?? [];
-  if (skills.length === 0) return;
-
-  for (const skill of skills) {
-    if (typeof skill !== "string") continue;
-    const skillPath = join(skillsDir, skill);
-    if (!existsSync(skillPath)) {
-      errors.push(
-        `${prefix}: skill "${skill}" not found in shared/skills/\n` +
-        `  Create shared/skills/${skill}/`
-      );
+  const variants: unknown[] = profile.variants ?? [];
+  for (let i = 0; i < variants.length; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = variants[i] as any;
+    const skills: unknown[] = v?.skills ?? [];
+    if (skills.length === 0) continue;
+    const vPrefix = `${prefix}/variants[${i}]`;
+    for (const skill of skills) {
+      if (typeof skill !== "string") continue;
+      if (!findSkillDirSync(skillsDir, skill)) {
+        errors.push(
+          `${vPrefix}: skill "${skill}" not found in shared/skills/\n` +
+          `  Create shared/skills/${skill}/`
+        );
+      }
     }
   }
+}
+
+/** Synchronous recursive search for a skill directory by name. */
+function findSkillDirSync(skillsDir: string, name: string): boolean {
+  // Fast path: flat layout
+  if (existsSync(join(skillsDir, name, "SKILL.md"))) return true;
+
+  // Recursive search through subdirectories
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(skillsDir, { withFileTypes: true }) as Dirent[];
+  } catch {
+    return false;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === ".build") continue;
+    const nested = join(skillsDir, entry.name);
+    if (existsSync(join(nested, name, "SKILL.md"))) return true;
+    if (findSkillDirSync(nested, name)) return true;
+  }
+  return false;
 }
 
 export interface VariantTriggerInfo {

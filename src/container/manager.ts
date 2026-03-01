@@ -1,6 +1,6 @@
 import { execa } from "execa";
 import type { IAgentProfile } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
+import type { WorkItem } from "../datasource/types.js";
 import type { RalphResult, CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { PromptBuilder } from "../prompt/prompt-builder.js";
@@ -9,8 +9,7 @@ import { parseResultBlock, resolveStatus } from "./result-parser.js";
 import type { IComposeClient } from "./compose-client.js";
 import type { ICliExecutor } from "./cli-executor-factory.js";
 import { StreamCapture } from "./stream-capture.js";
-import type { IContainerLogCollector } from "./log-collector.js";
-import type { CollectedLog } from "./log-collector.js";
+import type { IContainerLogCollector, CollectedLog } from "./log-collector.js";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner.js";
 import type { ILogSourceRegistry } from "./log-source-registry.js";
 import type { IContinuationRunner } from "./continuation-runner.js";
@@ -36,9 +35,9 @@ export interface IContainerManager {
   /** Execute a command inside the mcp-sidecar container. */
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
-  registerLogSources(issueKey: string): void;
+  registerLogSources(taskId: string): void;
   /** Execute the agent CLI inside the running container. */
-  execute(issue: JiraIssue, context?: IssueContext): Promise<RalphResult>;
+  execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Tear down all containers and associated resources. */
   stop(): Promise<void>;
   /** Per-task log collector. */
@@ -186,10 +185,10 @@ export class ContainerManager implements IContainerManager {
    * Sets up the issue key on the log collector and registers all known log
    * sources (audit, transcript, tool output, proxy).
    *
-   * @param issueKey JIRA key used as the filename prefix for all collected logs.
+   * @param taskId Work item id used as the filename prefix for all collected logs.
    */
-  registerLogSources(issueKey: string): void {
-    this.logRegistry.registerAll(this.logs, this.profile, issueKey, {
+  registerLogSources(taskId: string): void {
+    this.logRegistry.registerAll(this.logs, this.profile, taskId, {
       onToolOutput: this.onToolOutput,
       onPreToolUse: this.onPreToolUse,
     }, this.cliPaths);
@@ -205,12 +204,12 @@ export class ContainerManager implements IContainerManager {
    * When `maxContinuations > 0`, re-invokes the CLI with `--continue` if the
    * result block is missing, using exponential backoff between attempts.
    *
-   * @param issue JIRA issue to process — used to build the prompt.
+   * @param workItem Work item to process — used to build the prompt.
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */
-  async execute(issue: JiraIssue, context?: IssueContext): Promise<RalphResult> {
-    const { text: prompt } = this.promptBuilder.build(issue, context);
+  async execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
+    const { text: prompt } = this.promptBuilder.build(workItem, context);
 
     const startTime = Date.now();
 
@@ -218,7 +217,7 @@ export class ContainerManager implements IContainerManager {
       await this.continuationRunner.run(
         this.executor,
         prompt,
-        issue,
+        workItem,
         this.enableContinuation ? this.profile.maxContinuations : 0,
       );
 
@@ -228,7 +227,7 @@ export class ContainerManager implements IContainerManager {
     const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
 
     return {
-      issueKey: issue.key,
+      taskId: workItem.id,
       status,
       durationMs,
       exitCode: lastResult.exitCode,

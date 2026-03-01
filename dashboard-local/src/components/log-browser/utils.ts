@@ -35,7 +35,7 @@ export const fileLabels: Record<string, { label: string; icon: string }> = {
 };
 
 export interface IssueGroup {
-  issueKey: string;
+  taskId: string;
   executions: TaskLogGroup[];
   latestStatus?: string;
   latestTimestamp?: number;

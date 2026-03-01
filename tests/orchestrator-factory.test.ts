@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle.js";
 import { makeConfig } from "./helpers/factories.js";
+
+// Ensure built-in data source factories are registered
+import "../src/datasource/connectors/jira/factory.js";
 
 /**
  * Verifies that awilix resolves all cradle services without errors.
@@ -10,10 +13,23 @@ import { makeConfig } from "./helpers/factories.js";
  * `retryOptions`, `fetchComments`).
  */
 describe("createCradle", () => {
+  const savedEnv: Record<string, string | undefined> = {};
+  const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
+
   beforeEach(() => {
+    for (const k of JIRA_ENV_KEYS) savedEnv[k] = process.env[k];
+    process.env.JIRA_PAT_TEST_SOURCE = "test-jira-pat";
+    process.env.JIRA_EMAIL_TEST_SOURCE = "test@test.com";
     // Suppress console output from logger/activity-log initialization
     vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    for (const [k, v] of Object.entries(savedEnv)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
   });
 
   it("resolves all cradle services without AwilixResolutionError", () => {
@@ -21,7 +37,8 @@ describe("createCradle", () => {
     const cradle = createCradle(config);
 
     expect(cradle.activityLog).toBeDefined();
-    expect(cradle.poller).toBeDefined();
+    expect(cradle.pollers).toBeDefined();
+    expect(cradle.connectors).toBeDefined();
     expect(cradle.router).toBeDefined();
     expect(cradle.issueManager).toBeDefined();
     expect(cradle.resources).toBeDefined();
@@ -31,11 +48,11 @@ describe("createCradle", () => {
     expect(cradle.logger).toBeDefined();
   });
 
-  it("returns jiraConfig and profiles from the config", () => {
+  it("returns dataSources and profiles from the config", () => {
     const config = makeConfig();
     const cradle = createCradle(config);
 
-    expect(cradle.jiraConfig).toBe(config.jira);
+    expect(cradle.dataSources).toBe(config.dataSources);
     expect(cradle.profiles).toBe(config.profiles);
   });
 

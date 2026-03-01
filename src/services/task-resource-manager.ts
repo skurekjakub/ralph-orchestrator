@@ -1,87 +1,94 @@
 import type { Logger } from "../logger.js";
-import { extractAdfText } from "../jira/adf-converter.js";
-import type { IJiraClient } from "../jira/client.js";
-import type { RetryOptions } from "../retry.js";
-import { withRetry } from "../retry.js";
+import { supportsAttachments, type IDataSourceConnector, type ISupportsAttachments } from "../datasource/connector.js";
+import { withRetry, type RetryOptions } from "../retry.js";
 import { toErrorMessage } from "../util/error.js";
 
-/** Public contract for JIRA resource interactions (comments, attachments, transcripts). */
+/** Public contract for work item resource interactions (comments, attachments, transcripts). */
 export interface IResourceManager {
-  fetchComments(issueKey: string): Promise<string[]>;
-  fetchHandoff(issueKey: string): Promise<string | null>;
-  attachTranscript(issueKey: string, localPath: string, variantName: string): Promise<void>;
+  fetchComments(source: string, workItemId: string): Promise<string[]>;
+  fetchHandoff(source: string, workItemId: string): Promise<string | null>;
+  attachTranscript(source: string, workItemId: string, localPath: string, variantName: string): Promise<void>;
 }
 
 /**
- * Manages JIRA resource interactions for a task — fetching comments,
+ * Manages work item resource interactions for a task — fetching comments,
  * downloading attachments, and uploading artifacts.
  */
-export class TaskJiraResourceManager implements IResourceManager {
-  private readonly jiraClient: IJiraClient;
+export class TaskResourceManager implements IResourceManager {
+  private readonly connectors: ReadonlyMap<string, IDataSourceConnector>;
   private readonly logger: Logger;
   /** Retry options — settable for test injection (not part of the DI cradle). */
   retryOptions?: RetryOptions;
 
-  constructor({ jiraClient, logger }: {
-    jiraClient: IJiraClient;
+  constructor({ connectors, logger }: {
+    connectors: ReadonlyMap<string, IDataSourceConnector>;
     logger: Logger;
   }) {
-    this.jiraClient = jiraClient;
+    this.connectors = connectors;
     this.logger = logger;
   }
 
-  /**
-   * Fetch and format all JIRA comments for an issue.
-   *
-   * Comment bodies are extracted from ADF to plain text.
-   */
-  async fetchComments(issueKey: string): Promise<string[]> {
-    const comments = await this.jiraClient.getComments(issueKey).catch((err) => {
-      this.logger.warn(
-        `Failed to fetch comments for ${issueKey}: ${toErrorMessage(err)}`
-      );
-      return [];
-    });
-
-    return comments.map((c) => {
-      const bodyText = typeof c.body === "string"
-        ? c.body
-        : extractAdfText(c.body);
-      return `[${c.created}] ${c.author.displayName}:\n${bodyText.trim()}`;
-    });
+  private resolveConnector(source: string): IDataSourceConnector {
+    const connector = this.connectors.get(source);
+    if (!connector) {
+      throw new Error(`No connector registered for data source "${source}"`);
+    }
+    return connector;
   }
 
-  /**
-   * Download the most recent `handoff.md` attachment for a revision task.
-   */
-  async fetchHandoff(issueKey: string): Promise<string | null> {
-    const attachments = await this.jiraClient.getAttachments(issueKey).catch((err) => {
+  private resolveAttachments(source: string): ISupportsAttachments | null {
+    const connector = this.resolveConnector(source);
+    return supportsAttachments(connector) ? connector : null;
+  }
+
+  async fetchComments(source: string, workItemId: string): Promise<string[]> {
+    const connector = this.resolveConnector(source);
+    const comments = await connector.getComments(workItemId).catch((err) => {
       this.logger.warn(
-        `Failed to fetch attachments for ${issueKey}: ${toErrorMessage(err)}`
+        `Failed to fetch comments for ${workItemId}: ${toErrorMessage(err)}`
       );
       return [];
     });
 
-    const handoffAttachments = attachments
-      .filter((a) => a.filename === "handoff.md")
+    return comments.map((c) =>
+      `[${c.created}] ${c.authorName}:\n${c.body.trim()}`
+    );
+  }
+
+  async fetchHandoff(source: string, workItemId: string): Promise<string | null> {
+    const attachments = this.resolveAttachments(source);
+    if (!attachments) return null;
+
+    const attachmentList = await attachments.getAttachments(workItemId).catch((err) => {
+      this.logger.warn(
+        `Failed to fetch attachments for ${workItemId}: ${toErrorMessage(err)}`
+      );
+      return [];
+    });
+
+    const handoffAttachments = attachmentList
+      .filter((a) => /^handoff(-.+)?\.md$/i.test(a.filename))
       .sort((a, b) => b.created.localeCompare(a.created));
 
     if (handoffAttachments.length === 0) return null;
 
     try {
-      return await this.jiraClient.downloadAttachment(
-        handoffAttachments[0].content
+      return await attachments.downloadAttachment(
+        workItemId,
+        handoffAttachments[0].id,
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to download handoff.md: ${toErrorMessage(err)}`
+        `Failed to download handoff for ${workItemId}: ${toErrorMessage(err)}`
       );
       return null;
     }
   }
 
-  /** Attach the session transcript to JIRA with variant name and date. */
-  async attachTranscript(issueKey: string, localPath: string, variantName: string): Promise<void> {
+  async attachTranscript(source: string, workItemId: string, localPath: string, variantName: string): Promise<void> {
+    const attachments = this.resolveAttachments(source);
+    if (!attachments) return;
+
     try {
       const { readFileSync } = await import("node:fs");
       const content = readFileSync(localPath, "utf-8");
@@ -91,15 +98,15 @@ export class TaskJiraResourceManager implements IResourceManager {
       const yyyy = now.getFullYear();
       const filename = `session-transcript-${variantName}-${dd}-${mm}-${yyyy}.md`;
       await withRetry(
-        () => this.jiraClient.addAttachment(issueKey, filename, content),
-        `attach transcript to ${issueKey}`,
+        () => attachments.addAttachment(workItemId, filename, content),
+        `attach transcript to ${workItemId}`,
         this.logger,
         this.retryOptions,
       );
-      this.logger.info(`Session transcript attached to ${issueKey}`);
+      this.logger.info(`Session transcript attached to ${workItemId}`);
     } catch (err) {
       this.logger.warn(
-        `Failed to attach transcript to ${issueKey}: ${toErrorMessage(err)}`
+        `Failed to attach transcript to ${workItemId}: ${toErrorMessage(err)}`
       );
     }
   }

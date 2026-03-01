@@ -18,8 +18,6 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
   const vars = parseEnvFile(content);
 
   const required: [string, string][] = [
-    ["JIRA_PAT", "API token from id.atlassian.com — needed for JIRA integration"],
-    ["JIRA_EMAIL", "Atlassian account email — needed for JIRA Basic auth"],
     ["GH_TOKEN", "GitHub PAT with Copilot Requests permission — needed for Copilot CLI"],
     ["ADO_PAT", "Azure DevOps PAT for the ADO MCP server — needed for PR creation and review threads"],
   ];
@@ -30,6 +28,9 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
       errors.push(`Missing required env var: ${name}\n  ${hint}`);
     }
   }
+
+  // Per-data-source credentials are validated by each connector factory, not here.
+  // Example: JIRA factory checks JIRA_PAT_<KEY>, JIRA_EMAIL_<KEY>
 
   const optional: [string, string][] = [
     ["ADO_PAT_XPERIENCE", "Azure DevOps PAT for Xperience repo — optional, skips Xperience clone if not set"],

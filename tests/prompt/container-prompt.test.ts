@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildPrompt } from "../../src/prompt/prompt.js";
-import type { IssueContext } from "../../src/prompt/prompt.js";
-import { makeIssue } from "../helpers/factories.js";
+import { buildPrompt, type IssueContext } from "../../src/prompt/prompt.js";
+import { makeWorkItem } from "../helpers/factories.js";
 
 // ── Prompt building tests ────────────────────────────────
 // Tests the prompt construction logic that transforms JIRA issue fields
@@ -9,7 +8,7 @@ import { makeIssue } from "../helpers/factories.js";
 
 describe("Prompt building", () => {
   it("builds basic prompt with key and summary", () => {
-    const issue = makeIssue("DF-2704", "Add custom module docs");
+    const issue = makeWorkItem("DF-2704", "Add custom module docs");
 
     const prompt = buildPrompt(issue);
     expect(prompt).toContain("JIRA Issue: DF-2704");
@@ -17,7 +16,7 @@ describe("Prompt building", () => {
   });
 
   it("includes string description", () => {
-    const issue = makeIssue("DF-1", "Test", "New", undefined, {
+    const issue = makeWorkItem("DF-1", {
       description: "Some plain text description",
     });
 
@@ -25,28 +24,11 @@ describe("Prompt building", () => {
     expect(prompt).toContain("Description:\nSome plain text description");
   });
 
-  it("extracts plain text from ADF description", () => {
-    const adf = {
-      type: "doc",
-      version: 1,
-      content: [
-        { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
-      ],
-    };
-    const issue = makeIssue("DF-1", "Test", "New", undefined, {
-      description: adf,
-    });
-
-    const prompt = buildPrompt(issue);
-    expect(prompt).toContain("Description:\nHello");
-    expect(prompt).not.toContain('"type": "doc"');
-  });
-
   it("includes labels, components, and priority", () => {
-    const issue = makeIssue("DF-1", "Test", "New", undefined, {
+    const issue = makeWorkItem("DF-1", {
       labels: ["ralph-auto", "docs"],
-      components: [{ name: "SaaS" }, { name: "On-Premises" }],
-      priority: { name: "High" },
+      components: ["SaaS", "On-Premises"],
+      priority: "High",
     });
 
     const prompt = buildPrompt(issue);
@@ -55,19 +37,19 @@ describe("Prompt building", () => {
     expect(prompt).toContain("Priority: High");
   });
 
-  it("includes long custom fields", () => {
-    const issue = makeIssue("DF-1", "Test", "New", undefined, {
-      customfield_10001: "This is a long acceptance criteria string",
-      customfield_10002: "short",
+  it("includes custom fields from map", () => {
+    const issue = makeWorkItem("DF-1", {
+      customFields: new Map<string, string>([
+        ["Acceptance Criteria", "This is a long acceptance criteria string"],
+      ]),
     });
 
     const prompt = buildPrompt(issue);
-    expect(prompt).toContain("customfield_10001: This is a long acceptance criteria string");
-    expect(prompt).not.toContain("customfield_10002");
+    expect(prompt).toContain("Acceptance Criteria: This is a long acceptance criteria string");
   });
 
   it("omits missing optional fields", () => {
-    const issue = makeIssue("DF-1");
+    const issue = makeWorkItem("DF-1");
 
     const prompt = buildPrompt(issue);
     expect(prompt).not.toContain("Labels:");
@@ -76,21 +58,14 @@ describe("Prompt building", () => {
     expect(prompt).not.toContain("Description:");
   });
 
-  it("extracts known custom fields with friendly names", () => {
-    const issue = makeIssue("DF-100", "Test", "New", undefined, {
-      customfield_14800: "SaaS",
-      customfield_14801: "documentation",
-      customfield_14702: { value: "Not helpful" },
-      customfield_14704: {
-        type: "doc",
-        version: 1,
-        content: [
-          {
-            type: "paragraph",
-            content: [{ type: "text", text: "Navigation is confusing" }],
-          },
-        ],
-      },
+  it("includes custom fields with friendly names", () => {
+    const issue = makeWorkItem("DF-100", {
+      customFields: new Map<string, string>([
+        ["Page name", "SaaS"],
+        ["Documentation space key", "documentation"],
+        ["Was this page helpful?", "Not helpful"],
+        ["How can we make this page more helpful?", "Navigation is confusing"],
+      ]),
     });
 
     const prompt = buildPrompt(issue);
@@ -100,53 +75,17 @@ describe("Prompt building", () => {
     expect(prompt).toContain("How can we make this page more helpful?: Navigation is confusing");
   });
 
-  it("extracts ADF feedback text from nested content", () => {
-    const issue = makeIssue("DF-200", "Test", "New", undefined, {
-      customfield_14704: {
-        type: "doc",
-        version: 1,
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              { type: "text", text: "First paragraph. " },
-              { type: "text", text: "More text." },
-            ],
-          },
-          {
-            type: "paragraph",
-            content: [{ type: "text", text: "Second paragraph." }],
-          },
-        ],
-      },
-    });
-
-    const prompt = buildPrompt(issue);
-    expect(prompt).toContain("How can we make this page more helpful?: First paragraph. More text.\n\nSecond paragraph.");
-  });
-
-  it("handles string feedback value", () => {
-    const issue = makeIssue("DF-300", "Test", "New", undefined, {
-      customfield_14704: "Simple text feedback",
-    });
-
-    const prompt = buildPrompt(issue);
-    expect(prompt).toContain("How can we make this page more helpful?: Simple text feedback");
-  });
-
   it("omits custom fields when not present", () => {
-    const issue = makeIssue("DF-400");
+    const issue = makeWorkItem("DF-400");
 
     const prompt = buildPrompt(issue);
     expect(prompt).not.toContain("Page name:");
     expect(prompt).not.toContain("Documentation space key:");
-    expect(prompt).not.toContain("Page helpfulness rating:");
-    expect(prompt).not.toContain("User feedback:");
   });
 });
 
 describe("Revision prompt", () => {
-  const issue = makeIssue("DF-500", "Ralph: Fix docs", "Defect Found");
+  const issue = makeWorkItem("DF-500", "Ralph: Fix docs", "Defect Found");
 
   it("includes revision header when context is revision", () => {
     const ctx: IssueContext = { comments: [], isRevision: true, handoffContent: null };
@@ -205,5 +144,61 @@ describe("Revision prompt", () => {
     const ctx: IssueContext = { comments: [], isRevision: false };
     const prompt = buildPrompt(issue, ctx);
     expect(prompt).not.toContain("JIRA Comments");
+  });
+});
+
+describe("Trigger parameter nudges", () => {
+  it("appends release_notes nudge when param is set", () => {
+    const issue = makeWorkItem("DF-100", "Write docs");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { release_notes: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("⚠️ REMINDER: Write release notes");
+    expect(prompt).toContain("/tmp/mcp-attachments/release-notes.md");
+  });
+
+  it("appends codesamples nudge when param is set", () => {
+    const issue = makeWorkItem("DF-200", "Update samples");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { codesamples: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("⚠️ REMINDER: This task involves the code samples project");
+    expect(prompt).toContain("codesamples:build");
+  });
+
+  it("appends both nudges when both params are set", () => {
+    const issue = makeWorkItem("DF-300", "Full task");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { release_notes: "true", codesamples: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("Write release notes");
+    expect(prompt).toContain("code samples project");
+  });
+
+  it("omits nudges when triggerParams has no matching keys", () => {
+    const issue = makeWorkItem("DF-400", "Quiet task");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { branch_name: "feature-xyz" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).not.toContain("⚠️ REMINDER");
+  });
+
+  it("omits nudges when triggerParams is undefined", () => {
+    const issue = makeWorkItem("DF-500", "No params");
+    const ctx: IssueContext = { comments: [], isRevision: false };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).not.toContain("⚠️ REMINDER");
   });
 });

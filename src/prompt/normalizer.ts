@@ -33,7 +33,7 @@ const NON_STANDARD_WHITESPACE = /[\u00A0\u1680\u2000-\u200A\u2028\u2029\u205F\u3
  * hidden HTML comments, and normalizing whitespace.
  *
  * This is a **lossy** transformation — it intentionally strips content
- * that has no legitimate purpose in JIRA issue text.
+ * that has no legitimate purpose in work item text.
  *
  * @returns The normalized text.
  */

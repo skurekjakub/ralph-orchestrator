@@ -1,6 +1,5 @@
 import type { IResourceManager } from "./task-resource-manager.js";
-import type { JiraComment, JiraIssue } from "../jira/types.js";
-import { extractAdfText } from "../jira/adf-converter.js";
+import type { WorkItemComment, WorkItem } from "../datasource/types.js";
 
 export type PreflightResult =
   | { ok: true }
@@ -8,35 +7,32 @@ export type PreflightResult =
 
 /** Context gathered by the orchestrator and passed to preflight checks. */
 export interface PreflightContext {
-  comments: JiraComment[];
+  comments: WorkItemComment[];
   /** Latest handoff.md attachment content, or null if not found. */
   handoffContent: string | null;
   /** PR URL extracted from comments (most recent first), or null. */
   prUrl: string | null;
 }
 
-type PreflightCheck = (issue: JiraIssue, ctx: PreflightContext) => PreflightResult;
+type PreflightCheck = (workItem: WorkItem, ctx: PreflightContext) => PreflightResult;
 
 const PR_URL_PATTERN = /https?:\/\/(?:github\.com|dev\.azure\.com|bitbucket\.org)[^\s)>]+\/pull(?:request|-requests)?\/\d+/i;
 
-function findPrUrl(comments: JiraComment[]): string | null {
+function findPrUrl(comments: WorkItemComment[]): string | null {
   for (let i = comments.length - 1; i >= 0; i--) {
-    const text = typeof comments[i].body === "string"
-      ? comments[i].body as string
-      : extractAdfText(comments[i].body);
-    const match = text.match(PR_URL_PATTERN);
+    const match = comments[i].body.match(PR_URL_PATTERN);
     if (match) return match[0];
   }
   return null;
 }
 
 const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
-  "review-ready": (_issue, ctx) => {
+  "review-ready": (_workItem, ctx) => {
     if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments" };
     if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found" };
     return { ok: true };
   },
-  "revision-ready": (_issue, ctx) => {
+  "revision-ready": (_workItem, ctx) => {
     if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments — revision requires an existing pull request" };
     if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found — revision requires a previous handoff" };
     return { ok: true };
@@ -52,10 +48,11 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
  */
 export async function buildPreflightContext(
   resources: IResourceManager,
-  issueKey: string,
-  comments: JiraComment[],
+  source: string,
+  workItemId: string,
+  comments: WorkItemComment[],
 ): Promise<PreflightContext> {
-  const handoffContent = await resources.fetchHandoff(issueKey);
+  const handoffContent = await resources.fetchHandoff(source, workItemId);
 
   return {
     comments,
@@ -70,10 +67,10 @@ export async function buildPreflightContext(
  */
 export function runPreflight(
   name: string,
-  issue: JiraIssue,
+  workItem: WorkItem,
   ctx: PreflightContext,
 ): PreflightResult {
   const check = PREFLIGHT_CHECKS[name];
   if (!check) return { ok: true };
-  return check(issue, ctx);
+  return check(workItem, ctx);
 }

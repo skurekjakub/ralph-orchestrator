@@ -5,7 +5,7 @@
 Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined **in the same file** as the implementation:
 
 ```typescript
-// src/jira/client.ts
+// src/datasource/connectors/jira/jira-client.ts
 export interface IJiraClient {
   searchIssues(jql: string): Promise<JiraIssue[]>;
   getIssue(key: string): Promise<JiraIssue>;

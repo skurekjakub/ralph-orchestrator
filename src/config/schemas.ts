@@ -4,10 +4,20 @@ import { z } from "zod";
 // Zod schemas for config.json (global settings only)
 // ---------------------------------------------------------------------------
 
-export const rawJiraSchema = z.object({
-  baseUrl: z.string().url("jira.baseUrl must be a valid URL"),
-  cloudId: z.string().min(1, "jira.cloudId must not be empty"),
+/** JIRA-specific connection properties validated inside `dataSources.<key>.connection`. */
+export const jiraConnectionSchema = z.object({
+  baseUrl: z.string().url("connection.baseUrl must be a valid URL"),
+  cloudId: z.string().min(1, "connection.cloudId must not be empty"),
+  excludeFields: z.array(z.string()).default([]),
+  allowedUsers: z.array(z.string()).default([]),
+});
+
+/** Per-data-source entry in the `dataSources` config map. */
+export const dataSourceConfigSchema = z.object({
+  type: z.string().min(1, "Data source type must not be empty"),
+  connection: z.record(z.string(), z.unknown()),
   pollIntervalMs: z.number().positive().default(60_000),
+  maxResults: z.number().positive().default(100),
 });
 
 export const rawOutputSchema = z.object({
@@ -33,15 +43,16 @@ export const rawRalphchivesSchema = z.object({
 }).optional();
 
 export const configFileSchema = z.object({
-  jira: rawJiraSchema,
+  dataSources: z.record(z.string(), dataSourceConfigSchema).refine(
+    (ds) => Object.keys(ds).length > 0,
+    "At least one data source must be defined",
+  ),
+  /** Module specifiers loaded before the DI container is created. Each module should self-register (e.g. call registerDataSourceFactory). */
+  plugins: z.array(z.string()).default([]),
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,
   ralphchives: rawRalphchivesSchema,
-  /** Custom field IDs to exclude from agent prompts (e.g. boilerplate form templates). */
-  excludeFields: z.array(z.string()).default([]),
-  /** JIRA accountIds allowed to trigger agent invocations. Empty array = unrestricted. */
-  allowedUsers: z.array(z.string()).default([]),
   /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
   enableContinuation: z.boolean().default(false),
 });
@@ -69,6 +80,8 @@ export const variantSchema = z.object({
   afterAgent: agentTransitionSchema,
   preflight: z.string().optional(),
   failureComment: z.string().optional(),
+  /** Skill names from shared/skills/ to mount into the container at .github/skills/. */
+  skills: z.array(z.string()).default([]),
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */
@@ -87,6 +100,12 @@ export const mcpServerEntrySchema = z.union([
 
 export const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),
+  /** Data source key — must reference an entry in config.json `dataSources`. */
+  dataSource: z.string().min(1, "Profile dataSource must not be empty"),
+  /** VCS platform for the repo (determines git auth format). */
+  vcsProvider: z.enum(["ado", "github"]).default("ado"),
+  /** Env var name containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  repoPat: z.string().optional(),
   cli: z.enum(["copilot", "claude"]).default("copilot"),
   model: z.string().optional(),
   timeoutMs: z.number().positive().default(1_800_000),
@@ -110,7 +129,5 @@ export const profileFileSchema = z.object({
   ]).default(false),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
-  /** Skill names from shared/skills/ to mount into the container at .github/skills/. */
-  skills: z.array(z.string()).default([]),
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });

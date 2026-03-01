@@ -1,6 +1,6 @@
-import { extractAdfText } from "../jira/adf-converter.js";
-import type { IIssueManager } from "./jira-issue-manager.js";
-import type { JiraIssue, JiraComment } from "../jira/types.js";
+import type { IIssueManager } from "./issue-manager.js";
+import type { WorkItem, WorkItemComment } from "../datasource/types.js";
+import type { IDataSourceConnector } from "../datasource/connector.js";
 import type { IAgentProfile } from "../config/types.js";
 import type { IProfileRouter } from "./profile-router.js";
 import type { IOperationLedger } from "./operation-ledger.js";
@@ -43,14 +43,14 @@ export { matchesTrigger, parseTriggerParams };
 
 /** Public contract for the comment trigger scanner. */
 export interface ITriggerScanner {
-  /** Scan a batch of polled issues for trigger comments. Returns the number of new operations planned. */
-  scan(issues: JiraIssue[], profiles: readonly IAgentProfile[]): Promise<number>;
+  /** Scan a batch of polled work items for trigger comments. Returns the number of new operations planned. */
+  scan(items: WorkItem[], profiles: readonly IAgentProfile[]): Promise<number>;
   /** Clear the scan cache (e.g. for testing). */
   clearCache(): void;
 }
 
 /**
- * Scans JIRA issue comments for trigger strings and plans operations in the ledger.
+ * Scans work item comments for trigger strings and plans operations in the ledger.
  *
  * For each issue × profile combination:
  * 1. Checks if the issue matches the profile's project/status rules
@@ -83,27 +83,27 @@ export class TriggerScanner implements ITriggerScanner {
   private router: IProfileRouter;
   private ledger: IOperationLedger;
   private logger: Logger;
-  private allowedUsers: readonly string[];
+  private connectors: ReadonlyMap<string, IDataSourceConnector>;
 
-  constructor({ issueManager, router, ledger, logger, allowedUsers }: {
+  constructor({ issueManager, router, ledger, logger, connectors }: {
     issueManager: IIssueManager;
     router: IProfileRouter;
     ledger: IOperationLedger;
     logger: Logger;
-    allowedUsers: readonly string[];
+    connectors: ReadonlyMap<string, IDataSourceConnector>;
   }) {
     this.issueManager = issueManager;
     this.router = router;
     this.ledger = ledger;
     this.logger = logger;
-    this.allowedUsers = allowedUsers ?? [];
+    this.connectors = connectors;
   }
 
   /**
-   * Scan a batch of polled issues for trigger comments.
+   * Scan a batch of polled work items for trigger comments.
    * @returns The number of new operations planned.
    */
-  async scan(issues: JiraIssue[], profiles: readonly IAgentProfile[]): Promise<number> {
+  async scan(items: WorkItem[], profiles: readonly IAgentProfile[]): Promise<number> {
     this.ensureCacheLoaded();
     const startMs = Date.now();
     let planned = 0;
@@ -111,63 +111,63 @@ export class TriggerScanner implements ITriggerScanner {
     let commentsFetched = 0;
     let alreadyConsumed = 0;
 
-    for (const issue of issues) {
-      const updated = issue.fields.updated;
-      if (updated && this.lastScanTimestamps.get(issue.key) === updated) {
+    for (const item of items) {
+      const updated = item.updated;
+      if (updated && this.lastScanTimestamps.get(item.id) === updated) {
         skipped++;
         continue;
       }
 
-      let comments: JiraComment[] | null = null;
-      let issueMatchedAnyProfile = false;
+      let comments: WorkItemComment[] | null = null;
+      let itemMatchedAnyProfile = false;
       const matchedVariants: string[] = [];
-      let issueTriggerCount = 0;
-      let issueConsumedCount = 0;
+      let itemTriggerCount = 0;
+      let itemConsumedCount = 0;
 
       for (const profile of profiles) {
         const trigger = profile.match.commentTrigger;
         if (!trigger) continue;
 
-        if (!this.router.matchesProjectAndStatus(issue, profile)) {
+        if (!this.router.matchesProjectAndStatus(item, profile)) {
           continue;
         }
 
-        issueMatchedAnyProfile = true;
+        itemMatchedAnyProfile = true;
         const variant = profile.variantKey;
         matchedVariants.push(variant);
 
         if (!comments) {
           try {
-            comments = await this.issueManager.getComments(issue.key);
+            comments = await this.issueManager.getComments(item.source, item.id);
             commentsFetched++;
           } catch (err) {
             this.logger.warn(
-              `Failed to fetch comments for ${issue.key}: ${toErrorMessage(err)}`
+              `Failed to fetch comments for ${item.id}: ${toErrorMessage(err)}`
             );
             comments = [];
           }
         }
 
-        const consumedIds = this.ledger.getConsumedTriggerIds(issue.key, variant);
+        const consumedIds = this.ledger.getConsumedTriggerIds(item.source, item.id, variant);
 
         for (const comment of comments) {
           if (consumedIds.has(comment.id)) {
             alreadyConsumed++;
-            issueConsumedCount++;
+            itemConsumedCount++;
             continue;
           }
 
-          const text = typeof comment.body === "string"
-            ? comment.body
-            : extractAdfText(comment.body);
+          const text = comment.body;
 
           if (!matchesTrigger(text, trigger)) continue;
 
-          if (this.allowedUsers.length > 0 && !this.allowedUsers.includes(comment.author.accountId)) {
-            const reason = `User ${comment.author.displayName} (${comment.author.accountId}) not in allowedUsers`;
-            this.logger.info(`Rejecting trigger on ${issue.key} — ${reason}`);
+          const allowedUsers = this.connectors.get(item.source)?.getAllowedUsers() ?? [];
+          if (allowedUsers.length > 0 && !allowedUsers.includes(comment.authorId)) {
+            const reason = `User ${comment.authorName} (${comment.authorId}) not in allowedUsers`;
+            this.logger.info(`Rejecting trigger on ${item.id} — ${reason}`);
 
-            this.ledger.reject(issue.key, {
+            this.ledger.reject(item.id, {
+              dataSource: item.source,
               variant,
               triggerCommentId: comment.id,
               commentTimestamp: comment.created,
@@ -175,10 +175,11 @@ export class TriggerScanner implements ITriggerScanner {
             });
 
             await this.issueManager.postComment(
-              issue.key,
-              OrchestratorComments.userNotAllowed(profile.displayName, comment.author.displayName),
+              item.source,
+              item.id,
+              OrchestratorComments.userNotAllowed(profile.displayName, comment.authorName),
             ).catch((err) => {
-              this.logger.warn(`Failed to post rejection comment on ${issue.key}: ${toErrorMessage(err)}`);
+              this.logger.warn(`Failed to post rejection comment on ${item.id}: ${toErrorMessage(err)}`);
             });
 
             continue;
@@ -186,7 +187,8 @@ export class TriggerScanner implements ITriggerScanner {
 
           const triggerParams = parseTriggerParams(text, trigger);
 
-          this.ledger.plan(issue.key, {
+          this.ledger.plan(item.id, {
+            dataSource: item.source,
             variant,
             triggerCommentId: comment.id,
             commentTimestamp: comment.created,
@@ -194,36 +196,37 @@ export class TriggerScanner implements ITriggerScanner {
           });
 
           planned++;
-          issueTriggerCount++;
+          itemTriggerCount++;
           this.logger.info(
-            `Planned ${variant} on ${issue.key} (trigger comment ${comment.id})`
+            `Planned ${variant} on ${item.id} (trigger comment ${comment.id})`
           );
 
           await this.issueManager.postAckComment(
-            issue.key,
+            item.source,
+            item.id,
             profile.displayName,
             triggerParams,
           ).catch((err) => {
-            this.logger.warn(`Failed to post ack comment on ${issue.key}: ${toErrorMessage(err)}`);
+            this.logger.warn(`Failed to post ack comment on ${item.id}: ${toErrorMessage(err)}`);
           });
         }
       }
 
-      if (issueMatchedAnyProfile) {
+      if (itemMatchedAnyProfile) {
         this.logger.info(
-          `  ${issue.key} [${issue.fields.status.name}]: ${comments?.length ?? 0} comments, ${issueTriggerCount} triggers, ${issueConsumedCount} consumed (${matchedVariants.join(", ")})`
+          `  ${item.id} [${item.status}]: ${comments?.length ?? 0} comments, ${itemTriggerCount} triggers, ${itemConsumedCount} consumed (${matchedVariants.join(", ")})`
         );
       }
 
-      if (updated && issueMatchedAnyProfile) {
-        this.lastScanTimestamps.set(issue.key, updated);
+      if (updated && itemMatchedAnyProfile) {
+        this.lastScanTimestamps.set(item.id, updated);
       }
     }
 
     const elapsedMs = Date.now() - startMs;
-    const scanned = issues.length - skipped;
+    const scanned = items.length - skipped;
     this.logger.info(
-      `Trigger scan: ${issues.length} issues (${scanned} scanned, ${skipped} unchanged) → ${planned} planned, ${alreadyConsumed} consumed, ${commentsFetched} API calls [${elapsedMs}ms]`
+      `Trigger scan: ${items.length} issues (${scanned} scanned, ${skipped} unchanged) → ${planned} planned, ${alreadyConsumed} consumed, ${commentsFetched} API calls [${elapsedMs}ms]`
     );
 
     if (scanned > 0) this.persistCache();

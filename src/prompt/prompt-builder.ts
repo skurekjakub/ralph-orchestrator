@@ -3,22 +3,20 @@
  * and prompt injection auditing.
  *
  * Provides a single entry point for the rest of the framework to build
- * and validate prompts from JIRA data. The container manager and task runner
+ * and validate prompts from work item data. The container manager and task runner
  * should treat prompt preparation as a black box handled by this class.
  */
 
 import type { IPromptAuditConfig } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
-import { JiraIssueParser } from "../jira/issue-parser.js";
-import type { IssueContext } from "./prompt.js";
-import { buildPromptWithSections } from "./prompt.js";
+import type { WorkItem } from "../datasource/types.js";
+import { buildPromptWithSections, type IssueContext } from "./prompt.js";
 import {
   AuditMode,
   AuditSeverity,
   auditPromptSections,
   formatAuditFindings,
+  type AuditResult,
 } from "./prompt-auditor.js";
-import type { AuditResult } from "./prompt-auditor.js";
 import type { Logger } from "../logger.js";
 
 /** Result of building and auditing a prompt. */
@@ -30,11 +28,11 @@ export interface BuiltPrompt {
 }
 
 /**
- * Builds and audits prompts from JIRA issue data.
+ * Builds and audits prompts from work item data.
  *
  * Responsibilities:
- * - Normalizes untrusted content (invisible chars, HTML comments, whitespace)
- * - Wraps untrusted data in delimiters
+ * - Normalizes content (invisible chars, HTML comments, whitespace)
+ * - Appends trigger-param nudges after JIRA data
  * - Scans for injection patterns based on configured audit mode
  * - Logs findings and optionally blocks execution
  *
@@ -47,36 +45,32 @@ export interface BuiltPrompt {
  * ```
  */
 export class PromptBuilder {
-  private readonly parser: JiraIssueParser;
   private readonly mode: AuditMode;
   private readonly logger: Logger;
 
-  constructor({ promptAuditConfig, excludeFields, logger }: {
+  constructor({ promptAuditConfig, logger }: {
     promptAuditConfig: IPromptAuditConfig;
-    excludeFields: readonly string[];
     logger: Logger;
   }) {
     this.mode = promptAuditConfig.mode;
     this.logger = logger;
-    this.parser = new JiraIssueParser(excludeFields);
   }
 
   /**
-   * Build a prompt from a JIRA issue and optional context.
+   * Build a prompt from a work item and optional context.
    *
-   * Normalizes content, wraps untrusted data in delimiters, and runs the
+   * Normalizes content, appends trigger-param nudges, and runs the
    * prompt injection auditor. In {@link AuditMode.Warn} mode, findings are
    * logged but execution continues. In {@link AuditMode.Block} mode, the
    * result's `audit.safe` will be `false` for critical findings — the caller
    * is responsible for throwing.
    *
-   * @param issue JIRA issue to process.
+   * @param workItem Work item to process.
    * @param context Pre-fetched issue context (comments, revision handoff).
    * @returns The assembled prompt text and audit result.
    */
-  build(issue: JiraIssue, context?: IssueContext): BuiltPrompt {
-    const cleaned = this.parser.parse(issue);
-    const { prompt, sections } = buildPromptWithSections(cleaned, context);
+  build(workItem: WorkItem, context?: IssueContext): BuiltPrompt {
+    const { prompt, sections } = buildPromptWithSections(workItem, context);
 
     if (this.mode === AuditMode.Off) {
       return { text: prompt, audit: { safe: true, findings: [] } };
@@ -93,7 +87,7 @@ export class PromptBuilder {
         (f) => f.severity === AuditSeverity.Critical,
       ).length;
       throw new Error(
-        `Prompt audit blocked execution for ${issue.key}: ${criticalCount} critical finding(s) detected`,
+        `Prompt audit blocked execution for ${workItem.id}: ${criticalCount} critical finding(s) detected`,
       );
     }
 

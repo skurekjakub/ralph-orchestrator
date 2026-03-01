@@ -10,7 +10,7 @@ export interface ILogCollector {
    *
    * @param result The Ralph execution result to persist.
    * @param activityLogPath Optional path to the session's activity JSONL file.
-   * @param taskId Optional task identifier used as the folder and filename prefix. Defaults to `result.issueKey`.
+   * @param taskId Optional task identifier used as the folder and filename prefix. Defaults to `result.taskId`.
    * @returns Absolute path to the saved summary file.
    */
   saveExecutionSummary(result: RalphResult, activityLogPath?: string, taskId?: string): string;
@@ -36,11 +36,11 @@ export class LogCollector implements ILogCollector {
    *
    * @param result The Ralph execution result to persist.
    * @param activityLogPath Optional path to the session’s activity JSONL file.
-   * @param taskId Optional task identifier used as the folder and filename prefix. Defaults to `result.issueKey`.
+   * @param taskId Optional task identifier used as the folder and filename prefix. Defaults to `result.taskId`.
    * @returns Absolute path to the saved summary file.
    */
   saveExecutionSummary(result: RalphResult, activityLogPath?: string, taskId?: string): string {
-    const prefix = taskId ?? result.issueKey;
+    const prefix = taskId ?? result.taskId;
     const issueDir = join(this.config.logDir, prefix);
     mkdirSync(issueDir, { recursive: true });
     const filename = `${prefix}-${Date.now()}-summary.json`;
@@ -49,7 +49,7 @@ export class LogCollector implements ILogCollector {
       path,
       JSON.stringify(
         {
-          issueKey: result.issueKey,
+          taskId: result.taskId,
           status: result.status,
           durationMs: result.durationMs,
           exitCode: result.exitCode,

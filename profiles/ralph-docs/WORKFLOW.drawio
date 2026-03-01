@@ -1,0 +1,157 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot" version="26.0.0">
+  <diagram id="ralph-workflow" name="Ralph Agent Workflow">
+    <mxGraphModel dx="1800" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== TITLE ===== -->
+        <mxCell id="title" value="&lt;b&gt;Ralph Agent Workflow — Skills + State Management&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Each phase triggers a skill. The agent reads state.md before every phase and updates it after." style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="35" width="1180" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ===== COLUMN HEADERS ===== -->
+        <mxCell id="std-hdr" value="&lt;b&gt;Standard Workflow (New Task)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a3c5e;fontColor=#ffffff;strokeColor=#1a3c5e;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="70" width="440" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="rev-hdr" value="&lt;b&gt;Revision Workflow (isRevision=true)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E7D32;fontColor=#ffffff;strokeColor=#2E7D32;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="740" y="70" width="440" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- ===== STANDARD WORKFLOW PHASES ===== -->
+
+        <!-- P1: Setup -->
+        <mxCell id="p1" value="&lt;b&gt;Phase 1: Setup&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-setup&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Create branch from main (or source_branch)&lt;br&gt;• Init state.md with structured template&lt;br&gt;• Search ralphchives for prior work&lt;br&gt;• Post JIRA start comment&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#9370DB&quot;&gt;Also reads: ralph-ralphchives&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="120" width="440" height="135" as="geometry" />
+        </mxCell>
+
+        <!-- P2: Research -->
+        <mxCell id="p2" value="&lt;b&gt;Phase 2: Research&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-research&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Delegate to &lt;font color=&quot;#9370DB&quot;&gt;&lt;b&gt;ralph-researcher&lt;/b&gt;&lt;/font&gt; sub-agent&lt;br&gt;• Validate 4-section report&lt;br&gt;• Preserve source references in state.md&lt;br&gt;• Trust but verify suspicious findings&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="285" width="440" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- P3: Write -->
+        <mxCell id="p3" value="&lt;b&gt;Phase 3: Write&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-write&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Implement changes from research report&lt;br&gt;• Consult style guides + domain skills&lt;br&gt;• Validate builds: npm run build&lt;br&gt;• Record new identifiers in state.md&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#D4760A&quot;&gt;Also reads: ralph-style-guide-review, ralph-documentation-syntax, ralph-new-page-creation, ralph-code-samples&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="435" width="440" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- Diamond: skip_review? -->
+        <mxCell id="diamond" value="&lt;b&gt;skip_review?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="620" width="140" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- P4-5: Review -->
+        <mxCell id="p45" value="&lt;b&gt;Phase 4-5: Review&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-review&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Delegate to &lt;font color=&quot;#9370DB&quot;&gt;&lt;b&gt;ralph-reviewer&lt;/b&gt;&lt;/font&gt; sub-agent&lt;br&gt;• APPROVED → proceed to Phase 6&lt;br&gt;• NEEDS REVISION → fix + re-review&lt;br&gt;• Max 2 revision cycles&lt;br&gt;• Trust but verify (smaller model)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="710" width="440" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- P6: Commit -->
+        <mxCell id="p6" value="&lt;b&gt;Phase 6: Commit + Push&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-commit&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Pre-commit: verify identifiers, refs, build&lt;br&gt;• git add + commit + push&lt;br&gt;• Message format: docs(TASK_ID): description&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="885" width="440" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- P7: PR -->
+        <mxCell id="p7" value="&lt;b&gt;Phase 7: Pull Request&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-pr&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Create ADO draft PR via REST API&lt;br&gt;• Handle API errors gracefully&lt;br&gt;• Record PR URL in state.md&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#D4760A&quot;&gt;Also reads: ralph-ado-pr-workflow&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="1020" width="440" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- P8: Handoff -->
+        <mxCell id="p8" value="&lt;b&gt;Phase 8: Handoff + Exit&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#4a86c8&quot;&gt;&lt;b&gt;ralph-workflow-handoff&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Write handoff document&lt;br&gt;• Attach to JIRA + completion comment&lt;br&gt;• Post to ralphchives&lt;br&gt;• &lt;b&gt;Print ===RALPH_RESULT_START=== exit block&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#D4760A&quot;&gt;Also reads: ralph-source-references, ralph-ralphchives&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="0" y="1175" width="440" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===== REVISION WORKFLOW PHASES ===== -->
+
+        <!-- RP1-2: Setup -->
+        <mxCell id="r12" value="&lt;b&gt;Phase 1-2: Understand Feedback + Find PR&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#2E7D32&quot;&gt;&lt;b&gt;ralph-workflow-revision-setup&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Read previous handoff + JIRA comments&lt;br&gt;• Search ralphchives for gotchas&lt;br&gt;• Find existing branch + PR via ADO&lt;br&gt;• Read all PR review threads&lt;br&gt;• Create state.md with feedback checklist&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#D4760A&quot;&gt;Also reads: ralph-ralphchives&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="120" width="440" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- RP3-4: Fix -->
+        <mxCell id="r34" value="&lt;b&gt;Phase 3-4: Implement Fixes&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#2E7D32&quot;&gt;&lt;b&gt;ralph-workflow-revision-fix&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Address each feedback item (don't restart)&lt;br&gt;• Preserve previous decisions&lt;br&gt;• Validate builds: npm run build&lt;br&gt;• &lt;i&gt;Optional:&lt;/i&gt; delegate to &lt;font color=&quot;#9370DB&quot;&gt;&lt;b&gt;ralph-reviewer&lt;/b&gt;&lt;/font&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="305" width="440" height="125" as="geometry" />
+        </mxCell>
+
+        <!-- RP5: Commit -->
+        <mxCell id="r5" value="&lt;b&gt;Phase 5: Commit + Respond to PR&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#2E7D32&quot;&gt;&lt;b&gt;ralph-workflow-revision-commit&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Pre-commit build check&lt;br&gt;• Commit to existing branch (never new)&lt;br&gt;• Respond to each PR review thread&lt;br&gt;• Resolve addressed threads&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="460" width="440" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- RP6-7: Handoff -->
+        <mxCell id="r67" value="&lt;b&gt;Phase 6-7: Handoff + Exit&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#2E7D32&quot;&gt;&lt;b&gt;ralph-workflow-revision-handoff&lt;/b&gt;&lt;/font&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;• Update handoff (append, don't replace)&lt;br&gt;• JIRA completion comment&lt;br&gt;• Ralphchives revision learnings&lt;br&gt;• &lt;b&gt;Print ===RALPH_RESULT_START=== exit block&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="610" width="440" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===== CENTER ELEMENTS ===== -->
+
+        <!-- Phase Entry Ritual -->
+        <mxCell id="ritual" value="&lt;b&gt;Phase Entry Ritual&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;At every phase transition:&lt;br&gt;&lt;br&gt;1. Read state.md&lt;br&gt;2. Read the phase's skill&lt;br&gt;3. Execute skill instructions&lt;br&gt;4. Update state.md&lt;br&gt;    (next phase + skills)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="480" y="120" width="220" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- state.md -->
+        <mxCell id="statemd" value="&lt;b&gt;state.md (Scratchpad)&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;Persistent task state:&lt;br&gt;• Current phase + skill manifest&lt;br&gt;• Completed phases&lt;br&gt;• Key decisions + rationale&lt;br&gt;• Tracked identifiers&lt;br&gt;• Source references&lt;br&gt;• Ralphchives findings&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;size=15;backgroundOutline=1;" vertex="1" parent="1">
+          <mxGeometry x="495" y="280" width="190" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;&lt;hr size=&quot;1&quot;&gt;&lt;font size=&quot;1&quot;&gt;&lt;font color=&quot;#4a86c8&quot;&gt;■&lt;/font&gt; Standard workflow skill&lt;br&gt;&lt;font color=&quot;#2E7D32&quot;&gt;■&lt;/font&gt; Revision workflow skill&lt;br&gt;&lt;font color=&quot;#9370DB&quot;&gt;■&lt;/font&gt; Sub-agent delegation&lt;br&gt;&lt;font color=&quot;#D4760A&quot;&gt;■&lt;/font&gt; Additional domain skills read&lt;br&gt;&lt;font color=&quot;#b85450&quot;&gt;- - -&lt;/font&gt; Conditional skip path&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=10;spacingRight=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="490" y="455" width="200" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===== STANDARD WORKFLOW ARROWS ===== -->
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p1" target="p2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p2" target="p3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p3" target="diamond" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Diamond → P4-5 (No) -->
+        <mxCell id="e4" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;fontSize=10;fontStyle=1;fontColor=#666666;" edge="1" source="diamond" target="p45" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Diamond → P6 (Yes — skip review) -->
+        <mxCell id="e5" value="Yes (skip)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;strokeWidth=1.5;dashed=1;dashPattern=8 4;fontSize=10;fontStyle=1;fontColor=#b85450;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="diamond" target="p6" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="648" />
+              <mxPoint x="470" y="935" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p45" target="p6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p6" target="p7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="p7" target="p8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== REVISION WORKFLOW ARROWS ===== -->
+
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="r12" target="r34" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="r34" target="r5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1.5;" edge="1" source="r5" target="r67" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,5 +1,5 @@
 import type { IAgentProfile } from "../config/types.js";
-import type { JiraIssue } from "../jira/types.js";
+import type { WorkItem } from "../datasource/types.js";
 
 /** Result of a profile match. */
 export interface ProfileMatchResult {
@@ -12,18 +12,18 @@ export interface ProfileMatchResult {
  */
 export type CommentFetcher = (issueKey: string) => Promise<string[]>;
 
-/** Public contract for profile-based issue routing. */
+/** Public contract for profile-based work item routing. */
 export interface IProfileRouter {
-  /** Match a JIRA issue to the first matching agent profile. */
-  match(issue: JiraIssue): Promise<ProfileMatchResult | null>;
-  /** Check if an issue matches a specific profile's project and status filters. */
-  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean;
+  /** Match a work item to the first matching agent profile. */
+  match(workItem: WorkItem): Promise<ProfileMatchResult | null>;
+  /** Check if a work item matches a specific profile's project and status filters. */
+  matchesProjectAndStatus(workItem: WorkItem, profile: IAgentProfile): boolean;
   /** Get all configured profile IDs. */
   readonly profileIds: string[];
 }
 
 /**
- * Routes JIRA issues to agent profiles based on matching rules.
+ * Routes work items to agent profiles based on matching rules.
  *
  * Matching rules (evaluated per-profile, first match wins):
  * 1. Issue project key must be in `profile.match.projects`
@@ -53,9 +53,9 @@ export class ProfileRouter implements IProfileRouter {
    *
    * @returns The matched profile and revision flag, or null if no profile matches.
    */
-  async match(issue: JiraIssue): Promise<ProfileMatchResult | null> {
-    const issueProject = issue.key.split("-")[0];
-    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+  async match(workItem: WorkItem): Promise<ProfileMatchResult | null> {
+    const issueProject = workItem.project;
+    const issueStatus = workItem.status.toLowerCase();
 
     let commentTexts: string[] | null = null;
 
@@ -71,7 +71,7 @@ export class ProfileRouter implements IProfileRouter {
 
       if (profile.match.commentTrigger && this.fetchComments) {
         if (!commentTexts) {
-          commentTexts = await this.fetchComments(issue.key);
+          commentTexts = await this.fetchComments(workItem.id);
         }
         const triggerLower = profile.match.commentTrigger.toLowerCase();
         const found = commentTexts.some((t) => t.toLowerCase().includes(triggerLower));
@@ -88,14 +88,13 @@ export class ProfileRouter implements IProfileRouter {
    * Check if an issue matches a specific profile's project and status filters.
    * Used by the orchestrator to verify an issue still matches before execution.
    */
-  matchesProjectAndStatus(issue: JiraIssue, profile: IAgentProfile): boolean {
-    const issueProject = issue.key.split("-")[0];
-    if (!profile.match.projects.includes(issueProject)) return false;
+  matchesProjectAndStatus(workItem: WorkItem, profile: IAgentProfile): boolean {
+    if (!profile.match.projects.includes(workItem.project)) return false;
 
     const statuses = profile.match.statuses ?? [];
     if (statuses.length === 0) return true;
 
-    const issueStatus = issue.fields.status?.name?.toLowerCase() ?? "";
+    const issueStatus = workItem.status.toLowerCase();
     return statuses.some((s) => s.toLowerCase() === issueStatus);
   }
 

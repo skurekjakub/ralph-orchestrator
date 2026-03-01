@@ -37,7 +37,7 @@ JIRA poller → comment trigger scan → operation ledger → profile router
 
 ### Dependency Injection
 
-Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/jira/client.ts`). All consumers depend on interfaces, never classes. **Only `src/awilix-cradle.ts` imports concrete classes** — this is the sole composition root (awilix `InjectionMode.PROXY`, `strict: true`). Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `profiles`, etc.) rather than a monolithic config object. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
+Every service has an `I`-prefixed interface in the same file (e.g., `IJiraClient` in `src/datasource/connectors/jira/jira-client.ts`). All consumers depend on interfaces, never classes. **Only `src/awilix-cradle.ts` imports concrete classes** — this is the sole composition root (awilix `InjectionMode.PROXY`, `strict: true`). Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `profiles`, etc.) rather than a monolithic config object. Tests use `Mocked<IInterface>` for structurally-typed mocks without `as any`.
 
 ### Container Lifecycle — Three-File Compose Merge
 
@@ -51,7 +51,7 @@ profiles/<id>/docker-compose.yml          (base: services, volumes, env)
 
 ### Agent Templates — JIT Rendering
 
-Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, JIRA issue fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
+Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, task fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
 
 Custom Liquid tags: `{% section "name" %}...{% endsection %}` wraps content in `<name>...</name>` XML boundaries.
 
@@ -68,11 +68,15 @@ Available servers: `ado`, `jira-kentico`, `discord-hitl`, `playwright`, `web-fet
 
 ### Task-Scoped Parameters (JIT)
 
-Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
+Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$task.id`, `$task.project`, `$task.branch`, `$task.title`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
 
 ### Operation Ledger
 
 Persistent per-issue state machine at `output/logs/history/<issueKey>.json`. State flow: `pending → active → completed | error | rejected`. Enables crash recovery (active operations from crashed sessions are marked error on restart) and comment-trigger deduplication (each trigger consumed exactly once per variant).
+
+### Data Source Plugins
+
+Data source connectors are loaded as plugins via dynamic `import()` at startup. Built-in plugins (JIRA) are listed in `BUILTIN_PLUGINS` in `app-startup.ts`; user plugins are specified in `config.plugins`. Each plugin module calls `registerDataSourceFactory(type, factory)` at import time to self-register. `buildDataSourceMaps()` in `src/datasource/registry.ts` instantiates connectors from config using registered factories. See `docs/data-source-registration.md` for the full integration guide.
 
 ### Continuation Loop
 
@@ -83,12 +87,12 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | File | Role |
 |---|---|
 | `src/orchestrator.ts` | Main event loop |
-| `src/config/types.ts` | Runtime config interfaces (`IJiraConfig`, `IAgentProfile`, `IAppConfig`, etc.) |
+| `src/config/types.ts` | Runtime config interfaces (`IDataSourceConfig`, `IAgentProfile`, `IAppConfig`, etc.) |
 | `src/config/schemas.ts` | Zod validation schemas for `config.json` and `profile.json` |
 | `src/config/loader.ts` | `loadConfig()` — reads config.json + .env, discovers profiles |
 | `src/config/constants.ts` | Shared constants (`DEFAULT_MODEL`) |
 | `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
-| `src/app-startup.ts` | Startup pipeline: validate → load config → setup profiles |
+| `src/app-startup.ts` | Startup pipeline: validate → load config → load plugins → setup profiles |
 | `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
 | `src/services/task-result-writer.ts` | Post-execution: log collection, transcript attach, summary |
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
@@ -100,7 +104,8 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git sync) |
 | `src/util/branch.ts` | Branch name slugification utility |
 | `src/container/setup/profile-setup.ts` | Profile initialization orchestrator |
-| `src/jira/poller.ts` | Interval-based JQL polling + dedup |
+| `src/datasource/registry.ts` | Data source factory registry (`registerDataSourceFactory`, `buildDataSourceMaps`) |
+| `src/datasource/connectors/jira/factory.ts` | JIRA connector factory (self-registers at import time) |
 
 ## Conventions
 
@@ -137,7 +142,7 @@ shared/
   skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display.
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 ## Output Layout
 

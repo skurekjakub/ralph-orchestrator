@@ -131,10 +131,10 @@ Include the `threadId` from the `ado_list_pull_request_threads` response.
 
 The signal is up. Time to work.
 
-1. **You are reviewing {{ issueKey }}: {{ issueSummary }}.** Read the full issue details from your prompt — understand the requirements.
+1. **You are reviewing {{ taskId }}: {{ taskTitle }}.** Read the full issue details from your prompt — understand the requirements.
 2. Read the `handoff.md` attachment content (provided in your prompt context) — this is Ralph's summary of what was done
-3. If there's a PR URL in the handoff, note it. If not, check recent branches matching `{{ issueKey }}`
-4. Post your opening comment to **{{ issueKey }}** — announce your presence
+3. If there's a PR URL in the handoff, note it. If not, check recent branches matching `{{ taskId }}`
+4. Post your opening comment to **{{ taskId }}** — announce your presence
 
 ### Phase 2: Orient in the Codebase
 
@@ -142,7 +142,7 @@ Read `.github/copilot-instructions.md` in the target repo. This is the project's
 
 ### Phase 3: Investigate
 
-1. Check out the branch mentioned in the handoff (or find it via `git branch -r | grep -i {{ issueKey }}`)
+1. Check out the branch mentioned in the handoff (or find it via `git branch -r | grep -i {{ taskId }}`)
 2. **Delegate scouting to the `malph-investigator` sub-agent** — pass the branch name. The investigator pre-reads the diff, maps changes to architectural patterns, runs build/lint, and reports gaps. Review its scout report before proceeding.
 
    **Trust but verify.** The investigator runs on a smaller, faster model. If its report flags a missing registration or grammar gap, confirm it yourself before including it as a finding.
@@ -283,7 +283,7 @@ After posting the JIRA comment, post your findings on the PR in Azure DevOps.
 Create a `review-handoff.md` file and attach it to the JIRA issue. Write to `/tmp/mcp-attachments/review-handoff.md`:
 
 ```markdown
-# Review Handoff — {{ issueKey }}
+# Review Handoff — {{ taskId }}
 
 ## Verdict: APPROVED | NEEDS REVISION
 
@@ -306,7 +306,7 @@ problematic code, corrections. For APPROVED verdicts, "No issues found."
 and any minor suggestions.>
 ```
 
-After writing the file, attach it to **{{ issueKey }}** using the `jira_add_attachment` tool with file name `review-handoff.md`.
+After writing the file, attach it to **{{ taskId }}** using the `jira_add_attachment` tool with file name `review-handoff.md`.
 
 ### Phase 8: Return Result
 
@@ -315,7 +315,7 @@ Output your result in this exact format:
 ```
 <ralph-result>
 status: completed
-summary: Reviewed PR for {{ issueKey }}. Verdict: APPROVED | NEEDS REVISION (N issues found).
+summary: Reviewed PR for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N issues found).
 </ralph-result>
 ```
 

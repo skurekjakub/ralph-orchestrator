@@ -34,35 +34,61 @@ Secrets and credentials live in `.env`. Never commit this file.
 
 ```json
 {
-  "jira": { ... },
+  "dataSources": {
+    "<source-key>": {
+      "type": "jira",
+      "connection": { ... },
+      "pollIntervalMs": 60000
+    }
+  },
+  "plugins": [],
   "output": { ... },
   "dashboard": { ... },
   "promptAudit": { ... },
-  "excludeFields": [],
-  "allowedUsers": [],
   "enableContinuation": true
 }
 ```
 
 Agent profiles are configured separately in `profiles/*/profile.json`, not in `config.json`.
 
-### JIRA Settings
+### Data Sources
+
+Each entry in `dataSources` defines a connection to an external work item source. The key (e.g. `"kentico-jira"`) is referenced by profiles via `profile.dataSource`.
 
 ```json
-"jira": {
-  "baseUrl": "https://api.atlassian.com/ex/jira",
-  "cloudId": "<your-jira-cloud-guid>",
-  "pollIntervalMs": 60000
+"dataSources": {
+  "kentico-jira": {
+    "type": "jira",
+    "connection": {
+      "baseUrl": "https://api.atlassian.com/ex/jira",
+      "cloudId": "<your-jira-cloud-guid>",
+      "excludeFields": [],
+      "allowedUsers": []
+    },
+    "pollIntervalMs": 60000
+  }
 }
 ```
 
-| Field | Description | Default |
+| Field | Type | Description |
 |---|---|---|
-| `baseUrl` | JIRA Cloud REST API base URL | — |
-| `cloudId` | Your Atlassian Cloud site ID (GUID) | — |
-| `pollIntervalMs` | How often to poll JIRA for new issues (milliseconds) | `60000` |
+| `type` | `string` | Registered data source type (e.g. `"jira"`). Must match a factory registered via `registerDataSourceFactory()`. |
+| `connection` | `object` | Type-specific connection properties. For JIRA: `baseUrl`, `cloudId`, `excludeFields`, `allowedUsers`. Credentials (`email`, `apiToken`) are injected from `.env` at load time. |
+| `pollIntervalMs` | `number` | How often to poll for new work items (milliseconds). Default: `60000`. |
 
-**Finding your Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
+**Finding your JIRA Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
+
+### Plugins
+
+Additional data source connector modules to load at startup. Each module must call `registerDataSourceFactory()` as a side effect on import.
+
+```json
+"plugins": [
+  "my-datasource-package/factory.js"
+]
+```
+
+Built-in connectors (JIRA) are loaded automatically — they don't need to be listed here. See `docs/data-source-registration.md` for the full integration guide.
 
 ### Agent Profiles (`profiles/*/profile.json`)
 
@@ -99,12 +125,14 @@ shared/
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
   "composeProjectLabel": "ralph-sandbox",
   "mcpServers": [
-    { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$jira.key" } },
-    { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$jira.branch" } }
+    { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$task.id" } },
+    { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "ADO_REPO": "kentico-docs-jekyll", "TASK_BRANCH": "$task.branch" } }
   ],
   "resources": { "mountBase": "resources/ralph-resources" },
   "skills": ["git-workflow"],
-  "cleanPaths": ["/workspace/resources/chats"],
+  "cleanPaths": ["/workspace/.ralph/tasks"],
+  "vcsProvider": "ado",
+  "repoPat": "ADO_PAT",
   "variants": [
     {
       "agent": "ralph.ralph",
@@ -133,6 +161,8 @@ shared/
 | `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
 | `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
 | `skills` | Array of skill folder names from `shared/skills/` to mount into the container at `.github/skills/`. Each name must match a subdirectory in `shared/skills/`. Validated at startup. | `[]` |
+| `vcsProvider` | VCS hosting provider for the target repo: `"ado"` (Azure DevOps) or `"github"`. Controls the auth header format used by the repo-sync hook. | `"ado"` |
+| `repoPat` | Name of the env var containing the git PAT for the repo-sync hook. | `"ADO_PAT"` (ado) or `"GH_TOKEN"` (github) |
 
 The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
 
@@ -213,14 +243,14 @@ Profiles can declare MCP (Model Context Protocol) servers via the `mcpServers` a
   "playwright",
   {
     "name": "jira-kentico",
-    "env": { "JIRA_ISSUE_KEY": "$jira.key" }
+    "env": { "JIRA_ISSUE_KEY": "$task.id" }
   },
   {
     "name": "ado",
     "env": {
       "ADO_PROJECT": "CustomerEducation",
       "ADO_REPO": "kentico-docs-jekyll",
-      "TASK_BRANCH": "$jira.branch"
+      "TASK_BRANCH": "$task.branch"
     }
   }
 ]
@@ -232,10 +262,10 @@ Server names must match a subdirectory of `shared/mcp-servers/`. Servers declare
 
 | Macro | Resolves to |
 |---|---|
-| `$jira.key` | JIRA issue key (e.g. `DOC-3143`) |
-| `$jira.project` | Project key prefix (e.g. `DOC`) |
-| `$jira.branch` | Branch name: `ralph/<issueKey>-<slugified-summary>` (max 80 chars) |
-| `$jira.summary` | JIRA issue summary text |
+| `$task.id` | JIRA issue key (e.g. `DOC-3143`) |
+| `$task.project` | Project key prefix (e.g. `DOC`) |
+| `$task.branch` | Branch name: `ralph/<taskId>-<slugified-summary>` (max 80 chars) |
+| `$task.title` | JIRA issue summary text |
 | `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`). Returns empty string if the parameter is missing. |
 
 Static values (no `$` prefix) are passed through as-is. All env values (static + resolved macros) are injected into the server's env block in `gateway.json` before each task by `JitMcpConfigWriter`.
@@ -297,7 +327,7 @@ The `cleanPaths` array lists absolute container paths that are deleted before ea
 
 ```json
 {
-  "cleanPaths": ["/workspace/resources/chats"]
+  "cleanPaths": ["/workspace/.ralph/tasks"]
 }
 ```
 
@@ -368,7 +398,7 @@ Multiple orchestrator instances can report to the same dashboard — each genera
 - `"block"` — Logs findings and **blocks execution** when critical patterns are detected (e.g., system instruction overrides, credential probing, prompt format tokens). Warnings still proceed.
 - `"off"` — Disables prompt auditing entirely. Not recommended except for debugging.
 
-The auditor scans untrusted JIRA data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
+The auditor scans untrusted data (description, comments, custom fields, handoff attachments) for common prompt injection patterns before passing the prompt to the agent CLI. See [SECURITY.md](SECURITY.md) for the full list of detected patterns.
 
 ### Additional Global Settings
 

@@ -1,13 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { OrchestratorState, CompletedTask, ActiveTask, LogEntry } from "./orchestrator-types.js";
-import { OrchestratorStatus, LogSource } from "./orchestrator-types.js";
+import { OrchestratorStatus, LogSource, type OrchestratorState, type CompletedTask, type ActiveTask, type LogEntry } from "./orchestrator-types.js";
 import { HeartbeatStatus } from "./services/heartbeat.js";
 
 /** Live data the observer reads from the orchestrator on each state snapshot. */
 export interface ObservableContext {
   activeTask: ActiveTask | null;
   running: boolean;
-  pendingOps: { issueKey: string; variant: string }[];
+  pendingOps: { taskId: string; variant: string }[];
   logEntries: readonly LogEntry[];
   profileIds: readonly string[];
 }
@@ -64,8 +63,8 @@ export class OrchestratorObserver {
           : OrchestratorStatus.Idle,
       currentIssue: task
         ? {
-            key: task.issue.key,
-            summary: task.issue.fields.summary,
+            key: task.workItem.id,
+            summary: task.workItem.title,
           }
         : null,
       currentProfile: task?.profile.variantKey ?? null,
@@ -73,7 +72,7 @@ export class OrchestratorObserver {
       completedToday: [...this.completedToday],
       queueSize: ctx.pendingOps.length,
       queueItems: ctx.pendingOps.map((p) => ({
-        key: p.issueKey,
+        key: p.taskId,
         summary: p.variant,
       })),
       logs: ctx.logEntries,
@@ -92,7 +91,7 @@ export class OrchestratorObserver {
       agentId: this.agentId,
       status: (!ctx.running ? HeartbeatStatus.Stopped : task ? HeartbeatStatus.Working : HeartbeatStatus.Polling),
       queueSize: ctx.pendingOps.length,
-      currentTask: task?.issue.key ?? null,
+      currentTask: task?.workItem.id ?? null,
       currentTaskStartedAt: task
         ? new Date(task.startedAt).toISOString()
         : null,

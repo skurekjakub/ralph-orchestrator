@@ -38,7 +38,7 @@ export type DashboardMessage =
 /** A group of log files belonging to a single task execution. */
 export interface TaskLogGroup {
   id: string;
-  issueKey: string;
+  taskId: string;
   timestamp?: number;
   files: {
     log?: string;
@@ -49,7 +49,7 @@ export interface TaskLogGroup {
     preTool?: string;
   };
   summary?: {
-    issueKey?: string;
+    taskId?: string;
     status?: string;
     durationMs?: number;
     exitCode?: number;

@@ -6,7 +6,7 @@ import { resolveAgentIncludes, AgentTemplateRenderer, buildTemplateContext, buil
 import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
-import { makeProfile, makeIssue, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
+import { makeProfile, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -167,14 +167,14 @@ describe("AgentTemplateRenderer", () => {
     await mkdir(includesDir, { recursive: true });
     await mkdir(agentDir, { recursive: true });
 
-    await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ issueKey }}");
+    await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}");
 
     const renderer = new AgentTemplateRenderer();
     await renderer.render("my-profile", makeTemplateContext({
       profileId: "my-profile",
       repo: "/my/repo",
       isRevision: true,
-      issueKey: "DF-123",
+      taskId: "DF-123",
     }));
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
@@ -189,14 +189,14 @@ describe("AgentTemplateRenderer", () => {
     await mkdir(includesDir, { recursive: true });
     await mkdir(agentDir, { recursive: true });
 
-    await writeFile(join(agentDir, "test.agent.md"), "Project: {{ issueProject }}, Status: {{ issueStatus }}, Summary: {{ issueSummary }}");
+    await writeFile(join(agentDir, "test.agent.md"), "Project: {{ taskProject }}, Status: {{ taskStatus }}, Summary: {{ taskTitle }}");
 
     const renderer = new AgentTemplateRenderer();
     await renderer.render("test-profile", makeTemplateContext({
       profileId: "test-profile",
-      issueProject: "DOC",
-      issueStatus: "To Do",
-      issueSummary: "Add widget docs",
+      taskProject: "DOC",
+      taskStatus: "To Do",
+      taskTitle: "Add widget docs",
     }));
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
@@ -278,14 +278,16 @@ describe("buildTemplateContext", () => {
       model: "claude-opus-4.6",
       mcpServers: ["playwright", "jira-kentico"],
     });
-    const issue = makeIssue("DOC-500", "Add widget documentation", "To Do", undefined, {
-      issuetype: { name: "Task" },
-      priority: { name: "High" },
+    const issue = makeWorkItem("DOC-500", {
+      title: "Add widget documentation",
+      status: "To Do",
+      type: "Task",
+      priority: "High",
       labels: ["docs", "widget"],
-      components: [{ name: "Frontend" }, { name: "API" }],
+      components: ["Frontend", "API"],
     });
 
-    const ctx = buildTemplateContext(makeTaskContext({ profile, issue, isRevision: false }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }));
 
     expect(ctx.profileId).toBe("ralph-docs");
     expect(ctx.repo).toBe("/home/user/repos/docs");
@@ -294,17 +296,17 @@ describe("buildTemplateContext", () => {
     expect(ctx.agentName).toBe("ralph.ralph");
     expect(ctx.displayName).toBe("ralph");
     expect(ctx.mcpServers).toEqual(["playwright", "jira-kentico"]);
-    expect(ctx.issueKey).toBe("DOC-500");
-    expect(ctx.issueSummary).toBe("Add widget documentation");
-    expect(ctx.issueStatus).toBe("To Do");
-    expect(ctx.issueType).toBe("Task");
-    expect(ctx.issuePriority).toBe("High");
-    expect(ctx.issueLabels).toEqual(["docs", "widget"]);
-    expect(ctx.issueComponents).toEqual(["Frontend", "API"]);
-    expect(ctx.issueProject).toBe("DOC");
-    expect(ctx.issueDescription).toBe("");
-    expect(ctx.issueCreated).toBe("2026-01-01T00:00:00.000+0000");
-    expect(ctx.issueUpdated).toBe("");
+    expect(ctx.taskId).toBe("DOC-500");
+    expect(ctx.taskTitle).toBe("Add widget documentation");
+    expect(ctx.taskStatus).toBe("To Do");
+    expect(ctx.taskType).toBe("Task");
+    expect(ctx.taskPriority).toBe("High");
+    expect(ctx.taskLabels).toEqual(["docs", "widget"]);
+    expect(ctx.taskComponents).toEqual(["Frontend", "API"]);
+    expect(ctx.taskProject).toBe("DOC");
+    expect(ctx.taskDescription).toBe("");
+    expect(ctx.taskCreated).toBe("2026-01-01T00:00:00.000+0000");
+    expect(ctx.taskUpdated).toBe("");
     expect(ctx.commentTrigger).toBe("@ralph");
     expect(ctx.isRevision).toBe(false);
   });
@@ -313,49 +315,48 @@ describe("buildTemplateContext", () => {
     const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }));
 
     expect(ctx.model).toBe("");
-    expect(ctx.issueType).toBe("");
-    expect(ctx.issuePriority).toBe("");
-    expect(ctx.issueLabels).toEqual([]);
-    expect(ctx.issueComponents).toEqual([]);
-    expect(ctx.issueUpdated).toBe("");
+    expect(ctx.taskType).toBe("");
+    expect(ctx.taskPriority).toBe("");
+    expect(ctx.taskLabels).toEqual([]);
+    expect(ctx.taskComponents).toEqual([]);
+    expect(ctx.taskUpdated).toBe("");
     expect(ctx.isRevision).toBe(true);
   });
 
-  it("extracts plain-text description from ADF", () => {
-    const issue = makeIssue("DOC-200", "Test", "New", undefined, {
-      description: {
-        type: "doc",
-        content: [{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] }],
-      },
+  it("uses description from work item", () => {
+    const issue = makeWorkItem("DOC-200", {
+      description: "Hello world",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
-    expect(ctx.issueDescription).toBe("Hello world");
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    expect(ctx.taskDescription).toBe("Hello world");
   });
 
-  it("extracts plain string description", () => {
-    const issue = makeIssue("DOC-201", "Test", "New", undefined, {
+  it("uses plain string description", () => {
+    const issue = makeWorkItem("DOC-201", {
       description: "Plain text desc",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
-    expect(ctx.issueDescription).toBe("Plain text desc");
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    expect(ctx.taskDescription).toBe("Plain text desc");
   });
 
-  it("populates issueCreated and issueUpdated", () => {
-    const issue = makeIssue("DOC-202", "Test", "New", "2026-02-15T12:00:00.000+0000");
-    const ctx = buildTemplateContext(makeTaskContext({ issue }));
-    expect(ctx.issueCreated).toBe("2026-01-01T00:00:00.000+0000");
-    expect(ctx.issueUpdated).toBe("2026-02-15T12:00:00.000+0000");
+  it("populates taskCreated and taskUpdated", () => {
+    const issue = makeWorkItem("DOC-202", {
+      updated: "2026-02-15T12:00:00.000+0000",
+    });
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }));
+    expect(ctx.taskCreated).toBe("2026-01-01T00:00:00.000+0000");
+    expect(ctx.taskUpdated).toBe("2026-02-15T12:00:00.000+0000");
   });
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(makeTaskContext({ profile, issue: makeIssue("DF-50") }));
+    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }));
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
-  it("derives issueProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ issue: makeIssue("DOC-3143") }));
-    expect(ctx.issueProject).toBe("DOC");
+  it("derives taskProject from key prefix", () => {
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeWorkItem("DOC-3143") }));
+    expect(ctx.taskProject).toBe("DOC");
   });
 
   it("builds triggerParams from bare params when provided", () => {
@@ -517,14 +518,14 @@ describe("SectionTag", () => {
     await mkdir(includesDir, { recursive: true });
     await mkdir(agentDir, { recursive: true });
 
-    await writeFile(join(includesDir, "rules.md"), "Rule: {{ issueKey }}");
+    await writeFile(join(includesDir, "rules.md"), "Rule: {{ taskId }}");
     await writeFile(
       join(agentDir, "test.agent.md"),
       '{% section "security" %}{% render "rules" %}{% endsection %}',
     );
 
     const renderer = new AgentTemplateRenderer();
-    await renderer.render("sec-profile", makeTemplateContext({ issueKey: "DOC-99" }));
+    await renderer.render("sec-profile", makeTemplateContext({ taskId: "DOC-99" }));
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
     expect(output).toBe("<security>\nRule: DOC-99\n</security>");

@@ -1,5 +1,4 @@
-import { Tag } from "liquidjs";
-import type { Liquid, TagToken, TopLevelToken, Template, Context, Emitter, Parser } from "liquidjs";
+import { Tag, type Liquid, type TagToken, type TopLevelToken, type Template, type Context, type Emitter, type Parser } from "liquidjs";
 
 /**
  * Custom `{% section "name" %}...{% endsection %}` block tag.

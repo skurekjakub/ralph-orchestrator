@@ -24,7 +24,7 @@ describe("JIRA MCP Server manifest", () => {
   it("lists required JIRA env vars", () => {
     const manifest = loadManifest();
     expect(manifest.requiredEnv).toEqual(
-      expect.arrayContaining(["JIRA_PAT", "JIRA_EMAIL"]),
+      expect.arrayContaining(["JIRA_PAT_KENTICO_JIRA", "JIRA_PAT_KENTICO_JIRA"]),
     );
     expect(manifest.requiredEnv).not.toContain("JIRA_BASE_URL");
     expect(manifest.requiredEnv).not.toContain("JIRA_CLOUD_ID");

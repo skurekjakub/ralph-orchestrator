@@ -44,7 +44,7 @@ RUN chown -R ${HOST_UID}:${HOST_GID} /opt/mcp /opt/npm-global /opt/playwright-br
 USER ${HOST_UID}:${HOST_GID}
 WORKDIR /opt/mcp
 
-HEALTHCHECK --interval=5s --timeout=3s --retries=3 \
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
 
 CMD ["node", "/opt/mcp/gateway/dist/gateway.js", "/opt/mcp/config/gateway.json"]

@@ -7,17 +7,20 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
-import type { ContainerManagerFactory } from "../../src/container/types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
-import { makeIssue, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import { createMockLogger, createMockContainer, createMockResultWriter, createMockResources, createMockIssueManager, createMockTemplateRenderer, createMockSkillRenderer, createMockJitMcpConfigWriter } from "../helpers/mocks.js";
 
+const DS = "jira";
+const KEY = "DF-100";
+const PID = "ralph-docs";
+
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
-  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn() };
+  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn(), readFileSync: vi.fn().mockReturnValue("{}") };
 });
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
@@ -28,13 +31,13 @@ describe("TaskRunner", () => {
   let logger: ReturnType<typeof createMockLogger>;
   const taskId = "DF-100-1234567890000";
   const profile = makeProfile({
-    id: "ralph-docs",
+    id: PID,
     agentName: "ralph",
     match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
     beforeAgent: { targetStatus: "In Progress" },
     afterAgent: { targetStatus: "Ready for Review" },
   });
-  const issue = makeIssue("DF-100");
+  const issue = makeWorkItem(KEY);
 
   beforeEach(() => {
     logger = createMockLogger();
@@ -42,15 +45,15 @@ describe("TaskRunner", () => {
   });
 
   it("executes the full pipeline: transition → comment → start → setup → execute → collect", async () => {
-    const { container, spies } = createMockContainer({ issueKey: "DF-100", prUrl: "https://github.com/pr/1" });
+    const { container, spies } = createMockContainer({ taskId: KEY, prUrl: "https://github.com/pr/1" });
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
     const resultWriter = createMockResultWriter();
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
-    expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", "In Progress", TransitionPhase.BeforeAgent);
-    expect(issueManager.postStartComment).toHaveBeenCalledWith("DF-100", "ralph", "ralph-docs");
+    const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, "In Progress", TransitionPhase.BeforeAgent);
+    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, KEY, "ralph", PID);
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
@@ -59,7 +62,7 @@ describe("TaskRunner", () => {
     expect(spies.execute).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
-    expect(result.issueKey).toBe("DF-100");
+    expect(result.taskId).toBe(KEY);
   });
 
   it("returns container reference for caller to stop", async () => {
@@ -67,12 +70,12 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    const { container: returnedContainer } = await runner.run(makeTaskContext({ issue, profile, taskId }));
+    const { container: returnedContainer } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(returnedContainer).toBe(container);
   });
 
-  it("calls execution order: renderTemplates → start → checkPrerequisites → clean → registerLogs → setup → execute → collectResults", async () => {
+  it("calls execution order: renderTemplates → start → checkPrerequisites → clean → registerLogs → setup → healthSnapshot → execute → collectResults", async () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.start.mockImplementation(() => { callOrder.push("start"); return Promise.resolve(); });
@@ -81,7 +84,7 @@ describe("TaskRunner", () => {
     spies.cleanPaths.mockImplementation(() => { callOrder.push("cleanPaths"); return Promise.resolve(); });
     spies.registerLogSources.mockImplementation(() => { callOrder.push("registerLogs"); });
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult("DF-100")); });
+    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer({
@@ -94,21 +97,21 @@ describe("TaskRunner", () => {
       collectResults: vi.fn().mockImplementation(async () => { callOrder.push("collect"); }),
     });
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, skillRenderer: createMockSkillRenderer({ render: vi.fn().mockImplementation(async () => { callOrder.push("renderSkills"); }) }), jitMcpConfig });
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(callOrder).toEqual(["renderTemplates", "renderSkills", "jitMcpConfig", "start", "check", "prepareConfig", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
   });
 
   it("skips beforeAgent transition when not configured", async () => {
-    const profileNoTransition = makeProfile({ id: "ralph-docs", agentName: "ralph", beforeAgent: {} });
+    const profileNoTransition = makeProfile({ id: PID, agentName: "ralph", beforeAgent: {} });
     const { container } = createMockContainer();
     const factory = createMockFactory(container);
     const issueManager = createMockIssueManager();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager, templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    await runner.run(makeTaskContext({ issue, profile: profileNoTransition, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile: profileNoTransition, taskId }));
 
-    expect(issueManager.transitionIssue).toHaveBeenCalledWith("DF-100", undefined, TransitionPhase.BeforeAgent);
+    expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, undefined, TransitionPhase.BeforeAgent);
   });
 
   it("returns error result when container start fails", async () => {
@@ -117,7 +120,7 @@ describe("TaskRunner", () => {
     const factory = createMockFactory(container);
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
+    const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(result.status).toBe(TaskStatus.Error);
     expect(result.stderr).toContain("Docker not running");
@@ -130,7 +133,7 @@ describe("TaskRunner", () => {
     const resultWriter = createMockResultWriter();
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(resultWriter.collectLogs).toHaveBeenCalled();
   });
@@ -141,7 +144,7 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
     const onToolOutput = vi.fn();
 
-    await runner.run(makeTaskContext({ issue, profile, taskId }), { onToolOutput });
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }), { onToolOutput });
 
     expect(container.onToolOutput).toBe(onToolOutput);
   });
@@ -152,19 +155,19 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
     const onPreToolUse = vi.fn();
 
-    await runner.run(makeTaskContext({ issue, profile, taskId }), { onPreToolUse });
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }), { onPreToolUse });
 
     expect(container.onPreToolUse).toBe(onPreToolUse);
   });
 
   it("fetches handoff when issue is in a revision status", async () => {
     const revisionProfile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       agentName: "ralph",
       match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: ["Defect Found"] },
     });
-    const revisionIssue = makeIssue("DF-200", "Revision issue", "Defect Found");
-    const { container } = createMockContainer({ issueKey: "DF-200" });
+    const revisionIssue = makeWorkItem("DF-200", "Revision issue", "Defect Found");
+    const { container } = createMockContainer({ taskId: "DF-200" });
     const factory = createMockFactory(container);
     const resources = createMockResources();
     const renderer = createMockTemplateRenderer();
@@ -172,10 +175,10 @@ describe("TaskRunner", () => {
 
     await runner.run(buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000", makeConfig().ralphchives));
 
-    expect(resources.fetchHandoff).toHaveBeenCalledWith("DF-200");
+    expect(resources.fetchHandoff).toHaveBeenCalledWith(DS, "DF-200");
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
-      expect.objectContaining({ isRevision: true, issueKey: "DF-200", issueStatus: "Defect Found" }),
+      PID,
+      expect.objectContaining({ isRevision: true, taskId: "DF-200", taskStatus: "Defect Found" }),
       logger,
     );
   });
@@ -186,11 +189,11 @@ describe("TaskRunner", () => {
     const renderer = createMockTemplateRenderer();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
-      expect.objectContaining({ isRevision: false, issueKey: "DF-100", profileId: "ralph-docs", triggerParams: {} }),
+      PID,
+      expect.objectContaining({ isRevision: false, taskId: KEY, profileId: PID, triggerParams: {} }),
       logger,
     );
   });
@@ -205,7 +208,7 @@ describe("TaskRunner", () => {
     await runner.run(buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, ["codesamples", "verbose"]));
 
     expect(renderer.render).toHaveBeenCalledWith(
-      "ralph-docs",
+      PID,
       expect.objectContaining({ triggerParams: { codesamples: "true", verbose: "true" } }),
       logger,
     );
@@ -233,7 +236,7 @@ describe("TaskRunner", () => {
     const resources = createMockResources();
     const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources, issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
 
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(resources.fetchHandoff).not.toHaveBeenCalled();
   });
@@ -242,7 +245,7 @@ describe("TaskRunner", () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult("DF-100")); });
+    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const mockHook = {
       name: "test-hook",
@@ -255,12 +258,12 @@ describe("TaskRunner", () => {
       issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
       preExecuteHooks: [mockHook],
     });
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(callOrder).toEqual(["setup", "hook", "execute"]);
     expect(mockHook.execute).toHaveBeenCalledWith(
       container,
-      expect.objectContaining({ issue, profile, taskId }),
+      expect.objectContaining({ workItem: issue, profile, taskId }),
       logger,
     );
   });
@@ -277,7 +280,7 @@ describe("TaskRunner", () => {
       issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
       preExecuteHooks: [hook1, hook2],
     });
-    await runner.run(makeTaskContext({ issue, profile, taskId }));
+    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(callOrder).toEqual(["hook-1", "hook-2"]);
   });
@@ -295,7 +298,7 @@ describe("TaskRunner", () => {
       issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter(),
       preExecuteHooks: [failingHook],
     });
-    const { result } = await runner.run(makeTaskContext({ issue, profile, taskId }));
+    const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
     expect(result.status).toBe(TaskStatus.Error);
     expect(result.stderr).toContain("hook failed");

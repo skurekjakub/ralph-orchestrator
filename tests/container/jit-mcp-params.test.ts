@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GatewayConfig } from "../../src/container/setup/mcp-config.js";
 import { McpServerType } from "../../src/container/setup/mcp-manifest.js";
-import { makeIssue, makeProfile } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile } from "../helpers/factories.js";
 import { createSilentLogger, createMockLogger } from "../helpers/mocks.js";
+const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -27,7 +28,7 @@ function makeGatewayServer(name: string, env: Record<string, string> = {}): Gate
 
 describe("JitMcpConfigWriter", () => {
   const writer = new JitMcpConfigWriter();
-  const issue = makeIssue("DOC-3143", "Update API docs for v2");
+  const issue = makeWorkItem("DOC-3143", "Update API docs for v2");
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -36,11 +37,11 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(readFileSync).mockReturnValue("{}");
   });
 
-  it("resolves $jira.key macro into gateway.json", () => {
+  it("resolves $task.id macro into gateway.json", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("jira-kentico", { JIRA_PAT: "secret" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -54,11 +55,11 @@ describe("JitMcpConfigWriter", () => {
     });
   });
 
-  it("resolves $jira.project macro from issue key prefix", () => {
+  it("resolves $task.project macro from issue key prefix", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { PROJECT: "$jira.project" } },
+      mcpServerConfigs: { ado: { PROJECT: "$task.project" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -69,11 +70,11 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.PROJECT).toBe("DOC");
   });
 
-  it("resolves $jira.branch macro to slugified branch name", () => {
+  it("resolves $task.branch macro to slugified branch name", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { TASK_BRANCH: "$jira.branch" } },
+      mcpServerConfigs: { ado: { TASK_BRANCH: "$task.branch" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -84,11 +85,11 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.TASK_BRANCH).toBe("ralph/DOC-3143-update-api-docs-for-v2");
   });
 
-  it("resolves $jira.summary macro to raw summary", () => {
+  it("resolves $task.title macro to raw summary", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
-      mcpServerConfigs: { ado: { SUMMARY: "$jira.summary" } },
+      mcpServerConfigs: { ado: { SUMMARY: "$task.title" } },
     });
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -101,7 +102,7 @@ describe("JitMcpConfigWriter", () => {
 
   it("passes static values through without resolution", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: { ado: { ADO_PROJECT: "CustomerEducation", ADO_REPO: "my-repo" } },
     });
@@ -117,13 +118,13 @@ describe("JitMcpConfigWriter", () => {
 
   it("mixes static values and macros in same server config", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["ado"],
       mcpServerConfigs: {
         ado: {
           ADO_PROJECT: "CustomerEducation",
-          TASK_BRANCH: "$jira.branch",
-          JIRA_KEY: "$jira.key",
+          TASK_BRANCH: "$task.branch",
+          JIRA_KEY: "$task.id",
         },
       },
     });
@@ -143,9 +144,9 @@ describe("JitMcpConfigWriter", () => {
 
   it("preserves existing env vars (secrets) when injecting", () => {
     const profile = makeProfile({
-      id: "ralph-docs",
+      id: PID,
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([
       makeGatewayServer("jira-kentico", { JIRA_PAT: "token123", JIRA_EMAIL: "a@b.com" }),
@@ -185,7 +186,7 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(existsSync).mockReturnValue(false);
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const logger = createMockLogger();
 
@@ -210,7 +211,7 @@ describe("JitMcpConfigWriter", () => {
   it("warns and skips when server is in config but not in gateway.json", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const gateway = makeGateway([]); // empty
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -225,7 +226,7 @@ describe("JitMcpConfigWriter", () => {
   it("handles multiple servers — only injects into those with configs", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico", "playwright"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([
       makeGatewayServer("jira-kentico", { JIRA_PAT: "s1" }),
@@ -244,7 +245,7 @@ describe("JitMcpConfigWriter", () => {
   it("logs the injection count", () => {
     const profile = makeProfile({
       mcpServers: ["jira-kentico"],
-      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("jira-kentico")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -316,7 +317,7 @@ describe("JitMcpConfigWriter", () => {
       mcpServerConfigs: {
         ado: {
           ADO_PROJECT: "CustomerEducation",
-          TASK_BRANCH: "$jira.branch",
+          TASK_BRANCH: "$task.branch",
           TARGET_BRANCH: "$trigger.target_branch",
         },
       },
@@ -335,7 +336,7 @@ describe("JitMcpConfigWriter", () => {
   it("skips server config for servers not in mcpServers list", () => {
     const profile = makeProfile({
       mcpServers: ["playwright"],
-      mcpServerConfigs: { "jira-kentico": { KEY: "$jira.key" } },
+      mcpServerConfigs: { "jira-kentico": { KEY: "$task.id" } },
     });
     const gateway = makeGateway([makeGatewayServer("playwright")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
@@ -350,7 +351,7 @@ describe("JitMcpConfigWriter", () => {
     it("resolves $variantEnv.PREFIX from process.env using variant-scoped name", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-ralph-123";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -368,7 +369,7 @@ describe("JitMcpConfigWriter", () => {
     it("resolves different env vars for different variants of the same profile", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_MALPH = "tok-malph-456";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "malph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -386,7 +387,7 @@ describe("JitMcpConfigWriter", () => {
     it("throws when the variant env var is missing from process.env", () => {
       delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: { "ralphchives-write": { NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN" } },
@@ -420,14 +421,14 @@ describe("JitMcpConfigWriter", () => {
     it("mixes $variantEnv with static values and other macros", () => {
       process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH = "tok-mixed";
       const profile = makeProfile({
-        id: "ralph-docs",
+        id: PID,
         agentName: "ralph",
         mcpServers: ["ralphchives-write"],
         mcpServerConfigs: {
           "ralphchives-write": {
             NODEBB_API_TOKEN: "$variantEnv.NODEBB_TOKEN",
-            NODEBB_CATEGORY_NAME: "ralph-docs",
-            JIRA_KEY: "$jira.key",
+            NODEBB_CATEGORY_NAME: PID,
+            JIRA_KEY: "$task.id",
           },
         },
       });
@@ -439,7 +440,7 @@ describe("JitMcpConfigWriter", () => {
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env).toEqual({
         NODEBB_API_TOKEN: "tok-mixed",
-        NODEBB_CATEGORY_NAME: "ralph-docs",
+        NODEBB_CATEGORY_NAME: PID,
         JIRA_KEY: "DOC-3143",
       });
       delete process.env.NODEBB_TOKEN_RALPH_DOCS_RALPH;

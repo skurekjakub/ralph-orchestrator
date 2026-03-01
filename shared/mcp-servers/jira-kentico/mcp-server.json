@@ -6,7 +6,7 @@
   "args": ["dist/bundle.js"],
   "containerPath": "/opt/mcp/servers/jira-kentico",
   "sidecarPort": 9100,
-  "requiredEnv": ["JIRA_PAT", "JIRA_EMAIL"],
+  "requiredEnv": ["JIRA_PAT_KENTICO_JIRA", "JIRA_EMAIL_KENTICO_JIRA"],
   "tools": [
     "jira_add_comment",
     "jira_add_attachment"

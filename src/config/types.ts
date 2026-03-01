@@ -5,11 +5,33 @@ import type { CliType } from "../container/types.js";
 // Runtime types (post-resolution)
 // ---------------------------------------------------------------------------
 
-export interface IJiraConfig {
+/** VCS platform for the profile's repository. Determines git auth header format. */
+export enum VcsProvider {
+  Ado = "ado",
+  GitHub = "github",
+}
+
+/** Per-data-source connection config — type-specific fields live in `connection`. */
+export interface IDataSourceConfig {
+  /** Data source type string (e.g. `"jira"`, `"github"`). Must match a registered factory. */
+  readonly type: string;
+  /** Type-specific connection properties (validated by the connector). */
+  readonly connection: Readonly<Record<string, unknown>>;
+  readonly pollIntervalMs: number;
+  readonly maxResults: number;
+}
+
+/** JIRA-specific connection properties inside `IDataSourceConfig.connection`. */
+export interface IJiraConnectionConfig {
   readonly baseUrl: string;
   readonly cloudId: string;
-  readonly jql: readonly string[];
-  readonly pollIntervalMs: number;
+  /** Custom field IDs to exclude from agent prompts. */
+  readonly excludeFields: readonly string[];
+  /** Atlassian account IDs allowed to trigger agent invocations. Empty = unrestricted. */
+  readonly allowedUsers: readonly string[];
+  /** JIRA credentials (injected from env vars by the loader — never stored in config.json). */
+  readonly email: string;
+  readonly apiToken: string;
 }
 
 export interface IProfileMatch {
@@ -28,7 +50,13 @@ export interface IAgentTransition {
 
 export interface IAgentProfile {
   readonly id: string;
+  /** Data source key — must reference an entry in `IAppConfig.dataSources`. */
+  readonly dataSource: string;
   readonly repoPath: string;
+  /** VCS platform for the repo. Determines how the git sync hook authenticates. */
+  readonly vcsProvider: VcsProvider;
+  /** Name of the env var containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  readonly repoPat: string;
   /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
   readonly composeFile: string;
   /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). Used as the `--agent` argument. */
@@ -84,8 +112,6 @@ export interface ISecretsConfig {
   readonly ghToken: string;
   readonly adoPat: string;
   readonly adoPatXperience: string;
-  readonly jiraPat: string;
-  readonly jiraEmail: string;
   /** Anthropic API key for Claude Code CLI. Optional — only needed when a profile uses `cli: "claude"`. */
   readonly anthropicApiKey: string;
   /** Discord bot token for the discord-hitl MCP server. Optional — only needed when a profile uses the discord-hitl MCP server. */
@@ -117,16 +143,15 @@ export interface IRalphchivesConfig {
 
 /** Readonly contract for the application configuration bag. All consumers depend on this interface. */
 export interface IAppConfig {
-  readonly jira: IJiraConfig;
+  /** Named data source configurations (e.g. "kentico-jira" → JIRA instance). */
+  readonly dataSources: Readonly<Record<string, IDataSourceConfig>>;
   readonly profiles: readonly IAgentProfile[];
+  /** Plugin module specifiers — loaded before the DI container is created. */
+  readonly plugins: readonly string[];
   readonly output: IOutputConfig;
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;
   readonly ralphchives: IRalphchivesConfig;
-  /** Custom field IDs to exclude from agent prompts. */
-  readonly excludeFields: readonly string[];
-  /** JIRA accountIds allowed to trigger agent invocations. Empty = unrestricted. */
-  readonly allowedUsers: readonly string[];
   /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
   readonly enableContinuation: boolean;
   readonly secrets: ISecretsConfig;

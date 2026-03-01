@@ -3,8 +3,6 @@ import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger.js";
-import type { JiraIssue } from "../../jira/types.js";
-import { extractAdfText } from "../../jira/adf-converter.js";
 import { normalizeContent } from "../../prompt/normalizer.js";
 import { registerCustomTags } from "./liquid-tags.js";
 import { TaskContext } from "../../services/task-context.js";
@@ -55,9 +53,9 @@ export async function resolveAgentIncludes(
 /**
  * Template variables available to agent `.agent.md` templates.
  *
- * Built from the parsed profile config and the current JIRA issue,
+ * Built from the parsed profile config and the current work item,
  * so templates can tailor instructions per-task (e.g. `{% if isRevision %}`,
- * `{% if issueProject == "DOC" %}`).
+ * `{% if taskProject == "DOC" %}`).
  */
 export interface TemplateContext {
   /** Allow Liquid to access any property — known fields are typed below. */
@@ -78,34 +76,34 @@ export interface TemplateContext {
   /** MCP servers deployed for this profile. */
   mcpServers: readonly string[];
 
-  /** JIRA issue key (e.g. `DF-2704`). */
-  issueKey: string;
-  /** JIRA issue summary / title. */
-  issueSummary: string;
-  /** Current JIRA workflow status (e.g. `To Do`, `Defect Found`). */
-  issueStatus: string;
-  /** JIRA issue type (e.g. `Task`, `Story`), or empty string if unavailable. */
-  issueType: string;
-  /** JIRA issue priority (e.g. `High`), or empty string if unavailable. */
-  issuePriority: string;
-  /** JIRA labels attached to the issue. */
-  issueLabels: string[];
-  /** JIRA component names attached to the issue. */
-  issueComponents: string[];
-  /** JIRA project key derived from the issue key (e.g. `DF`). */
-  issueProject: string;
+  /** Work item identifier (e.g. `DF-2704`). */
+  taskId: string;
+  /** Work item title / summary. */
+  taskTitle: string;
+  /** Current workflow status (e.g. `To Do`, `Defect Found`). */
+  taskStatus: string;
+  /** Work item type (e.g. `Task`, `Story`), or empty string if unavailable. */
+  taskType: string;
+  /** Work item priority (e.g. `High`), or empty string if unavailable. */
+  taskPriority: string;
+  /** Labels attached to the work item. */
+  taskLabels: string[];
+  /** Component names attached to the work item. */
+  taskComponents: string[];
+  /** Project key derived from the work item id (e.g. `DF`). */
+  taskProject: string;
   /**
-   * Plain-text issue description extracted from ADF and normalized.
+   * Plain-text work item description, normalized.
    *
-   * **Contains untrusted JIRA content.** Use with care in templates —
+   * **Contains untrusted content.** Use with care in templates —
    * prefer referencing the CLI prompt for full description rendering.
-   * Useful for Liquid conditionals (e.g. `{% if issueDescription contains "migration" %}`).
+   * Useful for Liquid conditionals (e.g. `{% if taskDescription contains "migration" %}`).
    */
-  issueDescription: string;
+  taskDescription: string;
   /** ISO-8601 creation timestamp (e.g. `2026-01-15T10:30:00.000+0000`). */
-  issueCreated: string;
+  taskCreated: string;
   /** ISO-8601 last-updated timestamp, or empty string if unavailable. */
-  issueUpdated: string;
+  taskUpdated: string;
 
   /** The comment trigger string that matched this variant (e.g. `@ralph write`). */
   commentTrigger: string;
@@ -126,12 +124,15 @@ export interface TemplateContext {
   /** Whether this task is a revision of a previous attempt. */
   isRevision: boolean;
 
+  /** PR URL from a previous run, extracted from work item comments. Empty string if none found. */
+  prUrl: string;
+
   /** Skill folder names deployed for this profile. */
   skills: readonly string[];
 }
 
 /**
- * Build a {@link TemplateContext} from the already-parsed profile and JIRA issue.
+ * Build a {@link TemplateContext} from the already-parsed profile and work item.
  *
  * Called by {@link TaskRunner} before rendering so all data is available
  * as Liquid variables without re-reading `profile.json` from disk.
@@ -152,17 +153,17 @@ export function buildTemplateContext(
     displayName: ctx.profile.displayName,
     mcpServers: ctx.profile.mcpServers,
 
-    issueKey: ctx.issue.key,
-    issueSummary: ctx.issue.fields.summary,
-    issueStatus: ctx.issue.fields.status.name,
-    issueType: ctx.issue.fields.issuetype?.name ?? "",
-    issuePriority: ctx.issue.fields.priority?.name ?? "",
-    issueLabels: ctx.issue.fields.labels ?? [],
-    issueComponents: (ctx.issue.fields.components ?? []).map((c) => c.name),
-    issueProject: ctx.issue.key.split("-")[0],
-    issueDescription: extractDescription(ctx.issue),
-    issueCreated: ctx.issue.fields.created,
-    issueUpdated: ctx.issue.fields.updated ?? "",
+    taskId: ctx.workItem.id,
+    taskTitle: ctx.workItem.title,
+    taskStatus: ctx.workItem.status,
+    taskType: ctx.workItem.type,
+    taskPriority: ctx.workItem.priority,
+    taskLabels: [...ctx.workItem.labels],
+    taskComponents: [...ctx.workItem.components],
+    taskProject: ctx.workItem.project,
+    taskDescription: ctx.workItem.description ? normalizeContent(ctx.workItem.description) : "",
+    taskCreated: ctx.workItem.created,
+    taskUpdated: ctx.workItem.updated,
 
     commentTrigger: ctx.profile.match.commentTrigger,
     triggerParams: resolvedParams,
@@ -170,6 +171,8 @@ export function buildTemplateContext(
     ralphchivesEnabled: ctx.ralphchivesEnabled,
 
     isRevision: ctx.isRevision,
+
+    prUrl: ctx.prUrl ?? "",
 
     skills: ctx.profile.skills,
   };
@@ -194,16 +197,6 @@ export function buildTriggerParams(params: string[]): Record<string, string> {
   return map;
 }
 
-/** Extract plain text from a JIRA issue description (ADF or string). */
-function extractDescription(issue: JiraIssue): string {
-  if (!issue.fields.description) return "";
-  const raw =
-    typeof issue.fields.description === "string"
-      ? issue.fields.description
-      : extractAdfText(issue.fields.description);
-  return normalizeContent(raw);
-}
-
 /** Public contract for JIT agent template rendering. */
 export interface IAgentTemplateRenderer {
   /** Render agent templates for a profile with the pre-built template context. */
@@ -215,7 +208,7 @@ export interface IAgentTemplateRenderer {
  *
  * Accepts a pre-built {@link TemplateContext} and renders all agent
  * templates via Liquid. Called before each task so templates can use
- * runtime data like `{% if isRevision %}` or `{{ issueKey }}`.
+ * runtime data like `{% if isRevision %}` or `{{ taskId }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
   constructor() {}

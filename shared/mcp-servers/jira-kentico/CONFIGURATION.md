@@ -19,7 +19,7 @@ These are set in the orchestrator's `.env` file and injected into the sidecar at
 
 | Variable | Description | Macro support |
 |---|---|---|
-| `JIRA_ISSUE_KEY` | JIRA issue key to scope all operations to | `$jira.key` |
+| `JIRA_ISSUE_KEY` | JIRA issue key to scope all operations to | `$task.id` |
 
 When `JIRA_ISSUE_KEY` is set, the `issueKey` parameter is removed from all tool input schemas — the agent doesn't need to specify which issue to operate on.
 
@@ -31,12 +31,12 @@ Add to the `mcpServers` array in `profile.json`:
 {
   "name": "jira-kentico",
   "env": {
-    "JIRA_ISSUE_KEY": "$jira.key"
+    "JIRA_ISSUE_KEY": "$task.id"
   }
 }
 ```
 
-The `$jira.key` macro resolves to the current JIRA issue key at runtime (e.g. `DF-1234`).
+The `$task.id` macro resolves to the current JIRA issue key at runtime (e.g. `DF-1234`).
 
 ## Tools
 

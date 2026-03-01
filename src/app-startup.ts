@@ -3,16 +3,24 @@ import { resolveAllProfileSetup } from "./container/setup/profile-setup.js";
 import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
 import { loadConfig } from "./config/loader.js";
 import type { IAppConfig } from "./config/types.js";
-import { validatePrerequisites, printValidationResults } from "./validate/index.js";
-import type { ValidationResult } from "./validate/index.js";
+import { validatePrerequisites, printValidationResults, type ValidationResult } from "./validate/index.js";
 import { execa } from "execa";
 import { resolve } from "node:path";
+
+/**
+ * Built-in plugin modules loaded before any user-specified plugins.
+ * Each module self-registers via `registerDataSourceFactory()` on import.
+ */
+const BUILTIN_PLUGINS: readonly string[] = [
+  "./datasource/connectors/jira/factory.js",
+];
 
 /** Injectable hooks for the startup pipeline steps. */
 export interface AppStartupDeps {
   validate(logger?: Logger): Promise<ValidationResult>;
   printResults(result: ValidationResult): boolean;
   loadConfig(): IAppConfig;
+  loadPlugins(modules: readonly string[], logger: Logger): Promise<void>;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
   startRalphchives(logger: Logger): Promise<void>;
@@ -41,12 +49,31 @@ async function startRalphchivesStack(logger: Logger): Promise<void> {
   logger.info("Ralphchives stack started");
 }
 
+/**
+ * Load plugin modules via dynamic import.
+ *
+ * Built-in plugins (e.g. JIRA connector) are loaded first, then any
+ * user-specified plugins from `config.plugins`. Each module is expected
+ * to self-register (e.g. call `registerDataSourceFactory()`) as a side effect.
+ */
+async function loadPluginModules(modules: readonly string[], logger: Logger): Promise<void> {
+  for (const mod of modules) {
+    try {
+      await import(mod);
+      logger.info(`Loaded plugin: ${mod}`);
+    } catch (err) {
+      throw new Error(`Failed to load plugin "${mod}": ${(err as Error).message}`);
+    }
+  }
+}
+
 /** Default production deps wired to the real implementations. */
 function defaultDeps(): AppStartupDeps {
   return {
     validate: (logger) => validatePrerequisites(logger),
     printResults: printValidationResults,
     loadConfig,
+    loadPlugins: loadPluginModules,
     buildMcpServers: buildCustomMcpServers,
     resolveMcpConfigs: (logger) => resolveAllProfileSetup(undefined, logger),
     startRalphchives: startRalphchivesStack,
@@ -84,6 +111,9 @@ export class AppStartup implements IAppStartup {
 
     const config = this.deps.loadConfig();
     log.info("Loaded configuration");
+
+    // Load built-in + user-specified plugins (data source factories, etc.)
+    await this.deps.loadPlugins([...BUILTIN_PLUGINS, ...config.plugins], log);
 
     if (config.ralphchives?.enabled) {
       await this.deps.startRalphchives(log);

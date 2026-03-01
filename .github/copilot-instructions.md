@@ -25,7 +25,8 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 |---|---|
 | `src/` | Orchestrator entry point (`index.tsx`), main loop (`orchestrator.ts`), logger, retry utility |
 | `src/config/` | Configuration types (`types.ts`), Zod validation schemas (`schemas.ts`), config + profile loader (`loader.ts`), constants (`constants.ts`) |
-| `src/jira/` | JIRA REST API v3 client, JQL poller, JQL builder from profile match rules, field extraction |
+| `src/datasource/` | Data source abstraction layer — `WorkItem` types, `IDataSourceConnector` interface, `IWorkItemPoller`, plugin registry (`registry.ts`) |
+| `src/datasource/connectors/jira/` | JIRA connector — REST API v3 client, JQL builder, field extraction, `JiraIssue` → `WorkItem` mapper, self-registers via `registerDataSourceFactory("jira", ...)` |
 | `src/container/` | Container lifecycle (`manager.ts`), lifecycle hooks (`lifecycle.ts`), docker compose wrapper (`compose-client.ts`), CLI path types (`types.ts`), result parser, log collector, streaming capture |
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`) and Claude Code (`claude-code-executor.ts`), shared execution helper (`shared-exec.ts`) |
 | `src/container/setup/` | Agent template renderer (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), JIT task-scoped MCP params (`jit-mcp-params.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
@@ -108,16 +109,27 @@ No piping to `head` or `tail` — always show full output.
 
 ## Configuration
 
-- `config.json` — Global settings (JIRA connection, polling interval, output paths, dashboard toggle)
+- `config.json` — Global settings (data sources, plugins, output paths, dashboard toggle)
 - `profiles/*/profile.json` — Per-profile config with agent variants, repo path, CLI preference, and match rules
 - `.env` — Secrets (JIRA token/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret)
 - See `CONFIGURATION.md` for the full configuration reference
+
+### Data Source Plugins
+
+Data source connectors are loaded as plugins — self-contained modules that register themselves via `registerDataSourceFactory(type, factory)`. Built-in plugins (JIRA) and user-specified plugins from `config.plugins` are loaded via dynamic `import()` at startup, before the DI container is created.
+
+- **Config:** `config.dataSources` maps named sources to type-specific connection configs. `config.plugins` lists additional modules to load.
+- **Registry:** `src/datasource/registry.ts` — `registerDataSourceFactory()` and `buildDataSourceMaps()`
+- **JIRA factory:** `src/datasource/connectors/jira/factory.ts` — follows the same pattern as third-party plugins
+- **See:** `docs/data-source-registration.md` for the full integration guide
 
 ### Agent Profiles
 
 Each profile directory under `profiles/` contains a `profile.json` that maps JIRA issues to a repo and agent configuration. Profiles are auto-discovered at startup.
 
 The `agentName` field on `AgentProfile` stores the raw CLI name (e.g. `ralph.ralph`). The `displayName` field strips the `ralph.` prefix for use in JIRA comments and logs.
+
+The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync lifecycle hook. The `repoPat` field names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 ## Profile Infrastructure
 
@@ -150,7 +162,7 @@ shared/
   skills/               — Shared agent skill definitions (mounted into .github/skills/ per profile)
 ```
 
-Agent templates use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`, `{% section "name" %}`) with partials from `shared/agent-includes/*.md` (supports subdirectories, e.g. `{% render 'personality/ralph' %}`). The custom `{% section "name" %}...{% endsection %}` block tag wraps content in `<name>...</name>` XML boundaries for LLM recall and injection isolation. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, JIRA issue data (key, summary, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in `src/container/setup/agent-includes.ts`. Resolved files go to `.build/` and are mounted read-only into containers.
+Agent templates use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`, `{% section "name" %}`) with partials from `shared/agent-includes/*.md` (supports subdirectories, e.g. `{% render 'personality/ralph' %}`). The custom `{% section "name" %}...{% endsection %}` block tag wraps content in `<name>...</name>` XML boundaries for LLM recall and injection isolation. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in `src/container/setup/agent-includes.ts`. Resolved files go to `.build/` and are mounted read-only into containers.
 
 Compose files use `TARGET_REPO_PATH`, `SHARED_HOOKS_PATH`, and `SQUID_CONF_PATH` (injected by ComposeClient) for volume mounts. MCP server code and secrets are mounted only into the `mcp-sidecar` container — the agent container receives URL-only MCP config.
 
@@ -164,9 +176,13 @@ Each profile declares exactly which MCP servers it needs via `mcpServers` in `pr
 
 ### Task-Scoped Parameters (JIT)
 
-Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$jira.key`, `$jira.project`, `$jira.branch`, `$jira.summary`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
+Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$task.id`, `$task.project`, `$task.branch`, `$task.title`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
 
-## JIRA Integration
+## Data Source Integration
+
+The orchestrator polls external work item sources via `IDataSourceConnector` implementations. Each profile references a data source by key (`profile.dataSource → config.dataSources.<key>`). The built-in JIRA connector is the reference implementation.
+
+### JIRA Connector
 
 - Projects: **DF**, **DOC**
 - JQL filter: auto-generated from profile match rules, results deduplicated by issue key, auto-paginated
@@ -229,7 +245,7 @@ Session transcripts are also attached to the JIRA issue. Proxy logs are collecte
 
 ### Dependency Interfaces
 
-Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/jira/client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
+Every service class registered in the awilix cradle has a corresponding `I`-prefixed interface defined in the same file (e.g., `IJiraClient` alongside `JiraClient` in `src/datasource/connectors/jira/jira-client.ts`). The class `implements` the interface, and all consumers depend on the interface — never the class.
 
 Only the **cradle factory** (`awilix-cradle.ts`) imports concrete classes for instantiation. This ensures `Mocked<Interface>` is structurally compatible without `as any` casts. See `DEPENDENCY-INJECTION.md` for rationale.
 

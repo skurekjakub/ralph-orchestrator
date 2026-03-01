@@ -56,7 +56,7 @@ export interface CollectedLog {
 
 /** Public contract for container log collection. */
 export interface IContainerLogCollector {
-  /** Set the JIRA issue key used as the filename prefix. */
+  /** Set the work item key used as the filename prefix. */
   setTaskId(key: string): void;
   /** Register a log source to be collected. */
   addSource(source: LogSourceDef): void;
@@ -78,14 +78,14 @@ export interface IContainerLogCollector {
  * call {@link collectAll} to flush everything to the local output directory.
  * Call {@link detach} to stop streaming before container teardown.
  *
- * File naming: `<issueKey>-<timestamp>-<sourceId>.<extension>`
+ * File naming: `<taskId>-<timestamp>-<sourceId>.<extension>`
  */
 export class ContainerLogCollector implements IContainerLogCollector {
   private readonly sources: LogSourceDef[] = [];
   private readonly exports: FolderExportDef[] = [];
   private readonly streamProcs = new Map<string, ResultPromise>();
   private attached = false;
-  private issueKey: string | null = null;
+  private taskId: string | null = null;
 
   private readonly compose: IComposeClient;
   private readonly logDir: string;
@@ -98,9 +98,9 @@ export class ContainerLogCollector implements IContainerLogCollector {
     mkdirSync(logDir, { recursive: true });
   }
 
-  /** Set the JIRA issue key used as the filename prefix. Must be called before {@link collectAll}. */
+  /** Set the work item key used as the filename prefix. Must be called before {@link collectAll}. */
   setTaskId(key: string): void {
-    this.issueKey = key;
+    this.taskId = key;
   }
 
   /** Register a log source to be collected. Can be called before or after {@link attach}. */
@@ -140,19 +140,19 @@ export class ContainerLogCollector implements IContainerLogCollector {
    * @returns Array of collection results (one per source).
    */
   async collectAll(): Promise<CollectedLog[]> {
-    if (!this.issueKey) {
-      throw new Error("Issue key not set — call setIssueKey() before collectAll()");
+    if (!this.taskId) {
+      throw new Error("Task ID not set — call setTaskId() before collectAll()");
     }
 
     const timestamp = Date.now();
-    const issueDir = join(this.logDir, this.issueKey);
+    const issueDir = join(this.logDir, this.taskId);
     mkdirSync(issueDir, { recursive: true });
     const results: CollectedLog[] = [];
 
     for (const source of this.sources) {
       const localPath = join(
         issueDir,
-        `${this.issueKey}-${timestamp}-${source.id}.${source.extension}`,
+        `${this.taskId}-${timestamp}-${source.id}.${source.extension}`,
       );
 
       try {
@@ -180,7 +180,7 @@ export class ContainerLogCollector implements IContainerLogCollector {
     }
 
     for (const folder of this.exports) {
-      const localDir = join(issueDir, `${this.issueKey}-${timestamp}-${folder.id}`);
+      const localDir = join(issueDir, `${this.taskId}-${timestamp}-${folder.id}`);
       try {
         await this.compose.compose([
           "cp", `${folder.service}:${folder.containerPath}`, localDir,
@@ -214,10 +214,12 @@ export class ContainerLogCollector implements IContainerLogCollector {
     if (this.streamProcs.has(source.id)) return;
 
     try {
-      const proc = this.compose.exec([
-        "--user", "vscode", source.service,
-        "tail", "-n", "0", "-f", source.containerPath,
-      ]);
+      const proc = source.useComposeLogs
+        ? this.compose.compose(["logs", "-f", "--no-color", "--no-log-prefix", source.service])
+        : this.compose.exec([
+            "--user", "vscode", source.service,
+            "tail", "-n", "0", "-f", source.containerPath,
+          ]);
 
       this.streamProcs.set(source.id, proc);
 

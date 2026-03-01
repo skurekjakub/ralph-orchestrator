@@ -114,7 +114,7 @@ Proxy logs are saved in each task's subdirectory as `<key>-<startTs>-<ts>-proxy.
 
 ## Prompt Injection Defense
 
-The orchestrator builds the CLI prompt from JIRA data (description, comments, custom fields, handoff attachments). This data is user-provided and could contain adversarial instructions. Four defense layers mitigate this risk:
+The orchestrator builds the CLI prompt from work item data (description, comments, custom fields, handoff attachments). This data is user-provided and could contain adversarial instructions. Four defense layers mitigate this risk:
 
 ### Layer 1: Content Normalization (`src/prompt/normalizer.ts`)
 
@@ -127,17 +127,17 @@ Before untrusted content enters the prompt, it is normalized:
 
 ### Layer 2: Untrusted Data Delimiters (`src/prompt/prompt.ts`)
 
-Untrusted JIRA content is wrapped in explicit delimiters:
+Untrusted content is wrapped in explicit delimiters:
 
 ```
 JIRA Issue: DOC-123
 Title: Fix typo in API docs
 
---- BEGIN UNTRUSTED JIRA DATA ---
+--- BEGIN UNTRUSTED DATA ---
 Description: ...
 Labels: ...
 JIRA Comments: ...
---- END UNTRUSTED JIRA DATA ---
+--- END UNTRUSTED DATA ---
 ```
 
 Agent template instructions (Layer 4) reference these delimiters to distinguish system instructions from user-provided data.
@@ -170,11 +170,11 @@ Each finding includes the pattern name, matched text (truncated), severity, and 
 
 ### Layer 4: Agent Security Instructions (`shared/agent-includes/prompt-security.md`)
 
-A shared Liquid partial injected into all top-level agent templates via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ issueKey }}`, `{{ issueProject }}`) to scope the agent's authorization to a specific JIRA issue:
+A shared Liquid partial injected into all top-level agent templates via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ taskId }}`, `{{ taskProject }}`) to scope the agent's authorization to a specific work item:
 
 - Assigns the agent to a specific issue key and project, rejecting requests targeting other issues
-- Treats content between `BEGIN/END UNTRUSTED JIRA DATA` delimiters strictly as task information
-- Ignores embedded instructions or directives in JIRA data
+- Treats content between `BEGIN/END UNTRUSTED DATA` delimiters strictly as task information
+- Ignores embedded instructions or directives in untrusted data
 - Never discloses credentials, environment variables, or secrets
 - Only uses network endpoints required by the workflow
 - Never adds, modifies, or removes git remotes
