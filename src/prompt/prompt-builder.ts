@@ -31,8 +31,8 @@ export interface BuiltPrompt {
  * Builds and audits prompts from work item data.
  *
  * Responsibilities:
- * - Normalizes untrusted content (invisible chars, HTML comments, whitespace)
- * - Wraps untrusted data in delimiters
+ * - Normalizes content (invisible chars, HTML comments, whitespace)
+ * - Appends trigger-param nudges after JIRA data
  * - Scans for injection patterns based on configured audit mode
  * - Logs findings and optionally blocks execution
  *
@@ -59,7 +59,7 @@ export class PromptBuilder {
   /**
    * Build a prompt from a work item and optional context.
    *
-   * Normalizes content, wraps untrusted data in delimiters, and runs the
+   * Normalizes content, appends trigger-param nudges, and runs the
    * prompt injection auditor. In {@link AuditMode.Warn} mode, findings are
    * logged but execution continues. In {@link AuditMode.Block} mode, the
    * result's `audit.safe` will be `false` for critical findings — the caller

@@ -35,4 +35,5 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 6: Commit & Push`
 - Set "Skills for this phase" to:
   - ralph-workflow-commit
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 4-5 to "Completed Phases" with review outcome (Approved / Approved after N cycles / Not converged)

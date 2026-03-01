@@ -12,6 +12,17 @@ description: "Standard workflow Phase 8 — the final phase. Read this skill whe
 3. **Review completed phases** — confirm all prior phases are done. Check "Tracked Identifiers" for PR URL.
 
 ## Instructions
+{%- if triggerParams.release_notes %}
+
+{% section "release-notes" %}
+### 0. Release Notes
+
+This task involves writing release notes.
+
+1. Use the **ralph-write-release-notes** skill and follow instructions there. 
+2. Save the release note to `/tmp/mcp-attachments/release-notes.md`
+{% endsection %}
+{%- endif %}
 
 ### 1. Create the handoff file
 
@@ -53,7 +64,17 @@ If no source exploration was needed, write "N/A — changes based on JIRA descri
 
 ### 2. Attach the handoff file
 
-Attach to the JIRA issue using the `jira_add_attachment` MCP tool with issue key `{{ taskId }}` and file name `handoff.md`.
+Attach to JIRA using `jira_add_attachment` and file name `handoff-{{ issueKey }}.md`.
+
+{%- if triggerParams.release_notes %}
+
+{% section "release-notes" %}
+### 2.5 Attach release note file
+
+Attach to JIRA using `jira_add_attachment` and file name `release-notes.md`.
+{% endsection %}
+{%- endif %}
+
 
 ### 3. Post a completion comment
 

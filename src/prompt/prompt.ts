@@ -2,10 +2,6 @@ import type { WorkItem } from "../datasource/types.js";
 import { PromptSectionSource, type PromptSection } from "./prompt-auditor.js";
 import { normalizeContent } from "./normalizer.js";
 
-/** Delimiter wrapping untrusted data source content in the prompt. */
-const UNTRUSTED_BEGIN = "--- BEGIN UNTRUSTED DATA ---";
-const UNTRUSTED_END = "--- END UNTRUSTED DATA ---";
-
 /**
  * Context about an issue provided to the agent alongside the work item fields.
  *
@@ -20,6 +16,8 @@ export interface IssueContext {
   isRevision: boolean;
   /** Content of the most recent `handoff.md` attachment (revision only). */
   handoffContent?: string | null;
+  /** Parsed trigger parameters from the invoking comment (e.g. release_notes, codesamples). */
+  triggerParams?: Record<string, string>;
 }
 
 /** Return value of {@link buildPromptWithSections}. */
@@ -34,9 +32,12 @@ export interface PromptWithSections {
  * Build the CLI prompt from a work item and return both the prompt
  * string and labelled sections for prompt-injection auditing.
  *
- * Untrusted content (description, custom fields, comments, handoff) is wrapped
- * in `--- BEGIN/END UNTRUSTED DATA ---` delimiters so the agent can
- * distinguish system instructions from user-provided data.
+ * Untrusted content (description, custom fields, comments, handoff) is
+ * included as-is — the agent template's prompt-security section trains
+ * the agent to treat task data as information, not instructions.
+ *
+ * When `triggerParams` are provided, actionable reminders are appended
+ * after the JIRA data so the agent sees them alongside the task context.
  *
  * @see buildPrompt — convenience wrapper that returns only the string.
  */
@@ -77,65 +78,92 @@ export function buildPromptWithSections(
     `Title: ${workItem.title}`,
   );
 
-  // ── Untrusted data boundary ──
-  const untrustedParts: string[] = [];
+  const dataParts: string[] = [];
 
   if (workItem.description) {
     const descStr = normalizeContent(workItem.description);
-    untrustedParts.push(`Description:\n${descStr}`);
+    dataParts.push(`Description:\n${descStr}`);
     sections.push({ source: PromptSectionSource.WorkItemField, fieldName: "description", content: descStr });
   }
 
   if (workItem.labels.length > 0) {
-    untrustedParts.push(`Labels: ${workItem.labels.join(", ")}`);
+    dataParts.push(`Labels: ${workItem.labels.join(", ")}`);
   }
 
   if (workItem.components.length > 0) {
-    untrustedParts.push(
+    dataParts.push(
       `Components: ${workItem.components.join(", ")}`
     );
   }
 
   if (workItem.priority) {
-    untrustedParts.push(`Priority: ${workItem.priority}`);
+    dataParts.push(`Priority: ${workItem.priority}`);
   }
 
   for (const [label, value] of workItem.customFields) {
     const normalized = normalizeContent(value);
-    untrustedParts.push(`${label}: ${normalized}`);
+    dataParts.push(`${label}: ${normalized}`);
     sections.push({ source: PromptSectionSource.WorkItemField, fieldName: label, content: normalized });
   }
 
   if (context?.comments && context.comments.length > 0) {
     const joined = normalizeContent(context.comments.join("\n---\n"));
-    untrustedParts.push(`JIRA Comments (oldest first):\n${joined}`);
+    dataParts.push(`JIRA Comments (oldest first):\n${joined}`);
     sections.push({ source: PromptSectionSource.Comment, fieldName: "comments", content: joined });
   }
 
-  if (untrustedParts.length > 0) {
-    parts.push(
-      UNTRUSTED_BEGIN,
-      ...untrustedParts,
-      UNTRUSTED_END,
-    );
+  if (dataParts.length > 0) {
+    parts.push(...dataParts);
+  }
+
+  // ── Trigger-param nudges ──
+  const nudges = buildTriggerNudges(context?.triggerParams, workItem.id);
+  if (nudges.length > 0) {
+    parts.push(nudges.join("\n"));
   }
 
   return { prompt: parts.join("\n\n"), sections };
 }
 
 /**
+ * Map of trigger parameters to prompt nudge text.
+ *
+ * Each nudge is a reminder appended to the end of the user prompt so the
+ * agent sees it alongside the JIRA data rather than only in system context.
+ */
+const TRIGGER_NUDGES: Record<string, (taskId: string) => string> = {
+  release_notes: (taskId) =>
+    `⚠️ REMINDER: Write release notes for this task (see ralph-write-release-notes skill). Output to .ralph/tasks/${taskId}/release-notes.md and include in the handoff.`,
+  codesamples: () =>
+    `⚠️ REMINDER: This task involves the code samples project ralph-codesamples-project skill. Build with \`npm run codesamples:build\` before committing any .cs files.`,
+};
+
+/**
+ * Build prompt nudge lines for active trigger parameters.
+ *
+ * Only returns nudges for params that have a registered mapping in
+ * {@link TRIGGER_NUDGES} and are truthy in the provided params record.
+ */
+function buildTriggerNudges(
+  triggerParams: Record<string, string> | undefined,
+  taskId: string,
+): string[] {
+  if (!triggerParams) return [];
+
+  const nudges: string[] = [];
+  for (const [key, builder] of Object.entries(TRIGGER_NUDGES)) {
+    if (triggerParams[key]) {
+      nudges.push(builder(taskId));
+    }
+  }
+  return nudges;
+}
+
+/**
  * Build the CLI prompt from a work item.
  *
- * Includes: key, summary, description (ADF serialized as JSON), labels,
- * components, priority, and named custom fields.
- *
- * When `context.isRevision` is true, the prompt includes a revision header
- * with the previous handoff content so the agent follows the revision workflow.
- *
- * Comments (if any) are always appended so the agent has human reviewer
- * observations and feedback regardless of whether it's a standard or revision task.
- *
- * Custom field extraction is delegated to the data source connector.
+ * Convenience wrapper around {@link buildPromptWithSections} that
+ * returns only the prompt string.
  */
 export function buildPrompt(workItem: WorkItem, context?: IssueContext): string {
   return buildPromptWithSections(workItem, context).prompt;

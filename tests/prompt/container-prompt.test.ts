@@ -146,3 +146,59 @@ describe("Revision prompt", () => {
     expect(prompt).not.toContain("JIRA Comments");
   });
 });
+
+describe("Trigger parameter nudges", () => {
+  it("appends release_notes nudge when param is set", () => {
+    const issue = makeWorkItem("DF-100", "Write docs");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { release_notes: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("⚠️ REMINDER: Write release notes");
+    expect(prompt).toContain(".ralph/tasks/DF-100/release-notes.md");
+  });
+
+  it("appends codesamples nudge when param is set", () => {
+    const issue = makeWorkItem("DF-200", "Update samples");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { codesamples: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("⚠️ REMINDER: This task involves the code samples project");
+    expect(prompt).toContain("codesamples:build");
+  });
+
+  it("appends both nudges when both params are set", () => {
+    const issue = makeWorkItem("DF-300", "Full task");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { release_notes: "true", codesamples: "true" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).toContain("Write release notes");
+    expect(prompt).toContain("code samples project");
+  });
+
+  it("omits nudges when triggerParams has no matching keys", () => {
+    const issue = makeWorkItem("DF-400", "Quiet task");
+    const ctx: IssueContext = {
+      comments: [],
+      isRevision: false,
+      triggerParams: { branch_name: "feature-xyz" },
+    };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).not.toContain("⚠️ REMINDER");
+  });
+
+  it("omits nudges when triggerParams is undefined", () => {
+    const issue = makeWorkItem("DF-500", "No params");
+    const ctx: IssueContext = { comments: [], isRevision: false };
+    const prompt = buildPrompt(issue, ctx);
+    expect(prompt).not.toContain("⚠️ REMINDER");
+  });
+});

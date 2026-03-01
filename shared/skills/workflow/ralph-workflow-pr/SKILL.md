@@ -20,11 +20,8 @@ Use the Azure DevOps REST API to create a draft PR for this branch.
 - ADO repo: `kentico-docs-jekyll`
 - Target branch: `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`
 - Title: `{{ taskId }} - {{ taskTitle }}`
-- Source branch: `ralph/{{ taskId }}-<short-slug>`
 
-If the API returns an unrecoverable error that isn't caused by a malformed request (such as unauthorized → expired PAT), note it in the handoff and set the PR URL to "none" in the exit block.
-
-Note the PR URL/ID for the handoff file.
+If the API returns an unrecoverable error, note it in the handoff and set the PR URL to "none" in the exit block.
 
 ## Before moving to Phase 8
 
@@ -34,5 +31,6 @@ Update `state.md`:
   - ralph-workflow-handoff
   - ralph-source-references
   - ralph-ralphchives
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 7 to "Completed Phases" with PR URL or "none"
 - Record PR URL in "Tracked Identifiers"

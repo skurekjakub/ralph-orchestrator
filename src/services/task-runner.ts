@@ -215,6 +215,7 @@ export class TaskRunner implements ITaskRunner {
       comments,
       isRevision: ctx.isRevision,
       handoffContent,
+      triggerParams: ctx.triggerParams,
     };
 
     const timeoutSec = Math.round(ctx.profile.timeoutMs / 1000);

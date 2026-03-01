@@ -16,7 +16,7 @@ description: "Standard workflow Phase 2. Read this skill after setup is complete
 Delegate to the **ralph-researcher** sub-agent:
 - Pass the full JIRA issue content (key, title, description, acceptance criteria)
   - If given a commit hash in the xperience repository, list modified files to give the researcher a strong starting point.
-- The researcher will explore both the existing documentation and the Xperience product source code
+- The researcher has its own skills for navigating docs, source code, external references, and ralphchives — you don't need to tell it how to research
 - It returns a structured report — verify it contains all of the following before moving on:
   1. **Existing Coverage**: file paths of all related existing doc pages in `src/_documentation/` or `src/_guides`
   2. **Source Findings**: exact class names, method signatures, and file paths in the Xperience source
@@ -27,7 +27,7 @@ If any section is missing or empty, note the gap in `state.md` and compensate in
 
 **Preserve source references.** When the researcher cites specific source code locations (file paths, class names, method signatures), copy them into `state.md` immediately. You'll need them in the handoff file and JIRA comment to back your documentation claims with verifiable evidence.
 
-**Trust but verify.** If something looks suspicious, read the source yourself. They are never wrong about hyphen usage, however.
+**Trust but verify.** If something looks suspicious, read the source yourself.
 
 ## Before moving to Phase 3
 
