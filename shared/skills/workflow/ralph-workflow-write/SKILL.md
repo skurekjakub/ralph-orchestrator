@@ -41,7 +41,7 @@ Now YOU implement all documentation changes based on the researcher's report.
 - [ ] WRITE-RELEASE-NOTES — Write release notes based on the documentation changes (skill: ralph-write-release-notes)
 ```
 
-This subtask goes through the same loop as all others. Read the **ralph-write-release-notes** skill for format and examples. Write the release notes to `.ralph/tasks/{{ taskId }}/release-notes.md` and include them in the handoff file.
+This subtask goes through the same loop as all others. Read the **ralph-write-release-notes** skill for format and examples. Write the release notes to `/tmp/mcp-attachments/release-notes.md` and include them in the handoff file.
 {%- endif %}
 
 ### Step 2: Subtask Loop

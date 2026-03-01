@@ -132,8 +132,8 @@ export function buildPromptWithSections(
  * agent sees it alongside the JIRA data rather than only in system context.
  */
 const TRIGGER_NUDGES: Record<string, (taskId: string) => string> = {
-  release_notes: (taskId) =>
-    `⚠️ REMINDER: Write release notes for this task (see ralph-write-release-notes skill). Output to .ralph/tasks/${taskId}/release-notes.md and include in the handoff.`,
+  release_notes: () =>
+    `⚠️ REMINDER: Write release notes for this task (see ralph-write-release-notes skill). Output to /tmp/mcp-attachments/release-notes.md and include in the handoff.`,
   codesamples: () =>
     `⚠️ REMINDER: This task involves the code samples project ralph-codesamples-project skill. Build with \`npm run codesamples:build\` before committing any .cs files.`,
 };

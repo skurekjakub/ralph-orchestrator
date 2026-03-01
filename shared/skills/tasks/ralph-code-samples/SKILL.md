@@ -45,7 +45,7 @@ Documentation pages reference compiled code via the {% raw %}`{% code_link %}`{%
 ### Workflow rules for code samples
 
 1. **Read existing samples** in the target feature area before writing new ones — match namespace patterns (`Codesamples.*`), code style, and directory organization
-2. **Build after every change**: `npm run codesamples:build` (runs `dotnet build` in `src/_code/src/`)
+2. **Build before committing**: `npm run codesamples:build` (runs `dotnet build` in `src/_code/src/`)
 3. **Build failures block the PR** — never commit code that doesn't compile
 4. **Add `code_link` tags** in the documentation page that references the new code — the `source` path must exactly match the file path relative to `src/_code/src/`
 5. **Use explicit types** instead of `var` — readers need to see the types

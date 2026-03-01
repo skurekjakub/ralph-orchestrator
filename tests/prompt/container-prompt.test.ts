@@ -157,7 +157,7 @@ describe("Trigger parameter nudges", () => {
     };
     const prompt = buildPrompt(issue, ctx);
     expect(prompt).toContain("⚠️ REMINDER: Write release notes");
-    expect(prompt).toContain(".ralph/tasks/DF-100/release-notes.md");
+    expect(prompt).toContain("/tmp/mcp-attachments/release-notes.md");
   });
 
   it("appends codesamples nudge when param is set", () => {

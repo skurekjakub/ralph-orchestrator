@@ -18,7 +18,7 @@ Delegate to the **ralph-reviewer** sub-agent:
 - The reviewer checks style guide compliance, technical accuracy, and content quality
 - It returns either **APPROVED** or **NEEDS REVISION** with specific feedback
 
-**Trust but verify.** The reviewer runs on a smaller model. If it flags something, verify the claim is valid before acting on it — don't blindly revert correct work based on a false positive. Conversely, an APPROVED result doesn't guarantee perfection — use your own judgment on anything that feels off.
+**Trust but verify.** If the reviewer flags something, verify the claim is valid before acting on it — don't blindly revert correct work based on a false positive. Conversely, an APPROVED result doesn't guarantee perfection — use your own judgment on anything that feels off.
 
 ## Phase 5: Revision Loop (Max 2 cycles)
 

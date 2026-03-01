@@ -9,15 +9,7 @@ Reference for all Liquid tags, formatting, and components available in the Xperi
 
 ## Front Matter
 
-Every page starts with YAML between `---` lines.
-
-- Required: `title`, `identifier`, `order`, `redirect_from`, `persona`, `license` (for `_documentation` and `_guides`).
-- Identifier: snake_case base + collection suffix (`_xp` for `_documentation`, `_guides` for `_guides`). Example: `website_channels_xp`.
-- Ensure identifiers are unique across the whole repo.
-- Order: start at 100 for new sections; insert by midpoints (e.g., 550 between 500 and 600).
-- Redirects: always include `x/<identifier>` plus any additional paths.
-- License tiers: `1` (standard), `2` (advanced).
-- Optional: `toc`, `related_pages`, `sitemap`, `classification` (guides only), `searchable`.
+Every page starts with YAML between `---` lines. For the full frontmatter schema (required fields, identifier logic, persona assignment, ordering, licensing), see the **ralph-new-page-creation** skill.
 
 Table of contents via front matter:
 
