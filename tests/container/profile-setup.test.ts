@@ -66,7 +66,7 @@ describe("Profile Setup", () => {
       expect(existsSync(attachDir)).toBe(true);
       expect(statSync(attachDir).mode & 0o777).toBe(0o777);
 
-      // .gitignore files should be generated to hide .ralph/ and .github/ from git
+      // .gitignore files should be generated to hide .ralph/ and .github/skills/ from git
       const gitignorePath = join(profileDir, ".build/.gitignore");
       expect(existsSync(gitignorePath)).toBe(true);
       expect(readFileSync(gitignorePath, "utf-8")).toBe("*\n");

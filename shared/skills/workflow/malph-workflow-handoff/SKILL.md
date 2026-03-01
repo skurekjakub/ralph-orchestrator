@@ -52,7 +52,9 @@ Attach the file to **{{ taskId }}** using the `jira_add_attachment` tool with fi
 
 ### 3. Report to ralphchives
 
-Post a task report to **ralphchives** (skill: **ralph-ralphchives**) summarizing the review verdict and key findings.
+1. Search for an existing thread: `search_ralphchives` with query `{{ taskId }}`
+2. If a thread exists (Ralph's task report) → use `reply_to_thread` to add your review summary as a reply
+3. Only if no thread exists → use `post_task_report` to create one
 
 ### 4. Return result
 

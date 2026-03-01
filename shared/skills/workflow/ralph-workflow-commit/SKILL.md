@@ -17,9 +17,11 @@ description: "Standard workflow Phase 6. Read this skill when writing and review
 - Every source code reference noted by the researcher is accounted for in the handoff draft
 - `npm run build` passes cleanly — if it fails, consult the **ralph-build-errors** skill
 
-Stage and commit with a descriptive message:
+Stage, commit, and push:
 
-- Only commit files you actively worked on.
+1. Only stage files you actively worked on: `git add <files>`
+2. Commit with a descriptive message following the format in `state.md`
+3. Push using the `ado_push_progress` MCP tool — do NOT use `git push` directly
 
 ## Before moving to Phase 7
 

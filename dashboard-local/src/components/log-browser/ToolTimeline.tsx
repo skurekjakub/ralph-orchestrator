@@ -163,17 +163,38 @@ function SkillInventory({ timeline }: { timeline: ToolCallEntry[] }) {
   const skills = useMemo(() => {
     return timeline.filter((e) => e.isSkill).map((e) => e.skillName ?? "unknown");
   }, [timeline]);
-  if (skills.length === 0) return null;
+
+  const subagents = useMemo(() => {
+    return timeline.filter((e) => e.isSubagent).map((e) => e.subagentName ?? "unknown");
+  }, [timeline]);
+
   const uniqueSkills = [...new Set(skills)];
+  const uniqueSubagents = [...new Set(subagents)];
+
+  if (uniqueSkills.length === 0 && uniqueSubagents.length === 0) return null;
 
   return (
-    <div className="flex gap-1.5 flex-wrap items-center">
-      <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">Skills:</span>
-      {uniqueSkills.map((name) => (
-        <span key={name} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#a855f722", color: "#a855f7" }}>
-          {name}
-        </span>
-      ))}
+    <div className="flex gap-4 flex-wrap items-center">
+      {uniqueSubagents.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">Subagents:</span>
+          {uniqueSubagents.map((name) => (
+            <span key={name} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#7d859022", color: "#7d8590" }}>
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
+      {uniqueSkills.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap items-center">
+          <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">Skills:</span>
+          {uniqueSkills.map((name) => (
+            <span key={name} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: "#a855f722", color: "#a855f7" }}>
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -209,7 +230,11 @@ function CallList({
         const cat = getToolCategory(entry.tool);
         const isExpanded = expandedIndex === entry.index;
         const offset = entry.ts - startTs;
-        const displayName = entry.isSkill ? `skill → ${entry.skillName ?? "?"}` : entry.tool;
+        const displayName = entry.isSkill
+          ? `skill → ${entry.skillName ?? "?"}`
+          : entry.isSubagent
+            ? `task → ${entry.subagentName ?? "?"}`
+            : entry.tool;
         const barPct = maxDuration > 0 ? Math.max(((entry.durationMs ?? 0) / maxDuration) * 100, 1) : 0;
 
         return (

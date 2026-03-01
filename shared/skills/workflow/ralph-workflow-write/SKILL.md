@@ -17,12 +17,10 @@ Now YOU implement all documentation changes based on the researcher's report.
 
 ### Step 1: Preparation
 
-1. **Read the style guides** before writing — also consult the **ralph-style-guide-review** skill for a quick-reference checklist:
-   - `.github/resources/styleguides/docs-style-guide.md`
-   - `.github/resources/styleguides/typography.md`
-   - `.github/resources/styleguides/word-list.md`
-   - For syntax and the full Liquid tag reference, see the **ralph-documentation-syntax** skill
-   - For choosing between callout types (tip/info/note/warning/key), see the **ralph-callout-selection** skill
+1. **Read the style guides** before writing — consult these skills:
+   - **ralph-style-guide-review** — writing standards, typography, terminology
+   - **ralph-documentation-syntax** — full Liquid tag reference and syntax
+   - **ralph-callout-selection** — choosing between callout types (tip/info/note/warning/key)
 
 2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section:
 

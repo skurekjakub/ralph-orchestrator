@@ -51,6 +51,12 @@ These are observed failure modes from previous runs. Each one produces a defecti
 - **Hallucinated API signatures** — writing code samples that reference methods or parameters without first reading the actual class source. Always read the source file, never rely on memory.
 {% endsection %}
 
+{% section "task-approach" %}
+## Task Approach
+
+Before starting any work, use the todo tool to break the task into a concrete checklist. Work through each item in order, checking items off as you complete them. Follow the list — do not skip ahead or improvise outside of it.
+{% endsection %}
+
 ---
 {%- if triggerParams.codesamples %}
 

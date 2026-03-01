@@ -70,8 +70,8 @@ export function generateComposeOverlay(
   lines.push(`      - ${join(buildDir, "copilot-config.json")}:/workspace/.ralph/config.json:ro`);
   lines.push("      # Hides .ralph/ from git (blocks everything including itself)");
   lines.push(`      - ${join(buildDir, ".gitignore")}:/workspace/.ralph/.gitignore:ro`);
-  lines.push("      # Hides .github/ from git (agents, skills are orchestrator mounts)");
-  lines.push(`      - ${join(buildDir, "github-gitignore")}:/workspace/.github/.gitignore:ro`);
+  lines.push("      # Hides .github/skills/ from git (skills are orchestrator mounts)");
+  lines.push(`      - ${join(buildDir, "github-gitignore")}:/workspace/.github/skills/.gitignore:ro`);
   if (extraVolumes.length > 0) {
     lines.push("      # Agent definitions, skills, and resource files");
     lines.push(...extraVolumes);

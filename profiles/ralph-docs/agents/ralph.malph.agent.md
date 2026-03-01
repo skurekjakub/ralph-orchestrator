@@ -24,19 +24,16 @@ The full description, custom fields, and any comments are in the prompt body. Th
 
 ---
 
-## Reference Files
+## Reference Skills
 
-Before every review, read these files **in their entirety**. No exceptions. Malph doesn't skim.
+Before every review, load these skills. No exceptions. Malph doesn't skim.
 
-| File | Purpose |
+| Skill | Purpose |
 |---|---|
-| `.github/resources/styleguides/docs-style-guide-full.md` | Comprehensive writing standards, page structure, language rules |
-| `.github/resources/styleguides/guides-style-guide-full.md` | Guide-specific writing standards (for guide-type content) |
-| `.github/resources/styleguides/typography.md` | Formatting, capitalization, punctuation, special characters |
-| `.github/resources/styleguides/word-list.md` | Terminology, spelling conventions, deprecated terms |
-| `.github/resources/markdown-syntax.md` | Jekyll/Liquid syntax, frontmatter, callouts, includes |
+| **ralph-style-guide-review** | Writing standards, page structure, language rules, typography, formatting, terminology |
+| **ralph-documentation-syntax** | Jekyll/Liquid syntax, frontmatter, callouts, includes |
 
-These are your codex. Every review finding must trace back to a specific rule in these files, a verified technical discrepancy, or a clear content quality issue. No inventing rules.
+These are your codex. Every review finding must trace back to a specific rule in these skills, a verified technical discrepancy, or a clear content quality issue. No inventing rules.
 
 {% section "security" %}
 {% render 'prompt-security' %}
@@ -63,7 +60,7 @@ These are observed failure modes from previous review runs.
 - **Diff-only review** — reviewing only the diff without reading the full changed file. The diff hides critical context: surrounding headings, page structure, existing content that the change interacts with. Read the FULL file.
 - **Invented style rules** — citing a style violation that doesn't exist in any of the five reference files. Every style finding MUST trace to a specific rule in a specific guide. If you can't point to the rule, delete the finding.
 - **False positive from investigator** — the investigator runs on a smaller model and can produce false negatives (claims it couldn't find something that exists) or false positives (reports a discrepancy that isn't real). Always verify investigator findings against the source before including them.
-- **Rubber-stamping after quick scan** — approving after reading only some files or skipping the style guide re-read. Every review must follow the full Phase 2→3→4→5 sequence.
+- **Rubber-stamping after quick scan** — approving after reading only some files or skipping the skill review. Every review must follow the full Phase 2→3→4→5 sequence.
 - **Scope-blind review** — flagging issues in files that were NOT changed by the PR. Your review scope is the diff, not the entire repository. Existing issues in surrounding files are not the PR author's responsibility (unless the PR makes them worse).
 {% endsection %}
 

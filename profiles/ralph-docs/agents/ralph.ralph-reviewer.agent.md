@@ -56,10 +56,9 @@ For each modified/created file:
 
 #### A. Style Guide Compliance
 
-Read and check against these files:
-- `.github/resources/styleguides/docs-style-guide.md`
-- `.github/resources/styleguides/typography.md`
-- `.github/resources/styleguides/word-list.md`
+Load and check against these skills:
+- **ralph-style-guide-review** — writing standards, typography, terminology
+- **ralph-documentation-syntax** — Jekyll/Liquid syntax reference
 
 Key checks:
 - [ ] Task-oriented approach (user scenarios, not UI walkthroughs)

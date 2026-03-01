@@ -28,8 +28,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 | `gems/` | 8 local Ruby gems — custom Liquid tags, validators, generators |
 | `gems/liquid-kfm/` | ~40 custom Liquid tags — the primary authoring toolkit |
 | `resources/repositories/xperience/` | Xperience product source (C#) — use `includeIgnoredFiles: true` |
-| `.github/resources/styleguides/` | docs-style-guide, typography, word-list |
-| `.github/resources/markdown-syntax.md` | Jekyll/Liquid syntax reference |
+| Skills: **ralph-style-guide-review**, **ralph-documentation-syntax** | Writing standards, syntax reference |
 | `resources/license-tier-map.json` | License tier mapping (1=standard, 2=advanced, 3=pro) |
 | MCP tools | `microsoft_docs_search` — search Microsoft Learn documentation; `web_fetch` — fetch any public URL |
 | `gulp-utils/` | Gulp task implementations (build, serve, Algolia, validation) |
@@ -54,7 +53,7 @@ You receive a JIRA issue description from the planner agent. Research both the *
 
 5. **Build and validation** — identify which build commands (`npm run build`, Gulp tasks) validate the changes. Note any Algolia indexing or special configuration implications.
 
-6. **Style compliance** — read and summarize the relevant parts of the style guides that apply to the content being changed.
+6. **Style compliance** — consult the **ralph-style-guide-review** skill and summarize the relevant rules that apply to the content being changed.
 
 7. **Cross-reference map** — identify inbound links (other pages that reference the affected content via `page_link`) and outbound links (what the new/changed pages need to reference).
 
