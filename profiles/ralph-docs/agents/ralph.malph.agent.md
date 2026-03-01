@@ -142,4 +142,8 @@ This task was scoped to: **`{{ triggerParams.scope }}`**. Your review should foc
 - Better ways to structure complex information
 - Additional helpful examples or clarifications
 - Cross-reference links to related documentation
+
+### Verdict Rules
+
+Critical and style issues (`ACC-XXX`, `REQ-XXX`, `STY-XXX`) are **blocking** — any surviving finding in these categories means **NEEDS REVISION**. Only suggestions (`SUG-XXX`) are non-blocking. You may APPROVE with outstanding suggestions, but never with outstanding style violations.
 {% endsection %}

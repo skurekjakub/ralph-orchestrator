@@ -152,7 +152,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     }
 
     validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
-    validateSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
+    validateVariantSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
 
     if (Array.isArray(p.githubMcpTools) && p.githubMcpTools.length === 0) {
       errors.push(
@@ -165,26 +165,31 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
 }
 
 /**
- * Validate that all skills referenced by a profile exist in shared/skills/
+ * Validate that all skills referenced by each variant exist in shared/skills/
  * (searching subdirectories recursively).
  */
-function validateSkills(
+function validateVariantSkills(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
   profile: any,
   skillsDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  const skills: unknown[] = profile.skills ?? [];
-  if (skills.length === 0) return;
-
-  for (const skill of skills) {
-    if (typeof skill !== "string") continue;
-    if (!findSkillDirSync(skillsDir, skill)) {
-      errors.push(
-        `${prefix}: skill "${skill}" not found in shared/skills/\n` +
-        `  Create shared/skills/${skill}/`
-      );
+  const variants: unknown[] = profile.variants ?? [];
+  for (let i = 0; i < variants.length; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const v = variants[i] as any;
+    const skills: unknown[] = v?.skills ?? [];
+    if (skills.length === 0) continue;
+    const vPrefix = `${prefix}/variants[${i}]`;
+    for (const skill of skills) {
+      if (typeof skill !== "string") continue;
+      if (!findSkillDirSync(skillsDir, skill)) {
+        errors.push(
+          `${vPrefix}: skill "${skill}" not found in shared/skills/\n` +
+          `  Create shared/skills/${skill}/`
+        );
+      }
     }
   }
 }

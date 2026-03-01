@@ -16,7 +16,7 @@ description: "Standard workflow Phase 2. Read this skill after setup is complete
 Delegate to the **ralph-researcher** sub-agent:
 - Pass the full JIRA issue content (key, title, description, acceptance criteria)
   - If given a commit hash in the xperience repository, list modified files to give the researcher a strong starting point.
-- The researcher has its own skills for navigating docs, source code, external references, and ralphchives — you don't need to tell it how to research
+- **Include your ralphchives findings** from Phase 1.
 - It returns a structured report — verify it contains all of the following before moving on:
   1. **Existing Coverage**: file paths of all related existing doc pages in `src/_documentation/` or `src/_guides`
   2. **Source Findings**: exact class names, method signatures, and file paths in the Xperience source

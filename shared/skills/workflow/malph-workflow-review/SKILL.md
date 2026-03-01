@@ -71,6 +71,15 @@ Before moving to delivery, audit your own findings:
 2. Every `ACC-XXX` finding must trace to the investigator's report or your own verified source URL. If the investigator flagged it and you didn't corroborate, drop it.
 3. Re-check the JIRA issue scope — are any `REQ-XXX` gaps actually out-of-scope for the issue?
 
+### Verdict rules
+
+Apply the verdict **mechanically** based on surviving findings:
+
+- **NEEDS REVISION** if ANY `STY-XXX`, `ACC-XXX`, or `REQ-XXX` findings survived the audit. Style violations are not optional — they are blocking.
+- **APPROVED** only if the sole remaining findings are `SUG-XXX` (suggestions) or there are no findings at all.
+
+`SUG-XXX` findings are the only non-blocking category. Everything else — style, accuracy, requirements — means rejection. No exceptions.
+
 ## Before moving to Phase 6
 
 Update `state.md`:

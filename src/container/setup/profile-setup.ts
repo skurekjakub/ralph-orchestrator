@@ -55,7 +55,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; skills?: string[] };
+    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; variants?: { skills?: string[] }[] };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -100,7 +100,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       ? generateResourceVolumeMounts(profileDir, parsed.resources)
       : [];
     const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillNames = parsed.skills ?? [];
+    const skillNames = [...new Set((parsed.variants ?? []).flatMap((v) => v.skills ?? []))];
     const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];

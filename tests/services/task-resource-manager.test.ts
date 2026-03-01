@@ -74,6 +74,19 @@ describe("TaskResourceManager", () => {
       expect(connector.downloadAttachment).toHaveBeenCalledWith(KEY, "2");
     });
 
+    it("matches handoff-<id>.md filenames", async () => {
+      connector.getAttachments.mockResolvedValue([
+        { id: "1", filename: "handoff-DOC-3143.md", created: "2026-01-10T00:00:00Z" },
+        { id: "2", filename: "other.txt", created: "2026-01-15T00:00:00Z" },
+      ]);
+      connector.downloadAttachment.mockResolvedValue("# Handoff DOC-3143");
+
+      const result = await resources.fetchHandoff(DS, KEY);
+
+      expect(result).toBe("# Handoff DOC-3143");
+      expect(connector.downloadAttachment).toHaveBeenCalledWith(KEY, "1");
+    });
+
     it("returns null when no handoff.md exists", async () => {
       connector.getAttachments.mockResolvedValue([
         { id: "1", filename: "other.txt", created: "2026-01-10T00:00:00Z" },
@@ -106,7 +119,7 @@ describe("TaskResourceManager", () => {
 
       expect(result).toBeNull();
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to download handoff.md"),
+        expect.stringContaining("Failed to download handoff"),
       );
     });
   });

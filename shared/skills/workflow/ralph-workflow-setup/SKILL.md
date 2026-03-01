@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-setup
-description: "Standard workflow Phase 1. Read this skill at the start of every new (non-revision) task. Covers branch creation, workload directory setup, state.md initialization with skill manifest, and ralphchives search for prior work. Always the first phase — if state.md doesn't exist yet, you're here."
+description: "Standard workflow Phase 1. Read this skill at the start of every new (non-revision) task. Covers state.md initialization with skill manifest, and ralphchives search for prior work. Always the first phase — if state.md doesn't exist yet, you're here."
 ---
 
 # Phase 1: Setup
@@ -10,13 +10,19 @@ description: "Standard workflow Phase 1. Read this skill at the start of every n
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md` — if this is Phase 1, the file doesn't exist yet. Create it below.
 2. This skill is for **Phase 1: Setup**. If you've already completed setup, skip to the next phase.
 
+## Context
+
+The orchestrator has already:
+- Created a task branch (`ralph/{{ taskId }}-...`) from `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`
+- Created the workload directory at `.ralph/tasks/{{ taskId }}/`
+
+You are already on the correct branch. Do **not** create a new branch or switch branches.
+
 ## Instructions
 
 1. **You are working on {{ taskId }}: {{ taskTitle }}**. Parse the full issue details from your prompt — extract the description, acceptance criteria, and any linked resources.
-2. **Create a fresh branch** from `{%- if triggerParams.source_branch %}{{ triggerParams.source_branch }}{%- else %}main{%- endif %}`:
-   Example: `ralph/{{ taskId }}-<short-slug>`
-3. **Create the workload directory**: `.ralph/tasks/{{ taskId }}/`
-4. **Create the scratchpad file** at `.ralph/tasks/{{ taskId }}/state.md` using this template:
+2. **Verify the workspace** — confirm you're on a `ralph/{{ taskId }}-*` branch and `.ralph/tasks/{{ taskId }}/` exists. If something is wrong, stop and report the error.
+3. **Create the scratchpad file** at `.ralph/tasks/{{ taskId }}/state.md` using this template:
 
 ```markdown
 # Task State: {{ taskId }} — {{ taskTitle }}
@@ -36,7 +42,7 @@ Phase 1: Setup
 (record each decision and its rationale)
 
 ## Tracked Identifiers
-- Branch: ralph/{{ taskId }}-<short-slug>
+- Branch: (run `git branch --show-current` and record here)
 (page identifiers, PR IDs — add as you go)
 
 ## Source References
@@ -49,8 +55,8 @@ Phase 1: Setup
 (anything else)
 ```
 
-5. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ taskId }} primarily.
-6. Comment on **{{ taskId }}** that you're starting work.
+4. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ taskId }} primarily.
+5. Comment on **{{ taskId }}** that you're starting work.
 
 ## Before moving to Phase 2
 

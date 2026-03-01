@@ -112,7 +112,7 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         afterAgent: variant.afterAgent,
         preflight: variant.preflight,
         failureComment: variant.failureComment,
-        skills: parsed.skills,
+        skills: variant.skills,
       });
     }
   }

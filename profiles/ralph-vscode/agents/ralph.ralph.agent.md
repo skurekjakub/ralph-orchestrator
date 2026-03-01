@@ -55,10 +55,7 @@ This is a revision task. Follow the [Revision Workflow](../../resources/ralph-re
 
 ## Phase 2 — Prepare workspace
 
-```bash
-# Create a working branch
-BRANCH="ralph/<ISSUE_KEY>_<short description>"
-```
+The orchestrator has already created a task branch and placed you on it. Verify with `git branch --show-current` — it should be `ralph/{{ taskId }}-...`. Do **not** create a new branch.
 
 ## Phase 3 — Execute changes
 
@@ -92,8 +89,8 @@ Fix any errors before proceeding.
 
 ```bash
 git add -A
-git commit -m "ralph/${ISSUE_KEY}: <concise summary>"
-git push origin "$BRANCH"
+git commit -m "ralph/{{ taskId }}: <concise summary>"
+git push origin "$(git branch --show-current)"
 ```
 
 **Before committing, run `npm run build` one final time to verify everything compiles.**

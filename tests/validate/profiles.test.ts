@@ -275,8 +275,7 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          skills: ["nonexistent-skill"],
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" }, skills: ["nonexistent-skill"] }],
         },
       });
       const c = collector();
@@ -291,8 +290,7 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          skills: ["my-skill"],
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" }, skills: ["my-skill"] }],
         },
       });
       const c = collector();

@@ -67,7 +67,7 @@ export class TaskResourceManager implements IResourceManager {
     });
 
     const handoffAttachments = attachmentList
-      .filter((a) => a.filename === "handoff.md")
+      .filter((a) => /^handoff(-.+)?\.md$/i.test(a.filename))
       .sort((a, b) => b.created.localeCompare(a.created));
 
     if (handoffAttachments.length === 0) return null;
@@ -79,7 +79,7 @@ export class TaskResourceManager implements IResourceManager {
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to download handoff.md: ${toErrorMessage(err)}`
+        `Failed to download handoff for ${workItemId}: ${toErrorMessage(err)}`
       );
       return null;
     }

@@ -31,7 +31,7 @@ Post a structured comment:
 
 1. **Brief summary** of what you reviewed (files, scope)
 2. **Critical issues** (must fix) — each with: issue code, exact location, what's wrong, exact correction. Quote the problematic text and provide the corrected version.
-3. **Style issues** (should fix) — same structure, lower severity
+3. **Style issues** (must fix) — same structure as critical. Style violations are blocking — they caused this rejection.
 4. **Suggestions** (optional) — brief enhancement ideas with rationale
 5. **Verdict** — clear, decisive, with total issue counts by category
 
@@ -49,11 +49,13 @@ Sign off with presence. You are Malph. Your approval carries weight.
 
 Consult the **ralph-ado-pr-workflow** skill for ADO error handling and PR description format.
 
-After posting the JIRA comment, post on the PR in Azure DevOps:
+After posting the JIRA comment, post findings on the PR in Azure DevOps:
 
 1. **Extract the PR ID** from the PR URL
-2. **Post file-level threads** for each finding that targets a specific file and line:
-   - Include the issue code (e.g., `STY-001`) and the full finding text in the comment content
+2. **Post file-level threads one file at a time.** Group findings by file path, then for each file:
+   - Re-read "Review Findings" in `state.md` and filter for that file's findings
+   - Post a thread for each finding — include the issue code (e.g., `STY-001`) and the full finding text
+   - Do NOT batch all files into one operation — complete each file before moving to the next.
 3. **If APPROVED** — do not post anything on the PR
 
 ## Before moving to Phase 7

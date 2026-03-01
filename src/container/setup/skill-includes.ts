@@ -137,12 +137,20 @@ export class SkillTemplateRenderer implements ISkillTemplateRenderer {
     const includesDir = resolve(root, "shared/agent-includes");
 
     const skillNames = [...context.skills];
-    if (skillNames.length === 0) return;
 
     if (!existsSync(skillsDir)) {
       logger?.warn("Skills directory not found, skipping skill rendering");
       return;
     }
+
+    // Clean stale skills from previous variant before rendering current variant's skills
+    const buildDir = join(skillsDir, ".build");
+    if (existsSync(buildDir)) {
+      const { rm } = await import("node:fs/promises");
+      await rm(buildDir, { recursive: true });
+    }
+
+    if (skillNames.length === 0) return;
 
     logger?.info(`Rendering ${skillNames.length} skill template(s)`);
     await resolveSkillIncludes(skillsDir, skillNames, includesDir, context, logger);

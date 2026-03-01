@@ -80,6 +80,8 @@ export const variantSchema = z.object({
   afterAgent: agentTransitionSchema,
   preflight: z.string().optional(),
   failureComment: z.string().optional(),
+  /** Skill names from shared/skills/ to mount into the container at .github/skills/. */
+  skills: z.array(z.string()).default([]),
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */
@@ -127,7 +129,5 @@ export const profileFileSchema = z.object({
   ]).default(false),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
-  /** Skill names from shared/skills/ to mount into the container at .github/skills/. */
-  skills: z.array(z.string()).default([]),
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
 });

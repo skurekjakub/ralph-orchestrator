@@ -14,7 +14,7 @@ description: "Standard workflow Phases 4-5. Read this skill after implementing c
 ## Instructions
 
 Delegate to the **ralph-reviewer** sub-agent:
-- Pass a summary of your changes (file paths, what changed, key decisions)
+- Pass a summary of your changes (file paths, what changed, key decisions).
 - The reviewer checks style guide compliance, technical accuracy, and content quality
 - It returns either **APPROVED** or **NEEDS REVISION** with specific feedback
 

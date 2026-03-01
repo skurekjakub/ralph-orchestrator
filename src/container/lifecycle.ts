@@ -1,8 +1,11 @@
 import { execa } from "execa";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import type { IContainerManager } from "./manager.js";
 import type { Logger } from "../logger.js";
 import { TaskContext } from "../services/task-context.js";
 import { VcsProvider } from "../config/types.js";
+import { slugifyBranchName } from "../util/branch.js";
 
 /**
  * A pre-execution hook that runs between container setup and agent execution.
@@ -32,7 +35,7 @@ function buildAuthHeader(provider: VcsProvider, pat: string): string {
 }
 
 /**
- * Sync the repository to the default branch before agent execution.
+ * Sync the repository to the default branch and create a task branch before agent execution.
  *
  * Runs git directly on the host using the profile's repo path. Running inside
  * any container would require the container's UID to own the `.git` directory —
@@ -42,6 +45,10 @@ function buildAuthHeader(provider: VcsProvider, pat: string): string {
  *
  * The auth format is determined by `profile.vcsProvider`; the credential env
  * var name is `profile.repoPat` (defaults to `ADO_PAT` or `GH_TOKEN`).
+ *
+ * After syncing, creates a task-scoped branch (`ralph/<key>-<slug>`) from the
+ * source branch and prepares the `.ralph/tasks/<key>/` directory so the agent
+ * starts on a ready workspace.
  */
 export class RepoSyncHook implements ILifecycleHook {
   readonly name = "repo-sync";
@@ -60,5 +67,13 @@ export class RepoSyncHook implements ILifecycleHook {
     await git(["checkout", defaultBranch]);
     await git(["reset", "--hard", `origin/${defaultBranch}`]);
     logger.info("Repo sync complete");
+
+    const taskBranch = slugifyBranchName(taskCtx.workItem.id, taskCtx.workItem.title);
+    logger.info(`Creating task branch ${taskBranch}...`);
+    await git(["checkout", "-b", taskBranch]);
+
+    const tasksDir = join(repoPath, ".ralph", "tasks", taskCtx.workItem.id);
+    mkdirSync(tasksDir, { recursive: true });
+    logger.info("Task branch and workspace ready");
   }
 }
