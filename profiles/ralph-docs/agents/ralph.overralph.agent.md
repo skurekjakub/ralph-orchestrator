@@ -57,7 +57,7 @@ All outputs go to: `.ralph/changes/{{ taskId }}-<short-slug>/`
      - Custom Liquid tag requirements for implementation
      - Xperience product source code for technical accuracy
      - Build/validation and Algolia indexing impact
-     - Style guide rules that apply
+     - Style guide rules (via skills) that apply
    - It returns a structured research report
 
 6. **Read the researcher's report carefully** — it contains specific file paths, identifiers, frontmatter fields, source code findings, and the recommended approach. This data feeds directly into your specification and plan.

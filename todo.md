@@ -64,17 +64,11 @@ neo4j graph db graph extension to basic rag in ralphchives
 
 every orchestrator mounted folder should come with .gitignroe
 
-take away git from agent - only expose minimal set of tools - PAT for kenticoazurewhatever lives in mcp container gatewat, which also has the entire wrokspace mounted (or maybe just a portion necessary? research what counts as being in the contenxt of a repo for the purpose of git pull/branch/etc)
-
-agent itself -> squid -> only copilot apis. 
-
 mcp container full access to web -> expose web fetch tool. https://github.com/damionrashford/RivalSearchMCP
 
 filter orchestrator comments and params from the final prompt
 
 phased context augemnt - taskrunner now supports execution phases - leverage that to progressively augment agent context as it works on long horizon tasks - means multiple calls -> expensive
-
-- fix lifecycle hook ado environment prep
 
 ----------------------------
 

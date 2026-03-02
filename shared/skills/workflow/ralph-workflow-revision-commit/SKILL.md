@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-revision-commit
-description: "Revision workflow Phase 5. Read this skill after fixes are implemented. Covers the pre-commit build check, committing to the existing branch (never create a new one), pushing, and responding to each PR review thread — resolving addressed threads and explaining any intentionally unaddressed feedback."
+description: "Revision workflow Phase 5. Read this skill after fixes are implemented. Covers the pre-commit build check, committing to the existing branch, pushing, and responding to each PR review thread — resolving addressed threads and explaining any intentionally unaddressed feedback."
 ---
 
 # Revision Phase 5: Commit, Push & Respond to PR
@@ -22,7 +22,7 @@ description: "Revision workflow Phase 5. Read this skill after fixes are impleme
 
 1. Stage only the files you changed: `git add <files>`
 2. Commit with a message referencing the task: `git commit -m "docs(<area>): address review feedback for <TASK_ID> — <brief summary>"`
-3. Push to the **existing branch** (do NOT create a new branch): `git push`
+3. Push using the `ado_push_progress` MCP tool — do NOT use `git push` directly (do NOT create a new branch)
 
 ### Respond to PR threads
 

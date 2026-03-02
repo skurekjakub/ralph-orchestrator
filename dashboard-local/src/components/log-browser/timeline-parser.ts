@@ -12,6 +12,10 @@ export interface ToolCallEntry {
   isSkill: boolean;
   /** Skill name if isSkill (extracted from args.skill). */
   skillName?: string;
+  /** Whether this is a subagent invocation (tool === "task"). */
+  isSubagent: boolean;
+  /** Subagent name if isSubagent (extracted from args.agent_type, prefix-stripped). */
+  subagentName?: string;
   /** Execution status from tool-output.log (e.g. "success"). */
   status?: string;
   /** Return value text from tool-output.log. */
@@ -166,6 +170,10 @@ export function buildTimeline(
 
     const isSkill = pre.tool === "skill";
     const skillName = isSkill ? String(parsedArgs.skill ?? "") : undefined;
+    const isSubagent = pre.tool === "task";
+    const subagentName = isSubagent
+      ? String(parsedArgs.agent_type ?? "").replace(/^[^.]+\./, "")
+      : undefined;
 
     // Find matching output entry
     const counter = toolCounters.get(pre.tool) ?? 0;
@@ -180,6 +188,8 @@ export function buildTimeline(
       args: parsedArgs,
       isSkill,
       skillName,
+      isSubagent,
+      subagentName,
       status: matchedOutput?.status,
       returnValue: matchedOutput?.returnValue,
     };

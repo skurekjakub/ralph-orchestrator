@@ -90,8 +90,9 @@ Fix any errors before proceeding.
 ```bash
 git add -A
 git commit -m "ralph/{{ taskId }}: <concise summary>"
-git push origin "$(git branch --show-current)"
 ```
+
+Then push using the `ado_push_progress` MCP tool — do NOT use `git push` directly.
 
 **Before committing, run `npm run build` one final time to verify everything compiles.**
 
