@@ -1,5 +1,5 @@
 ---
-name: agent-skill-refactoring
+name: orchestrator-agent-prompt-refactor
 description: "Systematic workflow for decomposing monolithic agent prompts into per-phase skills, discovering domain knowledge gaps, creating focused skills, and integrating them into the agent's workflow. Use this skill when an agent has a bloated instruction file that needs breaking into phases, when you need to analyze a target domain for skill gaps, when auditing skills for overlap or redundancy, or when wiring new domain skills into existing workflow phases. Trigger whenever the user mentions improving agent skills, decomposing agent workflows, adding domain knowledge, or refactoring agent instructions."
 ---
 
