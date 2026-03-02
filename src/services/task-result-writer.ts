@@ -29,6 +29,20 @@ export class TaskResultWriter implements ITaskResultWriter {
   }
 
   async collectLogs(container: IContainerManager, result: RalphResult): Promise<void> {
+    // For multi-stage pipelines, per-stage logs are already collected in the
+    // stage loop. Merge them into the final result and run a final collection
+    // for any residual logs (e.g. sidecar output that spans all stages).
+    if (result.stageResults?.length) {
+      for (const stage of result.stageResults) {
+        for (const [id, path] of Object.entries(stage.collectedLogs)) {
+          result.collectedLogs[`${stage.role}-${id}`] = path;
+        }
+      }
+    }
+
+    // Final collection picks up anything not yet per-stage-collected
+    // (sidecar logs, session state exports, etc.) or serves as the
+    // sole collection for single-stage pipelines.
     const collected = await container.logs.collectAll().catch(() => []);
     for (const { id, path } of collected) {
       if (path) result.collectedLogs[id] = path;

@@ -16,6 +16,7 @@ import { makeTaskContext } from "../helpers/factories.js";
 const KNOWN_KEYS: ReadonlySet<string> = new Set([
   "profileId",
   "repo",
+  "targetRepoPath",
   "cli",
   "model",
   "agentName",
@@ -38,6 +39,13 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   "isRevision",
   "prUrl",
   "skills",
+  "stageRole",
+  "stageMode",
+  "stageIndex",
+  "stageCount",
+  "isFirstStage",
+  "isLastStage",
+  "previousStageRoles",
 ]);
 
 /**

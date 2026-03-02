@@ -42,7 +42,9 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      "timeoutMs": 3600000,
      "variants": [
        {
-         "agent": "ralph.ralph",
+         "stages": [
+           { "agent": "ralph.ralph", "role": "primary" }
+         ],
          "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
          "beforeAgent": { "targetStatus": "In Progress" },
          "afterAgent": { "targetStatus": "Ready for Review" }
@@ -122,7 +124,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
-   - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
+   - Loops over the variant's `stages` array, executing each stage sequentially with the appropriate executor:
+     - **Container stages** (`mode: "container"`) — run the CLI inside Docker via `docker compose exec`
+     - **Local stages** (`mode: "local"`) — run the CLI directly on the host
+   - Each stage uses its own agent, model, skills, and timeout (falling back to profile defaults)
+   - If any stage fails, the pipeline aborts — remaining stages are skipped
    - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
 6. **Collects results** — `TaskResultWriter` collects audit logs, per-task streaming log, session transcript, and proxy access log to `output/logs/`
 7. **Attaches** the session transcript to the JIRA issue
@@ -137,8 +143,10 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Poll JIRA, queue issues, dedup | Orchestrator |
 | Route to matching profile | Orchestrator |
 | CLI selection (Copilot/Claude Code) with fallback | TaskRunner (ContainerManager) |
+| Stage pipeline execution (sequential, abort-on-fail) | TaskRunner |
 | JIRA transition to "In Progress" + start comment | TaskRunner |
 | Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
+| Create executor per stage (container vs local mode) | ContainerManager |
 | Render agent templates (JIT) + resolve MCP macros | TaskRunner |
 | `git pull`, branch, write, review, revise | Ralph (inside container) |
 | Create PR via ADO REST API, push branch | Ralph (inside container) |

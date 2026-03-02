@@ -12,7 +12,11 @@ import {
   type IAgentProfile,
   type IDataSourceConfig,
   type ISecretsConfig,
-  type IDashboardConfig,  VcsProvider,} from "./types.js";
+  type IDashboardConfig,
+  type IStageConfig,
+  StageMode,
+  VcsProvider,
+} from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Profile discovery
@@ -81,6 +85,18 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
     for (let vi = 0; vi < parsed.variants.length; vi++) {
       const variant = parsed.variants[vi];
 
+      const stages: IStageConfig[] = variant.stages.map((s) => ({
+        agent: s.agent,
+        role: s.role,
+        mode: s.mode as unknown as StageMode,
+        skills: s.skills,
+        model: s.model,
+        timeoutMs: s.timeoutMs,
+      }));
+
+      const firstAgent = stages[0].agent;
+      const allSkills = [...new Set(stages.flatMap((s) => s.skills))];
+
       profiles.push({
         id: profileId,
         dataSource: parsed.dataSource,
@@ -88,9 +104,9 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         vcsProvider,
         repoPat,
         composeFile: `profiles/${profileId}/docker-compose.yml`,
-        agentName: variant.agent,
-        displayName: variant.agent.replace(/^ralph\./, ""),
-        variantKey: `${profileId}:${variant.agent}:${variant.match.commentTrigger}`,
+        agentName: firstAgent,
+        displayName: firstAgent.replace(/^ralph\./, ""),
+        variantKey: `${profileId}:${firstAgent}:${variant.match.commentTrigger}`,
         cli: parsed.cli as CliType,
         model: variant.model ?? parsed.model,
         timeoutMs: parsed.timeoutMs,
@@ -112,7 +128,8 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         afterAgent: variant.afterAgent,
         preflight: variant.preflight,
         failureComment: variant.failureComment,
-        skills: variant.skills,
+        skills: allSkills,
+        stages,
       });
     }
   }

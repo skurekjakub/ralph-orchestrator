@@ -51,7 +51,7 @@ profiles/<id>/docker-compose.yml          (base: services, volumes, env)
 
 ### Agent Templates — JIT Rendering
 
-Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, task fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
+Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, task fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
 
 Custom Liquid tags: `{% section "name" %}...{% endsection %}` wraps content in `<name>...</name>` XML boundaries.
 
@@ -98,7 +98,10 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
 | `src/services/trigger-scanner.ts` | Scans JIRA comments for trigger strings |
 | `src/services/operation-ledger.ts` | Persistent per-issue state machine |
-| `src/container/manager.ts` | Full container lifecycle |
+| `src/container/manager.ts` | Full container lifecycle + stage-based executor creation |
+| `src/container/types.ts` | CLI types, `StageResult`, `deriveStageProfile()` for per-stage profile derivation |
+| `src/container/cli-executors/cli-executor-factory.ts` | Factory: `create()` (container) and `createLocal()` (host) executors |
+| `src/container/cli-executors/local-copilot-executor.ts` | Host-side CLI executor for `mode: "local"` stages |
 | `src/container/setup/agent-includes.ts` | JIT Liquid template renderer |
 | `src/container/setup/jit-mcp-params.ts` | JIT task-scoped MCP param injector |
 | `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git sync) |
@@ -142,7 +145,7 @@ shared/
   skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 ## Output Layout
 

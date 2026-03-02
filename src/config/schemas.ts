@@ -72,16 +72,35 @@ export const agentTransitionSchema = z.object({
   targetStatus: z.string().optional(),
 }).default({});
 
+export const stageSchema = z.object({
+  /** Agent CLI name (e.g. `ralph.ralph`). */
+  agent: z.string().min(1, "stage agent must not be empty"),
+  /** Unique role within the pipeline (e.g. `primary`, `reviewer`). */
+  role: z.string().min(1, "stage role must not be empty"),
+  /** Where the agent runs: inside Docker (`container`) or on the host (`local`). */
+  mode: z.enum(["container", "local"]).default("container"),
+  /** Skill names from shared/skills/ to mount. Per-stage override. */
+  skills: z.array(z.string()).default([]),
+  /** Model override for this stage. */
+  model: z.string().optional(),
+  /** Timeout override in ms for this stage. */
+  timeoutMs: z.number().positive().optional(),
+});
+
 export const variantSchema = z.object({
-  agent: z.string().min(1, "variant agent must not be empty"),
+  stages: z.array(stageSchema).min(1, "At least one stage is required").refine(
+    (stages) => {
+      const roles = stages.map((s) => s.role);
+      return new Set(roles).size === roles.length;
+    },
+    "Stage roles must be unique within a variant",
+  ),
   model: z.string().optional(),
   match: profileMatchSchema,
   beforeAgent: agentTransitionSchema,
   afterAgent: agentTransitionSchema,
   preflight: z.string().optional(),
   failureComment: z.string().optional(),
-  /** Skill names from shared/skills/ to mount into the container at .github/skills/. */
-  skills: z.array(z.string()).default([]),
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */

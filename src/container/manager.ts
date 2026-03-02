@@ -1,25 +1,32 @@
 import { execa } from "execa";
-import type { IAgentProfile } from "../config/types.js";
+import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
 import type { RalphResult, CliPaths } from "./types.js";
+import { deriveStageProfile } from "./types.js";
 import type { Logger } from "../logger.js";
-import type { PromptBuilder } from "../prompt/prompt-builder.js";
 import type { IssueContext } from "../prompt/prompt.js";
-import { parseResultBlock, resolveStatus } from "./result-parser.js";
 import type { IComposeClient } from "./compose-client.js";
-import type { ICliExecutor } from "./cli-executor-factory.js";
+import type { ICliExecutor, ICliExecutorFactory } from "./cli-executor-factory.js";
 import { StreamCapture } from "./stream-capture.js";
 import type { IContainerLogCollector, CollectedLog } from "./log-collector.js";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner.js";
 import type { ILogSourceRegistry } from "./log-source-registry.js";
-import type { IContinuationRunner } from "./continuation-runner.js";
+import type { IAgentSessionRunner } from "./agent-session-runner.js";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {
   /** Stop all active streaming processes. */
   detach(): void;
-  /** Flush all log sources to disk. */
-  collectAll(): Promise<CollectedLog[]>;
+  /**
+   * Flush all log sources to disk.
+   * @param stageLabel  Optional stage identifier for filename namespacing.
+   */
+  collectAll(stageLabel?: string): Promise<CollectedLog[]>;
+  /**
+   * Truncate container-side log files between pipeline stages.
+   * Ensures each stage starts with fresh log files.
+   */
+  clearCollectSources(): Promise<void>;
 }
 
 /** Public contract for container lifecycle management. */
@@ -38,6 +45,10 @@ export interface IContainerManager {
   registerLogSources(taskId: string): void;
   /** Execute the agent CLI inside the running container. */
   execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
+  /** Execute with a specific CLI executor (for per-stage agent switching). */
+  executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
+  /** Create a CLI executor configured for a specific pipeline stage. */
+  createExecutorForStage(stage: IStageConfig): ICliExecutor;
   /** Tear down all containers and associated resources. */
   stop(): Promise<void>;
   /** Per-task log collector. */
@@ -73,11 +84,11 @@ export interface IContainerManager {
 export class ContainerManager implements IContainerManager {
   private readonly compose: IComposeClient;
   private readonly executor: ICliExecutor;
-  private readonly continuationRunner: IContinuationRunner;
+  private readonly executorFactory: ICliExecutorFactory;
+  private readonly sessionRunner: IAgentSessionRunner;
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
   private readonly profile: IAgentProfile;
-  private readonly promptBuilder: PromptBuilder;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
 
@@ -100,11 +111,11 @@ export class ContainerManager implements IContainerManager {
     profile,
     compose,
     executor,
+    executorFactory,
     logs,
     cleaner,
     logRegistry,
-    continuationRunner,
-    promptBuilder,
+    sessionRunner,
     logger,
     containerLogger,
     enableContinuation = false,
@@ -112,17 +123,16 @@ export class ContainerManager implements IContainerManager {
     profile: IAgentProfile;
     compose: IComposeClient;
     executor: ICliExecutor;
+    executorFactory: ICliExecutorFactory;
     logs: IContainerLogCollector;
     cleaner: IContainerWorkspaceCleaner;
     logRegistry: ILogSourceRegistry;
-    continuationRunner: IContinuationRunner;
-    promptBuilder: PromptBuilder;
+    sessionRunner: IAgentSessionRunner;
     logger: Logger;
     containerLogger?: Logger;
     enableContinuation?: boolean;
   }) {
     this.profile = profile;
-    this.promptBuilder = promptBuilder;
     this.logger = logger;
     this.containerLogger = containerLogger ?? logger;
     this.compose = compose;
@@ -130,8 +140,9 @@ export class ContainerManager implements IContainerManager {
     this.cleaner = cleaner;
     this.logRegistry = logRegistry;
     this.executor = executor;
+    this.executorFactory = executorFactory;
     this.cliPaths = executor.paths;
-    this.continuationRunner = continuationRunner;
+    this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;
     this.logger.info(`Using ${profile.cli} CLI`);
   }
@@ -195,6 +206,29 @@ export class ContainerManager implements IContainerManager {
   }
 
   /**
+   * Create a CLI executor configured for a specific pipeline stage.
+   *
+   * For `mode: "container"`, derives a stage-scoped profile and creates an
+   * executor via the factory that runs inside the Docker container.
+   * For `mode: "local"`, creates a host-side executor that runs the CLI
+   * in the orchestrator repo directory. The target repo path is available
+   * to the agent via the `{{ repo }}` template variable.
+   */
+  createExecutorForStage(stage: IStageConfig): ICliExecutor {
+    const stageProfile = deriveStageProfile(this.profile, stage);
+    switch (stage.mode) {
+      case StageMode.Local:
+        return this.executorFactory.createLocal(stageProfile, process.cwd(), this.containerLogger);
+      case StageMode.Container:
+        return this.executorFactory.create(this.compose, stageProfile, this.containerLogger);
+      default: {
+        const _exhaustive: never = stage.mode;
+        throw new Error(`Unknown stage mode: ${_exhaustive}`);
+      }
+    }
+  }
+
+  /**
    * Execute the agent CLI inside the running container.
    *
    * Delegates prompt construction and injection auditing to the {@link PromptBuilder}.
@@ -209,33 +243,14 @@ export class ContainerManager implements IContainerManager {
    * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */
   async execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
-    const { text: prompt } = this.promptBuilder.build(workItem, context);
+    return this.executeWithExecutor(this.executor, workItem, context);
+  }
 
-    const startTime = Date.now();
-
-    const { lastResult, combinedStdout, combinedStderr } =
-      await this.continuationRunner.run(
-        this.executor,
-        prompt,
-        workItem,
-        this.enableContinuation ? this.profile.maxContinuations : 0,
-      );
-
-    const durationMs = Date.now() - startTime;
-
-    const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
-    const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
-
-    return {
-      taskId: workItem.id,
-      status,
-      durationMs,
-      exitCode: lastResult.exitCode,
-      stdout: combinedStdout,
-      stderr: combinedStderr,
-      collectedLogs: {},
-      prUrl,
-    };
+  async executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
+    return this.sessionRunner.run(executor, workItem, context, {
+      maxContinuations: this.profile.maxContinuations,
+      enableContinuation: this.enableContinuation,
+    });
   }
 
   /**

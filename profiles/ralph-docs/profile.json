@@ -4,7 +4,9 @@
   "vcsProvider": "ado",
   "cli": "copilot",
   "timeoutMs": 7200000,
-  "cleanPaths": ["/workspace/.ralph/tasks"],
+  "cleanPaths": [
+    "/workspace/.ralph/tasks"
+  ],
   "maxContinuations": 3,
   "mcpServers": [
     {
@@ -21,8 +23,12 @@
         "TASK_BRANCH": "$task.branch"
       }
     },
-    { "name": "web-fetch" },
-    { "name": "microsoft-docs" },
+    {
+      "name": "web-fetch"
+    },
+    {
+      "name": "microsoft-docs"
+    },
     {
       "name": "ralphchives-write",
       "env": {
@@ -38,162 +44,228 @@
       }
     }
   ],
-  "githubMcpTools": ["get_file_contents"],
+  "githubMcpTools": [
+    "get_file_contents"
+  ],
   "resources": {
     "mountBase": "resources/ralph-resources"
   },
   "variants": [
     {
-      "agent": "ralph.ralph",
       "match": {
-        "projects": ["DF"],
-        "statuses": ["New", "To Do", "Defect Found"],
+        "projects": [
+          "DF"
+        ],
+        "statuses": [
+          "New",
+          "To Do",
+          "Defect Found"
+        ],
         "commentTrigger": "@RalphDf",
-        "revisionStatuses": ["Defect Found"]
+        "revisionStatuses": [
+          "Defect Found"
+        ]
       },
-      "beforeAgent": { "targetStatus": "In Progress" },
-      "afterAgent": { "targetStatus": "Ready for Review" },
-      "skills": [
-        "ralph-code-samples",
-        "ralph-ado-pr-workflow",
-        "ralph-source-references",
-        "ralph-ralphchives",
-        "ralph-new-page-creation",
-        "ralph-documentation-syntax",
-        "ralph-style-guide-review",
-        "ralph-codesamples-project",
-        "ralph-screenshots",
-        "ralph-training-modules",
-        "ralph-write-release-notes",
-        "ralph-research-guide",
-        "ralph-workflow-setup",
-        "ralph-workflow-research",
-        "ralph-workflow-write",
-        "ralph-workflow-review",
-        "ralph-workflow-commit",
-        "ralph-workflow-pr",
-        "ralph-workflow-handoff",
-        "ralph-workflow-revision-setup",
-        "ralph-workflow-revision-fix",
-        "ralph-workflow-revision-commit",
-        "ralph-workflow-revision-handoff",
-        "ralph-build-errors",
-        "ralph-page-removal",
-        "ralph-callout-selection",
-        "ralph-cross-version-linking"
+      "beforeAgent": {
+        "targetStatus": "In Progress"
+      },
+      "afterAgent": {
+        "targetStatus": "Ready for Review"
+      },
+      "stages": [
+        {
+          "agent": "ralph.ralph",
+          "role": "primary",
+          "skills": [
+            "ralph-code-samples",
+            "ralph-ado-pr-workflow",
+            "ralph-source-references",
+            "ralph-ralphchives",
+            "ralph-new-page-creation",
+            "ralph-documentation-syntax",
+            "ralph-style-guide-review",
+            "ralph-codesamples-project",
+            "ralph-screenshots",
+            "ralph-training-modules",
+            "ralph-write-release-notes",
+            "ralph-research-guide",
+            "ralph-workflow-setup",
+            "ralph-workflow-research",
+            "ralph-workflow-write",
+            "ralph-workflow-review",
+            "ralph-workflow-commit",
+            "ralph-workflow-pr",
+            "ralph-workflow-handoff",
+            "ralph-workflow-revision-setup",
+            "ralph-workflow-revision-fix",
+            "ralph-workflow-revision-commit",
+            "ralph-workflow-revision-handoff",
+            "ralph-build-errors",
+            "ralph-page-removal",
+            "ralph-callout-selection",
+            "ralph-cross-version-linking"
+          ]
+        }
       ]
     },
     {
-      "agent": "ralph.ralph",
       "match": {
-        "projects": ["DOC"],
-        "statuses": ["To Do", "Defect Found"],
+        "projects": [
+          "DOC"
+        ],
+        "statuses": [
+          "To Do",
+          "Defect Found"
+        ],
         "commentTrigger": "@Ralph",
-        "revisionStatuses": ["Defect Found"]
+        "revisionStatuses": [
+          "Defect Found"
+        ]
       },
-      "beforeAgent": { "targetStatus": "In Progress" },
-      "afterAgent": { "targetStatus": "Ready for Review" },
-      "skills": [
-        "ralph-code-samples",
-        "ralph-ado-pr-workflow",
-        "ralph-source-references",
-        "ralph-ralphchives",
-        "ralph-new-page-creation",
-        "ralph-documentation-syntax",
-        "ralph-style-guide-review",
-        "ralph-codesamples-project",
-        "ralph-screenshots",
-        "ralph-training-modules",
-        "ralph-write-release-notes",
-        "ralph-research-guide",
-        "ralph-workflow-setup",
-        "ralph-workflow-research",
-        "ralph-workflow-write",
-        "ralph-workflow-review",
-        "ralph-workflow-commit",
-        "ralph-workflow-pr",
-        "ralph-workflow-handoff",
-        "ralph-workflow-revision-setup",
-        "ralph-workflow-revision-fix",
-        "ralph-workflow-revision-commit",
-        "ralph-workflow-revision-handoff",
-        "ralph-build-errors",
-        "ralph-page-removal",
-        "ralph-callout-selection",
-        "ralph-cross-version-linking"
+      "beforeAgent": {
+        "targetStatus": "In Progress"
+      },
+      "afterAgent": {
+        "targetStatus": "Ready for Review"
+      },
+      "stages": [
+        {
+          "agent": "ralph.ralph",
+          "role": "primary",
+          "skills": [
+            "ralph-code-samples",
+            "ralph-ado-pr-workflow",
+            "ralph-source-references",
+            "ralph-ralphchives",
+            "ralph-new-page-creation",
+            "ralph-documentation-syntax",
+            "ralph-style-guide-review",
+            "ralph-codesamples-project",
+            "ralph-screenshots",
+            "ralph-training-modules",
+            "ralph-write-release-notes",
+            "ralph-research-guide",
+            "ralph-workflow-setup",
+            "ralph-workflow-research",
+            "ralph-workflow-write",
+            "ralph-workflow-review",
+            "ralph-workflow-commit",
+            "ralph-workflow-pr",
+            "ralph-workflow-handoff",
+            "ralph-workflow-revision-setup",
+            "ralph-workflow-revision-fix",
+            "ralph-workflow-revision-commit",
+            "ralph-workflow-revision-handoff",
+            "ralph-build-errors",
+            "ralph-page-removal",
+            "ralph-callout-selection",
+            "ralph-cross-version-linking"
+          ]
+        }
       ]
     },
     {
-      "agent": "ralph.malph",
       "match": {
-        "projects": ["DF", "DOC"],
-        "statuses": ["Ready for Review"],
+        "projects": [
+          "DF",
+          "DOC"
+        ],
+        "statuses": [
+          "Ready for Review"
+        ],
         "commentTrigger": "@Malph"
       },
-      "skills": [
-        "ralph-documentation-syntax",
-        "ralph-style-guide-review",
-        "ralph-build-errors",
-        "ralph-callout-selection",
-        "ralph-cross-version-linking",
-        "ralph-ado-pr-workflow",
-        "ralph-ralphchives",
-        "ralph-source-references",
-        "ralph-screenshots",
-        "malph-workflow-descend",
-        "malph-workflow-study",
-        "malph-workflow-investigate",
-        "malph-workflow-verify",
-        "malph-workflow-review",
-        "malph-workflow-deliver",
-        "malph-workflow-handoff"
+      "stages": [
+        {
+          "agent": "ralph.malph",
+          "role": "primary",
+          "skills": [
+            "ralph-documentation-syntax",
+            "ralph-style-guide-review",
+            "ralph-build-errors",
+            "ralph-callout-selection",
+            "ralph-cross-version-linking",
+            "ralph-ado-pr-workflow",
+            "ralph-ralphchives",
+            "ralph-source-references",
+            "ralph-screenshots",
+            "malph-workflow-descend",
+            "malph-workflow-study",
+            "malph-workflow-investigate",
+            "malph-workflow-verify",
+            "malph-workflow-review",
+            "malph-workflow-deliver",
+            "malph-workflow-handoff"
+          ]
+        }
       ]
     },
     {
-      "agent": "ralph.overralph",
       "match": {
-        "projects": ["DOC"],
-        "statuses": ["To Do"],
+        "projects": [
+          "DOC"
+        ],
+        "statuses": [
+          "To Do"
+        ],
         "commentTrigger": "@OverRalph"
       },
-      "skills": [
-        "ralph-code-samples",
-        "ralph-ado-pr-workflow",
-        "ralph-source-references",
-        "ralph-ralphchives",
-        "ralph-new-page-creation",
-        "ralph-documentation-syntax",
-        "ralph-style-guide-review",
-        "ralph-codesamples-project",
-        "ralph-screenshots",
-        "ralph-training-modules",
-        "ralph-write-release-notes",
-        "ralph-research-guide",
-        "ralph-workflow-setup",
-        "ralph-workflow-research",
-        "ralph-workflow-write",
-        "ralph-workflow-review",
-        "ralph-workflow-commit",
-        "ralph-workflow-pr",
-        "ralph-workflow-handoff",
-        "ralph-workflow-revision-setup",
-        "ralph-workflow-revision-fix",
-        "ralph-workflow-revision-commit",
-        "ralph-workflow-revision-handoff",
-        "ralph-build-errors",
-        "ralph-page-removal",
-        "ralph-callout-selection",
-        "ralph-cross-version-linking"
+      "stages": [
+        {
+          "agent": "ralph.overralph",
+          "role": "primary",
+          "skills": [
+            "ralph-code-samples",
+            "ralph-ado-pr-workflow",
+            "ralph-source-references",
+            "ralph-ralphchives",
+            "ralph-new-page-creation",
+            "ralph-documentation-syntax",
+            "ralph-style-guide-review",
+            "ralph-codesamples-project",
+            "ralph-screenshots",
+            "ralph-training-modules",
+            "ralph-write-release-notes",
+            "ralph-research-guide",
+            "ralph-workflow-setup",
+            "ralph-workflow-research",
+            "ralph-workflow-write",
+            "ralph-workflow-review",
+            "ralph-workflow-commit",
+            "ralph-workflow-pr",
+            "ralph-workflow-handoff",
+            "ralph-workflow-revision-setup",
+            "ralph-workflow-revision-fix",
+            "ralph-workflow-revision-commit",
+            "ralph-workflow-revision-handoff",
+            "ralph-build-errors",
+            "ralph-page-removal",
+            "ralph-callout-selection",
+            "ralph-cross-version-linking"
+          ]
+        }
       ]
     },
     {
-      "agent": "ralph.mcp-probe",
       "model": "claude-sonnet-4",
       "match": {
-        "projects": ["DOC"],
-        "statuses": ["To Do", "In Progress", "Ready for Review", "Defect Found"],
+        "projects": [
+          "DOC"
+        ],
+        "statuses": [
+          "To Do",
+          "In Progress",
+          "Ready for Review",
+          "Defect Found"
+        ],
         "commentTrigger": "@McpProbe"
-      }
+      },
+      "stages": [
+        {
+          "agent": "ralph.mcp-probe",
+          "role": "primary"
+        }
+      ]
     }
   ]
 }

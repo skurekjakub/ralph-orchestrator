@@ -135,7 +135,9 @@ shared/
   "repoPat": "ADO_PAT",
   "variants": [
     {
-      "agent": "ralph.ralph",
+      "stages": [
+        { "agent": "ralph.ralph", "role": "primary" }
+      ],
       "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
       "beforeAgent": { "targetStatus": "In Progress" },
       "afterAgent": { "targetStatus": "Ready for Review" }
@@ -168,12 +170,12 @@ The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/`
 
 #### Variants
 
-Each profile has a `variants` array. Each variant is a separate routing entry that maps JIRA matching rules to an agent name.
+Each profile has a `variants` array. Each variant is a separate routing entry that maps JIRA matching rules to a **pipeline of stages** — one or more agent invocations executed sequentially.
 
 | Field | Description |
 |---|---|
-| `variant.agent` | Agent name passed to Copilot CLI (`--agent`). Must match a `<name>.agent.md` file in the profile's `agents/` directory (validated at startup). Not used by Claude Code. |
-| `variant.model` | Optional model override (overrides the profile-level `model`). |
+| `variant.stages` | Array of stage objects (at least one required). Each stage defines an agent, role, execution mode, and optional overrides. Stages run sequentially — if any stage fails, the pipeline aborts. See [Stages](#stages) below. |
+| `variant.model` | Optional model override (overrides the profile-level `model`). Individual stages can further override this. |
 | `variant.match.projects` | JIRA project keys to match (e.g. `["DF"]`). Issue key prefix must match. |
 | `variant.match.statuses` | Only match issues in these JIRA statuses (case-insensitive). Empty `[]` = match any. |
 | `variant.match.commentTrigger` | Trigger string (required). At least one JIRA comment must contain this string (case-insensitive word-boundary match) for the variant to trigger. Each matching comment triggers exactly one operation, tracked in the operation ledger. Supports optional parenthesized parameters — see below. |
@@ -182,6 +184,49 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.afterAgent` | JIRA transition config `{ targetStatus }` to execute after successful completion. Empty `{}` = no transition. |
 | `variant.preflight` | Named preflight check to run before agent invocation. If it fails, the agent is not invoked. Optional. |
 | `variant.failureComment` | JIRA comment posted when preflight fails. Falls back to a generic message. Optional. |
+
+#### Stages
+
+Each variant contains a `stages` array defining the sequential agent pipeline. The orchestrator executes stages in order, aborting on the first failure.
+
+| Field | Description | Default |
+|---|---|---|
+| `stage.agent` | Agent CLI name (e.g. `ralph.ralph`). Passed to Copilot CLI via `--agent`. Must match a `<name>.agent.md` file in the profile's `agents/` directory (validated at startup). | — (required) |
+| `stage.role` | Unique role identifier within the pipeline (e.g. `primary`, `reviewer`). Used in logs and `StageResult`. Roles must be unique across stages in the same variant. | — (required) |
+| `stage.mode` | Execution mode: `"container"` (inside Docker) or `"local"` (on the host). Local mode runs the CLI directly on the orchestrator host — useful for lightweight analysis stages that don't need the full container environment. | `"container"` |
+| `stage.skills` | Array of skill folder names for this stage. Overrides the profile-level `skills` for this stage's template rendering. | `[]` |
+| `stage.model` | Model override for this stage. Takes precedence over `variant.model` and profile-level `model`. | — (optional) |
+| `stage.timeoutMs` | Timeout override in milliseconds for this stage. Falls back to the profile-level `timeoutMs`. | — (optional) |
+
+**Single-stage example (most profiles):**
+```json
+{
+  "stages": [
+    { "agent": "ralph.ralph", "role": "primary", "mode": "container" }
+  ],
+  "match": { ... }
+}
+```
+
+**Multi-stage example (writer + reviewer pipeline):**
+```json
+{
+  "stages": [
+    { "agent": "ralph.ralph", "role": "writer", "mode": "container", "timeoutMs": 3600000 },
+    { "agent": "ralph.reviewer", "role": "reviewer", "mode": "local", "model": "claude-sonnet-4-20250514", "timeoutMs": 600000 }
+  ],
+  "match": { ... }
+}
+```
+
+**Pipeline behavior:**
+- Stages execute sequentially within the same container lifecycle (the container is started once, setup runs once).
+- Each stage gets its own CLI invocation with stage-specific agent, model, skills, and timeout.
+- The last stage's `RalphResult` is authoritative (PR URL, status, etc.).
+- Total `durationMs` is always the sum of all stage durations, regardless of stage count.
+- If `stages.length > 1`, individual `StageResult` objects are attached to the final result.
+- On stage failure (`TaskStatus.Error`), the pipeline aborts immediately — remaining stages are skipped.
+- Local-mode stages (`mode: "local"`) run the CLI on the host via `LocalCopilotExecutor`, not inside Docker.
 
 **Matching order:** Variants are evaluated in order, across all profiles. All matching triggers are planned, not just the first.
 
@@ -433,7 +478,9 @@ The auditor scans untrusted data (description, comments, custom fields, handoff 
   "timeoutMs": 1800000,
   "variants": [
     {
-      "agent": "ralph.ralph",
+      "stages": [
+        { "agent": "ralph.ralph", "role": "primary" }
+      ],
       "match": {
         "projects": ["DF"],
         "statuses": ["New", "To Do", "Defect Found"],
@@ -459,7 +506,9 @@ When an issue is in "Defect Found" status and triggered, the agent receives a `M
   "timeoutMs": 3600000,
   "variants": [
     {
-      "agent": "ralph.ralph",
+      "stages": [
+        { "agent": "ralph.ralph", "role": "primary" }
+      ],
       "match": {
         "projects": ["DF"],
         "statuses": ["New", "To Do", "Defect Found"],
@@ -470,7 +519,9 @@ When an issue is in "Defect Found" status and triggered, the agent receives a `M
       "afterAgent": { "targetStatus": "Ready for Review" }
     },
     {
-      "agent": "ralph.malph",
+      "stages": [
+        { "agent": "ralph.malph", "role": "primary" }
+      ],
       "match": { "projects": ["DF"], "statuses": ["Ready for Review"], "commentTrigger": "@Malph" }
     }
   ]
@@ -478,6 +529,22 @@ When an issue is in "Defect Found" status and triggered, the agent receives a `M
 ```
 
 In this setup, the same Docker infrastructure serves both variants. Comments with `@RalphDf` trigger the writer agent on "New"/"To Do"/"Defect Found" issues; comments with `@Malph` trigger the reviewer on "Ready for Review" issues.
+
+### Multi-Stage Pipeline
+
+```json
+{
+  "stages": [
+    { "agent": "ralph.ralph", "role": "writer", "mode": "container", "timeoutMs": 3600000 },
+    { "agent": "ralph.reviewer", "role": "reviewer", "mode": "local", "model": "claude-sonnet-4-20250514", "timeoutMs": 600000 }
+  ],
+  "match": { "projects": ["DF"], "commentTrigger": "@RalphDf" },
+  "beforeAgent": { "targetStatus": "In Progress" },
+  "afterAgent": { "targetStatus": "Ready for Review" }
+}
+```
+
+The writer stage runs inside Docker, then the reviewer stage runs on the host. If the writer fails, the reviewer is skipped.
 
 ### Multiple Profiles (Mixed CLIs)
 
@@ -489,7 +556,9 @@ In this setup, the same Docker infrastructure serves both variants. Comments wit
   "timeoutMs": 1800000,
   "variants": [
     {
-      "agent": "ralph.ralph",
+      "stages": [
+        { "agent": "ralph.ralph", "role": "primary" }
+      ],
       "match": { "projects": ["DOC"], "commentTrigger": "@RalphAutocomplete" },
       "beforeAgent": { "targetStatus": "In Progress" },
       "afterAgent": { "targetStatus": "Ready for Review" }
@@ -506,7 +575,7 @@ The orchestrator validates the configuration on startup:
 
 - **Required fields:** `jira.cloudId`, at least one profile directory with valid `profile.json`, `JIRA_PAT`, `JIRA_EMAIL`
 - **CLI credentials:** At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set
-- **Profile integrity:** Valid `repo` paths, agent names match `.agent.md` files in each profile's `agents/` directory, unique `commentTrigger` values
+- **Profile integrity:** Valid `repo` paths, stage agent names match `.agent.md` files in each profile's `agents/` directory, unique `commentTrigger` values, `stages` array has at least one entry with unique roles
 - **MCP manifests:** Referenced servers must exist in `shared/mcp-servers/`, `sidecarPort` must be a valid integer (1–65535), ports must be unique across all servers
 - **Security infrastructure:** Security overlay compose file and squid.conf must exist, base compose files must use `ralph-internal` network, no `docker.sock` mounts
 - **Docker daemon:** Must be reachable via `docker info`

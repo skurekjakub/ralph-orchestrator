@@ -379,6 +379,51 @@ describe("buildTemplateContext", () => {
     const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }));
     expect(ctx.triggerParams).toEqual({ flag: "true", ref: "refs/heads/main" });
   });
+
+  it("defaults stage fields from first stage when no overrides", () => {
+    const profile = makeProfile({
+      stages: [
+        { agent: "ralph.writer", role: "writer", mode: "container" as const, skills: [] },
+        { agent: "ralph.reviewer", role: "reviewer", mode: "container" as const, skills: [] },
+      ],
+    });
+    const ctx = buildTemplateContext(makeTaskContext({ profile }));
+    expect(ctx.stageRole).toBe("writer");
+    expect(ctx.stageIndex).toBe(0);
+    expect(ctx.stageCount).toBe(2);
+    expect(ctx.isFirstStage).toBe(true);
+    expect(ctx.isLastStage).toBe(false);
+    expect(ctx.previousStageRoles).toEqual([]);
+  });
+
+  it("applies stageOverrides when provided", () => {
+    const profile = makeProfile({
+      stages: [
+        { agent: "ralph.writer", role: "writer", mode: "container" as const, skills: [] },
+        { agent: "ralph.reviewer", role: "reviewer", mode: "container" as const, skills: [] },
+        { agent: "ralph.editor", role: "editor", mode: "container" as const, skills: [] },
+      ],
+    });
+    const ctx = buildTemplateContext(
+      makeTaskContext({ profile }),
+      { stageIndex: 1, stageCount: 3, stageRole: "reviewer", previousStageRoles: ["writer"] },
+    );
+    expect(ctx.stageRole).toBe("reviewer");
+    expect(ctx.stageIndex).toBe(1);
+    expect(ctx.stageCount).toBe(3);
+    expect(ctx.isFirstStage).toBe(false);
+    expect(ctx.isLastStage).toBe(false);
+    expect(ctx.previousStageRoles).toEqual(["writer"]);
+  });
+
+  it("computes isLastStage correctly from stageOverrides", () => {
+    const ctx = buildTemplateContext(
+      makeTaskContext(),
+      { stageIndex: 2, stageCount: 3, stageRole: "editor", previousStageRoles: ["writer", "reviewer"] },
+    );
+    expect(ctx.isLastStage).toBe(true);
+    expect(ctx.isFirstStage).toBe(false);
+  });
 });
 
 describe("buildTriggerParams", () => {

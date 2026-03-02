@@ -11,6 +11,28 @@ export enum VcsProvider {
   GitHub = "github",
 }
 
+/** Execution mode for a pipeline stage. */
+export enum StageMode {
+  Container = "container",
+  Local = "local",
+}
+
+/** Configuration for a single pipeline stage within a variant. */
+export interface IStageConfig {
+  /** Agent CLI name (e.g. `ralph.ralph`, `ralph.decomposer`). Used as the `--agent` argument. */
+  readonly agent: string;
+  /** Unique role identifier within the pipeline (e.g. `primary`, `reviewer`). */
+  readonly role: string;
+  /** Where the agent runs: inside the Docker container (`container`) or on the host (`local`). */
+  readonly mode: StageMode;
+  /** Skill folder names for this stage. Overrides profile-level skills. */
+  readonly skills: readonly string[];
+  /** Model override for this stage. Falls back to profile-level model. */
+  readonly model?: string;
+  /** Timeout override in ms for this stage. Falls back to profile-level timeout. */
+  readonly timeoutMs?: number;
+}
+
 /** Per-data-source connection config — type-specific fields live in `connection`. */
 export interface IDataSourceConfig {
   /** Data source type string (e.g. `"jira"`, `"github"`). Must match a registered factory. */
@@ -99,8 +121,13 @@ export interface IAgentProfile {
   readonly preflight?: string;
   /** JIRA comment posted when preflight fails. Falls back to a generic message. */
   readonly failureComment?: string;
-  /** Skill folder names from shared/skills/ to deploy into the container. */
+  /**
+   * Union of all stage skills — used for Docker volume mounting.
+   * Per-stage skills are accessed via `stages[n].skills`.
+   */
   readonly skills: readonly string[];
+  /** Ordered pipeline stages. Each stage runs an agent sequentially. */
+  readonly stages: readonly IStageConfig[];
 }
 
 export interface IOutputConfig {

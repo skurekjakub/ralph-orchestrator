@@ -50,7 +50,7 @@ function writeValidProfile(
     repo: tempDir,
     variants: [
       {
-        agent: agentFiles[0]?.replace(".agent.md", "") ?? "ralph",
+        stages: [{ agent: agentFiles[0]?.replace(".agent.md", "") ?? "ralph", role: "primary" }],
         match: { projects: [PROJECT], commentTrigger: "@ralph" },
       },
     ],
@@ -120,7 +120,7 @@ describe("validateProfiles", () => {
   it("errors when repo path is missing", () => {
     writeValidProfile("test", {
       profileJson: {
-        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -132,7 +132,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: "/nonexistent/path/12345",
-        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -145,7 +145,7 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         cli: "claude",
-        variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -178,11 +178,11 @@ describe("validateProfiles", () => {
     expect(c.errors.some((e) => e.includes("at least one variant is required"))).toBe(true);
   });
 
-  it("errors when variant agent name is missing", () => {
+  it("errors when stage agent name is missing", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [{ stages: [{ role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -194,7 +194,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ agent: "nonexistent", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [{ stages: [{ agent: "nonexistent", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
       agentFiles: ["ralph.agent.md"],
     });
@@ -208,7 +208,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ agent: "ralph", match: { commentTrigger: "@go" } }],
+        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { commentTrigger: "@go" } }],
       },
     });
     const c = collector();
@@ -220,7 +220,7 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ agent: "ralph", match: { projects: [PROJECT] } }],
+        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT] } }],
       },
     });
     const c = collector();
@@ -233,7 +233,7 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         variants: [{
-          agent: "ralph",
+          stages: [{ agent: "ralph", role: "primary" }],
           match: {
             projects: [PROJECT],
             commentTrigger: "@go",
@@ -253,7 +253,7 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         variants: [{
-          agent: "ralph",
+          stages: [{ agent: "ralph", role: "primary" }],
           match: {
             projects: [PROJECT],
             commentTrigger: "@go",
@@ -275,7 +275,7 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" }, skills: ["nonexistent-skill"] }],
+          variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["nonexistent-skill"] }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -290,7 +290,7 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" }, skills: ["my-skill"] }],
+          variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["my-skill"] }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -307,7 +307,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["nonexistent-server"],
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -324,7 +324,7 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["my-server"],
-          variants: [{ agent: "ralph", match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
         },
       });
       const c = collector();
@@ -348,7 +348,7 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         variants: [
-          { agent: "ralph", match: { projects: ["DOC"], commentTrigger: "@docs" } },
+          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: ["DOC"], commentTrigger: "@docs" } },
         ],
       },
     });

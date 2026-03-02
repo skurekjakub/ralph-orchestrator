@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ContainerManager } from "../../src/container/manager.js";
+import { AgentSessionRunner } from "../../src/container/agent-session-runner.js";
 import { ContinuationRunner } from "../../src/container/continuation-runner.js";
 import { TaskStatus, type ContainerExecResult, type CliPaths } from "../../src/container/types.js";
 import type { BuiltPrompt, PromptBuilder } from "../../src/prompt/prompt-builder.js";
@@ -82,6 +83,7 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     attach: vi.fn(),
     detach: vi.fn(),
     collectAll: vi.fn().mockResolvedValue([]),
+    clearCollectSources: vi.fn().mockResolvedValue(undefined),
   };
   const cleaner: IContainerWorkspaceCleaner = {
     prepareConfigDir: vi.fn().mockResolvedValue(undefined),
@@ -92,10 +94,11 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     registerAll: vi.fn(),
   };
   const continuationRunner = new ContinuationRunner({ logger });
+  const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
 
   return new ContainerManager({
     profile, compose, executor, logs, cleaner,
-    logRegistry, continuationRunner, promptBuilder, logger,
+    logRegistry, sessionRunner, logger,
     enableContinuation: true,
   });
 }

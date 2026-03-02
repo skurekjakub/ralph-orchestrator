@@ -275,7 +275,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({ mcpServers: [], variants: [{ agent: "ralph", match: { commentTrigger: "@go" }, skills: ["git-workflow"] }] }),
+        JSON.stringify({ mcpServers: [], variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["git-workflow"] }], match: { commentTrigger: "@go" } }] }),
       );
 
       resolveAllProfileSetup(rootDir);

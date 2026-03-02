@@ -1,4 +1,4 @@
-import { IAgentProfile } from "../config/types.js";
+import { IAgentProfile, type IStageConfig } from "../config/types.js";
 import { IContainerManager } from "./manager.js";
 
 /** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */
@@ -44,6 +44,38 @@ export enum TaskStatus {
   Error = "error",
 }
 
+/** Result of a single pipeline stage execution. */
+export interface StageResult {
+  /** Stage role identifier (e.g. `primary`, `reviewer`). */
+  role: string;
+  /** Final status for this stage. */
+  status: TaskStatus;
+  /** Wall-clock duration in milliseconds. */
+  durationMs: number;
+  /** CLI process exit code. */
+  exitCode: number;
+  /** Collected log files keyed by source id. */
+  collectedLogs: Record<string, string>;
+}
+
+/**
+ * Derive a stage-scoped profile from a base profile and a specific stage config.
+ *
+ * Overrides `agentName`, `displayName`, `model`, `timeoutMs`, and `skills`
+ * with stage-specific values. Other profile fields (repo, compose, MCP, etc.)
+ * remain unchanged.
+ */
+export function deriveStageProfile(profile: IAgentProfile, stage: IStageConfig): IAgentProfile {
+  return {
+    ...profile,
+    agentName: stage.agent,
+    displayName: stage.agent.replace(/^ralph\./, ""),
+    model: stage.model ?? profile.model,
+    timeoutMs: stage.timeoutMs ?? profile.timeoutMs,
+    skills: [...stage.skills],
+  };
+}
+
 /**
  * Enriched result returned by {@link ContainerManager.execute}.
  *
@@ -72,4 +104,6 @@ export interface RalphResult {
   collectedLogs: Record<string, string>;
   /** ADO pull request URL parsed from the agent's structured output. */
   prUrl?: string;
+  /** Per-stage results when running a multi-stage pipeline. */
+  stageResults?: StageResult[];
 }

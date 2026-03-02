@@ -28,6 +28,7 @@ import { ContainerLogCollector } from "./container/log-collector.js";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
 import { ContinuationRunner } from "./container/continuation-runner.js";
+import { AgentSessionRunner } from "./container/agent-session-runner.js";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
@@ -63,9 +64,10 @@ function buildContainerFactory({
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
       const logRegistry = new LogSourceRegistry();
       const continuationRunner = new ContinuationRunner({ logger });
+      const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return new ContainerManager({
-        profile, compose, executor, logs, cleaner,
-        logRegistry, continuationRunner, promptBuilder, logger, containerLogger,
+        profile, compose, executor, executorFactory, logs, cleaner,
+        logRegistry, sessionRunner, logger, containerLogger,
         enableContinuation,
       });
     },

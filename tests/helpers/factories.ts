@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
+import { StageMode, type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
@@ -159,6 +159,7 @@ export function makeProfile(
     revisionStatuses: [],
     ...overrides.match,
   };
+  const stages = overrides.stages ?? [{ agent: agentName, role: "primary", mode: StageMode.Container, skills: [] }];
   return {
     id,
     repoPath: "/tmp/test-repo",
@@ -179,6 +180,7 @@ export function makeProfile(
     mcpServerConfigs: {},
     githubMcpTools: false,
     skills: [],
+    stages,
     dataSource: "test-source",
     vcsProvider: VcsProvider.Ado,
     repoPat: "ADO_PAT",

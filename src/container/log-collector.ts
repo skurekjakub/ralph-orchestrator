@@ -66,8 +66,22 @@ export interface IContainerLogCollector {
   attach(): void;
   /** Stop all active streaming processes. */
   detach(): void;
-  /** Flush all log sources to disk. */
-  collectAll(): Promise<CollectedLog[]>;
+  /**
+   * Flush all log sources to disk.
+   *
+   * @param stageLabel  Optional stage identifier (e.g. `"researcher"`) inserted
+   *                    into filenames: `<taskId>-<ts>-<stageLabel>-<sourceId>.<ext>`.
+   *                    Omit for single-stage pipelines or the final collection.
+   */
+  collectAll(stageLabel?: string): Promise<CollectedLog[]>;
+  /**
+   * Truncate container-side log files for all collect-mode sources.
+   *
+   * Call between pipeline stages so the next stage starts with fresh files.
+   * Stream-mode and compose-logs sources are skipped (they're append-only
+   * container stdout or continuously tailed).
+   */
+  clearCollectSources(): Promise<void>;
 }
 
 /**
@@ -137,9 +151,10 @@ export class ContainerLogCollector implements IContainerLogCollector {
    * it locally. This captures everything — including content that arrived before
    * streaming started or after it was stopped.
    *
+   * @param stageLabel  Optional stage identifier inserted into filenames.
    * @returns Array of collection results (one per source).
    */
-  async collectAll(): Promise<CollectedLog[]> {
+  async collectAll(stageLabel?: string): Promise<CollectedLog[]> {
     if (!this.taskId) {
       throw new Error("Task ID not set — call setTaskId() before collectAll()");
     }
@@ -149,10 +164,12 @@ export class ContainerLogCollector implements IContainerLogCollector {
     mkdirSync(issueDir, { recursive: true });
     const results: CollectedLog[] = [];
 
+    const labelSegment = stageLabel ? `-${stageLabel}` : "";
+
     for (const source of this.sources) {
       const localPath = join(
         issueDir,
-        `${this.taskId}-${timestamp}-${source.id}.${source.extension}`,
+        `${this.taskId}-${timestamp}${labelSegment}-${source.id}.${source.extension}`,
       );
 
       try {
@@ -180,7 +197,7 @@ export class ContainerLogCollector implements IContainerLogCollector {
     }
 
     for (const folder of this.exports) {
-      const localDir = join(issueDir, `${this.taskId}-${timestamp}-${folder.id}`);
+      const localDir = join(issueDir, `${this.taskId}-${timestamp}${labelSegment}-${folder.id}`);
       try {
         await this.compose.compose([
           "cp", `${folder.service}:${folder.containerPath}`, localDir,
@@ -194,6 +211,33 @@ export class ContainerLogCollector implements IContainerLogCollector {
     }
 
     return results;
+  }
+
+  /**
+   * Truncate container-side log files for all collect-mode sources.
+   *
+   * Runs `truncate -s 0` inside the container for each source that uses
+   * file-based collection (not compose-logs). Safe to call between pipeline
+   * stages so the next stage starts with fresh log files.
+   */
+  async clearCollectSources(): Promise<void> {
+    const fileSources = this.sources.filter(
+      (s) => !s.useComposeLogs && s.containerPath,
+    );
+    for (const source of fileSources) {
+      const truncatePath = source.collectArgs
+        ? undefined  // Custom collect commands (e.g. glob) — skip, not a single file
+        : source.containerPath;
+      if (!truncatePath) continue;
+      try {
+        await this.compose.exec([
+          "-T", source.service,
+          "sh", "-c", `truncate -s 0 ${truncatePath} 2>/dev/null || true`,
+        ]);
+      } catch {
+        this.logger.warn(`Failed to clear ${source.id} log in container`);
+      }
+    }
   }
 
   /**

@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner.js";
 import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types.js";
+import { StageMode } from "../../src/config/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
 import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
@@ -59,7 +60,7 @@ describe("TaskRunner", () => {
     expect(spies.prepareConfigDir).toHaveBeenCalled();
     expect(spies.registerLogSources).toHaveBeenCalledWith(taskId);
     expect(spies.setup).toHaveBeenCalled();
-    expect(spies.execute).toHaveBeenCalled();
+    expect(spies.executeWithExecutor).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
     expect(result.taskId).toBe(KEY);
@@ -84,7 +85,7 @@ describe("TaskRunner", () => {
     spies.cleanPaths.mockImplementation(() => { callOrder.push("cleanPaths"); return Promise.resolve(); });
     spies.registerLogSources.mockImplementation(() => { callOrder.push("registerLogs"); });
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
+    spies.executeWithExecutor.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer({
@@ -128,7 +129,7 @@ describe("TaskRunner", () => {
 
   it("still collects logs on error", async () => {
     const { container, spies } = createMockContainer();
-    spies.execute.mockRejectedValue(new Error("CLI crashed"));
+    spies.executeWithExecutor.mockRejectedValue(new Error("CLI crashed"));
     const factory = createMockFactory(container);
     const resultWriter = createMockResultWriter();
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
@@ -245,7 +246,7 @@ describe("TaskRunner", () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
+    spies.executeWithExecutor.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const mockHook = {
       name: "test-hook",
@@ -302,6 +303,113 @@ describe("TaskRunner", () => {
 
     expect(result.status).toBe(TaskStatus.Error);
     expect(result.stderr).toContain("hook failed");
+  });
+
+  describe("multi-stage pipeline", () => {
+    it("executes all stages in order", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const stageLabels: string[] = [];
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor.mockImplementation(async (_executor: unknown) => {
+        stageLabels.push("executed");
+        return makeResult(KEY);
+      });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(spies.createExecutorForStage).toHaveBeenCalledTimes(2);
+      expect(spies.executeWithExecutor).toHaveBeenCalledTimes(2);
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(result.stageResults).toHaveLength(2);
+      expect(result.stageResults![0].role).toBe("writer");
+      expect(result.stageResults![1].role).toBe("reviewer");
+    });
+
+    it("aborts pipeline on stage failure", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor.mockResolvedValue(makeResult(KEY, { status: TaskStatus.Error }));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(spies.executeWithExecutor).toHaveBeenCalledTimes(1);
+      expect(result.status).toBe(TaskStatus.Error);
+      // Single stage executed (the second was skipped), so no stageResults array
+      expect(result.stageResults).toBeUndefined();
+    });
+
+    it("omits stageResults for single-stage profiles", async () => {
+      const { container } = createMockContainer({ taskId: KEY });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+
+      expect(result.stageResults).toBeUndefined();
+    });
+
+    it("computes durationMs as sum of all stage durations", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor
+        .mockResolvedValueOnce(makeResult(KEY, { durationMs: 3000 }))
+        .mockResolvedValueOnce(makeResult(KEY, { durationMs: 7000 }));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(result.durationMs).toBe(10000);
+    });
+
+    it("creates different executors for mixed container+local stages", async () => {
+      const mixedProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Local, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: mixedProfile, taskId }));
+
+      expect(spies.createExecutorForStage).toHaveBeenCalledTimes(2);
+      expect(spies.createExecutorForStage).toHaveBeenCalledWith(
+        expect.objectContaining({ role: "writer", mode: StageMode.Container }),
+      );
+      expect(spies.createExecutorForStage).toHaveBeenCalledWith(
+        expect.objectContaining({ role: "reviewer", mode: StageMode.Local }),
+      );
+    });
   });
 
   describe("teardown", () => {
