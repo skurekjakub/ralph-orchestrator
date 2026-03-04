@@ -171,7 +171,7 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/container/cli-executors/local-copilot-executor.ts` | Host-side CLI executor for `mode: "local"` stages |
 | `src/container/setup/agent-includes.ts` | JIT Liquid template renderer |
 | `src/container/setup/jit-mcp-params.ts` | JIT task-scoped MCP param injector |
-| `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git sync) |
+| `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git exclude + sync) |
 | `src/util/branch.ts` | Branch name slugification utility |
 | `src/container/setup/profile-setup.ts` | Profile initialization orchestrator |
 | `src/datasource/registry.ts` | Data source factory registry (`registerDataSourceFactory`, `buildDataSourceMaps`) |
@@ -209,10 +209,13 @@ shared/
   agent-includes/     — Shared Liquid partials (*.md)
   mcp-servers/<name>/ — mcp-server.json manifest + optional src/dist for custom servers
   mcp-sidecar/          — Gateway container (supergateway process manager, git for push/PR tools)
-  skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
+  skills/             — Shared agent skill folders (mounted per-profile into .github/skills/,
+                        excluded from git via .git/info/exclude managed by RepoSyncHook)
 ```
 
 Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+
+**Bind-mount artifact exclusion.** Docker bind mounts for skills, agent templates, and `.ralph/` create host-side files inside the target repo checkout. The `RepoSyncHook` writes patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking checkout, appearing in status, or being staged.
 
 ## Output Layout
 

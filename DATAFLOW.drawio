@@ -73,7 +73,7 @@
           <mxGeometry x="310" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;br&gt;(git exclude + sync)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 

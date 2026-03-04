@@ -256,7 +256,7 @@
             { "agent": "ralph.run-analyzer", 
               "role": "analyzer",
               "mode": "local",
-              "model": "claude-sonnet-4-20250514" 
+              "model": "claude-opus-4.6" 
             },
             { "agent": "ralph.agent-improver",
               "role": "improver",

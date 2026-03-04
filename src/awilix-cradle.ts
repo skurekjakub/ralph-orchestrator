@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types.js";
 import type { OrchestratorCradle } from "./awlix-cradle-types.js";
-import type { ContainerManagerFactory } from "./container/types.js";
+import { deriveStageProfile, type ContainerManagerFactory } from "./container/types.js";
 import { buildDataSourceMaps } from "./datasource/registry.js";
 import { LogCollector } from "./logs/collector.js";
 import { PromptBuilder } from "./prompt/prompt-builder.js";
@@ -29,7 +29,6 @@ import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
 import { ContinuationRunner } from "./container/continuation-runner.js";
 import { AgentSessionRunner } from "./container/agent-session-runner.js";
-import { deriveStageProfile } from "./container/types.js";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);

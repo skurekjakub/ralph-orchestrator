@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { IContainerManager } from "./manager.js";
 import type { Logger } from "../logger.js";
@@ -34,6 +34,67 @@ function buildAuthHeader(provider: VcsProvider, pat: string): string {
   }
 }
 
+const EXCLUDE_MARKER_START = "# >>>ralph-orchestrator (managed — do not edit)";
+const EXCLUDE_MARKER_END = "# <<<ralph-orchestrator";
+
+/** Patterns the orchestrator mounts into the container workspace via Docker bind mounts. */
+const ORCHESTRATOR_EXCLUDE_PATTERNS = [
+  ".ralph/",
+  ".github/skills/",
+  ".github/agents/",
+];
+
+/**
+ * Write orchestrator-managed exclusion patterns to `.git/info/exclude`.
+ *
+ * Uses marker comments for idempotent updates — replaces the existing managed
+ * block if present, appends if absent. Preserves any user-added content outside
+ * the markers.
+ *
+ * This prevents Docker-created bind-mount artifacts (skills, agents, .ralph/)
+ * from appearing in `git status`, being staged by `git add`, or blocking
+ * `git checkout` when switching to branches that track those paths.
+ */
+export function ensureGitExclude(repoPath: string): void {
+  const excludePath = join(repoPath, ".git", "info", "exclude");
+  const infoDir = join(repoPath, ".git", "info");
+
+  if (!existsSync(infoDir)) {
+    mkdirSync(infoDir, { recursive: true });
+  }
+
+  const managedBlock = [
+    EXCLUDE_MARKER_START,
+    ...ORCHESTRATOR_EXCLUDE_PATTERNS,
+    EXCLUDE_MARKER_END,
+  ].join("\n");
+
+  let content = "";
+  if (existsSync(excludePath)) {
+    content = readFileSync(excludePath, "utf-8");
+  }
+
+  const startIdx = content.indexOf(EXCLUDE_MARKER_START);
+  const endIdx = content.indexOf(EXCLUDE_MARKER_END);
+
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    // Replace existing managed block (including trailing newline if present)
+    const endOfBlock = endIdx + EXCLUDE_MARKER_END.length;
+    const trailingNewline = content[endOfBlock] === "\n" ? 1 : 0;
+    content = content.slice(0, startIdx) + managedBlock + "\n" + content.slice(endOfBlock + trailingNewline);
+  } else {
+    // No valid managed block found — strip any orphaned markers and append fresh
+    content = content
+      .split("\n")
+      .filter((line) => line !== EXCLUDE_MARKER_START && line !== EXCLUDE_MARKER_END)
+      .join("\n");
+    const separator = content.length > 0 && !content.endsWith("\n") ? "\n" : "";
+    content = content + separator + managedBlock + "\n";
+  }
+
+  writeFileSync(excludePath, content, "utf-8");
+}
+
 /**
  * Sync the repository to the default branch and create a task branch before agent execution.
  *
@@ -58,6 +119,10 @@ export class RepoSyncHook implements ILifecycleHook {
     const pat = process.env[repoPat];
     const defaultBranch: string = taskCtx.triggerParams['source_branch'] ?? "main";
     if (!pat) throw new Error(`${repoPat} must be set for repo-sync hook (profile "${taskCtx.profile.id}")`);
+
+    // Write exclusion patterns before any git operation so Docker-created
+    // bind-mount artifacts don't block checkout or appear in status/add.
+    ensureGitExclude(repoPath);
 
     const authHeader = buildAuthHeader(vcsProvider, pat);
     const git = (args: string[]) => execa("git", ["-C", repoPath, ...args]);

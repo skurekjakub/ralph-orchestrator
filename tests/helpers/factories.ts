@@ -254,6 +254,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
   return {
     profileId: "ralph-default",
     repo: "/tmp/test-repo",
+    targetRepoPath: "/tmp/test-repo",
     cli: "copilot",
     model: "",
     agentName: "ralph",
@@ -276,6 +277,13 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
+    stageRole: "primary",
+    stageMode: "container",
+    stageIndex: 0,
+    stageCount: 1,
+    isFirstStage: true,
+    isLastStage: true,
+    previousStageRoles: [],
     hook: {
       taskOutputDir: "",
       collectedLogs: {},

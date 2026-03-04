@@ -367,6 +367,8 @@ Profiles can mount shared skill folders into the container. Skills live in `shar
 
 Each skill name must match a subdirectory in `shared/skills/`. Skills are validated at startup — missing directories cause a startup error. Mounts are read-only and included in the auto-generated compose overlay.
 
+Because skills and agent templates are injected via Docker bind mounts into a host-side repo checkout, they appear as untracked files to git. The `RepoSyncHook` writes orchestrator-managed patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking `git checkout`, appearing in `git status`, or being staged by `git add`.
+
 #### Clean Paths
 
 The `cleanPaths` array lists absolute container paths that are deleted before each agent run:

@@ -78,10 +78,9 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     mkdirSync(attachDir);
     chmodSync(attachDir, 0o777);
 
-    // .gitignore files mounted into /workspace/.ralph/ and /workspace/.github/skills/
+    // .gitignore file mounted into /workspace/.ralph/
     // to hide orchestrator-managed runtime files from git inside the container
     writeFileSync(join(buildDir, ".gitignore"), "*\n", "utf-8");
-    writeFileSync(join(buildDir, "github-gitignore"), "*\n", "utf-8");
 
     writeFileSync(
       join(buildDir, "mcp-config.json"),

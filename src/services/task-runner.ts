@@ -1,4 +1,4 @@
-import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
+import { StageMode, type IAgentProfile } from "../config/types.js";
 import { TaskStatus, type RalphResult, type StageResult, type ContainerManagerFactory } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";

@@ -1,8 +1,7 @@
 import { execa } from "execa";
 import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
-import type { RalphResult, CliPaths } from "./types.js";
-import { deriveStageProfile } from "./types.js";
+import { deriveStageProfile, type RalphResult, type CliPaths } from "./types.js";
 import type { Logger } from "../logger.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { IComposeClient } from "./compose-client.js";

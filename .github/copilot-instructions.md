@@ -41,7 +41,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `shared/hooks/` | Copilot CLI audit hooks (session logging) |
 | `shared/agent-includes/` | Shared Liquid partials for agent templates (`*.md` — ADO API, prompt security, personality, source references, workflow includes). Supports subdirectories (e.g. `personality/`, `ralph-docs/`). |
 | `shared/mcp-servers/` | MCP server manifests and custom server code (one subdirectory per server) |
-| `shared/skills/` | Shared agent skill folders, mounted per-profile into `.github/skills/` inside containers |
+| `shared/skills/` | Shared agent skill folders, mounted per-profile into `.github/skills/` inside containers (excluded from git via `.git/info/exclude` managed by `RepoSyncHook`) |
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 | `dashboard-local/` | Local development dashboard (Vite + React) |
 | `tests/` | Vitest test suite |
@@ -131,6 +131,8 @@ Each variant within a profile has a `stages` array defining a sequential agent p
 
 The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync lifecycle hook. The `repoPat` field names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
+**Bind-mount artifact exclusion.** Docker bind mounts for skills, agent templates, and `.ralph/` create host-side files inside the target repo checkout. The `RepoSyncHook` writes patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking checkout, appearing in status, or being staged.
+
 ## Profile Infrastructure
 
 All Docker and agent infrastructure is centralized in the orchestrator repo. Target repos contain no Ralph-specific files.
@@ -159,7 +161,8 @@ shared/
       mcp-server.json   — Server manifest (type, command, args, env, sidecarPort, proxyDomains)
       src/ dist/         — Custom server source/bundle (type: "custom" only)
   mcp-sidecar/          — MCP sidecar container (gateway process manager + Dockerfile)
-  skills/               — Shared agent skill definitions (mounted into .github/skills/ per profile)
+  skills/               — Shared agent skill definitions (mounted into .github/skills/ per profile,
+                          excluded from git via .git/info/exclude managed by RepoSyncHook)
 ```
 
 Agent templates use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`, `{% section "name" %}`) with partials from `shared/agent-includes/*.md` (supports subdirectories, e.g. `{% render 'personality/ralph' %}`). The custom `{% section "name" %}...{% endsection %}` block tag wraps content in `<name>...</name>` XML boundaries for LLM recall and injection isolation. Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata, task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`). The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in `src/container/setup/agent-includes.ts`. Resolved files go to `.build/` and are mounted read-only into containers.

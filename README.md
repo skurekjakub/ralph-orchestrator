@@ -147,6 +147,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | JIRA transition to "In Progress" + start comment | TaskRunner |
 | Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
 | Create executor per stage (container vs local mode) | ContainerManager |
+| Manage `.git/info/exclude` for bind-mount artifacts | RepoSyncHook (lifecycle hook) |
 | Render agent templates (JIT) + resolve MCP macros | TaskRunner |
 | `git pull`, branch, write, review, revise | Ralph (inside container) |
 | Create PR via ADO REST API, push branch | Ralph (inside container) |

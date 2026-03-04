@@ -1,4 +1,4 @@
-import type { IAgentProfile, ISecretsConfig, IStageConfig } from "../config/types.js";
+import type { IAgentProfile, ISecretsConfig } from "../config/types.js";
 import type { Logger } from "../logger.js";
 import type { IComposeClient } from "./compose-client.js";
 import type { ContainerExecResult, CliPaths } from "./types.js";
