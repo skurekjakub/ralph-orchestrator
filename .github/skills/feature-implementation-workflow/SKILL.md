@@ -7,6 +7,24 @@ description: "End-to-end workflow for implementing new features or modifying exi
 
 Sequential phases for implementing features in the Ralph Orchestrator codebase. Each phase references a detailed skill or instruction for the specifics — this skill provides the sequence and decision points.
 
+### Related documents
+
+| Document | Role |
+|---|---|
+| `ARCHITECTURE.md` | Primary source for system design, component details, profile infrastructure tree, security |
+| `CONFIGURATION.md` | Primary source for all config fields, env vars, schemas, runtime macros |
+| `README.md` | Primary source for setup guide, output layout, responsibility split |
+| `CLAUDE.md` | Key files table, architecture summary, conventions (for Claude Code) |
+| `.github/copilot-instructions.md` | Source directory map, brief architecture summary (for GitHub Copilot) |
+| `DEPENDENCY-INJECTION.md` | Interface/class convention, cradle as sole composition root |
+| `SECURITY.md` | Threat model, network isolation, container hardening |
+| `MCP.md` | MCP server architecture, compose merge, config structure |
+| `docs/agent-templates.md` | Template authoring, rendering pipeline, `TemplateContext` variable reference |
+| `docs/compose-layering.md` | Three-file compose merge pattern |
+| `docs/multistage-pipelines.md` | Stage config fields, execution modes, stage context variables |
+| `docs/data-source-registration.md` | Plugin pattern, factory registration, third-party integration |
+| `docs/mcp-sidecar-design.md` | MCP isolation architecture, network topology |
+
 ## Phase 1: Research & Context Gathering
 
 **Goal:** Understand what exists before changing anything.
@@ -101,26 +119,36 @@ All four must pass before proceeding. Fix any failures — don't skip them.
 
 **Goal:** Keep docs in sync with code.
 
-Update **all** documentation that references the changed behavior. The canonical list:
+Use the **documentation-maintenance** skill for the full guide. It provides:
+- The canonical doc inventory with staleness risk ratings
+- A duplication map (which structures exist in multiple docs and must be updated together)
+- Per-change-type checklists (added a file? changed config? modified compose infrastructure?)
+- Staleness detection patterns for auditing
+
+### Quick reference — always check these
 
 | Document | What to update |
 |---|---|
-| `ARCHITECTURE.md` | System overview, component descriptions, design decisions |
-| `CONFIGURATION.md` | Config fields, schemas, profile options |
-| `README.md` | Responsibility table, output layout, quick-start |
-| `.github/copilot-instructions.md` | Source directory map, profile infrastructure, conventions |
-| `CLAUDE.md` | Key files table, architecture summary, conventions |
-| `DATAFLOW.drawio` | Visual dataflow diagram (XML) |
-| `SECURITY.md` | If security boundaries change |
-| `MCP.md` | If MCP server config changes |
-| `docs/` | Domain-specific docs (agent templates, compose layering, etc.) |
+| `ARCHITECTURE.md` | System overview, component details, profile infrastructure tree, security |
+| `CONFIGURATION.md` | Config fields, env vars, schemas, profile options, runtime macros |
+| `README.md` | Output layout, responsibility table |
+| `.github/copilot-instructions.md` | Source directory map (primary), brief summaries (references other docs for detail) |
+| `CLAUDE.md` | Key files table, architecture summary, profile structure |
+| `DATAFLOW.drawio` | Visual dataflow diagram (XML — edit in draw.io) |
+| `SECURITY.md` | Threat model, network isolation, container hardening |
+| `MCP.md` | MCP server architecture, config structure |
+| `docs/agent-templates.md` | Template variables, rendering pipeline |
+| `docs/compose-layering.md` | Compose merge pattern |
+| `docs/multistage-pipelines.md` | Stage fields, execution modes |
+| `docs/data-source-registration.md` | Plugin integration guide |
 
 ### Checklist
 
-- [ ] All docs referencing changed behavior are updated
+- [ ] Ran the appropriate change-type checklist from **documentation-maintenance** skill
+- [ ] All duplicated structures updated together (profile trees, env vars, conventions)
 - [ ] No stale references to removed code/files/config
-- [ ] New config fields are documented with types and defaults
-- [ ] New design decisions are recorded in ARCHITECTURE.md
+- [ ] New config fields documented in both types and CONFIGURATION.md
+- [ ] New design decisions recorded in ARCHITECTURE.md
 
 ## Phase 7: Final Verification
 

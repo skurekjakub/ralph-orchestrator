@@ -219,16 +219,4 @@ Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. E
 
 ## Output Layout
 
-```
-output/logs/
-  <key>-<startTs>/          — Per-task directory
-    <key>-<ts>.log          — Real-time container output
-    <key>-<ts>-audit.jsonl  — Audit trail from hooks
-    <key>-<ts>-transcript.md
-    <key>-<ts>-proxy.log    — Squid access log
-    <key>-<ts>-sidecar.log
-    <key>-<ts>-summary.json
-  activity-YYYY-MM-DD.log   — Persistent daily activity log
-  container-YYYY-MM-DD.log  — Persistent container output log
-  history/<issueKey>.json   — Operation ledger
-```
+Per-task log collection to `output/logs/<key>-<startTs>/` with audit trail, session transcript, proxy/sidecar logs, and execution summary. See [README.md](README.md) § Output for the full file layout.
