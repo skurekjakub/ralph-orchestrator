@@ -136,4 +136,15 @@ describe("RepoSyncHook", () => {
     await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger()))
       .rejects.toThrow("git fetch failed");
   });
+
+  it("switches to existing branch on revision without creating a new one", async () => {
+    const { container } = createMockContainer();
+    const revisionCtx = makeTaskContext({ profile, workItem, isRevision: true });
+
+    await new RepoSyncHook().execute(container, revisionCtx, createMockLogger());
+
+    const allArgs = mockExeca.mock.calls.map((c) => c[1]).flat();
+    expect(allArgs).toContain(expectedBranch);
+    expect(allArgs).not.toContain("-b");
+  });
 });

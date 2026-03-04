@@ -69,8 +69,16 @@ export class RepoSyncHook implements ILifecycleHook {
     logger.info("Repo sync complete");
 
     const taskBranch = slugifyBranchName(taskCtx.workItem.id, taskCtx.workItem.title);
-    logger.info(`Creating task branch ${taskBranch}...`);
-    await git(["checkout", "-b", taskBranch]);
+
+    if (taskCtx.isRevision) {
+      logger.info(`Revision: switching to existing branch ${taskBranch}...`);
+      await git(["-c", `http.extraHeader=Authorization: ${authHeader}`, "fetch", "origin", taskBranch]);
+      await git(["checkout", taskBranch]);
+      await git(["reset", "--hard", `origin/${taskBranch}`]);
+    } else {
+      logger.info(`Creating task branch ${taskBranch}...`);
+      await git(["checkout", "-b", taskBranch]);
+    }
 
     const tasksDir = join(repoPath, ".ralph", "tasks", taskCtx.workItem.id);
     mkdirSync(tasksDir, { recursive: true });

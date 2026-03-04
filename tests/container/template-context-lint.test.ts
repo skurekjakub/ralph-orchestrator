@@ -46,6 +46,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   "isFirstStage",
   "isLastStage",
   "previousStageRoles",
+  "hook",
 ]);
 
 /**
@@ -53,7 +54,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
  * References like `triggerParams.codesamples` are valid — we only
  * validate that the root (`triggerParams`) exists in TemplateContext.
  */
-const DYNAMIC_PARENT_KEYS: ReadonlySet<string> = new Set(["triggerParams"]);
+const DYNAMIC_PARENT_KEYS: ReadonlySet<string> = new Set(["triggerParams", "hook"]);
 
 /**
  * Strip `{% raw %}...{% endraw %}` blocks so example Liquid tags inside

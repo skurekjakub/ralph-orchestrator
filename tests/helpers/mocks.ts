@@ -226,6 +226,7 @@ export function createMockContainer(
     stop: spies.stop,
     onToolOutput: undefined,
     onPreToolUse: undefined,
+    isRunning: true,
     cliPaths,
     logs: {
       collectAll: spies.collectAll,

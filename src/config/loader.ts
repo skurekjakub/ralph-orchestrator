@@ -94,6 +94,20 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         timeoutMs: s.timeoutMs,
       }));
 
+      const mapStage = (s: typeof variant.stages[number]): IStageConfig => ({
+        agent: s.agent,
+        role: s.role,
+        mode: s.mode as unknown as StageMode,
+        skills: s.skills,
+        model: s.model,
+        timeoutMs: s.timeoutMs,
+      });
+
+      const postTaskHooks = (variant.postTaskHooks ?? []).map((h) => ({
+        name: h.name,
+        stages: h.stages.map(mapStage),
+      }));
+
       const firstAgent = stages[0].agent;
       const allSkills = [...new Set(stages.flatMap((s) => s.skills))];
 
@@ -128,8 +142,10 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         afterAgent: variant.afterAgent,
         preflight: variant.preflight,
         failureComment: variant.failureComment,
+        description: variant.description,
         skills: allSkills,
         stages,
+        postTaskHooks,
       });
     }
   }

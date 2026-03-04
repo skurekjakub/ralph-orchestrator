@@ -87,7 +87,24 @@ export const stageSchema = z.object({
   timeoutMs: z.number().positive().optional(),
 });
 
+export const postTaskHookSchema = z.object({
+  /** Hook identifier — lowercase alphanumeric with hyphens. */
+  name: z.string().min(1).regex(/^[a-z0-9-]+$/, "Hook name must be lowercase alphanumeric with hyphens"),
+  /** Sequential local-only stages within this hook. */
+  stages: z.array(stageSchema)
+    .min(1, "Post-task hook must have at least one stage")
+    .refine(
+      (stages) => stages.every(s => s.mode === "local"),
+      "Post-task hook stages must be mode: 'local'",
+    )
+    .refine(
+      (stages) => new Set(stages.map(s => s.role)).size === stages.length,
+      "Stage roles must be unique within a hook",
+    ),
+});
+
 export const variantSchema = z.object({
+  description: z.string().optional(),
   stages: z.array(stageSchema).min(1, "At least one stage is required").refine(
     (stages) => {
       const roles = stages.map((s) => s.role);
@@ -101,6 +118,12 @@ export const variantSchema = z.object({
   afterAgent: agentTransitionSchema,
   preflight: z.string().optional(),
   failureComment: z.string().optional(),
+  postTaskHooks: z.array(postTaskHookSchema)
+    .default([])
+    .refine(
+      (hooks) => new Set(hooks.map(h => h.name)).size === hooks.length,
+      "Post-task hook names must be unique within a variant",
+    ),
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */

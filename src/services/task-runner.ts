@@ -119,6 +119,15 @@ export class TaskRunner implements ITaskRunner {
       await this.prepareContainer(ctx, container);
       const result = await this.executeAgent(ctx, container);
       await this.resultWriter.collectResults(ctx, container, result);
+
+      // Tear down the container before running hooks — hooks are local-only
+      // and don't need the container. The isRunning guard makes the
+      // orchestrator's safety-net teardown a no-op.
+      await this.teardown(ctx.profile, container);
+
+      // Run post-task hooks (local-only, after full container lifecycle)
+      await this.executePostTaskHooks(ctx, result);
+
       return { result, container };
     } catch (err) {
       this.logger.error(
@@ -322,5 +331,71 @@ export class TaskRunner implements ITaskRunner {
     }
 
     return finalResult;
+  }
+
+  /**
+   * Execute post-task hook pipelines after the main pipeline is complete.
+   *
+   * Each hook runs its stages sequentially using local-only executors.
+   * A failing stage aborts the current hook but does not prevent subsequent
+   * hooks from running. Hook failures are logged as warnings — they never
+   * affect the task result or JIRA transitions.
+   */
+  private async executePostTaskHooks(ctx: TaskContext, result: RalphResult): Promise<void> {
+    const hooks = ctx.profile.postTaskHooks;
+    if (!hooks.length) return;
+
+    for (const hook of hooks) {
+      const hookOutputDir = join(ctx.outputDir, "hooks", hook.name);
+      mkdirSync(hookOutputDir, { recursive: true });
+
+      this.logger.info(`[hook:${hook.name}] Starting (${hook.stages.length} stage${hook.stages.length > 1 ? "s" : ""})`);
+      const completedRoles: string[] = [];
+
+      try {
+        for (let i = 0; i < hook.stages.length; i++) {
+          const stage = hook.stages[i];
+          const stageLabel = `[hook:${hook.name}/${stage.role}]`;
+
+          const stageContext = buildTemplateContext(ctx, {
+            stageIndex: i,
+            stageCount: hook.stages.length,
+            stageRole: stage.role,
+            stageMode: stage.mode,
+            previousStageRoles: completedRoles,
+            skills: stage.skills,
+            hook: {
+              collectedLogs: result.collectedLogs,
+              name: hook.name,
+              outputDir: hookOutputDir,
+            },
+          });
+
+          this.logger.info(`${stageLabel} Rendering templates...`);
+          await this.templateRenderer.render(ctx.profile.id, stageContext, this.logger);
+          await this.skillRenderer.render(stageContext, this.logger);
+
+          const { executor, sessionRunner } = this.containerFactory.createLocalSession(ctx.profile, stage);
+
+          this.logger.info(`${stageLabel} Executing ${stage.agent}...`);
+          const stageResult = await sessionRunner.run(executor, ctx.workItem, { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams }, {
+            maxContinuations: 0,
+            enableContinuation: false,
+          });
+
+          if (stageResult.status !== TaskStatus.Completed) {
+            this.logger.warn(`${stageLabel} Failed (${stageResult.status}) — skipping remaining stages in this hook`);
+            break;
+          }
+
+          completedRoles.push(stage.role);
+          this.logger.info(`${stageLabel} Completed`);
+        }
+
+        this.logger.info(`[hook:${hook.name}] Finished`);
+      } catch (err) {
+        this.logger.warn(`[hook:${hook.name}] Unexpected error: ${toErrorMessage(err)}`);
+      }
+    }
   }
 }

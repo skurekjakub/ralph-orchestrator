@@ -184,6 +184,7 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.afterAgent` | JIRA transition config `{ targetStatus }` to execute after successful completion. Empty `{}` = no transition. |
 | `variant.preflight` | Named preflight check to run before agent invocation. If it fails, the agent is not invoked. Optional. |
 | `variant.failureComment` | JIRA comment posted when preflight fails. Falls back to a generic message. Optional. |
+| `variant.postTaskHooks` | Array of post-task hook objects. Each hook defines a local-only agent pipeline that runs after the main pipeline completes and the container is torn down. Hook failures are logged as warnings and never affect the task result. See [Post-Task Hooks](docs/multistage-pipelines.md#post-task-hooks). Default: `[]`. |
 
 #### Stages
 

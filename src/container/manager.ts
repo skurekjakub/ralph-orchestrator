@@ -31,6 +31,8 @@ export interface IContainerLogs {
 
 /** Public contract for container lifecycle management. */
 export interface IContainerManager {
+  /** Whether the container is currently running (started but not yet stopped). */
+  readonly isRunning: boolean;
   /** Verify that Docker is running. */
   checkPrerequisites(): Promise<void>;
   /** Build and start the containers. */
@@ -91,6 +93,10 @@ export class ContainerManager implements IContainerManager {
   private readonly profile: IAgentProfile;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
+  private _stopped = false;
+
+  /** Whether stop() has not yet been called. Used to make teardown idempotent. */
+  get isRunning(): boolean { return !this._stopped; }
 
   /** Per-task log collector — manages streaming and collection for all log sources. */
   readonly logs: IContainerLogCollector;
@@ -261,6 +267,8 @@ export class ContainerManager implements IContainerManager {
    * Falls back to `docker rm -f` if compose fails.
    */
   async stop(): Promise<void> {
+    if (this._stopped) return;
+    this._stopped = true;
     this.logger.info("Stopping containers...");
     this.logs.detach();
     this.executor.killActive();

@@ -1,5 +1,6 @@
 import { IAgentProfile, type IStageConfig } from "../config/types.js";
 import { IContainerManager } from "./manager.js";
+import type { ICliExecutor } from "./cli-executor-factory.js";
 
 /** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */
 export interface CliPaths {
@@ -30,10 +31,14 @@ export enum CliType {
 /**
  * Factory for creating {@link ContainerManager} instances.
  */
+import type { IAgentSessionRunner } from "./agent-session-runner.js";
+
 export interface ContainerManagerFactory {
   create(profile: IAgentProfile): IContainerManager;
   /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
   forceDown(profile: IAgentProfile): Promise<void>;
+  /** Create a local executor + session runner pair for a hook stage (no container needed). */
+  createLocalSession(profile: IAgentProfile, stage: IStageConfig): { executor: ICliExecutor; sessionRunner: IAgentSessionRunner };
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */

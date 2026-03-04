@@ -180,8 +180,7 @@ export function makeProfile(
     mcpServerConfigs: {},
     githubMcpTools: false,
     skills: [],
-    stages,
-    dataSource: "test-source",
+    stages,    postTaskHooks: [],    dataSource: "test-source",
     vcsProvider: VcsProvider.Ado,
     repoPat: "ADO_PAT",
     ...overrides,
@@ -277,6 +276,12 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
+    hook: {
+      taskOutputDir: "",
+      collectedLogs: {},
+      name: "",
+      outputDir: "",
+    },
     ...overrides,
   };
 }
@@ -293,6 +298,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     isRevision: false,
     ralphchivesEnabled: false,
     prUrl: null,
+    outputDir: "",
     ...overrides,
   };
 }

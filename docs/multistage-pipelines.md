@@ -299,3 +299,94 @@ A local analyzer reviews the agent's run telemetry, then a gap filler creates or
   { "agent": "ralph.ralph-gap-filler", "role": "gap-filler", "mode": "local", "skills": ["skill-creator"] }
 ]
 ```
+
+## Post-Task Hooks
+
+Post-task hooks are local-only agent pipelines that run **after** the main pipeline completes and the container is torn down. They are intended for analysis, self-improvement, and observability workflows that operate on the collected log artifacts.
+
+### Key behaviors
+
+- **Local-only** — all hook stages must be `mode: "local"`. Container mode is rejected by schema validation.
+- **Failure-isolated** — hook failures are logged as warnings. They never affect the task result, JIRA transitions, or operation ledger status.
+- **Sequential within, independent across** — stages within a hook run sequentially. If a stage returns any non-Completed status, remaining stages in that hook are skipped. The next hook still runs.
+- **After teardown** — hooks run after container teardown and log collection, so they have access to all collected log artifacts.
+
+### Configuration
+
+Add `postTaskHooks` to a variant alongside `stages`:
+
+```json
+{
+  "stages": [
+    { "agent": "ralph.ralph", "role": "primary", "mode": "container" }
+  ],
+  "postTaskHooks": [
+    {
+      "name": "run-analysis",
+      "stages": [
+        { "agent": "ralph.run-analyzer", "role": "analyzer", "mode": "local", "model": "claude-sonnet-4-20250514" },
+        { "agent": "ralph.agent-improver", "role": "improver", "mode": "local" }
+      ]
+    }
+  ]
+}
+```
+
+### Hook fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | `string` | Yes | Unique identifier. Lowercase alphanumeric with hyphens (`^[a-z0-9-]+$`). |
+| `stages` | `IStageConfig[]` | Yes | Sequential local-only stages. Same schema as variant stages, but `mode` must be `"local"`. |
+
+### Validation rules
+
+- Hook names must match `^[a-z0-9-]+$`
+- All stages must be `mode: "local"`
+- Stage roles must be unique within each hook
+- Hook names must be unique within the variant
+- At least one stage per hook
+
+### Template context
+
+Hook stages receive additional template variables beyond the standard stage context:
+
+| Variable | Type | Description |
+|---|---|---|
+| `outputDir` | `string` | Absolute path to the task's log directory (`output/logs/<taskId>`) |
+| `collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline |
+| `hookName` | `string` | Name of the current hook (e.g. `"run-analysis"`) |
+| `hookOutputDir` | `string` | `outputDir/hooks/<hookName>/` — where this hook should write output |
+
+### Output directory layout
+
+```
+output/logs/<taskId>/
+  DF-100-...-transcript.md     ← main pipeline logs
+  DF-100-...-summary.json
+  DF-100-...-audit.jsonl
+  hooks/
+    run-analysis/              ← hook output directory
+      analysis.md              ← run-analyzer output
+      improvements.md          ← agent-improver output
+```
+
+### Execution flow
+
+```
+Main pipeline stages → collectResults → container teardown
+                                              ↓
+                            postTaskHooks (local, no container)
+                                          ↓
+                                  hook: "run-analysis"
+                                    stage: analyzer  →  stage: improver
+                                          ↓
+                                  hook: "next-hook" (if any)
+```
+
+### Built-in hooks
+
+The `@RalphAnalyzed` trigger variant in `ralph-docs` includes a pre-configured `run-analysis` hook:
+
+1. **run-analyzer** (sonnet) — reads collected logs and produces `analysis.md` covering tool usage patterns, error recovery, workflow compliance, and improvement suggestions.
+2. **agent-improver** (opus) — reads the analysis report and proposes targeted changes to agent templates, skills, shared includes, and MCP server configs.

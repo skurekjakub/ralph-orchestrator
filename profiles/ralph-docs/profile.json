@@ -54,64 +54,8 @@
     {
       "match": {
         "projects": [
+          "DOC",
           "DF"
-        ],
-        "statuses": [
-          "New",
-          "To Do",
-          "Defect Found"
-        ],
-        "commentTrigger": "@RalphDf",
-        "revisionStatuses": [
-          "Defect Found"
-        ]
-      },
-      "beforeAgent": {
-        "targetStatus": "In Progress"
-      },
-      "afterAgent": {
-        "targetStatus": "Ready for Review"
-      },
-      "stages": [
-        {
-          "agent": "ralph.ralph",
-          "role": "primary",
-          "skills": [
-            "ralph-code-samples",
-            "ralph-ado-pr-workflow",
-            "ralph-source-references",
-            "ralph-ralphchives",
-            "ralph-new-page-creation",
-            "ralph-documentation-syntax",
-            "ralph-style-guide-review",
-            "ralph-codesamples-project",
-            "ralph-screenshots",
-            "ralph-training-modules",
-            "ralph-write-release-notes",
-            "ralph-research-guide",
-            "ralph-workflow-setup",
-            "ralph-workflow-research",
-            "ralph-workflow-write",
-            "ralph-workflow-review",
-            "ralph-workflow-commit",
-            "ralph-workflow-pr",
-            "ralph-workflow-handoff",
-            "ralph-workflow-revision-setup",
-            "ralph-workflow-revision-fix",
-            "ralph-workflow-revision-commit",
-            "ralph-workflow-revision-handoff",
-            "ralph-build-errors",
-            "ralph-page-removal",
-            "ralph-callout-selection",
-            "ralph-cross-version-linking"
-          ]
-        }
-      ]
-    },
-    {
-      "match": {
-        "projects": [
-          "DOC"
         ],
         "statuses": [
           "To Do",
@@ -159,7 +103,8 @@
             "ralph-build-errors",
             "ralph-page-removal",
             "ralph-callout-selection",
-            "ralph-cross-version-linking"
+            "ralph-cross-version-linking",
+            "ralph-xperience-page-permissions"
           ]
         }
       ]
@@ -241,29 +186,84 @@
             "ralph-build-errors",
             "ralph-page-removal",
             "ralph-callout-selection",
-            "ralph-cross-version-linking"
+            "ralph-cross-version-linking",
+            "ralph-xperience-page-permissions"
           ]
         }
       ]
     },
     {
-      "model": "claude-sonnet-4",
+      "description": "Regular Ralph run followed by an audit and an agent-improver run locally.",
       "match": {
         "projects": [
           "DOC"
         ],
         "statuses": [
           "To Do",
-          "In Progress",
-          "Ready for Review",
           "Defect Found"
         ],
-        "commentTrigger": "@McpProbe"
+        "commentTrigger": "@RalphAnalyzed",
+        "revisionStatuses": [
+          "Defect Found"
+        ]
+      },
+      "beforeAgent": {
+        "targetStatus": "In Progress"
+      },
+      "afterAgent": {
+        "targetStatus": "Ready for Review"
       },
       "stages": [
         {
-          "agent": "ralph.mcp-probe",
-          "role": "primary"
+          "agent": "ralph.ralph",
+          "role": "primary",
+          "skills": [
+            "ralph-code-samples",
+            "ralph-ado-pr-workflow",
+            "ralph-source-references",
+            "ralph-ralphchives",
+            "ralph-new-page-creation",
+            "ralph-documentation-syntax",
+            "ralph-style-guide-review",
+            "ralph-codesamples-project",
+            "ralph-screenshots",
+            "ralph-training-modules",
+            "ralph-write-release-notes",
+            "ralph-research-guide",
+            "ralph-workflow-setup",
+            "ralph-workflow-research",
+            "ralph-workflow-write",
+            "ralph-workflow-review",
+            "ralph-workflow-commit",
+            "ralph-workflow-pr",
+            "ralph-workflow-handoff",
+            "ralph-workflow-revision-setup",
+            "ralph-workflow-revision-fix",
+            "ralph-workflow-revision-commit",
+            "ralph-workflow-revision-handoff",
+            "ralph-build-errors",
+            "ralph-page-removal",
+            "ralph-callout-selection",
+            "ralph-cross-version-linking",
+            "ralph-xperience-page-permissions"
+          ]
+        }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            { "agent": "ralph.run-analyzer", 
+              "role": "analyzer",
+              "mode": "local",
+              "model": "claude-sonnet-4-20250514" 
+            },
+            { "agent": "ralph.agent-improver",
+              "role": "improver",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
+          ]
         }
       ]
     }

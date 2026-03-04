@@ -29,6 +29,7 @@ import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
 import { ContinuationRunner } from "./container/continuation-runner.js";
 import { AgentSessionRunner } from "./container/agent-session-runner.js";
+import { deriveStageProfile } from "./container/types.js";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
@@ -74,6 +75,13 @@ function buildContainerFactory({
     forceDown: async (profile) => {
       const compose = buildComposeClient(profile);
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
+    },
+    createLocalSession: (profile, stage) => {
+      const stageProfile = deriveStageProfile(profile, stage);
+      const executor = executorFactory.createLocal(stageProfile, process.cwd(), containerLogger);
+      const continuationRunner = new ContinuationRunner({ logger });
+      const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
+      return { executor, sessionRunner };
     },
   };
 }
