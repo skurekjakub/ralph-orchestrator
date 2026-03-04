@@ -17,6 +17,14 @@ export enum StageMode {
   Local = "local",
 }
 
+/** A named post-task hook pipeline — runs after main pipeline + log collection + teardown. */
+export interface IPostTaskHook {
+  /** Hook identifier — used in log prefixes, activity log, and output subdirectory name. */
+  readonly name: string;
+  /** Sequential local-only stages within this hook. Abort-on-fail. */
+  readonly stages: readonly IStageConfig[];
+}
+
 /** Configuration for a single pipeline stage within a variant. */
 export interface IStageConfig {
   /** Agent CLI name (e.g. `ralph.ralph`, `ralph.decomposer`). Used as the `--agent` argument. */
@@ -117,6 +125,8 @@ export interface IAgentProfile {
   readonly beforeAgent: IAgentTransition;
   /** JIRA transition to execute after agent work. Empty = no transition. */
   readonly afterAgent: IAgentTransition;
+  /** Optional human-readable description of this variant's purpose. */
+  readonly description?: string;
   /** Named preflight check to run before agent invocation. If it fails, the agent is not invoked. */
   readonly preflight?: string;
   /** JIRA comment posted when preflight fails. Falls back to a generic message. */
@@ -128,6 +138,8 @@ export interface IAgentProfile {
   readonly skills: readonly string[];
   /** Ordered pipeline stages. Each stage runs an agent sequentially. */
   readonly stages: readonly IStageConfig[];
+  /** Post-task hook pipelines. Run after main pipeline, log collection, and teardown. */
+  readonly postTaskHooks: readonly IPostTaskHook[];
 }
 
 export interface IOutputConfig {

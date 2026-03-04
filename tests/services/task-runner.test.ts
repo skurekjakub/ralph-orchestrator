@@ -25,7 +25,14 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
-  return { create: vi.fn().mockReturnValue(container), forceDown: vi.fn().mockResolvedValue(undefined) };
+  return {
+    create: vi.fn().mockReturnValue(container),
+    forceDown: vi.fn().mockResolvedValue(undefined),
+    createLocalSession: vi.fn().mockReturnValue({
+      executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+      sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Completed, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }) },
+    }),
+  };
 }
 
 describe("TaskRunner", () => {
@@ -458,6 +465,175 @@ describe("TaskRunner", () => {
 
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Graceful stop failed"));
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Fallback teardown failed"));
+    });
+  });
+
+  describe("executePostTaskHooks", () => {
+    function makeHookProfile(...hooks: Array<{ name: string; stages: Array<{ agent: string; role: string }> }>) {
+      return makeProfile({
+        id: PID,
+        agentName: "ralph",
+        postTaskHooks: hooks.map(h => ({
+          name: h.name,
+          stages: h.stages.map(s => ({ agent: s.agent, role: s.role, mode: StageMode.Local, skills: [] })),
+        })),
+      });
+    }
+
+    it("is a no-op when no hooks are configured", async () => {
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+
+      expect(factory.createLocalSession).not.toHaveBeenCalled();
+    });
+
+    it("runs a single hook with one stage after the main pipeline", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Starting"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Finished"));
+    });
+
+    it("runs multiple stages within a single hook sequentially", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(2);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Completed"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/improver] Completed"));
+    });
+
+    it("aborts remaining stages in a hook when a stage returns Error", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      // First stage returns error
+      vi.mocked(factory.createLocalSession).mockReturnValueOnce({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Error, durationMs: 0, exitCode: 1, stdout: "", stderr: "fail", collectedLogs: {} }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Main pipeline still succeeds
+      expect(result.status).toBe(TaskStatus.Completed);
+
+      // Only first stage executed
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Failed"));
+    });
+
+    it("aborts remaining stages when a stage returns Partial status", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      vi.mocked(factory.createLocalSession).mockReturnValueOnce({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Partial, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Failed (partial)"));
+    });
+
+    it("continues to next hook when a hook fails with an exception", async () => {
+      const hookProfile = makeHookProfile(
+        { name: "hook-a", stages: [{ agent: "ralph.a", role: "a" }] },
+        { name: "hook-b", stages: [{ agent: "ralph.b", role: "b" }] },
+      );
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      // First hook throws
+      vi.mocked(factory.createLocalSession)
+        .mockReturnValueOnce({
+          executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+          sessionRunner: { run: vi.fn().mockRejectedValue(new Error("hook-a exploded")) },
+        });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Main pipeline still succeeds
+      expect(result.status).toBe(TaskStatus.Completed);
+
+      // Both hooks were attempted (second used default mock which succeeds)
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(2);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:hook-a] Unexpected error"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:hook-b] Finished"));
+    });
+
+    it("does not run hooks when the main pipeline throws", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container, spies } = createMockContainer();
+      spies.start.mockRejectedValue(new Error("container start failed"));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(factory.createLocalSession).not.toHaveBeenCalled();
+    });
+
+    it("tears down container before running hooks", async () => {
+      const callOrder: string[] = [];
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container, spies } = createMockContainer();
+      spies.stop.mockImplementation(() => { callOrder.push("stop"); return Promise.resolve(); });
+
+      const factory = createMockFactory(container);
+      vi.mocked(factory.createLocalSession).mockReturnValue({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockImplementation(async () => { callOrder.push("hook-run"); return { taskId: "MOCK-1", status: TaskStatus.Completed, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }; }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(callOrder).toEqual(["stop", "hook-run"]);
     });
   });
 });

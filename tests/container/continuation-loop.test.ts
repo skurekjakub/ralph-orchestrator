@@ -6,7 +6,7 @@ import { TaskStatus, type ContainerExecResult, type CliPaths } from "../../src/c
 import type { BuiltPrompt, PromptBuilder } from "../../src/prompt/prompt-builder.js";
 import { makeProfile, makeWorkItem } from "../helpers/factories.js";
 import { createSilentLogger } from "../helpers/mocks.js";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
+import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner.js";
@@ -96,8 +96,13 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
   const continuationRunner = new ContinuationRunner({ logger });
   const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
 
+  const executorFactory: ICliExecutorFactory = {
+    create: vi.fn().mockReturnValue(executor),
+    createLocal: vi.fn().mockReturnValue(executor),
+  };
+
   return new ContainerManager({
-    profile, compose, executor, logs, cleaner,
+    profile, compose, executor, executorFactory, logs, cleaner,
     logRegistry, sessionRunner, logger,
     enableContinuation: true,
   });

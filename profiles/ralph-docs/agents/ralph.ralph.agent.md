@@ -116,7 +116,6 @@ Do not modify files outside this path unless strictly necessary (e.g. navigation
 
 ## Naming Conventions
 
-- Branch: `ralph/{{ taskId }}-<short-slug>` (e.g., `ralph/{{ taskId }}-custom-modules`)
 - Commit prefix: `docs({{ taskId }}):`
 - Workload dir: `.ralph/tasks/{{ taskId }}/`
 {% endsection %}

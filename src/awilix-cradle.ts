@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types.js";
 import type { OrchestratorCradle } from "./awlix-cradle-types.js";
-import type { ContainerManagerFactory } from "./container/types.js";
+import { deriveStageProfile, type ContainerManagerFactory } from "./container/types.js";
 import { buildDataSourceMaps } from "./datasource/registry.js";
 import { LogCollector } from "./logs/collector.js";
 import { PromptBuilder } from "./prompt/prompt-builder.js";
@@ -74,6 +74,13 @@ function buildContainerFactory({
     forceDown: async (profile) => {
       const compose = buildComposeClient(profile);
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
+    },
+    createLocalSession: (profile, stage) => {
+      const stageProfile = deriveStageProfile(profile, stage);
+      const executor = executorFactory.createLocal(stageProfile, process.cwd(), containerLogger);
+      const continuationRunner = new ContinuationRunner({ logger });
+      const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
+      return { executor, sessionRunner };
     },
   };
 }

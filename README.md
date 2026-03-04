@@ -22,16 +22,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    cp .env.example .env
    ```
 
-   | Variable | Description | Required |
-   |---|---|---|
-   | `GH_TOKEN` | GitHub PAT with Copilot Requests permission | When using Copilot CLI |
-   | `ANTHROPIC_API_KEY` | Anthropic API key for Claude Code CLI | When using Claude Code |
-   | `ADO_PAT` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
-   | `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read) | Optional |
-   | `JIRA_PAT` | JIRA API token (classic, from id.atlassian.com) | Yes |
-   | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |
-   | `DASHBOARD_URL` | Ralph status dashboard URL | Optional |
-   | `DASHBOARD_SECRET` | Shared secret for dashboard auth | Optional |
+   See [CONFIGURATION.md](CONFIGURATION.md) § Environment Variables for the full list. Key variables: `GH_TOKEN` (Copilot), `ANTHROPIC_API_KEY` (Claude Code), `ADO_PAT`, `JIRA_PAT`, `JIRA_EMAIL`.
 
 3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`:
    ```bash
@@ -147,6 +138,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | JIRA transition to "In Progress" + start comment | TaskRunner |
 | Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
 | Create executor per stage (container vs local mode) | ContainerManager |
+| Manage `.git/info/exclude` for bind-mount artifacts | RepoSyncHook (lifecycle hook) |
 | Render agent templates (JIT) + resolve MCP macros | TaskRunner |
 | `git pull`, branch, write, review, revise | Ralph (inside container) |
 | Create PR via ADO REST API, push branch | Ralph (inside container) |

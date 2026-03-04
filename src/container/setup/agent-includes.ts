@@ -151,6 +151,21 @@ export interface TemplateContext {
   isLastStage: boolean;
   /** Roles of previously completed stages (empty on the first stage). */
   previousStageRoles: string[];
+
+  /**
+   * Hook context — only populated for post-task hook stages.
+   * All fields default to empty values for main pipeline stages.
+   */
+  hook: {
+    /** Absolute path to the task's log directory. */
+    taskOutputDir: string;
+    /** Map of collected log file IDs to paths from the main pipeline. */
+    collectedLogs: Record<string, string>;
+    /** Name of the current hook. */
+    name: string;
+    /** Hook-specific output directory. */
+    outputDir: string;
+  };
 }
 
 /**
@@ -169,6 +184,12 @@ export function buildTemplateContext(
     previousStageRoles: string[];
     /** Per-stage skill names — overrides profile-level skills for rendering and context. */
     skills?: readonly string[];
+    /** Hook context — set only for post-task hook stages. */
+    hook?: {
+      collectedLogs: Record<string, string>;
+      name: string;
+      outputDir: string;
+    };
   },
 ): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams)
@@ -215,6 +236,13 @@ export function buildTemplateContext(
     isFirstStage: (stageOverrides?.stageIndex ?? 0) === 0,
     isLastStage: (stageOverrides?.stageIndex ?? 0) === (stageOverrides?.stageCount ?? ctx.profile.stages.length) - 1,
     previousStageRoles: stageOverrides?.previousStageRoles ?? [],
+
+    hook: {
+      taskOutputDir: stageOverrides?.hook ? ctx.outputDir : "",
+      collectedLogs: stageOverrides?.hook?.collectedLogs ?? {},
+      name: stageOverrides?.hook?.name ?? "",
+      outputDir: stageOverrides?.hook?.outputDir ?? "",
+    },
   };
 }
 

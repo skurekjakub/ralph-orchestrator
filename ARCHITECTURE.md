@@ -53,7 +53,7 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 4. TaskRunner ──(render templates + JIT gateway.json)──▶ Profile .build/
 5. TaskRunner ──(JIRA beforeAgent transition + start comment)──▶ JIRA Cloud
 6. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
-7. TaskRunner ──(lifecycle hooks: git sync)──▶ App container
+7. TaskRunner ──(lifecycle hooks: git exclude + sync)──▶ App container
 8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
 9. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
 10. Agent ──(git push)──▶ ADO Git (via Squid proxy)
@@ -106,7 +106,7 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 Orchestrates the full container lifecycle for a single task: build → setup → execute agent stages → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, lifecycle hooks, CLI execution, log collection, and workspace cleanup.
 
 - **ComposeClient** — Low-level `docker compose` wrapper. Handles the three-file merge and injects process environment (secrets, JIRA config, host paths).
-- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs `git checkout main && git pull` to ensure a clean starting point.
+- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then runs `git checkout main && git reset --hard origin/main` to ensure a clean starting point.
 - **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `SessionRunner` for prompt building, injection audit, and CLI invocation with continuation loop.
 - **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution.
 - **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker. Uses the same CLI arguments as the container executor but resolves paths to the host filesystem.
@@ -246,6 +246,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
 ├── shared/skills/                       # Shared agent skill folders (mounted per-profile into .github/skills/)
+│                                        #   Excluded from git via .git/info/exclude (managed by RepoSyncHook)
 ```
 
 Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.

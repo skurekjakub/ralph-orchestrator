@@ -71,13 +71,13 @@ describe("Compose Overlay", () => {
       rmSync(mcpDir, { recursive: true, force: true });
     });
 
-    it("always mounts .gitignore into .github/skills directory", () => {
+    it("does not mount .gitignore into .github/skills directory", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
 
       const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir);
 
-      expect(overlay).toContain("github-gitignore:/workspace/.github/skills/.gitignore:ro");
+      expect(overlay).not.toContain(".github/skills/.gitignore");
 
       rmSync(mcpDir, { recursive: true, force: true });
     });
