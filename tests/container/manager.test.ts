@@ -342,11 +342,15 @@ describe("ContainerManager", () => {
       const compose = createMockComposeClient();
       const executor = createMockExecutor();
       const logs = createMockLogCollector();
+
+      const { manager } = createHarness({ compose, executor, logs });
+      await manager.start();
+
+      // Attach order-tracking after start() so only stop() calls are recorded
       logs.detach.mockImplementation(() => { callOrder.push("detach"); });
       executor.killActive.mockImplementation(() => { callOrder.push("killActive"); });
       compose.compose.mockImplementation(() => { callOrder.push("compose-down"); return fakeResultPromise(); });
 
-      const { manager } = createHarness({ compose, executor, logs });
       await manager.stop();
 
       expect(callOrder).toEqual(["detach", "killActive", "compose-down"]);
@@ -355,10 +359,12 @@ describe("ContainerManager", () => {
 
     it("falls back to docker rm when compose down fails", async () => {
       const compose = createMockComposeClient();
-      compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
       compose.getContainerName.mockResolvedValue("mock-container-id");
 
       const { manager } = createHarness({ compose });
+      await manager.start();
+
+      compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
 
       // Should not throw — the fallback swallows errors
       await expect(manager.stop()).resolves.toBeUndefined();

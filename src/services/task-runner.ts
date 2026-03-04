@@ -79,7 +79,7 @@ export class TaskRunner implements ITaskRunner {
    * stop fails, delegates to the factory's `forceDown()` fallback.
    */
   async teardown(profile: IAgentProfile, container: IContainerManager | null): Promise<void> {
-    if (container) {
+    if (container?.isRunning) {
       try {
         await container.stop();
         return;
@@ -89,6 +89,8 @@ export class TaskRunner implements ITaskRunner {
         );
       }
     }
+
+    if (container && !container.isRunning) return;
 
     try {
       await this.containerFactory.forceDown(profile);
@@ -121,8 +123,8 @@ export class TaskRunner implements ITaskRunner {
       await this.resultWriter.collectResults(ctx, container, result);
 
       // Tear down the container before running hooks — hooks are local-only
-      // and don't need the container. The isRunning guard makes the
-      // orchestrator's safety-net teardown a no-op.
+      // and don't need the container. The isRunning guard in teardown() makes
+      // the orchestrator's safety-net teardown in finally a no-op.
       await this.teardown(ctx.profile, container);
 
       // Run post-task hooks (local-only, after full container lifecycle)

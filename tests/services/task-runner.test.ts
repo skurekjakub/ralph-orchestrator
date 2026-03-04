@@ -420,7 +420,7 @@ describe("TaskRunner", () => {
   });
 
   describe("teardown", () => {
-    it("calls container.stop() when container is provided", async () => {
+    it("calls container.stop() when container is running", async () => {
       const { container, spies } = createMockContainer();
       const factory = createMockFactory(container);
       const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
@@ -428,6 +428,18 @@ describe("TaskRunner", () => {
       await runner.teardown(profile, container);
 
       expect(spies.stop).toHaveBeenCalled();
+      expect(factory.forceDown).not.toHaveBeenCalled();
+    });
+
+    it("skips stop and forceDown when container is not running", async () => {
+      const { container, spies } = createMockContainer();
+      (container as { isRunning: boolean }).isRunning = false;
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.teardown(profile, container);
+
+      expect(spies.stop).not.toHaveBeenCalled();
       expect(factory.forceDown).not.toHaveBeenCalled();
     });
 

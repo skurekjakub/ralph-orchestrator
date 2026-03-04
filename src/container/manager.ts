@@ -92,10 +92,10 @@ export class ContainerManager implements IContainerManager {
   private readonly profile: IAgentProfile;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
-  private _stopped = false;
+  private _running = false;
 
-  /** Whether stop() has not yet been called. Used to make teardown idempotent. */
-  get isRunning(): boolean { return !this._stopped; }
+  /** Whether the container has been started and not yet stopped. */
+  get isRunning(): boolean { return this._running; }
 
   /** Per-task log collector — manages streaming and collection for all log sources. */
   readonly logs: IContainerLogCollector;
@@ -165,6 +165,7 @@ export class ContainerManager implements IContainerManager {
     const proc = this.compose.compose(["up", "-d", "--build"]);
     new StreamCapture(proc, this.containerLogger, "build");
     await proc;
+    this._running = true;
     this.logger.info("Containers started");
   }
 
@@ -266,8 +267,8 @@ export class ContainerManager implements IContainerManager {
    * Falls back to `docker rm -f` if compose fails.
    */
   async stop(): Promise<void> {
-    if (this._stopped) return;
-    this._stopped = true;
+    if (!this._running) return;
+    this._running = false;
     this.logger.info("Stopping containers...");
     this.logs.detach();
     this.executor.killActive();

@@ -99,13 +99,16 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       const v = variants[i];
       const vPrefix = `${prefix}/variants[${i}]`;
 
-      const stages: unknown[] = v.stages ?? [];
+      if (v.stages != null && !Array.isArray(v.stages)) {
+        errors.push(`${vPrefix}: stages must be an array`);
+        continue;
+      }
+      const stages = v.stages ?? [];
       if (stages.length === 0) {
         errors.push(`${vPrefix}: at least one stage is required`);
       }
       for (let si = 0; si < stages.length; si++) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s = stages[si] as any;
+        const s = stages[si];
         const sPrefix = `${vPrefix}/stages[${si}]`;
         if (!s?.agent) {
           errors.push(`${sPrefix}: agent name is required`);
@@ -184,15 +187,14 @@ function validateVariantSkills(
   prefix: string,
   errors: string[],
 ): void {
-  const variants: unknown[] = profile.variants ?? [];
-  for (let i = 0; i < variants.length; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v = variants[i] as any;
-    const stages: unknown[] = v?.stages ?? [];
-    for (let si = 0; si < stages.length; si++) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const stage = stages[si] as any;
-      const skills: unknown[] = stage?.skills ?? [];
+  if (!Array.isArray(profile.variants)) return;
+  for (let i = 0; i < profile.variants.length; i++) {
+    const v = profile.variants[i];
+    if (!Array.isArray(v?.stages)) continue;
+    for (let si = 0; si < v.stages.length; si++) {
+      const stage = v.stages[si];
+      if (stage?.skills != null && !Array.isArray(stage.skills)) continue;
+      const skills = stage?.skills ?? [];
       if (skills.length === 0) continue;
       const sPrefix = `${prefix}/variants[${i}]/stages[${si}]`;
       for (const skill of skills) {

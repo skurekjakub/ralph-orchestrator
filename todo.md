@@ -6,6 +6,9 @@ change xperience repo sideclone to `git add remote` (benefits?)
    * in the orchestrator repo directory. The target repo path is available
    * to the agent via the `{{ repo }}` template variable.
 
+
+parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
+
 -------------------------------------------------------------
 
 when you're done throughly audit your changes look for bugs, edge cases, missed tests, bugs possible refactoring opportunities and implement, 
