@@ -66,14 +66,14 @@ describe("Profile Setup", () => {
       expect(existsSync(attachDir)).toBe(true);
       expect(statSync(attachDir).mode & 0o777).toBe(0o777);
 
-      // .gitignore files should be generated to hide .ralph/ and .github/skills/ from git
+      // .gitignore file should be generated to hide .ralph/ from git inside the container.
+      // .github/skills/ and .github/agents/ are excluded via .git/info/exclude by RepoSyncHook.
       const gitignorePath = join(profileDir, ".build/.gitignore");
       expect(existsSync(gitignorePath)).toBe(true);
       expect(readFileSync(gitignorePath, "utf-8")).toBe("*\n");
 
       const githubGitignorePath = join(profileDir, ".build/github-gitignore");
-      expect(existsSync(githubGitignorePath)).toBe(true);
-      expect(readFileSync(githubGitignorePath, "utf-8")).toBe("*\n");
+      expect(existsSync(githubGitignorePath)).toBe(false);
 
       rmSync(rootDir, { recursive: true, force: true });
     });
@@ -275,7 +275,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({ mcpServers: [], variants: [{ agent: "ralph", match: { commentTrigger: "@go" }, skills: ["git-workflow"] }] }),
+        JSON.stringify({ mcpServers: [], variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["git-workflow"] }], match: { commentTrigger: "@go" } }] }),
       );
 
       resolveAllProfileSetup(rootDir);

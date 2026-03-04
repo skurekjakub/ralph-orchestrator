@@ -137,6 +137,7 @@ export function buildMockDeps(
     ledger,
     heartbeat: null,
     logger: silentLogger,
+    outputConfig: { logDir, handoffDir: "" },
   };
 }
 
@@ -218,5 +219,6 @@ export function buildBaseDeps(
     ledger,
     heartbeat: null,
     logger: silentLogger,
+    outputConfig: { logDir, handoffDir: "" },
   };
 }

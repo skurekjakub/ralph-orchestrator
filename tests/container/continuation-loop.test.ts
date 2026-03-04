@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ContainerManager } from "../../src/container/manager.js";
+import { AgentSessionRunner } from "../../src/container/agent-session-runner.js";
 import { ContinuationRunner } from "../../src/container/continuation-runner.js";
 import { TaskStatus, type ContainerExecResult, type CliPaths } from "../../src/container/types.js";
 import type { BuiltPrompt, PromptBuilder } from "../../src/prompt/prompt-builder.js";
 import { makeProfile, makeWorkItem } from "../helpers/factories.js";
 import { createSilentLogger } from "../helpers/mocks.js";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
+import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner.js";
@@ -82,6 +83,7 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     attach: vi.fn(),
     detach: vi.fn(),
     collectAll: vi.fn().mockResolvedValue([]),
+    clearCollectSources: vi.fn().mockResolvedValue(undefined),
   };
   const cleaner: IContainerWorkspaceCleaner = {
     prepareConfigDir: vi.fn().mockResolvedValue(undefined),
@@ -92,10 +94,16 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     registerAll: vi.fn(),
   };
   const continuationRunner = new ContinuationRunner({ logger });
+  const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
+
+  const executorFactory: ICliExecutorFactory = {
+    create: vi.fn().mockReturnValue(executor),
+    createLocal: vi.fn().mockReturnValue(executor),
+  };
 
   return new ContainerManager({
-    profile, compose, executor, logs, cleaner,
-    logRegistry, continuationRunner, promptBuilder, logger,
+    profile, compose, executor, executorFactory, logs, cleaner,
+    logRegistry, sessionRunner, logger,
     enableContinuation: true,
   });
 }

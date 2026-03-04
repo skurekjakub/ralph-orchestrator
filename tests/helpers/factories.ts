@@ -5,7 +5,7 @@
  * with sensible defaults and optional overrides.
  */
 
-import { type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
+import { StageMode, type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
@@ -159,6 +159,7 @@ export function makeProfile(
     revisionStatuses: [],
     ...overrides.match,
   };
+  const stages = overrides.stages ?? [{ agent: agentName, role: "primary", mode: StageMode.Container, skills: [] }];
   return {
     id,
     repoPath: "/tmp/test-repo",
@@ -178,7 +179,9 @@ export function makeProfile(
     mcpServers: [],
     mcpServerConfigs: {},
     githubMcpTools: false,
-    skills: [],
+    skills: overrides.skills ?? stages.flatMap((s) => s.skills ?? []),
+    stages,
+    postTaskHooks: [],
     dataSource: "test-source",
     vcsProvider: VcsProvider.Ado,
     repoPat: "ADO_PAT",
@@ -253,6 +256,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
   return {
     profileId: "ralph-default",
     repo: "/tmp/test-repo",
+    targetRepoPath: "/tmp/test-repo",
     cli: "copilot",
     model: "",
     agentName: "ralph",
@@ -275,6 +279,19 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
+    stageRole: "primary",
+    stageMode: "container",
+    stageIndex: 0,
+    stageCount: 1,
+    isFirstStage: true,
+    isLastStage: true,
+    previousStageRoles: [],
+    hook: {
+      taskOutputDir: "",
+      collectedLogs: {},
+      name: "",
+      outputDir: "",
+    },
     ...overrides,
   };
 }
@@ -291,6 +308,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     isRevision: false,
     ralphchivesEnabled: false,
     prUrl: null,
+    outputDir: "",
     ...overrides,
   };
 }

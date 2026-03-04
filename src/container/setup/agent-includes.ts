@@ -65,6 +65,13 @@ export interface TemplateContext {
   profileId: string;
   /** Absolute path to the target repository on the host. */
   repo: string;
+  /**
+   * Alias for `repo` — absolute path to the target repository.
+   *
+   * Useful in local-mode stages where the CLI runs in the orchestrator repo
+   * and needs an explicit reference to the target repo the container agents work in.
+   */
+  targetRepoPath: string;
   /** CLI type (`copilot` or `claude`). */
   cli: string;
   /** Model override, or empty string when using CLI default. */
@@ -129,6 +136,36 @@ export interface TemplateContext {
 
   /** Skill folder names deployed for this profile. */
   skills: readonly string[];
+
+  /** Role identifier for the current pipeline stage (e.g. `primary`, `reviewer`). */
+  stageRole: string;
+  /** Execution mode for the current stage (`container` or `local`). */
+  stageMode: string;
+  /** 0-based index of the current stage. */
+  stageIndex: number;
+  /** Total number of stages in the pipeline. */
+  stageCount: number;
+  /** Whether this is the first stage in the pipeline. */
+  isFirstStage: boolean;
+  /** Whether this is the last stage in the pipeline. */
+  isLastStage: boolean;
+  /** Roles of previously completed stages (empty on the first stage). */
+  previousStageRoles: string[];
+
+  /**
+   * Hook context — only populated for post-task hook stages.
+   * All fields default to empty values for main pipeline stages.
+   */
+  hook: {
+    /** Absolute path to the task's log directory. */
+    taskOutputDir: string;
+    /** Map of collected log file IDs to paths from the main pipeline. */
+    collectedLogs: Record<string, string>;
+    /** Name of the current hook. */
+    name: string;
+    /** Hook-specific output directory. */
+    outputDir: string;
+  };
 }
 
 /**
@@ -138,7 +175,22 @@ export interface TemplateContext {
  * as Liquid variables without re-reading `profile.json` from disk.
  */
 export function buildTemplateContext(
-  ctx: TaskContext
+  ctx: TaskContext,
+  stageOverrides?: {
+    stageIndex: number;
+    stageCount: number;
+    stageRole: string;
+    stageMode: string;
+    previousStageRoles: string[];
+    /** Per-stage skill names — overrides profile-level skills for rendering and context. */
+    skills?: readonly string[];
+    /** Hook context — set only for post-task hook stages. */
+    hook?: {
+      collectedLogs: Record<string, string>;
+      name: string;
+      outputDir: string;
+    };
+  },
 ): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams)
     ? buildTriggerParams(ctx.triggerParams)
@@ -147,6 +199,7 @@ export function buildTemplateContext(
   return {
     profileId: ctx.profile.id,
     repo: ctx.profile.repoPath,
+    targetRepoPath: ctx.profile.repoPath,
     cli: ctx.profile.cli,
     model: ctx.profile.model ?? "",
     agentName: ctx.profile.agentName,
@@ -174,7 +227,22 @@ export function buildTemplateContext(
 
     prUrl: ctx.prUrl ?? "",
 
-    skills: ctx.profile.skills,
+    skills: stageOverrides?.skills ?? ctx.profile.skills,
+
+    stageRole: stageOverrides?.stageRole ?? ctx.profile.stages[0]?.role ?? "primary",
+    stageMode: stageOverrides?.stageMode ?? ctx.profile.stages[0]?.mode ?? "container",
+    stageIndex: stageOverrides?.stageIndex ?? 0,
+    stageCount: stageOverrides?.stageCount ?? ctx.profile.stages.length,
+    isFirstStage: (stageOverrides?.stageIndex ?? 0) === 0,
+    isLastStage: (stageOverrides?.stageIndex ?? 0) === (stageOverrides?.stageCount ?? ctx.profile.stages.length) - 1,
+    previousStageRoles: stageOverrides?.previousStageRoles ?? [],
+
+    hook: {
+      taskOutputDir: stageOverrides?.hook ? ctx.outputDir : "",
+      collectedLogs: stageOverrides?.hook?.collectedLogs ?? {},
+      name: stageOverrides?.hook?.name ?? "",
+      outputDir: stageOverrides?.hook?.outputDir ?? "",
+    },
   };
 }
 

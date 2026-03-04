@@ -8,6 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner.js";
 import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types.js";
+import { StageMode } from "../../src/config/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
 import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
@@ -24,7 +25,14 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
-  return { create: vi.fn().mockReturnValue(container), forceDown: vi.fn().mockResolvedValue(undefined) };
+  return {
+    create: vi.fn().mockReturnValue(container),
+    forceDown: vi.fn().mockResolvedValue(undefined),
+    createLocalSession: vi.fn().mockReturnValue({
+      executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+      sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Completed, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }) },
+    }),
+  };
 }
 
 describe("TaskRunner", () => {
@@ -59,7 +67,7 @@ describe("TaskRunner", () => {
     expect(spies.prepareConfigDir).toHaveBeenCalled();
     expect(spies.registerLogSources).toHaveBeenCalledWith(taskId);
     expect(spies.setup).toHaveBeenCalled();
-    expect(spies.execute).toHaveBeenCalled();
+    expect(spies.executeWithExecutor).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Completed);
     expect(result.taskId).toBe(KEY);
@@ -84,7 +92,7 @@ describe("TaskRunner", () => {
     spies.cleanPaths.mockImplementation(() => { callOrder.push("cleanPaths"); return Promise.resolve(); });
     spies.registerLogSources.mockImplementation(() => { callOrder.push("registerLogs"); });
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
+    spies.executeWithExecutor.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const factory = createMockFactory(container);
     const renderer = createMockTemplateRenderer({
@@ -128,7 +136,7 @@ describe("TaskRunner", () => {
 
   it("still collects logs on error", async () => {
     const { container, spies } = createMockContainer();
-    spies.execute.mockRejectedValue(new Error("CLI crashed"));
+    spies.executeWithExecutor.mockRejectedValue(new Error("CLI crashed"));
     const factory = createMockFactory(container);
     const resultWriter = createMockResultWriter();
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
@@ -245,7 +253,7 @@ describe("TaskRunner", () => {
     const callOrder: string[] = [];
     const { container, spies } = createMockContainer();
     spies.setup.mockImplementation(() => { callOrder.push("setup"); return Promise.resolve(); });
-    spies.execute.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
+    spies.executeWithExecutor.mockImplementation(() => { callOrder.push("execute"); return Promise.resolve(makeResult(KEY)); });
 
     const mockHook = {
       name: "test-hook",
@@ -304,8 +312,115 @@ describe("TaskRunner", () => {
     expect(result.stderr).toContain("hook failed");
   });
 
+  describe("multi-stage pipeline", () => {
+    it("executes all stages in order", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const stageLabels: string[] = [];
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor.mockImplementation(async (_executor: unknown) => {
+        stageLabels.push("executed");
+        return makeResult(KEY);
+      });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(spies.createExecutorForStage).toHaveBeenCalledTimes(2);
+      expect(spies.executeWithExecutor).toHaveBeenCalledTimes(2);
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(result.stageResults).toHaveLength(2);
+      expect(result.stageResults![0].role).toBe("writer");
+      expect(result.stageResults![1].role).toBe("reviewer");
+    });
+
+    it("aborts pipeline on stage failure", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor.mockResolvedValue(makeResult(KEY, { status: TaskStatus.Error }));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(spies.executeWithExecutor).toHaveBeenCalledTimes(1);
+      expect(result.status).toBe(TaskStatus.Error);
+      // Single stage executed (the second was skipped), so no stageResults array
+      expect(result.stageResults).toBeUndefined();
+    });
+
+    it("omits stageResults for single-stage profiles", async () => {
+      const { container } = createMockContainer({ taskId: KEY });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+
+      expect(result.stageResults).toBeUndefined();
+    });
+
+    it("computes durationMs as sum of all stage durations", async () => {
+      const multiProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      spies.executeWithExecutor
+        .mockResolvedValueOnce(makeResult(KEY, { durationMs: 3000 }))
+        .mockResolvedValueOnce(makeResult(KEY, { durationMs: 7000 }));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: multiProfile, taskId }));
+
+      expect(result.durationMs).toBe(10000);
+    });
+
+    it("creates different executors for mixed container+local stages", async () => {
+      const mixedProfile = makeProfile({
+        id: PID,
+        agentName: "ralph.writer",
+        stages: [
+          { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+          { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Local, skills: [] },
+        ],
+      });
+      const { container, spies } = createMockContainer({ taskId: KEY });
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: mixedProfile, taskId }));
+
+      expect(spies.createExecutorForStage).toHaveBeenCalledTimes(2);
+      expect(spies.createExecutorForStage).toHaveBeenCalledWith(
+        expect.objectContaining({ role: "writer", mode: StageMode.Container }),
+      );
+      expect(spies.createExecutorForStage).toHaveBeenCalledWith(
+        expect.objectContaining({ role: "reviewer", mode: StageMode.Local }),
+      );
+    });
+  });
+
   describe("teardown", () => {
-    it("calls container.stop() when container is provided", async () => {
+    it("calls container.stop() when container is running", async () => {
       const { container, spies } = createMockContainer();
       const factory = createMockFactory(container);
       const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
@@ -313,6 +428,18 @@ describe("TaskRunner", () => {
       await runner.teardown(profile, container);
 
       expect(spies.stop).toHaveBeenCalled();
+      expect(factory.forceDown).not.toHaveBeenCalled();
+    });
+
+    it("skips stop and forceDown when container is not running", async () => {
+      const { container, spies } = createMockContainer();
+      (container as { isRunning: boolean }).isRunning = false;
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.teardown(profile, container);
+
+      expect(spies.stop).not.toHaveBeenCalled();
       expect(factory.forceDown).not.toHaveBeenCalled();
     });
 
@@ -350,6 +477,175 @@ describe("TaskRunner", () => {
 
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Graceful stop failed"));
       expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Fallback teardown failed"));
+    });
+  });
+
+  describe("executePostTaskHooks", () => {
+    function makeHookProfile(...hooks: Array<{ name: string; stages: Array<{ agent: string; role: string }> }>) {
+      return makeProfile({
+        id: PID,
+        agentName: "ralph",
+        postTaskHooks: hooks.map(h => ({
+          name: h.name,
+          stages: h.stages.map(s => ({ agent: s.agent, role: s.role, mode: StageMode.Local, skills: [] })),
+        })),
+      });
+    }
+
+    it("is a no-op when no hooks are configured", async () => {
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+
+      expect(factory.createLocalSession).not.toHaveBeenCalled();
+    });
+
+    it("runs a single hook with one stage after the main pipeline", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Starting"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Finished"));
+    });
+
+    it("runs multiple stages within a single hook sequentially", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(2);
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Completed"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/improver] Completed"));
+    });
+
+    it("aborts remaining stages in a hook when a stage returns Error", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      // First stage returns error
+      vi.mocked(factory.createLocalSession).mockReturnValueOnce({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Error, durationMs: 0, exitCode: 1, stdout: "", stderr: "fail", collectedLogs: {} }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Main pipeline still succeeds
+      expect(result.status).toBe(TaskStatus.Completed);
+
+      // Only first stage executed
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Failed"));
+    });
+
+    it("aborts remaining stages when a stage returns Partial status", async () => {
+      const hookProfile = makeHookProfile({
+        name: "analysis",
+        stages: [
+          { agent: "ralph.analyzer", role: "analyzer" },
+          { agent: "ralph.improver", role: "improver" },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      vi.mocked(factory.createLocalSession).mockReturnValueOnce({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockResolvedValue({ taskId: "MOCK-1", status: TaskStatus.Partial, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis/analyzer] Failed (partial)"));
+    });
+
+    it("continues to next hook when a hook fails with an exception", async () => {
+      const hookProfile = makeHookProfile(
+        { name: "hook-a", stages: [{ agent: "ralph.a", role: "a" }] },
+        { name: "hook-b", stages: [{ agent: "ralph.b", role: "b" }] },
+      );
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+
+      // First hook throws
+      vi.mocked(factory.createLocalSession)
+        .mockReturnValueOnce({
+          executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+          sessionRunner: { run: vi.fn().mockRejectedValue(new Error("hook-a exploded")) },
+        });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Main pipeline still succeeds
+      expect(result.status).toBe(TaskStatus.Completed);
+
+      // Both hooks were attempted (second used default mock which succeeds)
+      expect(factory.createLocalSession).toHaveBeenCalledTimes(2);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("[hook:hook-a] Unexpected error"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:hook-b] Finished"));
+    });
+
+    it("does not run hooks when the main pipeline throws", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container, spies } = createMockContainer();
+      spies.start.mockRejectedValue(new Error("container start failed"));
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      const { result } = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(factory.createLocalSession).not.toHaveBeenCalled();
+    });
+
+    it("tears down container before running hooks", async () => {
+      const callOrder: string[] = [];
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container, spies } = createMockContainer();
+      spies.stop.mockImplementation(() => { callOrder.push("stop"); return Promise.resolve(); });
+
+      const factory = createMockFactory(container);
+      vi.mocked(factory.createLocalSession).mockReturnValue({
+        executor: { paths: { configDir: "", writableDirs: [], transcriptPath: "", logDir: "" }, run: vi.fn(), continueSession: vi.fn(), killActive: vi.fn() },
+        sessionRunner: { run: vi.fn().mockImplementation(async () => { callOrder.push("hook-run"); return { taskId: "MOCK-1", status: TaskStatus.Completed, durationMs: 0, exitCode: 0, stdout: "", stderr: "", collectedLogs: {} }; }) },
+      });
+
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: createMockTemplateRenderer(), skillRenderer: createMockSkillRenderer(), jitMcpConfig: createMockJitMcpConfigWriter() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      expect(callOrder).toEqual(["stop", "hook-run"]);
     });
   });
 });

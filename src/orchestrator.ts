@@ -1,4 +1,4 @@
-import type { IAgentProfile, IDataSourceConfig, IRalphchivesConfig } from "./config/types.js";
+import type { IAgentProfile, IDataSourceConfig, IOutputConfig, IRalphchivesConfig } from "./config/types.js";
 import { TaskStatus } from "./container/types.js";
 import { LogLevel, TransitionPhase, type ActiveTask } from "./orchestrator-types.js";
 import { OperationStatus, type Operation, type IOperationLedger } from "./services/operation-ledger.js";
@@ -49,6 +49,7 @@ export class Orchestrator {
   private readonly triggerScanner: ITriggerScanner;
   private readonly ledger: IOperationLedger;
   private readonly ralphchivesConfig: IRalphchivesConfig;
+  private readonly outputConfig: IOutputConfig;
   private readonly heartbeat: IHeartbeatSender | null;
   private taskCallbacks: TaskCallbacks = {};
 
@@ -75,6 +76,7 @@ export class Orchestrator {
     ledger,
     heartbeat,
     ralphchivesConfig,
+    outputConfig,
   }: {
     dataSources: Readonly<Record<string, IDataSourceConfig>>;
     profiles: readonly IAgentProfile[];
@@ -88,6 +90,7 @@ export class Orchestrator {
     ledger: IOperationLedger;
     heartbeat: IHeartbeatSender | null;
     ralphchivesConfig: IRalphchivesConfig;
+    outputConfig: IOutputConfig;
     logger?: Logger;
   }) {
     this.dataSources = dataSources;
@@ -100,6 +103,7 @@ export class Orchestrator {
     this.taskRunner = taskRunner;
     this.triggerScanner = triggerScanner;
     this.ralphchivesConfig = ralphchivesConfig;
+    this.outputConfig = outputConfig;
     this.ledger = ledger;
     this.heartbeat = heartbeat;
 
@@ -372,7 +376,7 @@ export class Orchestrator {
 
     try {
       this.activityLog.startTaskLog(taskId);
-      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams, prUrl);
+      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams, prUrl, this.outputConfig.logDir);
       const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
       this.activeTask.container = container;
 

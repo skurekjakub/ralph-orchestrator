@@ -73,12 +73,12 @@
           <mxGeometry x="310" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase3" value="&lt;b&gt;3. prepareContainer&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;compose up + setup.sh&lt;br&gt;log sources + hooks&lt;br&gt;(git exclude + sync)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase4" value="&lt;b&gt;4. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;prompt build + audit&lt;br&gt;CLI exec (copilot|claude)&lt;br&gt;continuation loop&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="630" y="350" width="120" height="55" as="geometry" />
+        <mxCell id="phase4" value="&lt;b&gt;4. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;loop over stages[]&lt;br&gt;per-stage executor&lt;br&gt;(container | local)&lt;br&gt;prompt build + audit&lt;br&gt;continuation loop&lt;br&gt;abort on failure&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="340" width="120" height="70" as="geometry" />
         </mxCell>
 
         <!-- TaskResultWriter -->

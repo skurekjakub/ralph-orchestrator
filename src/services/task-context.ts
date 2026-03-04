@@ -1,6 +1,7 @@
 import type { IAgentProfile, IRalphchivesConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
+import { join } from "node:path";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
@@ -12,6 +13,8 @@ export interface TaskContext {
   readonly ralphchivesEnabled: boolean;
   /** PR URL extracted from work item comments during preflight, or null. */
   readonly prUrl: string | null;
+  /** Absolute path to this task's log directory. */
+  readonly outputDir: string;
 }
 
 /** Optional callbacks for real-time streaming during task execution. */
@@ -33,6 +36,7 @@ export function buildTaskContext(
   ralphchivesConfig: IRalphchivesConfig,
   triggerParams?: string[],
   prUrl?: string | null,
+  logsDir?: string,
 ): TaskContext {
   const issueStatus = workItem.status.toLowerCase();
   const revisionStatuses = profile.match.revisionStatuses ?? [];
@@ -48,5 +52,6 @@ export function buildTaskContext(
     isRevision,
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,
+    outputDir: logsDir ? join(logsDir, taskId) : "",
   };
 }

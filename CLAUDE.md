@@ -2,6 +2,73 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. 
 
+
+## Root Cause
+
+
+No quick fixes. Always diagnose to the root cause and devise proper solutions. Never apply patches or workarounds unless the user explicitly asks.
+
+
+---
+
+
+## Security & Secrets
+
+
+- Never hardcode secrets or commit them to git
+- Use separate API tokens/credentials for dev, staging, and prod environments
+- Validate all input server-side — never trust client data
+- Add rate limiting on auth and write operations
+
+
+## Architecture & Code Quality
+
+
+- Design architecture before building — don't let it emerge from spaghetti
+- Break up large view controllers/components early
+- Wrap external API calls in a clean service layer (easier to cache, swap, or extend later)
+- Version database schema changes through proper migrations
+- Use real feature flags, not commented-out code
+
+
+## Observability
+
+
+- Add crash reporting from day one
+- Implement persistent logging (not just console output)
+- Include a `/health` endpoint for every service
+
+
+## Environments & Deployment
+
+
+- Maintain a real staging environment that mirrors production
+- Set CORS to specific origins, never `*`
+- Set up CI/CD early — deploys come from the pipeline, not a laptop
+- Document how to run, build, and deploy the project
+
+
+## Testing & Resilience
+
+
+- Test unhappy paths: network failures, unexpected API responses, malformed data
+- Test backup restores at least once — don't wait for an emergency
+- Don't assume the happy path is sufficient
+
+
+## Time Handling
+
+
+- Store all timestamps in UTC
+- Convert to local time only on display
+
+
+## Discipline
+
+
+- Fix hacky code now or create a tracked ticket with a deadline — "later" never comes
+- Don't skip fundamentals just because the code compiles and runs
+
 ## Commands
 
 ```bash
@@ -51,7 +118,7 @@ profiles/<id>/docker-compose.yml          (base: services, volumes, env)
 
 ### Agent Templates — JIT Rendering
 
-Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, task fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
+Agent templates live in `profiles/<id>/agents/*.agent.md` (Liquid syntax). Shared partials are in `shared/agent-includes/*.md` (supports subdirectories, e.g. `personality/ralph`, `ralph-docs/ralph-standard-workflow`). Before each task, `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders templates with a `TemplateContext` containing profile metadata, task fields (including description, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`), writing output to `profiles/<id>/.build/`. The `triggerParams` (`Record<string, string>`) maps bare params to `"true"` and key-value params to the value — built by `buildTriggerParams()` in the same module. These files are mounted read-only into the container.
 
 Custom Liquid tags: `{% section "name" %}...{% endsection %}` wraps content in `<name>...</name>` XML boundaries.
 
@@ -98,10 +165,13 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
 | `src/services/trigger-scanner.ts` | Scans JIRA comments for trigger strings |
 | `src/services/operation-ledger.ts` | Persistent per-issue state machine |
-| `src/container/manager.ts` | Full container lifecycle |
+| `src/container/manager.ts` | Full container lifecycle + stage-based executor creation |
+| `src/container/types.ts` | CLI types, `StageResult`, `deriveStageProfile()` for per-stage profile derivation |
+| `src/container/cli-executors/cli-executor-factory.ts` | Factory: `create()` (container) and `createLocal()` (host) executors |
+| `src/container/cli-executors/local-copilot-executor.ts` | Host-side CLI executor for `mode: "local"` stages |
 | `src/container/setup/agent-includes.ts` | JIT Liquid template renderer |
 | `src/container/setup/jit-mcp-params.ts` | JIT task-scoped MCP param injector |
-| `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git sync) |
+| `src/container/lifecycle.ts` | Pre-execution lifecycle hooks (RepoSyncHook: git exclude + sync) |
 | `src/util/branch.ts` | Branch name slugification utility |
 | `src/container/setup/profile-setup.ts` | Profile initialization orchestrator |
 | `src/datasource/registry.ts` | Data source factory registry (`registerDataSourceFactory`, `buildDataSourceMaps`) |
@@ -139,23 +209,14 @@ shared/
   agent-includes/     — Shared Liquid partials (*.md)
   mcp-servers/<name>/ — mcp-server.json manifest + optional src/dist for custom servers
   mcp-sidecar/          — Gateway container (supergateway process manager, git for push/PR tools)
-  skills/             — Shared agent skill folders (mounted per-profile into .github/skills/)
+  skills/             — Shared agent skill folders (mounted per-profile into .github/skills/,
+                        excluded from git via .git/info/exclude managed by RepoSyncHook)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `agentName` field stores the raw CLI name (e.g. `ralph.ralph`); `displayName` strips the `ralph.` prefix for display. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+
+**Bind-mount artifact exclusion.** Docker bind mounts for skills, agent templates, and `.ralph/` create host-side files inside the target repo checkout. The `RepoSyncHook` writes patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking checkout, appearing in status, or being staged.
 
 ## Output Layout
 
-```
-output/logs/
-  <key>-<startTs>/          — Per-task directory
-    <key>-<ts>.log          — Real-time container output
-    <key>-<ts>-audit.jsonl  — Audit trail from hooks
-    <key>-<ts>-transcript.md
-    <key>-<ts>-proxy.log    — Squid access log
-    <key>-<ts>-sidecar.log
-    <key>-<ts>-summary.json
-  activity-YYYY-MM-DD.log   — Persistent daily activity log
-  container-YYYY-MM-DD.log  — Persistent container output log
-  history/<issueKey>.json   — Operation ledger
-```
+Per-task log collection to `output/logs/<key>-<startTs>/` with audit trail, session transcript, proxy/sidecar logs, and execution summary. See [README.md](README.md) § Output for the full file layout.

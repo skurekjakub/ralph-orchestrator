@@ -3,6 +3,7 @@ import type { Logger } from "../logger.js";
 import type { IComposeClient } from "./compose-client.js";
 import type { ContainerExecResult, CliPaths } from "./types.js";
 import { CopilotExecutor } from "./cli-executors/copilot-executor.js";
+import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor.js";
 
 /**
  * Common interface for CLI executors (Copilot CLI, Claude Code CLI).
@@ -30,11 +31,13 @@ export interface ICliExecutor {
  * operation.
  */
 export interface ICliExecutorFactory {
-  /** Create a CLI executor for the given profile. Throws if required credentials are missing. */
+  /** Create a CLI executor for the given profile (runs inside a container). Throws if required credentials are missing. */
   create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor;
+  /** Create a local CLI executor for the given profile (runs on the host). */
+  createLocal(profile: IAgentProfile, cwd: string, cliLogger: Logger): ICliExecutor;
 }
 
-/** Default implementation — creates a {@link CopilotExecutor} when GH_TOKEN is available. */
+/** Default implementation — creates {@link CopilotExecutor} or {@link LocalCopilotExecutor} when GH_TOKEN is available. */
 export class CliExecutorFactory implements ICliExecutorFactory {
   private readonly secrets: ISecretsConfig;
 
@@ -45,6 +48,16 @@ export class CliExecutorFactory implements ICliExecutorFactory {
   create(compose: IComposeClient, profile: IAgentProfile, cliLogger: Logger): ICliExecutor {
     if (this.secrets.ghToken) {
       return new CopilotExecutor(compose, profile, cliLogger);
+    }
+
+    throw new Error(
+      "GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env",
+    );
+  }
+
+  createLocal(profile: IAgentProfile, cwd: string, cliLogger: Logger): ICliExecutor {
+    if (this.secrets.ghToken) {
+      return new LocalCopilotExecutor(profile, cwd, cliLogger);
     }
 
     throw new Error(

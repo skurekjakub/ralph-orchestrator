@@ -99,14 +99,26 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       const v = variants[i];
       const vPrefix = `${prefix}/variants[${i}]`;
 
-      if (!v.agent) {
-        errors.push(`${vPrefix}: agent name is required`);
-      } else if (agentFiles.length > 0 && !availableAgents.includes(v.agent)) {
-        errors.push(
-          `${vPrefix}: agent "${v.agent}" not found in ${prefix}/agents/\n` +
-          `  Available agents: ${availableAgents.join(", ")}\n` +
-          `  Agent files use the pattern: <name>.agent.md`
-        );
+      if (v.stages != null && !Array.isArray(v.stages)) {
+        errors.push(`${vPrefix}: stages must be an array`);
+        continue;
+      }
+      const stages = v.stages ?? [];
+      if (stages.length === 0) {
+        errors.push(`${vPrefix}: at least one stage is required`);
+      }
+      for (let si = 0; si < stages.length; si++) {
+        const s = stages[si];
+        const sPrefix = `${vPrefix}/stages[${si}]`;
+        if (!s?.agent) {
+          errors.push(`${sPrefix}: agent name is required`);
+        } else if (agentFiles.length > 0 && !availableAgents.includes(s.agent)) {
+          errors.push(
+            `${sPrefix}: agent "${s.agent}" not found in ${prefix}/agents/\n` +
+            `  Available agents: ${availableAgents.join(", ")}\n` +
+            `  Agent files use the pattern: <name>.agent.md`
+          );
+        }
       }
 
       if (!v.match?.projects?.length) {
@@ -175,20 +187,24 @@ function validateVariantSkills(
   prefix: string,
   errors: string[],
 ): void {
-  const variants: unknown[] = profile.variants ?? [];
-  for (let i = 0; i < variants.length; i++) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v = variants[i] as any;
-    const skills: unknown[] = v?.skills ?? [];
-    if (skills.length === 0) continue;
-    const vPrefix = `${prefix}/variants[${i}]`;
-    for (const skill of skills) {
-      if (typeof skill !== "string") continue;
-      if (!findSkillDirSync(skillsDir, skill)) {
-        errors.push(
-          `${vPrefix}: skill "${skill}" not found in shared/skills/\n` +
-          `  Create shared/skills/${skill}/`
-        );
+  if (!Array.isArray(profile.variants)) return;
+  for (let i = 0; i < profile.variants.length; i++) {
+    const v = profile.variants[i];
+    if (!Array.isArray(v?.stages)) continue;
+    for (let si = 0; si < v.stages.length; si++) {
+      const stage = v.stages[si];
+      if (stage?.skills != null && !Array.isArray(stage.skills)) continue;
+      const skills = stage?.skills ?? [];
+      if (skills.length === 0) continue;
+      const sPrefix = `${prefix}/variants[${i}]/stages[${si}]`;
+      for (const skill of skills) {
+        if (typeof skill !== "string") continue;
+        if (!findSkillDirSync(skillsDir, skill)) {
+          errors.push(
+            `${sPrefix}: skill "${skill}" not found in shared/skills/\n` +
+            `  Create shared/skills/${skill}/`
+          );
+        }
       }
     }
   }

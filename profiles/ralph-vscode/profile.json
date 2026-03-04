@@ -35,29 +35,56 @@
       }
     }
   ],
-  "githubMcpTools": ["get_file_contents"],
+  "githubMcpTools": [
+    "get_file_contents"
+  ],
   "resources": {
     "mountBase": "resources/ralph-resources"
   },
   "variants": [
     {
-      "agent": "ralph.ralph",
       "match": {
-        "projects": ["DOC"],
-        "statuses": ["To Do", "Defect Found"],
+        "projects": [
+          "DOC"
+        ],
+        "statuses": [
+          "To Do",
+          "Defect Found"
+        ],
         "commentTrigger": "@RalphAutocomplete",
-        "revisionStatuses": ["Defect Found"]
+        "revisionStatuses": [
+          "Defect Found"
+        ]
       },
-      "beforeAgent": { "targetStatus": "In Progress" },
-      "afterAgent": { "targetStatus": "Ready for Review" }
+      "beforeAgent": {
+        "targetStatus": "In Progress"
+      },
+      "afterAgent": {
+        "targetStatus": "Ready for Review"
+      },
+      "stages": [
+        {
+          "agent": "ralph.ralph",
+          "role": "primary"
+        }
+      ]
     },
     {
-      "agent": "ralph.malph",
       "match": {
-        "projects": ["DOC"],
-        "statuses": ["Ready for Review"],
+        "projects": [
+          "DOC"
+        ],
+        "statuses": [
+          "Ready for Review"
+        ],
         "commentTrigger": "@MalphAutocomplete"
-      }
+      },
+      "stages": [
+        {
+          "agent": "ralph.malph",
+          "role": "primary"
+        }
+      ]
     }
   ]
 }

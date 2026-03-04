@@ -8,12 +8,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ContainerManager } from "../../src/container/manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
+import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory.js";
 import type { IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner.js";
 import type { ILogSourceRegistry } from "../../src/container/log-source-registry.js";
-import type { IContinuationRunner } from "../../src/container/continuation-runner.js";
-import type { PromptBuilder } from "../../src/prompt/prompt-builder.js";
+import type { IAgentSessionRunner } from "../../src/container/agent-session-runner.js";
 import { TaskStatus, type CliPaths } from "../../src/container/types.js";
 import { makeProfile, makeWorkItem } from "../helpers/factories.js";
 import { createSilentLogger, type Mocked } from "../helpers/mocks.js";
@@ -67,6 +66,7 @@ function createMockLogCollector(): Mocked<IContainerLogCollector> {
     attach: vi.fn(),
     detach: vi.fn(),
     collectAll: vi.fn().mockResolvedValue([]),
+    clearCollectSources: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -84,18 +84,18 @@ function createMockLogRegistry(): Mocked<ILogSourceRegistry> {
   };
 }
 
-function createMockContinuationRunner(): Mocked<IContinuationRunner> {
+function createMockSessionRunner(): Mocked<IAgentSessionRunner> {
   return {
     run: vi.fn().mockResolvedValue({
-      lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-      combinedStdout: "",
-      combinedStderr: "",
+      taskId: "DF-100",
+      status: TaskStatus.Completed,
+      durationMs: 100,
+      exitCode: 0,
+      stdout: "",
+      stderr: "",
+      collectedLogs: {},
     }),
   };
-}
-
-function createMockPromptBuilder(): PromptBuilder {
-  return { build: vi.fn().mockReturnValue({ text: "test prompt", audit: { safe: true, findings: [] } }) } as unknown as PromptBuilder;
 }
 
 // ── Harness ──────────────────────────────────────────────────────────────────
@@ -104,22 +104,22 @@ interface Harness {
   manager: ContainerManager;
   compose: Mocked<IComposeClient>;
   executor: Mocked<ICliExecutor> & { paths: CliPaths };
+  executorFactory: Mocked<ICliExecutorFactory>;
   logs: Mocked<IContainerLogCollector>;
   cleaner: Mocked<IContainerWorkspaceCleaner>;
   logRegistry: Mocked<ILogSourceRegistry>;
-  continuationRunner: Mocked<IContinuationRunner>;
-  promptBuilder: PromptBuilder;
+  sessionRunner: Mocked<IAgentSessionRunner>;
   logger: Logger;
 }
 
 function createHarness(overrides?: Partial<Harness>): Harness {
   const compose = overrides?.compose ?? createMockComposeClient();
   const executor = overrides?.executor ?? createMockExecutor();
+  const executorFactory = overrides?.executorFactory ?? { create: vi.fn().mockReturnValue(createMockExecutor()) } as unknown as Mocked<ICliExecutorFactory>;
   const logs = overrides?.logs ?? createMockLogCollector();
   const cleaner = overrides?.cleaner ?? createMockCleaner();
   const logRegistry = overrides?.logRegistry ?? createMockLogRegistry();
-  const continuationRunner = overrides?.continuationRunner ?? createMockContinuationRunner();
-  const promptBuilder = overrides?.promptBuilder ?? createMockPromptBuilder();
+  const sessionRunner = overrides?.sessionRunner ?? createMockSessionRunner();
   const logger = overrides?.logger ?? createSilentLogger();
   const profile = makeProfile();
 
@@ -127,15 +127,15 @@ function createHarness(overrides?: Partial<Harness>): Harness {
     profile,
     compose: compose as unknown as IComposeClient,
     executor,
+    executorFactory: executorFactory as unknown as ICliExecutorFactory,
     logs: logs as unknown as IContainerLogCollector,
     cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
     logRegistry: logRegistry as unknown as ILogSourceRegistry,
-    continuationRunner: continuationRunner as unknown as IContinuationRunner,
-    promptBuilder,
+    sessionRunner: sessionRunner as unknown as IAgentSessionRunner,
     logger,
   });
 
-  return { manager, compose, executor, logs, cleaner, logRegistry, continuationRunner, promptBuilder, logger };
+  return { manager, compose, executor, executorFactory, logs, cleaner, logRegistry, sessionRunner, logger };
 }
 
 describe("ContainerManager", () => {
@@ -248,26 +248,34 @@ describe("ContainerManager", () => {
   });
 
   describe("execute", () => {
-    it("builds prompt and delegates to continuation runner", async () => {
-      const promptBuilder = createMockPromptBuilder();
-      const continuationRunner = createMockContinuationRunner();
+    it("delegates to session runner with executor and work item", async () => {
+      const sessionRunner = createMockSessionRunner();
       const issue = makeWorkItem("DF-200");
-      const { manager } = createHarness({ promptBuilder, continuationRunner });
+      const { manager } = createHarness({ sessionRunner });
 
       await manager.execute(issue);
 
-      expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(issue, undefined);
-      expect(continuationRunner.run).toHaveBeenCalled();
+      expect(sessionRunner.run).toHaveBeenCalledWith(
+        expect.anything(), // executor
+        issue,
+        undefined,
+        expect.objectContaining({ maxContinuations: 0, enableContinuation: false }),
+      );
     });
 
-    it("parses result block from combined stdout", async () => {
-      const continuationRunner = createMockContinuationRunner();
-      continuationRunner.run.mockResolvedValue({
-        lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-        combinedStdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
-        combinedStderr: "",
+    it("returns the RalphResult from session runner", async () => {
+      const sessionRunner = createMockSessionRunner();
+      sessionRunner.run.mockResolvedValue({
+        taskId: "DF-300",
+        status: TaskStatus.Completed,
+        durationMs: 200,
+        exitCode: 0,
+        stdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
+        stderr: "",
+        collectedLogs: {},
+        prUrl: "https://dev.azure.com/pr/1",
       });
-      const { manager } = createHarness({ continuationRunner });
+      const { manager } = createHarness({ sessionRunner });
 
       const result = await manager.execute(makeWorkItem("DF-300"));
 
@@ -275,70 +283,55 @@ describe("ContainerManager", () => {
       expect(result.status).toBe(TaskStatus.Completed);
     });
 
-    it("returns RalphResult with status, prUrl, duration", async () => {
-      const continuationRunner = createMockContinuationRunner();
-      continuationRunner.run.mockResolvedValue({
-        lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-        combinedStdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/2\nSTATUS: partial\n===RALPH_RESULT_END===",
-        combinedStderr: "some warning",
-      });
-      const { manager } = createHarness({ continuationRunner });
-
-      const result = await manager.execute(makeWorkItem("DF-400"));
-
-      expect(result.taskId).toBe("DF-400");
-      expect(result.status).toBe(TaskStatus.Partial);
-      expect(result.prUrl).toBe("https://dev.azure.com/pr/2");
-      expect(result.durationMs).toBeGreaterThanOrEqual(0);
-      expect(result.stdout).toContain("RALPH_RESULT_START");
-      expect(result.stderr).toBe("some warning");
-    });
-
-    it("passes issue context to prompt builder", async () => {
-      const promptBuilder = createMockPromptBuilder();
+    it("passes issue context to session runner", async () => {
+      const sessionRunner = createMockSessionRunner();
       const context = { previousHandoff: "some handoff", comments: [], isRevision: false };
-      const { manager } = createHarness({ promptBuilder });
+      const { manager } = createHarness({ sessionRunner });
 
       await manager.execute(makeWorkItem("DF-500"), context);
 
-      expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(
+      expect(sessionRunner.run).toHaveBeenCalledWith(
+        expect.anything(),
         expect.objectContaining({ id: "DF-500" }),
         context,
+        expect.anything(),
       );
     });
 
-    it("passes 0 continuations to runner when enableContinuation is false (default)", async () => {
-      const continuationRunner = createMockContinuationRunner();
-      const { manager } = createHarness({ continuationRunner });
+    it("passes enableContinuation=false and maxContinuations=0 by default", async () => {
+      const sessionRunner = createMockSessionRunner();
+      const { manager } = createHarness({ sessionRunner });
 
       await manager.execute(makeWorkItem("DF-600"));
 
-      expect(continuationRunner.run).toHaveBeenCalledWith(
-        expect.anything(), expect.anything(), expect.anything(), 0,
+      expect(sessionRunner.run).toHaveBeenCalledWith(
+        expect.anything(), expect.anything(), undefined,
+        { maxContinuations: 0, enableContinuation: false },
       );
     });
 
-    it("passes profile maxContinuations to runner when enableContinuation is true", async () => {
-      const continuationRunner = createMockContinuationRunner();
+    it("passes profile maxContinuations when enableContinuation is true", async () => {
+      const sessionRunner = createMockSessionRunner();
       const profile = makeProfile();
-      const { compose, executor, logs, cleaner, logRegistry, promptBuilder, logger } = createHarness();
+      const { compose, executor, executorFactory, logs, cleaner, logRegistry, logger } = createHarness();
       const manager = new ContainerManager({
         profile,
         compose: compose as unknown as IComposeClient,
         executor,
+        executorFactory: executorFactory as unknown as ICliExecutorFactory,
         logs: logs as unknown as IContainerLogCollector,
         cleaner: cleaner as unknown as IContainerWorkspaceCleaner,
         logRegistry: logRegistry as unknown as ILogSourceRegistry,
-        continuationRunner: continuationRunner as unknown as IContinuationRunner,
-        promptBuilder,
+        sessionRunner: sessionRunner as unknown as IAgentSessionRunner,
         logger,
         enableContinuation: true,
       });
 
       await manager.execute(makeWorkItem("DF-601"));
 
-      expect(continuationRunner.run).toHaveBeenCalledWith(
-        expect.anything(), expect.anything(), expect.anything(), profile.maxContinuations,
+      expect(sessionRunner.run).toHaveBeenCalledWith(
+        expect.anything(), expect.anything(), undefined,
+        { maxContinuations: profile.maxContinuations, enableContinuation: true },
       );
     });
   });
@@ -349,11 +342,15 @@ describe("ContainerManager", () => {
       const compose = createMockComposeClient();
       const executor = createMockExecutor();
       const logs = createMockLogCollector();
+
+      const { manager } = createHarness({ compose, executor, logs });
+      await manager.start();
+
+      // Attach order-tracking after start() so only stop() calls are recorded
       logs.detach.mockImplementation(() => { callOrder.push("detach"); });
       executor.killActive.mockImplementation(() => { callOrder.push("killActive"); });
       compose.compose.mockImplementation(() => { callOrder.push("compose-down"); return fakeResultPromise(); });
 
-      const { manager } = createHarness({ compose, executor, logs });
       await manager.stop();
 
       expect(callOrder).toEqual(["detach", "killActive", "compose-down"]);
@@ -362,10 +359,12 @@ describe("ContainerManager", () => {
 
     it("falls back to docker rm when compose down fails", async () => {
       const compose = createMockComposeClient();
-      compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
       compose.getContainerName.mockResolvedValue("mock-container-id");
 
       const { manager } = createHarness({ compose });
+      await manager.start();
+
+      compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
 
       // Should not throw — the fallback swallows errors
       await expect(manager.stop()).resolves.toBeUndefined();

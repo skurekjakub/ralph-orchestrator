@@ -53,7 +53,7 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 4. TaskRunner ──(render templates + JIT gateway.json)──▶ Profile .build/
 5. TaskRunner ──(JIRA beforeAgent transition + start comment)──▶ JIRA Cloud
 6. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
-7. TaskRunner ──(lifecycle hooks: git sync)──▶ App container
+7. TaskRunner ──(lifecycle hooks: git exclude + sync)──▶ App container
 8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
 9. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
 10. Agent ──(git push)──▶ ADO Git (via Squid proxy)
@@ -103,11 +103,13 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 
 ### Container Manager (`src/container/manager.ts`)
 
-Orchestrates the full container lifecycle for a single task: build → setup → execute agent → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, lifecycle hooks, CLI execution, log collection, and workspace cleanup.
+Orchestrates the full container lifecycle for a single task: build → setup → execute agent stages → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, lifecycle hooks, CLI execution, log collection, and workspace cleanup.
 
 - **ComposeClient** — Low-level `docker compose` wrapper. Handles the three-file merge and injects process environment (secrets, JIRA config, host paths).
-- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs `git checkout main && git pull` to ensure a clean starting point.
-- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution. Copilot uses `--config-dir` (for copilot-config.json), `--additional-mcp-config @<path>` (for MCP config), `--agent`, `--share` (transcript export); Claude uses `--mcp-config`, `--strict-mcp-config`.
+- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then runs `git checkout main && git reset --hard origin/main` to ensure a clean starting point.
+- **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `SessionRunner` for prompt building, injection audit, and CLI invocation with continuation loop.
+- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution.
+- **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker. Uses the same CLI arguments as the container executor but resolves paths to the host filesystem.
 - **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
@@ -139,7 +141,7 @@ The `run()` pipeline has four phases:
 1. **`prepareProfile`** — Render Liquid agent templates (JIT) and resolve task-scoped MCP macro params into `gateway.json`.
 2. **`transitionIssue`** — Transition JIRA to the `beforeAgent` status and post a start comment (extracted from container lifecycle for clarity).
 3. **`prepareContainer`** — `docker compose up -d --build`, run `setup.sh`, register log sources, execute lifecycle hooks (git sync).
-4. **`executeAgent`** — Build prompt, audit for injection, run the CLI (Copilot or Claude Code) with continuation loop.
+4. **`executeAgent`** — Loop over `ctx.profile.stages`, creating the appropriate executor for each stage (container or local) via `ContainerManager.createExecutorForStage()`. For each stage, build the prompt, audit for injection, and run the CLI. If any stage fails, the pipeline aborts immediately. The last stage's `RalphResult` is authoritative; total `durationMs` is always computed as the sum of all stage durations.
 
 After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`.
 
@@ -244,9 +246,10 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
 ├── shared/skills/                       # Shared agent skill folders (mounted per-profile into .github/skills/)
+│                                        #   Excluded from git via .git/info/exclude (managed by RepoSyncHook)
 ```
 
-Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), and runtime flags (`isRevision`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
+Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
 
 **Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config for the agent, skill folder mounts, and resource file mounts. Profiles with no MCP servers, skills, or resources skip the overlay.
 
@@ -281,7 +284,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for the full reference.
 - **`profiles/<id>/profile.json`** — Per-profile config: target repo, CLI preference, model, timeout, JIRA transitions, MCP servers, resources, and variant match rules.
 - **`.env`** — Secrets: JIRA PAT/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret.
 
-**Variant matching:** Each variant declares `match.projects`, `match.statuses`, `match.commentTrigger`, and optionally `match.revisionStatuses`. Variants are evaluated across all profiles; all matching triggers are planned. Agent names must match `.agent.md` files in the profile's `agents/` directory. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(verbose)`) — these are parsed into `triggerParams` and available in `TemplateContext`.
+**Variant matching:** Each variant declares `match.projects`, `match.statuses`, `match.commentTrigger`, and optionally `match.revisionStatuses`. Variants are evaluated across all profiles; all matching triggers are planned. Each variant contains a `stages` array — one or more stage definitions with `agent`, `role`, `mode` (`container` or `local`), and optional overrides. Stage agent names must match `.agent.md` files in the profile's `agents/` directory. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(verbose)`) — these are parsed into `triggerParams` and available in `TemplateContext`.
 
 ## Security
 
@@ -349,7 +352,8 @@ Path restrictions are auto-derived from MCP server manifests at startup (`src/co
 
 1. **One task at a time** — Sequential processing avoids container conflicts and simplifies state management.
 2. **Fresh container per task** — Clean state prevents leakage between tasks. Trade-off: ~2-5 min container startup.
-11. **Profile variants** — Each profile can have multiple variants with different agent names and match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `AgentProfile[]` at load time.
+11. **Profile variants** — Each profile can have multiple variants with different match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `AgentProfile[]` at load time.
+12. **Sequential stage pipeline** — Each variant defines a `stages` array. Stages execute sequentially within a single container lifecycle (one startup, one teardown). Each stage can use a different agent, model, skills, timeout, and execution mode (`container` or `local`). Local-mode stages run on the host without Docker. The pipeline aborts on the first stage failure.
 14. **Centralized infrastructure** — All Docker, agent, and hook files live in the orchestrator repo under `profiles/` and `shared/`. Target repos contain no Ralph-specific files. Compose files use overlay file mounts to inject agent definitions into containers without modifying the host repo.
 15. **Session transcripts** — Copilot CLI's `--share` flag exports a full session transcript (conversation, tool calls, reasoning). The orchestrator collects it from the container and attaches it to the JIRA issue for auditability.
 16. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.

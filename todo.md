@@ -1,14 +1,13 @@
-disable all default copilot cli tools for web access
-
 change xperience repo sideclone to `git add remote` (benefits?)
-
-add validation to allowed triggerparams => 
-`const defaultBranch: string = taskCtx.triggerParams['source_branch'] ?? "main";`
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
-dashboard attached to process and allows remote kill????
+   * in the orchestrator repo directory. The target repo path is available
+   * to the agent via the `{{ repo }}` template variable.
+
+
+parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
 
 -------------------------------------------------------------
 

@@ -22,16 +22,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    cp .env.example .env
    ```
 
-   | Variable | Description | Required |
-   |---|---|---|
-   | `GH_TOKEN` | GitHub PAT with Copilot Requests permission | When using Copilot CLI |
-   | `ANTHROPIC_API_KEY` | Anthropic API key for Claude Code CLI | When using Claude Code |
-   | `ADO_PAT` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
-   | `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read) | Optional |
-   | `JIRA_PAT` | JIRA API token (classic, from id.atlassian.com) | Yes |
-   | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |
-   | `DASHBOARD_URL` | Ralph status dashboard URL | Optional |
-   | `DASHBOARD_SECRET` | Shared secret for dashboard auth | Optional |
+   See [CONFIGURATION.md](CONFIGURATION.md) § Environment Variables for the full list. Key variables: `GH_TOKEN` (Copilot), `ANTHROPIC_API_KEY` (Claude Code), `ADO_PAT`, `JIRA_PAT`, `JIRA_EMAIL`.
 
 3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`:
    ```bash
@@ -42,7 +33,9 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
      "timeoutMs": 3600000,
      "variants": [
        {
-         "agent": "ralph.ralph",
+         "stages": [
+           { "agent": "ralph.ralph", "role": "primary" }
+         ],
          "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
          "beforeAgent": { "targetStatus": "In Progress" },
          "afterAgent": { "targetStatus": "Ready for Review" }
@@ -122,7 +115,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
-   - Executes the selected CLI agent (Copilot CLI or Claude Code CLI) with the JIRA issue content as prompt
+   - Loops over the variant's `stages` array, executing each stage sequentially with the appropriate executor:
+     - **Container stages** (`mode: "container"`) — run the CLI inside Docker via `docker compose exec`
+     - **Local stages** (`mode: "local"`) — run the CLI directly on the host
+   - Each stage uses its own agent, model, skills, and timeout (falling back to profile defaults)
+   - If any stage fails, the pipeline aborts — remaining stages are skipped
    - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
 6. **Collects results** — `TaskResultWriter` collects audit logs, per-task streaming log, session transcript, and proxy access log to `output/logs/`
 7. **Attaches** the session transcript to the JIRA issue
@@ -137,8 +134,11 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Poll JIRA, queue issues, dedup | Orchestrator |
 | Route to matching profile | Orchestrator |
 | CLI selection (Copilot/Claude Code) with fallback | TaskRunner (ContainerManager) |
+| Stage pipeline execution (sequential, abort-on-fail) | TaskRunner |
 | JIRA transition to "In Progress" + start comment | TaskRunner |
 | Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
+| Create executor per stage (container vs local mode) | ContainerManager |
+| Manage `.git/info/exclude` for bind-mount artifacts | RepoSyncHook (lifecycle hook) |
 | Render agent templates (JIT) + resolve MCP macros | TaskRunner |
 | `git pull`, branch, write, review, revise | Ralph (inside container) |
 | Create PR via ADO REST API, push branch | Ralph (inside container) |

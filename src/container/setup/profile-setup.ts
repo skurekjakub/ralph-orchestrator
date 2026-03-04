@@ -55,7 +55,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; variants?: { skills?: string[] }[] };
+    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[] }[] };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -78,10 +78,9 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     mkdirSync(attachDir);
     chmodSync(attachDir, 0o777);
 
-    // .gitignore files mounted into /workspace/.ralph/ and /workspace/.github/skills/
+    // .gitignore file mounted into /workspace/.ralph/
     // to hide orchestrator-managed runtime files from git inside the container
     writeFileSync(join(buildDir, ".gitignore"), "*\n", "utf-8");
-    writeFileSync(join(buildDir, "github-gitignore"), "*\n", "utf-8");
 
     writeFileSync(
       join(buildDir, "mcp-config.json"),
@@ -100,7 +99,11 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       ? generateResourceVolumeMounts(profileDir, parsed.resources)
       : [];
     const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillNames = [...new Set((parsed.variants ?? []).flatMap((v) => v.skills ?? []))];
+    const skillNames = [...new Set(
+      (parsed.variants ?? []).flatMap((v) =>
+        (v.stages ?? []).flatMap((s) => s.skills ?? []),
+      ),
+    )];
     const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];

@@ -7,6 +7,7 @@ import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
 import { makeProfile, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
+import { StageMode } from "../../src/config/types.js";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -378,6 +379,51 @@ describe("buildTemplateContext", () => {
     const preBuilt = { flag: "true", ref: "refs/heads/main" };
     const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }));
     expect(ctx.triggerParams).toEqual({ flag: "true", ref: "refs/heads/main" });
+  });
+
+  it("defaults stage fields from first stage when no overrides", () => {
+    const profile = makeProfile({
+      stages: [
+        { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+        { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+      ],
+    });
+    const ctx = buildTemplateContext(makeTaskContext({ profile }));
+    expect(ctx.stageRole).toBe("writer");
+    expect(ctx.stageIndex).toBe(0);
+    expect(ctx.stageCount).toBe(2);
+    expect(ctx.isFirstStage).toBe(true);
+    expect(ctx.isLastStage).toBe(false);
+    expect(ctx.previousStageRoles).toEqual([]);
+  });
+
+  it("applies stageOverrides when provided", () => {
+    const profile = makeProfile({
+      stages: [
+        { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
+        { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        { agent: "ralph.editor", role: "editor", mode: StageMode.Container, skills: [] },
+      ],
+    });
+    const ctx = buildTemplateContext(
+      makeTaskContext({ profile }),
+      { stageIndex: 1, stageCount: 3, stageRole: "reviewer", stageMode: "container", previousStageRoles: ["writer"] },
+    );
+    expect(ctx.stageRole).toBe("reviewer");
+    expect(ctx.stageIndex).toBe(1);
+    expect(ctx.stageCount).toBe(3);
+    expect(ctx.isFirstStage).toBe(false);
+    expect(ctx.isLastStage).toBe(false);
+    expect(ctx.previousStageRoles).toEqual(["writer"]);
+  });
+
+  it("computes isLastStage correctly from stageOverrides", () => {
+    const ctx = buildTemplateContext(
+      makeTaskContext(),
+      { stageIndex: 2, stageCount: 3, stageRole: "editor", stageMode: "container", previousStageRoles: ["writer", "reviewer"] },
+    );
+    expect(ctx.isLastStage).toBe(true);
+    expect(ctx.isFirstStage).toBe(false);
   });
 });
 

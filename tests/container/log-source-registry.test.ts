@@ -16,7 +16,7 @@ function createMockCollector(): {
   const addSource = vi.fn();
   const addExport = vi.fn();
   const attach = vi.fn();
-  const collector: IContainerLogCollector = { setTaskId, addSource, addExport, attach, detach: vi.fn(), collectAll: vi.fn() };
+  const collector: IContainerLogCollector = { setTaskId, addSource, addExport, attach, detach: vi.fn(), collectAll: vi.fn(), clearCollectSources: vi.fn() };
   return { collector, setTaskId, addSource, addExport, attach };
 }
 

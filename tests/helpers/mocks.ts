@@ -190,12 +190,20 @@ export function createMockContainer(
     execInSidecar: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
     registerLogSources: vi.fn(),
     execute: vi.fn().mockResolvedValue(result),
+    executeWithExecutor: vi.fn().mockResolvedValue(result),
+    createExecutorForStage: vi.fn().mockReturnValue({
+      paths: { configDir: "/workspace/.ralph", writableDirs: [], transcriptPath: "/workspace/.ralph/logs/session-transcript.md", logDir: "/workspace/.ralph/logs/cli-debug" },
+      run: vi.fn(),
+      continueSession: vi.fn(),
+      killActive: vi.fn(),
+    }),
     stop: vi.fn().mockResolvedValue(undefined),
     cleanLogDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
     prepareConfigDir: vi.fn().mockResolvedValue(undefined),
     collectAll: vi.fn().mockResolvedValue([]),
     detach: vi.fn(),
+    clearCollectSources: vi.fn().mockResolvedValue(undefined),
   };
 
   const cliPaths: CliPaths = {
@@ -213,13 +221,17 @@ export function createMockContainer(
     execInSidecar: spies.execInSidecar,
     registerLogSources: spies.registerLogSources,
     execute: spies.execute,
+    executeWithExecutor: spies.executeWithExecutor,
+    createExecutorForStage: spies.createExecutorForStage,
     stop: spies.stop,
     onToolOutput: undefined,
     onPreToolUse: undefined,
+    isRunning: true,
     cliPaths,
     logs: {
       collectAll: spies.collectAll,
       detach: spies.detach,
+      clearCollectSources: spies.clearCollectSources,
     },
     cleaner: {
       prepareConfigDir: spies.prepareConfigDir,
