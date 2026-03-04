@@ -96,6 +96,18 @@ export function ensureGitExclude(repoPath: string): void {
 }
 
 /**
+ * Check whether a branch exists on the remote by inspecting `git ls-remote` output.
+ * Returns `true` if the remote has a matching ref, `false` otherwise.
+ */
+async function branchExistsOnRemote(
+  authGit: (args: string[]) => ReturnType<typeof execa>,
+  branch: string,
+): Promise<boolean> {
+  const result = await authGit(["ls-remote", "--heads", "origin", branch]);
+  return String(result.stdout ?? "").trim().length > 0;
+}
+
+/**
  * Sync the repository to the default branch and create a task branch before agent execution.
  *
  * Runs git directly on the host using the profile's repo path. Running inside
@@ -126,9 +138,11 @@ export class RepoSyncHook implements ILifecycleHook {
 
     const authHeader = buildAuthHeader(vcsProvider, pat);
     const git = (args: string[]) => execa("git", ["-C", repoPath, ...args]);
+    const authGit = (args: string[]) =>
+      git(["-c", `http.extraHeader=Authorization: ${authHeader}`, ...args]);
 
     logger.info(`Syncing repo to ${defaultBranch}...`);
-    await git(["-c", `http.extraHeader=Authorization: ${authHeader}`, "fetch", "origin", defaultBranch]);
+    await authGit(["fetch", "origin", defaultBranch]);
     await git(["checkout", defaultBranch]);
     await git(["reset", "--hard", `origin/${defaultBranch}`]);
     logger.info("Repo sync complete");
@@ -137,12 +151,19 @@ export class RepoSyncHook implements ILifecycleHook {
 
     if (taskCtx.isRevision) {
       logger.info(`Revision: switching to existing branch ${taskBranch}...`);
-      await git(["-c", `http.extraHeader=Authorization: ${authHeader}`, "fetch", "origin", taskBranch]);
+      await authGit(["fetch", "origin", taskBranch]);
       await git(["checkout", taskBranch]);
       await git(["reset", "--hard", `origin/${taskBranch}`]);
     } else {
-      logger.info(`Creating task branch ${taskBranch}...`);
-      await git(["checkout", "-b", taskBranch]);
+      const existsOnRemote = await branchExistsOnRemote(authGit, taskBranch);
+      if (existsOnRemote) {
+        logger.info(`Branch ${taskBranch} exists on remote, checking out...`);
+        await authGit(["fetch", "origin", taskBranch]);
+        await git(["checkout", "-B", taskBranch, `origin/${taskBranch}`]);
+      } else {
+        logger.info(`Creating task branch ${taskBranch}...`);
+        await git(["checkout", "-B", taskBranch]);
+      }
     }
 
     const tasksDir = join(repoPath, ".ralph", "tasks", taskCtx.workItem.id);

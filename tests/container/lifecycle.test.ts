@@ -8,7 +8,7 @@ import { slugifyBranchName } from "../../src/util/branch.js";
 
 vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
-  return { ...orig, execa: vi.fn().mockResolvedValue({ exitCode: 0 }) };
+  return { ...orig, execa: vi.fn().mockResolvedValue({ exitCode: 0, stdout: "" }) };
 });
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -45,7 +45,7 @@ describe("RepoSyncHook", () => {
     expect(new RepoSyncHook().name).toBe("repo-sync");
   });
 
-  it("runs fetch, checkout, reset --hard, then creates task branch", async () => {
+  it("runs fetch, checkout, reset --hard, ls-remote, then creates task branch", async () => {
     const { container } = createMockContainer();
     const logger = createMockLogger();
 
@@ -55,7 +55,8 @@ describe("RepoSyncHook", () => {
     expect(calls[0]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader=Authorization: Basic"), "fetch", "origin", "main"]);
     expect(calls[1]).toEqual(["-C", profile.repoPath, "checkout", "main"]);
     expect(calls[2]).toEqual(["-C", profile.repoPath, "reset", "--hard", "origin/main"]);
-    expect(calls[3]).toEqual(["-C", profile.repoPath, "checkout", "-b", expectedBranch]);
+    expect(calls[3]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader=Authorization: Basic"), "ls-remote", "--heads", "origin", expectedBranch]);
+    expect(calls[4]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch]);
   });
 
   it("uses ADO auth header format by default", async () => {
@@ -104,7 +105,27 @@ describe("RepoSyncHook", () => {
     expect(calls[0]).toContain("develop");
     expect(calls[2]).toContain("origin/develop");
     // Task branch still created from the custom source branch
-    expect(calls[3]).toEqual(["-C", profile.repoPath, "checkout", "-b", expectedBranch]);
+    expect(calls[4]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch]);
+  });
+
+  it("checks out existing remote branch instead of creating new one", async () => {
+    const { container } = createMockContainer();
+    // ls-remote returns a ref — branch exists on remote
+    mockExeca.mockResolvedValue({ exitCode: 0, stdout: "" } as any);
+    mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "" } as any); // fetch main
+    mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "" } as any); // checkout main
+    mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "" } as any); // reset --hard
+    mockExeca.mockResolvedValueOnce({ exitCode: 0, stdout: "abc123\trefs/heads/" + expectedBranch } as any); // ls-remote
+
+    await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
+
+    const calls = mockExeca.mock.calls.map((c) => c[1]);
+    // ls-remote with auth
+    expect(calls[3]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader"), "ls-remote", "--heads", "origin", expectedBranch]);
+    // fetch the task branch
+    expect(calls[4]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader"), "fetch", "origin", expectedBranch]);
+    // checkout -B with remote tracking point
+    expect(calls[5]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch, `origin/${expectedBranch}`]);
   });
 
   it("creates .ralph/tasks/<key>/ directory on the host", async () => {
@@ -142,7 +163,11 @@ describe("RepoSyncHook", () => {
 
     const allArgs = mockExeca.mock.calls.map((c) => c[1]).flat();
     expect(allArgs).toContain(expectedBranch);
+    // Revision path does not use -b or -B — it does checkout + reset --hard
     expect(allArgs).not.toContain("-b");
+    expect(allArgs).not.toContain("-B");
+    // Should not call ls-remote for revisions
+    expect(allArgs).not.toContain("ls-remote");
   });
 
   it("populates .git/info/exclude with bind-mount artifact patterns during repo sync", async () => {
