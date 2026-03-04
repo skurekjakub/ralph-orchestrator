@@ -39,7 +39,7 @@
     "get_file_contents"
   ],
   "resources": {
-    "mountBase": "resources/ralph-resources"
+    "mountBase": "./ralph/ralph-resources"
   },
   "variants": [
     {

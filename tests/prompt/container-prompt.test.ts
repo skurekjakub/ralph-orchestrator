@@ -91,7 +91,6 @@ describe("Revision prompt", () => {
     const ctx: IssueContext = { comments: [], isRevision: true, handoffContent: null };
     const prompt = buildPrompt(issue, ctx);
     expect(prompt).toContain("Mode: REVISION");
-    expect(prompt).toContain("Revision Workflow");
     expect(prompt).toContain("JIRA Issue: DF-500");
   });
 

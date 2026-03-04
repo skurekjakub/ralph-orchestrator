@@ -12,7 +12,7 @@ description: "VS Code extension review workflow Phase 3. Read this skill after o
 
 ## Instructions
 
-1. **Check out the branch** mentioned in the handoff (or find it via `git branch -r | grep -i {{ taskId }}`)
+1. **You are already on the correct branch.**{% if triggerParams.branch %} The branch is `{{ triggerParams.branch }}`.{% endif %}
 
 2. **Delegate scouting to the `malph-investigator` sub-agent** — pass the branch name. The investigator pre-reads the diff, maps changes to architectural patterns, runs build/lint, and reports gaps. Review its scout report before proceeding.
 

@@ -1,4 +1,6 @@
 import { execa, ExecaError, type ResultPromise } from "execa";
+import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { IAgentProfile } from "../../config/types.js";
 import { DEFAULT_MODEL } from "../../config/constants.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
@@ -13,11 +15,19 @@ import { StreamCapture } from "../stream-capture.js";
  * the container — e.g. a reviewer stage that doesn't need Docker
  * infrastructure. Requires the `copilot` CLI to be installed and
  * available on `PATH`.
+ *
+ * The Copilot CLI discovers agents from `<cwd>/.github/agents/`. Since
+ * rendered agent templates live in `profiles/<id>/.build/`, this executor
+ * symlinks them into the expected location before each invocation and
+ * removes the symlinks afterwards.
  */
 export class LocalCopilotExecutor implements ICliExecutor {
   activeProcess: ResultPromise | null = null;
 
   readonly paths: CliPaths;
+
+  /** Symlinks created by {@link deployAgents}, removed by {@link removeAgents}. */
+  private deployedLinks: string[] = [];
 
   constructor(
     private readonly profile: IAgentProfile,
@@ -61,6 +71,8 @@ export class LocalCopilotExecutor implements ICliExecutor {
   }
 
   private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
+    this.deployAgents();
+
     const args = [
       "--agent", this.profile.agentName,
       "--model", this.profile.model ?? DEFAULT_MODEL,
@@ -103,6 +115,50 @@ export class LocalCopilotExecutor implements ICliExecutor {
       }
 
       throw err;
+    } finally {
+      this.removeAgents();
     }
+  }
+
+  /**
+   * Symlink rendered agent templates into `<cwd>/.github/agents/` so the
+   * Copilot CLI can discover them. Only creates symlinks for files that
+   * don't already exist at the destination.
+   */
+  private deployAgents(): void {
+    const buildDir = resolve(process.cwd(), "profiles", this.profile.id, ".build");
+    if (!existsSync(buildDir)) return;
+
+    const agentFiles = readdirSync(buildDir).filter((f) => f.endsWith(".agent.md"));
+    if (agentFiles.length === 0) return;
+
+    const agentsDir = join(this.cwd, ".github", "agents");
+    mkdirSync(agentsDir, { recursive: true });
+
+    for (const file of agentFiles) {
+      const dest = join(agentsDir, file);
+      if (existsSync(dest)) continue;
+
+      const source = join(buildDir, file);
+      symlinkSync(source, dest);
+      this.deployedLinks.push(dest);
+    }
+
+    this.logger.info(`Deployed ${this.deployedLinks.length} agent symlink(s) to ${agentsDir}`);
+  }
+
+  /** Remove symlinks created by {@link deployAgents}. */
+  private removeAgents(): void {
+    for (const link of this.deployedLinks) {
+      try {
+        const stat = lstatSync(link, { throwIfNoEntry: false });
+        if (stat?.isSymbolicLink()) {
+          unlinkSync(link);
+        }
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+    this.deployedLinks = [];
   }
 }

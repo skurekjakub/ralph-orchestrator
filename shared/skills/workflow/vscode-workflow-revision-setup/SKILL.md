@@ -25,16 +25,9 @@ This is a **revision** — a human reviewer has looked at your previous work, fo
 2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
 3. **Build a clear list of required fixes** from the feedback
 
-### Find existing PR & branch
+### PR and branch strategy
 
-1. **Find and switch to the existing branch** matching `ralph/{{ taskId }}-*`:
-   ```bash
-   git fetch origin
-   git branch -r | grep -i "ralph/{{ taskId }}"
-   git checkout <branch-name>
-   git pull origin <branch-name>
-   ```
-   Do NOT create a new branch.
+1. **You are already on the correct branch.**{% if triggerParams.branch %} The branch is `{{ triggerParams.branch }}`.{% endif %} Do NOT switch branches or create a new one.
 
 2. **Find the existing PR** using `ado_list_pull_requests`, filtering by the source branch
 

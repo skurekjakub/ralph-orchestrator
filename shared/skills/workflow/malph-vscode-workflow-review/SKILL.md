@@ -58,7 +58,7 @@ If validation rules were added or modified:
 
 If completion providers or decorations were changed:
 
-- [ ] **Snippet correctness** — `$1`, `$2` placeholders are logical; pair tags include `{% endtag %}`
+- [ ] **Snippet correctness** — `$1`, `$2` placeholders are logical; pair tags include {% raw %}`{% endtag %}`{% endraw %}
 - [ ] **Attribute `loadSupportedValues`** — async value loaders return the right data and handle empty/error cases
 - [ ] **Decoration types** — new types added to `DecorationTypeName` union AND registered in `DecorationManager.initialize()`
 - [ ] **Debounce** — decoration updates use the existing debounce pattern (250ms tag, 100ms editor)

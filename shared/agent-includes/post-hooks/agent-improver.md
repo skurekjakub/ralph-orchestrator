@@ -24,13 +24,14 @@ You may modify files in these directories:
 | `.github/skills/` | Copilot workspace skills |
 
 ## Rules
-
+{% raw %}
 1. **Every change must cite a finding.** Reference the specific section and finding from `analysis.md` that motivates the change.
 2. **Make targeted changes.** Edit specific sections — don't rewrite entire files.
 3. **Never delete functionality.** Only extend or refine existing content.
 4. **Propose new skills** when the analysis reveals a recurring pattern the agent handles poorly.
-5. **Propose new MCP servers** when the agent needs a capability it currently lacks (and the gap was identified in analysis).
+5. **Propose new MCP servers** when the agent needs a capability it currently lacks (and the gap was identified in analysis). 
 6. **Test Liquid syntax** — ensure any template changes use valid Liquid tags (`{% render 'partial' %}`, `{% if condition %}`, `{% section "name" %}`).
+{% endraw %}
 
 ## Output
 
