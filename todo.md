@@ -3,11 +3,10 @@ change xperience repo sideclone to `git add remote` (benefits?)
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
-   * in the orchestrator repo directory. The target repo path is available
-   * to the agent via the `{{ repo }}` template variable.
-
-
 parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
+
+
+have gpt 5-3 reviewr agent alongside opus 4.6 - reduce same model bias
 
 -------------------------------------------------------------
 

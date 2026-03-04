@@ -49,20 +49,7 @@ export function buildPromptWithSections(
   const sections: PromptSection[] = [];
 
   if (context?.isRevision) {
-    parts.push(
-      [
-        `Mode: REVISION`,
-        ``,
-        `This is a revision of a previous attempt. The issue has been reviewed and moved back to revision status.`,
-        ``,
-        `You MUST follow the Revision Workflow (not the standard workflow):`,
-        `1. Find the existing pull request (branch pattern: ralph/${workItem.id}-*)`,
-        `2. Read ALL PR review threads/comments for inline feedback`,
-        `3. Switch to the existing branch and make the requested changes`,
-        `4. Do NOT create a new branch — work on the existing one`,
-        `5. Push updates, respond to PR comments, and update the handoff file`,
-      ].join("\n"),
-    );
+    parts.push("Mode: REVISION");
 
     if (context.handoffContent) {
       const normalized = normalizeContent(context.handoffContent);

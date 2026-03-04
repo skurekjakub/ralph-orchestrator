@@ -1,57 +1,58 @@
 ---
 name: ralph-screenshots
-description: "Instructions for capturing clean admin UI screenshots using Playwright MCP for the Xperience by Kentico documentation. Use this skill whenever a task requires taking screenshots of the admin interface, documenting UI elements visually, capturing visual references for documentation pages, or when the JIRA issue mentions screenshots, images, or visual documentation."
+description: "Instructions for capturing clean admin UI screenshots using playwright-cli for the Xperience by Kentico documentation. Use this skill whenever a task requires taking screenshots of the admin interface, documenting UI elements visually, capturing visual references for documentation pages, or when the JIRA issue mentions screenshots, images, or visual documentation."
 ---
 
 # Screenshots Skill
 
-Instructions for capturing clean admin UI screenshots using Playwright MCP for the Xperience by Kentico documentation.
+Instructions for capturing clean admin UI screenshots using `playwright-cli` for the Xperience by Kentico documentation.
 
 ## Prerequisites
 
-- The Playwright MCP browser tools must be available in the agent context.
+- `playwright-cli` must be available (run `playwright-cli open` to verify; if unavailable, use `npx playwright-cli`).
 - The Xperience admin application must be running (typically on `http://localhost:666/admin`). If not running, use `npm run codesamples:serve`. Login is administrator:admin.
-- Screenshots are saved to the host machine's CWD, bind-mounted at `/mnt/host/Users/<username>/`. After taking a screenshot, copy it to the workspace.
-
-## Detecting the Host Username
-
-The devcontainer runs as the `vscode` user. Detect the host username from the bind mount:
-
-1. List `/mnt/host/Users/` and ignore system entries (`All Users`, `Default`, `Default User`, `DefaultAppPool`, `defaultuser0`, `Public`, `desktop.ini`).
-2. The remaining entry is the host user.
-3. If multiple candidates remain, use `ask_questions` to ask the user.
-
-## Screenshot Output
-
-After capture, copy screenshots to the documentation assets directory:
-
-```bash
-cp /mnt/host/Users/<username>/<filename>.png \
-   /workspace/src/_docsassets/documentation/<target-folder>/<filename>.png
-```
 
 ## Standard Capture Workflow
 
-### 1. Navigate and wait
+### 1. Open browser and navigate
 
+```bash
+playwright-cli open http://localhost:666/admin
+# Resize to standard documentation width
+playwright-cli resize 1366 900
 ```
-browser_navigate → http://localhost:666/admin/<path>
+
+### 2. Log in (if needed)
+
+```bash
+playwright-cli snapshot
+# Use refs from snapshot to fill login form
+playwright-cli fill <email-ref> "administrator"
+playwright-cli fill <password-ref> "admin"
+playwright-cli click <login-button-ref>
 ```
 
-### 2. Use browser_run_code with clip to capture
+### 3. Navigate to the target page
 
-Use `browser_run_code` for every screenshot. The script must:
+```bash
+playwright-cli goto http://localhost:666/admin/<path>
+playwright-cli snapshot
+```
+
+### 4. Capture screenshot with run-code
+
+Use `playwright-cli run-code` for every screenshot. The script must:
 
 1. **Hide the AIRA panel** (`display: none`)
 2. **Add red highlight outlines** if needed (`outline: 3px solid red`)
 3. **Calculate a clip region** that excludes the left sidebar and crops dead space at the bottom
 4. **Take the screenshot** with the calculated clip
 
-```javascript
-async (page) => {
+```bash
+playwright-cli run-code "async page => {
   // 1. Hide AIRA
   await page.evaluate(() => {
-    const aira = document.querySelector('[class*="aira___"]');
+    const aira = document.querySelector('[class*=\"aira___\"]');
     if (aira) aira.style.display = 'none';
   });
 
@@ -68,7 +69,7 @@ async (page) => {
 
   // 3. Calculate clip (exclude sidebar, crop bottom dead space)
   const clip = await page.evaluate(() => {
-    const sidebar = document.querySelector('[data-testid="application-menu"]');
+    const sidebar = document.querySelector('[data-testid=\"application-menu\"]');
     const contentDiv = sidebar?.nextElementSibling;
     const rect = contentDiv.getBoundingClientRect();
     let maxBottom = 0;
@@ -98,20 +99,34 @@ async (page) => {
 
   // 4. Capture
   await page.screenshot({ path: '<filename>.png', type: 'png', clip });
-  return `Done: ${clip.width}x${clip.height}`;
-}
+  return 'Done: ' + clip.width + 'x' + clip.height;
+}"
 ```
 
-### 3. Clear highlights between screenshots
+### 5. Clear highlights between screenshots
 
 When reusing the same page for multiple screenshots with different highlights:
 
-```javascript
-document.querySelectorAll('*').forEach(el => {
-  if (el.style.outline?.includes('red')) {
-    el.style.outline = ''; el.style.outlineOffset = ''; el.style.borderRadius = '';
-  }
-});
+```bash
+playwright-cli eval "(() => { document.querySelectorAll('*').forEach(el => { if (el.style.outline?.includes('red')) { el.style.outline = ''; el.style.outlineOffset = ''; el.style.borderRadius = ''; } }); })()"
+```
+
+### 6. Copy screenshots to documentation assets
+
+```bash
+cp <filename>.png /workspace/src/_docsassets/documentation/<target-folder>/<filename>.png
+```
+
+## Quick Screenshot (no clip)
+
+For simple full-viewport or element screenshots without the clip calculation:
+
+```bash
+# Full viewport
+playwright-cli screenshot --filename=page_overview.png
+
+# Specific element by ref
+playwright-cli screenshot <element-ref> --filename=detail.png
 ```
 
 ## Admin UI DOM Structure
@@ -126,3 +141,105 @@ document.querySelectorAll('*').forEach(el => {
 
 - **snake_case** for filenames (e.g., `customer_detail.png`, `promotion_create.png`)
 - **PNG** format only
+
+## playwright-cli Reference
+
+Full command reference for the underlying CLI tool.
+
+### Core Commands
+
+```bash
+playwright-cli open                          # open new browser
+playwright-cli open https://example.com      # open and navigate
+playwright-cli goto https://example.com      # navigate current page
+playwright-cli snapshot                      # get page DOM tree with element refs
+playwright-cli click <ref>                   # click element
+playwright-cli dblclick <ref>                # double-click element
+playwright-cli fill <ref> "value"            # fill input field
+playwright-cli type "text"                   # type text
+playwright-cli hover <ref>                   # hover element
+playwright-cli select <ref> "option-value"   # select dropdown option
+playwright-cli check <ref>                   # check checkbox
+playwright-cli uncheck <ref>                 # uncheck checkbox
+playwright-cli drag <ref-from> <ref-to>      # drag and drop
+playwright-cli upload ./file.pdf             # upload file
+playwright-cli eval "document.title"         # evaluate JS expression
+playwright-cli eval "el => el.textContent" <ref>  # evaluate on element
+playwright-cli resize 1920 1080              # resize viewport
+playwright-cli close                         # close browser
+```
+
+### Navigation
+
+```bash
+playwright-cli go-back
+playwright-cli go-forward
+playwright-cli reload
+```
+
+### Keyboard
+
+```bash
+playwright-cli press Enter
+playwright-cli press ArrowDown
+playwright-cli press Tab
+playwright-cli keydown Shift
+playwright-cli keyup Shift
+```
+
+### Mouse
+
+```bash
+playwright-cli mousemove 150 300
+playwright-cli mousedown
+playwright-cli mouseup
+playwright-cli mousewheel 0 100
+```
+
+### Screenshots & PDF
+
+```bash
+playwright-cli screenshot                        # viewport screenshot
+playwright-cli screenshot <ref>                  # element screenshot
+playwright-cli screenshot --filename=page.png    # named screenshot
+playwright-cli pdf --filename=page.pdf           # save as PDF
+```
+
+### Tabs
+
+```bash
+playwright-cli tab-list
+playwright-cli tab-new https://example.com
+playwright-cli tab-close
+playwright-cli tab-select 0
+```
+
+### Dialogs
+
+```bash
+playwright-cli dialog-accept
+playwright-cli dialog-accept "confirmation text"
+playwright-cli dialog-dismiss
+```
+
+### DevTools
+
+```bash
+playwright-cli console                   # view console output
+playwright-cli console warning           # filter by level
+playwright-cli network                   # view network requests
+playwright-cli tracing-start             # start trace recording
+playwright-cli tracing-stop              # stop and save trace
+playwright-cli video-start               # start video recording
+playwright-cli video-stop recording.webm # stop and save video
+```
+
+## Specific tasks
+
+* **Running custom Playwright code** [references/running-code.md](references/running-code.md)
+* **Browser session management** [references/session-management.md](references/session-management.md)
+* **Storage state (cookies, localStorage)** [references/storage-state.md](references/storage-state.md)
+* **Request mocking** [references/request-mocking.md](references/request-mocking.md)
+* **Test generation** [references/test-generation.md](references/test-generation.md)
+* **Tracing** [references/tracing.md](references/tracing.md)
+* **Video recording** [references/video-recording.md](references/video-recording.md)

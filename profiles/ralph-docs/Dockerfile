@@ -101,7 +101,28 @@ ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
 ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 
 # ============================================================
-# 8. Purge build-only tools
+# 8. Playwright — system deps for headless Chromium
+# ============================================================
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 \
+        libcairo2 libcups2 libdbus-1-3 libdrm2 libgbm1 libglib2.0-0 \
+        libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 \
+        libxcomposite1 libxdamage1 libxext6 libxfixes3 libxkbcommon0 \
+        libxrandr2 xvfb \
+        fonts-noto-color-emoji fonts-unifont libfontconfig1 libfreetype6 \
+        xfonts-cyrillic xfonts-scalable fonts-liberation \
+        fonts-ipafont-gothic fonts-wqy-zenhei fonts-tlwg-loma-otf \
+        fonts-freefont-ttf \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Playwright + Chromium as vscode user into npm-global prefix
+USER vscode
+RUN npm install -g playwright \
+    && npx playwright install chromium
+USER root
+
+# ============================================================
+# 9. Purge build-only tools
 #    curl/wget were needed to fetch install scripts.
 #    gnupg2 needed for NodeSource GPG key.
 #    libcurl stays for git HTTP transport.

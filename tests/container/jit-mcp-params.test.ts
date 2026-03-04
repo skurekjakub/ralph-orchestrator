@@ -85,6 +85,21 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.TASK_BRANCH).toBe("ralph/DOC-3143-update-api-docs-for-v2");
   });
 
+  it("resolves $task.branch to target_branch trigger param when provided", () => {
+    const profile = makeProfile({
+      id: PID,
+      mcpServers: ["ado"],
+      mcpServerConfigs: { ado: { TASK_BRANCH: "$task.branch" } },
+    });
+    const gateway = makeGateway([makeGatewayServer("ado")]);
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+    writer.write(profile, issue, createSilentLogger(), { branch: "code/my-existing-branch" });
+
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+    expect(written.servers[0].env.TASK_BRANCH).toBe("code/my-existing-branch");
+  });
+
   it("resolves $task.title macro to raw summary", () => {
     const profile = makeProfile({
       id: PID,

@@ -32,7 +32,13 @@ Ralphchives reporting was skipped for this task.
 
 {%- else %}
 
-Report to ralphchives what you learned during this revision cycle — especially corrections, patterns, or things the original pass got wrong.
+**This is a revision — an existing ralphchives thread almost certainly exists from the first pass.**
+
+1. Search ralphchives for the issue key `{{ taskId }}` using `search_ralphchives`
+2. **If a thread exists** (it should): use `reply_to_thread` to add your revision summary as a reply. Do NOT create a new topic.
+3. **Only if no thread exists** (unlikely): use `post_task_report` to create one.
+
+Include in your reply: what feedback was addressed, corrections made, and any patterns or gotchas discovered during the revision.
 
 {%- endif %}
 

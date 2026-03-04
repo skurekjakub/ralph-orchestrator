@@ -50,9 +50,11 @@ export class TaskResourceManager implements IResourceManager {
       return [];
     });
 
-    return comments.map((c) =>
-      `[${c.created}] ${c.authorName}:\n${c.body.trim()}`
-    );
+    return comments
+      .filter((c) => !c.body.trimStart().startsWith("[Ralph-Orchestrator]"))
+      .map((c) =>
+        `[${c.created}] ${c.authorName}:\n${c.body.trim()}`
+      );
   }
 
   async fetchHandoff(source: string, workItemId: string): Promise<string | null> {

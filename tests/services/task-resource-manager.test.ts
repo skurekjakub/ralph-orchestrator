@@ -58,6 +58,21 @@ describe("TaskResourceManager", () => {
         expect.stringContaining("Failed to fetch comments"),
       );
     });
+
+    it("filters out orchestrator infrastructure comments", async () => {
+      connector.getComments.mockResolvedValue([
+        makeWorkItemComment("1", "[Ralph-Orchestrator] 🤖 Got it! Queueing Ralph for this issue...", "2026-01-15T09:00:00Z"),
+        makeWorkItemComment("2", "@Ralph please update the docs", "2026-01-15T09:30:00Z"),
+        makeWorkItemComment("3", "[Ralph-Orchestrator] 🤖 Ralph is starting work on this issue.", "2026-01-15T10:00:00Z"),
+        makeWorkItemComment("4", "Looks good, approved!", "2026-01-15T11:00:00Z"),
+      ]);
+
+      const result = await resources.fetchComments(DS, KEY);
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toContain("@Ralph please update the docs");
+      expect(result[1]).toContain("Looks good, approved!");
+    });
   });
 
   describe("fetchHandoff", () => {

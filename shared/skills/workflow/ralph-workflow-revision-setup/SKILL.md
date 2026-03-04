@@ -17,36 +17,20 @@ description: "Revision workflow Phases 1-2. Read this skill at the start of ever
 3. **Search ralphchives** (skill: **ralph-ralphchives**) for any observations or gotchas related to this issue from previous runs
 4. You are revising **{{ taskId }}: {{ taskTitle }}** — use this key for branch/commit naming
 
-## Phase 2: Find Existing PR & Branch
+## Phase 2: PR and branch strategy
 
 {% if prUrl != "" %}
 The PR URL from the previous run is: **{{ prUrl }}**
 
-1. **Extract the PR ID** from the URL (the last numeric segment)
-2. **Find the existing branch** — use `ado_get_pull_request` with the PR ID to get the source branch name
-3. **Switch to the existing branch** (do NOT create a new one):
-   ```bash
-   git fetch origin
-   git checkout <source-branch>
-   git pull origin <source-branch>
-   ```
-4. **Read ALL PR review threads** to understand inline feedback:
+1. You start on the correct branch already.
+2. **Read ALL PR review threads** to understand inline feedback:
    - Use `ado_list_pull_request_threads` with the PR ID
 {% else %}
-1. **Find the existing branch** matching the pattern `ralph/{{ taskId }}-*`:
-   ```bash
-   git fetch origin
-   git branch -r | grep "ralph/{{ taskId }}"
-   ```
-2. **Switch to the existing branch** (do NOT create a new one):
-   ```bash
-   git checkout ralph/{{ taskId }}-<slug>
-   git pull origin ralph/{{ taskId }}-<slug>
-   ```
-3. **Find the existing PR** using the ADO MCP server:
+3. **You are already on the correct branch.**{% if triggerParams.branch %} The branch is `{{ triggerParams.branch }}`.{% endif %} Do NOT switch branches or create a new one.
+4. **Find the existing PR** using the ADO MCP server:
    - Use `list-pull-requests` targetting {{ triggerParams.source_branch }}
    - Note the PR ID from the result
-4. **Read ALL PR review threads** to understand inline feedback:
+5. **Read ALL PR review threads** to understand inline feedback:
    - Use `list-pull-request-threads` with the PR ID from above
 {% endif %}
 
