@@ -108,6 +108,20 @@ describe("RepoSyncHook", () => {
     expect(calls[4]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch]);
   });
 
+  it("uses target_branch trigger param as the task branch name", async () => {
+    const { container } = createMockContainer();
+    const customBranch = "code/my-existing-branch";
+    const ctx = makeTaskContext({ profile, workItem, triggerParams: { branch: customBranch } });
+
+    await new RepoSyncHook().execute(container, ctx, createMockLogger());
+
+    const calls = mockExeca.mock.calls.map((c) => c[1]);
+    // ls-remote checks for the custom branch, not the slugified one
+    expect(calls[3]).toContain(customBranch);
+    // checkout uses the custom branch
+    expect(calls[4]).toContain(customBranch);
+  });
+
   it("checks out existing remote branch instead of creating new one", async () => {
     const { container } = createMockContainer();
     // ls-remote returns a ref — branch exists on remote

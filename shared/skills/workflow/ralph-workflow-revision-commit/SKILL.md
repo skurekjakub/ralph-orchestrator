@@ -27,9 +27,9 @@ description: "Revision workflow Phase 5. Read this skill after fixes are impleme
 ### Respond to PR threads
 
 Using the ADO MCP tools:
-1. **Reply to each review thread** with a brief explanation of what you changed
+1. **Reply to each review thread** with a brief explanation of what you changed — always start the reply with 🔧 so it's identifiable as Ralph
 2. Set each addressed thread to **resolved** status
-3. If a feedback item was intentionally NOT addressed, reply explaining why
+3. If a feedback item was intentionally NOT addressed, reply with 🔧 explaining why
 
 ## Before moving to Revision Phase 6
 

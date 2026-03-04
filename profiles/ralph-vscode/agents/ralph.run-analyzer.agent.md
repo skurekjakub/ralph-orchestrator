@@ -1,6 +1,6 @@
 ---
 description: 'Post-task hook — analyzes completed agent execution logs'
-model: claude-opus-4.6
+model: claude-sonnet-4-20250514
 name: 'run-analyzer'
 user-invocable: false
 ---

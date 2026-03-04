@@ -147,7 +147,8 @@ export class RepoSyncHook implements ILifecycleHook {
     await git(["reset", "--hard", `origin/${defaultBranch}`]);
     logger.info("Repo sync complete");
 
-    const taskBranch = slugifyBranchName(taskCtx.workItem.id, taskCtx.workItem.title);
+    const taskBranch = taskCtx.triggerParams['branch']
+      ?? slugifyBranchName(taskCtx.workItem.id, taskCtx.workItem.title);
 
     if (taskCtx.isRevision) {
       logger.info(`Revision: switching to existing branch ${taskBranch}...`);

@@ -7,10 +7,11 @@ import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
 import { slugifyBranchName } from "../../util/branch.js";
 
 /** Known runtime macros resolved from the current work item context. */
-const MACROS: Record<string, (workItem: WorkItem) => string> = {
+const MACROS: Record<string, (workItem: WorkItem, triggerParams?: Record<string, string>) => string> = {
   "$task.id": (workItem) => workItem.id,
   "$task.project": (workItem) => workItem.project,
-  "$task.branch": (workItem) => slugifyBranchName(workItem.id, workItem.title),
+  "$task.branch": (workItem, triggerParams) =>
+    triggerParams?.['branch'] ?? slugifyBranchName(workItem.id, workItem.title),
   "$task.title": (workItem) => workItem.title,
 };
 
@@ -66,7 +67,7 @@ function resolveEnvValue(
     const known = Object.keys(MACROS).join(", ");
     throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
   }
-  return resolver(workItem);
+  return resolver(workItem, triggerParams);
 }
 
 /** Public contract for JIT MCP param injection. */

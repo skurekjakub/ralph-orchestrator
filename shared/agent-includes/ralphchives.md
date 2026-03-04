@@ -23,6 +23,8 @@ When you discover something notable that would help future agents on similar tas
 
 If you find an existing topic that's related to your observation, use `reply_to_thread` to add your insight as a reply instead of creating a new topic. This keeps related knowledge grouped together.
 
+**General observations** — Observations that are about the repository as a whole (architecture patterns, recurring conventions, build system behavior, cross-cutting concerns) rather than a specific task should go to the **"General observations"** topic. Use `search_ralphchives` to find it, then `reply_to_thread` to add your insight. Do NOT create a new topic for repo-wide observations — always append to the existing "General observations" thread.
+
 ### After Completing Work — Post Task Report
 
 Before the exit phase, post your observations about the task:
