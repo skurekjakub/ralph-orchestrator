@@ -3,7 +3,7 @@ description: 'Autonomous documentation agent — researches, writes, reviews, an
 model: claude-opus-4.6
 name: 'ralph'
 user-invocable: false
-agents: ['ralph-researcher', 'ralph-reviewer', 'ralph-validator']
+agents: ['ralph-researcher', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-validator']
 ---
 
 {% section "agent-identity" %}
