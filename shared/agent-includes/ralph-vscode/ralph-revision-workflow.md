@@ -7,9 +7,12 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Skill | Summary |
 |-------|-------|---------|
 | 1. Understand | vscode-workflow-revision-setup | Read feedback, find existing PR & branch |
-| 2. Fix | vscode-workflow-revision-fix | Implement fixes, validate |
-| 3. Commit & Respond | vscode-workflow-revision-commit | Commit, push, reply to PR threads |
-| 4. Handoff & Exit | vscode-workflow-revision-handoff | Update handoff, report, exit |
+| 2. Analyze Revision | vscode-workflow-analyze | Dispatch analyst in revision mode, read status.json |
+| 3. Fix & Review | vscode-workflow-implement-loop | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4. Package | vscode-workflow-package | Bump patch version, update CHANGELOG, build .vsix |
+| 5. Commit & Respond | vscode-workflow-revision-commit | Commit, push, reply to PR threads |
+| 6. Handoff | vscode-workflow-revision-handoff | Update handoff, report to JIRA |
+| 7. Archive & Exit | vscode-workflow-archive | Dispatch scribe, print exit block |
 
 **Before entering each phase:**
 1. Read `state.md`

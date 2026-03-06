@@ -71,7 +71,8 @@ Note the final outcome in `state.md`:
 ## Before moving to the next phase
 
 Update `state.md`:
-- Set "Current Phase" to the next phase listed in the workflow table (standard: `Phase 4: Commit & Push`, revision: `Revision Phase 4: Commit & Respond`)
-- Set "Skills for this phase" to the skill listed in the workflow table for that phase
+- Set "Current Phase" to the next phase listed in the workflow table (standard: `Phase 4: Package`, revision: `Revision Phase 4: Package`)
+- Set "Skills for this phase" to:
+  - vscode-workflow-package
 - Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add the implement & review phase to "Completed Phases" with iteration count and final status

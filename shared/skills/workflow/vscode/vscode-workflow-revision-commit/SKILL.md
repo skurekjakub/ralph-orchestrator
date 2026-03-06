@@ -1,16 +1,16 @@
 ---
 name: vscode-workflow-revision-commit
-description: "VS Code extension revision workflow Phase 4. Read this skill after the implement & review loop. Covers committing to the existing branch, pushing, and responding to each PR review thread."
+description: "VS Code extension revision workflow Phase 5. Read this skill after packaging. Covers committing to the existing branch, pushing, and responding to each PR review thread."
 ---
 
-# Revision Phase 4: Commit, Push & Respond to PR
+# Revision Phase 5: Commit, Push & Respond to PR
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Revision Phase 4.
+2. **Verify the current phase** — this skill is for Revision Phase 5.
 3. **Review "Tracked Identifiers"** — you need the branch name and PR ID.
-4. **Review completed phases** — confirm the implement & review loop (Phase 3) is complete.
+4. **Review completed phases** — confirm Phase 4 (Package) is complete.
 
 ## Instructions
 
@@ -32,10 +32,10 @@ Using the ADO MCP tools:
 2. Set each addressed thread to **resolved** status
 3. If a feedback item was intentionally NOT addressed, reply with 🔧 explaining why
 
-## Before moving to Revision Phase 5
+## Before moving to Revision Phase 6
 
 Update `state.md`:
-- Set "Current Phase" to `Revision Phase 5: Handoff`
+- Set "Current Phase" to `Revision Phase 6: Handoff`
 - Set "Skills for this phase" to:
   - vscode-workflow-revision-handoff
-- Add Revision Phase 4 to "Completed Phases" with commit hash
+- Add Revision Phase 5 to "Completed Phases" with commit hash

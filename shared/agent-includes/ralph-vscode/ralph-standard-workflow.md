@@ -6,11 +6,14 @@ Execute the following phases **in order**. Before each phase, read the correspon
 
 | Phase | Skill | Summary |
 |-------|-------|---------|
-| 1. Setup | vscode-workflow-setup | Branch verify, ralphchives search, analyst delegation |
-| 2. Execute | vscode-workflow-execute | Implement changes, build, lint, test |
-| 3. Commit | vscode-workflow-commit | Pre-commit checks, commit, push |
-| 4. PR | vscode-workflow-pr | Create ADO pull request |
-| 5. Handoff & Exit | vscode-workflow-handoff | Write handoff, report to JIRA, print exit block |
+| 1. Setup | vscode-workflow-setup | Branch verify, state.md init, JIRA greeting |
+| 2. Analyze | vscode-workflow-analyze | Dispatch analyst, read status.json |
+| 3. Implement & Review | vscode-workflow-implement-loop | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4. Package | vscode-workflow-package | Bump patch version, update CHANGELOG, build .vsix |
+| 5. Commit & Push | vscode-workflow-commit | Pre-commit build, commit, push via MCP |
+| 6. PR | vscode-workflow-pr | Create ADO pull request |
+| 7. Handoff | vscode-workflow-handoff | Write handoff, report to JIRA |
+| 8. Archive & Exit | vscode-workflow-archive | Dispatch scribe, print exit block |
 
 **Before entering each phase:**
 1. Read `state.md`
