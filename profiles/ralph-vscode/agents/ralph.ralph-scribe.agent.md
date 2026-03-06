@@ -1,22 +1,7 @@
 ---
 description: 'Reads all subagent artifacts and posts a synthesis to the Ralphchives knowledge base.'
-model: Claude Sonnet 4.5 (copilot)
+model: claude-opus-4.6
 name: 'ralph-scribe'
-tools:
-  - bash
-  - create
-  - view
-  - grep
-  - glob
-  - skill
-  - todo
-  - report_intent
-  - ralphchives-read-search_ralphchives
-  - ralphchives-read-get_topic
-  - ralphchives-read-list_recent_topics
-  - ralphchives-write-post_task_report
-  - ralphchives-write-post_observation
-  - ralphchives-write-reply_to_thread
 user-invocable: false
 ---
 

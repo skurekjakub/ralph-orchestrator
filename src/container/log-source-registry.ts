@@ -137,6 +137,12 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       containerPath: SESSION_STATE_DB,
     });
 
+    logs.addExport({
+      id: "artifacts",
+      service: "app",
+      containerPath: `/workspace/.ralph/tasks/${taskId}/artifacts`,
+    });
+
     logs.attach();
   }
 }

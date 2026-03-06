@@ -2,16 +2,6 @@
 description: 'Implements code changes for the Kentico Docs VS Code extension based on an analyst implementation plan.'
 model: claude-opus-4.6
 name: 'ralph-coder'
-tools:
-  - bash
-  - edit
-  - create
-  - view
-  - grep
-  - glob
-  - skill
-  - todo
-  - report_intent
 user-invocable: false
 ---
 
@@ -111,9 +101,18 @@ Webpack bundles → `dist/extension.js`. `npm run build` packages the VSIX. `npm
 2. Work through each item — write code, following the patterns in `.github/copilot-instructions.md`
 3. Handle build failures internally: if `npm run build` fails, fix the code and retry. Do not exit on the first failure.
 
+### Write Tests
+
+After implementing code changes, **read the `vscode-workflow-subagent-test` skill** for the full testing guide. Then:
+
+1. Review the analyst's **Testing** section for which tests to add or update
+2. Write tests for new public functions, services, and validation rules
+3. Add regression tests for any bug fixes
+4. Follow the Mocha TDD pattern (`suite`/`test`), sinon sandbox, and Node `assert` — see the skill for templates and examples
+
 ### Validate
 
-After implementing all changes:
+After implementing all changes and writing tests:
 
 ```bash
 npm run build
@@ -136,6 +135,9 @@ Write your change summary to `{{ artifactDir }}/ralph-coder/output-v{N}.md`:
 
 ### Files Created
 - `path/to/new-file.ts` — <purpose>
+
+### Tests Added/Updated
+- `src/test/<feature>/<name>.test.ts` — <what is tested>
 
 ### Validation Results
 - Build: PASS | FAIL

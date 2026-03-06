@@ -9,6 +9,7 @@ import type { IIssueManager } from "./issue-manager.js";
 import { buildTemplateContext, type IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
+import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer.js";
 import type { ILifecycleHook } from "../container/lifecycle.js";
 import { TransitionPhase } from "../orchestrator-types.js";
 import type { TaskContext, TaskCallbacks } from "./task-context.js";
@@ -48,9 +49,10 @@ export class TaskRunner implements ITaskRunner {
   private readonly templateRenderer: IAgentTemplateRenderer;
   private readonly skillRenderer: ISkillTemplateRenderer;
   private readonly jitMcpConfig: IJitMcpConfigWriter;
+  private readonly overlayWriter: IComposeOverlayWriter;
   private readonly preExecuteHooks: readonly ILifecycleHook[];
 
-  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, skillRenderer, jitMcpConfig, preExecuteHooks = [] }: {
+  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, skillRenderer, jitMcpConfig, overlayWriter, preExecuteHooks = [] }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
     resources: IResourceManager;
@@ -59,6 +61,7 @@ export class TaskRunner implements ITaskRunner {
     templateRenderer: IAgentTemplateRenderer;
     skillRenderer: ISkillTemplateRenderer;
     jitMcpConfig: IJitMcpConfigWriter;
+    overlayWriter: IComposeOverlayWriter;
     preExecuteHooks?: readonly ILifecycleHook[];
   }) {
     this.logger = logger;
@@ -69,6 +72,7 @@ export class TaskRunner implements ITaskRunner {
     this.templateRenderer = templateRenderer;
     this.skillRenderer = skillRenderer;
     this.jitMcpConfig = jitMcpConfig;
+    this.overlayWriter = overlayWriter;
     this.preExecuteHooks = preExecuteHooks;
   }
 
@@ -170,6 +174,9 @@ export class TaskRunner implements ITaskRunner {
     await this.skillRenderer.render(templateContext, this.logger);
 
     this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
+
+    this.logger.info("Regenerating compose overlay for matched variant...");
+    this.overlayWriter.write(ctx.profile, this.logger);
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
