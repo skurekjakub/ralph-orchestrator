@@ -3,7 +3,7 @@ import { LogSourceRegistry } from "../../src/container/log-source-registry.js";
 import { CaptureMode, type IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
-const KEY = "DF-100";
+
 const TASK_ID = "DF-100-1234567890000";
 const WORK_ITEM_ID = "DF-100";
 
