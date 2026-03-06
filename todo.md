@@ -1,17 +1,13 @@
-change xperience repo sideclone to `git add remote` (benefits?)
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
 parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
 
-
 have gpt 5-3 reviewr agent alongside opus 4.6 - reduce same model bias
 
-multiphase subagent malph review
-- techinical correctnes
-- style and grammar adherence
-- overall suitability of the changes into the existing information architecture
+https://github.com/agentscope-ai/ReMe
+https://github.com/damionrashford/RivalSearchMCP - web search
 
 -------------------------------------------------------------
 
@@ -30,46 +26,13 @@ pass in image attachments from issue
 if issue has related issues - include basic info like description to the prompt?
 
 local dashboard
-- log viewer syntax highlighting - log event type at least
 - fix tool log streaming. websockets in general seem sussy
 
-git - given empty folder and told to clone and do everything and then rm -rf when done
-
-pause the copilto process if observer detects rm and other sus commands being called in the copilot cli
-
-parallelsim via primary config, default 1
-
-investigate root/vscode file/folder rm -f permissions from ContainerWOrkspaceCleaner - Dockerfile creation requiremens/DAC/CHOWN in docker-compose.security? CAP_ADD
-
-send completely different prompt for revision workflow
-
 harden and reenable claude code cli
-
-compose-client env handling.
-
-preflight for revision workflow - update tool calls after
-
-check for better source image - ubuntu-alpine? no python3 etc
-
-allowedUrlPaths should not be set on mcp.config or? each profile should also have baseAllowedUrlPaths - because of setup.sh 
-
-~~app container Dockerfile hardcodes vscode at UID/GID 1000~~ fixed - profiles/ralph-docs/Dockerfile now uses ARG HOST_UID/HOST_GID, consumed from ComposeClient env injection.
-
-hardbake issue id and pr id into the mcp servers - no parameterization - further restrict ai bullshit
-
-cleaning abandoned containers starts inside orchestrator - hm? i guess the profiles need to be resolved yea
-
-whitelist jira account that can invoke the agents
 
 reasoning level xhigh config for codex models and other
 
 neo4j graph db graph extension to basic rag in ralphchives
-
-every orchestrator mounted folder should come with .gitignroe
-
-mcp container full access to web -> expose web fetch tool. https://github.com/damionrashford/RivalSearchMCP
-
-filter orchestrator comments and params from the final prompt
 
 phased context augemnt - taskrunner now supports execution phases - leverage that to progressively augment agent context as it works on long horizon tasks - means multiple calls -> expensive
 
@@ -82,59 +45,4 @@ phased context augemnt - taskrunner now supports execution phases - leverage tha
 
 the streaming output for these doesnt work btw, dont think it ever did. i have to wait until the full log colelction step to get it
 
-comvert all mcp servers to modules
-
-expose external endpoint for cusotmization to register into di
-
-
--------------------
-
-# Identifying Cross-Cutting Concerns & Refactoring Candidates
-
-## General Refactoring Candidates
-
-### Code Smell Detection
-
-| Smell | Signal | Refactoring |
-|---|---|---|
-| **Long Method** | > 20–30 lines, multiple levels of indent | Extract Method |
-| **Large Class** | > 300–500 lines, many unrelated fields | Extract Class / Split by responsibility |
-| **Duplicate Code** | Same logic in 2+ places | Extract Method / Template Method |
-| **Feature Envy** | Method uses another class's data more than its own | Move Method |
-| **Data Clumps** | Same 3+ params always passed together | Introduce Parameter Object |
-| **Primitive Obsession** | Strings/ints for domain concepts (e.g., `"USD"`) | Introduce Value Object |
-| **Switch Statements** | Large switch on type | Replace with Polymorphism |
-| **Shotgun Surgery** | One change requires edits in many classes | Move/consolidate related logic |
-| **Divergent Change** | One class changes for many different reasons | Single Responsibility split |
-
-```bash
-# Files changed most often — high churn = pain points
-git log --format=format: --name-only | sort | uniq -c | sort -rg | head -20
-
-# Files changed by the most authors — coordination bottlenecks
-git log --format='%ae' --name-only | ... 
-```
-
-Adam Tornhill's **"Your Code as a Crime Scene"** approach: overlay churn with complexity to find your riskiest files.
-
----
-
-## Practical Workflow
-
-```
-1. Measure first       → metrics, churn, complexity scores
-2. Read the diff       → what changed together? (temporal coupling)
-3. Map dependencies    → what does everything import?
-4. Apply the 3-strikes rule → see it once: ok. Twice: note it. Three times: refactor.
-5. Prioritize by pain  → high churn + high complexity + many authors = refactor now
-```
-
----
-
-## Key Principle
-
-> **Cross-cutting concerns** → solve with AOP, middleware, decorators, or interceptors  
-> **Code smells** → solve with classical OO refactoring patterns (Fowler's catalog)  
-> **Architecture-level duplication** → solve with shared libraries, domain layers, or services
-
-The best signal is always: *"How hard is it to change this?"* If a small requirement change touches many files in unrelated modules, you've found your refactoring target.
+convert all mcp servers to modules
