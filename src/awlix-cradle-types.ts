@@ -11,6 +11,7 @@ import type { IResourceManager } from "./services/task-resource-manager.js";
 import type { IAgentTemplateRenderer } from "./container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "./container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
+import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-writer.js";
 import type { ITriggerScanner } from "./services/trigger-scanner.js";
 import type { ITaskRunner } from "./services/task-runner.js";
 import type { ITaskResultWriter } from "./services/task-result-writer.js";
@@ -64,6 +65,7 @@ export interface OrchestratorCradle {
   templateRenderer: IAgentTemplateRenderer;
   skillRenderer: ISkillTemplateRenderer;
   jitMcpConfig: IJitMcpConfigWriter;
+  overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   preExecuteHooks: readonly ILifecycleHook[];
 

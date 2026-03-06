@@ -68,16 +68,37 @@
           "role": "primary",
           "skills": [
             "ralph-ado-pr-workflow",
-            "ralph-ralphchives",
             "vscode-workflow-setup",
-            "vscode-workflow-execute",
+            "vscode-workflow-analyze",
+            "vscode-workflow-implement-loop",
+            "vscode-workflow-subagent-test",
+            "vscode-workflow-package",
             "vscode-workflow-commit",
             "vscode-workflow-pr",
             "vscode-workflow-handoff",
+            "vscode-workflow-archive",
             "vscode-workflow-revision-setup",
-            "vscode-workflow-revision-fix",
             "vscode-workflow-revision-commit",
             "vscode-workflow-revision-handoff"
+          ]
+        }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            {
+              "agent": "ralph.run-analyzer",
+              "role": "analyzer",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            },
+            {
+              "agent": "ralph.agent-improver",
+              "role": "improver",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
           ]
         }
       ]
@@ -106,66 +127,6 @@
             "malph-vscode-workflow-review",
             "malph-vscode-workflow-deliver",
             "malph-vscode-workflow-handoff"
-          ]
-        }
-      ]
-    },
-    {
-      "description": "Regular Ralph run followed by an audit and an agent-improver run locally.",
-      "match": {
-        "projects": [
-          "DOC"
-        ],
-        "statuses": [
-          "To Do",
-          "Defect Found"
-        ],
-        "commentTrigger": "@RalphAutocompleteAnalyzed",
-        "revisionStatuses": [
-          "Defect Found"
-        ]
-      },
-      "beforeAgent": {
-        "targetStatus": "In Progress"
-      },
-      "afterAgent": {
-        "targetStatus": "Ready for Review"
-      },
-      "stages": [
-        {
-          "agent": "ralph.ralph",
-          "role": "primary",
-          "skills": [
-            "ralph-ado-pr-workflow",
-            "ralph-ralphchives",
-            "vscode-workflow-setup",
-            "vscode-workflow-execute",
-            "vscode-workflow-commit",
-            "vscode-workflow-pr",
-            "vscode-workflow-handoff",
-            "vscode-workflow-revision-setup",
-            "vscode-workflow-revision-fix",
-            "vscode-workflow-revision-commit",
-            "vscode-workflow-revision-handoff"
-          ]
-        }
-      ],
-      "postTaskHooks": [
-        {
-          "name": "run-analysis",
-          "stages": [
-            {
-              "agent": "ralph.run-analyzer",
-              "role": "analyzer",
-              "mode": "local",
-              "model": "claude-opus-4.6"
-            },
-            {
-              "agent": "ralph.agent-improver",
-              "role": "improver",
-              "mode": "local",
-              "model": "claude-opus-4.6"
-            }
           ]
         }
       ]

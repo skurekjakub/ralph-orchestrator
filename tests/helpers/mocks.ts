@@ -19,6 +19,7 @@ import type { ITaskRunner } from "../../src/services/task-runner.js";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
+import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer.js";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
@@ -304,6 +305,14 @@ export function createMockSkillRenderer(overrides: Partial<Mocked<ISkillTemplate
 
 /** Create a mock JitMcpConfigWriter with all methods stubbed. */
 export function createMockJitMcpConfigWriter(overrides: Partial<Mocked<IJitMcpConfigWriter>> = {}): Mocked<IJitMcpConfigWriter> {
+  return {
+    write: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** Create a mock ComposeOverlayWriter with all methods stubbed. */
+export function createMockOverlayWriter(overrides: Partial<Mocked<IComposeOverlayWriter>> = {}): Mocked<IComposeOverlayWriter> {
   return {
     write: vi.fn(),
     ...overrides,

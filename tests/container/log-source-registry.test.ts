@@ -3,7 +3,9 @@ import { LogSourceRegistry } from "../../src/container/log-source-registry.js";
 import { CaptureMode, type IContainerLogCollector } from "../../src/container/log-collector.js";
 import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
-const KEY = "DF-100";
+
+const TASK_ID = "DF-100-1234567890000";
+const WORK_ITEM_ID = "DF-100";
 
 function createMockCollector(): {
   collector: IContainerLogCollector;
@@ -34,15 +36,15 @@ describe("LogSourceRegistry", () => {
     it("sets the issue key on the collector", () => {
       const { collector, setTaskId } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
-      expect(setTaskId).toHaveBeenCalledWith(KEY);
+      expect(setTaskId).toHaveBeenCalledWith(TASK_ID);
     });
 
     it("registers all 8 standard log sources", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledTimes(8);
       const ids = addSource.mock.calls.map((call: unknown[]) => (call[0] as { id: string }).id);
@@ -52,7 +54,7 @@ describe("LogSourceRegistry", () => {
     it("calls attach after registering sources", () => {
       const { collector, addSource, attach } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       // attach must be called after all addSource calls
       const addSourceOrder = addSource.mock.invocationCallOrder;
@@ -63,7 +65,7 @@ describe("LogSourceRegistry", () => {
     it("registers audit source with profile auditLogPath", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -79,7 +81,7 @@ describe("LogSourceRegistry", () => {
     it("registers transcript source with cliPaths.transcriptPath", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -93,7 +95,7 @@ describe("LogSourceRegistry", () => {
     it("registers pre-tool in collect mode when no callback provided", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -108,7 +110,7 @@ describe("LogSourceRegistry", () => {
       const { collector, addSource } = createMockCollector();
       const onPreToolUse = vi.fn();
 
-      registry.registerAll(collector, profile, KEY, { onPreToolUse }, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onPreToolUse }, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -122,7 +124,7 @@ describe("LogSourceRegistry", () => {
     it("registers tool-output in collect mode when no callback provided", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -137,7 +139,7 @@ describe("LogSourceRegistry", () => {
       const { collector, addSource } = createMockCollector();
       const onToolOutput = vi.fn();
 
-      registry.registerAll(collector, profile, KEY, { onToolOutput }, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onToolOutput }, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,7 +153,7 @@ describe("LogSourceRegistry", () => {
     it("registers proxy source for egress-proxy service", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,7 +168,7 @@ describe("LogSourceRegistry", () => {
     it("registers sidecar source with useComposeLogs in stream mode", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -181,7 +183,7 @@ describe("LogSourceRegistry", () => {
     it("registers cli-debug with glob collectArgs using cliPaths.logDir", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -194,13 +196,13 @@ describe("LogSourceRegistry", () => {
     it("registers state.md artifact from task workload directory", () => {
       const { collector, addSource } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addSource).toHaveBeenCalledWith(
         expect.objectContaining({
           id: "state",
           service: "app",
-          containerPath: `/workspace/.ralph/tasks/${KEY}/state.md`,
+          containerPath: `/workspace/.ralph/tasks/${WORK_ITEM_ID}/state.md`,
           extension: "md",
           mode: CaptureMode.Collect,
         }),
@@ -210,12 +212,24 @@ describe("LogSourceRegistry", () => {
     it("registers session-state folder export", () => {
       const { collector, addExport } = createMockCollector();
 
-      registry.registerAll(collector, profile, KEY, {}, cliPaths);
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
       expect(addExport).toHaveBeenCalledWith({
         id: "session-state",
         service: "app",
         containerPath: "/workspace/.ralph/session-state",
+      });
+    });
+
+    it("registers artifacts folder export using workItemId, not taskId", () => {
+      const { collector, addExport } = createMockCollector();
+
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
+
+      expect(addExport).toHaveBeenCalledWith({
+        id: "artifacts",
+        service: "app",
+        containerPath: `/workspace/.ralph/tasks/${WORK_ITEM_ID}/artifacts`,
       });
     });
   });

@@ -1,14 +1,14 @@
 ---
 name: vscode-workflow-revision-handoff
-description: "VS Code extension revision workflow Phase 4 — the final revision phase. Covers updating the handoff document with a revision section, attaching to JIRA, posting a completion comment, and printing the exit block."
+description: "VS Code extension revision workflow Phase 6. Covers updating the handoff document with a revision section, attaching to JIRA, and posting a completion comment."
 ---
 
-# Revision Phase 4: Update Handoff & Exit
+# Revision Phase 6: Update Handoff
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Revision Phase 4.
+2. **Verify the current phase** — this skill is for Revision Phase 6.
 3. **Review "Tracked Identifiers"** — you need the PR URL.
 
 ## Instructions
@@ -49,12 +49,11 @@ Post a completion comment on **{{ taskId }}** summarizing:
 - Link to the PR
 - Build/lint/test results
 
-### 4. Print exit block
+## Before moving to Phase 7
 
-```
-===RALPH_RESULT_START===
-STATUS: completed | partial | blocked
-PR_URL: <full ADO PR URL>
-SUMMARY: <one-line description of revision changes>
-===RALPH_RESULT_END===
-```
+Update `state.md`:
+- Set "Current Phase" to `Revision Phase 7: Archive & Exit`
+- Set "Skills for this phase" to:
+  - vscode-workflow-archive
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Add Revision Phase 6 to "Completed Phases"

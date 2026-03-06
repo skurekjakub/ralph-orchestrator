@@ -137,6 +137,9 @@ export interface TemplateContext {
   /** Skill folder names deployed for this profile. */
   skills: readonly string[];
 
+  /** Path to the artifact directory for subagent output (e.g. `.ralph/tasks/DOC-123/artifacts`). */
+  artifactDir: string;
+
   /** Role identifier for the current pipeline stage (e.g. `primary`, `reviewer`). */
   stageRole: string;
   /** Execution mode for the current stage (`container` or `local`). */
@@ -228,6 +231,8 @@ export function buildTemplateContext(
     prUrl: ctx.prUrl ?? "",
 
     skills: stageOverrides?.skills ?? ctx.profile.skills,
+
+    artifactDir: `.ralph/tasks/${ctx.workItem.id}/artifacts`,
 
     stageRole: stageOverrides?.stageRole ?? ctx.profile.stages[0]?.role ?? "primary",
     stageMode: stageOverrides?.stageMode ?? ctx.profile.stages[0]?.mode ?? "container",

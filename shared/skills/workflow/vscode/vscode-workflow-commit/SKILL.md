@@ -1,15 +1,15 @@
 ---
 name: vscode-workflow-commit
-description: "VS Code extension workflow Phase 3. Read this skill when implementation is done and you're ready to commit. Covers the pre-commit build check, staging, committing with the correct message format, and pushing via the ADO MCP tool."
+description: "VS Code extension workflow Phase 5. Read this skill when packaging is done and you're ready to commit. Covers the pre-commit build check, staging, committing with the correct message format, and pushing via the ADO MCP tool."
 ---
 
-# Phase 3: Commit & Push
+# Phase 5: Commit & Push
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 3. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm implementation and validation are complete.
+2. **Verify the current phase** — this skill is for Phase 5. If `state.md` shows a different current phase, update it now.
+3. **Review completed phases** — confirm Phase 4 (Package) is complete.
 
 ## Instructions
 
@@ -20,16 +20,16 @@ description: "VS Code extension workflow Phase 3. Read this skill when implement
 
 ### Commit & push
 
-1. Stage only the files you changed: `git add <files>`
+1. Stage all changed files including the `.vsix` binary: `git add <files> *.vsix`
 2. Commit with a descriptive message: `git commit -m "ralph/{{ taskId }}: <concise summary>"`
 3. Push using the `ado_push_progress` MCP tool — do NOT use `git push` directly (do NOT create a new branch)
 
-## Before moving to Phase 4
+## Before moving to Phase 6
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 4: Pull Request`
+- Set "Current Phase" to `Phase 6: Pull Request`
 - Set "Skills for this phase" to:
   - vscode-workflow-pr
   - ralph-ado-pr-workflow
 - Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add Phase 3 to "Completed Phases" with commit hash
+- Add Phase 5 to "Completed Phases" with commit hash

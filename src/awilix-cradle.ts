@@ -22,6 +22,7 @@ import { ComposeFileResolver } from "./container/setup/compose-files.js";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes.js";
 import { SkillTemplateRenderer } from "./container/setup/skill-includes.js";
 import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
+import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer.js";
 import { CliExecutorFactory } from "./container/cli-executor-factory.js";
 import { RepoSyncHook, type ILifecycleHook } from "./container/lifecycle.js";
 import { ContainerLogCollector } from "./container/log-collector.js";
@@ -137,6 +138,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
     skillRenderer:    asClass(SkillTemplateRenderer).singleton(),
     jitMcpConfig:     asClass(JitMcpConfigWriter).singleton(),
+    overlayWriter:    asClass(ComposeOverlayWriter).singleton(),
     containerFactory: asFunction(buildContainerFactory).singleton(),
 
     // ── Task runner ───────────────────────────────────────────────────────────

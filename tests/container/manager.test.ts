@@ -217,12 +217,13 @@ describe("ContainerManager", () => {
   describe("registerLogSources", () => {
     it("delegates to logRegistry.registerAll", () => {
       const { manager, logRegistry, logs } = createHarness();
-      manager.registerLogSources(KEY);
+      manager.registerLogSources(KEY, "DF-100");
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         logs,
         expect.any(Object), // profile
         KEY,
+        "DF-100",
         expect.objectContaining({ onToolOutput: undefined, onPreToolUse: undefined }),
         cliPaths,
       );
@@ -235,12 +236,13 @@ describe("ContainerManager", () => {
       manager.onToolOutput = onToolOutput;
       manager.onPreToolUse = onPreToolUse;
 
-      manager.registerLogSources(KEY);
+      manager.registerLogSources(KEY, "DF-100");
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         KEY,
+        "DF-100",
         expect.objectContaining({ onToolOutput, onPreToolUse }),
         cliPaths,
       );
