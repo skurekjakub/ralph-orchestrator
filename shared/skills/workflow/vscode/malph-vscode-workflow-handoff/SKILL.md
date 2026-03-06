@@ -1,15 +1,15 @@
 ---
 name: malph-vscode-workflow-handoff
-description: "VS Code extension review workflow Phase 7 — the final phase. Covers writing the review handoff document, attaching it to JIRA, reporting to ralphchives, and printing the exit block."
+description: "VS Code extension review orchestrator Phase 5. Write the review handoff document and attach it to JIRA."
 ---
 
-# Phase 7: Handoff & Exit
+# Phase 5: Handoff
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 7.
-3. **Confirm Phase 6** (Deliver) is done — verdict posted to JIRA and ADO.
+2. **Verify the current phase** — this skill is for Phase 5.
+3. **Confirm Phase 4** (Aggregate & Deliver) is done — the JIRA verdict comment has been posted.
 
 ## Instructions
 
@@ -20,41 +20,39 @@ Create at `/tmp/mcp-attachments/review-handoff-{{ taskId }}.md`:
 ```markdown
 # Review Handoff — {{ taskId }}
 
-## Verdict: APPROVED | NEEDS REVISION
+## Panel Verdict: APPROVED | NEEDS REVISION
 
-## Build Status
+## Review Panel
+| Reviewer | Model | Verdict | Findings |
+|---|---|---|---|
+| malph-reviewer-opus | Opus 4.6 | approved / needs-revision | N |
+| malph-reviewer-gpt | GPT 5.4 | approved / needs-revision | N |
+| malph-reviewer-gemini | Gemini Pro | approved / needs-revision | N |
+
+## Build Status (from scout)
 - Compile: PASS | FAIL
 - Lint: PASS | FAIL (N warnings)
 - Tests: PASS | FAIL (N passed, N failed)
-
-## Files Reviewed
-- <list of files reviewed with paths>
 
 ## PR
 - Branch: <branch name>
 - PR URL: <PR URL>
 
-## Findings
-<Full structured findings — issue codes, file paths, line numbers,
-problematic code, corrections. For APPROVED verdicts, "No issues found."
-and any minor suggestions.>
+## Aggregated Findings Summary
+<Total findings by category: N critical, N style, N suggestions>
+
+<List of unique issue codes and which reviewers flagged them>
 ```
 
 ### 2. Attach to JIRA
 
 Use the `jira_add_attachment` tool to upload `review-handoff-{{ taskId }}.md` to **{{ taskId }}**.
 
-### 3. Report to ralphchives
+## Before moving to the next phase
 
-Post a task report to ralphchives (skill: **ralph-ralphchives**) summarizing the review — verdict, finding counts, notable patterns.
-
-### 4. Print exit block
-
-```
-===RALPH_RESULT_START===
-STATUS: completed
-SUMMARY: Reviewed PR for {{ taskId }}. Verdict: APPROVED | NEEDS REVISION (N issues found).
-===RALPH_RESULT_END===
-```
-
-Use `completed` for both approvals and revision requests — Malph always completes successfully.
+Update `state.md`:
+- Set "Current Phase" to `Phase 6: Archive & Exit`
+- Set "Skills for this phase" to:
+  - malph-vscode-workflow-archive
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Add Phase 5 to "Completed Phases"

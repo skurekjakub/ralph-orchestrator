@@ -120,13 +120,12 @@
           "skills": [
             "ralph-ado-pr-workflow",
             "ralph-ralphchives",
-            "malph-vscode-workflow-descend",
-            "malph-vscode-workflow-orient",
-            "malph-vscode-workflow-investigate",
-            "malph-vscode-workflow-verify",
-            "malph-vscode-workflow-review",
-            "malph-vscode-workflow-deliver",
-            "malph-vscode-workflow-handoff"
+            "malph-vscode-workflow-setup",
+            "malph-vscode-workflow-scout",
+            "malph-vscode-workflow-review-panel",
+            "malph-vscode-workflow-aggregate",
+            "malph-vscode-workflow-handoff",
+            "malph-vscode-workflow-archive"
           ]
         }
       ]
