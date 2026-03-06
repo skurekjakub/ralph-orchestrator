@@ -65,7 +65,7 @@ describe("TaskRunner", () => {
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
-    expect(spies.registerLogSources).toHaveBeenCalledWith(taskId);
+    expect(spies.registerLogSources).toHaveBeenCalledWith(taskId, KEY);
     expect(spies.setup).toHaveBeenCalled();
     expect(spies.executeWithExecutor).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();

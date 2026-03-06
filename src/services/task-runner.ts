@@ -207,7 +207,7 @@ export class TaskRunner implements ITaskRunner {
     // the directory that streaming sources watch, and setup is where squid
     // proxy failures surface. With sources registered, the error path can
     // still collectAll (especially proxy logs) before teardown.
-    container.registerLogSources(ctx.taskId);
+    container.registerLogSources(ctx.taskId, ctx.workItem.id);
 
     await container.setup();
 

@@ -43,7 +43,7 @@ export interface IContainerManager {
   /** Execute a command inside the mcp-sidecar container. */
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
-  registerLogSources(taskId: string): void;
+  registerLogSources(taskId: string, workItemId: string): void;
   /** Execute the agent CLI inside the running container. */
   execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Execute with a specific CLI executor (for per-stage agent switching). */
@@ -204,8 +204,8 @@ export class ContainerManager implements IContainerManager {
    *
    * @param taskId Work item id used as the filename prefix for all collected logs.
    */
-  registerLogSources(taskId: string): void {
-    this.logRegistry.registerAll(this.logs, this.profile, taskId, {
+  registerLogSources(taskId: string, workItemId: string): void {
+    this.logRegistry.registerAll(this.logs, this.profile, taskId, workItemId, {
       onToolOutput: this.onToolOutput,
       onPreToolUse: this.onPreToolUse,
     }, this.cliPaths);

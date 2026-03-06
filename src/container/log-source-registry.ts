@@ -29,6 +29,7 @@ export interface ILogSourceRegistry {
     logs: IContainerLogCollector,
     profile: IAgentProfile,
     taskId: string,
+    workItemId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void;
@@ -52,6 +53,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     logs: IContainerLogCollector,
     profile: IAgentProfile,
     taskId: string,
+    workItemId: string,
     callbacks: LogSourceCallbacks,
     cliPaths: CliPaths,
   ): void {
@@ -120,7 +122,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     logs.addSource({
       id: "state",
       service: "app",
-      containerPath: `/workspace/.ralph/tasks/${taskId}/state.md`,
+      containerPath: `/workspace/.ralph/tasks/${workItemId}/state.md`,
       extension: "md",
       mode: CaptureMode.Collect,
     });
@@ -140,7 +142,7 @@ export class LogSourceRegistry implements ILogSourceRegistry {
     logs.addExport({
       id: "artifacts",
       service: "app",
-      containerPath: `/workspace/.ralph/tasks/${taskId}/artifacts`,
+      containerPath: `/workspace/.ralph/tasks/${workItemId}/artifacts`,
     });
 
     logs.attach();
