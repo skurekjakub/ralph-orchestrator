@@ -8,6 +8,11 @@ parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
 
 have gpt 5-3 reviewr agent alongside opus 4.6 - reduce same model bias
 
+multiphase subagent malph review
+- techinical correctnes
+- style and grammar adherence
+- overall suitability of the changes into the existing information architecture
+
 -------------------------------------------------------------
 
 when you're done throughly audit your changes look for bugs, edge cases, missed tests, bugs possible refactoring opportunities and implement, 

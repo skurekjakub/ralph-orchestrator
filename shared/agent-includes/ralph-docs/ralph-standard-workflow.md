@@ -10,7 +10,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 2. Research | ralph-workflow-research | Delegate to ralph-researcher sub-agent |
 | 3. Write | ralph-workflow-write | Implement changes in subtask loop with ralph-validator |
 {%- unless triggerParams.skip_review %}
-| 4–5. Review | ralph-workflow-review | Delegate to ralph-reviewer, revision loop |
+| 4–5. Review | ralph-workflow-review | Three-reviewer gate (technical, style, IA), revision loop |
 {%- endunless %}
 | 6. Commit | ralph-workflow-commit | Pre-commit checks, commit, push |
 | 7. PR | ralph-workflow-pr | Create ADO pull request |

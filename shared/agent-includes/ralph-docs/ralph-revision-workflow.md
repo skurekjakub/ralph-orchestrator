@@ -16,7 +16,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | 1–2. Setup | ralph-workflow-revision-setup | Understand feedback, find existing branch & PR |
 | 3. Fix | ralph-workflow-revision-fix | Implement fixes for each feedback item |
 {%- unless triggerParams.skip_review %}
-| 4. Review | ralph-workflow-review | Delegate to ralph-reviewer, revision loop |
+| 4. Review | ralph-workflow-review | Three-reviewer gate (technical, style, IA), revision loop |
 {%- endunless %}
 | 5. Commit | ralph-workflow-revision-commit | Commit, push, respond to PR threads |
 | 6–7. Handoff & Exit | ralph-workflow-revision-handoff | Update handoff, JIRA comment, exit block |
