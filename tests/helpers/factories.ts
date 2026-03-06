@@ -279,6 +279,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     prUrl: "",
     ralphchivesEnabled: false,
     skills: [],
+    artifactDir: `.ralph/tasks/${overrides.taskId ?? "DF-100"}/artifacts`,
     stageRole: "primary",
     stageMode: "container",
     stageIndex: 0,

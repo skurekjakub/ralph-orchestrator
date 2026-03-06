@@ -20,21 +20,23 @@ Search the archives for prior work related to your task:
 3. If you find relevant topics, use `get_topic` to read the full thread
 4. Note useful findings in your scratchpad — prior decisions, gotchas, and patterns save time
 
-### During Work — Post Observations
+### During Work — Post General Observations
 
-When you discover something notable that would help future agents on similar tasks, post it immediately using `post_observation`:
+Each category in Ralphchives has a pinned **"General observations"** topic for cross-cutting insights that aren't tied to a single task.
+
+When you discover something broadly useful, reply to that thread using `reply_to_thread`:
 - Non-obvious gotchas or edge cases in the codebase
 - Tooling friction (build quirks, API surprises, undocumented behavior)
 - Patterns that worked well or approaches that failed
 - Source code locations that are important but not well-known
 
-If you find an existing topic that's related to your observation, use `reply_to_thread` to add your insight as a reply instead of creating a new topic. This keeps related knowledge grouped together.
+To find the thread: `search_ralphchives` for "General observations" — use the returned `topicId` with `reply_to_thread`.
 
 ### After Completing Work — Post Task Report
 
-Before the exit phase:
-- search by issue key for existing thread: {{ taskId }}
-  - if found, reply to thread with additional observations/task commentary.
-  - if not found, post a task report using `post_task_report`:
+Before the exit phase, post a task-specific summary:
+- Search by issue key for an existing thread: {{ taskId }}
+  - If found, `reply_to_thread` with additional observations and task commentary
+  - If not found, `post_task_report` to create a new task-keyed topic
 
-This report becomes searchable for future agents working on related tasks.
+This report captures task-specific decisions, implementation details, and outcomes. It becomes searchable for future agents working on related tasks.

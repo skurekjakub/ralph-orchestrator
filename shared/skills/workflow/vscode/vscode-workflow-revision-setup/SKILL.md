@@ -63,7 +63,7 @@ Revision Phase 1: Understand Feedback
 ## Before moving to Revision Phase 2
 
 Update `state.md`:
-- Set "Current Phase" to `Revision Phase 2: Fix`
+- Set "Current Phase" to `Revision Phase 2: Analyze Revision`
 - Set "Skills for this phase" to:
-  - vscode-workflow-revision-fix
+  - vscode-workflow-analyze
 - Add Revision Phase 1 to "Completed Phases" with feedback summary

@@ -39,6 +39,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   "isRevision",
   "prUrl",
   "skills",
+  "artifactDir",
   "stageRole",
   "stageMode",
   "stageIndex",

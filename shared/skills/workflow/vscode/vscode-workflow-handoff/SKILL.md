@@ -1,14 +1,14 @@
 ---
 name: vscode-workflow-handoff
-description: "VS Code extension workflow Phase 5 — the final phase. Read this skill when the PR is created (or attempted) and you're ready to wrap up. Covers writing the handoff document, attaching it to JIRA, posting a completion comment, reporting to ralphchives, and printing the exit block."
+description: "VS Code extension workflow Phase 6. Read this skill when the PR is created (or attempted). Covers writing the handoff document, attaching it to JIRA, and posting a completion comment."
 ---
 
-# Phase 5: Handoff, Report & Exit
+# Phase 6: Handoff, Report & Exit
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 5. If `state.md` shows a different current phase, update it now.
+2. **Verify the current phase** — this skill is for Phase 6. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm all prior phases are done. Check "Tracked Identifiers" for PR URL.
 
 ## Instructions
@@ -57,18 +57,11 @@ Post a rich comment on **{{ taskId }}**. Include:
 - Caveats, follow-ups
 - Use headings, bullet lists, bold, links, code blocks, emoji — format it so a reviewer can scan it quickly
 
-### 4. Report to ralphchives
+## Before moving to Phase 7
 
-Post a task report to ralphchives (skill: **ralph-ralphchives**) summarizing the work done — what was changed, key decisions, and any notable patterns for future reference.
-
-### 5. Print exit block
-
-Output the result block — this is **mandatory** for orchestrator detection:
-
-```
-===RALPH_RESULT_START===
-STATUS: completed | partial | blocked
-PR_URL: <url or none>
-SUMMARY: <one-line summary>
-===RALPH_RESULT_END===
-```
+Update `state.md`:
+- Set "Current Phase" to `Phase 7: Archive & Exit`
+- Set "Skills for this phase" to:
+  - vscode-workflow-archive
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Add Phase 6 to "Completed Phases"
