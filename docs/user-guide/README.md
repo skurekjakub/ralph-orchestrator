@@ -29,6 +29,7 @@ One operation runs at a time. The main loop is event-driven (no busy polling).
 | [Profiles](profiles.md) | `profile.json` — full schema, variants, stages, match rules, hooks, creating a profile from scratch |
 | [Trigger Parameters](trigger-parameters.md) | JIRA comment syntax, recognized parameters per agent |
 | [Template Variables](template-variables.md) | Liquid variables available in `.agent.md` templates |
+| [Skills](skills.md) | All available skills by category, workflow phase tables, variant assignments |
 | [MCP Servers](mcp-servers.md) | Declaring MCP servers in profiles + available server reference |
 | [Runtime Macros](runtime-macros.md) | `$task.*`, `$trigger.*`, `$variantEnv.*` — dynamic value resolution in MCP config |
 

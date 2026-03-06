@@ -1,0 +1,61 @@
+---
+name: devralph-workflow-review
+description: "Phase 6 of the standard development workflow — code review gate before committing. Delegate to stacky-reviewer (code quality, patterns, conventions) and stacky-bug-auditor (regressions, breaking changes, edge cases). Address all findings before proceeding. The dual review catches different problem classes — the reviewer focuses on how you built it, the auditor focuses on what you might have broken."
+---
+{% raw %}
+
+# Phase 6: Review
+
+## Before you begin
+
+1. **Read `state.md`** — confirm you're in Phase 6.
+2. All tests (unit + E2E) must pass before review.
+
+## Instructions
+
+1. **Prepare a change summary** — list all files modified/created with a one-line description of each change:
+   ```
+   git diff --stat main
+   ```
+
+2. **Delegate to stacky-reviewer sub-agent** — provide:
+   - The git diff of your changes
+   - The JIRA issue description and acceptance criteria
+   - Which domain skills are relevant (so the reviewer knows the tech stack)
+   
+   The reviewer checks for:
+   - Code quality and consistency with existing patterns
+   - Proper error handling
+   - Missing edge cases
+   - Performance concerns
+   - Adherence to conventions in each tech stack (Ruby, JS, CSS, Jekyll)
+
+3. **Delegate to stacky-bug-auditor sub-agent** — provide:
+   - The git diff of your changes
+   - The affected integration points (cross-component interactions)
+   
+   The bug auditor checks for:
+   - Regressions in existing behavior
+   - Breaking changes to public APIs (tag parameters, frontmatter fields)
+   - Missing null checks or boundary conditions
+   - Backwards compatibility issues
+   - Build pipeline impact
+
+4. **Address all findings** — fix issues or document why they're acceptable. Re-run tests after any changes.
+
+5. **Final build verification:**
+   ```bash
+   npm run build
+   npx gulp rspec_tests
+   ```
+
+## Before moving to Phase 7
+
+Update `state.md`:
+- Set "Current Phase" to `Phase 7: Commit`
+- Set "Skills for this phase" to:
+  - devralph-workflow-commit
+  - ralph-ado-pr-workflow
+- Add Phase 6 to "Completed Phases" with review findings addressed
+
+{% endraw %}

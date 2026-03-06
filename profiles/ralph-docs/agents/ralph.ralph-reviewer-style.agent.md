@@ -98,7 +98,7 @@ For each changed file, check:
 
 ### Code & Syntax
 - [ ] Explicit types in code examples (no `var`)
-- [ ] Correct Liquid tag syntax (`{% ... %}`, `{{ ... }}`)
+{% raw %}- [ ] Correct Liquid tag syntax (`{% ... %}`, `{{ ... }}`){% endraw %}
 - [ ] Valid frontmatter structure
 - [ ] Proper code fence language hints
 

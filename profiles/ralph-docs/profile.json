@@ -266,6 +266,74 @@
           ]
         }
       ]
+    },
+    {
+      "description": "Fullstack developer agent for documentation platform infrastructure — Ruby gems, Gulp pipeline, frontend JS, CSS, Jekyll templates.",
+      "match": {
+        "projects": [
+          "DOC",
+          "DF"
+        ],
+        "statuses": [
+          "To Do",
+          "Defect Found"
+        ],
+        "commentTrigger": "@RalphDev",
+        "revisionStatuses": [
+          "Defect Found"
+        ]
+      },
+      "beforeAgent": {
+        "targetStatus": "In Progress"
+      },
+      "afterAgent": {
+        "targetStatus": "Ready for Review"
+      },
+      "stages": [
+        {
+          "agent": "ralph.stacky",
+          "role": "primary",
+          "skills": [
+            "devralph-ruby-gems",
+            "devralph-gulp-pipeline",
+            "devralph-frontend",
+            "devralph-jekyll-site",
+            "devralph-build-verification",
+            "devralph-workflow-setup",
+            "devralph-workflow-research",
+            "devralph-workflow-implement",
+            "devralph-workflow-test",
+            "devralph-workflow-e2e",
+            "devralph-workflow-review",
+            "devralph-workflow-commit",
+            "devralph-workflow-pr",
+            "devralph-workflow-handoff",
+            "devralph-workflow-revision-setup",
+            "devralph-workflow-revision-fix",
+            "devralph-workflow-revision-commit",
+            "devralph-workflow-revision-handoff",
+            "ralph-ado-pr-workflow",
+            "ralph-ralphchives"
+          ]
+        }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            { "agent": "ralph.run-analyzer", 
+              "role": "analyzer",
+              "mode": "local",
+              "model": "claude-opus-4.6" 
+            },
+            { "agent": "ralph.agent-improver",
+              "role": "improver",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
