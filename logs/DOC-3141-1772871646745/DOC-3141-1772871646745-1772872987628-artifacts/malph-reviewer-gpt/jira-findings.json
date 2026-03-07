@@ -1,0 +1,43 @@
+{
+  "reviewer": "ralph.malph-reviewer-gpt",
+  "model": "gpt",
+  "verdict": "approved",
+  "findings": [
+    {
+      "code": "SUG-001",
+      "severity": "suggestion",
+      "file": "src/logic/diagnostics/tags/rules/validateDuplicateAttributes.rule.ts",
+      "line": 3,
+      "summary": "Unused import findTagAttributeNameRange",
+      "detail": "findTagAttributeNameRange is imported from '../helpers' but never used in the rule body. The rule uses tagInstance.tagRange for all diagnostics.",
+      "correction": "Remove findTagAttributeNameRange from the import: import { createTagDiagnostic } from '../helpers';"
+    },
+    {
+      "code": "SUG-002",
+      "severity": "suggestion",
+      "file": "src/logic/diagnostics/tags/rules/validateDuplicateAttributes.rule.ts",
+      "line": 27,
+      "summary": "Regex may false-positive on attribute values containing '='",
+      "detail": "The regex /\\b([\\w-]+)\\s*(?=\\s*=)/gi matches word=pattern anywhere in the tag text, including inside quoted attribute values. For example, title=\"source=test\" would cause 'source' to be counted as a separate attribute name occurrence. URL query parameters in positional values could also trigger false positives.",
+      "correction": "Consider enhancing the regex to skip quoted string regions, or document this as a known limitation. The impact is low since KFM attribute values rarely contain name=value patterns."
+    },
+    {
+      "code": "SUG-003",
+      "severity": "suggestion",
+      "file": "src/logic/diagnostics/tags/rules/validateEmptyRequiredAttributeValue.rule.ts",
+      "line": 28,
+      "summary": "Inconsistent diagnostic message format between positional and named attributes",
+      "detail": "Positional attributes produce 'Required src has an empty value...' while named attributes produce 'Required attribute \\'title\\' has an empty value...'. The positional message is missing the word 'attribute' and single quotes around the name.",
+      "correction": "Change line 28 message to: `Required attribute '${attrDef.name}' has an empty value in tag '{% ${tagDefinition.tagName} %}'.`"
+    },
+    {
+      "code": "SUG-004",
+      "severity": "suggestion",
+      "file": "src/definitions/tags/block/card/diagnostics/imageAttrConflict.ts",
+      "line": 1,
+      "summary": "Orphaned file not deleted after migration to declarative mutuallyExclusiveWith",
+      "detail": "The card tag was migrated from using validateCardIconImageConflict (custom rule) to declarative mutuallyExclusiveWith on icon/image attributes. The import was removed from card.types.ts, but this file was not deleted. It is dead code with no remaining imports.",
+      "correction": "Delete src/definitions/tags/block/card/diagnostics/imageAttrConflict.ts and the parent diagnostics/ directory if empty."
+    }
+  ]
+}

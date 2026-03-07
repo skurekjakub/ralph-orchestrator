@@ -43,6 +43,10 @@ You may modify files in these directories:
 4. **Propose new skills** when the analysis reveals a recurring pattern the agent handles poorly.
 5. **Propose new MCP servers** when the agent needs a capability it currently lacks (and the gap was identified in analysis). 
 6. **Test Liquid syntax** — ensure any template changes use valid Liquid tags (`{% render 'partial' %}`, `{% if condition %}`, `{% section "name" %}`).
+7. **Distinguish root cause.** For each finding, determine whether the issue is:
+   - **Rule gap** — the agent followed its instructions correctly, but the instructions are insufficient (e.g., missing severity calibration examples, wrong threading rules). Fix: edit the governing checklist, skill, or shared include.
+   - **Agent behavior gap** — the instructions are correct but the agent ignored or misapplied them (e.g., wrong attribution prefix despite correct template variable). Fix: add emphasis, examples, or explicit prohibitions to the agent template.
+   - **Infrastructure issue** — template variables didn't resolve, tools failed, MCP errors. Fix: escalate to the `Proposed (Not Implemented)` section.
 {% endraw %}
 
 ## Output
@@ -78,7 +82,8 @@ Use this structure:
 ## Workflow
 
 1. Read `{{ hook.outputDir }}/analysis.md` completely
-2. For each actionable finding, identify the target file and section
+2. For each content quality or behavior finding, **read the governing document** — the checklist, skill, or workflow template that the agent was following. You need to see what the agent was told before deciding whether the issue is a rule gap or a behavior gap.
+3. For each actionable finding, identify the target file and section
 3. Read the target file to understand current state
 4. Make the change
 5. Record it in the improvements summary

@@ -1,0 +1,34 @@
+{
+  "reviewer": "ralph.malph",
+  "model": "gemini",
+  "verdict": "approved",
+  "findings": [
+    {
+      "code": "SUG-001",
+      "severity": "suggestion",
+      "file": "src/logic/diagnostics/tags/rules/validateDuplicateAttributes.rule.ts",
+      "line": 3,
+      "summary": "Unused import findTagAttributeNameRange",
+      "detail": "The function `findTagAttributeNameRange` is imported from `../helpers` but never used in the rule body. Only `createTagDiagnostic` is used.",
+      "correction": "Remove `findTagAttributeNameRange` from the import statement."
+    },
+    {
+      "code": "SUG-002",
+      "severity": "suggestion",
+      "file": "src/definitions/tags/block/card/diagnostics/imageAttrConflict.ts",
+      "line": 1,
+      "summary": "Orphaned dead code file not deleted",
+      "detail": "The `validateCardIconImageConflict` function was replaced by the declarative `mutuallyExclusiveWith` approach on card.types.ts. The import was removed but the file itself was not deleted. It is no longer referenced anywhere.",
+      "correction": "Delete `src/definitions/tags/block/card/diagnostics/imageAttrConflict.ts` and remove the `diagnostics/` folder if empty."
+    },
+    {
+      "code": "SUG-003",
+      "severity": "suggestion",
+      "file": "src/logic/diagnostics/tags/rules/validateDuplicateAttributes.rule.ts",
+      "line": 30,
+      "summary": "Duplicate detection regex can false-positive on quoted attribute values",
+      "detail": "The regex `/\\b([\\w-]+)\\s*(?=\\s*=)/gi` operates on raw tag text without skipping quoted strings. A tag like `{% code lang=csharp title=\"lang=test\" %}` would match `lang` twice (real attr + inside value), producing a false duplicate warning. Low probability in practice but a correctness gap.",
+      "correction": "Strip or skip quoted values from `afterTagName` before running the regex, e.g. `afterTagName.replace(/\"[^\"]*\"|'[^']*'/g, '')` before matching."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "agent": "malph-reviewer-gpt",
+  "task_id": "DOC-3141",
+  "status": "completed",
+  "result": "approved",
+  "summary": "APPROVED with 4 non-blocking suggestions. All 5 generic rules well-structured, comprehensive tests, clean architecture.",
+  "findingsCount": 4,
+  "prId": 2901,
+  "artifacts": ["malph-reviewer-gpt/output.md", "malph-reviewer-gpt/jira-findings.json"],
+  "next_hint": null,
+  "iteration": 1
+}

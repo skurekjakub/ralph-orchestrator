@@ -97,6 +97,21 @@ For each finding, use issue codes with severity:
 
 **Only report actual findings.** If something passes, do NOT include it.
 
+#### Severity calibration — what is NOT a suggestion
+
+`SUG-XXX` is reserved for genuinely optional improvements where the code is correct as-is. **Before classifying a finding as SUG, verify it doesn't match any of these — they are all blocking:**
+
+| Finding | Correct code | Why it's not SUG |
+|---|---|---|
+| Dead code / orphaned files (unreachable, no imports) | `TS-XXX` | Confuses contributors, rots silently, pollutes search |
+| Unused imports (not caught by linter config) | `TS-XXX` | Code quality debt; investigate why linter misses it |
+| Incomplete migration (old pattern partially replaced) | `TS-XXX` | Migration is not done until old code is removed |
+| Missing cleanup of replaced code | `TS-XXX` | Same as dead code — deletion is part of the task |
+| Inconsistent user-facing messages | `TS-XXX` | Users see the inconsistency in diagnostics/UI |
+| Missing required test coverage for new logic | `REQ-XXX` | Untested code is a requirements gap |
+
+**The test:** If the finding means "this should have been done as part of the task and wasn't," it's blocking. If it means "this could be nicer but works fine," it's SUG.
+
 ### Verdict rules
 
 Apply the verdict **mechanically**:
@@ -106,11 +121,13 @@ Apply the verdict **mechanically**:
 
 `SUG-XXX` is the only non-blocking category.
 
+**Pre-verdict audit:** Before writing your verdict, re-read every `SUG` finding and ask: "Is this genuinely optional, or did I downgrade it to avoid blocking?" Reclassify honestly.
+
 ---
 
 ### Posting PR threads
 
-After completing your review, post file-level threads on the ADO pull request:
+After completing your review, post file-level threads on the ADO pull request **for every finding, regardless of verdict**:
 
 1. **Get the PR ID** from `{{ artifactDir }}/malph-scout/output.md` (the scout records it)
 2. **Post file-level threads** for each finding that targets a specific file and line:
@@ -119,8 +136,8 @@ After completing your review, post file-level threads on the ADO pull request:
    - Use `rightFileStart`/`rightFileEnd` line numbers from the **new** (right) side of the diff
    - **Prefix every comment** with `[{{ agentName }}]` — e.g., `**[{{ agentName }}]** ARCH-001: ...`
    - Post one file at a time
+   - This applies to **all findings including SUG** — inline annotations show the PR author exactly where to look
 3. **Post one general thread** (no `threadContext`) summarizing your verdict: `[{{ agentName }}] Verdict: APPROVED | NEEDS REVISION (N findings)`
-4. **If APPROVED** — post the general summary thread only, no file-level threads
 
 ---
 

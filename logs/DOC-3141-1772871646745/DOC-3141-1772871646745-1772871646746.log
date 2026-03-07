@@ -1,0 +1,259 @@
+09:20:49 [INFO] [build] #1 [internal] load local bake definitions
+09:20:49 [INFO] [build] #1 reading from stdin 1.30kB done
+09:20:49 [INFO] [build] #1 DONE 0.0s
+09:20:50 [INFO] [build] #2 [app internal] load build definition from Dockerfile
+09:20:50 [INFO] [build] #2 transferring dockerfile: 1.77kB done
+09:20:50 [INFO] [build] #2 DONE 0.0s
+09:20:50 [INFO] [build] #3 [mcp-sidecar internal] load build definition from Dockerfile
+09:20:50 [INFO] [build] #3 transferring dockerfile: 2.11kB done
+09:20:50 [INFO] [build] #3 DONE 0.0s
+09:20:50 [INFO] [build] #4 [app internal] load metadata for docker.io/library/node:22-bookworm-slim
+09:20:51 [INFO] [build] #4 DONE 1.4s
+09:20:51 [INFO] [build] #5 [mcp-sidecar internal] load .dockerignore
+09:20:51 [INFO] [build] #5 transferring context: 2B done
+09:20:51 [INFO] [build] #5 DONE 0.0s
+09:20:51 [INFO] [build] #6 [app internal] load .dockerignore
+09:20:51 [INFO] [build] #6 transferring context: 2B done
+09:20:51 [INFO] [build] #6 DONE 0.0s
+09:20:51 [INFO] [build] #7 [app  1/10] FROM docker.io/library/node:22-bookworm-slim@sha256:9c2c405e3ff9b9afb2873232d24bb06367d649aa3e6259cbe314da59578e81e9
+09:20:51 [INFO] [build] #7 DONE 0.0s
+09:20:51 [INFO] [build] #8 [app internal] load build context
+09:20:51 [INFO] [build] #8 transferring context: 30B done
+09:20:51 [INFO] [build] #8 DONE 0.0s
+09:20:51 [INFO] [build] #9 [mcp-sidecar internal] load build context
+09:20:51 [INFO] [build] #9 transferring context: 34B done
+09:20:51 [INFO] [build] #9 DONE 0.0s
+09:20:51 [INFO] [build] #10 [app 4/7] COPY --chown=vscode:vscode setup.sh /usr/local/bin/
+09:20:51 [INFO] [build] #10 CACHED
+09:20:51 [INFO] [build] #11 [app 5/7] RUN chmod +x /usr/local/bin/setup.sh
+09:20:51 [INFO] [build] #11 CACHED
+09:20:51 [INFO] [build] #12 [app 6/7] RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-global
+09:20:51 [INFO] [build] #12 CACHED
+09:20:51 [INFO] [build] #13 [app 3/7] RUN apt-get update && apt-get install -y --no-install-recommends         git ca-certificates jq         xvfb xauth libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0         libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1         libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0         libcairo2 libxshmfence1 libgtk-3-0     && rm -rf /var/lib/apt/lists/*
+09:20:51 [INFO] [build] #13 CACHED
+09:20:51 [INFO] [build] #14 [app 2/7] RUN usermod -l vscode -d /home/vscode -m node     && groupmod -n vscode node
+09:20:51 [INFO] [build] #14 CACHED
+09:20:51 [INFO] [build] #15 [app 7/7] WORKDIR /workspace
+09:20:51 [INFO] [build] #15 CACHED
+09:20:51 [INFO] [build] #16 [mcp-sidecar  8/10] RUN cd /opt/mcp/gateway && npm install --omit=dev
+09:20:51 [INFO] [build] #16 CACHED
+09:20:51 [INFO] [build] #17 [mcp-sidecar  5/10] RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates     && rm -rf /var/lib/apt/lists/*
+09:20:51 [INFO] [build] #17 CACHED
+09:20:51 [INFO] [build] #18 [mcp-sidecar  7/10] COPY package.json /opt/mcp/gateway/
+09:20:51 [INFO] [build] #18 CACHED
+09:20:51 [INFO] [build] #19 [mcp-sidecar  3/10] RUN npm install -g supergateway@3
+09:20:51 [INFO] [build] #19 CACHED
+09:20:51 [INFO] [build] #20 [mcp-sidecar  6/10] RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway
+09:20:51 [INFO] [build] #20 CACHED
+09:20:51 [INFO] [build] #21 [mcp-sidecar  9/10] RUN chown -R 1000:1000 /opt/mcp /opt/npm-global /opt/playwright-browsers
+09:20:51 [INFO] [build] #21 CACHED
+09:20:51 [INFO] [build] #22 [mcp-sidecar  4/10] RUN npm install -g @playwright/mcp@0.0.68     && npx playwright install chromium     && npx playwright install-deps chromium
+09:20:51 [INFO] [build] #22 CACHED
+09:20:51 [INFO] [build] #23 [mcp-sidecar  2/10] RUN mkdir -p /opt/npm-global /opt/playwright-browsers
+09:20:51 [INFO] [build] #23 CACHED
+09:20:51 [INFO] [build] #24 [mcp-sidecar 10/10] WORKDIR /opt/mcp
+09:20:51 [INFO] [build] #24 CACHED
+09:20:51 [INFO] [build] #25 [mcp-sidecar] exporting to image
+09:20:51 [INFO] [build] #25 exporting layers done
+09:20:51 [INFO] [build] #25 writing image sha256:1cd4c81eb17e41c60e68c67301275e69c118dbd0877127c7c246f58b59bcb5e3 done
+09:20:51 [INFO] [build] #25 naming to docker.io/library/ralph-sandbox-vscode-mcp-sidecar done
+09:20:51 [INFO] [build] #25 DONE 0.0s
+09:20:51 [INFO] [build] #26 [app] exporting to image
+09:20:51 [INFO] [build] #26 exporting layers done
+09:20:51 [INFO] [build] #26 writing image sha256:b2d2bd9c5f859ad73e957179aa2c786f92987a2f9cc92b301702d336b5b52842 done
+09:20:51 [INFO] [build] #26 naming to docker.io/library/ralph-sandbox-vscode-app done
+09:20:51 [INFO] [build] #26 DONE 0.0s
+09:20:51 [INFO] [build] #27 [mcp-sidecar] resolving provenance for metadata file
+09:20:51 [INFO] [build] #27 DONE 0.0s
+09:20:51 [INFO] [build] #28 [app] resolving provenance for metadata file
+09:20:51 [INFO] [build] #28 DONE 0.0s
+09:20:51 [WARN] [build] ralph-sandbox-vscode-mcp-sidecar  Built
+09:20:51 [WARN] [build] ralph-sandbox-vscode-app  Built
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-internal  Creating
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-internal  Created
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-sidecar-external  Creating
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-sidecar-external  Created
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-external  Creating
+09:20:51 [WARN] [build] Network ralph-sandbox-vscode_ralph-external  Created
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Creating
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Creating
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Created
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Created
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-app-1  Creating
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-app-1  Created
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Starting
+09:20:51 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Starting
+09:20:52 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Started
+09:20:52 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Started
+09:20:52 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Waiting
+09:20:52 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Waiting
+09:20:57 [WARN] [build] Container ralph-sandbox-vscode-mcp-sidecar-1  Healthy
+09:20:57 [WARN] [build] Container ralph-sandbox-vscode-egress-proxy-1  Healthy
+09:20:57 [WARN] [build] Container ralph-sandbox-vscode-app-1  Starting
+09:20:57 [WARN] [build] Container ralph-sandbox-vscode-app-1  Started
+09:21:07 [INFO] [setup] 🚀 Setting up Ralph development environment (VS Code extension)...
+09:21:07 [INFO] [setup] 📦 Installing Node.js packages...
+09:21:11 [INFO] [setup] added 1 package in 4s
+09:21:11 [INFO] [setup] 15 packages are looking for funding
+09:21:11 [INFO] [setup] run `npm fund` for details
+09:21:14 [WARN] [setup] npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+09:21:15 [WARN] [setup] npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+09:21:18 [WARN] [setup] npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+09:21:18 [WARN] [setup] npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+09:21:18 [WARN] [setup] npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+09:21:19 [WARN] [setup] npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+09:22:05 [INFO] [setup] added 572 packages, and audited 573 packages in 55s
+09:22:05 [INFO] [setup] 152 packages are looking for funding
+09:22:05 [INFO] [setup] run `npm fund` for details
+09:22:06 [INFO] [setup] 19 vulnerabilities (4 low, 4 moderate, 11 high)
+09:22:06 [INFO] [setup] To address issues that do not require attention, run:
+09:22:06 [INFO] [setup] npm audit fix
+09:22:06 [INFO] [setup] To address all issues (including breaking changes), run:
+09:22:06 [INFO] [setup] npm audit fix --force
+09:22:06 [INFO] [setup] Run `npm audit` for details.
+09:22:06 [WARN] [setup] npm notice
+09:22:06 [WARN] [setup] npm notice New major version of npm available! 10.9.4 -> 11.11.0
+09:22:06 [WARN] [setup] npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
+09:22:06 [WARN] [setup] npm notice To update run: npm install -g npm@11.11.0
+09:22:06 [WARN] [setup] npm notice
+09:22:06 [INFO] [setup] 📦 Installing GitHub Copilot CLI...
+09:22:19 [INFO] [setup] added 2 packages in 13s
+09:22:19 [INFO] [setup] 📦 Installing Claude Code CLI...
+09:22:24 [INFO] [setup] added 3 packages in 5s
+09:22:24 [INFO] [setup] 2 packages are looking for funding
+09:22:24 [INFO] [setup] run `npm fund` for details
+09:22:24 [INFO] [setup] 🔧 Configuring git...
+09:22:24 [INFO] [setup] ✅ Ralph development environment ready!
+09:22:24 [INFO] [setup] Node:   v22.22.1
+09:22:24 [INFO] [setup] NPM:    10.9.4
+09:22:32 [WARN] [copilot] Warning: Custom agent "ralph.malph" specifies model "gpt-5.4" which is not available; using "claude-opus-4.6" instead
+09:22:42 [INFO] [copilot] ● skill(malph-vscode-workflow-setup)
+09:22:50 [INFO] [copilot] ● ralphchives-read-search_ralphchives: DOC-3141 tag attribute validation
+09:22:50 [INFO] [copilot] └ {"matchCount":0,"returned":3,"results":[{"topicId":26,"postId":30,"topicTitle...
+09:22:50 [INFO] [copilot] ● List branches
+09:22:50 [INFO] [copilot] $ git --no-pager branch -a | head -20
+09:22:50 [INFO] [copilot] └ 20 lines...
+09:22:50 [INFO] [copilot] ● ado-ado_list_pull_requests
+09:22:50 [INFO] [copilot] └ {"success":true,"count":1,"pullRequests":[{"pullRequestId":2901,"title":"DOC-...
+09:22:50 [INFO] [copilot] ● Check existing task directory
+09:22:50 [INFO] [copilot] $ ls -la .ralph/tasks/DOC-3141/ 2>/dev/null || echo "No existing task dir"
+09:22:50 [INFO] [copilot] └ 4 lines...
+09:23:03 [INFO] [copilot] Good — PR #2901 found, I'm on the `ralph/doc-3141` branch. Let me set up the workspace and announce my arrival.
+09:23:04 [INFO] [copilot] ✗ Todo added: Phase 1: Setup
+09:23:04 [INFO] [copilot] ● Create artifacts directory
+09:23:04 [INFO] [copilot] $ mkdir -p .ralph/tasks/DOC-3141/artifacts
+09:23:04 [INFO] [copilot] └ 1 line...
+09:23:09 [INFO] [copilot] ✗ Todo added: Phase 1: Setup
+09:23:14 [INFO] [copilot] ● Todo added: Phase 1: Setup
+09:23:30 [INFO] [copilot] Good. Now let me create the state file and post the JIRA greeting.
+09:23:30 [INFO] [copilot] ● Create .ralph/tasks/DOC-3141/state.md (+33)
+09:23:31 [INFO] [copilot] ● jira-kentico-jira_add_comment
+09:23:31 [INFO] [copilot] └ {"success":true,"commentId":"662016"}
+09:23:36 [INFO] [copilot] Phase 1 complete. Updating state and moving to Phase 2: Scout.
+09:23:37 [INFO] [copilot] ● Todo completed: phase-1-setup
+09:23:37 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+3 -3)
+09:23:37 [INFO] [copilot] ● skill(malph-vscode-workflow-scout)
+09:23:52 [INFO] [copilot] ● Todo started: phase-2-scout
+09:26:35 [INFO] [copilot] ● Ralph.malph-scout: Scout PR 2901 diff
+09:26:35 [INFO] [copilot] ● Check existing manifest
+09:26:35 [INFO] [copilot] $ if [ -f /workspace/.ralph/tasks/DOC-3141/artifacts/manifest.json ]; then
+09:26:35 [INFO] [copilot] cat /workspace/.ralph/tasks/DOC-3141/artifacts/manifest.json
+09:26:35 [INFO] [copilot] else
+09:26:35 [INFO] [copilot] echo "[]"
+09:26:35 [INFO] [copilot] fi
+09:26:35 [INFO] [copilot] └ 2 lines...
+09:26:35 [INFO] [copilot] ● Create .ralph/tasks/DOC-3141/artifacts/manifest.json (+11)
+09:26:38 [INFO] [copilot] Scout returned. Let me read its status.
+09:26:38 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-scout/status.json
+09:26:38 [INFO] [copilot] └ 15 lines read
+09:26:47 [INFO] [copilot] Scout: `scouted` ✅ — build/lint/tests all pass, 39 files changed. Moving to Phase 3.
+09:26:47 [INFO] [copilot] ● Todo started: phase-2-scout
+09:26:48 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+3 -2)
+09:26:48 [INFO] [copilot] ● skill(malph-vscode-workflow-review-panel)
+09:30:45 [INFO] [copilot] ● Ralph.malph-reviewer-opus: Opus reviews PR 2901
+09:30:45 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/artifacts/manifest.json (+8)
+09:30:45 [INFO] [copilot] ● ado-ado_create_pull_request_thread
+09:30:45 [INFO] [copilot] └ {"success":true,"threadId":26879,"status":"closed"}
+09:30:49 [INFO] [copilot] Opus complete. Reading status and dispatching GPT.
+09:30:49 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-opus/status.json
+09:30:49 [INFO] [copilot] └ 12 lines read
+09:30:56 [INFO] [copilot] Opus: **approved** (2 suggestions). Dispatching GPT.
+09:35:31 [INFO] [copilot] ● Ralph.malph-reviewer-gpt: GPT reviews PR 2901
+09:35:31 [INFO] [copilot] ● Read existing manifest
+09:35:31 [INFO] [copilot] $ if [ -f /workspace/.ralph/tasks/DOC-3141/artifacts/manifest.json ]; then cat
+09:35:31 [INFO] [copilot] /workspace/.ralph/tasks/DOC-3141/artifacts/manifest.json; else echo "[]"; fi
+09:35:31 [INFO] [copilot] └ 19 lines...
+09:35:31 [INFO] [copilot] ● Update manifest with GPT entry
+09:35:31 [INFO] [copilot] $ cat > /workspace/.ralph/tasks/DOC-3141/artifacts/manifest.json << 'MANIFEST_EOF'
+09:35:31 [INFO] [copilot] [
+09:35:31 [INFO] [copilot] {
+09:35:31 [INFO] [copilot] "timestamp": "2025-07-21T08:25:00Z",
+09:35:31 [INFO] [copilot] "agent": "malph-scout",...
+09:35:31 [INFO] [copilot] └ 24 lines...
+09:35:34 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-gpt/status.json
+09:35:34 [INFO] [copilot] └ 12 lines read
+09:35:40 [INFO] [copilot] GPT: **approved** (4 suggestions). Dispatching Gemini.
+09:39:32 [INFO] [copilot] ● Ralph.malph-reviewer-gemini: Gemini reviews PR 2901
+09:39:32 [INFO] [copilot] ● Create .ralph/tasks/DOC-3141/artifacts/malph-reviewer-gemini/status.json (+13)
+09:39:32 [INFO] [copilot] ● Update manifest.json
+09:39:32 [INFO] [copilot] $ # Read existing manifest and append entry
+09:39:32 [INFO] [copilot] MANIFEST_FILE=".ralph/tasks/DOC-3141/artifacts/manifest.json"
+09:39:32 [INFO] [copilot] if [ -f "$MANIFEST_FILE" ]; then
+09:39:32 [INFO] [copilot] EXISTING=$(cat "$MANIFEST_FILE")
+09:39:32 [INFO] [copilot] else...
+09:39:32 [INFO] [copilot] └ 24 lines...
+09:39:35 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-gemini/status.json
+09:39:35 [INFO] [copilot] └ 12 lines read
+09:39:48 [INFO] [copilot] All three reviewers: **unanimous APPROVED**. Updating state and moving to Phase 4.
+09:39:48 [INFO] [copilot] ● Todo started: phase-3-review
+09:39:48 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+3 -2)
+09:39:49 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+3 -3)
+09:39:49 [INFO] [copilot] ● skill(malph-vscode-workflow-aggregate)
+09:39:54 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-opus/jira-findings.json
+09:39:54 [INFO] [copilot] └ 25 lines read
+09:39:54 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-gpt/jira-findings.json
+09:39:54 [INFO] [copilot] └ 43 lines read
+09:39:54 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/malph-reviewer-gemini/jira-findings.json
+09:39:54 [INFO] [copilot] └ 34 lines read
+09:40:15 [INFO] [copilot] All findings read. Unanimous approval, all suggestions only. Let me post the aggregated verdict.
+09:40:16 [INFO] [copilot] ● jira-kentico-jira_add_comment
+09:40:16 [INFO] [copilot] └ {"success":true,"commentId":"662017"}
+09:40:29 [INFO] [copilot] Verdict posted. Updating state for Phase 5.
+09:40:29 [INFO] [copilot] ● Todo started: phase-4-aggregate
+09:40:29 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+5 -4)
+09:40:29 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+1 -1)
+09:40:29 [INFO] [copilot] ● skill(malph-vscode-workflow-handoff)
+09:40:34 [INFO] [copilot] ● Create attachments directory
+09:40:34 [INFO] [copilot] $ mkdir -p /tmp/mcp-attachments
+09:40:34 [INFO] [copilot] └ 1 line...
+09:40:47 [INFO] [copilot] ● Create /tmp/mcp-attachments/review-handoff-DOC-3141.md (+37)
+09:40:51 [INFO] [copilot] ● jira-kentico-jira_add_attachment
+09:40:51 [INFO] [copilot] └ {"success":true,"attachments":[{"id":"176830","filename":"review-handoff-DOC-...
+09:41:02 [INFO] [copilot] Handoff written and uploaded. Moving to Phase 6.
+09:41:03 [INFO] [copilot] ● Todo started: phase-5-handoff
+09:41:03 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+3 -2)
+09:41:03 [INFO] [copilot] ● skill(malph-vscode-workflow-archive)
+09:42:49 [INFO] [copilot] ● Ralph.ralph-scribe: Scribe archives DOC-3141
+09:42:49 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/manifest.json
+09:42:49 [INFO] [copilot] └ 45 lines read
+09:42:49 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/artifacts/manifest.json (+10)
+09:42:52 [INFO] [copilot] ● Read .ralph/tasks/DOC-3141/artifacts/ralph-scribe/status.json
+09:42:52 [INFO] [copilot] └ 10 lines read
+09:43:01 [INFO] [copilot] Scribe archived successfully. Final state update and exit.
+09:43:02 [INFO] [copilot] ● Todo completed: phase-6-archive
+09:43:02 [INFO] [copilot] ● Edit .ralph/tasks/DOC-3141/state.md (+1)
+09:43:04 [INFO] [copilot] ```
+09:43:04 [INFO] [copilot] ===RALPH_RESULT_START===
+09:43:04 [INFO] [copilot] STATUS: completed
+09:43:06 [INFO] [copilot] SUMMARY: Review panel for DOC-3141. Verdict: APPROVED (5 total suggestions across 3 reviewers, 0 blocking). Build/lint/tests all pass. The night approves.
+09:43:06 [INFO] [copilot] ===RALPH_RESULT_END===
+09:43:06 [INFO] [copilot] ```
+09:43:06 [WARN] [copilot] Total usage est:        3 Premium requests
+09:43:06 [WARN] [copilot] API time spent:         18m 36s
+09:43:06 [WARN] [copilot] Total session time:     20m 36s
+09:43:06 [WARN] [copilot] Total code changes:     +92 -17
+09:43:06 [WARN] [copilot] Breakdown by AI model:
+09:43:06 [WARN] [copilot] claude-opus-4.6         4.3m in, 54.5k out, 3.9m cached (Est. 3 Premium requests)
+09:43:06 [WARN] [copilot] Session exported to: /workspace/.ralph/logs/session-transcript.md
+09:43:43 [INFO] Deployed 13 agent symlink(s) to /home/jakubs/repositories/ralph-orchestrator/.github/agents
+09:43:48 [WARN] [local-copilot] Error: Model "gpt-5.4" from --model flag is not available.
