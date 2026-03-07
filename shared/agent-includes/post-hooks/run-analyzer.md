@@ -62,6 +62,17 @@ Perform each step in order. Skip steps where the required artifact is missing.
    - Did it produce the expected output artifacts?
    - Did it make the required JIRA transitions and comments?
 
+6. **Content quality** (review workflows only) — If the execution involved a multi-reviewer panel (Malph), evaluate the *substance* of what the reviewers produced, not just the tool mechanics:
+   - **Severity accuracy** — For each finding coded `SUG`, verify it is genuinely optional. Dead code, unused imports, incomplete migrations, and missing cleanup should be blocking (`TS-XXX`), not suggestions. Reference the severity calibration table in the review checklist.
+   - **Verdict consistency** — Does the verdict follow mechanically from the finding codes? Would reclassifying any SUG to a blocking code flip the verdict?
+   - **Cross-reviewer calibration** — Compare findings across all reviewers. Unanimous convergence on the same verdict with overlapping findings is a signal to investigate: is the PR genuinely clean, or are all models defaulting to the same bias? Flag when all reviewers agree on leniency but findings suggest otherwise.
+   - **PR threading quality** — Did each reviewer post file-level threads for every finding? Did they use their own `{{ agentName }}` prefix (not the orchestrator's name)?
+
+7. **Template variable resolution** — Spot-check tool call arguments in the transcript for correct identity resolution:
+   - PR thread prefixes should use the subagent's own name (e.g., `[ralph.malph-reviewer-opus]`), not the orchestrator's
+   - File paths should resolve to valid repo-relative paths
+   - Artifact directory references should point to the correct subagent subdirectory
+
 ## Output
 
 Write your analysis report to: `{{ artifactDir }}/{{ agentName }}/output.md`
@@ -90,8 +101,17 @@ Use this structure for the report:
 ## Proxy & MCP
 <!-- Infrastructure issues, blocked domains, server errors -->
 
+## Content Quality (review workflows)
+<!-- Severity accuracy, verdict consistency, cross-reviewer calibration -->
+<!-- For each SUG finding: is it genuinely optional or misclassified? -->
+<!-- Cross-reviewer comparison: did all models converge on the same position? Why? -->
+
+## Template Variable Resolution
+<!-- Correct agent identity in PR threads, file paths, artifact references -->
+
 ## Improvement Suggestions
 <!-- Concrete, actionable items — each tied to a specific finding above -->
+<!-- For each suggestion, classify: agent behavior issue (fix via prompts) vs. rule gap (fix via checklist/skill) vs. infrastructure issue (fix via config/code) -->
 ```
 
 ## Rules
