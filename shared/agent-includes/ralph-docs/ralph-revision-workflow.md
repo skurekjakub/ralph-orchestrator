@@ -14,7 +14,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Skill | Summary |
 |-------|-------|---------|
 | 1–2. Setup | ralph-workflow-revision-setup | Understand feedback, find existing branch & PR |
-| 3. Fix | ralph-workflow-revision-fix | Implement fixes for each feedback item |
+| 3. Fix | ralph-workflow-revision-fix | Dispatch ralph-writer in revision mode to implement the fixes |
 {%- unless triggerParams.skip_review %}
 | 4. Review | ralph-workflow-review | Three-reviewer gate (technical, style, IA), revision loop |
 {%- endunless %}

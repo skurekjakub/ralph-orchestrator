@@ -1,6 +1,6 @@
 ---
 name: devralph-workflow-revision-fix
-description: "Phase 2 of the revision workflow — implement fixes for each defect in your fix plan. Address issues one at a time, building and testing after each fix. Fixing incrementally prevents one fix from masking or introducing another problem."
+description: "Phase 2 of the revision workflow — dispatch stacky-coder to implement the fix plan, then run the existing test and review subagents before committing."
 ---
 {% raw %}
 
@@ -13,16 +13,8 @@ description: "Phase 2 of the revision workflow — implement fixes for each defe
 
 ## Instructions
 
-1. **Work through the Fix Plan** from `state.md` item by item. Use the todo tool to track progress.
-
-2. **For each defect:**
-   a. Read the relevant code and understand the issue
-   b. Implement the fix
-   c. Run the build: `npm run build`
-   d. Run relevant tests: `npx gulp rspec_tests` for Ruby changes
-   e. If the fix involved UI changes, verify with `npm run serve`
-
-3. **Update or add tests** where the defect reveals a missing test case.
+1. **Dispatch `stacky-coder`** with the Fix Plan from `state.md`.
+2. Validate the coder result — confirm the fixes were implemented and the build is green before moving into the verification gauntlet.
 
 ## Verification (mandatory before commit)
 

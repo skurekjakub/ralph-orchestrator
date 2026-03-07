@@ -1,6 +1,6 @@
 ---
 name: devralph-workflow-e2e
-description: "Phase 5 of the standard development workflow — write Playwright E2E tests for UI-facing changes. Delegate to the stacky-e2e-playwright sub-agent. Skip if changes are purely backend (gem logic, Gulp pipeline, config) with no rendered HTML or JS behavior changes. E2E tests catch broken user flows that unit tests miss — a tag might render valid HTML that still breaks the page layout or search."
+description: "Phase 5 of the standard development workflow — dispatch the stacky-e2e-playwright sub-agent for UI-facing changes, then record the E2E result for the review phase."
 ---
 {% raw %}
 
@@ -26,17 +26,15 @@ Proceed if your changes affect:
 
 ## Instructions
 
-1. **Start the dev server** — `npm run serve` (runs BrowserSync at `http://localhost:3000`)
-
-2. **Delegate E2E test writing to stacky-e2e-playwright sub-agent** — provide it with:
+1. **Delegate E2E test writing to stacky-e2e-playwright sub-agent** — provide it with:
    - What changed and how it should behave in the browser
    - The URL paths to test (e.g., `/documentation/page-name`, `/documentation/search`)
    - Expected visual/functional outcomes
    - The dev server URL (`http://localhost:3000`)
 
-3. **Review and run the E2E tests** written by the sub-agent.
+2. **Validate the sub-agent result** — confirm it returned test files plus pass/fail status.
 
-4. **Fix any E2E test failures** — either adjust the tests or fix the implementation.
+3. **If E2E failed, re-dispatch `stacky-coder`** to fix the implementation, then re-run the E2E sub-agent.
 
 ## Before moving to Phase 6
 

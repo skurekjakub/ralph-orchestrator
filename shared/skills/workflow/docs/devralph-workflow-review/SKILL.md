@@ -41,13 +41,9 @@ description: "Phase 6 of the standard development workflow — code review gate 
    - Backwards compatibility issues
    - Build pipeline impact
 
-4. **Address all findings** — fix issues or document why they're acceptable. Re-run tests after any changes.
+4. **Address all findings by re-dispatching `stacky-coder`** — the orchestrator does not implement fixes directly. Re-run the relevant QA sub-agents after the coder returns.
 
-5. **Final build verification:**
-   ```bash
-   npm run build
-   npx gulp rspec_tests
-   ```
+5. **Final verification check:** confirm the latest coder/test/E2E/review artifacts show a clean result before committing.
 
 ## Before moving to Phase 7
 

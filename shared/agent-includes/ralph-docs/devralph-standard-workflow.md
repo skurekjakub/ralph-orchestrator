@@ -7,8 +7,8 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Skill | Summary |
 |-------|-------|---------|
 | 1. Setup | **devralph-workflow-setup** | Branch, scratchpad, **ralph-ralphchives** search, component identification |
-| 2. Research | **devralph-workflow-research** | Explore affected code, trace integration points, create implementation plan |
-| 3. Implement | **devralph-workflow-implement** | Execute changes, build after each edit |
+| 2. Research | **devralph-workflow-research** | Dispatch stacky-analyst to produce the implementation plan |
+| 3. Implement | **devralph-workflow-implement** | Dispatch stacky-coder to execute changes and validate builds |
 | 4. Test | **devralph-workflow-test** | Write unit/integration tests (delegate to stacky-test-writer) |
 | 5. E2E | **devralph-workflow-e2e** | Write Playwright E2E tests for UI changes (delegate to stacky-e2e-playwright) |
 | 6. Review | **devralph-workflow-review** | Code review gate (stacky-reviewer + stacky-bug-auditor) |

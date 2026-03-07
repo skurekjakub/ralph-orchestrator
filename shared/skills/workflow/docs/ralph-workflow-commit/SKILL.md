@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-commit
-description: "Standard workflow Phase 6. Read this skill when writing and review are done and you're ready to commit. Covers the pre-commit checkpoint (verify identifiers match frontmatter, source references present, build passes), staging, committing with the correct message format, and pushing to the task branch."
+description: "Standard workflow Phase 6. Read this skill when the writer and reviewers are done and you're ready to commit. Covers the pre-commit checkpoint, staging, committing with the correct message format, and pushing to the task branch."
 ---
 
 # Phase 6: Commit & Push
@@ -14,8 +14,8 @@ description: "Standard workflow Phase 6. Read this skill when writing and review
 ## Instructions
 
 **Pre-commit checkpoint:** Re-read `state.md` and verify:
-- Every source code reference noted by the researcher is accounted for in the handoff draft
-- `npm run build` passes cleanly — if it fails, consult the **ralph-build-errors** skill
+- The latest writer `status.json` reported `result: implemented` (or the task is intentionally being delivered as `partial`)
+- All review phases are complete (or skipped)
 
 Stage, commit, and push:
 

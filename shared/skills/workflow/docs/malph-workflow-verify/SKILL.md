@@ -1,37 +1,30 @@
 ---
 name: malph-workflow-verify
-description: "Malph review workflow Phase 4. Read this skill after investigating the diff. Covers delegating technical claim verification to the malph-investigator sub-agent, corroborating findings with Microsoft documentation, and preserving source URLs. Every accuracy finding in your review must pass through this phase first."
+description: "Malph review workflow Phase 3. Read this skill after scouting the PR. Dispatch the technical reviewer and record its status.json result."
 ---
 
-# Phase 4: Verify Technical Claims
+# Phase 3: Verify Technical Claims
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. This skill is for **Phase 4: Verify Technical Claims**. If you've already completed this phase, skip to the next.
+2. This skill is for **Phase 3: Verify Technical Claims**. If you've already completed this phase, skip to the next.
 
 ## Instructions
 
-Before judging the content, verify the technical claims in the diff:
+Dispatch the technical reviewer:
 
-1. **Identify every functional or behavioral claim**, API signature, class name, configuration value, and code example in the changed files.
-2. **Delegate to the `malph-investigator` sub-agent** — pass the specific technical claims that need verification. The investigator searches the Xperience source code and returns a verification report with source browser URLs.
-3. **Review the investigator's findings** — verify it contains all expected sections:
-   - **Verified**: claims confirmed against source (with URLs)
-   - **Discrepancies**: claims that conflict with source (with evidence)
-   - **Could Not Verify**: claims where source was inconclusive
+1. **Dispatch `ralph-reviewer-technical`** with the task-id and a one-line directive (e.g. "Review technical accuracy for {{ taskId }}"). The reviewer reads the scout's artifact and changed files directly from the filesystem.
+2. After the reviewer returns, read its `status.json` at `.ralph/tasks/{{ taskId }}/artifacts/ralph-reviewer-technical/status.json`.
+3. Record the `result` and `summary` in `state.md`.
 
-   For every item in "Discrepancies", open the cited source location and confirm the discrepancy yourself before including it in your review. False positives in your review undermine trust in the entire process.
-4. **Corroborate with Microsoft documentation** — use the `microsoft_docs_search` MCP tool to find relevant pages, then `web_fetch` to retrieve their full content. Use this to cross-check technical claims, API behavior, or platform details that the source code alone doesn't clarify. You do not have any other internet access.
-5. **Preserve source URLs** from the investigator's report — you'll need them in Phase 6 for the JIRA comment. Every verified claim should link back to the exact source location.
-6. Incorporate verified discrepancies into your review as blockers.
+Do **not** read `review-findings.json` or `output.md`. The verdict agent reads all reviewer findings.
 
-## Before moving to Phase 5
+## Before moving to Phase 4
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 5: Review`
+- Set "Current Phase" to `Phase 4: Review`
 - Set "Skills for this phase" to:
   - malph-workflow-review
-- Add Phase 4 to "Completed Phases"
-- Record the investigator's full report under "Investigator Findings"
-- Note any corroborating or conflicting info from Microsoft docs
+- Add Phase 3 to "Completed Phases"
+- Record the technical reviewer's `result` and `summary` from `status.json` under "Technical Review Status"

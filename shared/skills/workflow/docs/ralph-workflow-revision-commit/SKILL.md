@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-revision-commit
-description: "Revision workflow Phase 5. Read this skill after fixes are implemented. Covers the pre-commit build check, committing to the existing branch, pushing, and responding to each PR review thread — resolving addressed threads and explaining any intentionally unaddressed feedback."
+description: "Revision workflow Phase 5. Read this skill after fixes are implemented. Covers the pre-commit checkpoint, committing to the existing branch, pushing, and responding to each PR review thread."
 ---
 
 # Revision Phase 5: Commit, Push & Respond to PR
@@ -15,7 +15,7 @@ description: "Revision workflow Phase 5. Read this skill after fixes are impleme
 
 ### Pre-commit check
 
-- Verify `npm run build` passes (or equivalent build command)
+- Verify the latest writer iteration reported a passing build (or that the task is intentionally partial)
 - Verify all feedback items from `state.md` have been addressed
 
 ### Commit & push

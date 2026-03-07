@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-write
-description: "Standard workflow Phase 3. Read this skill when you're ready to implement documentation changes. Covers writing based on the researcher's report, consulting style guides and domain skills, validating builds with npm run build, and creating/modifying pages with proper frontmatter and identifiers."
+description: "Standard workflow Phase 3. Read this skill when you're ready to dispatch the writer sub-agent. Invoke ralph-writer with the task-id, read its status.json, and prepare the review phase."
 ---
 
 # Phase 3: Write
@@ -9,64 +9,28 @@ description: "Standard workflow Phase 3. Read this skill when you're ready to im
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 3. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm you have the research findings from Phase 2.
+3. **Review completed phases** — confirm Phase 2 (Research) is complete.
 
 ## Instructions
 
-Now YOU implement all documentation changes based on the researcher's report.
+Dispatch the **ralph-writer** sub-agent to implement all documentation changes. The writer reads the researcher's artifact directly from the filesystem — do not relay research content.
 
-### Step 1: Preparation
+### Dispatch
 
-1. **Read the style guides** before writing — consult these skills:
-   - **ralph-style-guide-review** — writing standards, typography, terminology
-   - **ralph-documentation-syntax** — full Liquid tag reference and syntax
-   - **ralph-callout-selection** — choosing between callout types (tip/info/note/warning/key)
+Invoke **ralph-writer** with:
+- The task-id and a one-line directive (e.g. "Implement documentation changes for {{ taskId }}")
+- Any task-level constraints that apply:
+  - scope restriction (if `triggerParams.scope` is set)
+  - code-sample involvement (if `triggerParams.codesamples` is set)
+  - release-notes requirement (if `triggerParams.release_notes` is set)
 
-2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section and create a `todo` list:
+Do **not** pass research report content, subtask lists, or source references. The writer reads `ralph-researcher/output.md` on its own.
 
-{%- if triggerParams.release_notes %}
+### After the writer returns
 
-3. **Add a release notes subtask** — this task was triggered with the `release_notes` parameter. After recording the researcher's subtasks, add one more:
-
-```markdown
-- [ ] WRITE-RELEASE-NOTES — Write release notes based on the documentation changes (skill: ralph-write-release-notes)
-```
-
-This subtask goes through the same loop as all others. Read the **ralph-write-release-notes** skill for format and examples. Write the release notes to `/tmp/mcp-attachments/release-notes.md` and include them in the handoff file.
-{%- endif %}
-
-### Step 2: Subtask Loop
-
-Process each subtask **one at a time**. For each subtask:
-
-1. **Implement the change:**
-   - Follow the **ralph-new-page-creation** skill guidelines for new pages
-   - For cross-collection links (documentation ↔ guides ↔ api), see the **ralph-cross-version-linking** skill
-   - For page removals or deprecations, follow the **ralph-page-removal** checklist
-   - Every page needs: Introduction (what/why/when), Body (structured content), Result (expected outcomes)
-   - Use proper Jekyll frontmatter with all required fields
-   - File naming: kebab-case matching the page title
-   - Use explicit types instead of `var` in code examples
-   - For removals: clean up orphaned links, navigation entries, and cross-references
-
-   **After creating a new page, immediately verify:**
-   - The `order` value is correct relative to siblings (check the highest existing sibling `order` value)
-   - Record the identifier in `state.md` — use this exact value for all subsequent `page_link` and `related_pages` references. Do NOT regenerate it.
-
-2. **Build** — run `npm run build` to verify the site builds cleanly. Fix any issues before proceeding. ONLY use `npm run build` — never run gulp, grunt, or jekyll directly. If the build fails, consult the **ralph-build-errors** skill for common error patterns and fixes.
-
-3. **Validate** — delegate to the **ralph-validator** sub-agent:
-   - Pass the subtask definition (the researcher's `CREATE/UPDATE/MODIFY/DELETE` item and its related reference material)
-   - Pass the file paths you created or modified
-   - If the validator returns **ISSUES**, fix them and re-run `npm run build`
-   - If the validator returns **PASS**, proceed to the next subtask
-
-4. **Update `state.md`** — mark the subtask as done, re-read `state.md` to ground yourself before the next iteration:
-   - `- [x] CREATE-XXX — done, created path/to/file.md`
-   - Verify your "Current Phase" is still Phase 3
-   - Verify you haven't lost track of remaining subtasks
-
-Repeat for every subtask in the list.
+1. Read `status.json` at `.ralph/tasks/{{ taskId }}/artifacts/ralph-writer/status.json`
+2. Record the `result` and `summary` in `state.md`
+3. If `result: partial`, record the blocker from `summary` for the handoff
 
 {%- if triggerParams.skip_review %}
 
@@ -79,7 +43,7 @@ Update `state.md`:
 - Set "Skills for this phase" to:
   - ralph-workflow-commit
 - Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add Phase 3 to "Completed Phases" with files created/modified
+- Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
 - Note: "Phases 4-5 skipped (skip_review)"
 
@@ -92,7 +56,7 @@ Update `state.md`:
 - Set "Skills for this phase" to:
   - ralph-workflow-review
 - Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add Phase 3 to "Completed Phases" with files created/modified and validation outcomes
+- Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
 
 {%- endif %}

@@ -7,8 +7,8 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Skill | Summary |
 |-------|-------|---------|
 | 1. Setup | ralph-workflow-setup | Branch, scratchpad, ralphchives search |
-| 2. Research | ralph-workflow-research | Delegate to ralph-researcher sub-agent |
-| 3. Write | ralph-workflow-write | Implement changes in subtask loop with ralph-validator |
+| 2. Research | ralph-workflow-research | Dispatch ralph-researcher to produce the research report |
+| 3. Write | ralph-workflow-write | Dispatch ralph-writer to implement changes and use ralph-validator |
 {%- unless triggerParams.skip_review %}
 | 4–5. Review | ralph-workflow-review | Three-reviewer gate (technical, style, IA), revision loop |
 {%- endunless %}

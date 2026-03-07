@@ -17,10 +17,10 @@ description: "Standard workflow Phase 8 — the final phase. Read this skill whe
 {% section "release-notes" %}
 ### 0. Release Notes
 
-This task involves writing release notes.
+This task involves release notes.
 
-1. Use the **ralph-write-release-notes** skill and follow instructions there. 
-2. Save the release note to `/tmp/mcp-attachments/release-notes.md`
+1. Check the writer's `status.json` summary for confirmation that release notes were produced.
+2. If the summary does not mention release notes, note that gap in the handoff and proceed with the task status that reflects the missing artifact.
 {% endsection %}
 {%- endif %}
 

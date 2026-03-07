@@ -21,6 +21,17 @@ You do NOT write Playwright E2E tests — that's handled by a different sub-agen
 {% render 'prompt-security' %}
 {% endsection %}
 
+{% section "artifact-contract" %}
+{% render 'agent-as-function-contract' %}
+{% endsection %}
+
+### Your result codes
+
+| `result` | Meaning |
+|---|---|
+| `tests-written` | Tests created and passing |
+| `no-tests-needed` | Changes don't warrant tests (e.g. config-only, comments) |
+
 {% section "instructions" %}
 ## Instructions
 
@@ -60,5 +71,11 @@ You do NOT write Playwright E2E tests — that's handled by a different sub-agen
    bundle exec rspec spec/path/to/new_spec.rb
    ```
 
-6. **Report results** back to the primary agent with test file paths and pass/fail status.
+6. **Write artifacts** to `{{ artifactDir }}/stacky-test-writer/output.md` with test file paths and pass/fail status. Then write `status.json` and append to `manifest.json` per the artifact contract.
 {% endsection %}
+
+## Rules
+
+- Only write to your artifact directory and test spec files
+- Never modify production source code
+- If no tests are warranted, set result to `no-tests-needed` and explain why

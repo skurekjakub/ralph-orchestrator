@@ -1,6 +1,6 @@
 ---
 name: devralph-workflow-test
-description: "Phase 4 of the standard development workflow — create and run tests. Delegate RSpec test writing to the stacky-test-writer sub-agent for Ruby gem changes. Run all tests and fix failures before proceeding. Testing after implementation (rather than inline) prevents writing tests against a design that changes mid-implementation."
+description: "Phase 4 of the standard development workflow — dispatch the stacky-test-writer sub-agent for unit/integration test creation and execution, then record the result for the next phase."
 ---
 {% raw %}
 
@@ -29,22 +29,14 @@ description: "Phase 4 of the standard development workflow — create and run te
    - The existing test files in the relevant `spec/` directory (so it matches conventions)
    - The expected behavior your changes implement
 
-3. **Run all tests:**
-   ```bash
-   # Ruby gem tests (all gems)
-   npx gulp rspec_tests
-   
-   # Or specific gem tests
-   cd gems/<gem-name>
-   bundle exec rspec
-   
-   # Full site build (validates Liquid rendering, cross-references, etc.)
-   npm run build
-   ```
+3. **Validate the sub-agent result** — confirm the test writer returned:
+   - Test files created or updated
+   - Pass/fail status for the tests it ran
+   - Any failures that require a new coder iteration
 
-4. **Fix any test failures** — if tests fail, debug and fix either the test or the implementation. The sub-agent may have written tests that reveal bugs in your implementation.
+4. **If tests failed, re-dispatch `stacky-coder`** to fix the underlying implementation or adjust the test where warranted, then re-run the test writer.
 
-5. **Visual verification** — for any UI-facing changes, run `npm run serve` and verify the rendered output in the browser.
+5. **Record the result in `state.md`** — whether tests passed, were skipped, or required another coder iteration.
 
 ## Before moving to Phase 5
 

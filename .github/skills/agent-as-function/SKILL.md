@@ -47,6 +47,7 @@ Each phase skill ends with a transition section that updates `state.md` with the
 |------|-----------|-----------|
 | 0. Decompose | Break monolithic prompt into phase skills + scratchpad contract | [references/workflow-decomposition.md](references/workflow-decomposition.md) |
 | 1. **Analyze** | **Decompose existing prompt into constituent subagents the orchestrator needs** | [references/subagent-analysis.md](references/subagent-analysis.md) |
+| 1.5. **Audit Missing Functions** | **Audit the current agent roster for missing subagent functions, identify gaps between the workflow phases and the declared subagents, then confirm the initial audit with the user via `ask_questions` before editing files** | [references/subagent-analysis.md](references/subagent-analysis.md) |
 | 2. Explore | Analyze target domain for conventions and failure modes | [references/skill-discovery.md](references/skill-discovery.md) |
 | 3. Audit | Read all existing skills, build gap analysis | [references/skill-discovery.md](references/skill-discovery.md) |
 | 4. Propose | Enumerate candidate skills with overlap risks | [references/skill-discovery.md](references/skill-discovery.md) |
@@ -54,7 +55,15 @@ Each phase skill ends with a transition section that updates `state.md` with the
 | 6. Integrate | Wire skills into workflow phase transition lists + inline references | [references/skill-integration.md](references/skill-integration.md) |
 | 7. Deduplicate | Compare new vs existing skills, merge overlaps | [references/skill-integration.md](references/skill-integration.md) |
 
-**Step 1 is mandatory.** Before writing any code or skills, you must produce the subagent analysis. This is where you read the existing prompt end-to-end, identify every distinct responsibility, and determine which ones the orchestrator should delegate to subagents vs handle itself. The output is a subagent roster + routing table + data flow map. Do not skip this step — without it, the orchestrator will end up doing work that should be delegated, or subagents will have unclear boundaries.
+**Steps 1 and 1.5 are mandatory.** Before writing any code or skills, you must produce the subagent analysis, then audit the declared agent roster for missing functions and confirm that initial audit with the user. Step 1 identifies every distinct responsibility and determines which ones the orchestrator should delegate to subagents vs handle itself. Step 1.5 compares that responsibility map against the actual declared subagents and catches hidden hybrid behavior where an "orchestrator" still performs analyst, coder, reviewer, scout, or archiver work itself. The required output is a subagent roster + routing table + data flow map + missing-function audit. Do not skip these steps — without them, the orchestrator will end up doing work that should be delegated, or subagents will have unclear boundaries.
+
+**Mandatory audit questions before implementation:**
+
+- Which workflow phases still contain substantive work inside the orchestrator?
+- Which of those phase functions should become dedicated subagents?
+- Which declared subagents are only helpers versus true phase owners?
+- Is a scout, analyst, coder/writer, reviewer, or scribe/archiver function still missing?
+- Have you confirmed the initial missing-function audit with the user via `ask_questions` before editing files?
 
 **Quick reference:**
 
@@ -106,6 +115,7 @@ After any agent architecture change, verify:
 - [ ] **Audit trail** — `manifest.json` logs the full sequence with timestamps
 - [ ] **Loop termination** — iterative loops terminate at configured max
 - [ ] **Failure handling** — `status: failed` is written; orchestrator routes without parsing a half-written report
+- [ ] **Missing-function audit completed** — every substantive workflow function has an explicit owner, and any intentional hybrid behavior was confirmed with the user before implementation
 - [ ] **Phase coverage** — every workflow phase has a skill; no instructions left in the monolithic prompt
 - [ ] **Skill manifest** — each phase transition sets the correct skills for the next phase
 - [ ] **No dangling references** — deleted or merged skills have no remaining references in phase transitions or inline mentions

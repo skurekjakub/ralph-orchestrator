@@ -13,7 +13,7 @@ description: "Standard workflow Phases 4-5. Read this skill after implementing c
 
 ## Instructions
 
-Delegate to **all three** reviewer sub-agents. Each reviewer covers one dimension — pass the same summary of your changes (file paths, what changed, key decisions) to each one:
+Delegate to **all three** reviewer sub-agents. Each reviewer reads the writer's artifact and the repo diff directly from the filesystem. Aggregate only their `status.json` verdicts.
 
 | Sub-agent | Responsibility | Verdict codes |
 |---|---|---|
@@ -23,12 +23,9 @@ Delegate to **all three** reviewer sub-agents. Each reviewer covers one dimensio
 
 ### Invocation
 
-Invoke each reviewer as subagent. Collect all three verdicts before deciding.
+Invoke each reviewer as a subagent with the task-id and a one-line directive (e.g. "Review documentation changes for {{ taskId }}"). Each reviewer reads the writer's artifact and the actual changed files directly from the filesystem. Collect all three verdicts before deciding.
 
-For each reviewer, include:
-- The list of changed/created file paths
-- A brief summary of what changed and why
-- Whether this is a revision review (if applicable — tell them so they apply revision-mode leniency)
+If this is a revision review, tell each reviewer so they apply revision-mode leniency.
 
 ### Aggregation
 
@@ -36,23 +33,22 @@ For each reviewer, include:
 
 After collecting all three verdicts:
 1. **All APPROVED** → proceed to Phase 6 (skip Phase 5)
-2. **Any NEEDS REVISION** → enter Phase 5 (Revision Loop) with the combined feedback from all reviewers that flagged issues
+2. **Any NEEDS REVISION** → enter Phase 5 (Revision Loop). The writer reads the failing reviewers' artifacts from the filesystem on its own.
 
-### Trust but verify
+### Aggregation rule
 
-If a reviewer flags something, verify the claim is valid before acting on it — don't blindly revert correct work based on a false positive. This is especially important for:
-- **Technical reviewer** — source code search can miss or misidentify APIs; double-check the evidence URLs
-- **Style reviewer** — ensure cited rules actually exist in the style guide skills
-- **IA reviewer** — structural suggestions may be valid observations but not actionable within the current PR's scope
+You do not re-review the documentation. Route mechanically on the reviewer results:
 
-Conversely, an APPROVED result doesn't guarantee perfection — use your own judgment on anything that feels off.
+- If all reviewers approve, proceed
+- If any reviewer requests revision, send the task back to `ralph-writer`
+- If a reviewer artifact is malformed or missing, re-dispatch that reviewer once before proceeding
 
 ## Phase 5: Revision Loop (Max 2 cycles)
 
 If any reviewer returns **NEEDS REVISION**:
 
-1. **Cycle 1:** Fix the listed issues yourself. Run `npm run build` to validate. Re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
-2. **Cycle 2:** If still not fully approved, fix one final time. After this, do NOT review again — proceed to Phase 6 and note in the handoff which reviewer(s) did not converge.
+1. **Cycle 1:** Re-dispatch **ralph-writer** with the task-id and a one-line directive (e.g. "Address reviewer feedback for {{ taskId }}"). The writer reads the failing reviewer artifacts directly from the artifact directory, fixes the issues, and re-runs the build. Then re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
+2. **Cycle 2:** If still not fully approved, re-dispatch the writer one final time. After this, do NOT review again — proceed to Phase 6 and note in the handoff which reviewer(s) did not converge.
 
 If all reviewers return **APPROVED** at any point, skip remaining cycles and proceed to Phase 6.
 

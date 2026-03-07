@@ -1,90 +1,42 @@
 ---
 name: malph-workflow-review
-description: "Malph review workflow Phase 5. Read this skill after verifying technical claims. Covers the 4-part structured review checklist: Requirements Coverage (REQ-XXX), Technical Correctness (ACC-XXX), Style Guide Compliance (STY-XXX), and Content Quality. Includes the pre-verdict audit that catches false findings before delivery."
+description: "Malph review workflow Phase 4. Read this skill after the technical pass. Dispatch the remaining specialist reviewers and determine the panel verdict mechanically from status.json results."
 ---
 
-# Phase 5: Review
+# Phase 4: Review
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. This skill is for **Phase 5: Review**. If you've already completed this phase, skip to the next.
-3. **Check "Investigator Findings"** in `state.md` — you need the verification report for Part B.
+2. This skill is for **Phase 4: Review**. If you've already completed this phase, skip to the next.
+3. **Check "Technical Review Status"** in `state.md` — confirm Phase 4 is complete.
 
 ## Instructions
 
-Create a TODO list and perform a comprehensive review across these dimensions. Think deeply about each item.
+Dispatch the remaining reviewers:
 
-### A. Requirements Coverage
+1. **Dispatch `ralph-reviewer-style`** with the task-id and a one-line directive (e.g. "Review style compliance for {{ taskId }}"). The reviewer reads the writer's artifact and changed files directly from the filesystem.
+2. **Dispatch `ralph-reviewer-ia`** with the task-id and a one-line directive (e.g. "Review information architecture for {{ taskId }}"). The reviewer reads the changed files and their neighborhood directly from the filesystem.
+3. After both return, read their `status.json` files.
 
-- [ ] Does the change address what the JIRA issue asked for?
-- [ ] Are there gaps — things the issue requested that aren't in the diff?
-- [ ] Are there scope creep additions not covered by the issue?
+Do **not** read `review-findings.json`, `scout-findings.json`, or `output.md`. The verdict agent reads all findings.
 
-### B. Technical Correctness
+### Verdict determination
 
-Use the investigator's verification report to inform these checks:
+Determine the panel verdict **mechanically** from `status.json` results only:
 
-- [ ] Code examples use correct syntax and are logically coherent
-- [ ] API signatures, parameters, and return types match the actual source
-- [ ] Class names, method names, and file paths are accurate
-- [ ] Configuration values and settings are valid
-- [ ] No deprecated features or APIs recommended
-- [ ] Prerequisites and system requirements are up-to-date
-- [ ] Version-specific information is correctly noted
+- **NEEDS REVISION** if:
+  - the scout returned `build-broken` (from Phase 2)
+  - any reviewer returned `result: needs-revision`
+- **APPROVED** only if the scout found no blocking gaps and all three reviewers returned `result: approved`
 
-### C. Style Guide Compliance
+Record the verdict in `state.md`. This is a routing decision, not a content judgment.
 
-Review against the style guides you read in Phase 2:
-
-**Writing standards (docs-style-guide-full.md):**
-
-**Typography (typography.md):**
-
-**Terminology (word-list.md):**
-
-**Interaction verbs (docs-style-guide-full.md):**
-
-**Markdown & Jekyll syntax (markdown-syntax.md):**
-- [ ] Correct frontmatter fields and format
-- [ ] Proper use of callouts, includes, and Liquid tags
-- [ ] Links use correct Jekyll/relative format
-
-If unsure whether a term, pattern, or convention is correct for the Kentico docs, cross-reference other documentation files in the repo using search. Existing usage by experienced writers is a valid reference point.
-
-### D. Content Quality
-
-- [ ] Steps are logical and complete — a user following them reaches the stated outcome
-- [ ] Result section describes expected outcomes
-- [ ] Next Steps provide relevant follow-up actions (if appropriate)
-- [ ] Tables and lists improve readability where used
-- [ ] Code examples are complete and sensible within context
-- [ ] No contradictions or inconsistencies within the document or with related docs
-- [ ] Content is scannable — proper use of headings, bold, lists to break up walls of text
-- [ ] Links are valid and point to correct locations (check against existing files)
-
-### Pre-verdict audit
-
-Before moving to delivery, audit your own findings:
-
-1. Every `STY-XXX` finding must cite a specific rule from one of the five style guides (document name + section). If you can't point to the rule, drop the finding.
-2. Every `ACC-XXX` finding must trace to the investigator's report or your own verified source URL. If the investigator flagged it and you didn't corroborate, drop it.
-3. Re-check the JIRA issue scope — are any `REQ-XXX` gaps actually out-of-scope for the issue?
-
-### Verdict rules
-
-Apply the verdict **mechanically** based on surviving findings:
-
-- **NEEDS REVISION** if ANY `STY-XXX`, `ACC-XXX`, or `REQ-XXX` findings survived the audit. Style violations are not optional — they are blocking.
-- **APPROVED** only if the sole remaining findings are `SUG-XXX` (suggestions) or there are no findings at all.
-
-`SUG-XXX` findings are the only non-blocking category. Everything else — style, accuracy, requirements — means rejection. No exceptions.
-
-## Before moving to Phase 6
+## Before moving to Phase 5
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 6: Deliver`
+- Set "Current Phase" to `Phase 5: Deliver`
 - Set "Skills for this phase" to:
   - malph-workflow-deliver
-- Add Phase 5 to "Completed Phases"
-- Record your verdict (APPROVED or NEEDS REVISION) and all findings under "Review Findings" — use issue codes (`STY-XXX`, `ACC-XXX`, `REQ-XXX`, `SUG-XXX`)
+- Add Phase 4 to "Completed Phases"
+- Record the panel verdict (APPROVED or NEEDS REVISION) and each reviewer's `result` from `status.json` under "Review Panel Status" and "Panel Verdict"
