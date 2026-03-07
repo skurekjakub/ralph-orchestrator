@@ -128,6 +128,25 @@
             "malph-vscode-workflow-archive"
           ]
         }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            {
+              "agent": "ralph.run-analyzer",
+              "role": "analyzer",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            },
+            {
+              "agent": "ralph.agent-improver",
+              "role": "improver",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
+          ]
+        }
       ]
     }
   ]
