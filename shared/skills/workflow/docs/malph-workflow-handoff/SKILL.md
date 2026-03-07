@@ -1,6 +1,6 @@
 ---
 name: malph-workflow-handoff
-description: "Malph review workflow Phase 7 — the final phase. Read this skill after posting the review. Covers writing the review-handoff.md with verdict, findings, and investigator summary, attaching it to JIRA, posting to ralphchives, and printing the ralph-result exit block. The exit block is mandatory — the orchestrator cannot detect completion without it."
+description: "Malph review workflow Phase 7 — the final phase. Read this skill after posting the review. Covers writing the review-handoff.md with verdict, findings, scout summary, and panel summary, attaching it to JIRA, posting to ralphchives, and printing the ralph-result exit block."
 ---
 
 # Phase 7: Handoff & Exit
@@ -9,7 +9,7 @@ description: "Malph review workflow Phase 7 — the final phase. Read this skill
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 7: Handoff & Exit**. If you've already completed this phase, you should have already printed the exit block.
-3. **Check "Review Findings"** and **"Investigator Findings"** in `state.md` — you need both for the handoff.
+3. **Check "Review Findings"**, **"Scout Findings"**, and **"Technical Findings"** in `state.md` — you need them for the handoff.
 
 ## Instructions
 
@@ -35,8 +35,11 @@ Write to `/tmp/mcp-attachments/review-handoff.md`:
 problematic text, corrections. Copy the review content here verbatim.
 For APPROVED verdicts, note "No issues found." and any minor suggestions.>
 
-## Investigator Report Summary
-<Brief summary of what the malph-investigator verified and any discrepancies found>
+## Scout Summary
+<Brief summary of the PR map, requirement coverage notes, and build status>
+
+## Technical Review Summary
+<Brief summary of the technical findings and any discrepancies found>
 
 ## Style Guides Consulted
 - docs-style-guide-full.md

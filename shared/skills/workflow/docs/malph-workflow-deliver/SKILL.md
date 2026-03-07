@@ -1,6 +1,6 @@
 ---
 name: malph-workflow-deliver
-description: "Malph review workflow Phase 6. Read this skill after completing the review checklist. Covers posting the structured JIRA comment with verdict and findings, then posting file-level PR threads on the ADO pull request. Uses issue codes (STY-XXX, ACC-XXX, REQ-XXX, SUG-XXX) and includes source URLs from the investigator."
+description: "Malph review workflow Phase 6. Read this skill after aggregating the review panel. Covers posting the structured JIRA comment with verdict and findings, then posting file-level PR threads on the ADO pull request. Uses issue codes (STY-XXX, ACC-XXX, REQ-XXX, IA-XXX, SUG-XXX) and includes source URLs from the technical reviewer."
 ---
 
 # Phase 6: Deliver Judgment
@@ -17,12 +17,13 @@ description: "Malph review workflow Phase 6. Read this skill after completing th
 
 Post a JIRA comment with your review. Use rich wiki markup formatting — headings, bold verdicts, numbered issues.
 
-Consult the **ralph-source-references** skill for the source browser URL format when citing Xperience source code. The investigator's verification report includes source browser URLs — carry them through to your JIRA comment.
+Consult the **ralph-source-references** skill for the source browser URL format when citing Xperience source code. The technical review findings include source browser URLs — carry them through to your JIRA comment.
 
 Use issue codes for easy reference:
 - `STY-XXX` — Style guide violations
 - `ACC-XXX` — Technical accuracy concerns
 - `REQ-XXX` — Requirements coverage gaps
+- `IA-XXX` — Information architecture and structural-fit issues
 - `SUG-XXX` — Optional suggestions
 
 #### If NEEDS REVISION:

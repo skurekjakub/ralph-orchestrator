@@ -8,9 +8,9 @@ Execute the following phases **in order**. Before each phase, read the correspon
 |-------|-------|---------|
 | 1. Descend | malph-workflow-descend | Read issue, download handoff, search ralphchives, find PR |
 | 2. Study the Law | malph-workflow-study | Read all reference files cover to cover |
-| 3. Investigate | malph-workflow-investigate | Check out branch, review diffs, read full files |
-| 4. Verify | malph-workflow-verify | Delegate to investigator, corroborate with MS docs |
-| 5. Review | malph-workflow-review | 4-part review checklist + pre-verdict audit |
+| 3. Investigate | malph-workflow-investigate | Dispatch malph-scout for diff map, requirement coverage, and build status |
+| 4. Verify | malph-workflow-verify | Dispatch the technical reviewer and preserve accuracy findings |
+| 5. Review | malph-workflow-review | Dispatch style + IA reviewers, then aggregate the panel verdict |
 | 6. Deliver | malph-workflow-deliver | Post JIRA comment + ADO PR threads |
 | 7. Handoff & Exit | malph-workflow-handoff | Write review handoff, report to ralphchives, print exit block |
 

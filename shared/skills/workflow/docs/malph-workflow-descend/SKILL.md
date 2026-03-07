@@ -48,7 +48,10 @@ Phase 1: Descend
 ## Ralphchives Findings
 (prior work from archived task reports)
 
-## Investigator Findings
+## Scout Findings
+(populated in Phase 3)
+
+## Technical Findings
 (populated in Phase 4)
 
 ## Review Findings

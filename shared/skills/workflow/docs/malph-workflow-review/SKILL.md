@@ -1,6 +1,6 @@
 ---
 name: malph-workflow-review
-description: "Malph review workflow Phase 5. Read this skill after verifying technical claims. Covers the 4-part structured review checklist: Requirements Coverage (REQ-XXX), Technical Correctness (ACC-XXX), Style Guide Compliance (STY-XXX), and Content Quality. Includes the pre-verdict audit that catches false findings before delivery."
+description: "Malph review workflow Phase 5. Read this skill after the technical pass. Dispatch the remaining specialist reviewers, aggregate the scout and reviewer findings, and determine the final panel verdict."
 ---
 
 # Phase 5: Review
@@ -9,76 +9,29 @@ description: "Malph review workflow Phase 5. Read this skill after verifying tec
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. This skill is for **Phase 5: Review**. If you've already completed this phase, skip to the next.
-3. **Check "Investigator Findings"** in `state.md` — you need the verification report for Part B.
+3. **Check "Scout Findings"** and **"Technical Findings"** in `state.md` — you need both for aggregation.
 
 ## Instructions
 
-Create a TODO list and perform a comprehensive review across these dimensions. Think deeply about each item.
+Dispatch and aggregate the remaining review panel:
 
-### A. Requirements Coverage
-
-- [ ] Does the change address what the JIRA issue asked for?
-- [ ] Are there gaps — things the issue requested that aren't in the diff?
-- [ ] Are there scope creep additions not covered by the issue?
-
-### B. Technical Correctness
-
-Use the investigator's verification report to inform these checks:
-
-- [ ] Code examples use correct syntax and are logically coherent
-- [ ] API signatures, parameters, and return types match the actual source
-- [ ] Class names, method names, and file paths are accurate
-- [ ] Configuration values and settings are valid
-- [ ] No deprecated features or APIs recommended
-- [ ] Prerequisites and system requirements are up-to-date
-- [ ] Version-specific information is correctly noted
-
-### C. Style Guide Compliance
-
-Review against the style guides you read in Phase 2:
-
-**Writing standards (docs-style-guide-full.md):**
-
-**Typography (typography.md):**
-
-**Terminology (word-list.md):**
-
-**Interaction verbs (docs-style-guide-full.md):**
-
-**Markdown & Jekyll syntax (markdown-syntax.md):**
-- [ ] Correct frontmatter fields and format
-- [ ] Proper use of callouts, includes, and Liquid tags
-- [ ] Links use correct Jekyll/relative format
-
-If unsure whether a term, pattern, or convention is correct for the Kentico docs, cross-reference other documentation files in the repo using search. Existing usage by experienced writers is a valid reference point.
-
-### D. Content Quality
-
-- [ ] Steps are logical and complete — a user following them reaches the stated outcome
-- [ ] Result section describes expected outcomes
-- [ ] Next Steps provide relevant follow-up actions (if appropriate)
-- [ ] Tables and lists improve readability where used
-- [ ] Code examples are complete and sensible within context
-- [ ] No contradictions or inconsistencies within the document or with related docs
-- [ ] Content is scannable — proper use of headings, bold, lists to break up walls of text
-- [ ] Links are valid and point to correct locations (check against existing files)
-
-### Pre-verdict audit
-
-Before moving to delivery, audit your own findings:
-
-1. Every `STY-XXX` finding must cite a specific rule from one of the five style guides (document name + section). If you can't point to the rule, drop the finding.
-2. Every `ACC-XXX` finding must trace to the investigator's report or your own verified source URL. If the investigator flagged it and you didn't corroborate, drop it.
-3. Re-check the JIRA issue scope — are any `REQ-XXX` gaps actually out-of-scope for the issue?
+1. **Dispatch `ralph-reviewer-style`** with the changed-file context and scout findings.
+2. **Dispatch `ralph-reviewer-ia`** with the changed-file context and scout findings.
+3. Read `review-findings.json` from the technical, style, and IA reviewers.
+4. Read `scout-findings.json` from `malph-scout`.
+5. Combine those findings with the scout's requirement-coverage notes.
 
 ### Verdict rules
 
-Apply the verdict **mechanically** based on surviving findings:
+Apply the verdict **mechanically**:
 
-- **NEEDS REVISION** if ANY `STY-XXX`, `ACC-XXX`, or `REQ-XXX` findings survived the audit. Style violations are not optional — they are blocking.
-- **APPROVED** only if the sole remaining findings are `SUG-XXX` (suggestions) or there are no findings at all.
+- **NEEDS REVISION** if:
+  - the scout found a blocking requirement gap or build failure
+  - any reviewer returned `needs-revision`
+  - any surviving finding is `REQ-XXX`, `ACC-XXX`, `STY-XXX`, or `IA-XXX`
+- **APPROVED** only if the scout found no blocking gaps and all three reviewers returned `approved`
 
-`SUG-XXX` findings are the only non-blocking category. Everything else — style, accuracy, requirements — means rejection. No exceptions.
+`SUG-XXX` findings are the only non-blocking category.
 
 ## Before moving to Phase 6
 
@@ -87,4 +40,4 @@ Update `state.md`:
 - Set "Skills for this phase" to:
   - malph-workflow-deliver
 - Add Phase 5 to "Completed Phases"
-- Record your verdict (APPROVED or NEEDS REVISION) and all findings under "Review Findings" — use issue codes (`STY-XXX`, `ACC-XXX`, `REQ-XXX`, `SUG-XXX`)
+- Record your verdict (APPROVED or NEEDS REVISION) and all findings under "Review Findings" — use issue codes (`STY-XXX`, `ACC-XXX`, `REQ-XXX`, `IA-XXX`, `SUG-XXX`)

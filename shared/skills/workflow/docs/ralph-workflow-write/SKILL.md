@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-write
-description: "Standard workflow Phase 3. Read this skill when you're ready to implement documentation changes. Covers writing based on the researcher's report, consulting style guides and domain skills, validating builds with npm run build, and creating/modifying pages with proper frontmatter and identifiers."
+description: "Standard workflow Phase 3. Read this skill when you're ready to turn the research report into concrete documentation changes. Dispatch the ralph-writer sub-agent, validate its result, and prepare the review phase."
 ---
 
 # Phase 3: Write
@@ -13,7 +13,7 @@ description: "Standard workflow Phase 3. Read this skill when you're ready to im
 
 ## Instructions
 
-Now YOU implement all documentation changes based on the researcher's report.
+Dispatch the **ralph-writer** sub-agent to implement all documentation changes based on the researcher's report.
 
 ### Step 1: Preparation
 
@@ -22,7 +22,7 @@ Now YOU implement all documentation changes based on the researcher's report.
    - **ralph-documentation-syntax** — full Liquid tag reference and syntax
    - **ralph-callout-selection** — choosing between callout types (tip/info/note/warning/key)
 
-2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section and create a `todo` list:
+2. **Extract the subtask list** from the researcher's report — look for the `### Recommended Changes` section. Each `CREATE-XXX`, `UPDATE-XXX`, `MODIFY-XXX`, or `DELETE-XXX` item is one subtask. Record them in `state.md` under a new `## Subtasks` section so you can verify the writer covered the full plan.
 
 {%- if triggerParams.release_notes %}
 
@@ -35,38 +35,32 @@ Now YOU implement all documentation changes based on the researcher's report.
 This subtask goes through the same loop as all others. Read the **ralph-write-release-notes** skill for format and examples. Write the release notes to `/tmp/mcp-attachments/release-notes.md` and include them in the handoff file.
 {%- endif %}
 
-### Step 2: Subtask Loop
+### Step 2: Delegate the write phase
 
-Process each subtask **one at a time**. For each subtask:
+Invoke **ralph-writer** with:
 
-1. **Implement the change:**
-   - Follow the **ralph-new-page-creation** skill guidelines for new pages
-   - For cross-collection links (documentation ↔ guides ↔ api), see the **ralph-cross-version-linking** skill
-   - For page removals or deprecations, follow the **ralph-page-removal** checklist
-   - Every page needs: Introduction (what/why/when), Body (structured content), Result (expected outcomes)
-   - Use proper Jekyll frontmatter with all required fields
-   - File naming: kebab-case matching the page title
-   - Use explicit types instead of `var` in code examples
-   - For removals: clean up orphaned links, navigation entries, and cross-references
+- The research report context
+- The subtask list from `state.md`
+- Any task-specific skills or constraints that matter for the implementation
+{%- if triggerParams.release_notes %}
+- The release-notes requirement so it can include the output in its implementation pass
+{%- endif %}
 
-   **After creating a new page, immediately verify:**
-   - The `order` value is correct relative to siblings (check the highest existing sibling `order` value)
-   - Record the identifier in `state.md` — use this exact value for all subsequent `page_link` and `related_pages` references. Do NOT regenerate it.
+The writer is responsible for:
 
-2. **Build** — run `npm run build` to verify the site builds cleanly. Fix any issues before proceeding. ONLY use `npm run build` — never run gulp, grunt, or jekyll directly. If the build fails, consult the **ralph-build-errors** skill for common error patterns and fixes.
+- Creating and modifying documentation files
+- Running `npm run build`
+- Using `ralph-validator` for subtask checks
+- Addressing any validator findings before returning success
 
-3. **Validate** — delegate to the **ralph-validator** sub-agent:
-   - Pass the subtask definition (the researcher's `CREATE/UPDATE/MODIFY/DELETE` item and its related reference material)
-   - Pass the file paths you created or modified
-   - If the validator returns **ISSUES**, fix them and re-run `npm run build`
-   - If the validator returns **PASS**, proceed to the next subtask
+### Step 3: Record the writer result
 
-4. **Update `state.md`** — mark the subtask as done, re-read `state.md` to ground yourself before the next iteration:
-   - `- [x] CREATE-XXX — done, created path/to/file.md`
-   - Verify your "Current Phase" is still Phase 3
-   - Verify you haven't lost track of remaining subtasks
+After the writer returns:
 
-Repeat for every subtask in the list.
+1. Read `status.json`
+2. Record the iteration result in `state.md`
+3. Copy the changed file list and any tracked identifiers from the writer artifact into `state.md`
+4. If the writer returned `partial`, record the blocker clearly for the handoff
 
 {%- if triggerParams.skip_review %}
 
@@ -92,7 +86,7 @@ Update `state.md`:
 - Set "Skills for this phase" to:
   - ralph-workflow-review
 - Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add Phase 3 to "Completed Phases" with files created/modified and validation outcomes
+- Add Phase 3 to "Completed Phases" with the writer iteration result, files created/modified, and validation outcomes
 - Record any new identifiers in "Tracked Identifiers"
 
 {%- endif %}

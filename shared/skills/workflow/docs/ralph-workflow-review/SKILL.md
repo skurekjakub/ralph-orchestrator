@@ -51,8 +51,8 @@ Conversely, an APPROVED result doesn't guarantee perfection — use your own jud
 
 If any reviewer returns **NEEDS REVISION**:
 
-1. **Cycle 1:** Fix the listed issues yourself. Run `npm run build` to validate. Re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
-2. **Cycle 2:** If still not fully approved, fix one final time. After this, do NOT review again — proceed to Phase 6 and note in the handoff which reviewer(s) did not converge.
+1. **Cycle 1:** Re-dispatch **ralph-writer** with the failing reviewer artifacts available in the artifact directory. The writer fixes the listed issues and re-runs the build. Then re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
+2. **Cycle 2:** If still not fully approved, re-dispatch the writer one final time. After this, do NOT review again — proceed to Phase 6 and note in the handoff which reviewer(s) did not converge.
 
 If all reviewers return **APPROVED** at any point, skip remaining cycles and proceed to Phase 6.
 

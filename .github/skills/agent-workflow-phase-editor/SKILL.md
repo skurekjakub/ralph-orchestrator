@@ -1,5 +1,5 @@
 ---
-name: workflow-phase-editor
+name: agent-workflow-phase-editor
 description: "Edit multi-phase agent workflows in the Ralph Orchestrator — insert, remove, reorder, or modify workflow phases while keeping all cross-references, phase numbers, and profile configs consistent. Use this skill whenever someone wants to add a new phase to an agent workflow, remove a phase, reorder phases, renumber phases, restructure a workflow pipeline, add a skill to a workflow, or modify the phase sequence for any ralph profile. Also triggers on 'add a step to the workflow', 'insert between phase X and Y', 'move phase X after Y', 'the coder should also do X', or any request that changes the ordered phase list in a workflow table."
 ---
 

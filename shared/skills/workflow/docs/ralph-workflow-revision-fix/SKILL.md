@@ -1,6 +1,6 @@
 ---
 name: ralph-workflow-revision-fix
-description: "Revision workflow Phase 3. Read this skill after understanding the feedback and locating the branch/PR. Covers implementing targeted fixes for each reviewer feedback item without restarting from scratch, preserving previous decisions, and validating builds."
+description: "Revision workflow Phase 3. Read this skill after understanding the feedback and locating the branch/PR. Dispatch the ralph-writer sub-agent in revision mode to implement targeted fixes without restarting from scratch."
 ---
 
 # Revision Phase 3: Implement Fixes
@@ -13,11 +13,11 @@ description: "Revision workflow Phase 3. Read this skill after understanding the
 
 ## Phase 3: Implement Fixes
 
-Fix the specific issues raised by the reviewer — do NOT restart from scratch:
+Dispatch **ralph-writer** to fix the specific issues raised by the reviewer — do NOT restart from scratch:
 
-1. **Address each feedback item** from the JIRA comments and PR threads
-2. **Preserve previous decisions** unless explicitly contradicted by feedback
-3. **Validate the build** with `npm run build` after each change — if it fails, consult the **ralph-build-errors** skill
+1. Pass the feedback items from the JIRA comments and PR threads
+2. Preserve previous decisions unless explicitly contradicted by feedback
+3. Require a passing build before the writer returns `implemented`
 
 {%- if triggerParams.skip_review %}
 

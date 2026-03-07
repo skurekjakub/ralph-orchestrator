@@ -1,6 +1,6 @@
 ---
 name: malph-workflow-investigate
-description: "Malph review workflow Phase 3. Read this skill after studying the reference files. Covers checking out the PR branch, running git diff, and reading every changed file in full — not just the diff. The diff hides critical context. Never judge a file from its diff alone."
+description: "Malph review workflow Phase 3. Read this skill after studying the reference files. Dispatch the malph-scout sub-agent to map the PR, capture requirement-coverage risks, and run the docs build before the panel review begins."
 ---
 
 # Phase 3: Investigate
@@ -13,10 +13,14 @@ description: "Malph review workflow Phase 3. Read this skill after studying the 
 ## Instructions
 
 1. **You are already on the correct branch.**{% if triggerParams.branch %} The branch is `{{ triggerParams.branch }}`.{% endif %}
-2. **Run `git diff main...<branch>`** to see all changes
-3. **Read each changed file in full** — don't rely solely on the diff. The devil is in what the diff doesn't show. The diff hides critical context: surrounding headings, page structure, existing content that the change interacts with.
-4. **Record findings immediately.** As you read each file, write any issues you notice to the "Review Findings" section of `state.md` right away — with the issue code (`STY-XXX`, `ACC-XXX`, `REQ-XXX`, `SUG-XXX`), file path, and the specific problem. Do not rely on remembering them for Phase 5. Context fades; `state.md` does not.
-5. Consider relationships with files that may have been overlooked — are there related pages that should have been updated but weren't?
+2. **Dispatch `malph-scout`** to build the shared review context. The scout must return:
+  - PR/branch context
+  - Changed file list
+  - Requirement coverage notes
+  - Build status
+  - Focus areas for the reviewers
+3. **Record the scout output** in `state.md` under "Scout Findings" from `scout-findings.json`, and copy the changed file list into "Key Context".
+4. If the scout returns `build-broken`, preserve that as a blocking finding for the final verdict.
 
 ## Before moving to Phase 4
 
@@ -24,4 +28,4 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 4: Verify Technical Claims`
 - Set "Skills for this phase" to:
   - malph-workflow-verify
-- Add Phase 3 to "Completed Phases" — note which files were examined and any initial observations
+- Add Phase 3 to "Completed Phases" — note the scout result, build status, and changed files
