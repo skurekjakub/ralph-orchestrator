@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 ARG HOST_UID=1000
 ARG HOST_GID=1000
@@ -23,8 +23,14 @@ RUN npm install -g @playwright/mcp@0.0.68 \
 # Git + CA certificates for ADO push/PR tools running inside the sidecar.
 # ca-certificates is stripped from node:bookworm-slim; without it git cannot
 # verify SSL certificates and all HTTPS operations fail with "CAfile: none".
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+# Python 3 + pip for CodeGraphContext (code graph MCP server).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git ca-certificates python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Pre-install CodeGraphContext (Python-based code graph intelligence MCP server)
+# Uses FalkorDB Lite (embedded, zero-config) as default graph backend.
+RUN pip install --break-system-packages --no-cache-dir codegraphcontext
 
 # Server + gateway directories
 RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway

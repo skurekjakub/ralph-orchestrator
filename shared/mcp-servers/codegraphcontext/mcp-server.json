@@ -1,0 +1,28 @@
+{
+  "name": "codegraphcontext",
+  "description": "Code graph intelligence — indexes code into a graph DB for structural queries, call chains, dead code detection, and complexity analysis",
+  "type": "npm",
+  "command": "cgc",
+  "args": ["mcp", "start"],
+  "sidecarPort": 9108,
+  "tools": [
+    "find_code",
+    "analyze_code_relationships",
+    "calculate_cyclomatic_complexity",
+    "find_most_complex_functions",
+    "find_dead_code",
+    "add_code_to_graph",
+    "add_package_to_graph",
+    "monitor_directory",
+    "list_watched_paths",
+    "unwatch_directory",
+    "list_indexed_repositories",
+    "get_repository_stats",
+    "list_jobs",
+    "check_job_status",
+    "search_registry_bundles",
+    "load_bundle",
+    "execute_cypher_query",
+    "visualize_graph_query"
+  ]
+}

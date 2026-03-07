@@ -99,6 +99,7 @@ Each server has a `mcp-server.json` manifest in `shared/mcp-servers/<name>/`.
 | `microsoft-docs` | Search Microsoft Learn | custom | 9105 | `microsoft_docs_search` |
 | `ralphchives-write` | Post task reports & observations to knowledge base | custom | 9106 | `post_task_report`, `post_observation`, `reply_to_thread` |
 | `ralphchives-read` | Search/retrieve knowledge from archive | custom | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics` |
+| `codegraphcontext` | Code graph intelligence — structural queries, call chains, dead code, complexity | npm | 9108 | `find_code`, `analyze_code_relationships`, `find_dead_code`, `execute_cypher_query`, ... |
 
 ### Server Requirements
 
@@ -112,6 +113,7 @@ Each server has a `mcp-server.json` manifest in `shared/mcp-servers/<name>/`.
 | `microsoft-docs` | — | — |
 | `ralphchives-write` | `NODEBB_CATEGORY_NAME`, `NODEBB_API_TOKEN` | `NODEBB_API_URL` |
 | `ralphchives-read` | `NODEBB_CATEGORY_NAME`, `NODEBB_API_TOKEN` | `NODEBB_API_URL` |
+| `codegraphcontext` | — | — |
 
 ## Copilot Built-In GitHub MCP
 
