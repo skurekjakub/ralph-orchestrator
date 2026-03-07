@@ -48,14 +48,20 @@ Phase 1: Descend
 ## Ralphchives Findings
 (prior work from archived task reports)
 
-## Scout Findings
-(populated in Phase 3)
+## Scout Status
+(result + summary from malph-scout status.json — Phase 2)
 
-## Technical Findings
-(populated in Phase 4)
+## Technical Review Status
+(result + summary from ralph-reviewer-technical status.json — Phase 3)
 
-## Review Findings
-(populated in Phase 5)
+## Review Panel Status
+(result + summary from style/IA reviewers status.json — Phase 4)
+
+## Panel Verdict
+(APPROVED or NEEDS REVISION — determined in Phase 4)
+
+## Verdict Delivery Status
+(result + summary from malph-verdict status.json — Phase 5)
 
 ## Notes
 (anything else)
@@ -66,8 +72,8 @@ Phase 1: Descend
 ## Before moving to Phase 2
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 2: Study the Law`
+- Set "Current Phase" to `Phase 2: Investigate`
 - Set "Skills for this phase" to:
-  - malph-workflow-study
+  - malph-workflow-investigate
 - Add Phase 1 to "Completed Phases" with PR URL, branch, and file list
 - Record any ralphchives findings

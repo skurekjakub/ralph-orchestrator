@@ -1,30 +1,30 @@
 ---
 name: malph-workflow-verify
-description: "Malph review workflow Phase 4. Read this skill after scouting the PR. Dispatch the technical reviewer, preserve its findings, and carry the result into the panel aggregation step."
+description: "Malph review workflow Phase 3. Read this skill after scouting the PR. Dispatch the technical reviewer and record its status.json result."
 ---
 
-# Phase 4: Verify Technical Claims
+# Phase 3: Verify Technical Claims
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. This skill is for **Phase 4: Verify Technical Claims**. If you've already completed this phase, skip to the next.
+2. This skill is for **Phase 3: Verify Technical Claims**. If you've already completed this phase, skip to the next.
 
 ## Instructions
 
-Before the panel aggregates its verdict, run the technical pass:
+Dispatch the technical reviewer:
 
-1. **Dispatch `ralph-reviewer-technical`** with the changed-file context and scout findings.
-2. **Validate the reviewer result** — it must return a verdict plus structured findings in `review-findings.json`.
-3. **Corroborate with Microsoft documentation** when the technical reviewer identifies platform-specific claims that need extra validation.
-4. **Preserve source URLs** from the technical review findings — you'll need them in Phase 6 for the JIRA comment.
+1. **Dispatch `ralph-reviewer-technical`** with the task-id and a one-line directive (e.g. "Review technical accuracy for {{ taskId }}"). The reviewer reads the scout's artifact and changed files directly from the filesystem.
+2. After the reviewer returns, read its `status.json` at `.ralph/tasks/{{ taskId }}/artifacts/ralph-reviewer-technical/status.json`.
+3. Record the `result` and `summary` in `state.md`.
 
-## Before moving to Phase 5
+Do **not** read `review-findings.json` or `output.md`. The verdict agent reads all reviewer findings.
+
+## Before moving to Phase 4
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 5: Review`
+- Set "Current Phase" to `Phase 4: Review`
 - Set "Skills for this phase" to:
   - malph-workflow-review
-- Add Phase 4 to "Completed Phases"
-- Record the technical review result under "Technical Findings"
-- Note any corroborating or conflicting info from Microsoft docs
+- Add Phase 3 to "Completed Phases"
+- Record the technical reviewer's `result` and `summary` from `status.json` under "Technical Review Status"

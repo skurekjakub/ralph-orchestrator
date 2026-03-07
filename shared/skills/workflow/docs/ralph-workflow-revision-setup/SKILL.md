@@ -74,8 +74,5 @@ Update `state.md`:
 - Set "Current Phase" to `Revision Phase 3: Implement Fixes`
 - Set "Skills for this phase" to:
   - ralph-workflow-revision-fix
-  - ralph-documentation-syntax (if fixing tag syntax issues)
-  - ralph-build-errors (if build is broken)
-  - ralph-callout-selection (if feedback mentions callout severity)
 - Add Revision Phases 1-2 to "Completed Phases" with feedback summary
 - List all feedback items under "Feedback Items"

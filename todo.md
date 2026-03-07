@@ -1,4 +1,6 @@
 
+https://github.com/CodeGraphContext/CodeGraphContext
+
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 

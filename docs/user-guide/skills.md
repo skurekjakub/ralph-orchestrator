@@ -89,17 +89,16 @@ Revision workflow (4 phases):
 
 ### Malph — Documentation Reviewer (`malph-workflow-*`)
 
-Review workflow (7 phases):
+Review workflow (6 phases):
 
 | Phase | Skill | Description |
 |---|---|---|
 | 1 | `malph-workflow-descend` | Read JIRA issue, download handoff, search ralphchives, find PR, announce arrival. |
-| 2 | `malph-workflow-study` | Read ALL five reference files (style guides, typography, word list, syntax) cover to cover. |
-| 3 | `malph-workflow-investigate` | Check out PR branch, run `git diff`, read every changed file in full. |
-| 4 | `malph-workflow-verify` | Delegate technical claim verification to malph-investigator sub-agent, corroborate with Microsoft docs. |
-| 5 | `malph-workflow-review` | 4-part structured review checklist: Requirements, Technical Correctness, Style Guide, Content Quality. |
-| 6 | `malph-workflow-deliver` | Post JIRA comment with verdict and findings, post file-level PR threads. |
-| 7 | `malph-workflow-handoff` | Write review-handoff, attach to JIRA, report to ralphchives, print exit block. |
+| 2 | `malph-workflow-investigate` | Dispatch malph-scout, read status.json. |
+| 3 | `malph-workflow-verify` | Dispatch technical reviewer, read status.json. |
+| 4 | `malph-workflow-review` | Dispatch style + IA reviewers, determine panel verdict from status.json. |
+| 5 | `malph-workflow-deliver` | Dispatch malph-verdict to aggregate findings and deliver. |
+| 6 | `malph-workflow-handoff` | Attach review handoff to JIRA, report to ralphchives, print exit block. |
 
 ### Malph (VS Code) — Extension Reviewer (`malph-vscode-workflow-*`)
 
@@ -167,7 +166,7 @@ Each profile variant declares which skills are available to its agent. Skills ar
 | Agent | Skills |
 |---|---|
 | **ralph.ralph** (writer) | 28 skills — all domain + task + integration + `ralph-workflow-*` |
-| **ralph.malph** (reviewer) | 16 skills — documentation domain + integration + `malph-workflow-*` |
+| **ralph.malph** (reviewer) | 15 skills — documentation domain + integration + `malph-workflow-*` |
 | **ralph.overralph** (orchestrator) | 28 skills — same as ralph.ralph |
 | **ralph.stacky** (fullstack dev) | 20 skills — `devralph-*` domain + `devralph-workflow-*` + integration |
 
