@@ -1,26 +1,30 @@
+## Review Checklist
+
+You are one of three independent reviewers on a **multi-model review panel**. Each reviewer runs the same checklist but applies independent judgment. Your perspectives will be aggregated by the orchestrator.
+
+### Your model attribution prefix
+
+When posting PR threads, prefix every comment with your agent name in brackets: **[{{ agentName }}]**. This tells the PR author which reviewer flagged each issue.
+
 ---
-name: malph-vscode-workflow-review
-description: "VS Code extension review workflow Phase 5. The comprehensive review checklist covering requirements, architecture compliance, TypeScript quality, validation/diagnostics, completions/decorations, grammar, and testing. Every finding must be traced to a specific pattern violation or correctness issue."
----
 
-# Phase 5: Review Against the Extension's Patterns
+### Input
 
-## Before you begin
+1. **Read the scout report** at `{{ artifactDir }}/malph-scout/output.md` — it contains the diff summary, pattern checklist, build/lint/test results, missing connections, and focus areas
+2. **Read the scout's `status.json`** — check `result` for `build-broken` (if so, note it as an automatic BUILD-001 finding)
+3. **Read each changed file in full** — not just the diff. The scout report lists changed files. Read the complete file to understand context.
+4. **Read `.github/copilot-instructions.md`** — the project's conventions and architecture
 
-1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 5.
-3. **Confirm build/lint/test results** from Phase 4 are recorded.
+### Review Checklist
 
-## Instructions
+Create a TODO list and review each category. Think deeply about each item.
 
-Create a TODO list and perform a comprehensive review. Think deeply about each item.
-
-### A. Requirements Coverage
+#### A. Requirements Coverage
 - [ ] Does the change address what the JIRA issue asked for?
 - [ ] Are there gaps — things the issue requested that aren't in the diff?
 - [ ] Are there scope creep additions not covered by the issue?
 
-### B. Architecture Compliance
+#### B. Architecture Compliance
 
 The extension has **rigid patterns**. Verify they're followed:
 
@@ -33,7 +37,7 @@ The extension has **rigid patterns**. Verify they're followed:
 - [ ] **Event system** — new VS Code event listeners go through the internal event emitter, not registered ad-hoc
 - [ ] **Disposal** — new disposables added to `context.subscriptions` or `pluginDispose.ts`; new timers have `clearAll*` cleanup
 
-### C. TypeScript & Code Quality
+#### C. TypeScript & Code Quality
 
 - [ ] **Strict TypeScript** — no `any` type leakage without justification; the project uses `strict: true`
 - [ ] **Type interfaces** — `TagDefinition`, `TagAttribute`, `HeaderAttribute` interfaces implemented correctly with all required fields
@@ -44,7 +48,7 @@ The extension has **rigid patterns**. Verify they're followed:
 - [ ] **ESLint compliance** — camelCase/PascalCase naming, semicolons, curly braces, strict equality
 - [ ] **JSDoc** — public methods and interfaces have JSDoc documentation
 
-### D. Validation & Diagnostics
+#### D. Validation & Diagnostics
 
 If validation rules were added or modified:
 
@@ -54,7 +58,7 @@ If validation rules were added or modified:
 - [ ] **Severity** — appropriate (`Error` for broken, `Warning` for risky, `Information` for style)
 - [ ] **Message clarity** — diagnostic messages are actionable and specific
 
-### E. Completions & Decorations
+#### E. Completions & Decorations
 
 If completion providers or decorations were changed:
 
@@ -63,7 +67,7 @@ If completion providers or decorations were changed:
 - [ ] **Decoration types** — new types added to `DecorationTypeName` union AND registered in `DecorationManager.initialize()`
 - [ ] **Debounce** — decoration updates use the existing debounce pattern (250ms tag, 100ms editor)
 
-### F. Grammar (TextMate)
+#### F. Grammar (TextMate)
 
 If `grammars/injections/kfmarkdown.json` was modified:
 
@@ -72,27 +76,103 @@ If `grammars/injections/kfmarkdown.json` was modified:
 - [ ] **New code languages** — get their own `kfm_code_block_*` entry with proper embedded grammar reference
 - [ ] **Regex correctness** — patterns don't over-match or under-match (test against sample KFM content)
 
-### G. Testing
+#### G. Testing
 
 - [ ] **New utility functions have tests** — pure functions in `_helpers/`, rules, services should have test coverage
 - [ ] **Test framework** — uses Mocha (TDD: `suite`/`test`) + `assert` + `sinon`, NOT Jest
 - [ ] **Test file location** — in `src/test/` with feature-specific subfolder
 - [ ] **No VS Code API mocking** — prefer testing pure functions that don't require the VS Code runtime
 
-## Recording findings
+---
 
-For each finding, record in `state.md` with:
-- Issue code: `ARCH-XXX`, `TS-XXX`, `GRAM-XXX`, `BUILD-XXX`, `REQ-XXX`, `SUG-XXX`
-- File path and line number
-- What's wrong
-- Exact correction
+### Recording findings
 
-**Only report actual findings.** If something passes, do NOT include it. No compliance theater.
+For each finding, use issue codes with severity:
+- `ARCH-XXX` — Architecture compliance violation (critical)
+- `TS-XXX` — TypeScript / code quality issue (critical/major)
+- `GRAM-XXX` — TextMate grammar issue (critical)
+- `BUILD-XXX` — Build, lint, or test failure (critical)
+- `REQ-XXX` — Requirements gap or scope issue (major)
+- `SUG-XXX` — Optional suggestion (non-blocking)
 
-## Before moving to Phase 6
+**Only report actual findings.** If something passes, do NOT include it.
 
-Update `state.md`:
-- Set "Current Phase" to `Phase 6: Deliver`
-- Set "Skills for this phase" to:
-  - malph-vscode-workflow-deliver
-- Add Phase 5 to "Completed Phases" with finding count by category
+### Verdict rules
+
+Apply the verdict **mechanically**:
+
+- **`needs-revision`** if ANY `ARCH-XXX`, `TS-XXX`, `GRAM-XXX`, `BUILD-XXX`, or `REQ-XXX` findings exist
+- **`approved`** only if the sole remaining findings are `SUG-XXX` or there are no findings at all
+
+`SUG-XXX` is the only non-blocking category.
+
+---
+
+### Posting PR threads
+
+After completing your review, post file-level threads on the ADO pull request:
+
+1. **Get the PR ID** from `{{ artifactDir }}/malph-scout/output.md` (the scout records it)
+2. **Post file-level threads** for each finding that targets a specific file and line:
+   - Use `ado_create_pull_request_thread` with `threadContext`
+   - The `filePath` must be repo-relative starting with `/` (e.g., `/src/definitions/tags/block/code/code.types.ts`)
+   - Use `rightFileStart`/`rightFileEnd` line numbers from the **new** (right) side of the diff
+   - **Prefix every comment** with `[{{ agentName }}]` — e.g., `**[{{ agentName }}]** ARCH-001: ...`
+   - Post one file at a time
+3. **Post one general thread** (no `threadContext`) summarizing your verdict: `[{{ agentName }}] Verdict: APPROVED | NEEDS REVISION (N findings)`
+4. **If APPROVED** — post the general summary thread only, no file-level threads
+
+---
+
+### Writing delivery artifacts
+
+#### 1. Primary artifact
+
+Write `{{ artifactDir }}/{{ agentName }}/output.md`:
+
+```markdown
+## Review: {{ taskId }} ({{ agentName }})
+
+### Build Status (from scout)
+- Compile: PASS | FAIL
+- Lint: PASS | FAIL
+- Tests: PASS | FAIL
+
+### Verdict: APPROVED | NEEDS REVISION
+
+### Findings
+
+#### <file-path>
+- **[ARCH-001]** <finding description>
+- **Fix:** <exact correction>
+
+### Summary
+<Brief overall assessment>
+```
+
+#### 2. jira-findings.json
+
+Write `{{ artifactDir }}/{{ agentName }}/jira-findings.json`:
+
+```json
+{
+  "reviewer": "{{ agentName }}",
+  "model": "<your model name>",
+  "verdict": "approved | needs-revision",
+  "findings": [
+    {
+      "code": "ARCH-001",
+      "severity": "critical",
+      "file": "src/path/to/file.ts",
+      "line": 42,
+      "summary": "Short description",
+      "detail": "Full explanation with quotes",
+      "correction": "Exact fix"
+    }
+  ]
+}
+```
+
+#### 3. status.json and manifest.json
+
+Per the artifact contract.

@@ -120,13 +120,31 @@
           "skills": [
             "ralph-ado-pr-workflow",
             "ralph-ralphchives",
-            "malph-vscode-workflow-descend",
-            "malph-vscode-workflow-orient",
-            "malph-vscode-workflow-investigate",
-            "malph-vscode-workflow-verify",
-            "malph-vscode-workflow-review",
-            "malph-vscode-workflow-deliver",
-            "malph-vscode-workflow-handoff"
+            "malph-vscode-workflow-setup",
+            "malph-vscode-workflow-scout",
+            "malph-vscode-workflow-review-panel",
+            "malph-vscode-workflow-aggregate",
+            "malph-vscode-workflow-handoff",
+            "malph-vscode-workflow-archive"
+          ]
+        }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            {
+              "agent": "ralph.run-analyzer",
+              "role": "analyzer",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            },
+            {
+              "agent": "ralph.agent-improver",
+              "role": "improver",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
           ]
         }
       ]

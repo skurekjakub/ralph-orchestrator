@@ -1,11 +1,11 @@
 ---
-name: malph-vscode-workflow-descend
-description: "VS Code extension review workflow Phase 1. Read this skill when starting a review. Covers reading the JIRA issue, parsing the handoff, searching ralphchives for context, finding the PR, and posting your arrival announcement."
+name: malph-vscode-workflow-setup
+description: "VS Code extension review orchestrator Phase 1. Read this skill when starting a review. Covers reading the JIRA issue, finding the PR, creating the artifacts directory, and posting the arrival announcement."
 ---
 
-# Phase 1: Descend
+# Phase 1: Setup
 
-The signal is up. Time to work.
+The signal is up. Time to assemble the panel.
 
 ## Before you begin
 
@@ -23,10 +23,10 @@ This is Phase 1 — create `state.md` below.
 # Review State: {{ taskId }} — {{ taskTitle }}
 
 ## Current Phase
-Phase 1: Descend
+Phase 1: Setup
 
 ### Skills for this phase
-- malph-vscode-workflow-descend
+- malph-vscode-workflow-setup
 
 > ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.
 
@@ -41,16 +41,26 @@ Phase 1: Descend
 ## Ralphchives Findings
 (prior work from archived task reports)
 
-## Review Findings
-(add findings as you discover them)
+## Reviewer Verdicts
+| Reviewer | Verdict | Findings |
+|---|---|---|
+| malph-reviewer-opus | pending | — |
+| malph-reviewer-gpt | pending | — |
+| malph-reviewer-gemini | pending | — |
+
+## Panel Verdict
+(will be aggregated after all reviewers complete)
 ```
 
-6. **Post your opening comment** to **{{ taskId }}** — announce your presence.
+6. **Create the artifacts directory** at `.ralph/tasks/{{ taskId }}/artifacts/` — subagents will write their outputs here.
 
-## Before moving to Phase 2
+7. **Post your opening comment** to **{{ taskId }}** — announce your presence and the review panel.
+
+## Before moving to the next phase
 
 Update `state.md`:
-- Set "Current Phase" to `Phase 2: Orient`
+- Set "Current Phase" to `Phase 2: Scout`
 - Set "Skills for this phase" to:
-  - malph-vscode-workflow-orient
+  - malph-vscode-workflow-scout
+- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 1 to "Completed Phases"

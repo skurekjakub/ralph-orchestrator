@@ -6,16 +6,15 @@ Execute the following phases **in order**. Before each phase, read the correspon
 
 | Phase | Skill | Summary |
 |-------|-------|---------|
-| 1. Descend | malph-vscode-workflow-descend | Read issue, download handoff, find PR |
-| 2. Orient | malph-vscode-workflow-orient | Read repo instructions, grasp architecture |
-| 3. Investigate | malph-vscode-workflow-investigate | Delegate to investigator, read diffs, check PR threads |
-| 4. Verify | malph-vscode-workflow-verify | Build, lint, test validation |
-| 5. Review | malph-vscode-workflow-review | Comprehensive checklist review |
-| 6. Deliver | malph-vscode-workflow-deliver | Post JIRA comment + ADO PR threads |
-| 7. Handoff & Exit | malph-vscode-workflow-handoff | Write review handoff, print exit block |
+| 1. Setup | malph-vscode-workflow-setup | Read issue, find PR, create artifacts dir, JIRA greeting |
+| 2. Scout | malph-vscode-workflow-scout | Dispatch malph-scout for diff mapping + build validation |
+| 3. Review Panel | malph-vscode-workflow-review-panel | Dispatch 3 independent reviewers sequentially |
+| 4. Aggregate & Deliver | malph-vscode-workflow-aggregate | Aggregate verdicts, post unified JIRA comment |
+| 5. Handoff | malph-vscode-workflow-handoff | Write review handoff, attach to JIRA |
+| 6. Archive & Exit | malph-vscode-workflow-archive | Dispatch ralph-scribe, print exit block |
 
 **Before entering each phase:**
 1. Read `state.md`
 2. Read the phase's skill file listed above (or listed in `state.md` under "Skills for this phase")
 3. Follow the skill's instructions
-4. Update `state.md` as directed by the skill's "Before moving to Phase N" section
+4. Update `state.md` as directed by the skill's "Before moving to the next phase" section
