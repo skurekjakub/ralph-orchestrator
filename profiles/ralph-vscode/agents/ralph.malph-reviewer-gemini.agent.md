@@ -1,6 +1,6 @@
 ---
 description: 'Independent PR reviewer (Gemini model) — runs the full review checklist and posts findings to ADO PR'
-model: gemini-pro
+model: gemini-3-pro-preview
 name: 'malph-reviewer-gemini'
 user-invocable: false
 ---

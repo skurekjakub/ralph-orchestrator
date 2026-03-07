@@ -18,10 +18,10 @@ export function LogBrowser() {
     refresh,
   } = useLogBrowser();
 
-  const [timelineFiles, setTimelineFiles] = useState<{ preTool: string; toolOutput?: string } | null>(null);
+  const [timelineFiles, setTimelineFiles] = useState<{ preTool: string; toolOutput?: string; cliDebug?: string } | null>(null);
 
-  const openTimeline = useCallback((preToolFile: string, toolOutputFile?: string) => {
-    setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile });
+  const openTimeline = useCallback((preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => {
+    setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile, cliDebug: cliDebugFile });
     selectFile(null); // Clear file view when opening timeline
   }, [selectFile]);
 
@@ -80,6 +80,7 @@ export function LogBrowser() {
           <ToolTimeline
             preToolFile={timelineFiles.preTool}
             toolOutputFile={timelineFiles.toolOutput}
+            cliDebugFile={timelineFiles.cliDebug}
           />
         ) : selectedFile ? (
           <FileViewer

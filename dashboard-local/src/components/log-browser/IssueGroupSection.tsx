@@ -10,7 +10,7 @@ export function IssueGroupSection({
 }: {
   group: IssueGroup;
   onSelectFile: (filename: string) => void;
-  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string) => void;
+  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const latest = group.executions[0];

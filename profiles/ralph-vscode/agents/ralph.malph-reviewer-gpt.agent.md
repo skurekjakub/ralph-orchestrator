@@ -1,6 +1,6 @@
 ---
 description: 'Independent PR reviewer (GPT model) — runs the full review checklist and posts findings to ADO PR'
-model: gpt-5.4
+model: gpt-5.3-codex
 name: 'malph-reviewer-gpt'
 user-invocable: false
 ---

@@ -87,8 +87,25 @@ stages:
     displayName: Dashboards
     dependsOn: []
     jobs:
+      - job: DashboardLocalTests
+        displayName: Local Dashboard — Tests
+        steps:
+          - task: UseNode@1
+            inputs:
+              version: "22.x"
+            displayName: Use Node.js 22.x
+
+          - script: npm ci
+            workingDirectory: dashboard-local
+            displayName: Install dependencies
+
+          - script: npm test
+            workingDirectory: dashboard-local
+            displayName: Run tests
+
       - job: DashboardLocal
         displayName: Local Dashboard — Lint & Build
+        dependsOn: DashboardLocalTests
         steps:
           - task: UseNode@1
             inputs:

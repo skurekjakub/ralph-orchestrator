@@ -37,7 +37,7 @@ export function useDashboard(): UseDashboardResult {
           setState(msg.data);
           break;
         case "toolOutput":
-          setToolOutput((prev) => [...prev.slice(-500), msg.data]);
+          setToolOutput((prev) => [...prev.slice(-499), msg.data]);
           break;
       }
     };

@@ -78,6 +78,7 @@ jobs:
 
   dashboard-local:
     name: Local Dashboard — Lint & Build
+    needs: dashboard-local-tests
     runs-on: satriel-ralph
     steps:
       - uses: actions/checkout@v4
@@ -97,6 +98,25 @@ jobs:
 
       - name: Build (vite)
         run: npm run build
+        working-directory: dashboard-local
+
+  dashboard-local-tests:
+    name: Local Dashboard — Tests
+    runs-on: satriel-ralph
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: dashboard-local
+
+      - name: Run tests
+        run: npm test
         working-directory: dashboard-local
 
   dashboard-vercel:
