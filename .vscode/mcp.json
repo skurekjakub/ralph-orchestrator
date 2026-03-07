@@ -8,6 +8,16 @@
 			],
 			"gallery": "https://api.mcp.github.com",
 			"version": "1.0.0"
+		},
+		"jira-create-issue": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"fastmcp",
+				"run",
+				"${workspaceFolder}/.github/resources/mcp/jira-create-issue/server.py"
+			],
+			"envFile": "${workspaceFolder}/.env"
 		}
 	},
 	"inputs": []
