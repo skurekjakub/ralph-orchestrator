@@ -23,11 +23,15 @@ function makeSpan(overrides: Partial<SubagentSpan> = {}): SubagentSpan {
         ts: "2026-03-07T08:23:59.960Z",
         tsMs: new Date("2026-03-07T08:23:59.960Z").getTime(),
         tool: "report_intent",
+        argsJson: '{"intent":"Scouting"}',
+        returnValue: '{"success":true,"commentId":"662016"}',
       },
       {
         ts: "2026-03-07T08:24:00.400Z",
         tsMs: new Date("2026-03-07T08:24:00.400Z").getTime(),
         tool: "bash",
+        argsJson: '{"command":"echo hi"}',
+        returnValue: '{"stdout":"ok"}',
       },
     ],
     ...overrides,
@@ -83,5 +87,12 @@ describe("SubagentInnerTimeline", () => {
     expect(screen.queryByRole("button", { name: /hide tool breakdown/i })).not.toBeNull();
     expect(screen.getAllByText("report_intent")).toHaveLength(2);
     expect(screen.getAllByText("bash")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: /report_intent/i }));
+
+    expect(screen.queryByText(/^Args$/)).not.toBeNull();
+    expect(screen.queryByText(/^Return Value$/)).not.toBeNull();
+    expect(screen.queryByText(/Scouting/)).not.toBeNull();
+    expect(screen.queryByText(/662016/)).not.toBeNull();
   });
 });

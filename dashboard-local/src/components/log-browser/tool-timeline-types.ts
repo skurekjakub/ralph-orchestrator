@@ -51,6 +51,8 @@ export interface SubagentToolCall {
   tool: string;
   /** Tool arguments JSON string (from the model response). */
   argsJson?: string;
+  /** Raw return value text from the cli-debug log. */
+  returnValue?: string;
 }
 
 /** Parsed subagent lifecycle entry from cli-debug.log. */

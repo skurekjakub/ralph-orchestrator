@@ -187,6 +187,8 @@ export function SubagentInnerTimeline({ span }: { span: SubagentSpan }) {
 }
 
 function SubagentCallTable({ toolCalls, spanStartMs }: { toolCalls: SubagentSpan["toolCalls"]; spanStartMs: number }) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
   return (
     <div className="flex flex-col border border-border/50 rounded overflow-hidden mt-1 max-h-80 overflow-y-auto">
       <div className="flex items-center gap-2 px-2 py-1 bg-bg-header text-[10px] text-dim uppercase tracking-wider font-semibold border-b border-border/50 sticky top-0 z-10">
@@ -199,24 +201,60 @@ function SubagentCallTable({ toolCalls, spanStartMs }: { toolCalls: SubagentSpan
       {toolCalls.map((toolCall, index) => {
         const category = getToolCategory(toolCall.tool);
         const offset = toolCall.tsMs > 0 ? toolCall.tsMs - spanStartMs : 0;
+        const isExpanded = expandedIndex === index;
+        const hasDetails = Boolean(toolCall.argsJson || toolCall.returnValue);
 
         return (
-          <div
-            key={index}
-            className="flex items-center gap-2 px-2 py-0.5 border-b border-border/20 last:border-b-0 hover:bg-white/[0.02] transition-colors"
-          >
-            <span className="w-6 text-center text-[10px] text-dim">{index + 1}</span>
-            <span className="w-16 text-[10px] font-mono text-dim">+{formatMs(offset)}</span>
-            <span className="w-14 text-[10px] font-mono text-dim">
-              {toolCall.ts ? new Date(toolCall.ts).toLocaleTimeString("en-GB", { hour12: false }) : "—"}
-            </span>
-            <span className="flex-1 text-[10px] font-mono flex items-center gap-1.5" style={{ color: CAT_HEX[category] }}>
-              <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
-              {toolCall.tool}
-            </span>
+          <div key={index} className="border-b border-border/20 last:border-b-0">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-2 py-0.5 hover:bg-white/[0.02] transition-colors text-left"
+              onClick={() => setExpandedIndex((prev) => (prev === index ? null : index))}
+            >
+              <span className="w-6 text-center text-[10px] text-dim">{index + 1}</span>
+              <span className="w-16 text-[10px] font-mono text-dim">+{formatMs(offset)}</span>
+              <span className="w-14 text-[10px] font-mono text-dim">
+                {toolCall.ts ? new Date(toolCall.ts).toLocaleTimeString("en-GB", { hour12: false }) : "—"}
+              </span>
+              <span className="flex-1 text-[10px] font-mono flex items-center gap-1.5" style={{ color: CAT_HEX[category] }}>
+                <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
+                {toolCall.tool}
+              </span>
+              <span className="w-4 text-[10px] text-dim text-center">{hasDetails ? (isExpanded ? "▾" : "▸") : ""}</span>
+            </button>
+
+            {isExpanded && hasDetails && (
+              <div className="px-4 py-2 bg-bg-panel/40 border-t border-border/20 space-y-2">
+                {toolCall.argsJson && (
+                  <ToolCallDetailBlock title="Args" content={toolCall.argsJson} />
+                )}
+                {toolCall.returnValue && (
+                  <ToolCallDetailBlock title="Return Value" content={toolCall.returnValue} />
+                )}
+              </div>
+            )}
           </div>
         );
       })}
     </div>
   );
+}
+
+function ToolCallDetailBlock({ title, content }: { title: string; content: string }) {
+  return (
+    <div>
+      <div className="text-[10px] text-dim uppercase tracking-wider font-semibold mb-0.5">{title}</div>
+      <pre className="text-[10px] font-mono text-text bg-bg/50 rounded p-1.5 m-0 overflow-x-auto whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+        {formatDetailContent(content)}
+      </pre>
+    </div>
+  );
+}
+
+function formatDetailContent(content: string): string {
+  try {
+    return JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    return content;
+  }
 }

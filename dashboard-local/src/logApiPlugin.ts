@@ -11,28 +11,37 @@ import type { Plugin } from "vite";
  */
 export function logApiPlugin(): Plugin {
   const logDir = resolve(import.meta.dirname, "../../output/logs");
+  const middleware = createLogApiMiddleware(logDir);
 
   return {
     name: "ralph-log-api",
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const url = new URL(req.url ?? "/", "http://localhost");
-
-        if (url.pathname === "/api/logs") {
-          handleLogList(logDir, res);
-        } else if (url.pathname.startsWith("/api/logs/")) {
-          const filename = decodeURIComponent(url.pathname.slice("/api/logs/".length));
-          handleLogFile(logDir, filename, res);
-        } else if (url.pathname === "/api/history") {
-          handleHistoryList(logDir, res);
-        } else if (url.pathname.startsWith("/api/history/")) {
-          const filename = decodeURIComponent(url.pathname.slice("/api/history/".length));
-          handleLogFile(logDir, `history/${filename}`, res);
-        } else {
-          next();
-        }
-      });
+      server.middlewares.use(middleware);
     },
+  };
+}
+
+export function createLogApiMiddleware(logDir: string) {
+  return (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    next: () => void,
+  ) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+
+    if (url.pathname === "/api/logs") {
+      handleLogList(logDir, res);
+    } else if (url.pathname.startsWith("/api/logs/")) {
+      const filename = decodeURIComponent(url.pathname.slice("/api/logs/".length));
+      handleLogFile(logDir, filename, res);
+    } else if (url.pathname === "/api/history") {
+      handleHistoryList(logDir, res);
+    } else if (url.pathname.startsWith("/api/history/")) {
+      const filename = decodeURIComponent(url.pathname.slice("/api/history/".length));
+      handleLogFile(logDir, `history/${filename}`, res);
+    } else {
+      next();
+    }
   };
 }
 

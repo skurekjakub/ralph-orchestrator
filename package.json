@@ -16,6 +16,8 @@
     "test:watch": "vitest",
     "dashboard": "cd dashboard-local && npx vite",
     "agent": "tsx scripts/run-agent.ts",
+    "ralphchives:backup-db": "./ralphchives/scripts/backup-nodebb-db.sh",
+    "ralphchives:restore-db": "./ralphchives/scripts/restore-nodebb-db.sh",
     "reset-testenv": "tsx scripts/reset-issue.ts",
     "reset-testenv:easy": "tsx scripts/reset-issue.ts",
     "reset-testenv:medium": "tsx scripts/reset-issue.ts --medium",
