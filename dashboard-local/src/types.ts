@@ -47,6 +47,7 @@ export interface TaskLogGroup {
     transcript?: string;
     toolOutput?: string;
     preTool?: string;
+    cliDebug?: string;
   };
   summary?: {
     taskId?: string;

@@ -47,6 +47,7 @@ interface TaskLogGroup {
     transcript?: string;
     toolOutput?: string;
     preTool?: string;
+    cliDebug?: string;
   };
   summary?: Record<string, unknown>;
 }
@@ -106,6 +107,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
         else if (suffix === "transcript" && ext === "md") group.files.transcript = relPath;
         else if (suffix === "tool-output" && ext === "log") group.files.toolOutput = relPath;
         else if (suffix === "pre-tool" && ext === "log") group.files.preTool = relPath;
+        else if (suffix === "cli-debug" && ext === "log") group.files.cliDebug = relPath;
       }
     }
 
