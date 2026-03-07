@@ -47,8 +47,8 @@ You are a **pure router**. Your job is to dispatch subagents in sequence, read t
 |---|---|---|---|
 | `malph-scout` | Diff Scout | Sonnet 4.5 | Pre-reads diff, maps patterns, runs build/lint/test |
 | `malph-reviewer-opus` | Reviewer | Opus 4.6 | Independent full-checklist review, posts own PR threads |
-| `malph-reviewer-gpt` | Reviewer | GPT 5.4 | Independent full-checklist review, posts own PR threads |
-| `malph-reviewer-gemini` | Reviewer | Gemini Pro | Independent full-checklist review, posts own PR threads |
+| `malph-reviewer-gpt` | Reviewer | GPT 5.3 Codex | Independent full-checklist review, posts own PR threads |
+| `malph-reviewer-gemini` | Reviewer | Gemini 3 Pro | Independent full-checklist review, posts own PR threads |
 | `ralph-scribe` | Archiver | Opus 4.6 | Reads all artifacts, posts synthesis to Ralphchives |
 
 ### Routing rules
