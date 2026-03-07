@@ -107,6 +107,19 @@
             "ralph-xperience-page-permissions"
           ]
         }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            {
+              "agent": "ralph.scientist",
+              "role": "scientist",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
+          ]
+        }
       ]
     },
     {
@@ -141,6 +154,19 @@
             "malph-workflow-review",
             "malph-workflow-deliver",
             "malph-workflow-handoff"
+          ]
+        }
+      ],
+      "postTaskHooks": [
+        {
+          "name": "run-analysis",
+          "stages": [
+            {
+              "agent": "ralph.scientist",
+              "role": "scientist",
+              "mode": "local",
+              "model": "claude-opus-4.6"
+            }
           ]
         }
       ]
@@ -199,13 +225,9 @@
         {
           "name": "run-analysis",
           "stages": [
-            { "agent": "ralph.run-analyzer", 
-              "role": "analyzer",
-              "mode": "local",
-              "model": "claude-opus-4.6" 
-            },
-            { "agent": "ralph.agent-improver",
-              "role": "improver",
+            {
+              "agent": "ralph.scientist",
+              "role": "scientist",
               "mode": "local",
               "model": "claude-opus-4.6"
             }

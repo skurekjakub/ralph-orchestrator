@@ -1,6 +1,6 @@
 ---
 description: 'Review scout sub-agent — pre-reads the PR diff, maps changes to codebase patterns, and runs build validation'
-model: Claude Sonnet 4.5 (copilot)
+model: claude-opus-4.6
 name: 'malph-scout'
 user-invocable: false
 ---
