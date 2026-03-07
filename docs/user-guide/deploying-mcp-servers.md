@@ -74,6 +74,7 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
 | `requiredEnv` | No | Env vars needed in `.env` on the host |
 | `tools` | No | Tool names the server exposes (for agent tool filtering) |
 | `requiredConfig` | No | Env var keys that profiles must provide in `mcpServers.env` |
+| `initScript` | No | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`) |
 
 > **Tip:** Don't trust documentation for tool names — verify them by querying the server directly. See [Verifying Tool Names](#verifying-tool-names).
 
@@ -94,7 +95,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 \
 
 ### Step 3: Declare in profile
 
-Add the server to the `mcpServers` array in any profile that needs it (`profiles/<id>/profile.json`):
+Add the server to the `mcpServers` array in `profiles/<id>/profile.json`. You can declare servers at **profile level** (shared by all variants) or at **variant level** (scoped to one variant). The effective set for each variant is the union of both.
+
+**Profile-level** (all variants get it):
 
 ```json
 {
@@ -105,7 +108,34 @@ Add the server to the `mcpServers` array in any profile that needs it (`profiles
 }
 ```
 
-Values starting with `$` are [runtime macros](runtime-macros.md) resolved per-task:
+**Variant-level** (only this variant gets it):
+
+```json
+{
+  "mcpServers": [ "web-fetch" ],
+  "variants": [
+    {
+      "match": { "commentTrigger": "@Ralph", ... },
+      "mcpServers": [
+        { "name": "codegraphcontext", "sidecarEnv": { "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience" } }
+      ],
+      "stages": [...]
+    }
+  ]
+}
+```
+
+In this example, the @Ralph variant sees both `web-fetch` (profile) and `codegraphcontext` (variant).
+
+#### Server entry fields
+
+| Field | Description |
+|---|---|
+| `name` | Server name — must match a directory in `shared/mcp-servers/` |
+| `env` | Per-server env vars injected into `gateway.json` → child process env. Supports `$task.*`, `$trigger.*`, `$variantEnv.*` [runtime macros](runtime-macros.md). |
+| `sidecarEnv` | Container-level env vars injected into the sidecar Docker service. Used for entrypoint scripts that run before the gateway (e.g. `CGC_INDEX_PATH` for CodeGraphContext indexing). Not macro-resolved — use static values only. |
+
+Values starting with `$` in `env` are [runtime macros](runtime-macros.md) resolved per-task:
 - `$task.id`, `$task.project`, `$task.branch`, `$task.title`
 - `$trigger.<key>` — from JIRA comment parameters
 - `$variantEnv.PREFIX` — resolves to host env var `PREFIX_PROFILEID_DISPLAYNAME`
@@ -195,8 +225,47 @@ Each server needs a unique port declared in `sidecarPort`. Current assignments:
 | 9105 | microsoft-docs |
 | 9106 | ralphchives-write |
 | 9107 | ralphchives-read |
+| 9108 | codegraphcontext |
 
-Use the next available port (9108+) for new servers.
+Use the next available port (9109+) for new servers.
+
+## Pre-gateway Initialization Scripts
+
+MCP servers can declare an `initScript` in their manifest — a shell script that runs at sidecar startup before the gateway launches. Use this for setup tasks like code indexing, database initialization, or cache warming.
+
+### How it works
+
+1. Add the script to the server directory: `shared/mcp-servers/<name>/init.sh`
+2. Declare it in the manifest: `"initScript": "init.sh"`
+3. At startup, `generatePreInitScript()` collects all declared init scripts and generates `pre-init.sh` in the profile's `.build/` directory
+4. The sidecar entrypoint runs `pre-init.sh` before launching the gateway
+
+Scripts can read `sidecarEnv` variables since they run in the same container. Failures are logged but non-fatal — the gateway still starts.
+
+### Example: CodeGraphContext indexing
+
+```bash
+#!/bin/bash
+# shared/mcp-servers/codegraphcontext/init.sh
+if [ -z "$CGC_INDEX_PATH" ]; then
+  echo "CGC_INDEX_PATH not set — skipping indexing"
+  exit 0
+fi
+
+if [ ! -d "$CGC_INDEX_PATH" ]; then
+  echo "Index path not found: $CGC_INDEX_PATH — skipping"
+  exit 0
+fi
+
+echo "Indexing $CGC_INDEX_PATH ..."
+cgc index --path "$CGC_INDEX_PATH"
+```
+
+### Constraints
+
+- Path must be relative within the server directory (no `..` or leading `/`)
+- Scripts should be idempotent — they may run on every container start
+- Keep scripts fast — they block gateway startup
 
 ## Verifying Tool Names
 

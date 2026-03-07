@@ -5,6 +5,7 @@ import type { Logger } from "../../logger.js";
 import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
+import { generateMcpConfig } from "./mcp-config.js";
 
 /**
  * Regenerates the Docker Compose overlay per-task, scoping skill mounts
@@ -51,9 +52,16 @@ export class ComposeOverlayWriter implements IComposeOverlayWriter {
     }
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes);
+    const sidecarEnv: Record<string, string> = { ...profile.mcpSidecarEnv };
+    const hasPreInit = existsSync(resolve(buildDir, "pre-init.sh"));
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes, sidecarEnv, hasPreInit);
 
     writeFileSync(resolve(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
-    logger.info(`Regenerated compose overlay with ${profile.skills.length} skill mount(s)`);
+
+    // Regenerate mcp-config.json with the variant's effective server list
+    const mcpConfig = generateMcpConfig(mcpServersDir, serverNames);
+    writeFileSync(resolve(buildDir, "mcp-config.json"), JSON.stringify(mcpConfig, null, 2) + "\n", "utf-8");
+
+    logger.info(`Regenerated compose overlay and mcp-config with ${profile.skills.length} skill mount(s), ${serverNames.length} MCP server(s)`);
   }
 }

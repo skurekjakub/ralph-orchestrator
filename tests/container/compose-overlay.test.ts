@@ -307,5 +307,39 @@ describe("Compose Overlay", () => {
 
       rmSync(mcpDir, { recursive: true, force: true });
     });
+
+    it("mounts pre-init.sh when hasPreInit is true", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      const buildDir = join(mcpDir, ".build");
+      mkdirSync(buildDir, { recursive: true });
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, [], {}, true);
+
+      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
+      const sidecarSection = overlay.slice(sidecarStart);
+      expect(sidecarSection).toContain("pre-init.sh:/opt/mcp/pre-init.sh:ro");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("omits pre-init.sh mount when hasPreInit is false", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      const buildDir = join(mcpDir, ".build");
+      mkdirSync(buildDir, { recursive: true });
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir);
+
+      expect(overlay).not.toContain("pre-init.sh");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
   });
 });

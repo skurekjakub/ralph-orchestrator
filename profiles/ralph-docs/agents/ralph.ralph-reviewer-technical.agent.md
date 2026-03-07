@@ -64,11 +64,12 @@ This is a **revision review** — Ralph is fixing issues from a previous attempt
 
 ## What You Have Access To
 
-| Path | Contents |
+| Path / Tool | Contents |
 |---|---|
 | `resources/repositories/xperience/` | Xperience by Kentico product source code (C#) — use `includeIgnoredFiles: true` when searching |
 | `src/_code/src/` | Code examples used in documentation |
 | `src/_documentation/` | Documentation pages (for cross-reference if needed) |
+| **ralph-codegraph** skill | Structural queries against the Xperience source graph — call chains, class hierarchies, who-calls-what. Read this skill for query patterns. |
 
 ---
 

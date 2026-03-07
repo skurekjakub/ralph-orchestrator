@@ -36,6 +36,7 @@ shared/mcp-servers/
   microsoft-docs/   — Search Microsoft Learn documentation (custom, direct access)
   ralphchives-write/ — Ralphchives knowledge base write path (custom, NodeBB)
   ralphchives-read/  — Ralphchives knowledge base read path (custom, NodeBB)
+  codegraphcontext/  — Code graph analysis and structural queries (npm, CodeGraphContext)
 shared/mcp-sidecar/
   Dockerfile        — Sidecar container image
   src/gateway.ts    — Process manager + health endpoint
@@ -54,6 +55,7 @@ shared/mcp-sidecar/
 | `microsoft-docs` | custom | `microsoft_docs_search` | — |
 | `ralphchives-write` | custom | `post_task_report`, `post_observation` | — |
 | `ralphchives-read` | custom | `search_ralphchives`, `list_recent_topics`, `get_topic` | — |
+| `codegraphcontext` | npm | `add_code_to_graph`, `find_code`, `analyze_code_relationships`, `find_dead_code`, `find_most_complex_functions`, `execute_cypher_query`, and more | — |
 
 ## Server Types
 
@@ -106,6 +108,7 @@ Custom servers support both stdio and HTTP transport modes. In sidecar mode, the
 | `allowedUrlPaths` | Domain → allowed URL path prefixes for Copilot CLI URL restrictions | No |
 | `tools` | Tool names (documentation reference + tool filtering) | No |
 | `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error. | No |
+| `initScript` | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No |
 
 ## Task-Scoped Parameters (JIT)
 
@@ -113,15 +116,26 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
 ### How it works
 
-1. **Profile declaration** — Per-server env in `profile.json`:
+1. **Profile declaration** — Per-server env in `profile.json` (profile-level or variant-level):
    ```json
    {
      "mcpServers": [
        { "name": "jira-kentico", "env": { "JIRA_ISSUE_KEY": "$task.id" } },
        { "name": "ado", "env": { "ADO_PROJECT": "CustomerEducation", "TASK_BRANCH": "$task.branch" } }
+     ],
+     "variants": [
+       {
+         "match": { "commentTrigger": "@Ralph", ... },
+         "mcpServers": [
+           { "name": "codegraphcontext", "sidecarEnv": { "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience" } }
+         ],
+         "stages": [...]
+       }
      ]
    }
    ```
+
+   Variants inherit profile-level servers and add their own. The effective set is the union.
 
 2. **Resolution** — Before each task, `JitMcpConfigWriter.write()` processes each env value:
    - Static values (no `$` prefix) pass through as-is
@@ -153,6 +167,45 @@ Servers declare `requiredConfig` to validate that profiles provide necessary env
 ```
 
 At startup, the orchestrator checks that every key in `requiredConfig` is present in the profile's `mcpServers` env block for that server. Missing keys cause a descriptive validation error.
+
+### Sidecar container environment (`sidecarEnv`)
+
+MCP server entries also support `sidecarEnv` — a second env block injected as **container-level** environment variables on the sidecar Docker service. Unlike `env` (which goes to child processes via gateway.json), `sidecarEnv` values are available to the sidecar entrypoint script and run before the gateway starts.
+
+```json
+{
+  "name": "codegraphcontext",
+  "sidecarEnv": {
+    "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience"
+  }
+}
+```
+
+`sidecarEnv` values are **not** macro-resolved — use static values only. They are merged (union) across all profile-level and variant-level MCP entries and injected into the sidecar's `environment:` block in the compose overlay.
+
+### Pre-gateway initialization (`initScript`)
+
+MCP servers can declare an `initScript` in their manifest — a shell script that runs at sidecar startup before the gateway launches. Use this for setup tasks like code indexing, database initialization, or cache warming.
+
+```json
+{
+  "name": "codegraphcontext",
+  "initScript": "init.sh",
+  "sidecarPort": 9108
+}
+```
+
+At startup, `generatePreInitScript()` collects all init scripts from active servers and generates a `pre-init.sh` in the profile's `.build/` directory. The sidecar entrypoint sources this script before launching the gateway:
+
+1. Scripts run in server declaration order
+2. Each script runs via `bash "/opt/mcp/servers/<name>/<initScript>"`
+3. Failures are logged but non-fatal — the gateway still starts
+4. Init scripts can read `sidecarEnv` variables (they run in the same container)
+
+**Constraints:**
+- Path must be relative (no `..` or leading `/`) and the file must exist in the server directory
+- Scripts should be idempotent — they may run on every container start
+- Keep scripts fast — they block gateway startup
 
 ### Execution order
 
@@ -242,7 +295,7 @@ The agent container has no direct internet access and no MCP credentials. The ag
 1. Create `shared/mcp-servers/<name>/mcp-server.json` with a unique `sidecarPort` (1–65535)
 2. For npm servers: set `type: "npm"`, `command`, `args` — no local code needed
 3. For custom servers: add `package.json`, `tsconfig.json`, `src/index.ts` with HTTP transport support (`--transport http --port PORT`), set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
-4. Add `"<name>"` to the profile `mcpServers` arrays that should use this server
+4. Add `"<name>"` to the profile or variant `mcpServers` arrays that should use this server
 5. List `requiredEnv` / `optionalEnv` in the manifest — they're embedded in `gateway.json` (sidecar-only)
 6. List `proxyDomains` in the manifest for documentation purposes (no longer injected into squid config — the sidecar has direct internet access)
 

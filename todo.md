@@ -1,5 +1,4 @@
-
-https://github.com/CodeGraphContext/CodeGraphContext
+discord-hitl mcp setup
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded

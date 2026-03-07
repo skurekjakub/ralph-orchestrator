@@ -35,9 +35,11 @@ describe("ComposeOverlayWriter", () => {
 
     writer.write(profile, logger);
 
-    expect(writeFileSync).toHaveBeenCalledTimes(1);
-    const writtenPath = vi.mocked(writeFileSync).mock.calls[0][0] as string;
-    expect(writtenPath).toContain(`profiles/${PID}/.build/docker-compose.overlay.yml`);
+    expect(writeFileSync).toHaveBeenCalledTimes(2);
+    const overlayPath = vi.mocked(writeFileSync).mock.calls[0][0] as string;
+    expect(overlayPath).toContain(`profiles/${PID}/.build/docker-compose.overlay.yml`);
+    const mcpConfigPath = vi.mocked(writeFileSync).mock.calls[1][0] as string;
+    expect(mcpConfigPath).toContain(`profiles/${PID}/.build/mcp-config.json`);
   });
 
   it("generates skill volume mounts for declared skills", () => {
@@ -132,11 +134,20 @@ describe("ComposeOverlayWriter", () => {
 
     expect(() => writer.write(profile, createMockLogger())).not.toThrow();
 
-    expect(writeFileSync).toHaveBeenCalledTimes(1);
+    expect(writeFileSync).toHaveBeenCalledTimes(2);
   });
 
   it("includes MCP sidecar service when profile has MCP servers", () => {
     const profile = makeProfile({ id: PID, skills: [], mcpServers: ["ado", "jira-kentico"] });
+    // Mock existsSync so loadMcpManifest finds the manifest files
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const path = String(p);
+      if (path.includes("mcp-server.json")) {
+        return JSON.stringify({ name: "test", type: "custom", command: "node", args: ["server.js"], sidecarPort: 9100 });
+      }
+      return "{}";
+    });
 
     writer.write(profile, createMockLogger());
 
@@ -160,7 +171,7 @@ describe("ComposeOverlayWriter", () => {
 
     writer.write(profile, logger);
 
-    expect(logger.info).toHaveBeenCalledWith("Regenerated compose overlay with 3 skill mount(s)");
+    expect(logger.info).toHaveBeenCalledWith("Regenerated compose overlay and mcp-config with 3 skill mount(s), 0 MCP server(s)");
   });
 
   it("produces a valid overlay even with zero skills and zero servers", () => {

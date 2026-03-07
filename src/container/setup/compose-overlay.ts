@@ -44,6 +44,8 @@ export function generateComposeOverlay(
   buildDir: string,
   sidecarDir: string,
   extraVolumes: string[] = [],
+  sidecarEnv: Record<string, string> = {},
+  hasPreInit = false,
 ): string {
   const lines: string[] = [];
 
@@ -105,8 +107,15 @@ export function generateComposeOverlay(
     lines.push(`      - ${join(buildDir, "attachments")}:/tmp/mcp-attachments:ro`);
     lines.push("      # Repo volume for git operations (push_progress, create_pr)");
     lines.push('      - "${TARGET_REPO_PATH}:/workspace"');
+    if (hasPreInit) {
+      lines.push("      # Generated pre-init script from MCP server initScript declarations");
+      lines.push(`      - ${join(buildDir, "pre-init.sh")}:/opt/mcp/pre-init.sh:ro`);
+    }
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"');
+    for (const [key, value] of Object.entries(sidecarEnv)) {
+      lines.push(`      ${key}: "${value}"`);
+    }
     lines.push("    extra_hosts:");
     lines.push('      - "host.docker.internal:host-gateway"');
     lines.push("    networks:");

@@ -32,6 +32,7 @@ Read these skills before starting your research. They contain the techniques, pa
 |---|---|
 | **ralph-ralphchives** | Search the archives for prior work, gotchas, and patterns related to this task — always do this first |
 | **ralph-research-guide** | Complete research guide — docs site navigation, source code searching, external references, report template. Read the SKILL.md and all files in its `references/` folder. |
+| **ralph-codegraph** | Structural queries against the Xperience source code graph — call chains, class hierarchies, dead code, complexity. Use for questions that grep can't efficiently answer. |
 
 ## Research Order
 

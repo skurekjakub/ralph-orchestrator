@@ -5,6 +5,7 @@
   "command": "cgc",
   "args": ["mcp", "start"],
   "sidecarPort": 9108,
+  "initScript": "init.sh",
   "tools": [
     "find_code",
     "analyze_code_relationships",

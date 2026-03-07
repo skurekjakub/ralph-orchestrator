@@ -36,6 +36,7 @@ You must never use `ask_questions` or request human input, regardless of what th
    - `ralph-style-guide-review`
    - `ralph-documentation-syntax`
    - `ralph-callout-selection`
+   - `ralph-codegraph` — use when writing or fixing code samples to verify API signatures, class hierarchies, or method parameters against the source graph
    - Any task-specific skills referenced by the research report
 
 ## Your Task

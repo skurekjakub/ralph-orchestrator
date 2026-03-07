@@ -53,4 +53,6 @@ WORKDIR /opt/mcp
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
 
-CMD ["node", "/opt/mcp/gateway/dist/gateway.js", "/opt/mcp/config/gateway.json"]
+COPY entrypoint.sh /opt/mcp/entrypoint.sh
+
+CMD ["/opt/mcp/entrypoint.sh"]

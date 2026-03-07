@@ -114,6 +114,8 @@ export interface IAgentProfile {
   readonly mcpServers: readonly string[];
   /** Per-server env var overrides from profile config. Maps server name → env var name → value (static or $macro). */
   readonly mcpServerConfigs: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  /** Sidecar container-level env vars merged from all MCP server `sidecarEnv` blocks. */
+  readonly mcpSidecarEnv: Readonly<Record<string, string>>;
   /**
    * Control the bundled GitHub MCP server in Copilot CLI.
    * - `false` (default): server disabled (`--disable-builtin-mcps`)
