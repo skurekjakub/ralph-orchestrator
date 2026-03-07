@@ -38,6 +38,36 @@ node scripts/setup-nodebb.mjs
 node scripts/sync-profiles.mjs
 ```
 
+## Back Up NodeBB Data
+
+Create a gzip-compressed NodeBB recovery bundle. The bundle includes:
+- MongoDB forum data
+- `public/uploads`
+- the persisted NodeBB config volume (`config.json`, package metadata, install hash)
+
+```bash
+./scripts/backup-nodebb-db.sh
+npm run ralphchives:backup-db
+```
+
+You can also choose the output path or directory:
+
+```bash
+./scripts/backup-nodebb-db.sh --output ./backups/
+./scripts/backup-nodebb-db.sh --output ./backups/nodebb-before-upgrade.tar.gz
+```
+
+The default output is a single `nodebb-backup-<timestamp>.tar.gz` bundle.
+
+Restore a backup archive back into the live `nodebb` database:
+
+```bash
+./scripts/restore-nodebb-db.sh --input ./backups/nodebb-before-upgrade.tar.gz
+npm run ralphchives:restore-db -- --input ./ralphchives/backups/nodebb-before-upgrade.tar.gz
+```
+
+The restore uses `mongorestore --drop`, restores uploads and config, then runs `./nodebb build`. The script also warns if the backup was created on a different NodeBB version than the current container. Legacy MongoDB-only `.archive.gz` backups still restore the database, but they cannot restore uploads or config.
+
 ## First-Time NodeBB Setup
 
 After `docker compose up -d`, NodeBB runs its web installer at `http://localhost:4567`. Complete the wizard with admin credentials, then run the automated setup:
