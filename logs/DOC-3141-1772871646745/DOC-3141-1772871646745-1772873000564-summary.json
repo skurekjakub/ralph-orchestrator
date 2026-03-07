@@ -1,0 +1,20 @@
+{
+  "taskId": "DOC-3141",
+  "status": "completed",
+  "durationMs": 1241113,
+  "exitCode": 0,
+  "collectedLogs": {
+    "audit": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-audit.jsonl",
+    "transcript": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-transcript.md",
+    "pre-tool": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-pre-tool.log",
+    "tool-output": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-tool-output.log",
+    "proxy": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-proxy.log",
+    "cli-debug": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-cli-debug.log",
+    "sidecar": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-sidecar.log",
+    "state": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-state.md",
+    "session-state": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-session-state",
+    "session-db": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-session-db",
+    "artifacts": "/home/jakubs/repositories/ralph-orchestrator/output/logs/DOC-3141-1772871646745/DOC-3141-1772871646745-1772872987628-artifacts"
+  },
+  "timestamp": "2026-03-07T08:43:20.564Z"
+}
