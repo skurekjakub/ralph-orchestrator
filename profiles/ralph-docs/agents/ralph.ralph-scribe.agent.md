@@ -100,7 +100,7 @@ Compose a rich JIRA wiki markup comment summarizing the work. Include:
 - Key caveats or follow-ups
 - Source references section (if applicable) — use the source browser URL format: `https://app-xbyk-source-prod.azurewebsites.net/#<FullyQualifiedTypeName>,<LineNumber>`
 
-Use rich wiki markup: headings (`h3.`), bullet lists, bold, links, code blocks (`{code}`), monospace (`{{text}}`).
+Use rich wiki markup: headings (`h3.`), bullet lists, bold, links, code blocks (`{code}`)).
 
 ### 3. Ralphchives Report
 
