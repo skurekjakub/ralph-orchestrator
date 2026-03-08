@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { resolveAllProfileSetup } from "../../src/container/setup/profile-setup.js";
+import { resolveAllProfileSetup, generatePreInitScript } from "../../src/container/setup/profile-setup.js";
 import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("Profile Setup", () => {
@@ -285,6 +285,123 @@ describe("Profile Setup", () => {
       expect(overlay).toContain("git-workflow:/workspace/.github/skills/git-workflow:ro");
 
       rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("writes pre-init.sh when a server declares initScript", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+
+      writeManifest(mcpDir, "with-init", {
+        name: "with-init", type: "npm", command: "npx", args: ["-y", "pkg"], sidecarPort: 9100,
+        initScript: "init.sh",
+      });
+      writeFileSync(join(mcpDir, "with-init", "init.sh"), "#!/bin/bash\necho init");
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["with-init"] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const preInitPath = join(profileDir, ".build/pre-init.sh");
+      expect(existsSync(preInitPath)).toBe(true);
+      const content = readFileSync(preInitPath, "utf-8");
+      expect(content).toContain("/opt/mcp/servers/with-init/init.sh");
+      // Should be executable
+      expect(statSync(preInitPath).mode & 0o755).toBe(0o755);
+
+      // Overlay should mount pre-init.sh
+      const overlay = readFileSync(join(profileDir, ".build/docker-compose.overlay.yml"), "utf-8");
+      expect(overlay).toContain("pre-init.sh:/opt/mcp/pre-init.sh:ro");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("does not write pre-init.sh when no server declares initScript", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+
+      writeManifest(mcpDir, "plain-server", {
+        name: "plain-server", type: "npm", command: "npx", args: ["-y", "pkg"], sidecarPort: 9100,
+      });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({ mcpServers: ["plain-server"] }),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      expect(existsSync(join(profileDir, ".build/pre-init.sh"))).toBe(false);
+
+      // Overlay should NOT contain pre-init mount
+      const overlay = readFileSync(join(profileDir, ".build/docker-compose.overlay.yml"), "utf-8");
+      expect(overlay).not.toContain("pre-init.sh");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+  });
+
+  describe("generatePreInitScript", () => {
+    it("returns null when no servers have initScript", () => {
+      const mcpDir = createTempDir();
+      writeManifest(mcpDir, "server-a", {
+        name: "server-a", type: "npm", command: "npx", args: ["-y", "a"], sidecarPort: 9100,
+      });
+
+      const result = generatePreInitScript(mcpDir, ["server-a"]);
+      expect(result).toBeNull();
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("generates script sourcing init scripts from servers that declare them", () => {
+      const mcpDir = createTempDir();
+      writeManifest(mcpDir, "with-init", {
+        name: "with-init", type: "npm", command: "npx", args: ["-y", "pkg"], sidecarPort: 9100,
+        initScript: "init.sh",
+      });
+      writeFileSync(join(mcpDir, "with-init", "init.sh"), "#!/bin/bash\necho init");
+      writeManifest(mcpDir, "no-init", {
+        name: "no-init", type: "npm", command: "npx", args: ["-y", "pkg2"], sidecarPort: 9101,
+      });
+
+      const result = generatePreInitScript(mcpDir, ["with-init", "no-init"]);
+      expect(result).not.toBeNull();
+      expect(result).toContain("/opt/mcp/servers/with-init/init.sh");
+      expect(result).not.toContain("no-init");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("includes all servers with initScript in order", () => {
+      const mcpDir = createTempDir();
+      writeManifest(mcpDir, "alpha", {
+        name: "alpha", type: "npm", command: "npx", args: [], sidecarPort: 9100,
+        initScript: "setup.sh",
+      });
+      writeFileSync(join(mcpDir, "alpha", "setup.sh"), "#!/bin/bash");
+      writeManifest(mcpDir, "beta", {
+        name: "beta", type: "npm", command: "npx", args: [], sidecarPort: 9101,
+        initScript: "boot.sh",
+      });
+      writeFileSync(join(mcpDir, "beta", "boot.sh"), "#!/bin/bash");
+
+      const result = generatePreInitScript(mcpDir, ["alpha", "beta"]);
+      expect(result).toContain("/opt/mcp/servers/alpha/setup.sh");
+      expect(result).toContain("/opt/mcp/servers/beta/boot.sh");
+      const alphaIdx = result!.indexOf("alpha");
+      const betaIdx = result!.indexOf("beta");
+      expect(alphaIdx).toBeLessThan(betaIdx);
+
+      rmSync(mcpDir, { recursive: true, force: true });
     });
   });
 });

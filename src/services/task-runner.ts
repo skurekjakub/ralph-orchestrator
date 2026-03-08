@@ -173,10 +173,10 @@ export class TaskRunner implements ITaskRunner {
     this.logger.info("Rendering skill templates...");
     await this.skillRenderer.render(templateContext, this.logger);
 
-    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
-
     this.logger.info("Regenerating compose overlay for matched variant...");
     this.overlayWriter.write(ctx.profile, this.logger);
+
+    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
@@ -207,7 +207,7 @@ export class TaskRunner implements ITaskRunner {
     // the directory that streaming sources watch, and setup is where squid
     // proxy failures surface. With sources registered, the error path can
     // still collectAll (especially proxy logs) before teardown.
-    container.registerLogSources(ctx.taskId, ctx.workItem.id);
+    container.registerLogSources(ctx.taskId, ctx.workItem.id, ctx.outputDir);
 
     await container.setup();
 

@@ -151,6 +151,7 @@ describe("Compose Overlay", () => {
       expect(overlay).toContain(`context: ${sidecarDir}`);
       expect(overlay).toContain("/opt/mcp/servers:ro");
       expect(overlay).toContain("/opt/mcp/gateway/dist:ro");
+      expect(overlay).toContain("entrypoint.sh:/opt/mcp/entrypoint.sh:ro");
       expect(overlay).toContain("gateway.json:/opt/mcp/config/gateway.json:ro");
       expect(overlay).toContain("no-new-privileges:true");
       expect(overlay).toContain("cap_drop:");
@@ -304,6 +305,40 @@ describe("Compose Overlay", () => {
       const sidecarSection = overlay.slice(sidecarServiceIdx);
       expect(sidecarSection).toContain("extra_hosts:");
       expect(sidecarSection).toContain("host.docker.internal:host-gateway");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("mounts pre-init.sh when hasPreInit is true", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      const buildDir = join(mcpDir, ".build");
+      mkdirSync(buildDir, { recursive: true });
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, [], {}, true);
+
+      const sidecarStart = overlay.indexOf("\n  mcp-sidecar:\n");
+      const sidecarSection = overlay.slice(sidecarStart);
+      expect(sidecarSection).toContain("pre-init.sh:/opt/mcp/pre-init.sh:ro");
+
+      rmSync(mcpDir, { recursive: true, force: true });
+    });
+
+    it("omits pre-init.sh mount when hasPreInit is false", () => {
+      const mcpDir = createTempDir();
+      const sidecarDir = join(mcpDir, "sidecar");
+      const buildDir = join(mcpDir, ".build");
+      mkdirSync(buildDir, { recursive: true });
+      writeManifest(mcpDir, "test-server", {
+        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+      });
+
+      const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir);
+
+      expect(overlay).not.toContain("pre-init.sh");
 
       rmSync(mcpDir, { recursive: true, force: true });
     });

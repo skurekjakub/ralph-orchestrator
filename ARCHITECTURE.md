@@ -242,7 +242,8 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │       ├── web-fetch/                   # Fetch any URL and return as text (custom, direct access)
 │       └── microsoft-docs/              # Search Microsoft Learn documentation (custom, direct access)
 ├── shared/mcp-sidecar/                  # MCP sidecar container (gateway process manager)
-│   ├── Dockerfile                       # Sidecar image (node:22-slim, supergateway, git, mcp packages)
+│   ├── Dockerfile                       # Sidecar image (node:24-slim, supergateway, git, mcp packages)
+│   ├── entrypoint.sh                    # Sources pre-init.sh (if mounted), then exec gateway
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
 ├── shared/skills/                       # Shared agent skill folders (mounted per-profile into .github/skills/)
@@ -327,7 +328,7 @@ The security overlay (`shared/security/docker-compose.security.yml`) is merged w
 
 ### MCP Config System (`src/container/setup/`)
 
-Each profile declares MCP servers in `profile.json` (`mcpServers` array). At startup, `resolveAllProfileSetup()` resolves server names to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files per profile in `.build/`:
+Each profile declares MCP servers in `profile.json` (`mcpServers` array). Variants can declare additional servers — the effective set per variant is the union of profile-level and variant-level servers. At startup, `resolveAllProfileSetup()` resolves the union of all servers across all variants to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files per profile in `.build/`:
 
 1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains only `{ type, url }` entries — no secrets. Copilot reads it via `--additional-mcp-config @<path>`; Claude Code via `--mcp-config --strict-mcp-config`.
 2. **`gateway.json`** — Per-profile sidecar config with server commands, args, ports, and embedded secrets. The sidecar only starts servers the profile declares — a profile with `["jira-kentico", "ado"]` never spawns `discord-hitl`.
@@ -360,5 +361,5 @@ Path restrictions are auto-derived from MCP server manifests at startup (`src/co
 17. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
 18. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.
 19. **Shared MCP config** — Both Copilot CLI and Claude Code CLI use the same `mcp-config.json` format. One generated file serves both, avoiding format divergence.
-20. **MCP least-privilege** — Each profile declares only the MCP servers it needs (`mcpServers` array). The agent only sees the tools from those servers — a profile with `["playwright"]` has no JIRA or ADO tools. Per-profile `gateway.json` ensures the sidecar only starts declared servers. The agent's Squid allowlist is restricted to AI providers and package registries; all arbitrary outbound calls (JIRA, ADO REST API, documentation sites, web fetch) are gated through MCP tools in the sidecar. This enforces least-privilege at tool, process, network, and credential levels.
+20. **MCP least-privilege** — MCP servers are declared at profile level (shared) and optionally at variant level (scoped). The effective set per variant is the union. The agent only sees tools from its effective servers — a variant without `codegraphcontext` has no graph query tools. Per-profile `gateway.json` ensures the sidecar only starts declared servers. The agent's Squid allowlist is restricted to AI providers and package registries; all arbitrary outbound calls (JIRA, ADO REST API, documentation sites, web fetch) are gated through MCP tools in the sidecar. This enforces least-privilege at tool, process, network, and credential levels.
 

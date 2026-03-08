@@ -32,6 +32,7 @@ Read these skills before starting your research. They contain the techniques, pa
 |---|---|
 | **ralph-ralphchives** | Search the archives for prior work, gotchas, and patterns related to this task — always do this first |
 | **ralph-research-guide** | Complete research guide — docs site navigation, source code searching, external references, report template. Read the SKILL.md and all files in its `references/` folder. |
+| **ralph-codegraph** | Structural queries against the Xperience source code graph — call chains, class hierarchies, dead code, complexity. Use for questions that grep can't efficiently answer. |
 
 ## Research Order
 
@@ -40,6 +41,12 @@ Read these skills before starting your research. They contain the techniques, pa
 3. **Explore existing documentation** — find related pages, understand current coverage, identify gaps.
 4. **Explore the Xperience source code** — verify technical claims, find accurate API signatures, class hierarchies, configuration options, enum values, default settings.
 5. **Cross-reference external documentation** — when source code findings need clarification or the task involves .NET/ASP.NET concepts.
+
+
+{%- if triggerParams.codesamples %}
+{% render 'ralph-docs/ralph-codesamples', role: 'researcher' %}
+{%- endif %}
+
 6. **Assemble your report** — follow the template in the research guide's `references/report-template.md`. Run the validation checklist before returning.
 
 ## Rules

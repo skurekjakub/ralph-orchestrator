@@ -6,6 +6,7 @@ vi.mock("../../../src/container/stream-capture.js", () => ({
   StreamCapture: class MockStreamCapture {
     readonly stdout = "captured-stdout";
     readonly stderr = "captured-stderr";
+    readonly resultBlockDetected = new Promise<void>(() => {});
     constructor(_proc: unknown, _logger: unknown, _tag: string) {}
   },
 }));

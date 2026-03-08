@@ -178,6 +178,7 @@ export function makeProfile(
     maxContinuations: 0,
     mcpServers: [],
     mcpServerConfigs: {},
+    mcpSidecarEnv: {},
     githubMcpTools: false,
     skills: overrides.skills ?? stages.flatMap((s) => s.skills ?? []),
     stages,

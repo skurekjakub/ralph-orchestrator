@@ -5,14 +5,15 @@ import type { Logger } from "../../logger.js";
 import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
+import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
 
 /**
- * Regenerates the Docker Compose overlay per-task, scoping skill mounts
- * to the matched variant's declared skills instead of the startup-time
- * union of all variants.
+ * Regenerates the Docker Compose overlay, mcp-config.json, and gateway.json
+ * per-task, scoping all three to the matched variant's effective MCP server
+ * list and skill mounts.
  */
 export interface IComposeOverlayWriter {
-  /** Regenerate the compose overlay for a profile using its task-scoped skill list. */
+  /** Regenerate the compose overlay and MCP configs for a profile's task-scoped state. */
   write(profile: IAgentProfile, logger: Logger): void;
 }
 
@@ -51,9 +52,21 @@ export class ComposeOverlayWriter implements IComposeOverlayWriter {
     }
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes);
+    const sidecarEnv: Record<string, string> = { ...profile.mcpSidecarEnv };
+    const hasPreInit = existsSync(resolve(buildDir, "pre-init.sh"));
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes, sidecarEnv, hasPreInit);
 
     writeFileSync(resolve(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
-    logger.info(`Regenerated compose overlay with ${profile.skills.length} skill mount(s)`);
+
+    // Regenerate mcp-config.json with the variant's effective server list
+    const mcpConfig = generateMcpConfig(mcpServersDir, serverNames);
+    writeFileSync(resolve(buildDir, "mcp-config.json"), JSON.stringify(mcpConfig, null, 2) + "\n", "utf-8");
+
+    // Regenerate gateway.json so the sidecar only starts the variant's servers.
+    // JitMcpConfigWriter runs after this to inject task-scoped env vars.
+    const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
+    writeFileSync(resolve(buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
+
+    logger.info(`Regenerated compose overlay, mcp-config, and gateway with ${profile.skills.length} skill mount(s), ${serverNames.length} MCP server(s)`);
   }
 }

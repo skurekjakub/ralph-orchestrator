@@ -18,6 +18,14 @@
 				"${workspaceFolder}/.github/resources/mcp/jira-create-issue/server.py"
 			],
 			"envFile": "${workspaceFolder}/.env"
+		},
+		"CodeGraphContext": {
+			"type": "stdio",
+			"command": "cgc",
+			"args": [
+				"mcp",
+				"start"
+			]
 		}
 	},
 	"inputs": []

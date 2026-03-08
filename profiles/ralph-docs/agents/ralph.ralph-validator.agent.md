@@ -46,6 +46,10 @@ Read the researcher's report at `{{ artifactDir }}/ralph-researcher/output.md` f
 
 ---
 
+{%- if triggerParams.codesamples %}
+{% render 'ralph-docs/ralph-codesamples', role: 'validator' %}
+{%- endif %}
+
 ## What You Do NOT Check
 
 - Style guide compliance (that's the reviewer's job in Phase 4-5)

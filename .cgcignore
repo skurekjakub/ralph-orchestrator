@@ -1,0 +1,26 @@
+# Dependencies & build output
+node_modules/
+dist/
+.build/
+
+# Ralph output & logs
+output/
+logs/
+test-results/
+
+# Docker & infrastructure
+ralphchives/
+shared/mcp-sidecar/
+shared/security/
+
+# Dashboards (separate apps)
+ralph-dashboard/
+dashboard-local/
+
+# Cache & generated
+cache/
+*.json.bak
+
+# Evals & plans (not code)
+evals/
+plans/

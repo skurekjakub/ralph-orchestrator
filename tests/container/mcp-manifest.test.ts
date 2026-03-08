@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   loadMcpManifest,
@@ -77,6 +77,49 @@ describe("MCP Manifest", () => {
         requiredConfig: [],
       });
       expect(() => loadMcpManifest(tempDir, "empty-config")).toThrow("requiredConfig must be a non-empty array");
+    });
+
+    it("accepts valid initScript when file exists", () => {
+      writeManifest(tempDir, "with-init", {
+        name: "with-init", command: "node", args: [], sidecarPort: 9100,
+        initScript: "init.sh",
+      });
+      writeFileSync(join(tempDir, "with-init", "init.sh"), "#!/bin/bash\necho init");
+
+      const manifest = loadMcpManifest(tempDir, "with-init");
+      expect(manifest.initScript).toBe("init.sh");
+    });
+
+    it("throws for initScript when file does not exist", () => {
+      writeManifest(tempDir, "missing-init", {
+        name: "missing-init", command: "node", args: [], sidecarPort: 9100,
+        initScript: "init.sh",
+      });
+      expect(() => loadMcpManifest(tempDir, "missing-init")).toThrow("init script not found");
+    });
+
+    it("throws for empty initScript string", () => {
+      writeManifest(tempDir, "empty-init", {
+        name: "empty-init", command: "node", args: [], sidecarPort: 9100,
+        initScript: "",
+      });
+      expect(() => loadMcpManifest(tempDir, "empty-init")).toThrow("initScript must be a non-empty string");
+    });
+
+    it("throws for initScript with path traversal", () => {
+      writeManifest(tempDir, "traversal", {
+        name: "traversal", command: "node", args: [], sidecarPort: 9100,
+        initScript: "../../etc/passwd",
+      });
+      expect(() => loadMcpManifest(tempDir, "traversal")).toThrow("relative path within the server directory");
+    });
+
+    it("throws for absolute initScript path", () => {
+      writeManifest(tempDir, "abs-init", {
+        name: "abs-init", command: "node", args: [], sidecarPort: 9100,
+        initScript: "/etc/passwd",
+      });
+      expect(() => loadMcpManifest(tempDir, "abs-init")).toThrow("relative path within the server directory");
     });
   });
 

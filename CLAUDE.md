@@ -124,18 +124,22 @@ Custom Liquid tags: `{% section "name" %}...{% endsection %}` wraps content in `
 
 ### MCP Servers — Least-Privilege
 
-Each profile declares `mcpServers` in `profile.json`. This drives three things simultaneously:
-- **Tools:** Agent only sees tools from declared servers
+Profiles declare `mcpServers` at profile level (shared by all variants) and optionally at variant level (scoped). The effective set per variant is the union. This drives three things simultaneously:
+- **Tools:** Agent only sees tools from its effective servers
 - **Network:** MCP sidecar has unrestricted direct internet access via `ralph-sidecar-external`; agent's Squid allowlist is restricted to AI providers + package registries
 - **Credentials:** MCP secrets go into `gateway.json` inside the sidecar — agent container gets URL-only `mcp-config.json`
 
 MCP sidecar uses `supergateway` to bridge stdio servers to Streamable HTTP.
 
-Available servers: `ado`, `jira-kentico`, `discord-hitl`, `playwright`, `web-fetch`, `microsoft-docs`, `ralphchives-write`, `ralphchives-read`.
+Available servers: `ado`, `jira-kentico`, `discord-hitl`, `playwright`, `web-fetch`, `microsoft-docs`, `ralphchives-write`, `ralphchives-read`, `codegraphcontext`.
 
 ### Task-Scoped Parameters (JIT)
 
 Profile `mcpServers` entries can include `env` blocks with per-server environment variables. Values starting with `$` are runtime macros (`$task.id`, `$task.project`, `$task.branch`, `$task.title`) resolved per-task from the JIRA issue. `$trigger.<key>` macros resolve trigger parameter values from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`; returns empty string if missing). `$variantEnv.PREFIX` macros construct a variant-specific env var name as `PREFIX_PROFILEID_DISPLAYNAME` (uppercase, dashes→underscores) and resolve it from `process.env` — enabling per-variant secrets like API tokens (e.g. `$variantEnv.NODEBB_TOKEN` → `NODEBB_TOKEN_RALPH_DOCS_RALPH`). Before each task, `JitMcpConfigWriter` resolves macros and injects all env values into `gateway.json`. Servers declare `requiredConfig` in their manifest — validated at startup against profile configs. The MCP server reads env vars at startup and conditionally removes parameters from tool schemas, simplifying the agent's interface.
+
+Server entries also support `sidecarEnv` — a second env block injected as **container-level** environment variables on the sidecar Docker service. Unlike `env` (which goes to child processes via gateway.json), `sidecarEnv` values are available to the sidecar entrypoint script — used for pre-gateway setup like CodeGraphContext indexing (`CGC_INDEX_PATH`).
+
+MCP server manifests can also declare `initScript` — a relative path to a shell script in the server directory that runs at sidecar startup before the gateway. At profile setup, `generatePreInitScript()` collects all init scripts and writes a `pre-init.sh` to `.build/`, mounted into the sidecar at `/opt/mcp/pre-init.sh`. Scripts run sequentially; failures are logged but non-fatal.
 
 ### Operation Ledger
 
@@ -213,7 +217,7 @@ shared/
                         excluded from git via .git/info/exclude managed by RepoSyncHook)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Variants can also declare additional `mcpServers` (merged with profile-level — effective set is the union). Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 **Bind-mount artifact exclusion.** Docker bind mounts for skills, agent templates, and `.ralph/` create host-side files inside the target repo checkout. The `RepoSyncHook` writes patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking checkout, appearing in status, or being staged.
 

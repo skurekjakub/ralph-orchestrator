@@ -5,7 +5,10 @@
  * Every dependency is injected via the constructor — no concrete classes
  * are instantiated, making this fully testable without Docker.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { ContainerManager } from "../../src/container/manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-executor-factory.js";
@@ -139,8 +142,15 @@ function createHarness(overrides?: Partial<Harness>): Harness {
 }
 
 describe("ContainerManager", () => {
+  let tempDir: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    tempDir = mkdtempSync(join(tmpdir(), "manager-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
   describe("checkPrerequisites", () => {
@@ -217,7 +227,7 @@ describe("ContainerManager", () => {
   describe("registerLogSources", () => {
     it("delegates to logRegistry.registerAll", () => {
       const { manager, logRegistry, logs } = createHarness();
-      manager.registerLogSources(KEY, "DF-100");
+      manager.registerLogSources(KEY, "DF-100", tempDir);
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         logs,
@@ -236,7 +246,7 @@ describe("ContainerManager", () => {
       manager.onToolOutput = onToolOutput;
       manager.onPreToolUse = onPreToolUse;
 
-      manager.registerLogSources(KEY, "DF-100");
+      manager.registerLogSources(KEY, "DF-100", tempDir);
 
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
         expect.anything(),
@@ -246,6 +256,15 @@ describe("ContainerManager", () => {
         expect.objectContaining({ onToolOutput, onPreToolUse }),
         cliPaths,
       );
+    });
+
+    it("always provides an onCliDebug callback for file streaming", () => {
+      const { manager, logRegistry } = createHarness();
+
+      manager.registerLogSources(KEY, "DF-100", tempDir);
+
+      const callbacks = logRegistry.registerAll.mock.calls[0][4];
+      expect(callbacks.onCliDebug).toBeTypeOf("function");
     });
   });
 

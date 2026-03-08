@@ -7,7 +7,46 @@ import { generateProfileSquidConf } from "./squid-config.js";
 import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
 import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
 import { writeCopilotConfig } from "./url-restrictions.js";
-import { discoverMcpServers } from "./mcp-manifest.js";
+import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest.js";
+
+/**
+ * Generate a `pre-init.sh` script that sources each active server's `initScript`
+ * before the gateway launches. Scripts run in declaration order with failures
+ * logged but non-fatal (the gateway still starts).
+ *
+ * @returns Script content, or `null` if no servers declare init scripts.
+ */
+export function generatePreInitScript(mcpServersDir: string, serverNames: string[]): string | null {
+  const entries: { name: string; scriptPath: string }[] = [];
+
+  for (const name of serverNames) {
+    const manifest = loadMcpManifest(mcpServersDir, name);
+    if (manifest.initScript) {
+      entries.push({ name, scriptPath: `/opt/mcp/servers/${name}/${manifest.initScript}` });
+    }
+  }
+
+  if (entries.length === 0) return null;
+
+  const lines = [
+    "#!/bin/bash",
+    "# Auto-generated — runs MCP server init scripts before the gateway starts.",
+    "# Each script runs with set +e so failures are non-fatal.",
+    "",
+  ];
+
+  for (const { name, scriptPath } of entries) {
+    lines.push(`echo "$(date -Iseconds) [pre-init] Running init script for '${name}'..."`);
+    lines.push(`if bash "${scriptPath}"; then`);
+    lines.push(`  echo "$(date -Iseconds) [pre-init] '${name}' init complete"`);
+    lines.push("else");
+    lines.push(`  echo "$(date -Iseconds) [pre-init] '${name}' init failed (non-fatal, continuing)"`);
+    lines.push("fi");
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
 
 /**
  * Resolve configs for all profiles and write them to each profile's build directory.
@@ -55,7 +94,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string })[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[] }[] };
+    let parsed: { mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[]; mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[] }[] };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -63,9 +102,15 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       continue;
     }
 
-    const serverNames = (parsed.mcpServers ?? []).map((s) => typeof s === "string" ? s : s.name);
+    // Union of profile-level + all variant-level mcpServers for the startup overlay
+    const profileServerNames = (parsed.mcpServers ?? []).map((s) => typeof s === "string" ? s : s.name);
+    const variantServerNames = (parsed.variants ?? []).flatMap((v) =>
+      (v.mcpServers ?? []).map((s: string | { name: string }) => typeof s === "string" ? s : s.name),
+    );
+    const serverNames = [...new Set([...profileServerNames, ...variantServerNames])];
     logger?.info(`Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`);
 
+    // Startup mcp-config includes ALL servers (union). Per-task writer narrows to variant scope.
     const config = generateMcpConfig(mcpServersDir, serverNames);
     const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
 
@@ -108,7 +153,27 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
 
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes);
+    // Collect sidecar container-level env from all MCP server entries (profile + variants).
+    const sidecarEnv: Record<string, string> = {};
+    const allEntries = [
+      ...(parsed.mcpServers ?? []),
+      ...(parsed.variants ?? []).flatMap((v) => v.mcpServers ?? []),
+    ];
+    for (const e of allEntries) {
+      if (typeof e !== "string" && e.sidecarEnv) {
+        Object.assign(sidecarEnv, e.sidecarEnv);
+      }
+    }
+
+    // Generate pre-init script from MCP server initScript declarations.
+    const preInitScript = generatePreInitScript(mcpServersDir, serverNames);
+    if (preInitScript) {
+      const preInitPath = join(buildDir, "pre-init.sh");
+      writeFileSync(preInitPath, preInitScript, "utf-8");
+      chmodSync(preInitPath, 0o755);
+    }
+
+    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes, sidecarEnv, preInitScript !== null);
     writeFileSync(
       join(buildDir, "docker-compose.overlay.yml"),
       overlay,

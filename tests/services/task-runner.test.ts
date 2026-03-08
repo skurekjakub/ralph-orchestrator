@@ -65,7 +65,7 @@ describe("TaskRunner", () => {
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
-    expect(spies.registerLogSources).toHaveBeenCalledWith(taskId, KEY);
+    expect(spies.registerLogSources).toHaveBeenCalledWith(taskId, KEY, expect.any(String));
     expect(spies.setup).toHaveBeenCalled();
     expect(spies.executeWithExecutor).toHaveBeenCalled();
     expect(resultWriter.collectResults).toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("TaskRunner", () => {
     const runner = new TaskRunner({ resultWriter, logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), templateRenderer: renderer, skillRenderer: createMockSkillRenderer({ render: vi.fn().mockImplementation(async () => { callOrder.push("renderSkills"); }) }), jitMcpConfig, overlayWriter });
     await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
 
-    expect(callOrder).toEqual(["renderTemplates", "renderSkills", "jitMcpConfig", "overlayWriter", "start", "check", "prepareConfig", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
+    expect(callOrder).toEqual(["renderTemplates", "renderSkills", "overlayWriter", "jitMcpConfig", "start", "check", "prepareConfig", "cleanPaths", "registerLogs", "setup", "execute", "collect"]);
   });
 
   it("skips beforeAgent transition when not configured", async () => {

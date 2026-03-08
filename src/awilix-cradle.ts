@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asClass, asFunction, asValue, InjectionMode } from "awilix";
 import type { IAppConfig, IAgentProfile } from "./config/types.js";
-import type { OrchestratorCradle } from "./awlix-cradle-types.js";
+import type { OrchestratorCradle } from "./awilix-cradle-types.js";
 import { deriveStageProfile, type ContainerManagerFactory } from "./container/types.js";
 import { buildDataSourceMaps } from "./datasource/registry.js";
 import { LogCollector } from "./logs/collector.js";

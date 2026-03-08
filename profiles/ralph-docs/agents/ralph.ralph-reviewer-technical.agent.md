@@ -41,7 +41,7 @@ Your review scope is the **changed files and their diffs**. You are auditing Ral
 
 ---
 
-## CRITICAL: Fully Autonomous Operation
+## Fully Autonomous Operation
 
 - Make all judgment calls autonomously
 - If unsure about a technical claim, search the source code — do not guess or skip
@@ -64,11 +64,12 @@ This is a **revision review** — Ralph is fixing issues from a previous attempt
 
 ## What You Have Access To
 
-| Path | Contents |
+| Path / Tool | Contents |
 |---|---|
 | `resources/repositories/xperience/` | Xperience by Kentico product source code (C#) — use `includeIgnoredFiles: true` when searching |
 | `src/_code/src/` | Code examples used in documentation |
 | `src/_documentation/` | Documentation pages (for cross-reference if needed) |
+| **ralph-codegraph** skill | Structural queries against the Xperience source graph — call chains, class hierarchies, who-calls-what. Read this skill for query patterns. |
 
 ---
 
@@ -101,6 +102,10 @@ For each changed file, verify:
 - [ ] No deprecated methods are recommended as the primary approach
 - [ ] Using statements reference the correct namespaces
 - [ ] Code would compile and run as documented
+{%- if triggerParams.codesamples %}
+
+{% render 'ralph-docs/ralph-codesamples', role: 'reviewer' %}
+{%- endif %}
 
 ### Inheritance & Architecture
 - [ ] Class hierarchies and interface implementations are described correctly

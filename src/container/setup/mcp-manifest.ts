@@ -26,6 +26,8 @@ export interface McpServerManifest {
   tools?: string[];
   /** Env var names that MUST be provided by profiles using this server (via mcpServers object entries). */
   requiredConfig?: string[];
+  /** Relative path to a shell script inside the server directory, executed at sidecar startup before the gateway launches. */
+  initScript?: string;
 }
 
 /**
@@ -56,6 +58,19 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
       throw new Error(
         `Invalid MCP server manifest at ${manifestPath}: requiredConfig must be a non-empty array of non-empty strings`,
       );
+    }
+  }
+
+  if (raw.initScript !== undefined) {
+    if (typeof raw.initScript !== "string" || raw.initScript === "") {
+      throw new Error(`Invalid MCP server manifest at ${manifestPath}: initScript must be a non-empty string`);
+    }
+    if (raw.initScript.includes("..") || raw.initScript.startsWith("/")) {
+      throw new Error(`Invalid MCP server manifest at ${manifestPath}: initScript must be a relative path within the server directory`);
+    }
+    const initPath = join(mcpServersDir, serverName, raw.initScript);
+    if (!existsSync(initPath)) {
+      throw new Error(`MCP server init script not found: ${initPath}`);
     }
   }
 

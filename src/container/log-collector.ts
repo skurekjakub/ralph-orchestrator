@@ -29,6 +29,9 @@ export interface LogSourceDef {
   /** Override the default `["cat", containerPath]` command used during collection.
    *  Useful when the file has a dynamic name (e.g. glob pattern). */
   collectArgs?: string[];
+  /** Override the default `["tail", "-n", "0", "-F", containerPath]` command used
+   *  for streaming. Useful for directory-based sources (e.g. glob patterns). */
+  streamArgs?: string[];
   /** When true, collect via `docker compose logs` instead of `exec cat`. Use for
    *  sidecar services that log to stdout rather than a file. */
   useComposeLogs?: boolean;
@@ -262,7 +265,7 @@ export class ContainerLogCollector implements IContainerLogCollector {
         ? this.compose.compose(["logs", "-f", "--no-color", "--no-log-prefix", source.service])
         : this.compose.exec([
             "--user", "vscode", source.service,
-            "tail", "-n", "0", "-f", source.containerPath,
+            ...(source.streamArgs ?? ["tail", "-n", "0", "-F", source.containerPath]),
           ]);
 
       this.streamProcs.set(source.id, proc);

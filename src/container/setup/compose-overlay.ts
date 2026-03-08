@@ -44,6 +44,8 @@ export function generateComposeOverlay(
   buildDir: string,
   sidecarDir: string,
   extraVolumes: string[] = [],
+  sidecarEnv: Record<string, string> = {},
+  hasPreInit = false,
 ): string {
   const lines: string[] = [];
 
@@ -99,14 +101,23 @@ export function generateComposeOverlay(
     lines.push(`      - ${mcpServersDir}:/opt/mcp/servers:ro`);
     lines.push("      # Gateway compiled code (read-only, avoids image rebuild for code changes)");
     lines.push(`      - ${join(sidecarDir, "dist")}:/opt/mcp/gateway/dist:ro`);
+    lines.push("      # Entrypoint script (mounted to pick up changes without image rebuild)");
+    lines.push(`      - ${join(sidecarDir, "entrypoint.sh")}:/opt/mcp/entrypoint.sh:ro`);
     lines.push("      # Gateway config with embedded secrets");
     lines.push(`      - ${join(buildDir, "gateway.json")}:/opt/mcp/config/gateway.json:ro`);
     lines.push("      # Shared attachment exchange directory (read-only in sidecar)");
     lines.push(`      - ${join(buildDir, "attachments")}:/tmp/mcp-attachments:ro`);
     lines.push("      # Repo volume for git operations (push_progress, create_pr)");
     lines.push('      - "${TARGET_REPO_PATH}:/workspace"');
+    if (hasPreInit) {
+      lines.push("      # Generated pre-init script from MCP server initScript declarations");
+      lines.push(`      - ${join(buildDir, "pre-init.sh")}:/opt/mcp/pre-init.sh:ro`);
+    }
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"');
+    for (const [key, value] of Object.entries(sidecarEnv)) {
+      lines.push(`      ${key}: "${value}"`);
+    }
     lines.push("    extra_hosts:");
     lines.push('      - "host.docker.internal:host-gateway"');
     lines.push("    networks:");

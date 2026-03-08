@@ -62,6 +62,7 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
     // Normalize mixed mcpServers array into names + configs
     const mcpServers: string[] = [];
     const mcpServerConfigs: Record<string, Record<string, string>> = {};
+    const mcpSidecarEnv: Record<string, string> = {};
     for (const entry of parsed.mcpServers) {
       if (typeof entry === "string") {
         mcpServers.push(entry);
@@ -69,6 +70,9 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         mcpServers.push(entry.name);
         if (entry.env && Object.keys(entry.env).length > 0) {
           mcpServerConfigs[entry.name] = entry.env;
+        }
+        if (entry.sidecarEnv && Object.keys(entry.sidecarEnv).length > 0) {
+          Object.assign(mcpSidecarEnv, entry.sidecarEnv);
         }
       }
     }
@@ -84,6 +88,26 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
 
     for (let vi = 0; vi < parsed.variants.length; vi++) {
       const variant = parsed.variants[vi];
+
+      // Merge profile-level + variant-level mcpServers
+      const variantMcpNames: string[] = [];
+      const variantMcpConfigs: Record<string, Record<string, string>> = { ...mcpServerConfigs };
+      const variantSidecarEnv: Record<string, string> = { ...mcpSidecarEnv };
+      for (const entry of variant.mcpServers) {
+        if (typeof entry === "string") {
+          variantMcpNames.push(entry);
+        } else {
+          variantMcpNames.push(entry.name);
+          if (entry.env && Object.keys(entry.env).length > 0) {
+            variantMcpConfigs[entry.name] = entry.env;
+          }
+          if (entry.sidecarEnv && Object.keys(entry.sidecarEnv).length > 0) {
+            Object.assign(variantSidecarEnv, entry.sidecarEnv);
+          }
+        }
+      }
+      const mergedServers = [...new Set([...mcpServers, ...variantMcpNames])];
+
 
       const stages: IStageConfig[] = variant.stages.map((s) => ({
         agent: s.agent,
@@ -129,8 +153,9 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         composeProjectLabel: parsed.composeProjectLabel,
         cleanPaths: parsed.cleanPaths,
         maxContinuations: parsed.maxContinuations,
-        mcpServers,
-        mcpServerConfigs,
+        mcpServers: mergedServers,
+        mcpServerConfigs: variantMcpConfigs,
+        mcpSidecarEnv: variantSidecarEnv,
         githubMcpTools: parsed.githubMcpTools,
         match: {
           projects: variant.match.projects,
