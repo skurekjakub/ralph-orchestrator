@@ -12,6 +12,8 @@ export interface LogSourceCallbacks {
   onToolOutput?: (line: string) => void;
   /** Invoked for each line of real-time pre-tool invocation output. */
   onPreToolUse?: (line: string) => void;
+  /** Invoked for each line of real-time CLI debug log output. */
+  onCliDebug?: (line: string) => void;
 }
 
 /** Public contract for registering standard log sources on a task. */
@@ -106,8 +108,10 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       service: "app",
       containerPath: cliPaths.logDir,
       extension: "log",
-      mode: CaptureMode.Collect,
+      mode: callbacks.onCliDebug ? CaptureMode.Stream : CaptureMode.Collect,
       collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
+      streamArgs: ["sh", "-c", `while ! ls ${cliPaths.logDir}/*.log >/dev/null 2>&1; do sleep 1; done; exec tail -n 0 -F ${cliPaths.logDir}/*.log`],
+      onLine: callbacks.onCliDebug,
     });
 
     logs.addSource({

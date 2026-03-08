@@ -1,4 +1,6 @@
 import { execa } from "execa";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
 import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
 import { deriveStageProfile, type RalphResult, type CliPaths } from "./types.js";
@@ -43,7 +45,7 @@ export interface IContainerManager {
   /** Execute a command inside the mcp-sidecar container. */
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
-  registerLogSources(taskId: string, workItemId: string): void;
+  registerLogSources(taskId: string, workItemId: string, outputDir: string): void;
   /** Execute the agent CLI inside the running container. */
   execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Execute with a specific CLI executor (for per-stage agent switching). */
@@ -204,10 +206,13 @@ export class ContainerManager implements IContainerManager {
    *
    * @param taskId Work item id used as the filename prefix for all collected logs.
    */
-  registerLogSources(taskId: string, workItemId: string): void {
+  registerLogSources(taskId: string, workItemId: string, outputDir: string): void {
+    const debugLogPath = join(outputDir, `${taskId}-cli-debug-stream.log`);
+
     this.logRegistry.registerAll(this.logs, this.profile, taskId, workItemId, {
       onToolOutput: this.onToolOutput,
       onPreToolUse: this.onPreToolUse,
+      onCliDebug: (line) => { appendFileSync(debugLogPath, line + "\n"); },
     }, this.cliPaths);
   }
 

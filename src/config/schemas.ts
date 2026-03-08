@@ -103,6 +103,16 @@ export const postTaskHookSchema = z.object({
     ),
 });
 
+export const mcpServerEntrySchema = z.union([
+  z.string(),
+  z.object({
+    name: z.string().min(1, "MCP server entry name must not be empty"),
+    env: z.record(z.string(), z.string()).optional(),
+    /** Container-level env vars injected into the sidecar service (for entrypoint scripts). */
+    sidecarEnv: z.record(z.string(), z.string()).optional(),
+  }),
+]);
+
 export const variantSchema = z.object({
   description: z.string().optional(),
   stages: z.array(stageSchema).min(1, "At least one stage is required").refine(
@@ -124,6 +134,8 @@ export const variantSchema = z.object({
       (hooks) => new Set(hooks.map(h => h.name)).size === hooks.length,
       "Post-task hook names must be unique within a variant",
     ),
+  /** Additional MCP servers for this variant (merged with profile-level mcpServers). */
+  mcpServers: z.array(mcpServerEntrySchema).default([]),
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */
@@ -131,14 +143,6 @@ export const resourcesSchema = z.object({
   /** Container path prefix (relative to /workspace) where resource files are mounted. */
   mountBase: z.string().min(1),
 }).optional();
-
-export const mcpServerEntrySchema = z.union([
-  z.string(),
-  z.object({
-    name: z.string().min(1, "MCP server entry name must not be empty"),
-    env: z.record(z.string(), z.string()).optional(),
-  }),
-]);
 
 export const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),

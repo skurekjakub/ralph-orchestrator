@@ -111,4 +111,58 @@ describe("StreamCapture", () => {
     expect(capture.stdout).toBe("");
     expect(capture.stderr).toBe("");
   });
+
+  it("resolves resultBlockDetected when RALPH_RESULT_END marker appears in stdout", async () => {
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+
+    let resolved = false;
+    capture.resultBlockDetected.then(() => { resolved = true; });
+
+    stdout.emit("data", "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n");
+
+    // Let microtask queue flush
+    await Promise.resolve();
+    expect(resolved).toBe(true);
+  });
+
+  it("resolves resultBlockDetected even when marker is wrapped in code fences", async () => {
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+
+    let resolved = false;
+    capture.resultBlockDetected.then(() => { resolved = true; });
+
+    stdout.emit("data", "```\n===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n```\n");
+
+    await Promise.resolve();
+    expect(resolved).toBe(true);
+  });
+
+  it("resultBlockDetected stays pending when marker is absent", async () => {
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+
+    let resolved = false;
+    capture.resultBlockDetected.then(() => { resolved = true; });
+
+    stdout.emit("data", "some normal output\nno result block here\n");
+
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+  });
+
+  it("resolves resultBlockDetected only once even with multiple markers", async () => {
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+
+    let resolveCount = 0;
+    capture.resultBlockDetected.then(() => { resolveCount++; });
+
+    stdout.emit("data", "===RALPH_RESULT_END===\n");
+    stdout.emit("data", "===RALPH_RESULT_END===\n");
+
+    await Promise.resolve();
+    expect(resolveCount).toBe(1);
+  });
 });

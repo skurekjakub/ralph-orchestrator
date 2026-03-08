@@ -13,7 +13,7 @@ description: "Standard workflow Phase 2. Read this skill after setup is complete
 
 ## Instructions
 
-Dispatch the **ralph-researcher** sub-agent with the task-id and a one-line directive describing what to research. The researcher reads the JIRA issue details, ralphchives findings, and source code on its own.
+Dispatch the **ralph-researcher** sub-agent with the and the JIRA issue details given in the initial prompt, ralphchives findings, and source code on its own.
 
 After the researcher returns, read its `status.json` at `.ralph/tasks/{{ taskId }}/artifacts/ralph-researcher/status.json`.
 

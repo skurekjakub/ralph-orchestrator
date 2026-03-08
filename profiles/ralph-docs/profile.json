@@ -72,20 +72,31 @@
       "afterAgent": {
         "targetStatus": "Ready for Review"
       },
+      "mcpServers": [
+        {
+          "name": "codegraphcontext",
+          "sidecarEnv": {
+            "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience"
+          }
+        }
+      ],
       "stages": [
         {
           "agent": "ralph.ralph",
           "role": "primary",
           "skills": [
+            "ralph-codegraph",
             "ralph-code-samples",
             "ralph-ado-pr-workflow",
             "ralph-source-references",
             "ralph-ralphchives",
             "ralph-new-page-creation",
+            "ralph-page-removal",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
             "ralph-codesamples-project",
             "ralph-screenshots",
+            "ralph-codesamples-verification",
             "ralph-training-modules",
             "ralph-write-release-notes",
             "ralph-research-guide",
@@ -101,7 +112,6 @@
             "ralph-workflow-revision-commit",
             "ralph-workflow-revision-handoff",
             "ralph-build-errors",
-            "ralph-page-removal",
             "ralph-callout-selection",
             "ralph-cross-version-linking",
             "ralph-xperience-page-permissions"
@@ -133,11 +143,20 @@
         ],
         "commentTrigger": "@Malph"
       },
+      "mcpServers": [
+        {
+          "name": "codegraphcontext",
+          "sidecarEnv": {
+            "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience"
+          }
+        }
+      ],
       "stages": [
         {
           "agent": "ralph.malph",
           "role": "primary",
           "skills": [
+            "ralph-codegraph",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
             "ralph-build-errors",

@@ -138,6 +138,9 @@ shared/
       "stages": [
         { "agent": "ralph.ralph", "role": "primary" }
       ],
+      "mcpServers": [
+        { "name": "codegraphcontext", "sidecarEnv": { "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience" } }
+      ],
       "match": { "projects": ["DF"], "statuses": ["New", "To Do"], "commentTrigger": "@RalphDf" },
       "beforeAgent": { "targetStatus": "In Progress" },
       "afterAgent": { "targetStatus": "Ready for Review" }
@@ -157,7 +160,7 @@ shared/
 | `setupScript` | Absolute path to the setup script inside the container | `"/usr/local/bin/setup.sh"` |
 | `auditLogPath` | Absolute path to the audit JSONL log inside the container | `"/workspace/.ralph/logs/audit.jsonl"` |
 | `composeProjectLabel` | Docker compose project label used for container lookup | `"ralph-sandbox"` |
-| `mcpServers` | Array of MCP server entries. Each entry is either a string (server name) or an object `{ name, env? }` with per-server environment variables. Server names must match subdirectories in `shared/mcp-servers/`. Values in `env` starting with `$` are JIT macros resolved per-task (see MCP Servers section). | `[]` |
+| `mcpServers` | Array of MCP server entries. Each entry is either a string (server name) or an object `{ name, env?, sidecarEnv? }` with per-server environment variables. Server names must match subdirectories in `shared/mcp-servers/`. Values in `env` starting with `$` are JIT macros resolved per-task (see MCP Servers section). `sidecarEnv` injects container-level env vars into the sidecar Docker service (for entrypoint scripts, not macro-resolved). Variants can declare additional `mcpServers` — see below. | `[]` |
 | `resources` | Resource auto-discovery config: `{ "mountBase": "<path>" }`. Files in `profiles/<id>/resources/` are mounted read-only at `/workspace/<mountBase>/`. | — (optional) |
 | `cleanPaths` | Array of absolute container paths to delete before each agent run. | `[]` |
 | `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
@@ -185,6 +188,7 @@ Each profile has a `variants` array. Each variant is a separate routing entry th
 | `variant.preflight` | Named preflight check to run before agent invocation. If it fails, the agent is not invoked. Optional. |
 | `variant.failureComment` | JIRA comment posted when preflight fails. Falls back to a generic message. Optional. |
 | `variant.postTaskHooks` | Array of post-task hook objects. Each hook defines a local-only agent pipeline that runs after the main pipeline completes and the container is torn down. Hook failures are logged as warnings and never affect the task result. See [Post-Task Hooks](docs/multistage-pipelines.md#post-task-hooks). Default: `[]`. |
+| `variant.mcpServers` | Additional MCP servers for this variant (same entry format as profile-level). Merged with profile-level `mcpServers` — the effective set is the union. Allows scoping expensive or specialized servers to specific variants. Default: `[]`. |
 
 #### Stages
 
@@ -342,6 +346,8 @@ The MCP sidecar has **unrestricted direct internet access** via the `ralph-sidec
 - `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Must support `--transport http --port PORT` for sidecar mode. Set `containerPath` to `/opt/mcp/servers/<name>`.
 
 **Port assignment:** Each server must declare a unique `sidecarPort` in its manifest. Ports are validated at startup — duplicates or out-of-range values cause a startup error.
+
+**Pre-gateway initialization:** Servers can declare `"initScript": "init.sh"` in their manifest to run a script at sidecar startup before the gateway launches (e.g. code indexing, cache warming). The script path must be relative within the server directory. Failures are logged but non-fatal.
 
 #### Resources
 

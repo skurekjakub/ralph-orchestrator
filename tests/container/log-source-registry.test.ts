@@ -189,6 +189,36 @@ describe("LogSourceRegistry", () => {
         expect.objectContaining({
           id: "cli-debug",
           collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
+          streamArgs: ["sh", "-c", `while ! ls ${cliPaths.logDir}/*.log >/dev/null 2>&1; do sleep 1; done; exec tail -n 0 -F ${cliPaths.logDir}/*.log`],
+        }),
+      );
+    });
+
+    it("registers cli-debug in collect mode when no callback provided", () => {
+      const { collector, addSource } = createMockCollector();
+
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
+
+      expect(addSource).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "cli-debug",
+          mode: CaptureMode.Collect,
+          onLine: undefined,
+        }),
+      );
+    });
+
+    it("registers cli-debug in stream mode with callback when provided", () => {
+      const { collector, addSource } = createMockCollector();
+      const onCliDebug = vi.fn();
+
+      registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, { onCliDebug }, cliPaths);
+
+      expect(addSource).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "cli-debug",
+          mode: CaptureMode.Stream,
+          onLine: onCliDebug,
         }),
       );
     });

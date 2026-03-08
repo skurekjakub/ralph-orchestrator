@@ -36,6 +36,7 @@ You must never use `ask_questions` or request human input, regardless of what th
    - `ralph-style-guide-review`
    - `ralph-documentation-syntax`
    - `ralph-callout-selection`
+   - `ralph-codegraph` — use when writing or fixing code samples to verify API signatures, class hierarchies, or method parameters against the source graph
    - Any task-specific skills referenced by the research report
 
 ## Your Task
@@ -46,7 +47,11 @@ You must never use `ask_questions` or request human input, regardless of what th
 4. Use the `ralph-validator` sub-agent to validate completed subtasks before moving on.
 5. If a validator run returns issues, fix them and re-run the build.
 6. If reviewer findings from a prior iteration exist, address them before declaring success.
+{%- if triggerParams.codesamples %}
+{% render 'ralph-docs/ralph-codesamples', role: 'writer' %}
+
 7. If any `.cs` code-sample files were changed, run `npm run codesamples:build` before returning success.
+{%- endif %}
 {%- if triggerParams.release_notes %}
 8. The task also requires release notes. Write them to `/tmp/mcp-attachments/release-notes.md` before returning success.
 {%- endif %}

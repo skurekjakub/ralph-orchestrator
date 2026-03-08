@@ -93,9 +93,11 @@ Key locations:
 
 Agent templates use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`, `{% section "name" %}`) and are rendered JIT before each task by `AgentTemplateRenderer`. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring and the full `TemplateContext` variable reference.
 
-**MCP least-privilege:** Each profile declares exactly which MCP servers it needs via `mcpServers` in `profile.json`. This enforces least-privilege at tool, network, process, and credential levels. See [MCP.md](MCP.md) for the full MCP reference.
+**MCP least-privilege:** Each profile declares which MCP servers it needs via `mcpServers` in `profile.json` (profile-level and/or variant-level). Variants can declare additional servers — the effective set is the union. This enforces least-privilege at tool, network, process, and credential levels. See [MCP.md](MCP.md) for the full MCP reference.
 
-**Task-scoped parameters:** MCP server `env` blocks support `$task.*`, `$trigger.*`, and `$variantEnv.*` runtime macros resolved per-task by `JitMcpConfigWriter`. See [CONFIGURATION.md](CONFIGURATION.md) § MCP Servers for macro reference.
+**Task-scoped parameters:** MCP server `env` blocks support `$task.*`, `$trigger.*`, and `$variantEnv.*` runtime macros resolved per-task by `JitMcpConfigWriter`. Server entries also support `sidecarEnv` for container-level env vars (e.g. `CGC_INDEX_PATH`). See [CONFIGURATION.md](CONFIGURATION.md) § MCP Servers for macro reference.
+
+MCP server manifests can also declare `initScript` — a relative path to a shell script in the server directory that runs at sidecar startup before the gateway. At profile setup, `generatePreInitScript()` collects all init scripts and writes a `pre-init.sh` to `.build/`, mounted into the sidecar at `/opt/mcp/pre-init.sh:ro`. Scripts run sequentially; failures are logged but non-fatal.
 
 ## Data Source Integration
 
@@ -121,7 +123,7 @@ Per-task log collection managed by `ContainerLogCollector` and `TaskResultWriter
 - All components accept a `Logger` interface for centralized log routing
 - Copilot CLI: `--config-dir /workspace/.ralph`, `--additional-mcp-config @<path>`, `--allow-all-tools`, `--allow-all-paths`, `--share <transcript>`, `--model claude-opus-4.6` (configurable)
 - Claude Code CLI: `-p <prompt>`, `--dangerously-skip-permissions`, `--mcp-config /workspace/.ralph/mcp-config.json`, `--strict-mcp-config`
-- Both CLIs share the same `mcp-config.json` (generated at startup from profile `mcpServers` declarations)
+- Both CLIs share the same `mcp-config.json` (generated at startup from profile + variant `mcpServers` declarations, regenerated per-task with the matched variant's effective server list)
 - NEVER REEXPORT, update original imports instead
 
 ### Dependency Interfaces

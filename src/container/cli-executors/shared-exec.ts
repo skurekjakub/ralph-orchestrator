@@ -10,8 +10,19 @@ export interface ProcessTracker {
 }
 
 /**
+ * Grace period (ms) after detecting the result block before forcefully
+ * terminating the CLI process. Gives the CLI time to exit on its own.
+ */
+const RESULT_GRACE_MS = 10_000;
+
+/**
  * Execute a CLI command in a container with stream capture and error handling.
  * Shared between CopilotExecutor and ClaudeCodeExecutor.
+ *
+ * When the agent's `===RALPH_RESULT_END===` marker appears in stdout but the
+ * CLI process doesn't exit within {@link RESULT_GRACE_MS}, the process is
+ * terminated with SIGTERM. This prevents the CLI from idling indefinitely
+ * after printing a valid result block.
  */
 export async function executeCliCommand(
   compose: IComposeClient,
@@ -25,6 +36,22 @@ export async function executeCliCommand(
   try {
     processTracker.activeProcess = compose.execWithTimeout(args, timeoutMs) as ResultPromise;
     capture = new StreamCapture(processTracker.activeProcess, logger, prefix);
+
+    // Auto-kill the CLI if it idles after printing the result block.
+    capture.resultBlockDetected.then(() => {
+      const timer = setTimeout(() => {
+        if (processTracker.activeProcess) {
+          logger.info(`Result block detected but CLI still running after ${RESULT_GRACE_MS}ms — sending SIGTERM`);
+          try {
+            processTracker.activeProcess.kill("SIGTERM");
+          } catch {
+            // already terminated
+          }
+        }
+      }, RESULT_GRACE_MS);
+      timer.unref();
+    });
+
     const result = await processTracker.activeProcess;
     processTracker.activeProcess = null;
 

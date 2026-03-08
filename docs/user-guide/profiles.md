@@ -73,7 +73,7 @@ At startup, the orchestrator:
 | `composeProjectLabel` | `string` | `"ralph-sandbox"` | Docker Compose project label |
 | `cleanPaths` | `string[]` | `[]` | Absolute container paths deleted (`rm -rf`) before each agent run (once before the first stage, not per-stage) |
 | `maxContinuations` | `number` | `0` | Max auto-retry attempts (0–10) when agent doesn't produce a result block. Uses exponential backoff (5s base, 30s cap). Also requires `enableContinuation: true` in `config.json` |
-| `mcpServers` | `array` | `[]` | MCP servers to deploy. See [MCP Servers](mcp-servers.md) |
+| `mcpServers` | `array` | `[]` | MCP servers to deploy. Entries can be plain strings or objects with `env` (task-scoped macros) and `sidecarEnv` (container-level env). See [MCP Servers](mcp-servers.md) |
 | `githubMcpTools` | `false` &#124; `string[]` | `false` | Copilot's built-in GitHub MCP server. `false` disables it, array enables specific tools only. No effect on `cli: "claude"` |
 | `resources` | `object` | *(optional)* | Resource auto-mount config. See [Resources](#resources) |
 | `skills` | `string[]` | `[]` | Skill folder names from `shared/skills/` to mount at `.github/skills/` |
@@ -113,6 +113,7 @@ Each profile has a `variants` array. Each variant is an independent trigger targ
 | `beforeAgent` | `object` | *(optional)* | Pre-execution JIRA transitions |
 | `afterAgent` | `object` | *(optional)* | Post-execution JIRA transitions |
 | `stages` | `IStageConfig[]` | — (required, min 1) | Sequential agent pipeline |
+| `mcpServers` | `array` | `[]` | Additional MCP servers for this variant. Merged with profile-level (effective set = union). Same syntax as profile-level `mcpServers` — supports string or object with `env`/`sidecarEnv` |
 | `preflight` | `string` | *(optional)* | Named preflight check. Aborts on failure |
 | `failureComment` | `string` | *(optional)* | JIRA comment posted when preflight fails |
 | `postTaskHooks` | `array` | `[]` | Post-task hook pipelines (local-only). See [Post-Task Hooks](#post-task-hooks) |

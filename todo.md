@@ -1,5 +1,6 @@
+discord-hitl mcp setup
 
-https://github.com/CodeGraphContext/CodeGraphContext
+main agent context buffer throughout the task in timeline dashboard
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
