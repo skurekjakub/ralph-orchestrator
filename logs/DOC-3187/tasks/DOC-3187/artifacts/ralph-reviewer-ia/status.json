@@ -1,0 +1,10 @@
+{
+  "agent": "ralph-reviewer-ia",
+  "task_id": "DOC-3187",
+  "status": "completed",
+  "result": "approved",
+  "summary": "Code sample migration preserves all navigation, cross-references, and content flow. No structural issues found.",
+  "artifacts": ["ralph-reviewer-ia/output.md", "ralph-reviewer-ia/review-findings.json"],
+  "next_hint": null,
+  "iteration": 1
+}

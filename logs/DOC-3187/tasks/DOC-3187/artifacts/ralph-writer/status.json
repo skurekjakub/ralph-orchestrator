@@ -1,0 +1,12 @@
+{
+  "agent": "ralph-writer",
+  "task_id": "DOC-3187",
+  "status": "completed",
+  "result": "implemented",
+  "summary": "Migrated ~20 inline code blocks to code_link tags, created 9 new C# files, added markers to 7 existing files, fixed 4 API discrepancies. Codesamples and docs builds pass.",
+  "artifacts": [
+    "ralph-writer/output-v1.md"
+  ],
+  "next_hint": "ralph-reviewer-technical",
+  "iteration": 1
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "timestamp": "2026-03-12T14:30:00Z",
+    "agent": "ralph-researcher",
+    "artifacts": [
+      "ralph-researcher/output.md"
+    ],
+    "status": "completed",
+    "result": "researched",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-12T16:45:00Z",
+    "agent": "ralph-validator",
+    "artifacts": [
+      "ralph-validator/output.md"
+    ],
+    "status": "completed",
+    "result": "pass",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-08T12:00:28.467261Z",
+    "agent": "ralph-writer",
+    "artifacts": [
+      "ralph-writer/output-v1.md"
+    ],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-08T12:04:18.520057+00:00",
+    "agent": "ralph-reviewer-ia",
+    "artifacts": [
+      "ralph-reviewer-ia/output.md",
+      "ralph-reviewer-ia/review-findings.json"
+    ],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-08T12:05:22.310859+00:00",
+    "agent": "ralph-reviewer-style",
+    "artifacts": [
+      "ralph-reviewer-style/output.md",
+      "ralph-reviewer-style/review-findings.json"
+    ],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-08T12:10:55.459960+00:00",
+    "agent": "ralph-reviewer-technical",
+    "artifacts": [
+      "ralph-reviewer-technical/output.md",
+      "ralph-reviewer-technical/review-findings.json"
+    ],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  }
+]

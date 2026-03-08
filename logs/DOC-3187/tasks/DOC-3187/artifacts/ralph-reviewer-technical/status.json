@@ -1,0 +1,10 @@
+{
+  "agent": "ralph-reviewer-technical",
+  "task_id": "DOC-3187",
+  "status": "completed",
+  "result": "approved",
+  "summary": "All technical claims verified — API types, markers, behavioral claims, and build all correct. No inaccuracies found.",
+  "artifacts": ["ralph-reviewer-technical/output.md", "ralph-reviewer-technical/review-findings.json"],
+  "next_hint": null,
+  "iteration": 1
+}
