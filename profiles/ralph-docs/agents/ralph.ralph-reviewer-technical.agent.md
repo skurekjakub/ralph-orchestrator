@@ -144,6 +144,26 @@ git diff origin/master...origin/{{ triggerParams.branch_name }}
 
 ---
 
+{% if triggerParams.codesamples %}
+
+## Codesamples Output Verification
+
+After completing your source-code review, verify that the added functionality works, using **ralph-codesamples-verification** skill.
+
+### Steps
+
+1. **Start the dev server** in the background:
+   ```bash
+   cd /workspace && npm run codesamples:serve > /tmp/serve.log 2>&1 &
+   sleep 15
+   ```
+
+If the dev server fails to start, note it in your output but do not block your review — source-code verification is the primary deliverable. Rendered verification is supplementary.
+
+{% endif %}
+
+---
+
 ## Evidence Standard
 
 For every finding, you MUST:

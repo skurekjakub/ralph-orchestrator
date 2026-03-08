@@ -88,4 +88,6 @@ Focus your research on content and source code related to this path. Note anythi
 
 Write your research report to `{{ artifactDir }}/ralph-researcher/output.md` following the template in the research guide's `references/report-template.md`.
 
+If the file/research report is too large, split it into multiple files by domain. Mention exact file paths and names `status.json`, and notify the orchestrator of the change in contract.
+
 Then write `status.json` and append to `manifest.json` per the artifact contract.
