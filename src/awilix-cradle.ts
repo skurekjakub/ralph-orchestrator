@@ -25,6 +25,8 @@ import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
 import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer.js";
 import { CliExecutorFactory } from "./container/cli-executor-factory.js";
 import { RepoSyncHook, type ILifecycleHook } from "./container/lifecycle.js";
+import { ProfileSetupService } from "./services/profile-setup-service.js";
+import { AgentPipelineExecutor } from "./services/agent-pipeline-executor.js";
 import { ContainerLogCollector } from "./container/log-collector.js";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
@@ -140,6 +142,8 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     jitMcpConfig:     asClass(JitMcpConfigWriter).singleton(),
     overlayWriter:    asClass(ComposeOverlayWriter).singleton(),
     containerFactory: asFunction(buildContainerFactory).singleton(),
+    profileSetup:     asClass(ProfileSetupService).singleton(),
+    pipelineExecutor: asClass(AgentPipelineExecutor).singleton(),
 
     // ── Task runner ───────────────────────────────────────────────────────────
     resultWriter: asClass(TaskResultWriter).singleton(),

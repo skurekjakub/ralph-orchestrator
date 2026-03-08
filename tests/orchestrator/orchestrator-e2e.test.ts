@@ -6,7 +6,6 @@ import { tmpdir } from "node:os";
 import { Orchestrator } from "../../src/orchestrator.js";
 import { OperationStatus } from "../../src/services/operation-ledger.js";
 import { makeProfile, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories.js";
-import { createMockContainer } from "../helpers/mocks.js";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IAgentProfile } from "../../src/config/types.js";
 import { TaskStatus } from "../../src/container/types.js";
@@ -61,7 +60,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         profile: expect.objectContaining({ id: "ralph-docs" }),
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
-      expect.any(Object),
     );
     expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
       DS,
@@ -452,7 +450,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(docProfile.variantKey).toBe("ralph-docs:ralph:@RalphDocs");
 
     const docIssue = makeWorkItem("DOC-100", "VS Code docs", "To Do");
-    const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [dfProfile, docProfile],
@@ -460,10 +457,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         refreshWorkItem: vi.fn().mockResolvedValue(docIssue),
       },
       taskRunner: {
-        run: vi.fn().mockResolvedValue({
-          result: makeResult("DOC-100"),
-          container: mockContainer,
-        }),
+        run: vi.fn().mockResolvedValue(makeResult("DOC-100")),
       },
       logDirName: "multi-variant-logs",
     });
@@ -555,7 +549,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     const issue = makeWorkItem("DF-900", "Revision without PR", "Defect Found");
-    const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
@@ -566,10 +559,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         ]),
       },
       taskRunner: {
-        run: vi.fn().mockResolvedValue({
-          result: makeResult("DF-900"),
-          container: mockContainer,
-        }),
+        run: vi.fn().mockResolvedValue(makeResult("DF-900")),
       },
       logDirName: "revision-preflight-logs",
     });
@@ -614,7 +604,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     const issue = makeWorkItem("DF-901", "Revision with PR", "Defect Found");
-    const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
@@ -625,10 +614,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         ]),
       },
       taskRunner: {
-        run: vi.fn().mockResolvedValue({
-          result: makeResult("DF-901"),
-          container: mockContainer,
-        }),
+        run: vi.fn().mockResolvedValue(makeResult("DF-901")),
       },
       logDirName: "revision-pass-logs",
     });
@@ -667,7 +653,6 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     // Issue is in "New" — not a revision status
     const issue = makeWorkItem("DF-902", "Standard task", "New");
-    const { container: mockContainer } = createMockContainer();
 
     const deps = buildBaseDeps(tempDir, {
       profiles: [profile],
@@ -676,10 +661,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         // No getComments mock needed — revision preflight should not run
       },
       taskRunner: {
-        run: vi.fn().mockResolvedValue({
-          result: makeResult("DF-902"),
-          container: mockContainer,
-        }),
+        run: vi.fn().mockResolvedValue(makeResult("DF-902")),
       },
       logDirName: "non-revision-logs",
     });

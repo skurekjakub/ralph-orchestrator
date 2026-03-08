@@ -164,7 +164,7 @@ describe("ContainerManager", () => {
   describe("start", () => {
     it("calls compose up with build flag", async () => {
       const { manager, compose } = createHarness();
-      await manager.start();
+      await manager.start(new AbortController().signal);
       expect(compose.compose).toHaveBeenCalledWith(["up", "-d", "--build"]);
     });
 
@@ -175,8 +175,25 @@ describe("ContainerManager", () => {
       compose.compose.mockImplementation(() => { callOrder.push("compose"); return fakeResultPromise(); });
       const { manager } = createHarness({ compose });
 
-      await manager.start();
+      await manager.start(new AbortController().signal);
       expect(callOrder).toEqual(["checkDocker", "compose"]);
+    });
+
+    it("stops the container when the abort signal fires", async () => {
+      const controller = new AbortController();
+      const compose = createMockComposeClient();
+      const { manager } = createHarness({ compose });
+
+      await manager.start(controller.signal);
+      expect(manager.isRunning).toBe(true);
+
+      compose.compose.mockReset();
+      compose.compose.mockReturnValue(fakeResultPromise());
+      controller.abort();
+
+      await vi.waitFor(() => {
+        expect(compose.compose).toHaveBeenCalledWith(["down", "--volumes", "--remove-orphans"]);
+      });
     });
   });
 
@@ -365,7 +382,7 @@ describe("ContainerManager", () => {
       const logs = createMockLogCollector();
 
       const { manager } = createHarness({ compose, executor, logs });
-      await manager.start();
+      await manager.start(new AbortController().signal);
 
       // Attach order-tracking after start() so only stop() calls are recorded
       logs.detach.mockImplementation(() => { callOrder.push("detach"); });
@@ -383,7 +400,7 @@ describe("ContainerManager", () => {
       compose.getContainerName.mockResolvedValue("mock-container-id");
 
       const { manager } = createHarness({ compose });
-      await manager.start();
+      await manager.start(new AbortController().signal);
 
       compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
 

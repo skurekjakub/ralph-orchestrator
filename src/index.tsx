@@ -31,6 +31,7 @@ async function main(): Promise<void> {
   );
 
   // Handle graceful shutdown (Ctrl+C or SIGTERM)
+  const SHUTDOWN_TIMEOUT_MS = 30_000;
   let shuttingDown = false;
   const shutdown = async () => {
     if (shuttingDown) {
@@ -40,13 +41,23 @@ async function main(): Promise<void> {
     }
     shuttingDown = true;
     dashboardServer.stop();
-    await orchestrator.shutdown();
+    await Promise.race([
+      orchestrator.shutdown(),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error("Shutdown timed out after 30s")), SHUTDOWN_TIMEOUT_MS)
+      ),
+    ]);
     unmount();
     process.exit(0);
   };
 
-  process.on("SIGINT", () => { shutdown(); });
-  process.on("SIGTERM", () => { shutdown(); });
+  const handleSignal = () =>
+    void shutdown().catch((err) => {
+      console.error("Shutdown error:", err instanceof Error ? err.message : err);
+      process.exit(1);
+    });
+  process.on("SIGINT", handleSignal);
+  process.on("SIGTERM", handleSignal);
 
   // Start the orchestrator loop (blocks until stopped)
   try {

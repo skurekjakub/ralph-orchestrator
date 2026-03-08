@@ -1,14 +1,30 @@
+/**
+ * ContainerLogCollector behavior tests.
+ *
+ * Organized by observable behavior, not by method. The compose client is
+ * mocked at the architectural boundary (Docker process execution). All
+ * assertions focus on the files written to disk and the CollectedLog[]
+ * returned — not on internal call sequences between the collector and
+ * compose client.
+ *
+ * Exception: clearCollectSources sends truncation commands to the container
+ * — there is no local output to check, so we assert on what was sent to
+ * the boundary.
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
-import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
+import { createMockCompose, createSilentLogger, fakeExecResult } from "../helpers/mocks.js";
+import type { Logger } from "../../src/logger.js";
+
 const SVC_APP = "app";
 const SVC_SIDECAR = "mcp-sidecar";
 
 let tempDir: string;
+let logger: Logger;
 
 function makeMockCompose(
   responses: Record<string, string> = {},
@@ -24,7 +40,6 @@ function makeMockCompose(
       throw new Error(`File not found: ${path}`);
     }
 
-    // For tail -f: return a mock process with stdout
     const tailing = args.includes("tail");
     if (tailing) {
       return {
@@ -49,564 +64,436 @@ function makeMockCompose(
   return compose;
 }
 
+function createCollector(compose: IComposeClient): ContainerLogCollector {
+  return new ContainerLogCollector({ compose, logDir: tempDir, logger });
+}
+
+beforeEach(() => {
+  tempDir = mkdtempSync(join(tmpdir(), "log-collector-"));
+  logger = createSilentLogger();
+});
+
+afterEach(() => {
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
 describe("ContainerLogCollector", () => {
-  beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "log-collector-"));
+  describe("collecting logs to disk", () => {
+    it("writes container file content to the local output directory", async () => {
+      const compose = makeMockCompose({
+        "/var/log/squid/access.log": "1234 TCP_TUNNEL/200 proxy.example.com\n",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-100");
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe("proxy");
+      const content = readFileSync(results[0].path!, "utf-8");
+      expect(content).toContain("TCP_TUNNEL/200");
+    });
+
+    it("collects multiple sources from different services in one call", async () => {
+      const compose = makeMockCompose({
+        "/workspace/.ralph/logs/audit.jsonl": '{"action":"edit"}\n',
+        "/workspace/.ralph/logs/session-transcript.md": "# Session\n\nAgent ran.",
+        "/var/log/squid/access.log": "1234 TCP_DENIED/403 blocked.com\n",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-200");
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "transcript",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/session-transcript.md",
+        extension: "md",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results).toHaveLength(3);
+      expect(readFileSync(results.find(r => r.id === "audit")!.path!, "utf-8")).toContain("edit");
+      expect(readFileSync(results.find(r => r.id === "transcript")!.path!, "utf-8")).toContain("Session");
+      expect(readFileSync(results.find(r => r.id === "proxy")!.path!, "utf-8")).toContain("TCP_DENIED");
+    });
+
+    it("collects via compose logs when useComposeLogs is set", async () => {
+      const compose = makeMockCompose({}, { stdout: "[gateway] Starting 2 MCP server(s)\n" });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1000");
+      collector.addSource({
+        id: "sidecar",
+        service: SVC_SIDECAR,
+        containerPath: "",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        useComposeLogs: true,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toBeTruthy();
+      const content = readFileSync(results[0].path!, "utf-8");
+      expect(content).toContain("gateway");
+    });
+
+    it("collects both compose-logs and file-based sources in one pass", async () => {
+      const compose = makeMockCompose(
+        { "/var/log/squid/access.log": "TCP_TUNNEL/200 proxy.example.com\n" },
+        { stdout: "[gateway] sidecar output\n" },
+      );
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1100");
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "sidecar",
+        service: SVC_SIDECAR,
+        containerPath: "",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        useComposeLogs: true,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results).toHaveLength(2);
+      expect(readFileSync(results[0].path!, "utf-8")).toContain("TCP_TUNNEL/200");
+      expect(readFileSync(results[1].path!, "utf-8")).toContain("sidecar output");
+    });
   });
 
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+  describe("handling missing or empty sources", () => {
+    it("returns null path when the container file content is blank", async () => {
+      const compose = makeMockCompose({
+        "/var/log/squid/access.log": "   \n  ",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-300");
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toBeNull();
+    });
+
+    it("returns null path when the container file does not exist", async () => {
+      const compose = makeMockCompose({});
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-400");
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/nonexistent/path.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toBeNull();
+    });
+
+    it("returns null path when compose logs yields blank output", async () => {
+      const compose = makeMockCompose({}, { stdout: "  \n  " });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1200");
+      collector.addSource({
+        id: "sidecar",
+        service: SVC_SIDECAR,
+        containerPath: "",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        useComposeLogs: true,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toBeNull();
+    });
+
+    it("returns null path when compose logs throws", async () => {
+      const compose = makeMockCompose({}, new Error("container not running"));
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1300");
+      collector.addSource({
+        id: "sidecar",
+        service: SVC_SIDECAR,
+        containerPath: "",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        useComposeLogs: true,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toBeNull();
+    });
+
+    it("only writes files for sources that have content", async () => {
+      const compose = makeMockCompose({
+        "/path/exists.log": "real data",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-800");
+      collector.addSource({
+        id: "exists",
+        service: SVC_APP,
+        containerPath: "/path/exists.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "missing",
+        service: SVC_APP,
+        containerPath: "/path/missing.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+      const files = readdirSync(join(tempDir, "DOC-800"));
+
+      expect(results[0].path).toBeTruthy();
+      expect(results[1].path).toBeNull();
+      expect(files).toHaveLength(1);
+    });
+
+    it("still collects proxy logs when app-side sources are missing", async () => {
+      const compose = makeMockCompose({
+        "/var/log/squid/access.log": "1234 TCP_DENIED/403 aka.ms\n",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-900");
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/session.audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results.find(r => r.id === "proxy")?.path).toBeTruthy();
+      expect(results.find(r => r.id === "audit")?.path).toBeNull();
+    });
   });
 
-  it("collects a single source to disk", async () => {
-    const compose = makeMockCompose({
-      "/var/log/squid/access.log": "1234 TCP_TUNNEL/200 proxy.example.com\n",
+  describe("filename conventions", () => {
+    it("names files as taskId-timestamp-sourceId.extension", async () => {
+      const compose = makeMockCompose({
+        "/workspace/.ralph/logs/audit.jsonl": '{"action":"edit"}\n',
+        "/var/log/squid/access.log": "proxy data",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-200");
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toMatch(/DOC-200-\d+-audit\.jsonl$/);
+      expect(results[1].path).toMatch(/DOC-200-\d+-proxy\.log$/);
     });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
 
-    collector.setTaskId("DOC-100");
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
+    it("uses the same timestamp for all sources in one collection pass", async () => {
+      const compose = makeMockCompose({
+        "/path/a.log": "content a",
+        "/path/b.log": "content b",
+      });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-500");
+      collector.addSource({ id: "a", service: SVC_APP, containerPath: "/path/a.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({ id: "b", service: SVC_APP, containerPath: "/path/b.log", extension: "log", mode: CaptureMode.Collect });
+
+      const results = await collector.collectAll();
+
+      const tsA = results[0].path!.match(/DOC-500-(\d+)-a/)![1];
+      const tsB = results[1].path!.match(/DOC-500-(\d+)-b/)![1];
+      expect(tsA).toBe(tsB);
     });
 
-    const results = await collector.collectAll();
+    it("inserts the stage label between timestamp and source ID", async () => {
+      const compose = makeMockCompose({
+        "/workspace/.ralph/logs/audit.jsonl": '{"action":"edit"}\n',
+        "/var/log/squid/access.log": "proxy data",
+      });
+      const collector = createCollector(compose);
 
-    expect(results).toHaveLength(1);
-    expect(results[0].id).toBe("proxy");
-    expect(results[0].path).toBeTruthy();
+      collector.setTaskId("DOC-1400");
+      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
+      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
 
-    const content = readFileSync(results[0].path!, "utf-8");
-    expect(content).toContain("TCP_TUNNEL/200");
+      const results = await collector.collectAll("researcher");
+
+      expect(results[0].path).toMatch(/DOC-1400-\d+-researcher-audit\.jsonl$/);
+      expect(results[1].path).toMatch(/DOC-1400-\d+-researcher-proxy\.log$/);
+    });
+
+    it("omits stage label segment when none is provided", async () => {
+      const compose = makeMockCompose({ "/path/a.log": "content" });
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1500");
+      collector.addSource({ id: "source-a", service: SVC_APP, containerPath: "/path/a.log", extension: "log", mode: CaptureMode.Collect });
+
+      const results = await collector.collectAll();
+
+      expect(results[0].path).toMatch(/DOC-1500-\d+-source-a\.log$/);
+    });
+
+    it("includes stage label in folder export paths", async () => {
+      const { compose } = createMockCompose();
+      const collector = createCollector(compose);
+
+      collector.setTaskId("DOC-1600");
+      collector.addExport({
+        id: "session-state",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/session-state",
+      });
+
+      await collector.collectAll("writer");
+
+      const cpCall = vi.mocked(compose.compose).mock.calls[0][0];
+      const localPath = cpCall[cpCall.length - 1];
+      expect(localPath).toMatch(/DOC-1600-\d+-writer-session-state$/);
+    });
   });
 
-  it("collects multiple sources in one call", async () => {
-    const compose = makeMockCompose({
-      "/workspace/.ralph/logs/audit.jsonl": '{"action":"edit"}\n',
-      "/workspace/.ralph/logs/session-transcript.md": "# Session\n\nAgent ran.",
-      "/var/log/squid/access.log": "1234 TCP_DENIED/403 blocked.com\n",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
+  describe("clearing sources between pipeline stages", () => {
+    it("sends truncation commands for file-based collect sources", async () => {
+      const { compose } = createMockCompose();
+      const collector = createCollector(compose);
 
-    collector.setTaskId("DOC-200");
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "transcript",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/session-transcript.md",
-      extension: "md",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
+      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
+      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
+
+      await collector.clearCollectSources();
+
+      expect(compose.exec).toHaveBeenCalledWith([
+        "-T", SVC_APP,
+        "sh", "-c", "truncate -s 0 /workspace/.ralph/logs/audit.jsonl 2>/dev/null || true",
+      ]);
+      expect(compose.exec).toHaveBeenCalledWith([
+        "-T", "egress-proxy",
+        "sh", "-c", "truncate -s 0 /var/log/squid/access.log 2>/dev/null || true",
+      ]);
     });
 
-    const results = await collector.collectAll();
+    it("skips compose-logs and custom-collectArgs sources", async () => {
+      const { compose } = createMockCompose();
+      const collector = createCollector(compose);
 
-    expect(results).toHaveLength(3);
+      collector.addSource({ id: "sidecar", service: SVC_SIDECAR, containerPath: "", extension: "log", mode: CaptureMode.Collect, useComposeLogs: true });
+      collector.addSource({ id: "cli-debug", service: SVC_APP, containerPath: "/workspace/.ralph/logs/cli-debug", extension: "log", mode: CaptureMode.Collect, collectArgs: ["sh", "-c", "cat /workspace/.ralph/logs/cli-debug/*.log 2>/dev/null"] });
 
-    const audit = results.find((r) => r.id === "audit")!;
-    const transcript = results.find((r) => r.id === "transcript")!;
-    const proxy = results.find((r) => r.id === "proxy")!;
+      await collector.clearCollectSources();
 
-    expect(audit.path).toMatch(/DOC-200-\d+-audit\.jsonl$/);
-    expect(transcript.path).toMatch(/DOC-200-\d+-transcript\.md$/);
-    expect(proxy.path).toMatch(/DOC-200-\d+-proxy\.log$/);
+      expect(compose.exec).not.toHaveBeenCalled();
+    });
 
-    expect(readFileSync(audit.path!, "utf-8")).toContain("edit");
-    expect(readFileSync(transcript.path!, "utf-8")).toContain("Session");
-    expect(readFileSync(proxy.path!, "utf-8")).toContain("TCP_DENIED");
+    it("handles truncation failures without throwing", async () => {
+      const { compose } = createMockCompose();
+      vi.mocked(compose.exec).mockRejectedValue(new Error("container not running"));
+      const collector = createCollector(compose);
+
+      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
+
+      await expect(collector.clearCollectSources()).resolves.toBeUndefined();
+    });
   });
 
-  it("returns null path for empty content", async () => {
-    const compose = makeMockCompose({
-      "/var/log/squid/access.log": "   \n  ",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
+  describe("edge cases", () => {
+    it("throws when collecting without setting a task ID", async () => {
+      const compose = makeMockCompose({});
+      const collector = createCollector(compose);
 
-    collector.setTaskId("DOC-300");
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
+      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
+
+      await expect(collector.collectAll()).rejects.toThrow("Task ID not set");
     });
 
-    const results = await collector.collectAll();
+    it("returns empty array when no sources are registered", async () => {
+      const compose = makeMockCompose({});
+      const collector = createCollector(compose);
+      collector.setTaskId("DOC-700");
 
-    expect(results[0].path).toBeNull();
-    expect(logger.warn).toHaveBeenCalledWith("No proxy log found");
-  });
+      const results = await collector.collectAll();
 
-  it("returns null path when container file does not exist", async () => {
-    const compose = makeMockCompose({});
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-400");
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/nonexistent/path.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
+      expect(results).toEqual([]);
     });
 
-    const results = await collector.collectAll();
+    it("detach is safe to call when nothing is streaming", () => {
+      const compose = makeMockCompose({});
+      const collector = createCollector(compose);
 
-    expect(results[0].path).toBeNull();
-    expect(logger.warn).toHaveBeenCalledWith("Failed to collect audit log");
-  });
-
-  it("throws when collectAll is called without setting issue key", async () => {
-    const compose = makeMockCompose({});
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
+      expect(() => collector.detach()).not.toThrow();
     });
-
-    await expect(collector.collectAll()).rejects.toThrow("Task ID not set");
-  });
-
-  it("uses consistent timestamp across all sources in one collectAll call", async () => {
-    const compose = makeMockCompose({
-      "/path/a.log": "content a",
-      "/path/b.log": "content b",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-500");
-    collector.addSource({
-      id: "source-a",
-      service: SVC_APP,
-      containerPath: "/path/a.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "source-b",
-      service: SVC_APP,
-      containerPath: "/path/b.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    const results = await collector.collectAll();
-
-    // Extract timestamps from filenames
-    const tsA = results[0].path!.match(/DOC-500-(\d+)-source-a/)![1];
-    const tsB = results[1].path!.match(/DOC-500-(\d+)-source-b/)![1];
-    expect(tsA).toBe(tsB);
-  });
-
-  it("exec targets the correct service per source", async () => {
-    const compose = makeMockCompose({
-      "/workspace/.ralph/logs/audit.jsonl": "audit data",
-      "/var/log/squid/access.log": "proxy data",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-600");
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    await collector.collectAll();
-
-    const execCalls = vi.mocked(compose.exec).mock.calls;
-    expect(execCalls[0]).toEqual([
-      ["-T", SVC_APP, "cat", "/workspace/.ralph/logs/audit.jsonl"],
-    ]);
-    expect(execCalls[1]).toEqual([
-      ["-T", "egress-proxy", "cat", "/var/log/squid/access.log"],
-    ]);
-  });
-
-  it("detach is safe to call when nothing is streaming", () => {
-    const compose = makeMockCompose({});
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    // Should not throw
-    collector.detach();
-  });
-
-  it("collectAll returns empty array when no sources registered", async () => {
-    const compose = makeMockCompose({});
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-    collector.setTaskId("DOC-700");
-
-    const results = await collector.collectAll();
-
-    expect(results).toEqual([]);
-  });
-
-  it("does not write files for null results", async () => {
-    const compose = makeMockCompose({
-      "/path/exists.log": "real data",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-800");
-    collector.addSource({
-      id: "exists",
-      service: SVC_APP,
-      containerPath: "/path/exists.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "missing",
-      service: SVC_APP,
-      containerPath: "/path/missing.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    const results = await collector.collectAll();
-    const issueDir = join(tempDir, "DOC-800");
-    const files = readdirSync(issueDir);
-
-    expect(results[0].path).toBeTruthy();
-    expect(results[1].path).toBeNull();
-    expect(files).toHaveLength(1);
-    expect(files[0]).toContain("exists");
-  });
-
-  it("collects proxy logs even when app-side sources are missing (setup failure scenario)", async () => {
-    const compose = makeMockCompose({
-      "/var/log/squid/access.log": "1234 TCP_DENIED/403 aka.ms\n1235 TCP_DENIED/403 pypi.org\n",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-900");
-
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/session.audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "transcript",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/session-transcript.md",
-      extension: "md",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    const results = await collector.collectAll();
-
-    const proxyResult = results.find((r) => r.id === "proxy");
-    expect(proxyResult?.path).toBeTruthy();
-    const content = readFileSync(proxyResult!.path!, "utf-8");
-    expect(content).toContain("TCP_DENIED/403");
-
-    expect(results.find((r) => r.id === "audit")?.path).toBeNull();
-    expect(results.find((r) => r.id === "transcript")?.path).toBeNull();
-  });
-
-  it("uses compose.logs() instead of exec when useComposeLogs is set", async () => {
-    const compose = makeMockCompose({}, { stdout: "[gateway] Starting 2 MCP server(s)\n" });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1000");
-    collector.addSource({
-      id: "sidecar",
-      service: SVC_SIDECAR,
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-
-    const results = await collector.collectAll();
-
-    expect(compose.logs).toHaveBeenCalledWith(SVC_SIDECAR);
-    expect(compose.exec).not.toHaveBeenCalled();
-    expect(results[0].path).toBeTruthy();
-    const content = readFileSync(results[0].path!, "utf-8");
-    expect(content).toContain("gateway");
-  });
-
-  it("collects mixed useComposeLogs and exec sources in one pass", async () => {
-    const compose = makeMockCompose(
-      { "/var/log/squid/access.log": "TCP_TUNNEL/200 proxy.example.com\n" },
-      { stdout: "[gateway] sidecar output\n" },
-    );
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1100");
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "sidecar",
-      service: SVC_SIDECAR,
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-
-    const results = await collector.collectAll();
-
-    expect(results).toHaveLength(2);
-    expect(compose.exec).toHaveBeenCalledTimes(1);
-    expect(compose.logs).toHaveBeenCalledWith(SVC_SIDECAR);
-
-    expect(readFileSync(results[0].path!, "utf-8")).toContain("TCP_TUNNEL/200");
-    expect(readFileSync(results[1].path!, "utf-8")).toContain("sidecar output");
-  });
-
-  it("returns null when useComposeLogs yields empty stdout", async () => {
-    const compose = makeMockCompose({}, { stdout: "  \n  " });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1200");
-    collector.addSource({
-      id: "sidecar",
-      service: SVC_SIDECAR,
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-
-    const results = await collector.collectAll();
-
-    expect(results[0].path).toBeNull();
-    expect(logger.warn).toHaveBeenCalledWith("No sidecar log found");
-  });
-
-  it("returns null when useComposeLogs throws", async () => {
-    const compose = makeMockCompose({}, new Error("container not running"));
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1300");
-    collector.addSource({
-      id: "sidecar",
-      service: SVC_SIDECAR,
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-
-    const results = await collector.collectAll();
-
-    expect(results[0].path).toBeNull();
-    expect(logger.warn).toHaveBeenCalledWith("Failed to collect sidecar log");
-  });
-
-  it("includes stageLabel in filenames when provided", async () => {
-    const compose = makeMockCompose({
-      "/workspace/.ralph/logs/audit.jsonl": '{"action":"edit"}\n',
-      "/var/log/squid/access.log": "1234 TCP_TUNNEL/200 proxy.example.com\n",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1400");
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    const results = await collector.collectAll("researcher");
-
-    expect(results).toHaveLength(2);
-    expect(results[0].path).toMatch(/DOC-1400-\d+-researcher-audit\.jsonl$/);
-    expect(results[1].path).toMatch(/DOC-1400-\d+-researcher-proxy\.log$/);
-  });
-
-  it("omits stageLabel segment when not provided", async () => {
-    const compose = makeMockCompose({
-      "/path/a.log": "content",
-    });
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1500");
-    collector.addSource({
-      id: "source-a",
-      service: SVC_APP,
-      containerPath: "/path/a.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    const results = await collector.collectAll();
-
-    // No double-dash from empty label — pattern is taskId-ts-sourceId
-    expect(results[0].path).toMatch(/DOC-1500-\d+-source-a\.log$/);
-  });
-
-  it("clearCollectSources truncates file-based sources in the container", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-    collector.addSource({
-      id: "proxy",
-      service: "egress-proxy",
-      containerPath: "/var/log/squid/access.log",
-      extension: "log",
-      mode: CaptureMode.Collect,
-    });
-
-    await collector.clearCollectSources();
-
-    expect(compose.exec).toHaveBeenCalledTimes(2);
-    expect(compose.exec).toHaveBeenCalledWith([
-      "-T", SVC_APP,
-      "sh", "-c", "truncate -s 0 /workspace/.ralph/logs/audit.jsonl 2>/dev/null || true",
-    ]);
-    expect(compose.exec).toHaveBeenCalledWith([
-      "-T", "egress-proxy",
-      "sh", "-c", "truncate -s 0 /var/log/squid/access.log 2>/dev/null || true",
-    ]);
-  });
-
-  it("clearCollectSources skips useComposeLogs and custom collectArgs sources", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.addSource({
-      id: "sidecar",
-      service: SVC_SIDECAR,
-      containerPath: "",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      useComposeLogs: true,
-    });
-    collector.addSource({
-      id: "cli-debug",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/cli-debug",
-      extension: "log",
-      mode: CaptureMode.Collect,
-      collectArgs: ["sh", "-c", "cat /workspace/.ralph/logs/cli-debug/*.log 2>/dev/null"],
-    });
-
-    await collector.clearCollectSources();
-
-    // sidecar has useComposeLogs, cli-debug has collectArgs — both skipped
-    expect(compose.exec).not.toHaveBeenCalled();
-  });
-
-  it("clearCollectSources handles truncation failures gracefully", async () => {
-    const { compose } = createMockCompose();
-    vi.mocked(compose.exec).mockRejectedValue(new Error("container not running"));
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.addSource({
-      id: "audit",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/logs/audit.jsonl",
-      extension: "jsonl",
-      mode: CaptureMode.Collect,
-    });
-
-    // Should not throw
-    await collector.clearCollectSources();
-
-    expect(logger.warn).toHaveBeenCalledWith("Failed to clear audit log in container");
-  });
-
-  it("stageLabel is included in folder export paths", async () => {
-    const { compose } = createMockCompose();
-    const logger = createMockLogger();
-    const collector = new ContainerLogCollector({ compose, logDir: tempDir, logger });
-
-    collector.setTaskId("DOC-1600");
-    collector.addExport({
-      id: "session-state",
-      service: SVC_APP,
-      containerPath: "/workspace/.ralph/session-state",
-    });
-
-    await collector.collectAll("writer");
-
-    expect(compose.compose).toHaveBeenCalledWith(
-      expect.arrayContaining(["cp"]),
-    );
-    const cpCall = vi.mocked(compose.compose).mock.calls[0][0];
-    const localPath = cpCall[cpCall.length - 1];
-    expect(localPath).toMatch(/DOC-1600-\d+-writer-session-state$/);
   });
 });

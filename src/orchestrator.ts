@@ -55,6 +55,7 @@ export class Orchestrator {
 
   private activeTask: ActiveTask | null = null;
   private running = false;
+  private readonly abortController = new AbortController();
   readonly observer: OrchestratorObserver;
 
   /**
@@ -201,15 +202,15 @@ export class Orchestrator {
       await this.executeOperation(next.issueKey, next.operation);
     }
 
-    for (const poller of this.pollers.values()) {
-      poller.stop();
-    }
     this.log("Orchestrator stopped");
   }
 
   /** Signal the main loop to stop after the current iteration. */
   stop(): void {
     this.running = false;
+    for (const poller of this.pollers.values()) {
+      poller.stop();
+    }
     this.wakeUp();
     this.emitState();
   }
@@ -218,18 +219,16 @@ export class Orchestrator {
   async shutdown(): Promise<void> {
     this.log("Shutting down gracefully...");
     this.running = false;
+    // Aborting the signal causes the running container to stop itself via the
+    // listener registered in ContainerManager.start() — no direct container
+    // reference needed here.
+    this.abortController.abort();
     for (const poller of this.pollers.values()) {
       poller.stop();
     }
     this.heartbeat?.stop();
     this.wakeUp();
     this.emitState();
-
-    if (this.activeTask) {
-      this.log("Task in progress -- stopping container...");
-      await this.teardownContainer(this.activeTask.profile);
-    }
-
     this.log("Shutdown complete");
   }
 
@@ -363,7 +362,6 @@ export class Orchestrator {
     this.activeTask = {
       workItem,
       profile,
-      container: null,
       startedAt: Date.now(),
     };
 
@@ -376,9 +374,14 @@ export class Orchestrator {
 
     try {
       this.activityLog.startTaskLog(taskId);
-      const ctx = buildTaskContext(workItem, profile, taskId, this.ralphchivesConfig, operation.triggerParams, prUrl, this.outputConfig.logDir);
-      const { result, container } = await this.taskRunner.run(ctx, this.taskCallbacks);
-      this.activeTask.container = container;
+      const ctx = buildTaskContext(
+        workItem, profile, taskId, this.ralphchivesConfig,
+        operation.triggerParams, prUrl, this.outputConfig.logDir,
+        this.abortController.signal,
+        this.taskCallbacks.onToolOutput,
+        this.taskCallbacks.onPreToolUse,
+      );
+      const result = await this.taskRunner.run(ctx);
 
       this.observer.recordCompletion({
         key: workItem.id,
@@ -441,10 +444,14 @@ export class Orchestrator {
     }
   }
 
-  /** Delegate container teardown to the task runner (graceful stop + fallback). */
+  /** Safety-net container teardown in the task finally block. */
   private async teardownContainer(profile: IAgentProfile): Promise<void> {
     this.log("Stopping containers...");
-    await this.taskRunner.teardown(profile, this.activeTask?.container ?? null);
+    // Container is already stopped (either by the abort signal listener in
+    // ContainerManager.start, or by TaskRunner's happy-path teardown). Passing
+    // null always takes the forceDown path which is a benign no-op on an
+    // already-stopped compose project.
+    await this.taskRunner.teardown(profile, null);
     this.log("Containers stopped");
   }
 

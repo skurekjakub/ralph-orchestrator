@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { toErrorMessage } from "../util/error.js";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
@@ -36,8 +37,8 @@ export interface IContainerManager {
   readonly isRunning: boolean;
   /** Verify that Docker is running. */
   checkPrerequisites(): Promise<void>;
-  /** Build and start the containers. */
-  start(): Promise<void>;
+  /** Build and start the containers. Registers a one-time abort listener that stops the container when `signal` fires. */
+  start(signal: AbortSignal): Promise<void>;
   /** Run the profile's setup script inside the running container. */
   setup(): Promise<void>;
   /** Execute a command inside the app container as the vscode user. */
@@ -160,7 +161,7 @@ export class ContainerManager implements IContainerManager {
   }
 
   /** Build and start the containers (`docker compose up -d --build`). */
-  async start(): Promise<void> {
+  async start(signal: AbortSignal): Promise<void> {
     await this.compose.checkDocker();
     this.logger.info(`Starting containers (compose: ${this.profile.composeFile})...`);
 
@@ -169,6 +170,15 @@ export class ContainerManager implements IContainerManager {
     await proc;
     this._running = true;
     this.logger.info("Containers started");
+
+    // Self-terminate when the orchestrator aborts the task signal (e.g. SIGINT).
+    // This removes the need for the orchestrator to hold a container reference
+    // for shutdown — the signal is the single coordination mechanism.
+    signal.addEventListener("abort", () => {
+      void this.stop().catch((err) => {
+        this.logger.warn(`Abort-triggered stop failed: ${toErrorMessage(err)}`);
+      });
+    }, { once: true });
   }
 
   /**
