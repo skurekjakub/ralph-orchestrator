@@ -156,7 +156,7 @@ describe("Compose Overlay", () => {
       expect(overlay).toContain("no-new-privileges:true");
       expect(overlay).toContain("cap_drop:");
       expect(overlay).toContain("- ALL");
-      expect(overlay).toContain("memory: 4G");
+      expect(overlay).toContain("memory: 16G");
 
       rmSync(mcpDir, { recursive: true, force: true });
     });

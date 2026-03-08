@@ -14,7 +14,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 {%- endunless %}
 | 6. Commit | ralph-workflow-commit | Pre-commit checks, commit, push |
 | 7. PR | ralph-workflow-pr | Create ADO pull request |
-| 8. Handoff & Exit | ralph-workflow-handoff | Write handoff, report to JIRA, print exit block |
+| 8. Handoff & Exit | ralph-workflow-handoff | Dispatch ralph-scribe, deliver to JIRA, print exit block |
 
 **Before entering each phase:**
 1. Read `state.md`

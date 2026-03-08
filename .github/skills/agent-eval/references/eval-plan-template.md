@@ -40,7 +40,11 @@ Copy this template and fill in for each evaluation.
 - [ ] D2 — Ordering
 - [ ] D3 — Arguments
 - [ ] D4 — Efficiency
-- [ ] D9 — Sub-agent utilization
+- [ ] D9a — Artifact contract
+- [ ] D9b — Orchestrator purity
+- [ ] D9c — Data flow
+- [ ] D9d — Subagent prompt quality
+- [ ] D9e — Routing table compliance
 
 <!-- Repeat for each task. Mark only applicable dimensions. -->
 
@@ -57,9 +61,11 @@ Copy this template and fill in for each evaluation.
 
 ## Scoring Matrix (to be filled during evaluation)
 
-| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9 | D10 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| T1 | | | | | | — | — | | — | — |
-| ... | | | | | | | | | | |
+| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9a | D9b | D9c | D9d | D9e | D10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T1 | | | | | | — | — | | — | — | — | — | — | — |
+| ... | | | | | | | | | | | | | | |
 
 `—` = not applicable for this task
+
+D9 sub-dimensions: a=Artifact Contract, b=Orchestrator Purity, c=Data Flow, d=Subagent Prompt Quality, e=Routing Table Compliance

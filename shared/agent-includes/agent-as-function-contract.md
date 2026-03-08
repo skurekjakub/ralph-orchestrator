@@ -44,13 +44,15 @@ Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
 | `next_hint` | Suggested next agent. Orchestrator can override. |
 | `iteration` | How many times you've run for this task |
 
-**3. manifest.json** — append an entry to the shared audit log:
+**3. manifest.json** — **REQUIRED**: append an entry to the shared audit log:
 {% raw %}
-Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. Append your entry and write it back:
+Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. Append your entry and write it back. **You must do this after writing status.json — it is not optional.**
+
+⚠️ **Timestamp must be real.** Run `date -u +%Y-%m-%dT%H:%M:%SZ` and use the output — never guess or hardcode a date.
 
 ```json
 {
-  "timestamp": "<ISO 8601>",
+  "timestamp": "<run date command above>",
   "agent": "{{ agentName }}",
   "artifacts": ["{{ agentName }}/output.md"],
   "status": "completed",
@@ -59,6 +61,14 @@ Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. 
 }
 ```
 {% endraw %}
+
+### Completion Sequence
+
+After finishing your primary work, always execute this sequence:
+
+1. Write your primary artifact (`output.md` or `output-v{N}.md`)
+2. Write `status.json`
+3. Read `manifest.json`, append your entry, write it back
 
 ### Reading upstream artifacts
 

@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3187",
+  "status": "completed",
+  "result": "improved",
+  "summary": "Fixed manifest.json timestamp hallucination by adding explicit date command instruction to shared artifact contract template.",
+  "artifacts": ["agent-improver/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

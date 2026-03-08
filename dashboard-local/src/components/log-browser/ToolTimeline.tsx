@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { ContextWindowChart } from "./ContextWindowChart";
 import { ToolTimelineCallList } from "./ToolTimelineCallList";
 import { SubagentOverview } from "./ToolTimelineSubagents";
 import { ToolTimelineSummary } from "./ToolTimelineSummary";
@@ -20,7 +21,7 @@ export function ToolTimeline({
   cliDebugFile?: string;
 }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const { loading, timeline, subagentSpans, subagentByName } = useToolTimelineData({
+  const { loading, timeline, subagentSpans, subagentByName, contextWindowEntries, assistantUsageEntries } = useToolTimelineData({
     preToolFile,
     toolOutputFile,
     cliDebugFile,
@@ -47,6 +48,11 @@ export function ToolTimeline({
         {subagentSpans.length > 0 && (
           <SubagentOverview spans={subagentSpans} />
         )}
+        <ContextWindowChart
+          entries={contextWindowEntries}
+          usageEntries={assistantUsageEntries}
+          subagentSpans={subagentSpans}
+        />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
         <ToolTimelineCallList
