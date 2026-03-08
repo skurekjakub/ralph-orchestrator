@@ -20,6 +20,8 @@ import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-inc
 import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
 import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer.js";
+import type { IProfileSetupService } from "../../src/services/profile-setup-service.js";
+import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor.js";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
@@ -278,13 +280,31 @@ export function createMockPoller(overrides: Partial<Mocked<IWorkItemPoller>> & {
 /** Create a mock TaskRunner with all methods stubbed. */
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
-    run: vi.fn().mockImplementation(async (ctx: any) => ({
-      result: makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1"),
-      container: createMockContainer().container,
-    })),
+    run: vi.fn().mockImplementation(async (ctx: any) =>
+      makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1")
+    ),
     teardown: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
+}
+
+/** Create a mock ProfileSetupService with all methods stubbed. */
+export function createMockProfileSetupService(overrides: Partial<Mocked<IProfileSetupService>> = {}): Mocked<IProfileSetupService> {
+  return {
+    prepareForTask: vi.fn().mockResolvedValue(undefined),
+    prepareForStage: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  } as Mocked<IProfileSetupService>;
+}
+
+/** Create a mock AgentPipelineExecutor with a default success result. */
+export function createMockPipelineExecutor(overrides: Partial<Mocked<IAgentPipelineExecutor>> = {}): Mocked<IAgentPipelineExecutor> {
+  return {
+    run: vi.fn().mockImplementation(async (ctx: any) =>
+      makeResult(ctx.workItem?.id ?? "MOCK-1")
+    ),
+    ...overrides,
+  } as Mocked<IAgentPipelineExecutor>;
 }
 
 /** Create a mock AgentTemplateRenderer with all methods stubbed. */

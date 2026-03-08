@@ -20,6 +20,8 @@ import type { ContainerManagerFactory } from "./container/types.js";
 import type { IDataSourceConnector } from "./datasource/connector.js";
 import type { IWorkItemPoller } from "./datasource/poller.js";
 import type { ILifecycleHook } from "./container/lifecycle.js";
+import type { IProfileSetupService } from "./services/profile-setup-service.js";
+import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor.js";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -68,6 +70,8 @@ export interface OrchestratorCradle {
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   preExecuteHooks: readonly ILifecycleHook[];
+  profileSetup: IProfileSetupService;
+  pipelineExecutor: IAgentPipelineExecutor;
 
   // Task runner
   resultWriter: ITaskResultWriter;

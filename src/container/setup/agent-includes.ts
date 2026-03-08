@@ -171,6 +171,23 @@ export interface TemplateContext {
   };
 }
 
+/** Stage-specific overrides for template context — passed during per-stage re-renders. */
+export type StageOverrides = {
+  stageIndex: number;
+  stageCount: number;
+  stageRole: string;
+  stageMode: string;
+  previousStageRoles: string[];
+  /** Per-stage skill names — overrides profile-level skills for rendering and context. */
+  skills?: readonly string[];
+  /** Hook context — set only for post-task hook stages. */
+  hook?: {
+    collectedLogs: Record<string, string>;
+    name: string;
+    outputDir: string;
+  };
+};
+
 /**
  * Build a {@link TemplateContext} from the already-parsed profile and work item.
  *
@@ -179,21 +196,7 @@ export interface TemplateContext {
  */
 export function buildTemplateContext(
   ctx: TaskContext,
-  stageOverrides?: {
-    stageIndex: number;
-    stageCount: number;
-    stageRole: string;
-    stageMode: string;
-    previousStageRoles: string[];
-    /** Per-stage skill names — overrides profile-level skills for rendering and context. */
-    skills?: readonly string[];
-    /** Hook context — set only for post-task hook stages. */
-    hook?: {
-      collectedLogs: Record<string, string>;
-      name: string;
-      outputDir: string;
-    };
-  },
+  stageOverrides?: StageOverrides,
 ): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams)
     ? buildTriggerParams(ctx.triggerParams)

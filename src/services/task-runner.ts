@@ -1,18 +1,16 @@
-import { StageMode, type IAgentProfile } from "../config/types.js";
-import { TaskStatus, type RalphResult, type StageResult, type ContainerManagerFactory } from "../container/types.js";
+import type { IAgentProfile } from "../config/types.js";
+import { TaskStatus, type RalphResult, type ContainerManagerFactory } from "../container/types.js";
 import type { IssueContext } from "../prompt/prompt.js";
 import type { Logger } from "../logger.js";
 import type { IContainerManager } from "../container/manager.js";
 import type { IResourceManager } from "./task-resource-manager.js";
 import type { ITaskResultWriter } from "./task-result-writer.js";
 import type { IIssueManager } from "./issue-manager.js";
-import { buildTemplateContext, type IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
-import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
-import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
-import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer.js";
 import type { ILifecycleHook } from "../container/lifecycle.js";
+import type { IProfileSetupService } from "./profile-setup-service.js";
+import type { IAgentPipelineExecutor } from "./agent-pipeline-executor.js";
 import { TransitionPhase } from "../orchestrator-types.js";
-import type { TaskContext, TaskCallbacks } from "./task-context.js";
+import type { TaskContext } from "./task-context.js";
 import { toErrorMessage } from "../util/error.js";
 import { rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -21,7 +19,7 @@ import { join } from "node:path";
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
   /** Run the full pipeline for a single issue + profile combination. */
-  run(ctx: TaskContext, callbacks?: TaskCallbacks): Promise<{ result: RalphResult; container: IContainerManager }>;
+  run(ctx: TaskContext): Promise<RalphResult>;
   /** Tear down containers — tries graceful stop, falls back to raw compose down. */
   teardown(profile: IAgentProfile, container: IContainerManager | null): Promise<void>;
 }
@@ -46,22 +44,18 @@ export class TaskRunner implements ITaskRunner {
   private readonly resources: IResourceManager;
   private readonly resultWriter: ITaskResultWriter;
   private readonly issueManager: IIssueManager;
-  private readonly templateRenderer: IAgentTemplateRenderer;
-  private readonly skillRenderer: ISkillTemplateRenderer;
-  private readonly jitMcpConfig: IJitMcpConfigWriter;
-  private readonly overlayWriter: IComposeOverlayWriter;
+  private readonly profileSetup: IProfileSetupService;
+  private readonly pipelineExecutor: IAgentPipelineExecutor;
   private readonly preExecuteHooks: readonly ILifecycleHook[];
 
-  constructor({ logger, containerFactory, resources, resultWriter, issueManager, templateRenderer, skillRenderer, jitMcpConfig, overlayWriter, preExecuteHooks = [] }: {
+  constructor({ logger, containerFactory, resources, resultWriter, issueManager, profileSetup, pipelineExecutor, preExecuteHooks = [] }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
     resources: IResourceManager;
     resultWriter: ITaskResultWriter;
     issueManager: IIssueManager;
-    templateRenderer: IAgentTemplateRenderer;
-    skillRenderer: ISkillTemplateRenderer;
-    jitMcpConfig: IJitMcpConfigWriter;
-    overlayWriter: IComposeOverlayWriter;
+    profileSetup: IProfileSetupService;
+    pipelineExecutor: IAgentPipelineExecutor;
     preExecuteHooks?: readonly ILifecycleHook[];
   }) {
     this.logger = logger;
@@ -69,10 +63,8 @@ export class TaskRunner implements ITaskRunner {
     this.resources = resources;
     this.resultWriter = resultWriter;
     this.issueManager = issueManager;
-    this.templateRenderer = templateRenderer;
-    this.skillRenderer = skillRenderer;
-    this.jitMcpConfig = jitMcpConfig;
-    this.overlayWriter = overlayWriter;
+    this.profileSetup = profileSetup;
+    this.pipelineExecutor = pipelineExecutor;
     this.preExecuteHooks = preExecuteHooks;
   }
 
@@ -110,14 +102,10 @@ export class TaskRunner implements ITaskRunner {
    *
    * @returns The task result (status, duration, PR URL, etc.)
    */
-  async run(ctx: TaskContext, callbacks?: TaskCallbacks): Promise<{ result: RalphResult; container: IContainerManager }> {
+  async run(ctx: TaskContext): Promise<RalphResult> {
     const container = this.containerFactory.create(ctx.profile);
-    if (callbacks?.onToolOutput) {
-      container.onToolOutput = callbacks.onToolOutput;
-    }
-    if (callbacks?.onPreToolUse) {
-      container.onPreToolUse = callbacks.onPreToolUse;
-    }
+    container.onToolOutput = ctx.onToolOutput;
+    container.onPreToolUse = ctx.onPreToolUse;
 
     try {
       await this.prepareProfile(ctx);
@@ -134,7 +122,7 @@ export class TaskRunner implements ITaskRunner {
       // Run post-task hooks (local-only, after full container lifecycle)
       await this.executePostTaskHooks(ctx, result);
 
-      return { result, container };
+      return result;
     } catch (err) {
       this.logger.error(
         `Error processing ${ctx.workItem.id}: ${toErrorMessage(err)}`
@@ -154,29 +142,14 @@ export class TaskRunner implements ITaskRunner {
         await this.resultWriter.collectLogs(container, errorResult);
       }
 
-      return { result: errorResult, container };
+      return errorResult;
     }
   }
 
   private async prepareProfile(ctx: TaskContext): Promise<void> {
     // Render with first-stage defaults to populate .build/ before container start.
     // For multi-stage pipelines, the stage loop re-renders per-stage with overrides.
-    const templateContext = buildTemplateContext(ctx);
-
-    this.logger.info("Rendering agent templates...");
-    await this.templateRenderer.render(
-      ctx.profile.id,
-      templateContext,
-      this.logger,
-    );
-
-    this.logger.info("Rendering skill templates...");
-    await this.skillRenderer.render(templateContext, this.logger);
-
-    this.logger.info("Regenerating compose overlay for matched variant...");
-    this.overlayWriter.write(ctx.profile, this.logger);
-
-    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
+    await this.profileSetup.prepareForTask(ctx);
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
@@ -193,7 +166,10 @@ export class TaskRunner implements ITaskRunner {
     rmSync(ralphDir, { recursive: true, force: true });
     mkdirSync(ralphDir, { recursive: true });
 
-    await container.start();
+    // The container registers an abort listener internally — it will stop itself
+    // when ctx.signal fires, allowing shutdown() to cancel without needing a
+    // direct container reference.
+    await container.start(ctx.signal);
 
     this.logger.info("Verifying container health...");
     await container.checkPrerequisites();
@@ -238,108 +214,7 @@ export class TaskRunner implements ITaskRunner {
       triggerParams: ctx.triggerParams,
     };
 
-    const stages = ctx.profile.stages;
-    const stageResults: StageResult[] = [];
-    let lastResult: RalphResult | undefined;
-
-    for (let i = 0; i < stages.length; i++) {
-      const stage = stages[i];
-      const stageLabel = `[${i + 1}/${stages.length}] ${stage.role}`;
-
-      // Re-render templates with stage-specific context so each agent sees
-      // correct stageRole, stageMode, stageIndex, skills, etc. Bind-mounted
-      // .build/ files update in-place for container stages.
-      if (stages.length > 1) {
-        const stageContext = buildTemplateContext(ctx, {
-          stageIndex: i,
-          stageCount: stages.length,
-          stageRole: stage.role,
-          stageMode: stage.mode,
-          previousStageRoles: stageResults.map(r => r.role),
-          skills: stage.skills,
-        });
-        this.logger.info(`${stageLabel}: rendering stage templates...`);
-        await this.templateRenderer.render(ctx.profile.id, stageContext, this.logger);
-        await this.skillRenderer.render(stageContext, this.logger);
-      }
-
-      const executor = container.createExecutorForStage(stage);
-
-      const timeoutSec = Math.round((stage.timeoutMs ?? ctx.profile.timeoutMs) / 1000);
-      this.logger.info(
-        `${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`
-      );
-
-      const result = await container.executeWithExecutor(executor, ctx.workItem, issueContext);
-      this.logger.info(
-        `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
-      );
-
-      // Collect per-stage logs for container stages in multi-stage pipelines.
-      // Local stages have no container logs to collect.
-      const stageLogs: Record<string, string> = {};
-      if (stages.length > 1 && stage.mode === StageMode.Container) {
-        this.logger.info(`${stageLabel}: collecting stage logs...`);
-        const collected = await container.logs.collectAll(stage.role).catch(() => []);
-        for (const { id, path } of collected) {
-          if (path) stageLogs[id] = path;
-        }
-      }
-
-      stageResults.push({
-        role: stage.role,
-        status: result.status,
-        durationMs: result.durationMs,
-        exitCode: result.exitCode,
-        collectedLogs: stageLogs,
-      });
-
-      lastResult = result;
-
-      const isLastStage = i === stages.length - 1;
-      const pipelineAborted = result.status === TaskStatus.Error;
-
-      if (pipelineAborted) {
-        this.logger.error(`${stageLabel}: stage failed — aborting pipeline`);
-        break;
-      }
-
-      // Clear container log files between stages so the next stage starts fresh.
-      if (!isLastStage && stages.length > 1 && stage.mode === StageMode.Container) {
-        await container.logs.clearCollectSources();
-      }
-
-      if (result.prUrl) {
-        this.logger.info(`PR created: ${result.prUrl}`);
-      }
-
-      if (result.status === TaskStatus.Partial) {
-        this.logger.warn(
-          `${ctx.workItem.id} completed with partial status — check handoff for details`
-        );
-      }
-    }
-
-    // Merge stage results into the final result (last stage's output is authoritative)
-    const finalResult: RalphResult = lastResult ?? {
-      taskId: ctx.workItem.id,
-      status: TaskStatus.Error,
-      durationMs: 0,
-      exitCode: 1,
-      stdout: "",
-      stderr: "No stages executed",
-      collectedLogs: {},
-    };
-
-    // Always compute total duration from stage timings for consistency.
-    if (stageResults.length > 0) {
-      finalResult.durationMs = stageResults.reduce((sum, s) => sum + s.durationMs, 0);
-    }
-    if (stageResults.length > 1) {
-      finalResult.stageResults = stageResults;
-    }
-
-    return finalResult;
+    return this.pipelineExecutor.run(ctx, container, issueContext);
   }
 
   /**
@@ -366,7 +241,8 @@ export class TaskRunner implements ITaskRunner {
           const stage = hook.stages[i];
           const stageLabel = `[hook:${hook.name}/${stage.role}]`;
 
-          const stageContext = buildTemplateContext(ctx, {
+          this.logger.info(`${stageLabel} Rendering templates...`);
+          await this.profileSetup.prepareForStage(ctx, {
             stageIndex: i,
             stageCount: hook.stages.length,
             stageRole: stage.role,
@@ -379,10 +255,6 @@ export class TaskRunner implements ITaskRunner {
               outputDir: hookOutputDir,
             },
           });
-
-          this.logger.info(`${stageLabel} Rendering templates...`);
-          await this.templateRenderer.render(ctx.profile.id, stageContext, this.logger);
-          await this.skillRenderer.render(stageContext, this.logger);
 
           const { executor, sessionRunner } = this.containerFactory.createLocalSession(ctx.profile, stage);
 

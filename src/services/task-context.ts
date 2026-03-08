@@ -15,9 +15,18 @@ export interface TaskContext {
   readonly prUrl: string | null;
   /** Absolute path to this task's log directory. */
   readonly outputDir: string;
+  /** Cancellation signal — aborted when the orchestrator initiates shutdown. */
+  readonly signal: AbortSignal;
+  /** Optional callback invoked for each line of real-time tool output. */
+  readonly onToolOutput?: (line: string) => void;
+  /** Optional callback invoked for each line of real-time pre-tool invocation output. */
+  readonly onPreToolUse?: (line: string) => void;
 }
 
-/** Optional callbacks for real-time streaming during task execution. */
+/**
+ * Callbacks provided by the external consumer (e.g. dashboard server) for
+ * real-time streaming. Set once at startup via {@link Orchestrator.setTaskCallbacks}.
+ */
 export interface TaskCallbacks {
   readonly onToolOutput?: (line: string) => void;
   readonly onPreToolUse?: (line: string) => void;
@@ -37,6 +46,9 @@ export function buildTaskContext(
   triggerParams?: string[],
   prUrl?: string | null,
   logsDir?: string,
+  signal?: AbortSignal,
+  onToolOutput?: (line: string) => void,
+  onPreToolUse?: (line: string) => void,
 ): TaskContext {
   const issueStatus = workItem.status.toLowerCase();
   const revisionStatuses = profile.match.revisionStatuses ?? [];
@@ -53,5 +65,8 @@ export function buildTaskContext(
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,
     outputDir: logsDir ? join(logsDir, taskId) : "",
+    signal: signal ?? new AbortController().signal,
+    onToolOutput,
+    onPreToolUse,
   };
 }

@@ -8,7 +8,7 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockContainer, createMockPoller, createMockTaskRunner, createMockConnector, type Mocked } from "../helpers/mocks.js";
+import { createMockLogger, createMockIssueManager, createMockResources, createMockPoller, createMockTaskRunner, createMockConnector, type Mocked } from "../helpers/mocks.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IAgentProfile } from "../../src/config/types.js";
@@ -75,8 +75,6 @@ export function buildMockDeps(
     if (items.length > 0) itemMap[key] = items[0];
   }
 
-  const { container: mockContainer } = createMockContainer();
-
   const issueManager = createMockIssueManager({
     getComments: vi.fn().mockImplementation(async (_source: string, key: string) => {
       return commentsMap[key] ?? [];
@@ -91,10 +89,9 @@ export function buildMockDeps(
   const taskRunner = createMockTaskRunner({
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
-      : vi.fn().mockImplementation(async (ctx: any) => ({
-          result: makeResult(ctx.workItem.id, options.taskResult),
-          container: mockContainer,
-        })),
+      : vi.fn().mockImplementation(async (ctx: any) =>
+          makeResult(ctx.workItem.id, options.taskResult)
+        ),
   });
 
   const triggerScanner = new TriggerScanner({

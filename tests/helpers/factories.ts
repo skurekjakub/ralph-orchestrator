@@ -311,6 +311,9 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     ralphchivesEnabled: false,
     prUrl: null,
     outputDir: "",
+    signal: new AbortController().signal,
+    onToolOutput: undefined,
+    onPreToolUse: undefined,
     ...overrides,
   };
 }
