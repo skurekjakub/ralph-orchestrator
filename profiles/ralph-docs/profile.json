@@ -73,19 +73,12 @@
         "targetStatus": "Ready for Review"
       },
       "mcpServers": [
-        {
-          "name": "codegraphcontext",
-          "sidecarEnv": {
-            "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience"
-          }
-        }
       ],
       "stages": [
         {
           "agent": "ralph.ralph",
           "role": "primary",
           "skills": [
-            "ralph-codegraph",
             "ralph-code-samples",
             "ralph-ado-pr-workflow",
             "ralph-source-references",
@@ -144,19 +137,12 @@
         "commentTrigger": "@Malph"
       },
       "mcpServers": [
-        {
-          "name": "codegraphcontext",
-          "sidecarEnv": {
-            "CGC_INDEX_PATH": "/workspace/resources/repositories/xperience"
-          }
-        }
       ],
       "stages": [
         {
           "agent": "ralph.malph",
           "role": "primary",
           "skills": [
-            "ralph-codegraph",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
             "ralph-build-errors",

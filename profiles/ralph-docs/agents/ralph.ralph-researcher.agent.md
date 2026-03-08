@@ -32,7 +32,6 @@ Read these skills before starting your research. They contain the techniques, pa
 |---|---|
 | **ralph-ralphchives** | Search the archives for prior work, gotchas, and patterns related to this task — always do this first |
 | **ralph-research-guide** | Complete research guide — docs site navigation, source code searching, external references, report template. Read the SKILL.md and all files in its `references/` folder. |
-| **ralph-codegraph** | Structural queries against the Xperience source code graph — call chains, class hierarchies, dead code, complexity. Use for questions that grep can't efficiently answer. |
 
 ## Research Order
 
@@ -57,6 +56,33 @@ Read these skills before starting your research. They contain the techniques, pa
 - **Extract, don't summarize** — provide actual code snippets and content the writer can use directly
 - **Search gitignored paths** — the Xperience source at `resources/repositories/xperience` is gitignored; always use `includeIgnoredFiles: true` when searching it
 - **Note what you couldn't find.** If you searched for something and it doesn't exist, say so explicitly — that's useful information.
+{%- if triggerParams.branch_name %}
+
+{% section "source-branch" %}
+## Xperience Source Branch
+
+A specific branch has been designated for this task: **`{{ triggerParams.branch_name }}`** in the Xperience source repository at `resources/repositories/xperience/`.
+
+Compare this branch against `master` to identify what changed in the product code. Use the diff as context for your research — the changes tell you what's new, modified, or removed in the product.
+
+```bash
+cd resources/repositories/xperience
+git fetch origin
+git diff origin/master...origin/{{ triggerParams.branch_name }} --stat
+git diff origin/master...origin/{{ triggerParams.branch_name }}
+```
+{% endsection %}
+{%- endif %}
+{%- if triggerParams.scope %}
+
+{% section "scope-restriction" %}
+## Scope Restriction
+
+This task is scoped to: **`{{ triggerParams.scope }}`**
+
+Focus your research on content and source code related to this path. Note anything outside the scope as a follow-up item rather than exploring it in depth.
+{% endsection %}
+{%- endif %}
 
 ## Output
 

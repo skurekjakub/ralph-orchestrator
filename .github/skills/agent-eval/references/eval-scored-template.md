@@ -49,16 +49,21 @@ Copy this template and fill in for each evaluation.
 
 ## Scoring Matrix
 
-| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9 | D10 | Avg |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| T1 | | | | | | — | — | | — | — | **X.X** |
-| ... | | | | | | | | | | | |
+| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9a | D9b | D9c | D9d | D9e | D10 | Avg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T1 | | | | | | — | — | | — | — | — | — | — | — | **X.X** |
+| ... | | | | | | | | | | | | | | | |
 
 ### Dimension Averages
 
 | Dimension | Scores | Average |
 |---|---|---|
 | D1 Tool Selection | x, y, z | **X.X** |
+| D9a Artifact Contract | x, y | **X.X** |
+| D9b Orchestrator Purity | x, y | **X.X** |
+| D9c Data Flow | x, y | **X.X** |
+| D9d Subagent Prompt Quality | x, y | **X.X** |
+| D9e Routing Table Compliance | x, y | **X.X** |
 | ... | | |
 
 ### Overall Score

@@ -1,11 +1,13 @@
 ---
 name: agent-eval
-description: "Evaluate a completed Ralph agent execution for quality across tool selection, ordering, argument correctness, efficiency, error recovery, output accuracy, and workflow compliance. Use this skill whenever the user wants to evaluate, review, assess, score, grade, or analyze a completed agent run — whether from a transcript, log directory, or JIRA issue key. Also use when the user wants to compare agent runs, identify improvement areas, or build evaluation checklists for agent tasks. Trigger on phrases like 'evaluate this run', 'how did the agent do', 'score this execution', 'review the transcript', 'grade the agent', or 'what went wrong in this task'."
+description: "Evaluate a completed Ralph agent execution for quality across tool selection, ordering, argument correctness, efficiency, error recovery, output accuracy, workflow compliance, and agent-as-function pattern adherence. Use this skill whenever the user wants to evaluate, review, assess, score, grade, or analyze a completed agent run — whether from a transcript, log directory, or JIRA issue key. Also use when the user wants to compare agent runs, identify improvement areas, or build evaluation checklists for agent tasks. Trigger on phrases like 'evaluate this run', 'how did the agent do', 'score this execution', 'review the transcript', 'grade the agent', or 'what went wrong in this task'."
 ---
 
 # Agent Execution Evaluation
 
-Evaluate a completed Ralph agent run by decomposing the task into constituent sub-tasks, scoring each against standardized dimensions, and producing an actionable findings report.
+Evaluate a completed Ralph agent run by decomposing the task into constituent sub-tasks, scoring each against standardized dimensions — with particular focus on the **agent-as-function** pattern (filesystem artifact handoff, orchestrator purity, routing table compliance) — and producing an actionable findings report.
+
+All Ralph agents follow the **agent-as-function** pattern: orchestrators dispatch subagents as pure functions, subagents communicate through filesystem artifacts (`status.json`, `output.md`, `manifest.json`), and orchestrators route on `status.json` — never reading artifact content. Evaluations must assess compliance with this pattern alongside traditional quality dimensions.
 
 ## When to Use
 
@@ -215,18 +217,96 @@ Did the agent follow the prescribed phase workflow?
 - Sub-agents invoked at the correct phase (researcher in research, validator after write, reviewer after validation)
 - Phase order respected (no writing before research, no commit before review)
 
-### D9: Sub-agent Utilization
+### D9: Agent-as-Function Compliance
 
-Were sub-agents given good prompts and their outputs used effectively?
+All Ralph agents follow the subagent-as-function pattern. D9 evaluates how well the run adheres to this pattern across five sub-dimensions. Score each sub-dimension independently; report the average as the D9 score.
+
+#### D9a: Artifact Contract
+
+Did subagents produce the required filesystem artifacts?
 
 **What to check:**
-- Researcher prompt includes specific research questions (not just "research this topic")
-- Validator prompt specifies what to validate (list of subtasks/files)
-- Reviewer receives the right scope (which files to review, what standards to apply)
-- Sub-agent outputs are reflected in subsequent main agent actions (e.g., researcher findings populate state.md)
+- Every subagent writes `status.json` with all 7 required fields (`agent`, `task_id`, `status`, `result`, `summary`, `artifacts`, `next_hint`, `iteration`)
+- Every subagent writes a primary artifact (`output.md` or `output-v{N}.md` for iterative agents)
+- Every subagent appends to the shared `manifest.json` audit log
+- `result` codes match the declared set for that agent type (e.g., researcher: `researched`/`blocked`, writer: `implemented`/`partial`, reviewer: `approved`/`needs-revision`)
+- `summary` is routing-grade (~100 tokens, enough for decisions, not a report)
+- Iterative agents use versioned artifacts (`output-v1.md`, `output-v2.md`) and increment `iteration`
+- `next_hint` is populated where meaningful (researcher → writer, writer → reviewer)
+
+**Evidence sources:** Search `audit.jsonl` or transcript for `status.json`, `manifest.json`, `output.md` reads/writes. Check `pre-tool.log` for `cat .../status.json` commands.
+
+#### D9b: Orchestrator Purity
+
+Does the orchestrator act as a pure router?
+
+**What to check:**
+- Orchestrator reads ONLY `status.json` from subagent directories — never `output.md` or any other artifact file
+- Orchestrator never relays artifact content between subagents (subagents read each other's artifacts directly from the filesystem)
+- Orchestrator's conversational context grows by only one-liners from subagent returns (`"Done. Status: completed, result: analyzed."`)
+- Subagent dispatch prompts contain pointers to upstream artifacts (filesystem paths), not the content itself
+- Administrative work (commit, push, PR, JIRA transitions) stays in the orchestrator — deep reasoning (research, writing, review) is always delegated
+
+**Anti-patterns to flag:**
+- `cat .../output.md` or `view .../output.md` by the orchestrator → purity violation
+- Orchestrator prompt contains long relayed content from a subagent → data relay violation
+- Orchestrator reading reviewer `output.md` to decide whether to revise → should route on `result` from `status.json`
+
+**Measuring context cleanliness:** Count total tokens from subagent returns entering orchestrator context. Ideal is ~5-10 tokens per subagent (one line). If any return exceeds ~100 tokens, flag as a violation.
+
+#### D9c: Data Flow
+
+Do subagents read upstream artifacts from the filesystem, not from the orchestrator?
+
+**What to check:**
+- Writer dispatch prompt contains a path reference to researcher artifact (e.g., `"read the report at .ralph/tasks/{id}/artifacts/ralph-researcher/output.md"`) — NOT the content itself
+- Reviewer dispatch prompts contain path references to writer artifacts — NOT file lists or content pasted from the orchestrator
+- Downstream subagents (coder iteration 2+) read reviewer feedback from `reviewer/output-v{N}.md` directly
+- No subagent prompt contains quoted content from another subagent's output
+
+**Per-dispatch check:** For each `task` tool call in `pre-tool.log`, examine the `prompt` argument:
+1. Does it contain a filesystem path pointer to upstream artifacts? ✅
+2. Does it contain inline content that came from another subagent? ❌
+3. Does it contain task-definition content (JIRA issue, key constraints)? ⚠️ Acceptable if lean (<500 chars), anti-pattern if heavy (>1000 chars)
+
+#### D9d: Subagent Prompt Quality
+
+Were subagents dispatched with effective prompts?
+
+**What to check (replaces old D9):**
+- Researcher prompt includes specific research questions, not just "research this topic"
+- Writer prompt points to `ralph-researcher/output.md` and lists key constraints
+- Reviewer prompts declare their input artifacts: `Input: ralph-writer/output-v{N}.md, changed files`
+- Reviewer prompts include scope information: which files changed, what to verify, what standards apply
+- All dispatch prompts include the task-id for artifact directory resolution
+- Prompt length is proportional to task importance (researcher/writer get detailed prompts, reviewers get structured prompts — not one-liners)
 - Sub-agent skill loads are reasonable (they don't inherit loaded skills from main agent)
 
-**Common failure pattern:** Researcher tries to load a nonexistent skill name. Main agent passes no context about already-completed searches, causing sub-agent to repeat them.
+**Scoring guide:**
+- 5: Every dispatch prompt has clear input artifact declarations, specific scope, and appropriate detail level
+- 4: Most prompts are well-structured; one has minor gaps (e.g., missing file list in reviewer prompt)
+- 3: Functional but with clear gaps — some prompts lack input declarations or scope
+- 2: Multiple prompts are thin or relay content instead of using paths
+- 1: Prompts are one-liners with no artifact references or scope
+
+#### D9e: Routing Table Compliance
+
+Does the orchestrator follow its declared routing table?
+
+**What to check:**
+- Every `(agent, result)` pair from the routing table is handled correctly when observed in the run
+- Error/blocked paths lead to graceful exits, not hangs
+- Iteration limits are enforced (e.g., max 2 write/review cycles)
+- Parallel dispatch is used correctly (e.g., all 3 reviewers launched simultaneously, not sequentially)
+- `next_hint` from `status.json` is considered but not blindly followed when the routing table specifies otherwise
+- The routing table is explicitly declared in the orchestrator agent template (check the template file if evaluating template quality)
+
+**Scoring guide:**
+- 5: All observed routing decisions match the declared table; parallel dispatch used where applicable
+- 4: Routing decisions correct; minor deviation from declared table (e.g., checking agents in suboptimal order)
+- 3: Routing works but no explicit table exists — routing is implicit in phase skill prose
+- 2: Routing deviates from declared table or misses an edge case
+- 1: Routing failures — wrong subagent dispatched, iteration limit violated, or hang on error path
 
 ### D10: Stopping Point
 
@@ -265,6 +345,12 @@ Per-task scoring tables with evidence, dimension averages, overall score, streng
 ## Tips from Experience
 
 **Reading pre-tool.log is the fastest way to understand what happened.** Each line is one tool call with name and args — you can map the entire execution in minutes. Read transcript.md selectively after that.
+
+**D9 is the architectural dimension.** Unlike D1-D8 which evaluate execution quality, D9 evaluates whether the multi-agent architecture is working as designed. A run can score 5 on D1-D8 (perfect tool use, correct content) while scoring 2 on D9 (orchestrator reads output.md, relays data, no manifest). Always evaluate D9 independently.
+
+**Measuring orchestrator purity requires reading the transcript, not just pre-tool.log.** Pre-tool.log shows what tools the orchestrator called, but you need the transcript to see if subagent returns leaked artifact content into the orchestrator's context. Grep for `output.md`, `cat `, and artifact directory paths in orchestrator sections of the transcript.
+
+**manifest.json is the newest contract requirement.** Many existing runs predate it — score current runs against the current contract, but note if the template itself doesn't include manifest.json instructions (that's a template bug, not an agent bug).
 
 **Sub-agent duplication is architecturally expected but still worth noting.** Sub-agents don't share the main agent's file cache or loaded skills. This means some re-reading is unavoidable. Score it as a 3–4 depending on severity, not as a failure.
 

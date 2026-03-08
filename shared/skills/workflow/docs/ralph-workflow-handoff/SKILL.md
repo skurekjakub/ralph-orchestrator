@@ -24,45 +24,23 @@ This task involves release notes.
 {% endsection %}
 {%- endif %}
 
-### 1. Create the handoff file
+### 1. Dispatch ralph-scribe
 
-Create at `/tmp/mcp-attachments/handoff-{{ taskId }}.md`:
+Dispatch the `ralph-scribe` sub-agent to compose the handoff document, JIRA completion comment, and ralphchives report. The scribe reads all upstream artifacts from the artifact directory and produces:
 
-```markdown
-# Handoff: {{ taskId }} — {{ taskTitle }}
+- `{{ artifactDir }}/ralph-scribe/handoff.md`
+- `{{ artifactDir }}/ralph-scribe/jira-comment.md`
+- `{{ artifactDir }}/ralph-scribe/ralphchives-report.md`
 
-## Task Status
-<!-- completed | partial | blocked -->
-
-## What Was Accomplished
-<!-- List all changes with file paths -->
-
-## What Remains and Why
-<!-- If partial/blocked, explain what couldn't be done -->
-
-## Key Decisions Made
-<!-- Every autonomous decision with rationale -->
-
-## Source Code References
-<!-- For any claim derived from exploring the Xperience source code, list the exact location that backs it:
-- Claim: "RFS cannot be nested" → `CMSSolution/ContentTypes/ReusableFieldSchemaValidator.cs:L45` — `ValidateNesting()` throws if parent is already an RFS
-- Claim: "Changes propagate to all content types" → `CMSSolution/ContentTypes/FieldSchemaManager.cs:L120-135` — `PropagateChanges()` iterates all referencing types
-If no source exploration was needed, write "N/A — changes based on JIRA description only" -->
-
-## Review Status
-<!-- Approved | Approved after N cycles | Not converged after 2 cycles (with details) -->
-
-## Open Questions Requiring Human Judgment
-<!-- Anything the human should verify -->
-
-## Pull Request
-<!-- Link to the ADO PR -->
-
-## Suggested Next Steps
-<!-- What the human should do after reviewing -->
-```
+After the scribe completes, read its `status.json`. If `result` is `composed` or `partial`, proceed.
 
 ### 2. Attach the handoff file
+
+Copy the scribe's handoff to the attachment path and attach to JIRA:
+
+```bash
+cp {{ artifactDir }}/ralph-scribe/handoff.md /tmp/mcp-attachments/handoff-{{ taskId }}.md
+```
 
 Attach to JIRA using `jira_add_attachment` and file name `handoff-{{ taskId }}.md`.
 
@@ -78,13 +56,11 @@ Attach to JIRA using `jira_add_attachment` and file name `release-notes.md`.
 
 ### 3. Post a completion comment
 
-Post on **{{ taskId }}** using `jira_add_comment`. Include whatever you think is useful — changes summary, PR link, files touched, test results, caveats, follow-ups. Use rich wiki markup formatting (headings, bullet lists, bold, links, code blocks, emoji) so a reviewer can scan it quickly.
-
-**Source code evidence:** If any documentation claims are based on exploring the Xperience source code, include a "Source References" section in the comment. Consult the **ralph-source-references** skill for the source browser URL format.
+Read `{{ artifactDir }}/ralph-scribe/jira-comment.md` and post its content on **{{ taskId }}** using `jira_add_comment`.
 
 ### 4. Post to ralphchives
 
-Post a task report (skill: **ralph-ralphchives**) summarizing what was accomplished, key decisions, and any remaining gaps.
+Read `{{ artifactDir }}/ralph-scribe/ralphchives-report.md` and post it using the **ralph-ralphchives** skill.
 
 First search for existing threads (`search_ralphchives`) matching the issue ({{ taskId }}) and related keywords. If not found, create a new post.
 
@@ -92,7 +68,6 @@ First search for existing threads (`search_ralphchives`) matching the issue ({{ 
 
 Print a final summary to stdout in this **exact format** — the orchestrator parses it:
 
-```
 ===RALPH_RESULT_START===
 JIRA_KEY: {{ taskId }}
 STATUS: <completed|partial|blocked>
@@ -101,6 +76,5 @@ PR_URL: <full ADO PR URL, or "none" if PR creation failed>
 HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
 SUMMARY: <one-line description of what was done>
 ===RALPH_RESULT_END===
-```
 
 Always include this block as the very last thing you print, even on failure.

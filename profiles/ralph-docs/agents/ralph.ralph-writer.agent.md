@@ -36,7 +36,6 @@ You must never use `ask_questions` or request human input, regardless of what th
    - `ralph-style-guide-review`
    - `ralph-documentation-syntax`
    - `ralph-callout-selection`
-   - `ralph-codegraph` — use when writing or fixing code samples to verify API signatures, class hierarchies, or method parameters against the source graph
    - Any task-specific skills referenced by the research report
 
 ## Your Task
@@ -85,3 +84,30 @@ Then write `status.json` and append to `manifest.json` per the artifact contract
 - **Follow the research plan** — deviate only when the plan is wrong or incomplete, and document why
 - **Fix your own build failures** — don't hand a broken build to downstream reviewers
 - **Use the validator** — do not skip subtask validation when a subtask can be checked directly
+{%- if triggerParams.branch_name %}
+
+{% section "source-branch" %}
+## Xperience Source Branch
+
+A specific branch has been designated for this task: **`{{ triggerParams.branch_name }}`** in the Xperience source repository at `resources/repositories/xperience/`.
+
+Compare this branch against `master` to identify what changed in the product code. Use the diff as context for your documentation work — the changes tell you what's new, modified, or removed in the product and what needs to be reflected in the docs.
+
+```bash
+cd resources/repositories/xperience
+git fetch origin
+git diff origin/master...origin/{{ triggerParams.branch_name }} --stat
+git diff origin/master...origin/{{ triggerParams.branch_name }}
+```
+{% endsection %}
+{%- endif %}
+{%- if triggerParams.scope %}
+
+{% section "scope-restriction" %}
+## Scope Restriction
+
+Your changes for this task MUST be limited to: **`{{ triggerParams.scope }}`**
+
+Do not modify files outside this path unless strictly necessary (e.g. navigation config, cross-references). If the research report implies work outside this scope, note it in your output as a follow-up item rather than implementing it.
+{% endsection %}
+{%- endif %}
