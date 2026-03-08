@@ -101,6 +101,8 @@ export function generateComposeOverlay(
     lines.push(`      - ${mcpServersDir}:/opt/mcp/servers:ro`);
     lines.push("      # Gateway compiled code (read-only, avoids image rebuild for code changes)");
     lines.push(`      - ${join(sidecarDir, "dist")}:/opt/mcp/gateway/dist:ro`);
+    lines.push("      # Entrypoint script (mounted to pick up changes without image rebuild)");
+    lines.push(`      - ${join(sidecarDir, "entrypoint.sh")}:/opt/mcp/entrypoint.sh:ro`);
     lines.push("      # Gateway config with embedded secrets");
     lines.push(`      - ${join(buildDir, "gateway.json")}:/opt/mcp/config/gateway.json:ro`);
     lines.push("      # Shared attachment exchange directory (read-only in sidecar)");

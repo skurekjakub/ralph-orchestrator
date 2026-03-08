@@ -28,10 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       git ca-certificates python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Pre-install CodeGraphContext (Python-based code graph intelligence MCP server)
-# Uses FalkorDB Lite (embedded, zero-config) as default graph backend.
-RUN pip install --break-system-packages --no-cache-dir codegraphcontext
-
 # Server + gateway directories
 RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway
 
@@ -52,7 +48,5 @@ WORKDIR /opt/mcp
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
-
-COPY entrypoint.sh /opt/mcp/entrypoint.sh
 
 CMD ["/opt/mcp/entrypoint.sh"]

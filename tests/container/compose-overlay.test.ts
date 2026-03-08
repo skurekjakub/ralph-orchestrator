@@ -151,6 +151,7 @@ describe("Compose Overlay", () => {
       expect(overlay).toContain(`context: ${sidecarDir}`);
       expect(overlay).toContain("/opt/mcp/servers:ro");
       expect(overlay).toContain("/opt/mcp/gateway/dist:ro");
+      expect(overlay).toContain("entrypoint.sh:/opt/mcp/entrypoint.sh:ro");
       expect(overlay).toContain("gateway.json:/opt/mcp/config/gateway.json:ro");
       expect(overlay).toContain("no-new-privileges:true");
       expect(overlay).toContain("cap_drop:");
