@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { resolveAllProfileSetup } from "../../src/container/setup/profile-setup.js";
-import { generatePreInitScript } from "../../src/container/setup/profile-setup.js";
+import { resolveAllProfileSetup, generatePreInitScript } from "../../src/container/setup/profile-setup.js";
 import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("Profile Setup", () => {
