@@ -82,7 +82,7 @@ export function ContextWindowChart({ entries, usageEntries, subagentSpans }: Con
       </div>
 
       {expanded && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
           {entries.length > 0 && (
             <UtilizationChart
               entries={entries}
