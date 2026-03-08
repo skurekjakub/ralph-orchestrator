@@ -35,11 +35,13 @@ describe("ComposeOverlayWriter", () => {
 
     writer.write(profile, logger);
 
-    expect(writeFileSync).toHaveBeenCalledTimes(2);
+    expect(writeFileSync).toHaveBeenCalledTimes(3);
     const overlayPath = vi.mocked(writeFileSync).mock.calls[0][0] as string;
     expect(overlayPath).toContain(`profiles/${PID}/.build/docker-compose.overlay.yml`);
     const mcpConfigPath = vi.mocked(writeFileSync).mock.calls[1][0] as string;
     expect(mcpConfigPath).toContain(`profiles/${PID}/.build/mcp-config.json`);
+    const gatewayPath = vi.mocked(writeFileSync).mock.calls[2][0] as string;
+    expect(gatewayPath).toContain(`profiles/${PID}/.build/gateway.json`);
   });
 
   it("generates skill volume mounts for declared skills", () => {
@@ -134,7 +136,7 @@ describe("ComposeOverlayWriter", () => {
 
     expect(() => writer.write(profile, createMockLogger())).not.toThrow();
 
-    expect(writeFileSync).toHaveBeenCalledTimes(2);
+    expect(writeFileSync).toHaveBeenCalledTimes(3);
   });
 
   it("includes MCP sidecar service when profile has MCP servers", () => {
@@ -171,7 +173,7 @@ describe("ComposeOverlayWriter", () => {
 
     writer.write(profile, logger);
 
-    expect(logger.info).toHaveBeenCalledWith("Regenerated compose overlay and mcp-config with 3 skill mount(s), 0 MCP server(s)");
+    expect(logger.info).toHaveBeenCalledWith("Regenerated compose overlay, mcp-config, and gateway with 3 skill mount(s), 0 MCP server(s)");
   });
 
   it("produces a valid overlay even with zero skills and zero servers", () => {

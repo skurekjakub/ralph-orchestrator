@@ -1,5 +1,7 @@
 discord-hitl mcp setup
 
+main agent context buffer throughout the task in timeline dashboard
+
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
