@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { parseCliDebugSubagents } from "./cli-debug-subagent-parser";
+import { parseAssistantUsageEntries, parseContextWindowEntries } from "./context-window-parser";
 import { buildTimeline } from "./tool-log-timeline-parser";
-import type { SubagentSpan } from "./tool-timeline-types";
+import type { AssistantUsageEntry, ContextWindowEntry, SubagentSpan } from "./tool-timeline-types";
 
 interface UseToolTimelineDataParams {
   preToolFile: string;
@@ -14,6 +15,8 @@ interface UseToolTimelineDataResult {
   timeline: ReturnType<typeof buildTimeline>;
   subagentSpans: SubagentSpan[];
   subagentByName: Map<string, SubagentSpan>;
+  contextWindowEntries: ContextWindowEntry[];
+  assistantUsageEntries: AssistantUsageEntry[];
 }
 
 export function useToolTimelineData({
@@ -77,5 +80,15 @@ export function useToolTimelineData({
     return map;
   }, [subagentSpans]);
 
-  return { loading, timeline, subagentSpans, subagentByName };
+  const contextWindowEntries = useMemo(() => {
+    if (!cliDebugContent) return [];
+    return parseContextWindowEntries(cliDebugContent);
+  }, [cliDebugContent]);
+
+  const assistantUsageEntries = useMemo(() => {
+    if (!cliDebugContent) return [];
+    return parseAssistantUsageEntries(cliDebugContent);
+  }, [cliDebugContent]);
+
+  return { loading, timeline, subagentSpans, subagentByName, contextWindowEntries, assistantUsageEntries };
 }
