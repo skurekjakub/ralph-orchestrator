@@ -1,4 +1,18 @@
-import type { AssistantUsageEntry, ContextWindowEntry } from "./tool-timeline-types";
+import type { AssistantUsageEntry, ContextWindowEntry, SubagentSpan } from "./tool-timeline-types";
+
+/** Context window + usage entries attributed to a single agent (main or subagent). */
+export interface AgentWindowSlice {
+  /** Agent display name ("main" for the orchestrator). */
+  name: string;
+  /** Full agent identifier (empty for "main"). */
+  fullName: string;
+  /** Model used for inference. */
+  model: string;
+  /** Context window entries within this agent's time window. */
+  entries: ContextWindowEntry[];
+  /** Assistant usage entries within this agent's time window. */
+  usageEntries: AssistantUsageEntry[];
+}
 
 const compactionPattern =
   /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s.*CompactionProcessor:\s*Utilization\s+([\d.]+)%\s+\((\d+)\/(\d+)\s+tokens\)/;
@@ -125,4 +139,64 @@ function parseUsageJson(json: string): UsageFields | null {
 
 function asNumber(value: unknown): number {
   return typeof value === "number" ? value : 0;
+}
+
+/**
+ * Split context window and usage entries into per-agent slices using subagent
+ * time windows. Entries whose timestamp falls between a subagent's `startMs`
+ * and `endMs` are attributed to that subagent; all others go to "main".
+ */
+export function splitEntriesByAgent(
+  entries: ContextWindowEntry[],
+  usageEntries: AssistantUsageEntry[],
+  subagentSpans: SubagentSpan[],
+): AgentWindowSlice[] {
+  if (subagentSpans.length === 0) return [];
+
+  const sorted = [...subagentSpans].sort((a, b) => a.startMs - b.startMs);
+
+  function findOwner(tsMs: number): SubagentSpan | null {
+    for (const span of sorted) {
+      if (tsMs >= span.startMs && span.endMs != null && tsMs <= span.endMs) return span;
+    }
+    return null;
+  }
+
+  const mainEntries: ContextWindowEntry[] = [];
+  const mainUsage: AssistantUsageEntry[] = [];
+  const spanMap = new Map<SubagentSpan, { entries: ContextWindowEntry[]; usage: AssistantUsageEntry[] }>();
+
+  for (const span of sorted) {
+    spanMap.set(span, { entries: [], usage: [] });
+  }
+
+  for (const entry of entries) {
+    const owner = findOwner(entry.tsMs);
+    if (owner) spanMap.get(owner)!.entries.push(entry);
+    else mainEntries.push(entry);
+  }
+
+  for (const entry of usageEntries) {
+    const owner = findOwner(entry.tsMs);
+    if (owner) spanMap.get(owner)!.usage.push(entry);
+    else mainUsage.push(entry);
+  }
+
+  const slices: AgentWindowSlice[] = [
+    { name: "main", fullName: "", model: "", entries: mainEntries, usageEntries: mainUsage },
+  ];
+
+  for (const span of sorted) {
+    const data = spanMap.get(span)!;
+    if (data.entries.length === 0 && data.usage.length === 0) continue;
+    slices.push({
+      name: span.name,
+      fullName: span.fullName,
+      model: span.resolvedModel,
+      entries: data.entries,
+      usageEntries: data.usage,
+    });
+  }
+
+  return slices;
 }

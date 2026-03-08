@@ -92,7 +92,7 @@ describe("ContextWindowChart", () => {
       />,
     );
 
-    expect(screen.getByText("malph-scout")).toBeDefined();
+    expect(screen.getAllByText("malph-scout").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders per-turn token usage section", () => {
@@ -130,5 +130,22 @@ describe("ContextWindowChart", () => {
 
     expect(screen.getByText(/Per-Turn Token Usage/)).toBeDefined();
     expect(screen.getByText(/Cumulative Token Spend/)).toBeDefined();
+  });
+
+  it("renders subagent context window section when spans have data", () => {
+    const span = makeSubagentSpan();
+    // Entries within subagent window (2500–3500)
+    const entries = makeEntries();
+    const usageEntries = makeUsageEntries();
+
+    render(
+      <ContextWindowChart
+        entries={entries}
+        usageEntries={usageEntries}
+        subagentSpans={[span]}
+      />,
+    );
+
+    expect(screen.getByText(/Subagent Context Windows/)).toBeDefined();
   });
 });
