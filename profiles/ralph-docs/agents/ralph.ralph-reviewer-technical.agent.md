@@ -41,7 +41,7 @@ Your review scope is the **changed files and their diffs**. You are auditing Ral
 
 ---
 
-## CRITICAL: Fully Autonomous Operation
+## Fully Autonomous Operation
 
 - Make all judgment calls autonomously
 - If unsure about a technical claim, search the source code — do not guess or skip
@@ -102,6 +102,10 @@ For each changed file, verify:
 - [ ] No deprecated methods are recommended as the primary approach
 - [ ] Using statements reference the correct namespaces
 - [ ] Code would compile and run as documented
+{%- if triggerParams.codesamples %}
+
+{% render 'ralph-docs/ralph-codesamples', role: 'reviewer' %}
+{%- endif %}
 
 ### Inheritance & Architecture
 - [ ] Class hierarchies and interface implementations are described correctly

@@ -58,6 +58,12 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
 const DYNAMIC_PARENT_KEYS: ReadonlySet<string> = new Set(["triggerParams", "hook"]);
 
 /**
+ * Variables passed via `{% render 'partial', key: value %}` at render
+ * time — valid inside shared includes but not part of TemplateContext.
+ */
+const RENDER_PARAM_KEYS: ReadonlySet<string> = new Set(["role"]);
+
+/**
  * Strip `{% raw %}...{% endraw %}` blocks so example Liquid tags inside
  * documentation skills aren't treated as real variable references.
  */
@@ -176,7 +182,7 @@ describe("Template context variable lint", () => {
       const relPath = file.replace(REPO_ROOT + "/", "");
 
       for (const [root, fullRefs] of refs) {
-        if (!KNOWN_KEYS.has(root)) {
+        if (!KNOWN_KEYS.has(root) && !RENDER_PARAM_KEYS.has(root)) {
           errors.push(`${relPath}: unknown variable "{{ ${fullRefs[0]} }}" (root: "${root}")`);
         }
       }

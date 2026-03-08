@@ -18,6 +18,7 @@ Dispatch **ralph-writer** to fix the specific issues raised by the reviewer — 
 1. Pass the feedback items from the JIRA comments and PR threads
 2. Preserve previous decisions unless explicitly contradicted by feedback
 3. Require a passing build before the writer returns `implemented`
+4. If the task involves code samples (`.cs` files were modified), ensure the writer runs `npm run codesamples:build` and uses the **ralph-codesamples-verification** skill to verify changes before returning
 
 {%- if triggerParams.skip_review %}
 

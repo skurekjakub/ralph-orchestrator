@@ -115,9 +115,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         fonts-freefont-ttf \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright + Chromium as vscode user into npm-global prefix
+# Install Playwright CLI + test runner & Chromium as vscode user
 USER vscode
-RUN npm install -g playwright \
+RUN npm install -g playwright @playwright/test \
     && npx playwright install chromium
 USER root
 
