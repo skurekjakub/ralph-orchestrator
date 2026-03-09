@@ -4,6 +4,18 @@
   "vcsProvider": "ado",
   "cli": "copilot",
   "timeoutMs": 36000000,
+  "allowlistDomains": [
+    "aka.ms",
+    "pkgs.dev.azure.com",
+    "dev.azure.com",
+    "vsblob.dev.azure.com",
+    ".artifacts.visualstudio.com",
+    ".npmjs.org",
+    ".rubygems.org",
+    ".nuget.org",
+    ".pypi.org",
+    ".pythonhosted.org"
+  ],
   "cleanPaths": [
     "/workspace/.ralph/tasks"
   ],

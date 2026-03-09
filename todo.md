@@ -1,5 +1,7 @@
 discord-hitl mcp setup
 
+codesamples:dbcheck
+
 profile natively internally declare squid.conf extension (based on env setup prereqs) - basic mode only anthropic and copilot apis
 
     lines.push("    environment:");
