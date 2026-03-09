@@ -79,7 +79,7 @@
           "agent": "ralph.ralph",
           "role": "primary",
           "skills": [
-            "ralph-code-samples",
+            "ralph-codesamples",
             "ralph-ado-pr-workflow",
             "ralph-source-references",
             "ralph-ralphchives",
