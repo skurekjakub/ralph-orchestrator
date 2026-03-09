@@ -1,5 +1,5 @@
 ---
-name: ralph-code-samples
+name: ralph-codesamples
 description: "Workflow for writing and integrating .NET code samples into Xperience by Kentico documentation pages using code_link Liquid tags. Use this skill whenever the task involves creating, modifying, or referencing C# code samples, adding code_link tags to documentation pages, working with the CodeSamples project, or when the JIRA issue mentions code examples, API usage demonstrations, or .NET snippets."
 ---
 

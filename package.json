@@ -19,6 +19,7 @@
     "ralphchives:backup-db": "./ralphchives/scripts/backup-nodebb-db.sh",
     "ralphchives:restore-db": "./ralphchives/scripts/restore-nodebb-db.sh",
     "reset-testenv": "tsx scripts/reset-issue.ts",
+    "prompt:vis": "tsx scripts/visualize-agent-graph.ts",
     "reset-testenv:easy": "tsx scripts/reset-issue.ts",
     "reset-testenv:medium": "tsx scripts/reset-issue.ts --medium",
     "reset-testenv:hard": "tsx scripts/reset-issue.ts --hard",

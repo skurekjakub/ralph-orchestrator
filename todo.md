@@ -1,5 +1,7 @@
 discord-hitl mcp setup
 
+profile natively internally declare squid.conf extension (based on env setup prereqs) - basic mode only anthropic and copilot apis
+
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
