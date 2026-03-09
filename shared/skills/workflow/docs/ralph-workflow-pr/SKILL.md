@@ -27,10 +27,5 @@ If the API returns an unrecoverable error, note it in the handoff and set the PR
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 8: Handoff & Exit`
-- Set "Skills for this phase" to:
-  - ralph-workflow-handoff
-  - ralph-source-references
-  - ralph-ralphchives
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 7 to "Completed Phases" with PR URL or "none"
 - Record PR URL in "Tracked Identifiers"

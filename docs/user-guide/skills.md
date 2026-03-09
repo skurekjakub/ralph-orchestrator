@@ -152,8 +152,7 @@ Task skills provide guides for specific task types that don't follow the standar
 
 | Skill | Description |
 |---|---|
-| `ralph-code-samples` | Writing and integrating .NET code samples into documentation using `code_link` Liquid tags. |
-| `ralph-codesamples-project` | Overview of the codesamples .NET solution structure, build workflow, and feature-folder organization. |
+| `ralph-codesamples` | Complete reference for the codesamples .NET project — solution structure, feature-folder organization, `code_link` integration, build workflow, and coding conventions. |
 | `ralph-training-modules` | YAML schema and templates for creating structured training modules and learning paths. |
 | `ralph-write-release-notes` | Format and examples for writing release notes for Xperience features and changes. |
 

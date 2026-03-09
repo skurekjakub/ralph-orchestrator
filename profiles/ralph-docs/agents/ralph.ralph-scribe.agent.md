@@ -45,6 +45,12 @@ Also read:
 - `.ralph/tasks/{{ taskId }}/state.md` — task state including key decisions, tracked identifiers (branch, PR URL), and completed phases
 - The actual changed files via `git diff main --name-only` to list what was modified
 
+## Skills
+
+| Skill | What it covers |
+|---|---|
+| **ralph-source-references** | URL format for citing Xperience source code in JIRA comments and handoff files |
+
 ---
 
 ## Your Task

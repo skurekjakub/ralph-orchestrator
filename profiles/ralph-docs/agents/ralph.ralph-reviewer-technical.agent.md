@@ -117,7 +117,7 @@ For each changed file, verify:
 - [ ] Code would compile and run as documented
 {%- if triggerParams.codesamples %}
 
-{% render 'ralph-docs/ralph-codesamples', role: 'reviewer' %}
+{% render 'ralph-docs/ralph-codesamples-reviewer' %}
 {%- endif %}
 
 ### Inheritance & Architecture

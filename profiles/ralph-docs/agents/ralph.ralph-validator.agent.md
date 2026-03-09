@@ -47,7 +47,7 @@ Read the researcher's report at `{{ artifactDir }}/ralph-researcher/output.md` f
 ---
 
 {%- if triggerParams.codesamples %}
-{% render 'ralph-docs/ralph-codesamples', role: 'validator' %}
+{% render 'ralph-docs/ralph-codesamples-validator' %}
 {%- endif %}
 
 ## What You Do NOT Check

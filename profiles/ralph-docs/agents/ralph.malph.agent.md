@@ -110,7 +110,7 @@ These are observed failure modes from previous review runs.
 {% section "codesamples-context" %}
 ## Code Samples Project — Review Context
 
-This task involves the **ASP.NET code samples project** at `src/_code/src/`. See the `ralph-code-samples` skill.
+This task involves the **ASP.NET code samples project** at `src/_code/src/`. See the `ralph-codesamples` skill.
 {% endsection %}
 {%- endif %}
 

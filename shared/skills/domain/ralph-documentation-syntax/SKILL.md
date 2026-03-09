@@ -11,6 +11,15 @@ Reference for all Liquid tags, formatting, and components available in the Xperi
 
 Every page starts with YAML between `---` lines. For the full frontmatter schema (required fields, identifier logic, persona assignment, ordering, licensing), see the **ralph-new-page-creation** skill.
 
+## Related Skills
+
+Read these skills when the task requires the corresponding operation:
+
+- **ralph-callout-selection** — choosing the correct admonition type (tip, info, note, warning) for each situation
+- **ralph-cross-version-linking** — cross-collection `page_link` and `card` tag syntax (read when linking between documentation, guides, and api collections)
+- **ralph-page-removal** — checklist for removing or replacing pages without leaving broken links (read when removing or deprecating pages)
+- **ralph-build-errors** — troubleshooting guide for `npm run build` failures (read when the build fails — covers broken page_link identifiers, missing anchors, duplicate identifiers, code blocks missing lang)
+
 ## Formatting
 
 - Indentation: 4 spaces, no tabs or 2-space indents.
@@ -18,8 +27,6 @@ Every page starts with YAML between `---` lines. For the full frontmatter schema
 ## Liquid Tags
 
 ### Admonitions
-
-- For guidance on choosing the right severity, see the **ralph-callout-selection** skill.
 
 ### Code Blocks
 

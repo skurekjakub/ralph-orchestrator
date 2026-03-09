@@ -3,9 +3,7 @@
 
 This task involves the **code samples project** — a compilable .NET solution at `src/_code/src/` whose code is embedded into documentation pages via {% raw %}`{% code_link %}`{% endraw %} Liquid tags.
 
-Read these skills for full project structure, conventions, and workflow:
-- **ralph-code-samples** — integration workflow, `code_link` tag syntax, namespace patterns, build commands
-- **ralph-codesamples-project** — solution structure (CodeSamples vs Website), feature-folder organization, `//Include:`/`//EndInclude:` markers, standalone samples
+Read the **ralph-codesamples** skill for full project structure, feature-folder organization, `code_link` syntax, `//Include:`/`//EndInclude:` markers, and build workflow.
 {%- if role == 'researcher' %}
 
 ### Research: Code Samples
@@ -22,6 +20,12 @@ When researching this task, include a dedicated **Code Samples** section in your
 
 ### Writing: Code Samples Workflow
 
+{%- if triggerParams.xpversion %}
+**Note:** The codesamples project was bootstrapped by ralph-coder. The server is running at localhost:666.
+Do NOT run `setversion` — the project is ready to use.
+Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/output.md` for version and setup details.
+{%- endif %}
+
 Follow this sequence when implementing code sample changes:
 
 1. **Read researcher findings** — check the "Code Samples" section in `{{ artifactDir }}/ralph-researcher/output.md` for existing samples, gaps, and API references.
@@ -31,6 +35,14 @@ Follow this sequence when implementing code sample changes:
 5. **Never edit `Generated/`** — if new content types are needed, run `npm run codesamples:codegen`.
 6. **Build**: run `npm run codesamples:build` and fix any compilation errors before returning.
 7. **Functional verification** — use the **ralph-codesamples-verification** skill to start the application and exercise the features you implemented. Navigate to the routes, submit forms, trigger controller actions, and confirm the application behaves correctly.
+{%- if triggerParams.adminui %}
+
+### Admin UI
+The admin UI is accessible at `localhost:666/admin` (login: administrator / admin).
+Use `playwright-cli` to interact with the admin interface for creating objects.
+After creating objects via admin UI, run `npm run codesamples:store` to serialize them to CI XML.
+Read the `ralph-codesamples-adminui` skill for object creation workflows.
+{%- endif %}
 {%- endif %}
 {%- if role == 'validator' %}
 
@@ -59,5 +71,34 @@ The changes include modifications of the codesamples asp.net core project includ
   - [ ] Inside each feature folder, files are logically ararnged in subfolders by area of responsibility. For example `Membership/ExternalAuth`, `Membership/Controllers`, `Membership/Models`
 - [ ] **Inclusion markers** — `//Include:` / `//EndInclude:` markers correctly wrap the intended code regions
 - [ ] **No `Generated/` edits** — auto-generated content type classes must not be manually modified
+{%- endif %}
+{%- if role == 'coder' %}
+
+## Codesamples Bootstrap
+
+You are bootstrapping the Xperience by Kentico codesamples project.
+
+Read the `ralph-codesamples-bootstrap` skill for complete step-by-step instructions.
+
+**Your version target:** `{{ triggerParams.xpversion }}`
+
+### Quick reference
+- `npm run codesamples:setversion -- {{ triggerParams.xpversion }}` — install target version
+- `npm run codesamples:build` — verify build
+- `npm run codesamples:serve` — start dev server (localhost:666)
+- If CI restore fails → `npm run codesamples:setversion -- {{ triggerParams.xpversion }} --ci-migrate`
+
+### Auth
+- NuGet private feed auth via `$ADO_PAT_XPERIENCE` env var (handled automatically by `nuget-config.sh`)
+- ADO REST API auth (for PR/build URL formats) via same PAT
+
+{%- if triggerParams.adminui %}
+
+### Admin UI Verification
+After server is running, verify admin UI at `localhost:666/admin`:
+- Login: `administrator` / `admin`
+- Use `playwright-cli` to navigate and verify
+- Read `ralph-codesamples-adminui` skill for interaction patterns
+{%- endif %}
 {%- endif %}
 {% endsection %}

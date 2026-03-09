@@ -18,7 +18,7 @@ Dispatch **ralph-writer** to fix the specific issues raised by the reviewer — 
 1. Pass the feedback items from the JIRA comments and PR threads
 2. Preserve previous decisions unless explicitly contradicted by feedback
 3. Require a passing build before the writer returns `implemented`
-4. If the task involves code samples (`.cs` files were modified), ensure the writer runs `npm run codesamples:build` and uses the **ralph-codesamples-verification** skill to verify changes before returning
+4. If the task involves code samples (`.cs` files were modified), ensure the writer runs `npm run codesamples:build` and uses the **ralph-codesamples-verification** skill to verify changes before returning. If `triggerParams.xpversion` was set, the coder subagent already bootstrapped the project — do not re-run `npm run codesamples:setversion`.
 
 {%- if triggerParams.skip_review %}
 
@@ -28,8 +28,6 @@ Review was skipped for this task (`skip_review` parameter). Proceed directly to 
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 5: Commit & Respond`
-- Set "Skills for this phase" to:
-  - ralph-workflow-revision-commit
 - Add Revision Phase 3 to "Completed Phases" with what was fixed
 - Check off addressed feedback items
 
@@ -39,8 +37,6 @@ Update `state.md`:
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 4: Review`
-- Set "Skills for this phase" to:
-  - ralph-workflow-review
 - Add Revision Phase 3 to "Completed Phases" with what was fixed
 - Check off addressed feedback items
 

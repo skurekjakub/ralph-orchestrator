@@ -79,18 +79,17 @@
           "agent": "ralph.ralph",
           "role": "primary",
           "skills": [
+            "ralph-codesamples-bootstrap",
             "ralph-codesamples",
             "ralph-ado-pr-workflow",
             "ralph-source-references",
             "ralph-ralphchives",
             "ralph-new-page-creation",
-            "ralph-page-removal",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
-            "ralph-codesamples-project",
             "ralph-screenshots",
             "ralph-codesamples-verification",
-            "ralph-training-modules",
+            "ralph-codesamples-adminui",
             "ralph-write-release-notes",
             "ralph-research-guide",
             "ralph-workflow-setup",
@@ -105,9 +104,7 @@
             "ralph-workflow-revision-commit",
             "ralph-workflow-revision-handoff",
             "ralph-build-errors",
-            "ralph-callout-selection",
-            "ralph-cross-version-linking",
-            "ralph-xperience-page-permissions"
+            "xperience"
           ]
         }
       ],
@@ -146,8 +143,6 @@
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
             "ralph-build-errors",
-            "ralph-callout-selection",
-            "ralph-cross-version-linking",
             "ralph-ado-pr-workflow",
             "ralph-ralphchives",
             "ralph-source-references",

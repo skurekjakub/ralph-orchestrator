@@ -26,6 +26,4 @@ Do **not** read `ralph-researcher/output.md`. The writer reads it directly from 
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 3: Write`
-- Set "Skills for this phase" to:
-  - ralph-workflow-write
 - Add Phase 2 to "Completed Phases" with the researcher's `result` and `summary` from `status.json`

@@ -21,7 +21,7 @@ Invoke **ralph-writer** with:
 - The task-id and a one-line directive (e.g. "Implement documentation changes for {{ taskId }}")
 - Any task-level constraints that apply:
   - scope restriction (if `triggerParams.scope` is set)
-  - code-sample involvement (if `triggerParams.codesamples` is set)
+  - code-sample involvement (if `triggerParams.codesamples` is set). If `triggerParams.xpversion` is also set, the coder subagent has already bootstrapped the project — the writer should skip `npm run codesamples:setversion` and use the pre-built project.
   - release-notes requirement (if `triggerParams.release_notes` is set)
 
 Do **not** pass research report content, subtask lists, or source references. The writer reads `ralph-researcher/output.md` on its own.
@@ -40,9 +40,6 @@ Review using dedicated subagent is skipped for this task. Proceed directly to Ph
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 6: Commit & Push`
-- Set "Skills for this phase" to:
-  - ralph-workflow-commit
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
 - Note: "Phases 4-5 skipped (skip_review)"
@@ -53,9 +50,6 @@ Update `state.md`:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 4: Review`
-- Set "Skills for this phase" to:
-  - ralph-workflow-review
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
 

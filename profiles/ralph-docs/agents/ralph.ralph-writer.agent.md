@@ -32,11 +32,9 @@ You must never use `ask_questions` or request human input, regardless of what th
    - `{{ artifactDir }}/ralph-reviewer-technical/output.md`
    - `{{ artifactDir }}/ralph-reviewer-style/output.md`
    - `{{ artifactDir }}/ralph-reviewer-ia/output.md`
-3. Read the relevant style/domain skills before writing:
-   - `ralph-style-guide-review`
-   - `ralph-documentation-syntax`
-   - `ralph-callout-selection`
-   - Any task-specific skills referenced by the research report
+3. Read these skills before writing:
+   - `ralph-style-guide-review` — writing standards, page structure, terminology
+   - `ralph-documentation-syntax` — Jekyll/Liquid syntax, frontmatter, callouts, includes (also references related skills for cross-version linking and page removal — read those if the task requires them)
 
 ## Your Task
 
@@ -47,12 +45,25 @@ You must never use `ask_questions` or request human input, regardless of what th
 5. If a validator run returns issues, fix them and re-run the build.
 6. If reviewer findings from a prior iteration exist, address them before declaring success.
 {%- if triggerParams.codesamples %}
-{% render 'ralph-docs/ralph-codesamples', role: 'writer' %}
+{% render 'ralph-docs/ralph-codesamples-writer' %}
+{%- if triggerParams.xpversion %}
+
+### Coder Handoff
+
+Check `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/status.json` to confirm the coder ran successfully before starting your work:
+- The database is already seeded with test data (members, customers, orders) — do NOT re-run `setversion` or you will lose this data
+- Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/output.md` for the installed version and any migration notes
+- Reference the `ralph-codesamples-bootstrap` skill only for troubleshooting if builds fail mid-write
+
+{%- else %}
+
+**No `xpversion` param** — the project was pre-bootstrapped externally. Follow existing codesamples workflow.
+{%- endif %}
 
 7. If any `.cs` code-sample files were changed, run `npm run codesamples:build` before returning success.
 {%- endif %}
 {%- if triggerParams.release_notes %}
-8. The task also requires release notes. Write them to `/tmp/mcp-attachments/release-notes.md` before returning success.
+8. The task also requires release notes. Write them to `/tmp/mcp-attachments/release-notes.md` before returning success. Use `ralph-write-release-notes` skill.
 {%- endif %}
 
 ## Output

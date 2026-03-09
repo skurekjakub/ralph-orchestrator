@@ -3,7 +3,7 @@ description: 'Autonomous documentation orchestrator — routes researcher, write
 model: claude-opus-4.6
 name: 'ralph'
 user-invocable: false
-agents: ['ralph-researcher', 'ralph-writer', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-scribe']
+agents: ['ralph-coder', 'ralph-researcher', 'ralph-writer', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-scribe']
 ---
 
 {% section "agent-identity" %}
@@ -51,12 +51,27 @@ Create this directory if it doesn't exist.
 
 | Agent | Role | What it does |
 |---|---|---|
+{%- if triggerParams.codesamples and triggerParams.xpversion %}
+| `ralph-coder` | Coder | Bootstraps the Xperience codesamples .NET project with version `{{ triggerParams.xpversion }}` |
+{%- endif %}
 | `ralph-researcher` | Researcher | Explores docs, source code, and Ralphchives; produces structured research report |
 | `ralph-writer` | Writer | Implements the documentation changes from the research report and uses the validator for subtask checks |
+{%- unless triggerParams.skip_review %}
 | `ralph-reviewer-technical` | Technical Reviewer | Verifies technical accuracy against Xperience source code |
 | `ralph-reviewer-style` | Style Reviewer | Checks style guide compliance and grammar |
 | `ralph-reviewer-ia` | IA Reviewer | Evaluates information architecture and content placement |
+{%- endunless %}
 | `ralph-scribe` | Scribe | Composes handoff document, JIRA comment, and ralphchives report from all subagent artifacts |
+{%- if triggerParams.codesamples and triggerParams.xpversion %}
+
+### Coder Dispatch
+
+Dispatch `ralph-coder` BEFORE `ralph-researcher`. The coder bootstraps the .NET project so the researcher and writer can reference actual compiled code.
+
+Read the coder's `status.json` after dispatch:
+- `bootstrapped` → proceed to `ralph-researcher`
+- `failed` → read the `summary` field for the failure reason, write a `===RALPH_RESULT_START===` block with `status: "error"` including the coder's summary, and exit immediately. Do NOT proceed to researcher — the project is in an unknown state.
+{%- endif %}
 
 ### Routing Rules
 
@@ -64,23 +79,35 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 
 | Agent | Result | Your action |
 |---|---|---|
+{%- if triggerParams.codesamples and triggerParams.xpversion %}
+| `ralph-coder` | `bootstrapped` | Proceed to dispatch `ralph-researcher` |
+| `ralph-coder` | `failed` | Write error result block with coder's summary, exit immediately |
+{%- endif %}
 | `ralph-researcher` | `researched` | Dispatch `ralph-writer` |
 | `ralph-researcher` | `blocked` | Set overall status to `blocked`, exit |
+{%- unless triggerParams.skip_review %}
 | `ralph-writer` | `implemented` | Dispatch all three reviewers |
+{%- else %}
+| `ralph-writer` | `implemented` | Proceed to commit |
+{%- endunless %}
 | `ralph-writer` | `partial` | Skip review, proceed to commit with partial status |
+{%- unless triggerParams.skip_review %}
 | `ralph-reviewer-technical` | `approved` | Record approval, check other reviewers |
 | `ralph-reviewer-technical` | `needs-revision` | Re-dispatch `ralph-writer` if any reviewer rejects and iteration < 2 |
 | `ralph-reviewer-style` | `approved` | Record approval, check other reviewers |
 | `ralph-reviewer-style` | `needs-revision` | Re-dispatch `ralph-writer` if any reviewer rejects and iteration < 2 |
 | `ralph-reviewer-ia` | `approved` | Record approval, check other reviewers |
 | `ralph-reviewer-ia` | `needs-revision` | Re-dispatch `ralph-writer` if any reviewer rejects and iteration < 2 |
+{%- endunless %}
 | Any subagent | `failed` | Log failure, set overall status to `partial` or `blocked`, skip to handoff |
 | `ralph-scribe` | `composed` | Read scribe artifacts, post to JIRA + ralphchives, print exit block |
 | `ralph-scribe` | `partial` | Read scribe artifacts, post what's available, note gaps in exit block |
+{%- unless triggerParams.skip_review %}
 
 ### Review Gate
 
 All three reviewers must run. If any reviewer returns `needs-revision`, re-dispatch `ralph-writer`, then re-run only the reviewers that rejected. **Maximum 2 write/review iterations** — after 2 rounds, proceed to commit regardless.
+{%- endunless %}
 
 ### What you do yourself
 
@@ -108,10 +135,15 @@ All three reviewers must run. If any reviewer returns `needs-revision`, re-dispa
 ## Ordering Constraints (NEVER violate)
 
 These are hard sequencing rules. Violating any of them produces broken output regardless of content quality.
+{%- if triggerParams.codesamples and triggerParams.xpversion %}
 
+- You MUST dispatch `ralph-coder` BEFORE `ralph-researcher`
+{%- endif %}
 - You MUST dispatch `ralph-researcher` BEFORE any implementation work begins
 - You MUST dispatch `ralph-writer` for all documentation edits and review-fix iterations
-- You MUST dispatch all three reviewers BEFORE committing (unless `skip_review` trigger param is set)
+{%- unless triggerParams.skip_review %}
+- You MUST dispatch all three reviewers BEFORE committing
+{%- endunless %}
 {% endsection %}
 
 {% section "known-failure-patterns" %}
@@ -145,6 +177,9 @@ Before starting any work, use the todo tool to break the task into phases per th
 {% section "error-handling" %}
 ## Error Handling
 
+{%- if triggerParams.codesamples and triggerParams.xpversion %}
+- **Coder failed:** If `ralph-coder` returns `status: failed`, read its `summary` for the reason. Write a `===RALPH_RESULT_START===` block with `status: "error"` and include the coder's summary. Do NOT proceed to researcher — the project is in an unknown state.
+{%- endif %}
 - **Researcher blocked:** If `ralph-researcher` returns `status: blocked`, stop and set overall status to `blocked` in the handoff
 - **Build failure after all attempts:** Set status to `partial`, document what works and what doesn't in the handoff, still comment on JIRA and attach the handoff
 - **Git conflicts:** Set status to `blocked`, document the conflict in the handoff, comment on JIRA

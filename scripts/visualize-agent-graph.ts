@@ -152,7 +152,7 @@ function extractRefs(content: string): NodeRef[] {
     if (condClose) activeCondition = null;
     if (condElse && activeCondition) {
       // Flip the condition label
-      const label = activeCondition.label.startsWith("not ")
+      const label : string = activeCondition.label.startsWith("not ")
         ? activeCondition.label.slice(4)
         : `not ${activeCondition.label}`;
       activeCondition = { label, line: i };
@@ -164,7 +164,7 @@ function extractRefs(content: string): NodeRef[] {
       activeCondition = { label: isUnless ? `not ${raw}` : raw, line: i };
     }
 
-    const renderMatch = lines[i].match(/\{%[-\s]*render\s+'([^']+)'\s*[-]?%\}/);
+    const renderMatch = lines[i].match(/\{%[-\s]*render\s+'([^']+)'[^%]*%\}/);
     if (renderMatch) {
       const target = renderMatch[1];
       const key = `render:${target}`;
@@ -180,14 +180,25 @@ function extractRefs(content: string): NodeRef[] {
       });
     }
 
-    // Skill name mentions on this line — match known skill names in bold or table cells
+    // Skill name mentions on this line — match known skill names in any common format:
+    //   **skill-name**           bold
+    //   `skill-name`             backtick
+    //   | skill-name |           table cell (plain)
+    //   | **skill-name** |       table cell (bold)
+    //   Skill: **skill-name**    labeled list item
+    //   - **skill-name** —       dash-list bold
+    //   "skill-name"             JSON string
     for (const skillName of skillNames) {
       const key = `skill:${skillName}`;
       if (seen.has(key)) continue;
+      const esc = escapeRegex(skillName);
       const pattern = new RegExp(
-        `(?:\\*\\*${escapeRegex(skillName)}\\*\\*|` +
-          `\\| ${escapeRegex(skillName)} \\||` +
-          `skill[:\\s]*\\*\\*${escapeRegex(skillName)}\\*\\*)`,
+        `(?:` +
+          `\\*\\*${esc}\\*\\*` +             // **skill-name**
+          `|\`${esc}\`` +                     // `skill-name`
+          `|\\|\\s*${esc}\\s*\\|` +           // | skill-name |
+          `|"${esc}"` +                       // "skill-name"
+        `)`,
       );
       if (pattern.test(lines[i])) {
         seen.add(key);

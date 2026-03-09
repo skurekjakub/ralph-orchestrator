@@ -32,6 +32,10 @@ Read these skills before starting your research. They contain the techniques, pa
 |---|---|
 | **ralph-ralphchives** | Search the archives for prior work, gotchas, and patterns related to this task — always do this first |
 | **ralph-research-guide** | Complete research guide — docs site navigation, source code searching, external references, report template. Read the SKILL.md and all files in its `references/` folder. |
+| **xperience** | Your current knowledge of the Xperience product. Make sure to note in the handoff summary after done researching all gaps that should be filled in the listed `references/`. |
+{%- if triggerParams.codesamples %}
+| **ralph-codesamples** | Project structure, feature-folder conventions, `code_link` syntax, `//Include:`/`//EndInclude:` markers, build workflow |
+{%- endif %}
 
 ## Research Order
 
@@ -43,7 +47,20 @@ Read these skills before starting your research. They contain the techniques, pa
 
 
 {%- if triggerParams.codesamples %}
-{% render 'ralph-docs/ralph-codesamples', role: 'researcher' %}
+{% render 'ralph-docs/ralph-codesamples-researcher' %}
+{%- if triggerParams.xpversion %}
+
+### Bootstrapped Project State
+
+The codesamples project was bootstrapped by ralph-coder. Check `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/status.json` to confirm it ran successfully:
+- The project is already built and running at `localhost:666`
+- Explore the built project at `src/_code/src/CodeSamples/` and `src/_code/src/Website/` for current API surface
+- Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/output.md` for installed version and any notes about package changes
+- The `Generated/` directory contains current content type classes for the installed version
+{%- if triggerParams.adminui %}
+- The admin UI is accessible at `localhost:666/admin`
+{%- endif %}
+{%- endif %}
 {%- endif %}
 
 6. **Assemble your report** — follow the template in the research guide's `references/report-template.md`. Run the validation checklist before returning.

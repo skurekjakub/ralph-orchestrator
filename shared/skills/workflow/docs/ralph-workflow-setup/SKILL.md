@@ -30,11 +30,6 @@ You are already on the correct branch. Do **not** create a new branch or switch 
 ## Current Phase
 Phase 1: Setup
 
-### Skills for this phase
-- ralph-workflow-setup
-
-> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.
-
 ## Completed Phases
 (none yet)
 
@@ -62,8 +57,5 @@ Phase 1: Setup
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 2: Research`
-- Set "Skills for this phase" to:
-  - ralph-workflow-research
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 1 to "Completed Phases" with branch name and setup outcomes
 - Record any ralphchives findings

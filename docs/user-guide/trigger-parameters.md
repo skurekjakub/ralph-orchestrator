@@ -77,13 +77,56 @@ These parameters are recognized by agent templates and workflow skills. Availabi
 
 | Parameter | Agent | Description |
 |---|---|---|
-| `codesamples` | `ralph.ralph` | Includes ASP.NET code project authoring instructions |
+| `codesamples` | `ralph.ralph` | Includes ASP.NET code project authoring instructions. When combined with `xpversion`, triggers the coder subagent to bootstrap the project before research. |
+| `xpversion` | `ralph.ralph` | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below. |
+| `adminui` | `ralph.ralph` | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
 | `branch_name` | `ralph.ralph` | Xperience source branch for `git diff` context |
 | `skip_review` | `ralph.ralph` | Skips the review cycle phases in the standard workflow |
+| `release_notes` | `ralph.ralph` | write release notes |
 | `scope` | `ralph.ralph` | Restricts file changes to a specified path |
 | `codesamples` | `ralph.malph` | Adds code sample review checklist |
 | `branch_name` | `ralph.malph` | Instructs reviewer to diff against specified Xperience branch |
 | `scope` | `ralph.malph` | Restricts review scope to a specified path |
+
+### xpversion Formats
+
+The `xpversion` parameter accepts multiple formats. The value is passed verbatim to the docs-repo `npm run codesamples:setversion` script.
+
+| Format | Example | Description |
+|---|---|---|
+| Semver (public NuGet) | `31.0.0` | Stable public release from nuget.org |
+| Private feed version | `31.1.0-hash` | Pre-release build from the Kentico private NuGet feed (requires `ADO_PAT_XPERIENCE`) |
+| PR URL | `https://dev.azure.com/kenticoxperience/CMS/_git/xperience/pullrequest/24735` | Downloads artifacts from the PR's latest build |
+| Build URL | `https://dev.azure.com/kenticoxperience/CMS/_build/results?buildId=550290` | Downloads artifacts from a specific CI build |
+
+#### Usage examples
+
+```
+# Stable public version
+@Ralph(codesamples, xpversion=31.0.0)
+
+# Pre-release from private feed
+@Ralph(codesamples, xpversion=31.2.0-build1)
+
+# From PR artifacts
+@Ralph(codesamples, xpversion=https://dev.azure.com/kenticoxperience/CMS/_git/xperience/pullrequest/24735)
+
+# From build artifacts
+@Ralph(codesamples, xpversion=https://dev.azure.com/kenticoxperience/CMS/_build/results?buildId=550290)
+
+# With admin UI access
+@Ralph(codesamples, xpversion=31.2.0-build1, adminui)
+
+# Codesamples without bootstrap (project pre-configured externally)
+@Ralph(codesamples)
+```
+
+#### Behavioral notes
+
+- `xpversion` without `codesamples` is ignored — the coder only runs when both are present
+- `adminui` without `codesamples` is ignored — admin UI requires a running codesamples server
+- `codesamples` without `xpversion` preserves existing behavior (no coder, writer handles project manually)
+- `xpversion` value is passed verbatim to `npm run codesamples:setversion --`
 
 ### ralph-vscode Profile
 

@@ -1,0 +1,146 @@
+[
+  {
+    "timestamp": "2026-03-09T10:56:29Z",
+    "agent": "builder-planner",
+    "artifacts": ["planner/output.md"],
+    "status": "completed",
+    "result": "parsed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:03:40Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-0a/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:06:20Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-0a/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:07:52Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-0b/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:09:03Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-0b/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:11:41Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-gh/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:13:20Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-gh/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:16:11Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-a/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:17:26Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-a/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:21:17Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-b/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:23:09Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-b/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:25:38Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-f/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:27:20Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-f/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:30:59Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-c/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:32:44Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-c/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:37:13Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-e/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:38:34Z",
+    "agent": "builder-reviewer",
+    "artifacts": ["phases/phase-e/reviewer/output-v1.md"],
+    "status": "completed",
+    "result": "approved",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-09T11:42:48Z",
+    "agent": "builder-implementer",
+    "artifacts": ["phases/phase-d/implementer/output-v1.md"],
+    "status": "completed",
+    "result": "implemented",
+    "iteration": 1
+  }
+]

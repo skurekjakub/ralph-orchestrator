@@ -35,6 +35,4 @@ Using the ADO MCP tools:
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 6: Update Handoff & Exit`
-- Set "Skills for this phase" to:
-  - ralph-workflow-revision-handoff
 - Add Revision Phase 5 to "Completed Phases" with commit hash

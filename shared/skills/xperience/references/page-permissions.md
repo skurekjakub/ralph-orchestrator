@@ -1,7 +1,4 @@
----
-name: ralph-xperience-page-permissions
-description: "Xperience by Kentico page permission model — the three-layer access control system (application-level, page ACL, workflow roles), the Read prerequisite rule, and which ACL permission each admin operation checks. Use this skill whenever a task involves page permissions, ACLs, role-based access to pages, publish/unpublish/create/delete operations, workflow step roles, or the Manage permissions feature. Also use when documenting any page operation that might require specific user permissions — even if the task description doesn't explicitly mention permissions, if you're writing about publishing, creating, deleting, moving, or renaming pages, this skill tells you which permission callouts to include and how to phrase them."
----
+
 {% raw %}
 
 # Xperience Page Permission Model

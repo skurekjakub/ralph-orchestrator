@@ -27,8 +27,4 @@ Stage, commit, and push:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 7: Pull Request`
-- Set "Skills for this phase" to:
-  - ralph-workflow-pr
-  - ralph-ado-pr-workflow
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
 - Add Phase 6 to "Completed Phases" with commit hash

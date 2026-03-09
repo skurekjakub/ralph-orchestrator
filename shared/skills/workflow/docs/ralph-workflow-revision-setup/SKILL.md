@@ -44,9 +44,6 @@ If `state.md` doesn't exist, create it at `.ralph/tasks/{{ taskId }}/state.md`:
 ## Current Phase
 Revision Phase 1-2: Understand Feedback & Find PR
 
-### Skills for this phase
-- ralph-workflow-revision-setup
-
 ## Completed Phases
 (none yet — this is a revision run)
 
@@ -72,7 +69,5 @@ Revision Phase 1-2: Understand Feedback & Find PR
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 3: Implement Fixes`
-- Set "Skills for this phase" to:
-  - ralph-workflow-revision-fix
 - Add Revision Phases 1-2 to "Completed Phases" with feedback summary
 - List all feedback items under "Feedback Items"

@@ -118,11 +118,18 @@ export function buildPromptWithSections(
  * Each nudge is a reminder appended to the end of the user prompt so the
  * agent sees it alongside the JIRA data rather than only in system context.
  */
-const TRIGGER_NUDGES: Record<string, (taskId: string) => string> = {
+const TRIGGER_NUDGES: Record<string, (taskId: string, params?: Record<string, string>) => string> = {
   release_notes: () =>
     `⚠️ REMINDER: Write release notes for this task (see ralph-write-release-notes skill). Output to /tmp/mcp-attachments/release-notes.md and include in the handoff.`,
-  codesamples: () =>
-    `⚠️ REMINDER: This task involves the code samples project ralph-codesamples-project skill. Build with \`npm run codesamples:build\` before committing any .cs files.`,
+  codesamples: (_taskId, params) => {
+    const hasXpversion = params?.xpversion;
+    if (hasXpversion) {
+      return `⚠️ REMINDER: This task involves the code samples project (ralph-codesamples skill). The coder subagent will bootstrap the project with xpversion=${params.xpversion} before research begins. Build with \`npm run codesamples:build\` before committing any .cs files.`;
+    }
+    return `⚠️ REMINDER: This task involves the code samples project (ralph-codesamples skill). No xpversion was provided — the project must be pre-configured or set up manually. Build with \`npm run codesamples:build\` before committing any .cs files.`;
+  },
+  adminui: () =>
+    `⚠️ REMINDER: Admin UI interaction is enabled for this task. The coder verifies admin access; the writer can create admin objects via Playwright (see ralph-codesamples-adminui skill).`,
 };
 
 /**
@@ -140,7 +147,7 @@ function buildTriggerNudges(
   const nudges: string[] = [];
   for (const [key, builder] of Object.entries(TRIGGER_NUDGES)) {
     if (triggerParams[key]) {
-      nudges.push(builder(taskId));
+      nudges.push(builder(taskId, triggerParams));
     }
   }
   return nudges;
