@@ -23,5 +23,6 @@ After server is running, verify admin UI at `localhost:666/admin`:
 - Login: `administrator` / `admin`
 - Use `playwright-cli` to navigate and verify
 - Read `ralph-codesamples-adminui` skill for interaction patterns
+- **Screenshot every key interaction** to `/tmp/mcp-attachments/adminui-NN-description.png`
 {%- endif %}
 {% endsection %}

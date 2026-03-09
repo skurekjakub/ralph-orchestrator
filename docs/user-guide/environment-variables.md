@@ -16,7 +16,7 @@ At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set.
 | Variable | Description |
 |---|---|
 | `ANTHROPIC_API_KEY` | Anthropic API key. Required for `cli: "claude"` profiles |
-| `ADO_PAT_XPERIENCE` | ADO PAT for secondary org access (Code: Read). Agent skips related operations if unset |
+| `ADO_PAT_XPERIENCE` | ADO PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read). Agent skips related operations if unset |
 | `DASHBOARD_URL` | Ralph Status Dashboard URL. Required if `dashboard.enabled` is `true` |
 | `DASHBOARD_SECRET` | Shared secret for dashboard auth. Required alongside `DASHBOARD_URL` |
 | `DISCORD_BOT_TOKEN` | Discord bot token for the `discord-hitl` MCP server |

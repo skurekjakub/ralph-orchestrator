@@ -12,8 +12,25 @@ How to bootstrap a working Xperience by Kentico codesamples project from scratch
 Before bootstrapping, verify these prerequisites are met:
 
 - **`license.txt`** must exist at `src/_code/license.txt` — manual setup, not the agent's job. If missing, the script fails early with a clear error.
-- **`ADO_PAT_XPERIENCE`** env var must be set — required for private NuGet feed authentication.
+- **`ADO_PAT_XPERIENCE`** env var must be set — required for private NuGet feed authentication and for resolving PR/build URLs via the ADO API. The PAT needs **Code (Read)**, **Packaging (Read)**, and **Build (Read)** scopes on the `kenticoxperience` Azure DevOps org.
 - **MSSQL server** available at `DB_HOST:DB_PORT` — provided by the `db` Docker service. Wait for the healthcheck to pass before proceeding.
+
+## Pre-bootstrapped Project Detection
+
+Before running `setversion`, check if the project is already bootstrapped:
+
+```bash
+# Extract the current version from a csproj file
+CURRENT=$(grep -oPm1 'Include="Kentico\.Xperience\..*?" Version="\K[^"]+' src/_code/src/Website/Website.csproj)
+```
+
+Compare `CURRENT` against the requested version:
+
+- **Exact match** — skip `setversion` entirely. Proceed directly to restore → build → database → serve.
+- **Different version or wildcard (`*`)** — run `setversion` with the requested version. Do NOT reuse the existing build artifacts.
+- **No version found** — fresh project, run `setversion` as normal.
+
+> **Only an exact version match qualifies as pre-bootstrapped.** If the csproj has `31.2.2` but the task requests a PR URL or a different semver, always run the full `setversion` flow — the PR may contain unreleased API changes that the task depends on.
 
 ## Version Installation
 

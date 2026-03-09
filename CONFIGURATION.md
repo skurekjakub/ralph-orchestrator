@@ -18,7 +18,7 @@ Secrets and credentials live in `.env`. Never commit this file.
 | `GH_TOKEN` | GitHub fine-grained PAT with **Copilot Requests** permission | When using Copilot CLI |
 | `ANTHROPIC_API_KEY` | Anthropic API key for Claude Code CLI | When using Claude Code CLI |
 | `ADO_PAT` | Azure DevOps PAT for KenticoCustomerSuccess org (Code: Read+Write) | Yes |
-| `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read) | No |
+| `ADO_PAT_XPERIENCE` | Azure DevOps PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read) | No |
 | `JIRA_PAT` | JIRA API token (classic, from [id.atlassian.com](https://id.atlassian.com)) | Yes |
 | `JIRA_EMAIL` | Email associated with the JIRA API token | Yes |
 | `DASHBOARD_URL` | Ralph status dashboard URL | No |

@@ -56,6 +56,8 @@ export class Orchestrator {
   private activeTask: ActiveTask | null = null;
   private running = false;
   private readonly abortController = new AbortController();
+  /** Tracks the in-flight operation so shutdown() can await its teardown. */
+  private activeOperationPromise: Promise<void> | null = null;
   readonly observer: OrchestratorObserver;
 
   /**
@@ -199,7 +201,9 @@ export class Orchestrator {
       }
 
       const next = pending[0];
-      await this.executeOperation(next.issueKey, next.operation);
+      this.activeOperationPromise = this.executeOperation(next.issueKey, next.operation);
+      await this.activeOperationPromise;
+      this.activeOperationPromise = null;
     }
 
     this.log("Orchestrator stopped");
@@ -228,6 +232,19 @@ export class Orchestrator {
     }
     this.heartbeat?.stop();
     this.wakeUp();
+
+    // Wait for the active operation to finish its teardown (finally block
+    // calls teardownContainer → compose down). Without this, process.exit()
+    // kills the process while compose down is still in flight, orphaning
+    // containers.
+    if (this.activeOperationPromise) {
+      try {
+        await this.activeOperationPromise;
+      } catch {
+        // Operation may throw — we only need the teardown to complete.
+      }
+    }
+
     this.emitState();
     this.log("Shutdown complete");
   }

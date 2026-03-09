@@ -29,5 +29,6 @@ The admin UI is accessible at `localhost:666/admin` (login: administrator / admi
 Use `playwright-cli` to interact with the admin interface for creating objects.
 After creating objects via admin UI, run `npm run codesamples:store` to serialize them to CI XML.
 Read the `ralph-codesamples-adminui` skill for object creation workflows.
+**Screenshot every key interaction** to `/tmp/mcp-attachments/adminui-NN-description.png` — these are attached to JIRA during handoff.
 {%- endif %}
 {% endsection %}

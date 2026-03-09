@@ -35,7 +35,7 @@ ENV LANG=en_US.UTF-8 \
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git bash build-essential ca-certificates \
-        curl jq gnupg2 wget \
+        curl jq gnupg2 wget unzip \
         libssl-dev libyaml-dev libreadline-dev libffi-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -123,11 +123,9 @@ USER root
 
 # ============================================================
 # 9. Purge build-only tools
-#    curl/wget were needed to fetch install scripts.
-#    gnupg2 needed for NodeSource GPG key.
 #    libcurl stays for git HTTP transport.
 # ============================================================
-RUN apt-get purge -y --auto-remove curl wget gnupg2 \
+RUN apt-get purge -y --auto-remove wget gnupg2 \
     && rm -rf /var/lib/apt/lists/*
 
 USER vscode

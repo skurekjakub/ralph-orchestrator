@@ -34,15 +34,21 @@ Dispatch the `ralph-scribe` sub-agent to compose the handoff document, JIRA comp
 
 After the scribe completes, read its `status.json`. If `result` is `composed` or `partial`, proceed.
 
-### 2. Attach the handoff file
+### 2. Attach handoff and evidence files
 
-Copy the scribe's handoff to the attachment path and attach to JIRA:
+Copy the scribe's handoff to the attachment path:
 
 ```bash
 cp {{ artifactDir }}/ralph-scribe/handoff.md /tmp/mcp-attachments/handoff-{{ taskId }}.md
 ```
 
-Attach to JIRA using `jira_add_attachment` and file name `handoff-{{ taskId }}.md`.
+Then attach **all files** in `/tmp/mcp-attachments/` to JIRA. List the directory contents and call `jira_add_attachment` for each file — this includes the handoff, any admin UI screenshots (`adminui-*.png`), and other evidence files.
+
+```bash
+ls /tmp/mcp-attachments/
+```
+
+For each file found, attach it using `jira_add_attachment` with the file name.
 
 {%- if triggerParams.release_notes %}
 

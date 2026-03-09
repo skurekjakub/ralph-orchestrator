@@ -36,6 +36,9 @@ You must never use `ask_questions` or request human input, regardless of what th
 ## Known Failure Patterns — DO NOT REPEAT
 
 - **Missing prerequisite check** — running `codesamples:setversion` without checking for `license.txt` or `ADO_PAT_XPERIENCE` first, wasting time on a doomed build.
+- **PAT scope debugging** — if the PAT returns 401 on NuGet feeds or Build API, do NOT spend time testing different auth formats or endpoints. Report the failure and move on — the PAT permissions are the operator's responsibility.
+- **Installing system packages** — you have NO sudo access. Do NOT attempt `apt-get install`, Python wrappers, or any other workaround for missing system tools. If a required tool is missing (`unzip`, `curl`, etc.), report the failure immediately. The container image is the operator's responsibility.
+- **Skipping version check** — running the full `setversion` flow when the csproj already has the correct version pinned from a prior task. Always check for exact version match first.
 - **Schema mismatch retry loop** — failing on CI restore without trying `--ci-migrate`. If CI restore fails with schema errors, retry once with `--ci-migrate`.
 - **Server not backgrounded** — starting the server in the foreground, blocking the agent. Always use `nohup` to background it.
 - **Premature success** — declaring `bootstrapped` without verifying the server actually responds on `localhost:666`.
@@ -62,7 +65,18 @@ Check each prerequisite and fail immediately if any is missing:
 
 If any prerequisite fails, write `status.json` with `result: "failed"` and a clear summary explaining what's missing.
 
-### 3. Install and build
+### 3. Check for pre-bootstrapped project
+
+Before running `setversion`, check if the project already has the correct version:
+
+```bash
+CURRENT=$(grep -oPm1 'Include="Kentico\.Xperience\..*?" Version="\K[^"]+' src/_code/src/Website/Website.csproj)
+```
+
+- **Exact match** with `{{ triggerParams.xpversion }}` → skip `setversion`, go directly to restore → build → database → serve.
+- **Different version, wildcard, or PR/build URL** → run the full `setversion` flow below.
+
+### 4. Install and build
 
 Run the version installation:
 
@@ -76,7 +90,7 @@ If the build or CI restore fails with a schema mismatch, retry with `--ci-migrat
 npm run codesamples:setversion -- {{ triggerParams.xpversion }} --ci-migrate
 ```
 
-### 4. Start the dev server
+### 5. Start the dev server
 
 Background the server so it persists after this agent completes:
 
@@ -84,7 +98,7 @@ Background the server so it persists after this agent completes:
 nohup npm run codesamples:serve > /tmp/codesamples-serve.log 2>&1 &
 ```
 
-### 5. Verify server is running
+### 6. Verify server is running
 
 Poll `localhost:666` until it responds (max ~60 seconds):
 
@@ -98,7 +112,7 @@ done
 If the server does not respond after 60 seconds, check `/tmp/codesamples-serve.log` for errors.
 {%- if triggerParams.adminui %}
 
-### 6. Admin UI verification
+### 7. Admin UI verification
 
 When `adminui` is set, verify the admin interface:
 
