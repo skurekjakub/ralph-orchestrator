@@ -1,13 +1,9 @@
 discord-hitl mcp setup
 
-main agent context buffer throughout the task in timeline dashboard
-
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
 
 parallel copilot process comms - https://github.com/WiseLibs/better-sqlite3
-
-have gpt 5-3 reviewr agent alongside opus 4.6 - reduce same model bias
 
 https://github.com/agentscope-ai/ReMe
 https://github.com/damionrashford/RivalSearchMCP - web search
