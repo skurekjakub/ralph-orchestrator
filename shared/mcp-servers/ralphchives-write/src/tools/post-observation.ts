@@ -10,7 +10,7 @@ interface TopicResponse {
 const inputSchema: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Short observation title (e.g. 'Content Item API naming inconsistency')"),
   content: z.string().describe("Detailed observation in markdown — what you noticed, why it matters, any suggestions"),
-  tags: z.array(z.string()).optional().describe("Tags for categorization"),
+  tags: z.array(z.string()).optional().describe("Tags for categorization. Maximum 4 tags — an 'observation' tag is added automatically, and NodeBB allows 5 total."),
 };
 
 if (!NODEBB_CATEGORY_ID) {

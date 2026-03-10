@@ -166,7 +166,7 @@ Then write `status.json` and append to `manifest.json` per the artifact contract
 ## Rules
 
 - **Never commit** — this agent only bootstraps the environment, it does not make content changes
-- **Never modify source code** — only run npm scripts, verify output
+- **Fix build-breaking API changes** — if the target SDK version renames or removes types/methods, update the source code to compile. This is bootstrap infrastructure, not content modification.
 - **Server must persist** — use `nohup` / background process, it must survive after this agent completes
 - **Fail fast on missing prerequisites** — don't attempt workarounds for missing license or PAT
 - **Only read `status.json`** from downstream — don't relay content

@@ -71,6 +71,6 @@ Bootstrap the Xperience by Kentico codesamples project development environment. 
 ### Important constraints
 
 - **Never commit** — this agent only bootstraps the environment, it does not make content changes
-- **Never modify source code** — only run npm scripts, verify output
+- **Fix build-breaking API changes** — if the target SDK version renames or removes types/methods, update the source code to compile. This is bootstrap infrastructure, not content modification.
 - **Server must persist** — use `nohup` / background process, it must survive after the coder subagent completes
 - **Fail fast on missing prerequisites** — don't attempt workarounds for missing license or PAT

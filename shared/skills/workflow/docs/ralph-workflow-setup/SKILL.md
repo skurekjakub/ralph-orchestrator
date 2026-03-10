@@ -50,8 +50,7 @@ Phase 1: Setup
 (anything else)
 ```
 
-4. **Search ralphchives** (skill: **ralph-ralphchives**) for prior work related to this issue — component names, feature areas, error patterns. Note useful findings in `state.md`. Search by {{ taskId }} primarily.
-5. Comment on **{{ taskId }}** that you're starting work.
+4. Comment on **{{ taskId }}** that you're starting work.
 
 ## Before moving to Phase 2
 

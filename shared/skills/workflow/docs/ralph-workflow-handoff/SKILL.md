@@ -26,7 +26,7 @@ This task involves release notes.
 
 ### 1. Dispatch ralph-scribe
 
-Dispatch the `ralph-scribe` sub-agent to compose the handoff document, JIRA completion comment, and ralphchives report. The scribe reads all upstream artifacts from the artifact directory and produces:
+Dispatch the `ralph-scribe` sub-agent with a one-line directive (e.g. "Compose handoff artifacts for {{ taskId }}"). **Keep the dispatch prompt lean** — provide only the task ID and directive. Do NOT include inline summaries of phase outcomes, review results, or other upstream data. The scribe reads all upstream artifacts from the artifact directory directly and produces:
 
 - `{{ artifactDir }}/ralph-scribe/handoff.md`
 - `{{ artifactDir }}/ralph-scribe/jira-comment.md`

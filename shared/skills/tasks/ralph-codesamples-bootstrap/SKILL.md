@@ -115,4 +115,4 @@ Review codegen output carefully — some generated files may include `//Include:
 | 401 on NuGet restore | `ADO_PAT_XPERIENCE` is missing or expired | Verify the env var is set and the token is valid |
 | CI restore fails | Pre-release version schema mismatch | Use `--ci-migrate` flag |
 | Database connection fails | `DB_HOST`/`MSSQL_SA_PASSWORD` env vars wrong or DB not ready | Check env vars, wait for `db` healthcheck |
-| Build fails after setversion | Breaking API changes in the target version | Check release notes for the target version, fix compilation errors |
+| Build fails after setversion | Breaking API changes in the target version | Fix the compilation errors — this is bootstrap infrastructure, not content modification. Updating obsolete API calls (e.g. renamed types, removed methods) is expected and allowed. |

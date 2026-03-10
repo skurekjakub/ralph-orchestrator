@@ -1,8 +1,13 @@
 discord-hitl mcp setup
 
+make reviewers super adversarial
+
+playwright version mismatch - "content": "The workspace playwright wants 1194 but we have 1208 installed. Let me create a symlink to make it work:",
+
+object prefix for ci in instructions
+
 codesamples:dbcheck
 
-profile natively internally declare squid.conf extension (based on env setup prereqs) - basic mode only anthropic and copilot apis
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded
