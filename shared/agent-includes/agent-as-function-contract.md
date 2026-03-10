@@ -14,7 +14,7 @@ Create it if it doesn't exist. Write all output files here.
 **1. Primary artifact** — your main output:
 {% raw %}
 - Non-iterative agents: `{{ artifactDir }}/{{ agentName }}/output.md`
-- Iterative agents (coder, reviewer): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your iteration number
+- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your iteration number
 {% endraw %}
 
 **2. status.json** — structured status the orchestrator reads for routing:

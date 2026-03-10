@@ -1,10 +1,8 @@
 discord-hitl mcp setup
 
-make reviewers super adversarial
-
 playwright version mismatch - "content": "The workspace playwright wants 1194 but we have 1208 installed. Let me create a symlink to make it work:",
 
-object prefix for ci in instructions
+skill to make a meta-skill about an unknown codebase
 
 codesamples:dbcheck
 

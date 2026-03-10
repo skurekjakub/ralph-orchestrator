@@ -10,7 +10,7 @@ Read the `ralph-codesamples-bootstrap` skill for complete step-by-step instructi
 ### Quick reference
 - `npm run codesamples:setversion -- {{ triggerParams.xpversion }}` — install target version
 - `npm run codesamples:build` — verify build
-- `npm run codesamples:serve` — start dev server (localhost:666)
+- `npm run codesamples:serve` — start app temporarily for smoke testing (localhost:666)
 - If CI restore fails → `npm run codesamples:setversion -- {{ triggerParams.xpversion }} --ci-migrate`
 
 ### Build failures
@@ -22,7 +22,7 @@ If the build fails due to API changes in the target version (e.g., obsolete type
 {%- if triggerParams.adminui %}
 
 ### Admin UI Verification
-After server is running, verify admin UI at `localhost:666/admin`:
+After the temporary server is running, verify admin UI at `localhost:666/admin`:
 - Login: `administrator` / `admin`
 - Use `playwright-cli` to navigate and verify
 - Read `ralph-codesamples-adminui` skill for interaction patterns

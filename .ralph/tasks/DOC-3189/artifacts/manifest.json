@@ -1,0 +1,30 @@
+[
+  {
+    "timestamp": "2026-03-10T12:05:41Z",
+    "agent": "run-analyzer",
+    "artifacts": [
+      "run-analyzer/output.md"
+    ],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-10T12:11:37Z",
+    "agent": "agent-improver",
+    "artifacts": [
+      "agent-improver/output.md"
+    ],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 1
+  },
+  {
+    "agent": "scientist",
+    "status": "completed",
+    "result": "improved",
+    "artifacts": [
+      "scientist/status.json"
+    ]
+  }
+]

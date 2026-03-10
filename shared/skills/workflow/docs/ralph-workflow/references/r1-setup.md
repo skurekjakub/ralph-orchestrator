@@ -1,5 +1,5 @@
 {%- if isRevision %}
-# Revision Phase 1-2: Understand Feedback & Find Existing PR
+# Revision Phase 1-2: Capture Feedback & Rebuild State
 
 ## Before you begin
 
@@ -9,7 +9,7 @@
 ## Phase 1: Understand Feedback
 
 1. **Read the previous handoff file** embedded in your prompt — understand what was done, what decisions were made, and the PR details
-2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
+2. **Read ALL JIRA comments** embedded in your prompt — identify exactly what the reviewer wants changed
 3. **Search ralphchives** (skill: **ralph-ralphchives**) for any observations or gotchas related to this issue from previous runs
 4. You are revising **{{ taskId }}: {{ taskTitle }}** — use this key for branch/commit naming
 
@@ -44,10 +44,11 @@ Revision Phase 1-2: Understand Feedback & Find PR
 (none yet — this is a revision run)
 
 ## Feedback Items
-(list each feedback item from JIRA comments and PR threads)
+- [ ] <feedback item>
+- Source: JIRA comment | PR thread | previous handoff
 
 ## Key Decisions
-(from previous handoff — copy relevant decisions here)
+(from previous handoff — copy forward only the decisions that still apply)
 
 ## Tracked Identifiers
 - Branch: ralph/{{ taskId }}-<slug>
@@ -56,6 +57,19 @@ Revision Phase 1-2: Understand Feedback & Find PR
 
 ## Source References
 (from previous handoff — copy relevant references here)
+
+## Previous Run Summary
+(what the previous attempt accomplished, in 3-5 bullets)
+
+## Task Plan
+- Planner status: not started
+- Task index: not created yet
+
+## Current Task
+(none yet)
+
+## Completed Tasks
+(none yet)
 
 ## Notes
 (anything else)
@@ -67,6 +81,8 @@ Update `state.md`:
 - Set "Current Phase" to `Revision Phase 3: Implement Fixes`
 - Add Revision Phases 1-2 to "Completed Phases" with feedback summary
 - List all feedback items under "Feedback Items"
+- Record the PR URL and branch name in "Tracked Identifiers"
+- Record any prior handoff decisions the writer must preserve
 {%- else %}
 <!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
 {%- endif %}

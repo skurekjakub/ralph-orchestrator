@@ -5,11 +5,10 @@
   "cli": "copilot",
   "timeoutMs": 36000000,
   "allowlistDomains": [
-    "aka.ms",
-    "pkgs.dev.azure.com",
-    "dev.azure.com",
-    "vsblob.dev.azure.com",
+    ".aka.ms",
+    ".dev.azure.com",
     ".artifacts.visualstudio.com",
+    ".blob.core.windows.net",
     ".npmjs.org",
     ".rubygems.org",
     ".nuget.org",
@@ -99,14 +98,15 @@
             "ralph-new-page-creation",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
-            "ralph-screenshots",
             "ralph-codesamples-verification",
             "ralph-codesamples-adminui",
             "ralph-write-release-notes",
+            "ralph-task-planning",
             "ralph-research-guide",
             "ralph-workflow",
             "ralph-build-errors",
-            "xperience"
+            "xperience",
+            "xperience-documentation"
           ]
         }
       ],
@@ -118,7 +118,13 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6"
+              "model": "claude-opus-4.6",
+              "skills": [
+                "agent-eval",
+                "agent-as-function-audit",
+                "skill-creator",
+                "mcp-builder"
+              ]
             }
           ]
         }
@@ -144,11 +150,9 @@
           "skills": [
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
-            "ralph-build-errors",
             "ralph-ado-pr-workflow",
             "ralph-ralphchives",
             "ralph-source-references",
-            "ralph-screenshots",
             "malph-workflow-descend",
             "malph-workflow-investigate",
             "malph-workflow-verify",
@@ -166,7 +170,13 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6"
+              "model": "claude-opus-4.6",
+              "skills": [
+                "agent-eval",
+                "agent-as-function-audit",
+                "skill-creator",
+                "mcp-builder"
+              ]
             }
           ]
         }
@@ -230,7 +240,13 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6"
+              "model": "claude-opus-4.6",
+              "skills": [
+                "agent-eval",
+                "agent-as-function-audit",
+                "skill-creator",
+                "mcp-builder"
+              ]
             }
           ]
         }

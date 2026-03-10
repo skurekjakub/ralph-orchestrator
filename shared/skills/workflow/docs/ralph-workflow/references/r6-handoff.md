@@ -1,5 +1,5 @@
 {%- if isRevision %}
-# Revision Phase 6-7: Update Handoff & Exit
+# Revision Phase 6: Handoff & Exit
 
 ## Before you begin
 
@@ -7,36 +7,14 @@
 2. **Verify the current phase** — this skill is for Revision Phase 6. If `state.md` shows a different current phase, update it now.
 3. **Review "Completed Phases"** — you need a summary of everything done.
 
-## Phase 6: Update Handoff
+## Phase 6: Dispatch ralph-scribe
 
-Update the existing handoff file at `.ralph/tasks/{{ taskId }}/handoff.md`:
+Dispatch the `ralph-scribe` sub-agent with a one-line directive (e.g. "Compose and deliver revision handoff artifacts for {{ taskId }}"). Keep the dispatch prompt lean. The scribe reads `state.md`, upstream artifacts, and the current repo state directly from the filesystem.
 
-1. **Add a "Revision" section** summarizing what was changed and why
-2. **Preserve the original handoff content** — append, don't replace
-3. **List feedback items** and how each was addressed (or why it wasn't)
+After the scribe completes, read only its `status.json`.
 
-Attach the updated handoff to the JIRA issue using the JIRA MCP tools.
-
-Post a **completion comment** on the JIRA issue:
-> Review feedback addressed. Updated [list of files]. See handoff for details.
-
-## Phase 7: Ralphchives & Exit
-
-{%- if triggerParams.skip_ralphchives %}
-
-Ralphchives reporting was skipped for this task.
-
-{%- else %}
-
-**This is a revision — an existing ralphchives thread almost certainly exists from the first pass.**
-
-1. Search ralphchives for the issue key `{{ taskId }}` using `search_ralphchives`
-2. **If a thread exists** (it should): use `reply_to_thread` to add your revision summary as a reply. Do NOT create a new topic.
-3. **Only if no thread exists** (unlikely): use `post_task_report` to create one.
-
-Include in your reply: what feedback was addressed, corrections made, and any patterns or gotchas discovered during the revision.
-
-{%- endif %}
+- `result: delivered` — proceed to the exit block.
+- `result: partial` — proceed to the exit block, but treat the task as partial and preserve the scribe `summary` in `state.md`.
 
 ### Exit block
 
@@ -44,8 +22,12 @@ Include in your reply: what feedback was addressed, corrections made, and any pa
 
 ```
 ===RALPH_RESULT_START===
-status: completed
-summary: <one-line summary of revision changes>
+JIRA_KEY: {{ taskId }}
+STATUS: <completed|partial|blocked>
+BRANCH: ralph/{{ taskId }}-<short-slug>
+PR_URL: <full ADO PR URL, or "none" if unavailable>
+HANDOFF: /tmp/mcp-attachments/handoff-{{ taskId }}.md
+SUMMARY: <one-line summary of revision changes>
 ===RALPH_RESULT_END===
 ```
 

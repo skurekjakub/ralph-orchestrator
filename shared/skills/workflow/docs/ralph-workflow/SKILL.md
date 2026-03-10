@@ -20,12 +20,12 @@ This skill routes you to the correct phase instructions. Read the reference file
 | Phase | Reference file | Summary |
 |-------|---------------|---------|
 | 1–2. Setup | `references/r1-setup.md` | Understand feedback, find existing branch & PR |
-| 3. Fix | `references/r3-fix.md` | Dispatch ralph-writer in revision mode to implement fixes |
+| 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the next pending fix task |
 {%- unless triggerParams.skip_review %}
-| 4. Review | `references/4-review.md` | Three-reviewer gate (technical, style, IA), revision loop |
+| 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 {%- endunless %}
 | 5. Commit | `references/r5-commit.md` | Commit, push, respond to PR threads |
-| 6–7. Handoff & Exit | `references/r6-handoff.md` | Update handoff, JIRA comment, exit block |
+| 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, print exit block |
 
 {%- else %}
 
@@ -37,10 +37,10 @@ This skill routes you to the correct phase instructions. Read the reference file
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
 | 1b. Coder | _(use ralph-codesamples-bootstrap skill)_ | Dispatch ralph-coder to bootstrap the codesamples .NET project |
 {%- endif %}
-| 2. Research | `references/2-research.md` | Dispatch ralph-researcher to produce the research report |
-| 3. Write | `references/3-write.md` | Dispatch ralph-writer to implement changes |
+| 2. Research | `references/2-research.md` | Dispatch ralph-researcher, then ralph-planner to produce task files |
+| 3. Write | `references/3-write.md` | Dispatch ralph-writer for the next pending planned task |
 {%- unless triggerParams.skip_review %}
-| 4–5. Review | `references/4-review.md` | Three-reviewer gate (technical, style, IA), revision loop |
+| 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 {%- endunless %}
 | 6. Commit | `references/6-commit.md` | Pre-commit checks, commit, push |
 | 7. PR | `references/7-pr.md` | Create ADO pull request |

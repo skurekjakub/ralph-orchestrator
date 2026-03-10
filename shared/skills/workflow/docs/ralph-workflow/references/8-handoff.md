@@ -16,57 +16,25 @@
 This task involves release notes.
 
 1. Check the writer's `status.json` summary for confirmation that release notes were produced.
-2. If the summary does not mention release notes, note that gap in the handoff and proceed with the task status that reflects the missing artifact.
+2. If the summary does not mention release notes, record that gap in `state.md` for the scribe and proceed with the task status that reflects the missing artifact.
 {% endsection %}
 {%- endif %}
 
 ### 1. Dispatch ralph-scribe
 
-Dispatch the `ralph-scribe` sub-agent with a one-line directive (e.g. "Compose handoff artifacts for {{ taskId }}"). **Keep the dispatch prompt lean** — provide only the task ID and directive. Do NOT include inline summaries of phase outcomes, review results, or other upstream data. The scribe reads all upstream artifacts from the artifact directory directly and produces:
+Dispatch the `ralph-scribe` sub-agent with a one-line directive (e.g. "Compose and deliver handoff artifacts for {{ taskId }}"). **Keep the dispatch prompt lean** — provide only the task ID and directive. Do NOT include inline summaries of phase outcomes, review results, or other upstream data. The scribe reads all upstream artifacts from the artifact directory directly, composes the artifacts, attaches evidence, posts the JIRA completion comment, and updates ralphchives.
 
 - `{{ artifactDir }}/ralph-scribe/handoff.md`
 - `{{ artifactDir }}/ralph-scribe/jira-comment.md`
 - `{{ artifactDir }}/ralph-scribe/ralphchives-report.md`
+- `/tmp/mcp-attachments/handoff-{{ taskId }}.md`
 
-After the scribe completes, read its `status.json`. If `result` is `composed` or `partial`, proceed.
+After the scribe completes, read only its `status.json`.
 
-### 2. Attach handoff and evidence files
+- `result: delivered` — proceed to the exit block.
+- `result: partial` — proceed to the exit block, but use partial status and carry the scribe `summary` into `state.md`.
 
-Copy the scribe's handoff to the attachment path:
-
-```bash
-cp {{ artifactDir }}/ralph-scribe/handoff.md /tmp/mcp-attachments/handoff-{{ taskId }}.md
-```
-
-Then attach **all files** in `/tmp/mcp-attachments/` to JIRA. List the directory contents and call `jira_add_attachment` for each file — this includes the handoff, any admin UI screenshots (`adminui-*.png`), and other evidence files.
-
-```bash
-ls /tmp/mcp-attachments/
-```
-
-For each file found, attach it using `jira_add_attachment` with the file name.
-
-{%- if triggerParams.release_notes %}
-
-{% section "release-notes" %}
-### 2.5 Attach release note file
-
-Attach to JIRA using `jira_add_attachment` and file name `release-notes.md`.
-{% endsection %}
-{%- endif %}
-
-
-### 3. Post a completion comment
-
-Read `{{ artifactDir }}/ralph-scribe/jira-comment.md` and post its content on **{{ taskId }}** using `jira_add_comment`.
-
-### 4. Post to ralphchives
-
-Read `{{ artifactDir }}/ralph-scribe/ralphchives-report.md` and post it using the **ralph-ralphchives** skill.
-
-First search for existing threads (`search_ralphchives`) matching the issue ({{ taskId }}) and related keywords. If not found, create a new post.
-
-### 5. Exit
+### 2. Exit
 
 Print a final summary to stdout in this **exact format** — the orchestrator parses it:
 

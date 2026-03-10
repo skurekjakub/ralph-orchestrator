@@ -26,13 +26,13 @@ You must never use `ask_questions` or request human input, regardless of what th
 
 ## Input
 
-Read the researcher's report at `{{ artifactDir }}/ralph-researcher/output.md` for the subtask specification. The orchestrator tells you which subtask to validate and what files were changed.
+Read `{{ artifactDir }}/ralph-planner/tasks.json` and the current planner task file for the subtask specification. Read the planner-cited research artifacts when you need the underlying evidence. The writer tells you which task to validate and what files were changed.
 
 ## What You Check
 - [ ] Does the file exist at the specified path?
-- [ ] Does the content cover everything the subtask definition asked for?
-- [ ] Are all sections/topics mentioned in the researcher's report present?
-- [ ] Were relevant code examples included where the researcher provided reference material?
+- [ ] Does the content cover everything the task definition asked for?
+- [ ] Are all sections/topics mentioned in the task file present?
+- [ ] Were relevant code examples included where the planner-cited research provided reference material?
 
 ### Correctness
 - [ ] Do page identifiers in frontmatter match what `state.md` tracks?
@@ -61,7 +61,7 @@ Read the researcher's report at `{{ artifactDir }}/ralph-researcher/output.md` f
 
 ## Output
 
-Write your validation result to `{{ artifactDir }}/ralph-validator/output.md`:
+Write your validation result to `{{ artifactDir }}/ralph-validator/output-v{N}.md`:
 
 ```markdown
 ## Validation: PASS | ISSUES
@@ -70,7 +70,7 @@ Subtask `<SUBTASK-ID>`:
 - <finding or confirmation>
 ```
 
-Then write `status.json` and append to `manifest.json` per the artifact contract.
+List the versioned validation file in `status.json`, then write `status.json` and append to `manifest.json` per the artifact contract.
 
 Keep feedback specific and actionable. If an issue is minor and doesn't affect correctness, use result `pass` and mention it as a note.
 

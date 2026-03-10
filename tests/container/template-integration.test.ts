@@ -473,6 +473,13 @@ describe("shared agent includes (real files)", () => {
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
+  it("renders post-hooks/subagent-mapper with hook context", async () => {
+    const rendered = await renderInclude("post-hooks/subagent-mapper", hookContext("ralph-docs"));
+    expect(rendered).toContain("DOC-100");
+    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
+  });
+
   it("renders post-hooks/agent-improver with hook context", async () => {
     const rendered = await renderInclude("post-hooks/agent-improver", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
@@ -480,6 +487,13 @@ describe("shared agent includes (real files)", () => {
     // {% raw %} blocks should be consumed — literal Liquid tags preserved in output
     expect(rendered).not.toContain("{% raw %}");
     expect(rendered).not.toContain("{% endraw %}");
+  });
+
+  it("renders post-hooks/run-synthesizer with hook context", async () => {
+    const rendered = await renderInclude("post-hooks/run-synthesizer", hookContext("ralph-docs"));
+    expect(rendered).toContain("DOC-100");
+    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
   it("renders ralph-docs workflow includes", async () => {

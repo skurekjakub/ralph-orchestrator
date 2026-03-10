@@ -5,7 +5,7 @@ description: "Bootstrap a working Xperience by Kentico codesamples project from 
 
 # Codesamples Bootstrap Skill
 
-How to bootstrap a working Xperience by Kentico codesamples project from scratch. This is the foundational setup that enables code sample writing, testing, and admin UI interaction.
+How to bootstrap a working Xperience by Kentico codesamples project from scratch. This is the foundational setup that enables later code sample writing, testing, and admin UI interaction.
 
 ## Prerequisites
 
@@ -13,7 +13,13 @@ Before bootstrapping, verify these prerequisites are met:
 
 - **`license.txt`** must exist at `src/_code/license.txt` — manual setup, not the agent's job. If missing, the script fails early with a clear error.
 - **`ADO_PAT_XPERIENCE`** env var must be set — required for private NuGet feed authentication and for resolving PR/build URLs via the ADO API. The PAT needs **Code (Read)**, **Packaging (Read)**, and **Build (Read)** scopes on the `kenticoxperience` Azure DevOps org.
-- **MSSQL server** available at `DB_HOST:DB_PORT` — provided by the `db` Docker service. Wait for the healthcheck to pass before proceeding.
+- **MSSQL server** available at `DB_HOST:DB_PORT` — provided by the `db` Docker service. Verify accessibility with `sqlcmd` before proceeding:
+
+```bash
+sqlcmd -S "$DB_HOST,$DB_PORT" -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1"
+```
+
+If this command cannot connect, do not continue with bootstrap.
 
 ## Pre-bootstrapped Project Detection
 
@@ -26,7 +32,7 @@ CURRENT=$(grep -oPm1 'Include="Kentico\.Xperience\..*?" Version="\K[^"]+' src/_c
 
 Compare `CURRENT` against the requested version:
 
-- **Exact match** — skip `setversion` entirely. Proceed directly to restore → build → database → serve.
+- **Exact match** — skip `setversion` entirely. Proceed directly to restore → build → database → smoke test.
 - **Different version or wildcard (`*`)** — run `setversion` with the requested version. Do NOT reuse the existing build artifacts.
 - **No version found** — fresh project, run `setversion` as normal.
 
@@ -93,10 +99,17 @@ After bootstrapping, verify the setup:
 | `npm run codesamples:build` | Verify the project compiles |
 | `npm run codesamples:serve` | Start the Website at `localhost:666` (uses `dotnet watch`) |
 
-To background the server for continued work:
+For the bootstrap agent, start the application only long enough to confirm it responds, then stop it again. Downstream agents should start the application on demand when they need browser verification, screenshots, or admin UI interaction.
+
+Example smoke-test flow:
 
 ```bash
-nohup npm run codesamples:serve > /tmp/codesamples-serve.log 2>&1 &
+npm run codesamples:serve > /tmp/codesamples-serve.log 2>&1 &
+SERVER_PID=$!
+trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+# verify localhost:666 responds
+kill "$SERVER_PID"
+wait "$SERVER_PID" || true
 ```
 
 ## Additional Commands
@@ -113,6 +126,7 @@ Review codegen output carefully — some generated files may include `//Include:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | 401 on NuGet restore | `ADO_PAT_XPERIENCE` is missing or expired | Verify the env var is set and the token is valid |
+| Connection timeout or 403/407 on `*.blob.core.windows.net` | Egress proxy blocks Azure Blob Storage CDN — NuGet packages hosted on ADO feeds redirect downloads to `*.blob.core.windows.net` | **Infrastructure issue — cannot fix from inside the container.** Write `status.json` with `result: "failed"` after 2 retry attempts. The operator must add `.blob.core.windows.net` to the proxy allowlist. |
 | CI restore fails | Pre-release version schema mismatch | Use `--ci-migrate` flag |
 | Database connection fails | `DB_HOST`/`MSSQL_SA_PASSWORD` env vars wrong or DB not ready | Check env vars, wait for `db` healthcheck |
 | Build fails after setversion | Breaking API changes in the target version | Fix the compilation errors — this is bootstrap infrastructure, not content modification. Updating obsolete API calls (e.g. renamed types, removed methods) is expected and allowed. |

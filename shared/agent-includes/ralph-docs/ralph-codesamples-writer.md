@@ -8,9 +8,10 @@ Read the **ralph-codesamples** skill for full project structure, feature-folder 
 ### Writing: Code Samples Workflow
 {%- if triggerParams.xpversion %}
 
-**Note:** The codesamples project was bootstrapped by ralph-coder. The server is running at localhost:666.
+**Note:** The codesamples project was bootstrapped by ralph-coder. The project is built and database-ready.
 Do NOT run `setversion` — the project is ready to use.
 Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/output.md` for version and setup details.
+Start the application yourself when you need runtime verification, screenshots, or admin UI interactions.
 {%- endif %}
 
 Follow this sequence when implementing code sample changes:
@@ -23,11 +24,11 @@ Follow this sequence when implementing code sample changes:
 6. **Codename prefix** — when creating any object in the Xperience database (content types, taxonomies, member roles, etc.), always use `codesamples.` as the codename prefix. In admin UI, expand "Identifiers" and uncheck "Pre-fill code name automatically". Read the **ralph-codesamples** skill § "CI Repository and Object Codenames" for details.
 7. **No seeders for CI objects** — do NOT create data seeder classes (`Website/Initialization/SeedersImpl/`) for objects stored in CI (content types, taxonomies, member roles, order statuses, promotions, etc.). CI restores them from XML. Seeders are only for transactional data (members, customers, orders).
 8. **Build**: run `npm run codesamples:build` and fix any compilation errors before returning.
-9. **Functional verification** — use the **ralph-codesamples-verification** skill to start the application and exercise the features you implemented. Navigate to the routes, submit forms, trigger controller actions, and confirm the application behaves correctly.
+9. **Functional verification** — use `npm run codesamples:serve` to start the application when needed, exercise the features you implemented, and stop the application when you are done. Navigate to the routes, submit forms, trigger controller actions, and confirm the application behaves correctly.
 {%- if triggerParams.adminui %}
 
 ### Admin UI
-The admin UI is accessible at `localhost:666/admin` (login: administrator / admin).
+Start the application before admin UI work. The admin UI is then accessible at `localhost:666/admin` (login: administrator / admin).
 Use `playwright-cli` to interact with the admin interface for creating objects.
 After creating objects via admin UI, run `npm run codesamples:store` to serialize them to CI XML.
 Read the `ralph-codesamples-adminui` skill for object creation workflows.

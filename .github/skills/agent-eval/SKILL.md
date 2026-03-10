@@ -166,7 +166,26 @@ Does the created content accurately reflect source material?
 - Cross-reference identifiers resolve to real pages
 - No hallucinated API members or parameters
 
-**Verification method:** Read the source files the agent referenced and compare claims against actual code. Check `related_pages` identifiers with `grep -rn 'identifier: <id>'` in the target repo.
+**What to check (code sample tasks):**
+- Code compiles and runs against the target SDK version
+- Package references and import statements are correct
+- Variable names, method calls, and types match the API's public surface
+- Error handling follows the SDK's idiomatic patterns (e.g., try/catch for async, result types)
+- Code doesn't use deprecated APIs when current alternatives exist
+
+**What to check (migration / refactoring tasks):**
+- Behavioral parity — migrated code produces the same outputs for the same inputs
+- No silent breaking changes (renamed exports, changed default values, removed overloads)
+- Dependencies updated consistently (package.json, lock file, import paths)
+- Build and test suites pass after migration
+
+**What to check (analysis / post-hook tasks):**
+- Metrics are correctly extracted from source data (log files, telemetry)
+- Findings reference real evidence (actual tool calls, real error messages) — no hallucinated findings
+- Improvement suggestions target files that exist and sections that are relevant
+- Cross-references between subagent analyses are consistent
+
+**Verification method:** Read the source files the agent referenced and compare claims against actual code. For docs tasks, check `related_pages` identifiers with `grep -rn 'identifier: <id>'` in the target repo. For code tasks, check build output. For analysis tasks, verify cited evidence against raw logs.
 
 #### D6 in Review Workflows → D6a + D6b
 
@@ -229,12 +248,14 @@ Did subagents produce the required filesystem artifacts?
 - Every subagent writes `status.json` with all 7 required fields (`agent`, `task_id`, `status`, `result`, `summary`, `artifacts`, `next_hint`, `iteration`)
 - Every subagent writes a primary artifact (`output.md` or `output-v{N}.md` for iterative agents)
 - Every subagent appends to the shared `manifest.json` audit log
-- `result` codes match the declared set for that agent type (e.g., researcher: `researched`/`blocked`, writer: `implemented`/`partial`, reviewer: `approved`/`needs-revision`)
+- `result` codes match the declared set for that agent type (e.g., researcher: `researched`/`blocked`, writer: `implemented`/`partial`, reviewer: `approved`/`needs-revision`, mapper: `mapped`/`skipped`, analyzer: `analyzed`/`skipped`, synthesizer: `synthesized`/`skipped`)
 - `summary` is routing-grade (~100 tokens, enough for decisions, not a report)
 - Iterative agents use versioned artifacts (`output-v1.md`, `output-v2.md`) and increment `iteration`
 - `next_hint` is populated where meaningful (researcher → writer, writer → reviewer)
+- **Fan-out agents** use namespaced artifact paths: `run-analyzer/<target>/status.json`, `agent-improver/<target>/status.json` — one directory per target subagent
+- **Mapper agents** produce both a master inventory (`output.md`) and per-item extraction files (`subagents/<name>.md`)
 
-**Evidence sources:** Search `audit.jsonl` or transcript for `status.json`, `manifest.json`, `output.md` reads/writes. Check `pre-tool.log` for `cat .../status.json` commands.
+**Evidence sources:** Search `audit.jsonl` or transcript for `status.json`, `manifest.json`, `output.md` reads/writes. Check `pre-tool.log` for `cat .../status.json` commands. For fan-out pipelines, verify each dispatched instance writes to its own namespaced directory.
 
 #### D9b: Orchestrator Purity
 
@@ -252,7 +273,9 @@ Does the orchestrator act as a pure router?
 - Orchestrator prompt contains long relayed content from a subagent → data relay violation
 - Orchestrator reading reviewer `output.md` to decide whether to revise → should route on `result` from `status.json`
 
-**Measuring context cleanliness:** Count total tokens from subagent returns entering orchestrator context. Ideal is ~5-10 tokens per subagent (one line). If any return exceeds ~100 tokens, flag as a violation.
+**Documented exceptions:** Some orchestrators have narrow, documented exceptions to purity (e.g., scientist reads mapper `output.md` to get the subagent list for fan-out dispatch). These should be explicitly declared in the agent template. Score as 4 if the exception is documented, 2 if it's undocumented.
+
+**Measuring context cleanliness:** Count total tokens from subagent returns entering orchestrator context. Ideal is ~5-10 tokens per subagent (one line). If any return exceeds ~100 tokens, flag as a violation. For fan-out orchestrators, this is per-dispatch — a 5-subagent fan-out means ~50 tokens total from analyzer returns, not 50 per subagent.
 
 #### D9c: Data Flow
 
@@ -263,6 +286,8 @@ Do subagents read upstream artifacts from the filesystem, not from the orchestra
 - Reviewer dispatch prompts contain path references to writer artifacts — NOT file lists or content pasted from the orchestrator
 - Downstream subagents (coder iteration 2+) read reviewer feedback from `reviewer/output-v{N}.md` directly
 - No subagent prompt contains quoted content from another subagent's output
+- **Fan-out dispatch** prompts point to the mapper's per-subagent extraction file (e.g., `"read extraction at .../subagent-mapper/subagents/<name>.md"`) — the orchestrator passes the path, not extracted data
+- **Analyzer → improver** handoff passes the analyzer's namespaced output path (e.g., `"read analysis at .../run-analyzer/<name>/output.md"`) — not analysis content
 
 **Per-dispatch check:** For each `task` tool call in `pre-tool.log`, examine the `prompt` argument:
 1. Does it contain a filesystem path pointer to upstream artifacts? ✅
@@ -273,7 +298,7 @@ Do subagents read upstream artifacts from the filesystem, not from the orchestra
 
 Were subagents dispatched with effective prompts?
 
-**What to check (replaces old D9):**
+**What to check:**
 - Researcher prompt includes specific research questions, not just "research this topic"
 - Writer prompt points to `ralph-researcher/output.md` and lists key constraints
 - Reviewer prompts declare their input artifacts: `Input: ralph-writer/output-v{N}.md, changed files`
@@ -281,6 +306,7 @@ Were subagents dispatched with effective prompts?
 - All dispatch prompts include the task-id for artifact directory resolution
 - Prompt length is proportional to task importance (researcher/writer get detailed prompts, reviewers get structured prompts — not one-liners)
 - Sub-agent skill loads are reasonable (they don't inherit loaded skills from main agent)
+- **Fan-out dispatch prompts** include: target subagent name, path to upstream artifact (mapper extraction or analyzer report), and namespaced output directory. Each fan-out dispatch should be self-contained — the dispatched agent shouldn't need to discover its target.
 
 **Scoring guide:**
 - 5: Every dispatch prompt has clear input artifact declarations, specific scope, and appropriate detail level
@@ -298,8 +324,10 @@ Does the orchestrator follow its declared routing table?
 - Error/blocked paths lead to graceful exits, not hangs
 - Iteration limits are enforced (e.g., max 2 write/review cycles)
 - Parallel dispatch is used correctly (e.g., all 3 reviewers launched simultaneously, not sequentially)
+- **Fan-out dispatch** follows the routing table per-iteration: for each mapped subagent, analyzer dispatched → result checked → improver dispatched if `analyzed` → result checked. Sequential per-subagent is correct; the key check is that the routing table is followed for each iteration.
 - `next_hint` from `status.json` is considered but not blindly followed when the routing table specifies otherwise
 - The routing table is explicitly declared in the orchestrator agent template (check the template file if evaluating template quality)
+- **Post-fan-out routing** — synthesizer or other aggregate agents are dispatched only after all per-subagent dispatches complete, and their results are handled per the routing table (e.g., `skipped` if too few subagents)
 
 **Scoring guide:**
 - 5: All observed routing decisions match the declared table; parallel dispatch used where applicable
@@ -344,24 +372,36 @@ Per-task scoring tables with evidence, dimension averages, overall score, streng
 
 ## Tips from Experience
 
-**Reading pre-tool.log is the fastest way to understand what happened.** Each line is one tool call with name and args — you can map the entire execution in minutes. Read transcript.md selectively after that.
+### Reading strategy
 
-**D9 is the architectural dimension.** Unlike D1-D8 which evaluate execution quality, D9 evaluates whether the multi-agent architecture is working as designed. A run can score 5 on D1-D8 (perfect tool use, correct content) while scoring 2 on D9 (orchestrator reads output.md, relays data, no manifest). Always evaluate D9 independently.
+**pre-tool.log first.** Each line is one tool call with name and args — map the entire execution in minutes. Read transcript.md selectively after that.
 
-**Measuring orchestrator purity requires reading the transcript, not just pre-tool.log.** Pre-tool.log shows what tools the orchestrator called, but you need the transcript to see if subagent returns leaked artifact content into the orchestrator's context. Grep for `output.md`, `cat `, and artifact directory paths in orchestrator sections of the transcript.
+**Transcript for purity checks.** Pre-tool.log shows what tools the orchestrator called, but you need the transcript to see if subagent returns leaked artifact content into the orchestrator's context. Grep for `output.md`, `cat `, and artifact directory paths in orchestrator sections.
 
-**manifest.json is the newest contract requirement.** Many existing runs predate it — score current runs against the current contract, but note if the template itself doesn't include manifest.json instructions (that's a template bug, not an agent bug).
+### Architecture (D9)
 
-**Sub-agent duplication is architecturally expected but still worth noting.** Sub-agents don't share the main agent's file cache or loaded skills. This means some re-reading is unavoidable. Score it as a 3–4 depending on severity, not as a failure.
+**D9 is independent of D1–D8.** A run can score 5 on execution quality while scoring 2 on architecture (orchestrator reads output.md, relays data, no manifest). Always evaluate D9 separately.
 
-**Build check frequency is a judgment call.** Two builds (after all changes + before commit) is the minimum for correctness. Three builds (early smoke test + after changes + before commit) is defensible for complex tasks. More than three is inefficient.
+**manifest.json is the newest contract requirement.** Many existing runs predate it — score current runs against the current contract, but note if the template itself doesn't include manifest.json instructions (template bug, not agent bug).
 
-**Git push failures are expected in proxy environments.** The agent container routes through Squid proxy, which blocks direct git push. The correct behavior is to fall back to `ado_push_progress` MCP tool. Score the fallback as a positive (D5: 5) — the agent shouldn't waste time debugging the proxy.
+**Sub-agent duplication is expected.** Sub-agents don't share the main agent's file cache or loaded skills. Some re-reading is unavoidable. Score as 3–4 depending on severity, not as failure.
 
-**JIRA ack timing matters.** The ack comment tells the user "I'm working on this." If it goes out before the workspace is initialized and initialization then fails, the user gets a false signal. Score early acks as a D2 issue.
+**Fan-out pipelines amplify purity checks.** A fan-out orchestrator dispatches the same agent type N times — verify each dispatch follows the routing table independently. One violation in a loop of 5 dispatches is minor; the same violation in every dispatch is systemic.
 
-**For review agents, verdict correctness is the primary output.** A wrong verdict delivered with excellent formatting is worse than a correct verdict with mediocre formatting. Weight D6b heavily — an incorrect verdict in Phase 5 cascades into Phase 6 (wrong JIRA comment) and Phase 7 (wrong handoff). When a verdict error exists, note it as a finding in every phase it affects.
+### Content quality (D6)
 
-**Finding quality and verdict quality are independent.** An agent can produce excellent, well-evidenced findings (D6a: 5) and still reach the wrong verdict (D6b: 1) — this happened in the DOC-3143 Malph run where STY-001 was correctly identified but classified as non-blocking. Scoring D6 as a single blended number hides this. Always use the D6a/D6b split for review workflows.
+**For review agents, verdict correctness is the primary output.** A wrong verdict delivered with excellent formatting is worse than a correct verdict with mediocre formatting. Weight D6b heavily — an incorrect verdict cascades into JIRA comments and handoff.
 
-**Chain commands carefully or don't chain them at all.** `cmd1 && cmd2 && cmd3` fails entirely if any command returns non-zero. For setup operations where each step has different failure modes, separate tool calls are more robust. Chaining is fine for read-only sequences like `cd /workspace && grep ...`.
+**Finding quality and verdict quality are independent.** An agent can produce D6a: 5 and D6b: 1 — this happened in the DOC-3143 Malph run where STY-001 was correctly identified but classified as non-blocking. Always use the D6a/D6b split for review workflows.
+
+### Tooling patterns
+
+**Build check frequency is a judgment call.** Two builds (after all changes + before commit) is the minimum. Three (early smoke + after changes + before commit) is defensible for complex tasks. More than three is inefficient.
+
+**Git push failures are expected in proxy environments.** The container routes through Squid proxy, which blocks direct git push. The correct fallback is `ado_push_progress` MCP tool. Score the fallback as D5: 5.
+
+**Chain commands carefully or don't chain them.** `cmd1 && cmd2 && cmd3` fails entirely if any command returns non-zero. Separate tool calls are more robust for setup operations with different failure modes. Chaining is fine for read-only sequences.
+
+### Workflow (D2, D8)
+
+**JIRA ack timing matters.** The ack comment tells the user "I'm working on this." If it goes out before workspace initialization completes and init then fails, the user gets a false signal. Score early acks as D2 issue.

@@ -11,13 +11,14 @@
 
 ### Pre-commit check
 
-- Verify the latest writer iteration reported a passing build (or that the task is intentionally partial)
+- Verify the latest writer iteration reported `result: all-tasks-implemented` (or that the task is intentionally partial)
+- Verify all planned revision tasks were completed or explicitly deferred
 - Verify all feedback items from `state.md` have been addressed
 
 ### Commit & push
 
 1. Stage only the files you changed: `git add <files>`
-2. Commit with a message referencing the task: `git commit -m "docs(<area>): address review feedback for <TASK_ID> — <brief summary>"`
+2. Commit with a message referencing the task and the Ralph commit prefix conventions already recorded in `state.md`
 3. Push using the `ado_push_progress` MCP tool — do NOT use `git push` directly (do NOT create a new branch)
 
 ### Respond to PR threads
@@ -30,7 +31,7 @@ Using the ADO MCP tools:
 ## Before moving to Revision Phase 6
 
 Update `state.md`:
-- Set "Current Phase" to `Revision Phase 6: Update Handoff & Exit`
+- Set "Current Phase" to `Revision Phase 6: Handoff & Exit`
 - Add Revision Phase 5 to "Completed Phases" with commit hash
 {%- else %}
 <!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
