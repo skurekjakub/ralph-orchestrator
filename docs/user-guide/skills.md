@@ -66,26 +66,26 @@ Revision workflow (4 phases):
 
 ### Ralph — Documentation Writer (`ralph-workflow-*`)
 
-Standard workflow (8 phases):
+Standard workflow — single consolidated skill `ralph-workflow` with reference files per phase:
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `ralph-workflow-setup` | Initialize `state.md` with skill manifest, search ralphchives for prior work. |
-| 2 | `ralph-workflow-research` | Delegate to ralph-researcher sub-agent, validate the 4-section report. |
-| 3 | `ralph-workflow-write` | Implement documentation changes based on researcher's report, validate builds. |
-| 4–5 | `ralph-workflow-review` | Delegate to three reviewer sub-agents (technical, style, IA), aggregate verdicts, run revision loop (max 2 cycles). |
-| 6 | `ralph-workflow-commit` | Pre-commit checkpoint, stage, commit, push. |
-| 7 | `ralph-workflow-pr` | Create ADO draft pull request. |
-| 8 | `ralph-workflow-handoff` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1 | `references/1-setup.md` | Initialize `state.md` with skill manifest, search ralphchives for prior work. |
+| 2 | `references/2-research.md` | Delegate to ralph-researcher sub-agent, validate the 4-section report. |
+| 3 | `references/3-write.md` | Implement documentation changes based on researcher's report, validate builds. |
+| 4–5 | `references/4-review.md` | Delegate to three reviewer sub-agents (technical, style, IA), aggregate verdicts, run revision loop (max 2 cycles). |
+| 6 | `references/6-commit.md` | Pre-commit checkpoint, stage, commit, push. |
+| 7 | `references/7-pr.md` | Create ADO draft pull request. |
+| 8 | `references/8-handoff.md` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
 
-Revision workflow (4 phases):
+Revision workflow (same `ralph-workflow` skill, revision reference files):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1–2 | `ralph-workflow-revision-setup` | Read previous handoff and reviewer comments, find existing PR/branch, plan fixes. |
-| 3 | `ralph-workflow-revision-fix` | Implement targeted fixes for each feedback item. |
-| 5 | `ralph-workflow-revision-commit` | Pre-commit build check, commit, push, respond to PR threads. |
-| 6–7 | `ralph-workflow-revision-handoff` | Update handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1–2 | `references/r1-setup.md` | Read previous handoff and reviewer comments, find existing PR/branch, plan fixes. |
+| 3 | `references/r3-fix.md` | Implement targeted fixes for each feedback item. |
+| 5 | `references/r5-commit.md` | Pre-commit build check, commit, push, respond to PR threads. |
+| 6–7 | `references/r6-handoff.md` | Update handoff, attach to JIRA, post to ralphchives, print exit block. |
 
 ### Malph — Documentation Reviewer (`malph-workflow-*`)
 

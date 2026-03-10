@@ -1,8 +1,4 @@
----
-name: ralph-workflow-revision-commit
-description: "Revision workflow Phase 5. Read this skill after fixes are implemented. Covers the pre-commit checkpoint, committing to the existing branch, pushing, and responding to each PR review thread."
----
-
+{%- if isRevision %}
 # Revision Phase 5: Commit, Push & Respond to PR
 
 ## Before you begin
@@ -36,3 +32,6 @@ Using the ADO MCP tools:
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 6: Update Handoff & Exit`
 - Add Revision Phase 5 to "Completed Phases" with commit hash
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

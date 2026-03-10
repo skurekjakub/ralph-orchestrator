@@ -1,8 +1,4 @@
----
-name: ralph-workflow-revision-fix
-description: "Revision workflow Phase 3. Read this skill after understanding the feedback and locating the branch/PR. Dispatch the ralph-writer sub-agent in revision mode to implement targeted fixes without restarting from scratch."
----
-
+{%- if isRevision %}
 # Revision Phase 3: Implement Fixes
 
 ## Before you begin
@@ -40,4 +36,7 @@ Update `state.md`:
 - Add Revision Phase 3 to "Completed Phases" with what was fixed
 - Check off addressed feedback items
 
+{%- endif %}
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
 {%- endif %}

@@ -1,8 +1,4 @@
----
-name: ralph-workflow-commit
-description: "Standard workflow Phase 6. Read this skill when the writer and reviewers are done and you're ready to commit. Covers the pre-commit checkpoint, staging, committing with the correct message format, and pushing to the task branch."
----
-
+{%- unless isRevision %}
 # Phase 6: Commit & Push
 
 ## Before you begin
@@ -28,3 +24,6 @@ Stage, commit, and push:
 Update `state.md`:
 - Set "Current Phase" to `Phase 7: Pull Request`
 - Add Phase 6 to "Completed Phases" with commit hash
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

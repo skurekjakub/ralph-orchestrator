@@ -1,8 +1,4 @@
----
-name: ralph-workflow-revision-setup
-description: "Revision workflow Phases 1-2. Read this skill at the start of every revision task (isRevision=true). Covers reading the previous handoff and JIRA reviewer comments, searching ralphchives for prior gotchas, finding the existing branch and PR via ADO, reading all PR review threads, and creating state.md with the revision template and feedback checklist. Always the first phase in a revision run."
----
-
+{%- if isRevision %}
 # Revision Phase 1-2: Understand Feedback & Find Existing PR
 
 ## Before you begin
@@ -59,7 +55,7 @@ Revision Phase 1-2: Understand Feedback & Find PR
 (page identifiers from previous run)
 
 ## Source References
-(from previous handoff — copy relevant references)
+(from previous handoff — copy relevant references here)
 
 ## Notes
 (anything else)
@@ -71,3 +67,6 @@ Update `state.md`:
 - Set "Current Phase" to `Revision Phase 3: Implement Fixes`
 - Add Revision Phases 1-2 to "Completed Phases" with feedback summary
 - List all feedback items under "Feedback Items"
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

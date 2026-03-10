@@ -1,8 +1,4 @@
----
-name: ralph-workflow-write
-description: "Standard workflow Phase 3. Read this skill when you're ready to dispatch the writer sub-agent. Invoke ralph-writer with the task-id, read its status.json, and prepare the review phase."
----
-
+{%- unless isRevision %}
 # Phase 3: Write
 
 ## Before you begin
@@ -54,3 +50,6 @@ Update `state.md`:
 - Record any new identifiers in "Tracked Identifiers"
 
 {%- endif %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

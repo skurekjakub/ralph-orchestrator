@@ -1,8 +1,4 @@
----
-name: ralph-workflow-setup
-description: "Standard workflow Phase 1. Read this skill at the start of every new (non-revision) task. Covers state.md initialization with skill manifest, and ralphchives search for prior work. Always the first phase — if state.md doesn't exist yet, you're here."
----
-
+{%- unless isRevision %}
 # Phase 1: Setup
 
 ## Before you begin
@@ -58,3 +54,6 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 2: Research`
 - Add Phase 1 to "Completed Phases" with branch name and setup outcomes
 - Record any ralphchives findings
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

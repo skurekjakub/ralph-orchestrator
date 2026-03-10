@@ -1,8 +1,4 @@
----
-name: ralph-workflow-research
-description: "Standard workflow Phase 2. Read this skill after setup is complete and you're ready to dispatch the researcher sub-agent. Invoke ralph-researcher, read its status.json for routing, and record the outcome in state.md."
----
-
+{%- unless isRevision %}
 # Phase 2: Research (Sub-agent)
 
 ## Before you begin
@@ -27,3 +23,6 @@ Do **not** read `ralph-researcher/output.md`. The writer reads it directly from 
 Update `state.md`:
 - Set "Current Phase" to `Phase 3: Write`
 - Add Phase 2 to "Completed Phases" with the researcher's `result` and `summary` from `status.json`
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

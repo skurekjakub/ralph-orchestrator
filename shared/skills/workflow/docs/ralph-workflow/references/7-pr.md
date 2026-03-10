@@ -1,8 +1,4 @@
----
-name: ralph-workflow-pr
-description: "Standard workflow Phase 7. Read this skill after pushing your branch. Covers creating an ADO draft pull request via REST API, handling API errors gracefully, and recording the PR URL. Consult ralph-ado-pr-workflow for ADO-specific error handling and PR description format."
----
-
+{%- unless isRevision %}
 # Phase 7: Create Pull Request
 
 ## Before you begin
@@ -29,3 +25,6 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 8: Handoff & Exit`
 - Add Phase 7 to "Completed Phases" with PR URL or "none"
 - Record PR URL in "Tracked Identifiers"
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

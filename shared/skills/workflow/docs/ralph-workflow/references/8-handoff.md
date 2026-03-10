@@ -1,8 +1,4 @@
----
-name: ralph-workflow-handoff
-description: "Standard workflow Phase 8 — the final phase. Read this skill when the PR is created (or attempted) and you're ready to wrap up. Covers writing the handoff document with source references, attaching it to JIRA, posting a completion comment, reporting to ralphchives, and printing the ===RALPH_RESULT_START=== exit block. The exit block is mandatory — the orchestrator cannot detect completion without it."
----
-
+{%- unless isRevision %}
 # Phase 8: Handoff, Report & Exit
 
 ## Before you begin
@@ -84,3 +80,6 @@ SUMMARY: <one-line description of what was done>
 ===RALPH_RESULT_END===
 
 Always include this block as the very last thing you print, even on failure.
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

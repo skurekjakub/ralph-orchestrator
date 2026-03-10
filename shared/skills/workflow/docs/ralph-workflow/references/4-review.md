@@ -1,8 +1,3 @@
----
-name: ralph-workflow-review
-description: "Standard workflow Phases 4-5. Read this skill after implementing changes and before committing. Covers delegating to three specialized reviewer sub-agents (technical accuracy, style & grammar, information architecture), aggregating their verdicts, and running the revision loop (max 2 cycles). Unanimous approval from all three reviewers is required to proceed normally. After 2 revision cycles without full approval, proceed to Phase 6 and record a 'Not converged' outcome for each non-approving reviewer in the handoff."
----
-
 # Phase 4: Review (Three-Reviewer Gate)
 
 ## Before you begin

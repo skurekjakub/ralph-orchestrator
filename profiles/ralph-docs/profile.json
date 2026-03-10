@@ -104,17 +104,7 @@
             "ralph-codesamples-adminui",
             "ralph-write-release-notes",
             "ralph-research-guide",
-            "ralph-workflow-setup",
-            "ralph-workflow-research",
-            "ralph-workflow-write",
-            "ralph-workflow-review",
-            "ralph-workflow-commit",
-            "ralph-workflow-pr",
-            "ralph-workflow-handoff",
-            "ralph-workflow-revision-setup",
-            "ralph-workflow-revision-fix",
-            "ralph-workflow-revision-commit",
-            "ralph-workflow-revision-handoff",
+            "ralph-workflow",
             "ralph-build-errors",
             "xperience"
           ]

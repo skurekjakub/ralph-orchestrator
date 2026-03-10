@@ -1,8 +1,4 @@
----
-name: ralph-workflow-revision-handoff
-description: "Revision workflow Phases 6-7 — the final revision phase. Read this skill after pushing fixes and responding to PR threads. Covers updating the existing handoff document (append, don't replace), attaching to JIRA, posting a completion comment, reporting revision learnings to ralphchives, and printing the ===RALPH_RESULT_START=== exit block. The exit block is mandatory."
----
-
+{%- if isRevision %}
 # Revision Phase 6-7: Update Handoff & Exit
 
 ## Before you begin
@@ -54,3 +50,6 @@ summary: <one-line summary of revision changes>
 ```
 
 ⚠️ **Do NOT continue working after writing the exit block.**
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

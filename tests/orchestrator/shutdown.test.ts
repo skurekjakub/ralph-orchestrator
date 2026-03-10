@@ -1,12 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Orchestrator } from "../../src/orchestrator.js";
 import { makeProfile, makeWorkItem, makeDataSourceConfig } from "../helpers/factories.js";
 import { createMockIssueManager, createMockTaskRunner, createMockPoller, createMockResources, createSilentLogger } from "../helpers/mocks.js";
 import type { IActivityLog } from "../../src/services/activity-log.js";
-import type { IOperationLedger, Operation } from "../../src/services/operation-ledger.js";
+import { OperationStatus, type IOperationLedger, type Operation } from "../../src/services/operation-ledger.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
 import type { ITriggerScanner } from "../../src/services/trigger-scanner.js";
-import { OperationStatus } from "../../src/services/operation-ledger.js";
 import { TaskStatus } from "../../src/container/types.js";
 import type { TaskContext } from "../../src/services/task-context.js";
 
