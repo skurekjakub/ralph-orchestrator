@@ -47,6 +47,21 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
+# 3.5. SQL Server client tools (sqlcmd)
+# ============================================================
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+        | gpg --dearmor -o /etc/apt/keyrings/microsoft-prod.gpg \
+    && chmod go+r /etc/apt/keyrings/microsoft-prod.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" \
+        > /etc/apt/sources.list.d/microsoft-prod.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
+        msodbcsql18 mssql-tools18 unixodbc \
+    && ln -sf /opt/mssql-tools18/bin/sqlcmd /usr/local/bin/sqlcmd \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================
 # 4. .NET SDK (via official install script)
 # ============================================================
 RUN wget -qO /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh \
