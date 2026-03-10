@@ -20,8 +20,10 @@ Follow this sequence when implementing code sample changes:
 3. **Create or update `.cs` files** — follow feature-folder conventions. Use explicit types (not `var`). Add `//Include:` / `//EndInclude:` markers for extractable regions.
 4. **Add {% raw %}`{% code_link %}`{% endraw %} tags** in documentation pages — `source` paths are relative to `src/_code/src/`. Each tag needs a unique `id` within the page.
 5. **Never edit `Generated/`** — if new content types are needed, run `npm run codesamples:codegen`.
-6. **Build**: run `npm run codesamples:build` and fix any compilation errors before returning.
-7. **Functional verification** — use the **ralph-codesamples-verification** skill to start the application and exercise the features you implemented. Navigate to the routes, submit forms, trigger controller actions, and confirm the application behaves correctly.
+6. **Codename prefix** — when creating any object in the Xperience database (content types, taxonomies, member roles, etc.), always use `codesamples.` as the codename prefix. In admin UI, expand "Identifiers" and uncheck "Pre-fill code name automatically". Read the **ralph-codesamples** skill § "CI Repository and Object Codenames" for details.
+7. **No seeders for CI objects** — do NOT create data seeder classes (`Website/Initialization/SeedersImpl/`) for objects stored in CI (content types, taxonomies, member roles, order statuses, promotions, etc.). CI restores them from XML. Seeders are only for transactional data (members, customers, orders).
+8. **Build**: run `npm run codesamples:build` and fix any compilation errors before returning.
+9. **Functional verification** — use the **ralph-codesamples-verification** skill to start the application and exercise the features you implemented. Navigate to the routes, submit forms, trigger controller actions, and confirm the application behaves correctly.
 {%- if triggerParams.adminui %}
 
 ### Admin UI

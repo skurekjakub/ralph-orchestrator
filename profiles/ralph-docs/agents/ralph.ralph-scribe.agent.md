@@ -103,6 +103,7 @@ Compose a rich JIRA wiki markup comment summarizing the work. Include:
 - Changes summary with file paths
 - PR link
 - Review status (all reviewers approved / approved after N cycles / etc.)
+- **All reviewer suggestions** — aggregate every Minor and non-blocking finding from all reviewers (technical, style, IA, code) that were not implemented into a dedicated "Reviewer Suggestions" section. These are improvements that didn't block approval but should be considered. Format each with its finding ID, severity, one-line description, and suggested fix.
 - Key caveats or follow-ups
 - Source references section (if applicable) — use the source browser URL format: `https://app-xbyk-source-prod.azurewebsites.net/#<FullyQualifiedTypeName>,<LineNumber>`
 

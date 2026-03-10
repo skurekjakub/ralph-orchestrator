@@ -102,14 +102,6 @@ Forms use these component types — use the corresponding Playwright selectors:
 
 Dialogs render as overlay modals that intercept pointer events. You **must** interact with dialog buttons directly — elements behind the overlay are not clickable.
 
-**Tag selector dialog:**
-```
-Click button "Select tags"  → modal opens with heading "Select tags"
-TreeView shows taxonomies → tag tree items have checkbox roles
-Check desired tags          → page.getByRole('checkbox', { name: 'Tag name' }).check()
-Click button "Select"       → confirms selection, closes modal
-```
-
 **Confirmation dialogs:**
 ```
 Title bar + message + action buttons (e.g., CANCEL / REVERT TO PUBLISHED)
@@ -138,27 +130,6 @@ Content items in the Content hub have a publish/draft workflow:
 
 ## Object Creation Workflows
 
-### Create a Catalog Discount
-
-```
-Navigate to /admin/promotions/catalog-promotions
-Click text "NEW DISCOUNT"  (link role, not button)
-→ navigates to /admin/promotions/catalog-promotions/create
-→ form has CONTINUE button (instead of Save — used for initial creation)
-
-Fill fields:
-  textbox "* Discount name"        → e.g., "Codesamples-summer-sale"
-  textbox "Description"            → optional
-  radiogroup "Target customers"    → default "All visitors"
-  radiogroup "Redemption method"   → default "Automatic"
-    (if "Generic discount code" selected → textbox "* Discount code" appears)
-  combobox "Discount type"         → default "Percentage"
-  textbox "* Discount value"       → e.g., "10"
-  button "Select tags"             → optional, opens tag picker for Product categories
-
-Click button "CONTINUE" to create
-```
-
 ### Create an Order Discount
 
 ```
@@ -184,23 +155,6 @@ Fill fields:
   textbox "Shipping price"          → decimal or whole number, e.g., "15.00"
 ```
 
-### Create an Order Status
-
-```
-Navigate to /admin/commerce-configuration/order-statuses
-Click text "NEW ORDER STATUS"  (link role)
-→ inline form appears in the list (not a separate page!)
-
-Fill fields:
-  textbox "* Order status name"  → e.g., "Codesamples-processing"
-  Identifiers section            → expand to set code name
-  Notifications checkboxes       → optional
-
-Click button "Save" (inline save, not a full page submit)
-```
-
-Order statuses also support **drag-to-reorder** in the list.
-
 ### Create a Taxonomy / Tag
 
 ```
@@ -219,30 +173,26 @@ To add tags under a taxonomy:
   → child tag appears in tree, fill name in right panel, SAVE
 ```
 
-### Create a Content Item (Content Hub)
+## CI Persistence and Codename Rules
 
-```
-Navigate to /admin/content-hub
-Click text "NEW CONTENT ITEM"  (link role)
-→ content type selector appears (if multiple types exist)
-→ for this sample project: only "Product" type (Codesamples.ProductSKU)
+After creating objects via the admin UI, run `npm run codesamples:store` to serialize them to XML files in `src/_code/src/Website/App_Data/CIRepository/`.
 
-Fill fields:
-  textbox "Product name"           → required
-  Rich text "Product description"  → use Froala editor (click into editor area, type)
-  textbox "Product price"          → decimal number
-  button "Select tags"             → Product category tags
+### CRITICAL: Codename prefix
 
-Click button "PUBLISH" to publish immediately, or "SAVE" to save as draft
-```
+The `repository.config` filters objects by codename — **only objects whose code name starts with `codesamples` are stored**. Objects without this prefix are silently excluded and will be lost on the next CI restore.
 
-## CI Persistence
+**For every object you create:**
+1. Expand the **"Identifiers"** collapsible section in the form
+2. **Uncheck "Pre-fill code name automatically"** — the auto-generated name won't have the prefix
+  - Some objects dont have the name/codename fields hidden behind a collapsible and instead ask you to provide the codename as two fields.
+  - A third pattern that exists is that there is no obvious way to assign a codename in which case its derived from the display name - you need to literally prefix the display name with 'codesamples'. 
+3. Set the code name to `codesamples.<descriptive-name>` (e.g., `codesamples.premium`, `codesamples.express-shipping`, `codesamples.summer-sale`)
+4. Save the object
+5. Run `npm run codesamples:store` and verify the XML file appears
 
-After creating objects via the admin UI, they are automatically serialized to the cirepository as XML files.
+### No data seeders for CI objects
 
-This serializes admin-created objects to XML files in `src/_code/src/Website/App_Data/CIRepository/`. Verify new XML files appear after running the command.
-
-**Code name convention:** All objects must use the `codesamples` prefix in their code names for CI serialization to pick them up correctly.
+**Do NOT create data seeder classes** for objects created via the admin UI that are persisted through CI. The CI restore recreates these objects from XML — a seeder would duplicate the work. Seeders (`Website/Initialization/SeedersImpl/`) are only for transactional data that CI cannot serialize (members, customers, orders).
 
 ## `repository.config` Whitelisting
 

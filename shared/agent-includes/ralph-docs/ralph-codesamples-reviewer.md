@@ -16,4 +16,6 @@ When reviewing changes that involve code samples, verify:
   - [ ] Inside each feature folder, files are logically ararnged in subfolders by area of responsibility. For example `Membership/ExternalAuth`, `Membership/Controllers`, `Membership/Models`
 - [ ] **Inclusion markers** — `//Include:` / `//EndInclude:` markers correctly wrap the intended code regions
 - [ ] **No `Generated/` edits** — auto-generated content type classes must not be manually modified
+- [ ] **Codename prefix** — any new Xperience database objects (content types, taxonomies, member roles, etc.) must have codenames starting with `codesamples.` — otherwise `repository.config` excludes them from CI
+- [ ] **No needless seeders** — data seeder classes (`Website/Initialization/SeedersImpl/`) must NOT be created for objects persisted via CI (content types, taxonomies, member roles, order statuses, promotions). Seeders are only for transactional data (members, customers, orders)
 {% endsection %}

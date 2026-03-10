@@ -65,6 +65,30 @@ Documentation pages reference compiled code via the {% raw %}`{% code_link %}`{%
 - `exclude` (optional) — exclude a nested region within the included section
 - `title`, `highlight`, `linenumbers` — same as {% raw %}`{% code %}`{% endraw %}
 
+## CI Repository and Object Codenames
+
+The codesamples project uses Xperience's [Continuous Integration](https://docs.kentico.com/documentation/developers-and-admins/ci-cd/configure-ci-cd-repositories) feature to persist database objects as XML files in `src/_code/src/Website/App_Data/CIRepository/`.
+
+The `repository.config` filters objects by codename prefix — **only objects whose code name starts with `codesamples` are included**. Any object without this prefix is silently excluded from CI and will not be persisted.
+
+### Codename rules
+
+- **Always prefix codenames with `codesamples.`** (e.g., `codesamples.premium`, `codesamples.express-shipping`)
+- In the admin UI, many forms auto-generate the codename from the display name. You must **expand the "Identifiers" section** and **uncheck "Pre-fill code name automatically"** to set a custom codename with the `codesamples.` prefix
+- After creating objects, run `npm run codesamples:store` to serialize them to CI XML
+- Commit the resulting XML files — they are the source of truth for these objects
+
+### Data seeders vs CI
+
+**Do NOT create data seeder classes** (in `Website/Initialization/SeedersImpl/`) for objects that are stored under CI. The CI restore process (`npm run codesamples:setversion`) creates these objects automatically from the XML files — writing a seeder would duplicate the work and risk conflicts.
+
+Seeders are only for objects that **cannot** be stored via CI — for example, individual member accounts, customer records, orders, and other transactional data that the CI system does not serialize.
+
+| Persistence method | Object examples | Where defined |
+|---|---|---|
+| **CI (XML)** | Content types, taxonomies, tags, member roles, order statuses, shipping methods, payment methods, promotions | `CIRepository/` XML files |
+| **Data seeders** | Members, customers, orders, role assignments | `Website/Initialization/SeedersImpl/*.cs` |
+
 ## Build and Serve
 
 | Script | Purpose |
