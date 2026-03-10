@@ -1,8 +1,3 @@
----
-name: builder-plan-format
-description: "Reference for the phased implementation plan format used by the Builder orchestrator. Describes the overview file structure (00-overview.md), phase file conventions, Phase Index table format, File Manifest sections, Decisions, Verification Checklist, and cross-phase references. Use when creating new plans or when the builder-planner needs to parse a plan."
----
-
 # Phased Implementation Plan Format
 
 Plans are stored in `plans/<plan-name>/` as a collection of markdown files. The builder orchestrator reads these plans and executes them phase by phase.

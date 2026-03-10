@@ -1,8 +1,3 @@
----
-name: builder-workflow-parse
-description: "Builder orchestrator Phase 2. Dispatch the builder-planner subagent, read its status.json, and record the parse outcome in state.md."
----
-
 # Phase 2: Parse
 
 ## Before you begin

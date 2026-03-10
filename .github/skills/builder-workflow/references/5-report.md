@@ -1,8 +1,3 @@
----
-name: builder-workflow-report
-description: "Builder orchestrator Phase 5. Dispatch the builder-scribe subagent, read its status.json, and print the final completion summary to the user."
----
-
 # Phase 5: Report
 
 ## Before you begin

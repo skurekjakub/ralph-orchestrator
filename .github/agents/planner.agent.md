@@ -29,15 +29,17 @@ All outputs belong in: `.agents/changes/<JIRA_ID>-<short-description>/`
 
 ## Workflow
 
-| Phase | Skill | Summary | User Checkpoint |
-|-------|-------|---------|-----------------|
-| 1. Discovery | looper-planner-discovery | Read request, gather project context, init scratchpad | No |
-| 2. Questions | looper-planner-questions | Iterating Q&A until all ambiguities resolved | Yes — each round |
-| 3. Specification | looper-planner-spec | Write `01.specification.md`, iterate with user | Yes — review + approve |
-| 4. Plan | looper-planner-plan | Write `02.plan.md`, iterate with user | Yes — review + approve |
-| 5. Task Breakdown | looper-planner-tasks | Write task files + wrap-up task | No |
+All phases are defined in the `looper-planner` skill. Read the router skill first, then the reference file for your current phase.
 
-Before each phase: read `state.md` → read the phase skill → follow instructions → update `state.md`.
+| Phase | Reference file | Summary | User Checkpoint |
+|-------|---------------|---------|-----------------|
+| 1. Discovery | `references/1-discovery.md` | Read request, gather project context, init scratchpad | No |
+| 2. Questions | `references/2-questions.md` | Iterating Q&A until all ambiguities resolved | Yes — each round |
+| 3. Specification | `references/3-spec.md` | Write `01.specification.md`, iterate with user | Yes — review + approve |
+| 4. Plan | `references/4-plan.md` | Write `02.plan.md`, iterate with user | Yes — review + approve |
+| 5. Task Breakdown | `references/5-tasks.md` | Write task files + wrap-up task | No |
+
+Before each phase: read `state.md` → read the reference file from the `looper-planner` skill → follow instructions → update `state.md`.
 
 ## Guardrails
 

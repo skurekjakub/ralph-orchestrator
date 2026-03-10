@@ -1,8 +1,3 @@
----
-name: looper-planner-questions
-description: "Looper Planner Phase 2. Formulate clarifying questions and iterate with the user until all ambiguities are resolved — no fixed number of rounds. Use when state.md shows Phase 2: Questions, or when the planner needs to ask questions about a change request."
----
-
 # Phase 2: Questions (Iterating)
 
 ## Before you begin
@@ -85,7 +80,7 @@ After each round, update `state.md`:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 3: Specification`
-- Set "Skills for this phase" to:
-  - looper-planner-spec
+- Set "Reference file for this phase" to:
+  - `references/3-spec.md` from the `looper-planner` skill
 - Add Phase 2 to "Completed Phases" with the number of rounds and key themes resolved
 - Set "Unresolved" to "None" (or note any accepted unknowns)

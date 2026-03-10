@@ -1,8 +1,3 @@
----
-name: looper-planner-discovery
-description: "Looper Planner Phase 1. Read the change request, gather comprehensive project context via scout subagent, and initialize the planning scratchpad. Use when starting a new planning session or when state.md shows Phase 1: Discovery."
----
-
 # Phase 1: Discovery
 
 ## Before you begin
@@ -43,8 +38,8 @@ Create `state.md` in the working directory:
 ## Current Phase
 Phase 1: Discovery
 
-### Skills for this phase
-- looper-planner-discovery
+### Reference file for this phase
+`references/1-discovery.md` from the `looper-planner` skill
 
 ## Working Directory
 `.agents/changes/<JIRA_ID>-<short-description>/`
@@ -67,7 +62,7 @@ Unresolved: (not yet assessed)
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 2: Questions`
-- Set "Skills for this phase" to:
-  - looper-planner-questions
+- Set "Reference file for this phase" to:
+  - `references/2-questions.md` from the `looper-planner` skill
 - Add Phase 1 to "Completed Phases" with a summary of what was learned
 - Note any initial ambiguities or concerns in "Notes"

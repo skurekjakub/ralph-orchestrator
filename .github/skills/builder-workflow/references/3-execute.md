@@ -1,8 +1,3 @@
----
-name: builder-workflow-execute
-description: "Builder orchestrator Phase 3. Loop through plan phases, dispatching builder-implementer and builder-reviewer per phase with dependency resolution, cross-repo handling, and iteration tracking."
----
-
 # Phase 3: Execute (Phase Loop)
 
 ## Before you begin

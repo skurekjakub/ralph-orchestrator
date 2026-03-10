@@ -1,8 +1,3 @@
----
-name: looper-planner-tasks
-description: "Looper Planner Phase 5. Break the approved plan into 5-15 independent, executable task files with a READBEFORE boot sequence and a final wrap-up task. Use when state.md shows Phase 5: Task Breakdown."
----
-
 # Phase 5: Task Breakdown
 
 ## Before you begin

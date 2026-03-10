@@ -1,8 +1,3 @@
----
-name: looper-planner-plan
-description: "Looper Planner Phase 4. Write the implementation plan converting spec WHAT into technical HOW, present for review, iterate until approved. Use when state.md shows Phase 4: Plan."
----
-
 # Phase 4: Implementation Plan
 
 ## Before you begin
@@ -74,6 +69,6 @@ If the user requests changes:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 5: Task Breakdown`
-- Set "Skills for this phase" to:
-  - looper-planner-tasks
+- Set "Reference file for this phase" to:
+  - `references/5-tasks.md` from the `looper-planner` skill
 - Add Phase 4 to "Completed Phases" noting approval

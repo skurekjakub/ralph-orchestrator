@@ -1,8 +1,3 @@
----
-name: looper-planner-spec
-description: "Looper Planner Phase 3. Write the specification document from gathered context and user answers, present for review, iterate until approved. Use when state.md shows Phase 3: Specification."
----
-
 # Phase 3: Specification
 
 ## Before you begin
@@ -80,6 +75,6 @@ If the user requests changes:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 4: Plan`
-- Set "Skills for this phase" to:
-  - looper-planner-plan
+- Set "Reference file for this phase" to:
+  - `references/4-plan.md` from the `looper-planner` skill
 - Add Phase 3 to "Completed Phases" noting approval status

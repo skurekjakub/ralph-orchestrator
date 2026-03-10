@@ -1,8 +1,3 @@
----
-name: builder-workflow-verify
-description: "Builder orchestrator Phase 4. Dispatch the builder-verifier subagent with the plan's verification checklist, read its status.json, and record the outcome in state.md."
----
-
 # Phase 4: Verify
 
 ## Before you begin

@@ -1,8 +1,3 @@
----
-name: builder-workflow-setup
-description: "Builder orchestrator Phase 1. Validate the plan directory, create artifact directories, initialize state.md and manifest.json."
----
-
 # Phase 1: Setup
 
 ## Before you begin
