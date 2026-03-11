@@ -1,15 +1,10 @@
----
-name: vscode-workflow-implement-loop
-description: "VS Code extension workflow Phase 3. Dispatch the coder and reviewer subagents in a loop, routing based on status.json. Maximum 2 iterations."
----
-
 # Phase 3: Implement & Review Loop
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 3. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm Phase 2 (Analyze) is done and the analyst produced a plan.
+2. **Verify the current phase** — this reference is for the Implement & Review phase.
+3. **Review completed phases** — confirm the Analyze phase is done and the analyst produced a plan.
 
 ## Instructions
 
@@ -26,7 +21,7 @@ Delegate to the `ralph-coder` sub-agent. It will:
 - Write its change summary to `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/output-v{N}.md`
 - Write status to `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/status.json`
 
-Do not bother reading anz of the subagent outputs, the subagents will read the feedback themselves as appropriate.
+Do not read any of the subagent outputs — the subagents read each other's feedback as appropriate.
 
 #### Step 2: Read coder status
 
@@ -35,7 +30,7 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/status.json`.
 | `result` | Action |
 |---|---|
 | `implemented` | Proceed to Step 3 (dispatch reviewer) |
-| `partial` | **Exit loop** — skip review, proceed to Phase 4 with partial status |
+| `partial` | **Exit loop** — skip review, proceed to Package phase with partial status |
 
 Record the coder's `summary` in `state.md`.
 
@@ -55,9 +50,9 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-reviewer/status.json`.
 
 | `result` | Iteration | Action |
 |---|---|---|
-| `pass` | any | **Exit loop** — proceed to Phase 4 |
+| `pass` | any | **Exit loop** — proceed to Package phase |
 | `fail` | < 2 | Increment iteration, go back to Step 1 |
-| `fail` | = 2 | **Exit loop** — accept as-is, proceed to Phase 4 |
+| `fail` | = 2 | **Exit loop** — accept as-is, proceed to Package phase |
 
 Record the reviewer's `summary` and verdict in `state.md`.
 
@@ -71,8 +66,7 @@ Note the final outcome in `state.md`:
 ## Before moving to the next phase
 
 Update `state.md`:
-- Set "Current Phase" to the next phase listed in the workflow table (standard: `Phase 4: Package`, revision: `Revision Phase 4: Package`)
-- Set "Skills for this phase" to:
-  - vscode-workflow-package
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add the implement & review phase to "Completed Phases" with iteration count and final status
+- Set "Current Phase" to the Package phase
+- Set "Reference file for this phase" to `references/4-package.md`
+- Keep the reminder line
+- Add the Implement & Review phase to "Completed Phases" with iteration count and final status

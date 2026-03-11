@@ -1,14 +1,10 @@
----
-name: vscode-workflow-handoff
-description: "VS Code extension workflow Phase 7. Read this skill when the PR is created (or attempted). Covers writing the handoff document, attaching it to JIRA, and posting a completion comment."
----
-
+{%- unless isRevision %}
 # Phase 7: Handoff, Report & Exit
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 7. If `state.md` shows a different current phase, update it now.
+2. **Verify the current phase** — this reference is for Phase 7.
 3. **Review completed phases** — confirm all prior phases are done. Check "Tracked Identifiers" for PR URL.
 
 ## Instructions
@@ -61,7 +57,9 @@ Post a rich comment on **{{ taskId }}**. Include:
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 8: Archive & Exit`
-- Set "Skills for this phase" to:
-  - vscode-workflow-archive
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Set "Reference file for this phase" to `references/8-archive.md`
+- Keep the reminder line
 - Add Phase 7 to "Completed Phases"
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — see references/r6-handoff.md instead. -->
+{%- endunless %}

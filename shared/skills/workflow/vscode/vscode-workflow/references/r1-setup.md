@@ -1,14 +1,10 @@
----
-name: vscode-workflow-revision-setup
-description: "VS Code extension revision workflow Phase 1. Read this skill when a task comes back for revision. Covers reading reviewer feedback, finding the existing PR and branch, and planning the fix."
----
-
+{%- if isRevision %}
 # Revision Phase 1: Understand Feedback & Find PR
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md` — if it doesn't exist, create it (see below).
-2. This skill is for **Revision Phase 1**.
+2. This reference is for **Revision Phase 1**.
 
 ## Context
 
@@ -43,10 +39,10 @@ Create or update `.ralph/tasks/{{ taskId }}/state.md`:
 ## Current Phase
 Revision Phase 1: Understand Feedback
 
-### Skills for this phase
-- vscode-workflow-revision-setup
+### Reference file for this phase
+- references/r1-setup.md
 
-> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.
+> ⚠️ STOP — Read the reference file listed above BEFORE doing any work in this phase.
 
 ## Feedback Summary
 <!-- List each item the reviewer wants fixed -->
@@ -60,10 +56,14 @@ Revision Phase 1: Understand Feedback
 (none yet)
 ```
 
+4. **Create the artifacts directory** at `.ralph/tasks/{{ taskId }}/artifacts/` — this is where subagent artifacts will be written.
+
 ## Before moving to Revision Phase 2
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 2: Analyze Revision`
-- Set "Skills for this phase" to:
-  - vscode-workflow-analyze
+- Set "Reference file for this phase" to `references/2-analyze.md`
 - Add Revision Phase 1 to "Completed Phases" with feedback summary
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — see references/1-setup.md instead. -->
+{%- endif %}

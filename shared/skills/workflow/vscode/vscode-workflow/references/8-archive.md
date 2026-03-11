@@ -1,14 +1,9 @@
----
-name: vscode-workflow-archive
-description: "VS Code extension workflow final phase. Dispatch the scribe subagent to archive task knowledge to Ralphchives, then print the exit block."
----
-
 # Archive & Exit
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for the Archive & Exit phase.
+2. **Verify the current phase** — this reference is for the Archive & Exit phase.
 3. **Review completed phases** — confirm Handoff is done.
 
 ## Instructions

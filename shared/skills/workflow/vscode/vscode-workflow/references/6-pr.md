@@ -1,15 +1,11 @@
----
-name: vscode-workflow-pr
-description: "VS Code extension workflow Phase 6. Read this skill after pushing your branch. Covers creating an ADO draft pull request via the MCP tool, handling errors gracefully, and recording the PR URL."
----
-
+{%- unless isRevision %}
 # Phase 6: Create Pull Request
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 6. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm Phase 5 (Commit & Push) is done.
+2. **Verify the current phase** — this reference is for Phase 6.
+3. **Review completed phases** — confirm Commit & Push is done.
 
 ## Instructions
 
@@ -26,8 +22,10 @@ If the API returns an unrecoverable error, note it in the handoff and set the PR
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 7: Handoff`
-- Set "Skills for this phase" to:
-  - vscode-workflow-handoff
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Set "Reference file for this phase" to `references/7-handoff.md`
+- Keep the reminder line
 - Add Phase 6 to "Completed Phases" with PR URL or "none"
 - Record PR URL in "Tracked Identifiers"
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — PR already exists. -->
+{%- endunless %}

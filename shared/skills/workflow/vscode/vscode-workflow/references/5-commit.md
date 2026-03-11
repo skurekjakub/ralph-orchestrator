@@ -1,15 +1,11 @@
----
-name: vscode-workflow-commit
-description: "VS Code extension workflow Phase 5. Read this skill when packaging is done and you're ready to commit. Covers the pre-commit build check, staging, committing with the correct message format, and pushing via the ADO MCP tool."
----
-
+{%- unless isRevision %}
 # Phase 5: Commit & Push
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 5. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm Phase 4 (Package) is complete.
+2. **Verify the current phase** — this reference is for Phase 5.
+3. **Review completed phases** — confirm Package is complete.
 
 ## Instructions
 
@@ -28,8 +24,9 @@ description: "VS Code extension workflow Phase 5. Read this skill when packaging
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 6: Pull Request`
-- Set "Skills for this phase" to:
-  - vscode-workflow-pr
-  - ralph-ado-pr-workflow
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
+- Set "Reference file for this phase" to `references/6-pr.md`
+- Keep the reminder line
 - Add Phase 5 to "Completed Phases" with commit hash
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — see references/r5-commit.md instead. -->
+{%- endunless %}

@@ -1,15 +1,10 @@
----
-name: vscode-workflow-package
-description: "VS Code extension workflow Phase 4. Version bump, CHANGELOG update, and .vsix build. Bumps the patch version in package.json, adds a CHANGELOG entry describing the changes, and runs `npm run build` to produce the .vsix binary. All three artifacts must be committed together."
----
-
 # Phase 4: Package
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
-2. **Verify the current phase** — this skill is for Phase 4. If `state.md` shows a different current phase, update it now.
-3. **Review completed phases** — confirm the implement & review loop is complete and the code is ready.
+2. **Verify the current phase** — this reference is for the Package phase.
+3. **Review completed phases** — confirm the Implement & Review loop is complete and the code is ready.
 
 ## Instructions
 
@@ -56,11 +51,15 @@ Confirm all three artifacts are ready:
 - [ ] `CHANGELOG.md` has the new entry at the top
 - [ ] `kfm-mdcompletions-X.Y.Z.vsix` exists with the correct version
 
-## Before moving to Phase 5
+## Before moving to the next phase
 
 Update `state.md`:
+{%- if isRevision %}
+- Set "Current Phase" to `Revision Phase 5: Commit & Respond`
+- Set "Reference file for this phase" to `references/r5-commit.md`
+{%- else %}
 - Set "Current Phase" to `Phase 5: Commit & Push`
-- Set "Skills for this phase" to:
-  - vscode-workflow-commit
-- Keep the reminder line: `> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.`
-- Add Phase 4 to "Completed Phases" with the new version number
+- Set "Reference file for this phase" to `references/5-commit.md`
+{%- endif %}
+- Keep the reminder line
+- Add the Package phase to "Completed Phases" with the new version number
