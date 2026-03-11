@@ -114,26 +114,36 @@ Review workflow (7 phases):
 | 6 | `malph-vscode-workflow-deliver` | Post JIRA comment with verdict and issue codes, post file-level PR threads. |
 | 7 | `malph-vscode-workflow-handoff` | Write review-handoff, attach to JIRA, report to ralphchives, print exit block. |
 
-### Ralph (VS Code) — Extension Developer (`vscode-workflow-*`)
+### Ralph (VS Code) — Extension Developer (`vscode-workflow`)
 
-Standard workflow (5 phases):
+Single consolidated router skill with per-phase reference files. The `isRevision` Liquid flag selects the appropriate workflow table.
 
-| Phase | Skill | Description |
+Standard workflow (8 phases):
+
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `vscode-workflow-setup` | Initialize `state.md`, search ralphchives, delegate to analyst for implementation path research. |
-| 2 | `vscode-workflow-execute` | Implement changes in TypeScript, run build/lint/test validation, iterate until passing. |
-| 3 | `vscode-workflow-commit` | Pre-commit build check, stage, commit, push. |
-| 4 | `vscode-workflow-pr` | Create ADO draft pull request. |
-| 5 | `vscode-workflow-handoff` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1 | `references/1-setup.md` | Branch verify, state.md init, JIRA greeting |
+| 2 | `references/2-analyze.md` | Dispatch analyst, read status.json |
+| 3 | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4 | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
+| 5 | `references/5-commit.md` | Pre-commit build, commit, push via MCP |
+| 6 | `references/6-pr.md` | Create ADO pull request |
+| 7 | `references/7-handoff.md` | Write handoff, report to JIRA |
+| 8 | `references/8-archive.md` | Dispatch scribe, print exit block |
 
-Revision workflow (4 phases):
+Revision workflow (7 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `vscode-workflow-revision-setup` | Read reviewer feedback, find existing PR/branch, plan fix. |
-| 2 | `vscode-workflow-revision-fix` | Implement fixes, optionally delegate to analyst, validate with build/lint/test. |
-| 3 | `vscode-workflow-revision-commit` | Commit, push, respond to PR review threads. |
-| 4 | `vscode-workflow-revision-handoff` | Update handoff with revision section, attach to JIRA, print exit block. |
+| 1 | `references/r1-setup.md` | Read feedback, find existing PR & branch |
+| 2 | `references/2-analyze.md` | Dispatch analyst in revision mode |
+| 3 | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4 | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
+| 5 | `references/r5-commit.md` | Commit, push, reply to PR threads |
+| 6 | `references/r6-handoff.md` | Update handoff, report to JIRA |
+| 7 | `references/8-archive.md` | Dispatch scribe, print exit block |
+
+Domain reference: `references/test-guide.md` — Mocha TDD test writing guide for the coder subagent.
 
 ## Integration Skills
 

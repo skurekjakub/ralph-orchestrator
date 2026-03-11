@@ -60,7 +60,10 @@ export class ProfileSetupService implements IProfileSetupService {
     this.logger.info("Regenerating compose overlay for matched variant...");
     this.overlayWriter.write(ctx.profile, this.logger);
 
-    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams);
+    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams, {
+      sourceBranch: ctx.sourceBranch,
+      taskBranch: ctx.taskBranch,
+    });
   }
 
   async prepareForStage(ctx: TaskContext, stageOverrides: StageOverrides): Promise<void> {

@@ -44,8 +44,8 @@ These parameters are recognized by the orchestrator itself (not just templates):
 
 | Parameter | Type | Used By | Description |
 |---|---|---|---|
-| `source_branch` | `key=value` | RepoSyncHook | Base branch for repo checkout and task branch creation. Default: `main` |
-| `branch` | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the computed task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention |
+| `source_branch` | `key=value` | RepoSyncHook | Base branch for repo checkout and task branch creation. Default: `main`, or the existing PR target branch on revisions when available |
+| `branch` | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the resolved task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention |
 | `skip_hooks` | bare | TaskRunner | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay |
 
 ### source_branch
@@ -58,9 +58,11 @@ Controls which branch the orchestrator syncs to before creating the task branch.
 
 The task branch is created from the HEAD of this branch. Also used as the PR target branch by workflow skills.
 
+If this parameter is omitted for a revision task and the issue already has a supported pull request URL in comments, the orchestrator tries to infer the base branch from that PR's target branch.
+
 ### branch
 
-Overrides the auto-generated task branch name (`ralph/<taskId>-<slugified-title>`). Use when working on a pre-existing branch with a different naming convention.
+Overrides the resolved task branch name. Without this parameter, the orchestrator uses the existing PR source branch for revision tasks when available; otherwise it falls back to the auto-generated name (`ralph/<taskId>-<slugified-title>`).
 
 ```
 @Ralph(branch=code/my-existing-feature-branch)
@@ -69,6 +71,8 @@ Overrides the auto-generated task branch name (`ralph/<taskId>-<slugified-title>
 When set, the orchestrator checks out this branch directly instead of creating a new one. The `$task.branch` runtime macro also resolves to this value.
 
 When both `branch` and `source_branch` are provided, `source_branch` still controls the initial repo sync (fetch + checkout + reset), then `branch` is checked out as the working branch. This is useful when you need to sync the repo to a specific base but work on a pre-existing feature branch.
+
+This explicit override always wins over automatic PR-based inference.
 
 ### skip_hooks
 

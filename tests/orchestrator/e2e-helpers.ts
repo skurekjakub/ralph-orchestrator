@@ -8,7 +8,7 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockPoller, createMockTaskRunner, createMockConnector, type Mocked } from "../helpers/mocks.js";
+import { createMockLogger, createMockIssueManager, createMockResources, createMockPoller, createMockTaskRunner, createMockConnector, createMockVcsSourceClient, type Mocked } from "../helpers/mocks.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IAgentProfile } from "../../src/config/types.js";
@@ -16,7 +16,9 @@ import type { IAgentProfile } from "../../src/config/types.js";
 type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
 import type { RalphResult } from "../../src/container/types.js";
 import type { IIssueManager } from "../../src/services/issue-manager.js";
+import type { IResourceManager } from "../../src/services/task-resource-manager.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
+import type { IVcsSourceClient } from "../../src/services/vcs-source-client.js";
 
 export const DS = "jira";
 const silentLogger = createMockLogger();
@@ -37,6 +39,8 @@ export function buildMockDeps(
     searchResults?: Record<string, WorkItem[]>;
     taskResult?: Partial<RalphResult>;
     taskError?: Error;
+    resources?: Partial<Mocked<IResourceManager>>;
+    vcsSourceClient?: Mocked<IVcsSourceClient>;
   },
 ): OrchestratorOpts {
   const profile =
@@ -84,7 +88,7 @@ export function buildMockDeps(
     }),
   });
 
-  const resources = createMockResources();
+  const resources = createMockResources(options.resources);
 
   const taskRunner = createMockTaskRunner({
     run: options.taskError
@@ -121,6 +125,7 @@ export function buildMockDeps(
     activityLog,
     issueManager,
     resources,
+    vcsSourceClient: options.vcsSourceClient ?? createMockVcsSourceClient(),
     pollers: new Map([[DS, poller]]),
     router,
     taskRunner,
@@ -203,6 +208,7 @@ export function buildBaseDeps(
     activityLog: new ActivityLog({ outputConfig: { logDir, handoffDir: "" } }),
     issueManager,
     resources: createMockResources(),
+    vcsSourceClient: createMockVcsSourceClient(),
     pollers: new Map([[DS, createMockPoller({ sourceKey: DS })]]),
     router,
     taskRunner,

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Orchestrator } from "../../src/orchestrator.js";
 import { makeProfile, makeWorkItem, makeDataSourceConfig } from "../helpers/factories.js";
-import { createMockIssueManager, createMockTaskRunner, createMockPoller, createMockResources, createSilentLogger } from "../helpers/mocks.js";
+import { createMockIssueManager, createMockTaskRunner, createMockPoller, createMockResources, createMockVcsSourceClient, createSilentLogger } from "../helpers/mocks.js";
 import type { IActivityLog } from "../../src/services/activity-log.js";
 import { OperationStatus, type IOperationLedger, type Operation } from "../../src/services/operation-ledger.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
@@ -111,6 +111,7 @@ function createOrchestrator(opts: {
     router: createMockRouter(profile),
     issueManager,
     resources: createMockResources(),
+    vcsSourceClient: createMockVcsSourceClient(),
     taskRunner,
     triggerScanner: createMockTriggerScanner(),
     ledger: createMockLedger(pendingOps),

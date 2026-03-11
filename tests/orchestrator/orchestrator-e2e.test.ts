@@ -11,6 +11,7 @@ import type { IAgentProfile } from "../../src/config/types.js";
 import { TaskStatus } from "../../src/container/types.js";
 import { HeartbeatStatus } from "../../src/services/heartbeat.js";
 import { buildMockDeps, buildBaseDeps, runUntil, DS } from "./e2e-helpers.js";
+import { createMockVcsSourceClient } from "../helpers/mocks.js";
 
 const PROJECT = "DF";
 const TS = "2026-01-01T00:00:00Z";
@@ -219,6 +220,55 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       expect.anything(),
       expect.anything(),
       TransitionPhase.AfterAgent,
+    );
+  });
+
+  it("passes inferred PR branches to the task runner for revision tasks", async () => {
+    const profile = makeProfile({
+      id: "ralph-docs",
+      agentName: "ralph",
+      preflight: "revision-ready",
+      match: {
+        projects: [PROJECT],
+        statuses: ["Defect Found"],
+        commentTrigger: "@docs",
+        revisionStatuses: ["Defect Found"],
+      },
+    });
+    const issue = makeWorkItem("DF-175", "Revision task", "Defect Found");
+    const vcsSourceClient = createMockVcsSourceClient({
+      resolvePullRequestBranches: vi.fn().mockResolvedValue({
+        sourceBranch: "feature/revision-fix",
+        targetBranch: "release/31",
+      }),
+    });
+    const deps = buildMockDeps(tempDir, {
+      profile,
+      issues: [issue],
+      comments: {
+        "DF-175": [
+          makeWorkItemComment(CID, "@docs handle revision https://dev.azure.com/org/project/_git/repo/pullrequest/42"),
+        ],
+      },
+      resources: {
+        fetchHandoff: vi.fn().mockResolvedValue("## Previous handoff"),
+      },
+      vcsSourceClient,
+    });
+
+    const orchestrator = new Orchestrator(deps);
+
+    await runUntil(
+      orchestrator,
+      () => orchestrator.observer.getState().completedToday.length > 0,
+    );
+
+    expect(deps.taskRunner.run).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceBranch: "release/31",
+        taskBranch: "feature/revision-fix",
+        prUrl: "https://dev.azure.com/org/project/_git/repo/pullrequest/42",
+      }),
     );
   });
 

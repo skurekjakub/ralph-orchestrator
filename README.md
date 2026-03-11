@@ -112,6 +112,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
+  - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing repo sync and `$task.branch` to reuse the PR's real source/target branches
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)

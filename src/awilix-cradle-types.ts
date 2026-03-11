@@ -22,6 +22,7 @@ import type { IWorkItemPoller } from "./datasource/poller.js";
 import type { ILifecycleHook } from "./container/lifecycle.js";
 import type { IProfileSetupService } from "./services/profile-setup-service.js";
 import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor.js";
+import type { IVcsSourceClient } from "./services/vcs-source-client.js";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -54,6 +55,7 @@ export interface OrchestratorCradle {
   // Services
   issueManager: IIssueManager;
   resources: IResourceManager;
+  vcsSourceClient: IVcsSourceClient;
 
   // Orchestration
   ledger: IOperationLedger;

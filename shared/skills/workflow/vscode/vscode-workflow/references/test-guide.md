@@ -12,9 +12,6 @@ You have three mounted testing skills that cover everything you need. Read all t
 
 These details are specific to `kentico-docs-autocomplete-vscode` and supplement the general skills above:
 
-- **Test framework:** Mocha TDD (`suite`/`test`, **not** `describe`/`it`)
-- **Assertions:** `import * as assert from 'assert'` (Node built-in)
-- **Mocking:** `import * as sinon from 'sinon'` (sandbox pattern)
 - **Run tests:** `npm run test:xvfb` (headless) — **never** `npm test` directly
 - **Test location:** `src/test/<feature>/` subdirectories
 - **File naming:** `<feature>.test.ts` or `<featureService>.test.ts`

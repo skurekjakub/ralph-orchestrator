@@ -100,6 +100,21 @@ describe("JitMcpConfigWriter", () => {
     expect(written.servers[0].env.TASK_BRANCH).toBe("code/my-existing-branch");
   });
 
+  it("resolves $task.branch from explicit branch context when provided", () => {
+    const profile = makeProfile({
+      id: PID,
+      mcpServers: ["ado"],
+      mcpServerConfigs: { ado: { TASK_BRANCH: "$task.branch" } },
+    });
+    const gateway = makeGateway([makeGatewayServer("ado")]);
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
+
+    writer.write(profile, issue, createSilentLogger(), {}, { taskBranch: "feature/from-pr" });
+
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
+    expect(written.servers[0].env.TASK_BRANCH).toBe("feature/from-pr");
+  });
+
   it("resolves $task.title macro to raw summary", () => {
     const profile = makeProfile({
       id: PID,

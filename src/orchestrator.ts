@@ -14,6 +14,7 @@ import type { IIssueManager } from "./services/issue-manager.js";
 import type { IResourceManager } from "./services/task-resource-manager.js";
 import type { ITaskRunner } from "./services/task-runner.js";
 import type { ITriggerScanner } from "./services/trigger-scanner.js";
+import type { IVcsSourceClient } from "./services/vcs-source-client.js";
 import type { IHeartbeatSender } from "./services/heartbeat.js";
 import type { Logger } from "./logger.js";
 
@@ -45,6 +46,7 @@ export class Orchestrator {
   private readonly router: IProfileRouter;
   private readonly issueManager: IIssueManager;
   private readonly resources: IResourceManager;
+  private readonly vcsSourceClient: IVcsSourceClient;
   private readonly taskRunner: ITaskRunner;
   private readonly triggerScanner: ITriggerScanner;
   private readonly ledger: IOperationLedger;
@@ -74,6 +76,7 @@ export class Orchestrator {
     router,
     issueManager,
     resources,
+    vcsSourceClient,
     taskRunner,
     triggerScanner,
     ledger,
@@ -88,6 +91,7 @@ export class Orchestrator {
     router: IProfileRouter;
     issueManager: IIssueManager;
     resources: IResourceManager;
+    vcsSourceClient: IVcsSourceClient;
     taskRunner: ITaskRunner;
     triggerScanner: ITriggerScanner;
     ledger: IOperationLedger;
@@ -103,6 +107,7 @@ export class Orchestrator {
     this.router = router;
     this.issueManager = issueManager;
     this.resources = resources;
+    this.vcsSourceClient = vcsSourceClient;
     this.taskRunner = taskRunner;
     this.triggerScanner = triggerScanner;
     this.ralphchivesConfig = ralphchivesConfig;
@@ -277,14 +282,13 @@ export class Orchestrator {
     const isRevision = revisionStatuses.some(
       (s) => s.toLowerCase() === itemStatus,
     );
-    let prUrl: string | null = null;
+    let revisionPreflightCtx: PreflightContext | null = null;
     if (isRevision) {
-      const preflightCtx = await this.runPreflight(workItem, profile, operation, "revision-ready");
-      if (!preflightCtx) return;
-      prUrl = preflightCtx.prUrl;
+      revisionPreflightCtx = await this.runPreflight(workItem, profile, operation, "revision-ready");
+      if (!revisionPreflightCtx) return;
     }
 
-    await this.runTask(workItem, profile, operation, prUrl);
+    await this.runTask(workItem, profile, operation, revisionPreflightCtx);
   }
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
@@ -345,6 +349,9 @@ export class Orchestrator {
     const comments = await this.issueManager.getComments(workItem.source, workItem.id);
     const ctx = await buildPreflightContext(
       this.resources,
+      this.vcsSourceClient,
+      profile,
+      this.activityLog.createLogger(),
       workItem.source,
       workItem.id,
       comments,
@@ -374,7 +381,7 @@ export class Orchestrator {
     workItem: WorkItem,
     profile: IAgentProfile,
     operation: Operation,
-    prUrl?: string | null,
+    preflightCtx?: PreflightContext | null,
   ): Promise<void> {
     this.activeTask = {
       workItem,
@@ -393,7 +400,10 @@ export class Orchestrator {
       this.activityLog.startTaskLog(taskId);
       const ctx = buildTaskContext(
         workItem, profile, taskId, this.ralphchivesConfig,
-        operation.triggerParams, prUrl, this.outputConfig.logDir,
+        operation.triggerParams,
+        preflightCtx?.prUrl,
+        preflightCtx?.prBranches ?? null,
+        this.outputConfig.logDir,
         this.abortController.signal,
         this.taskCallbacks.onToolOutput,
         this.taskCallbacks.onPreToolUse,

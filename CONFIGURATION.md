@@ -166,7 +166,7 @@ shared/
 | `maxContinuations` | Maximum number of automatic retry attempts when the agent's session ends without producing the `===RALPH_RESULT_START===` block. Uses `--continue` to resume the previous CLI session with exponential backoff (5s base, 30s cap). `0` = disabled (single invocation only). | `0` |
 | `githubMcpTools` | Control the bundled GitHub MCP server in Copilot CLI. `false` = server disabled (`--disable-builtin-mcps`), `["get_file_contents"]` = enable only listed tools (`--add-github-mcp-tool`). Empty array is a validation error. Only affects `cli: "copilot"`. | `false` |
 | `skills` | Array of skill folder names from `shared/skills/` to mount into the container at `.github/skills/`. Each name must match a subdirectory in `shared/skills/`. Validated at startup. | `[]` |
-| `vcsProvider` | VCS hosting provider for the target repo: `"ado"` (Azure DevOps) or `"github"`. Controls the auth header format used by the repo-sync hook. | `"ado"` |
+| `vcsProvider` | VCS hosting provider for the target repo: `"ado"` (Azure DevOps) or `"github"`. Controls the auth header format used by the repo-sync hook and selects the PR metadata resolver used for revision branch inference. | `"ado"` |
 | `repoPat` | Name of the env var containing the git PAT for the repo-sync hook. | `"ADO_PAT"` (ado) or `"GH_TOKEN"` (github) |
 
 The profile `id` is derived from the directory name (e.g. `profiles/ralph-docs/` → `id: "ralph-docs"`). The compose file path is always `profiles/<id>/docker-compose.yml`, which is automatically merged with the security overlay at `shared/security/docker-compose.security.yml` and the resources overlay at `profiles/<id>/.build/docker-compose.overlay.yml` (if present).
@@ -241,7 +241,7 @@ Each variant contains a `stages` array defining the sequential agent pipeline. T
 
 `buildTriggerParams()` in `agent-includes.ts` performs the conversion. Templates can check `{% if triggerParams.codesamples %}` or interpolate `{{ triggerParams.branch_name }}`. See [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference.
 
-**Reserved orchestrator-level parameters:** `source_branch`, `branch`, and `skip_hooks` are consumed by the orchestrator before templates run. `skip_hooks` bypasses post-task hook execution and writes a `hook-manifest.json` for manual replay. See [docs/user-guide/trigger-parameters.md](docs/user-guide/trigger-parameters.md) for details.
+**Reserved orchestrator-level parameters:** `source_branch`, `branch`, and `skip_hooks` are consumed by the orchestrator before templates run. For revision tasks, `source_branch` and `branch` can also be inferred from an existing pull request URL in comments when the configured `vcsProvider` supports it. `skip_hooks` bypasses post-task hook execution and writes a `hook-manifest.json` for manual replay. See [docs/user-guide/trigger-parameters.md](docs/user-guide/trigger-parameters.md) for details.
 
 #### Transitions
 
@@ -316,7 +316,7 @@ Server names must match a subdirectory of `shared/mcp-servers/`. Servers declare
 |---|---|
 | `$task.id` | JIRA issue key (e.g. `DOC-3143`) |
 | `$task.project` | Project key prefix (e.g. `DOC`) |
-| `$task.branch` | Branch name: `ralph/<taskId>-<slugified-summary>` (max 80 chars) |
+| `$task.branch` | Resolved task branch name: explicit `branch` trigger param, else inferred PR source branch for revision tasks when available, else `ralph/<taskId>-<slugified-summary>` (max 80 chars) |
 | `$task.title` | JIRA issue summary text |
 | `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (e.g. `$trigger.branch` resolves from `@RalphDf(branch=feature-xyz)`). Returns empty string if the parameter is missing. |
 

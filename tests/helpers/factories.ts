@@ -13,6 +13,7 @@ import type { CompletedTask } from "../../src/orchestrator-types.js";
 import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
 import type { TaskContext } from "../../src/services/task-context.js";
 import { AuditMode } from "../../src/prompt/prompt-auditor.js";
+import { slugifyBranchName } from "../../src/util/branch.js";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
 
@@ -302,11 +303,16 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
 
 /** Create a minimal TaskContext for testing. */
 export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskContext {
+  const workItem = overrides.workItem ?? makeWorkItem("DF-100");
+  const triggerParams = overrides.triggerParams ?? {};
+
   return {
-    workItem: makeWorkItem("DF-100"),
-    profile: makeProfile(),
+    workItem,
+    profile: overrides.profile ?? makeProfile(),
     taskId: "DF-100-1234567890000",
-    triggerParams: {},
+    triggerParams,
+    sourceBranch: overrides.sourceBranch ?? triggerParams.source_branch ?? "main",
+    taskBranch: overrides.taskBranch ?? triggerParams.branch ?? slugifyBranchName(workItem.id, workItem.title),
     isRevision: false,
     ralphchivesEnabled: false,
     prUrl: null,

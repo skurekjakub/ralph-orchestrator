@@ -1,5 +1,8 @@
-import type { IResourceManager } from "./task-resource-manager.js";
+import type { IAgentProfile } from "../config/types.js";
 import type { WorkItemComment, WorkItem } from "../datasource/types.js";
+import type { Logger } from "../logger.js";
+import type { IResourceManager } from "./task-resource-manager.js";
+import type { IVcsSourceClient, PullRequestBranchInfo } from "./vcs-source-client.js";
 
 export type PreflightResult =
   | { ok: true }
@@ -12,6 +15,8 @@ export interface PreflightContext {
   handoffContent: string | null;
   /** PR URL extracted from comments (most recent first), or null. */
   prUrl: string | null;
+  /** Source and target branches resolved from the PR URL when supported by the VCS provider. */
+  prBranches: PullRequestBranchInfo | null;
 }
 
 type PreflightCheck = (workItem: WorkItem, ctx: PreflightContext) => PreflightResult;
@@ -48,16 +53,30 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
  */
 export async function buildPreflightContext(
   resources: IResourceManager,
+  vcsSourceClient: IVcsSourceClient,
+  profile: IAgentProfile,
+  logger: Logger,
   source: string,
   workItemId: string,
   comments: WorkItemComment[],
 ): Promise<PreflightContext> {
   const handoffContent = await resources.fetchHandoff(source, workItemId);
+  const prUrl = findPrUrl(comments);
+  let prBranches: PullRequestBranchInfo | null = null;
+  if (prUrl) {
+    try {
+      prBranches = await vcsSourceClient.resolvePullRequestBranches(profile, prUrl, logger);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to resolve PR branch metadata for ${workItemId}: ${message}`);
+    }
+  }
 
   return {
     comments,
     handoffContent,
-    prUrl: findPrUrl(comments),
+    prUrl,
+    prBranches,
   };
 }
 
