@@ -61,3 +61,4 @@ Write to `{artifact-root}/pass-{pass-index}/family/integrator/`:
 - Verify file-set completeness against the approved roster before the family audit runs
 - Block only when required components are missing or unreadable
 - Keep the summary machine-readable so the family auditor can reason locally about missing or changed components
+- Treat `subagents/index.json` and `skills/index.json` as authoritative for component lifecycle state

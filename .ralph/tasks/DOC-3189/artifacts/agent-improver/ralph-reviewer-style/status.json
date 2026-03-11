@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3189",
+  "status": "completed",
+  "result": "improved",
+  "summary": "4 changes: en-dash rule added to skill, review-findings versioned from v1, artifacts list example added, reviewer re-dispatch guidance with finding codes added to workflow",
+  "artifacts": ["agent-improver/ralph-reviewer-style/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

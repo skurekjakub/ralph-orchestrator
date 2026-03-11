@@ -3,8 +3,8 @@
   "task_id": "DOC-3189",
   "status": "completed",
   "result": "improved",
-  "summary": "Execution failed at coder bootstrap (proxy-blocked NuGet domains). Analyzer filed 5 suggestions; improver implemented 5 changes across 5 files including proxy allowlist fix and fail-fast patterns.",
+  "summary": "Mapped 8 unique subagents (16 invocations). researcher: analyzed+improved, planner: analyzed+improved, writer: analyzed+improved, validator: analyzed+improved, reviewer-technical: analyzed+improved, reviewer-style: analyzed+improved, reviewer-ia: analyzed+improved, scribe: analyzed+improved. Synthesis: synthesized.",
   "artifacts": ["scientist/status.json"],
   "next_hint": null,
-  "iteration": 1
+  "iteration": 2
 }

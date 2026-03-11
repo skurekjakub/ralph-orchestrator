@@ -113,6 +113,19 @@ All working artifacts live under `.agent-factory/artifacts/{agent-name}/`.
 
 The deliverables are written to the user-specified output path. Skills are written under `.github/skills/` unless a later architecture explicitly chooses another target.
 
+## Control File Ownership
+
+Treat these files as the authoritative routing state.
+
+| File | Primary writer | Purpose |
+|---|---|---|
+| `pass-{N}/roster/architect/roster.json` | `factory-roster-architect` | Approved family decomposition and component inventory |
+| `pass-{N}/subagents/index.json` | seeded by `factory-roster-architect`, updated by subagent workers | Lifecycle state for each subagent |
+| `pass-{N}/skills/index.json` | seeded by `factory-roster-architect`, updated by skill workers | Lifecycle state for each new skill |
+| `pass-{N}/family/auditor/repair-plan.json` | `factory-family-auditor` | Local repair routing after whole-family audit |
+
+Never infer component state from narrative artifacts when an index file exists.
+
 ## Routing Model
 
 ### Setup
@@ -122,6 +135,9 @@ The deliverables are written to the user-specified output path. Skills are writt
 3. Create `.agent-factory/artifacts/{agent-name}/`
 4. Initialize `manifest.json` as `[]`
 5. Initialize `state.md` with pass tracker, component iteration counters, and final output path
+6. Initialize empty control-file placeholders for both passes:
+    - `pass-{N}/subagents/index.json`
+    - `pass-{N}/skills/index.json`
 
 ### Per-Pass Workflow
 
@@ -131,7 +147,7 @@ For each pass `1..2`:
 2. Dispatch `factory-roster-architect`
 3. Dispatch `factory-roster-auditor`
 4. Loop roster architect ↔ roster auditor until approved or max 3 iterations
-5. Read `roster.json`
+5. Read `roster.json`, `subagents/index.json`, and `skills/index.json`
 6. For each subagent in `roster.json`:
     - dispatch `factory-subagent-architect`
     - dispatch `factory-subagent-auditor`
@@ -201,6 +217,7 @@ After pass 1, proceed to pass 2 unless the pass 1 family audit is fatal.
 - Read `status.json` and machine-readable control files
 - Track pass number and local iteration limits
 - Print the final completion summary
+- Enforce that family-level repair routing happens through `repair-plan.json`, not ad hoc interpretation of narrative reports
 
 ## What You NEVER Do
 

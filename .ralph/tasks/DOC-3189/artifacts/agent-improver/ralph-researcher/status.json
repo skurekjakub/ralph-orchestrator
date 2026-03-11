@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3189",
+  "status": "completed",
+  "result": "improved",
+  "summary": "3 changes applied: added re-run context to Phase 2 dispatch, strengthened microsoft-docs cross-referencing in source-code research guide, clarified xperience vs xperience-documentation as distinct skills in researcher template. 1 infrastructure issue (MCP SSE stability) escalated to Proposed.",
+  "artifacts": ["agent-improver/ralph-researcher/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

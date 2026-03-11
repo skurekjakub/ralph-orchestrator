@@ -45,6 +45,15 @@ Write to `{artifact-root}/pass-{pass-index}/family/auditor/`:
 }
 ```
 
+Allowed values:
+- `componentType`: `subagent`, `skill`, `orchestrator`
+- `routeTo`:
+  - `factory-subagent-architect`
+  - `factory-subagent-builder`
+  - `factory-skill-architect`
+  - `factory-skill-builder`
+  - `factory-orchestrator-builder`
+
 ### `status.json`
 
 ```json
@@ -74,3 +83,4 @@ Verify:
 - Prefer local repair actions over global rebuilds
 - Use `repair-plan.json` to route precise follow-up work back to the right component loop
 - Mark the family `approved-with-warnings` only when no missing or contradictory components remain
+- Never emit a repair action that points to a whole-family rebuild when a local component loop can repair the issue

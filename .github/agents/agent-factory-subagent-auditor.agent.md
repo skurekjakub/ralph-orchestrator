@@ -22,6 +22,7 @@ Read:
 
 Write to `{artifact-root}/pass-{pass-index}/subagents/{subagent-id}/auditor/`:
 - `output-v{N}.md`
+- update `{artifact-root}/pass-{pass-index}/subagents/index.json`
 - `status.json`
 - append to `manifest.json`
 
@@ -55,3 +56,4 @@ Verify:
 - Reject vague specs
 - Reject blended responsibilities
 - Route back to architect if the defect is conceptual
+- Update `subagents/index.json` with the current specification audit state

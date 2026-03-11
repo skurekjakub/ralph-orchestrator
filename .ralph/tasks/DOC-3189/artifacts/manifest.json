@@ -1,30 +1,154 @@
 [
   {
-    "timestamp": "2026-03-10T12:05:41Z",
-    "agent": "run-analyzer",
-    "artifacts": [
-      "run-analyzer/output.md"
-    ],
+    "timestamp": "2026-03-11T09:30:00Z",
+    "agent": "subagent-mapper",
+    "artifacts": ["subagent-mapper/output.md"],
+    "status": "completed",
+    "result": "mapped",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-researcher",
+    "artifacts": ["run-analyzer/ralph-researcher/output.md"],
     "status": "completed",
     "result": "analyzed",
-    "iteration": 1
+    "iteration": 2
   },
   {
-    "timestamp": "2026-03-10T12:11:37Z",
-    "agent": "agent-improver",
-    "artifacts": [
-      "agent-improver/output.md"
-    ],
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-planner",
+    "artifacts": ["run-analyzer/ralph-planner/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-writer",
+    "artifacts": ["run-analyzer/ralph-writer/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-validator",
+    "artifacts": ["run-analyzer/ralph-validator/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-reviewer-technical",
+    "artifacts": ["run-analyzer/ralph-reviewer-technical/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-reviewer-style",
+    "artifacts": ["run-analyzer/ralph-reviewer-style/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-reviewer-ia",
+    "artifacts": ["run-analyzer/ralph-reviewer-ia/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:35:00Z",
+    "agent": "run-analyzer/ralph-scribe",
+    "artifacts": ["run-analyzer/ralph-scribe/output.md"],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-researcher",
+    "artifacts": ["agent-improver/ralph-researcher/output.md"],
     "status": "completed",
     "result": "improved",
-    "iteration": 1
+    "iteration": 2
   },
   {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-planner",
+    "artifacts": ["agent-improver/ralph-planner/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-writer",
+    "artifacts": ["agent-improver/ralph-writer/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-validator",
+    "artifacts": ["agent-improver/ralph-validator/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-reviewer-technical",
+    "artifacts": ["agent-improver/ralph-reviewer-technical/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-reviewer-style",
+    "artifacts": ["agent-improver/ralph-reviewer-style/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-reviewer-ia",
+    "artifacts": ["agent-improver/ralph-reviewer-ia/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T09:50:00Z",
+    "agent": "agent-improver/ralph-scribe",
+    "artifacts": ["agent-improver/ralph-scribe/output.md"],
+    "status": "completed",
+    "result": "improved",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T10:00:00Z",
+    "agent": "run-synthesizer",
+    "artifacts": ["run-synthesizer/output.md"],
+    "status": "completed",
+    "result": "synthesized",
+    "iteration": 2
+  },
+  {
+    "timestamp": "2026-03-11T10:05:00Z",
     "agent": "scientist",
+    "artifacts": ["scientist/status.json"],
     "status": "completed",
     "result": "improved",
-    "artifacts": [
-      "scientist/status.json"
-    ]
+    "iteration": 2
   }
 ]

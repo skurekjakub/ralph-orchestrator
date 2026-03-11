@@ -45,7 +45,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 | `dashboard-local/` | Local development dashboard (Vite + React) |
 | `tests/` | Vitest test suite |
-| `scripts/` | Utility scripts (reset test env, validate config) |
+| `scripts/` | Utility scripts (reset test env, validate config, replay hooks) |
 
 ## Commands
 

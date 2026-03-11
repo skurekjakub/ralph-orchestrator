@@ -24,8 +24,10 @@ Write to `{artifact-root}/pass-{pass-index}/roster/architect/`:
 
 1. `output.md` — narrative roster design
 2. `roster.json`
-3. `status.json`
-4. append to `{artifact-root}/manifest.json`
+3. refresh `{artifact-root}/pass-{pass-index}/subagents/index.json`
+4. refresh `{artifact-root}/pass-{pass-index}/skills/index.json`
+5. `status.json`
+6. append to `{artifact-root}/manifest.json`
 
 ### `roster.json`
 
@@ -78,6 +80,40 @@ Write to `{artifact-root}/pass-{pass-index}/roster/architect/`:
 }
 ```
 
+### `subagents/index.json`
+
+```json
+{
+  "pass": 1,
+  "items": [
+    {
+      "id": "",
+      "name": "",
+      "specPath": "",
+      "targetFile": "",
+      "state": "queued"
+    }
+  ]
+}
+```
+
+### `skills/index.json`
+
+```json
+{
+  "pass": 1,
+  "items": [
+    {
+      "id": "",
+      "name": "",
+      "specPath": "",
+      "targetDir": "",
+      "state": "queued"
+    }
+  ]
+}
+```
+
 ## Responsibilities
 
 Design:
@@ -95,4 +131,5 @@ In pass 2, update the roster based on rediscovery and delivered-family compariso
 - Design one subagent per distinct responsibility cluster
 - Keep orchestrator duties administrative only
 - Do not build prompts or skills here
+- Seed `subagents/index.json` and `skills/index.json` from the roster so downstream workers update one shared lifecycle view
 - If a needed component cannot be defined coherently, return `blocked`

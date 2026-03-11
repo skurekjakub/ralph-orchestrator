@@ -22,6 +22,7 @@ Read:
 
 Write to `{artifact-root}/pass-{pass-index}/subagents/{subagent-id}/build-auditor/`:
 - `output-v{N}.md`
+- update `{artifact-root}/pass-{pass-index}/subagents/index.json`
 - `status.json`
 - append to `manifest.json`
 
@@ -54,3 +55,4 @@ Verify:
 
 - Route back only to the builder unless the spec is clearly wrong
 - Keep findings local to the current subagent
+- Update `subagents/index.json` with the current build audit state and final target file when approved

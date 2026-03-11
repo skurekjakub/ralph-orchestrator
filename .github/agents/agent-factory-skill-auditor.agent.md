@@ -23,6 +23,7 @@ Read:
 
 Write to `{artifact-root}/pass-{pass-index}/skills/{skill-id}/auditor/`:
 - `output-v{N}.md`
+- update `{artifact-root}/pass-{pass-index}/skills/index.json`
 - `status.json`
 - append to `manifest.json`
 
@@ -56,3 +57,4 @@ Verify:
 - Route to the architect if the defect is conceptual or the trigger/scope is wrong
 - Route to the builder if the defect is implementation-only
 - Keep findings local to the current skill
+- Update `skills/index.json` with the current audit state and final target directory when approved

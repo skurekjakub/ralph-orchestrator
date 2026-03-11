@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3189",
+  "status": "completed",
+  "result": "improved",
+  "summary": "5 changes: added next_hint/task_id/artifacts rules to all 3 reviewer templates, added changed-file-list guidance to review dispatch workflow.",
+  "artifacts": ["agent-improver/ralph-reviewer-technical/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}
