@@ -103,7 +103,7 @@ Webpack bundles → `dist/extension.js`. `npm run build` packages the VSIX. `npm
 
 ### Write Tests
 
-After implementing code changes, **read the `vscode-workflow-subagent-test` skill** for the full testing guide. Then:
+After implementing code changes, **read `references/test-guide.md` from the `vscode-workflow` skill** for the full testing guide. Then:
 
 1. Review the analyst's **Testing** section for which tests to add or update
 2. READ all of these skills about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. 
