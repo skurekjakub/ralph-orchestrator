@@ -1,7 +1,4 @@
----
-name: devralph-workflow-handoff
-description: "Phase 9 (final) of the standard development workflow — write the handoff file, comment on JIRA with results, and print the exit block that signals the orchestrator your session is complete. The handoff captures institutional knowledge (decisions made, alternatives considered, known issues) that helps future runs and human reviewers."
----
+{%- unless isRevision %}
 {% raw %}
 
 # Phase 9: Handoff & Exit
@@ -19,7 +16,7 @@ description: "Phase 9 (final) of the standard development workflow — write the
    # Handoff: {{ taskId }} — {{ taskTitle }}
    
    ## Status
-   <complete | partial | blocked>
+   <completed | partial | blocked>
    
    ## Summary
    <What was done — 2-3 sentences>
@@ -57,9 +54,9 @@ description: "Phase 9 (final) of the standard development workflow — write the
 
    ```
    ===RALPH_RESULT_START===
-   status: <complete|partial|blocked>
-   pr_url: <PR URL or empty>
-   summary: <one-line summary>
+   STATUS: <completed|partial|blocked>
+   PR_URL: <PR URL or none>
+   SUMMARY: <one-line summary>
    ===RALPH_RESULT_END===
    ```
 
@@ -68,3 +65,6 @@ description: "Phase 9 (final) of the standard development workflow — write the
 This is the final phase. After printing the exit block, your session ends. The orchestrator picks up the result and transitions the JIRA issue.
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

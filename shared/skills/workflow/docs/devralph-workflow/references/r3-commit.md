@@ -1,7 +1,4 @@
----
-name: devralph-workflow-revision-commit
-description: "Phase 3 of the revision workflow — commit revision fixes with fix(TASKID) prefix and push to update the existing PR. No new PR creation needed — the existing one auto-updates with the new commit."
----
+{%- if isRevision %}
 {% raw %}
 
 # Revision Phase 3: Commit
@@ -37,8 +34,10 @@ description: "Phase 3 of the revision workflow — commit revision fixes with fi
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 4: Handoff`
-- Set "Skills for this phase" to:
-  - devralph-workflow-revision-handoff
+- Set "Reference file for this phase" to `references/r4-handoff.md`
 - Add Revision Phase 3 to "Completed Phases" with commit hash
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

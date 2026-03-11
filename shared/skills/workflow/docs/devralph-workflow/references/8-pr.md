@@ -1,7 +1,4 @@
----
-name: devralph-workflow-pr
-description: "Phase 8 of the standard development workflow — create an Azure DevOps pull request via the ADO MCP tool (uses ralph-ado-pr-workflow skill for ADO specifics). The structured PR description (summary, affected components, testing results, breaking changes) helps reviewers assess the change quickly."
----
+{%- unless isRevision %}
 {% raw %}
 
 # Phase 8: Pull Request
@@ -61,8 +58,10 @@ description: "Phase 8 of the standard development workflow — create an Azure D
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 9: Handoff`
-- Set "Skills for this phase" to:
-  - devralph-workflow-handoff
+- Set "Reference file for this phase" to `references/9-handoff.md`
 - Add Phase 8 to "Completed Phases" with PR URL
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

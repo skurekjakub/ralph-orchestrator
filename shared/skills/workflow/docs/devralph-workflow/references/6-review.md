@@ -1,7 +1,4 @@
----
-name: devralph-workflow-review
-description: "Phase 6 of the standard development workflow — code review gate before committing. Delegate to stacky-reviewer (code quality, patterns, conventions) and stacky-bug-auditor (regressions, breaking changes, edge cases). Address all findings before proceeding. The dual review catches different problem classes — the reviewer focuses on how you built it, the auditor focuses on what you might have broken."
----
+{%- unless isRevision %}
 {% raw %}
 
 # Phase 6: Review
@@ -49,9 +46,10 @@ description: "Phase 6 of the standard development workflow — code review gate 
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 7: Commit`
-- Set "Skills for this phase" to:
-  - devralph-workflow-commit
-  - ralph-ado-pr-workflow
+- Set "Reference file for this phase" to `references/7-commit.md`
 - Add Phase 6 to "Completed Phases" with review findings addressed
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

@@ -1,7 +1,4 @@
----
-name: devralph-workflow-setup
-description: "Phase 1 of the standard development workflow — the foundation for every non-revision task. Covers creating state.md (your scratchpad and single source of truth), verifying the workspace and branch, searching ralphchives for prior work on the same area, and identifying which components your task will touch. Start here to establish context before any code changes — skipping this phase leads to rework because you miss existing solutions or misjudge the scope of affected components."
----
+{%- unless isRevision %}
 {% raw %}
 
 # Phase 1: Setup
@@ -9,7 +6,7 @@ description: "Phase 1 of the standard development workflow — the foundation fo
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md` — if this is Phase 1, the file doesn't exist yet. Create it below.
-2. This skill is for **Phase 1: Setup**. If you've already completed setup, skip to the next phase.
+2. This reference is for **Phase 1: Setup**. If you've already completed setup, skip to the next phase.
 
 ## Context
 
@@ -33,10 +30,10 @@ You are already on the correct branch. Do **not** create a new branch or switch 
 ## Current Phase
 Phase 1: Setup
 
-### Skills for this phase
-- devralph-workflow-setup
+### Reference file for this phase
+- references/1-setup.md
 
-> ⚠️ STOP — Read every skill listed above BEFORE doing any work in this phase.
+> ⚠️ STOP — Read the reference file listed above BEFORE doing any work in this phase.
 
 ## Completed Phases
 (none yet)
@@ -78,11 +75,13 @@ Phase 1: Setup
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 2: Research`
-- Set "Skills for this phase" to:
-  - devralph-workflow-research
-  - (domain skills matching affected components, e.g. devralph-ruby-gems, devralph-frontend)
+- Set "Reference file for this phase" to `references/2-research.md`
+  - Also list domain skills matching affected components (e.g. devralph-ruby-gems, devralph-frontend)
 - Keep the reminder line
 - Add Phase 1 to "Completed Phases" with branch name and setup outcomes
 - Record ralphchives findings and affected components
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}

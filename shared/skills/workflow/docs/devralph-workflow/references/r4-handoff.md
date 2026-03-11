@@ -1,7 +1,4 @@
----
-name: devralph-workflow-revision-handoff
-description: "Phase 4 (final) of the revision workflow — update the handoff file with a revision section documenting what was fixed and why, comment on JIRA with the fix summary, and print the exit block. The revision handoff is especially important because it creates an audit trail connecting the original defect to the fix."
----
+{%- if isRevision %}
 {% raw %}
 
 # Revision Phase 4: Handoff & Exit
@@ -15,7 +12,7 @@ description: "Phase 4 (final) of the revision workflow — update the handoff fi
 
 1. **Update the handoff file** at `.ralph/tasks/{{ taskId }}/handoff.md`:
    - Append a "Revision" section describing what was fixed
-   - Update the status (complete / partial / blocked)
+   - Update the status (completed / partial / blocked)
    - Note any remaining issues
 
 2. **Comment on JIRA** ({{ taskId }}) with:
@@ -28,10 +25,17 @@ description: "Phase 4 (final) of the revision workflow — update the handoff fi
 4. **Print the exit block:**
    ```
    ===RALPH_RESULT_START===
-   status: <complete|partial|blocked>
-   pr_url: <PR URL>
-   summary: <one-line summary of revision fixes>
+   STATUS: <completed|partial|blocked>
+   PR_URL: <PR URL or none>
+   SUMMARY: <one-line summary of revision fixes>
    ===RALPH_RESULT_END===
    ```
 
+## Completion
+
+This is the final revision phase. After printing the exit block, your session ends. The orchestrator picks up the result and transitions the JIRA issue.
+
 {% endraw %}
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

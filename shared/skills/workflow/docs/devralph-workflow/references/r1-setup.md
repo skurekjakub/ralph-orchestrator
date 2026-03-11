@@ -1,7 +1,4 @@
----
-name: devralph-workflow-revision-setup
-description: "Phase 1 of the revision workflow — triggered when a task returns with Defect Found status. Review the previous handoff, extract specific defects from JIRA comments and reviewer feedback, and create a concrete fix plan. Understanding exactly what was wrong prevents fixing symptoms instead of root causes."
----
+{%- if isRevision %}
 {% raw %}
 
 # Revision Phase 1: Setup
@@ -42,8 +39,10 @@ The orchestrator has:
 
 Update `state.md`:
 - Set "Current Phase" to `Revision Phase 2: Fix`
-- Set "Skills for this phase" to:
-  - devralph-workflow-revision-fix
-  - (domain skills for affected components)
+- Set "Reference file for this phase" to `references/r2-fix.md`
+  - Also list domain skills for affected components
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the revision workflow. You are running a standard workflow — this file is intentionally empty. -->
+{%- endif %}

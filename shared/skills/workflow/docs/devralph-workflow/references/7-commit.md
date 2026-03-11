@@ -1,7 +1,4 @@
----
-name: devralph-workflow-commit
-description: "Phase 7 of the standard development workflow — final build verification, staging, commit with dev(TASKID) prefix, and push. The final build matters because review-phase fixes may have introduced new issues."
----
+{%- unless isRevision %}
 {% raw %}
 
 # Phase 7: Commit
@@ -55,9 +52,10 @@ description: "Phase 7 of the standard development workflow — final build verif
 
 Update `state.md`:
 - Set "Current Phase" to `Phase 8: PR`
-- Set "Skills for this phase" to:
-  - devralph-workflow-pr
-  - ralph-ado-pr-workflow
+- Set "Reference file for this phase" to `references/8-pr.md`
 - Add Phase 7 to "Completed Phases" with commit hash
 
 {% endraw %}
+{%- else %}
+<!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
+{%- endunless %}
