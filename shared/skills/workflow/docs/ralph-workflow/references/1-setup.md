@@ -56,8 +56,8 @@ Phase 1: Setup
 (anything else)
 ```
 
-4. Comment on **{{ taskId }}** that you're starting work.
-5. **Search Ralphchives** for prior work related to this task — use `search_ralphchives` with component names, feature areas, and error patterns from the issue. Record findings in the "Ralphchives Findings" section of `state.md`. This search is **required before moving to Phase 1b or Phase 2** — prior reports may flag known infrastructure issues (proxy blocks, build failures) or provide context that saves time.
+4. **Search Ralphchives** for prior work related to this task — use `search_ralphchives` with component names, feature areas, and error patterns from the issue. Record findings in the "Ralphchives Findings" section of `state.md`. This search is **required before moving to Phase 1b or Phase 2** — prior reports may flag known infrastructure issues (proxy blocks, build failures) or provide context that saves time.
+5. Comment on **{{ taskId }}** that you're starting work.
 
 ## Before moving to Phase 2
 

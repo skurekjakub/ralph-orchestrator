@@ -24,7 +24,9 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-autocomplete-vscode",
-        "TASK_BRANCH": "$task.branch"
+        "TASK_BRANCH": "$task.branch",
+        "SOURCE_BRANCH": "$trigger.source_branch",
+        "TARGET_BRANCH": "$trigger.target_branch"
       }
     },
     {
@@ -86,7 +88,10 @@
             "vscode-workflow-archive",
             "vscode-workflow-revision-setup",
             "vscode-workflow-revision-commit",
-            "vscode-workflow-revision-handoff"
+            "vscode-workflow-revision-handoff",
+            "test-behavior-testing",
+            "test-mocking-strategy",
+            "test-structure-patterns"
           ]
         }
       ],

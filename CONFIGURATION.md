@@ -241,6 +241,8 @@ Each variant contains a `stages` array defining the sequential agent pipeline. T
 
 `buildTriggerParams()` in `agent-includes.ts` performs the conversion. Templates can check `{% if triggerParams.codesamples %}` or interpolate `{{ triggerParams.branch_name }}`. See [docs/agent-templates.md](docs/agent-templates.md) for the full parameter reference.
 
+**Reserved orchestrator-level parameters:** `source_branch`, `branch`, and `skip_hooks` are consumed by the orchestrator before templates run. `skip_hooks` bypasses post-task hook execution and writes a `hook-manifest.json` for manual replay. See [docs/user-guide/trigger-parameters.md](docs/user-guide/trigger-parameters.md) for details.
+
 #### Transitions
 
 | Field | Description |

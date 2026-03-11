@@ -101,6 +101,11 @@ Writing standards for self-reviewing Xperience by Kentico documentation. Use thi
 **Don't use** backticks for: database table/column names.
 **Never** pluralize code elements directly. Use: "`IUserInfoProvider` classes".
 
+### En dashes and hyphens
+- Render en dashes as two ASCII hyphens `--` (not Unicode `–` U+2013)
+- Use en dashes for ranges (e.g., "pages 10--20") and parenthetical asides
+- Use regular hyphens `-` for compound words (e.g., "role-based")
+
 ### UI elements formatting
 **Use bold** for: applications, tabs, buttons, fields, dialog names.
 - "**Settings** application", "**URLs** tab", "**Save** button"

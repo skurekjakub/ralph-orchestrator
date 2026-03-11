@@ -11,7 +11,7 @@ export interface IIssueManager {
   refreshWorkItem(source: string, workItemId: string): Promise<WorkItem | null>;
   getComments(source: string, workItemId: string): Promise<WorkItemComment[]>;
   transitionWorkItem(source: string, workItemId: string, targetStatus: string | undefined, phase: TransitionPhase): Promise<void>;
-  postStartComment(source: string, workItemId: string, displayName: string, profileId: string): Promise<void>;
+  postStartComment(source: string, workItemId: string, displayName: string, profileId: string, triggerParams?: Record<string, string>): Promise<void>;
   postErrorComment(source: string, workItemId: string, error: string): Promise<void>;
   postCrashRecoveryComment(source: string, workItemId: string, variant: string): Promise<void>;
   postStaleStatusComment(source: string, workItemId: string, displayName: string, currentStatus: string): Promise<void>;
@@ -100,9 +100,9 @@ export class IssueManager implements IIssueManager {
     }
   }
 
-  async postStartComment(source: string, workItemId: string, displayName: string, profileId: string): Promise<void> {
+  async postStartComment(source: string, workItemId: string, displayName: string, profileId: string, triggerParams?: Record<string, string>): Promise<void> {
     this.logger.info(`Posting start comment on ${workItemId}...`);
-    const startMessage = OrchestratorComments.start(displayName, profileId);
+    const startMessage = OrchestratorComments.start(displayName, profileId, triggerParams);
     const connector = this.resolveConnector(source);
     try {
       await withRetry(

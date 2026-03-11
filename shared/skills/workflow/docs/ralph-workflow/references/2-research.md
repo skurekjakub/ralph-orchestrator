@@ -11,6 +11,15 @@
 
 Dispatch the **ralph-researcher** sub-agent with the JIRA issue details given in the initial prompt, ralphchives findings, and source code context on its own.
 
+### Re-run Context
+
+If this is a **re-run** of a previously attempted task (prior PR exists, prior handoff exists, or `state.md` references a previous attempt), include the following in the researcher dispatch prompt so it doesn't have to rediscover this context via ralphchives:
+- Prior PR number(s) and their status (merged, abandoned, superseded)
+- One-line summary of what the prior attempt accomplished or where it fell short
+- Any branch dependency information (e.g., "depends on DOC-XXXX / PR #YYYY being merged first")
+
+This saves the researcher ~10 tool calls on ralphchives queries that would only rediscover what you already know from `state.md` or Phase 1 setup.
+
 After the researcher returns, read its `status.json` at `.ralph/tasks/{{ taskId }}/artifacts/ralph-researcher/status.json`.
 
 - If `result: researched` — dispatch **ralph-planner** with a one-line directive (e.g. "Break research into headless execution tasks for {{ taskId }}").

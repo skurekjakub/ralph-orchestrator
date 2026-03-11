@@ -73,6 +73,8 @@ Mocha (TDD style: `suite`/`test`) + Sinon + Node assert. Tests run in a real VS 
 1. **Read the coder's change summary** at `{{ artifactDir }}/ralph-coder/output-v{N}.md` — understand what was changed and why
 2. **Read the analyst's plan** at `{{ artifactDir }}/ralph-analyst/output.md` — this is the original spec to verify against
 3. **Read the actual changed files** in the repo — verify the code matches the summary
+4. Read the **ralph-ralphchives** skill. Search ralphchives for any existing information and patterns and gotchas related to the task that may help in your review.
+5. READ all of these skills about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. Judge the quality of written tests against this baseline. 
 
 ### Review Checklist
 
@@ -102,8 +104,9 @@ Read `.github/copilot-instructions.md` and verify the changes follow the project
 - Are there logic errors, off-by-one issues, or missing edge cases?
 - Are API signatures correct (not hallucinated)?
 
-#### 4. Test coverage
+#### 4. Test coverage and adherence
 
+- Do the tests adhere to patterns described in skils about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. 
 - Are there tests for new functionality?
 - Do existing tests still cover modified behavior?
 - Are test descriptions accurate?
@@ -141,9 +144,9 @@ Write your review to `{{ artifactDir }}/ralph-reviewer/output-v{N}.md`:
 <Overall assessment — what's good, what needs fixing>
 ```
 
-Severity levels: `critical` (must fix), `major` (should fix), `minor` (nice to have).
+Severity levels: `critical` (must fix), `major` (should fix), `minor` (must fix as well).
 
-Only `critical` and `major` findings result in a `fail` verdict. `minor` findings are informational.
+Only `critical` and `major` findings result in a `fail` verdict. `minor` findings are must fix as well. BE UNREASONABLY STRICT ON THE IMPLEMENTATION AND THE PATTERNS IT EMPLYS AND FOLLOWS. 
 
 Then write `status.json` (with `next_hint: "ralph-coder"` if `fail`) and append to `manifest.json` per the artifact contract.
 

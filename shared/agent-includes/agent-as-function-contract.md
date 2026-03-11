@@ -14,8 +14,11 @@ Create it if it doesn't exist. Write all output files here.
 **1. Primary artifact** — your main output:
 {% raw %}
 - Non-iterative agents: `{{ artifactDir }}/{{ agentName }}/output.md`
-- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your iteration number
+- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your **cumulative dispatch count** (monotonically increasing across all dispatches for this task, regardless of which planned subtask each dispatch handles)
+- **Agents with custom artifact lists:** If your prompt defines specific named output files (e.g., `handoff.md`, `jira-comment.md`), those replace `output.md` as your primary artifacts. List all of them in your `status.json` `artifacts` array. You do not need to also produce `output.md`.
 {% endraw %}
+
+⚠️ **Determining N:** Before writing your output file, list existing `output-v*.md` files in your artifact directory. Set N = highest existing number + 1. If no files exist, N = 1. **Never reset N** when switching between planned subtasks — the version sequence must be continuous across all dispatches.
 
 **2. status.json** — structured status the orchestrator reads for routing:
 {% raw %}
@@ -39,10 +42,11 @@ Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
 |---|---|
 | `status` | `completed` · `failed` · `blocked` — did you finish? |
 | `result` | Your task-specific outcome code (e.g. `analyzed`, `implemented`, `pass`, `fail`) |
+| `task_id` | Always the **work item ID** (e.g., `DOC-3189`) from `{{ taskId }}` — never a subtask ID like `TASK-01` |
 | `summary` | Enough for a routing decision. Not a report. |
-| `artifacts` | Paths relative to the artifact root |
+| `artifacts` | Paths relative to the artifact root — **must list ALL output files** written across all iterations, not just the latest |
 | `next_hint` | Suggested next agent. Orchestrator can override. |
-| `iteration` | How many times you've run for this task |
+| `iteration` | Cumulative dispatch count for this task (monotonically increasing — if the orchestrator dispatches you 3 times, your 3rd dispatch writes `iteration: 3` regardless of which subtask each dispatch handled) |
 
 **3. manifest.json** — **REQUIRED**: append an entry to the shared audit log:
 {% raw %}

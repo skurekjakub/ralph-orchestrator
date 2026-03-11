@@ -46,6 +46,7 @@ These parameters are recognized by the orchestrator itself (not just templates):
 |---|---|---|---|
 | `source_branch` | `key=value` | RepoSyncHook | Base branch for repo checkout and task branch creation. Default: `main` |
 | `branch` | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the computed task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention |
+| `skip_hooks` | bare | TaskRunner | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay |
 
 ### source_branch
 
@@ -68,6 +69,50 @@ Overrides the auto-generated task branch name (`ralph/<taskId>-<slugified-title>
 When set, the orchestrator checks out this branch directly instead of creating a new one. The `$task.branch` runtime macro also resolves to this value.
 
 When both `branch` and `source_branch` are provided, `source_branch` still controls the initial repo sync (fetch + checkout + reset), then `branch` is checked out as the working branch. This is useful when you need to sync the repo to a specific base but work on a pre-existing feature branch.
+
+### skip_hooks
+
+Skips post-task hook execution (e.g. the scientist/analysis pipeline). The main agent still runs, logs are collected, and JIRA transitions happen — only the `postTaskHooks` pipeline is bypassed.
+
+```
+@Ralph(skip_hooks)
+@Ralph(codesamples, skip_hooks)
+```
+
+When hooks are skipped, the orchestrator writes a `hook-manifest.json` to the task output directory (`output/logs/<key>-<startTs>/hook-manifest.json`). This file contains the full context needed to replay hooks later:
+
+```json
+{
+  "taskId": "DOC-3189-1773218420974",
+  "workItemId": "DOC-3189",
+  "source": "jira",
+  "profileId": "ralph-docs",
+  "variantKey": "ralph-docs:ralph.ralph:@RalphDf",
+  "triggerParams": { "skip_hooks": "true" },
+  "isRevision": false,
+  "outputDir": "output/logs/DOC-3189-1773218420974",
+  "status": "completed",
+  "collectedLogs": { "primary-audit": "...", "primary-transcript": "..." },
+  "hooks": [ { "name": "run-analysis", "stages": [...] } ],
+  "createdAt": "2025-07-09T10:00:00.000Z"
+}
+```
+
+#### Replaying hooks manually
+
+Use the `run-hooks.ts` script to replay skipped hooks:
+
+```bash
+# Run all hooks from the manifest
+npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974
+
+# Run a specific hook only
+npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974 --hook run-analysis
+```
+
+The script loads the current config (runs `AppStartup`), finds the matching profile, and executes hooks using local executors — identical to how `TaskRunner` runs them. This enables running analysis pipelines asynchronously or selectively.
+
+The JIRA start comment includes a notice when hooks are skipped, with the replay command.
 
 ## Profile-Specific Parameters
 

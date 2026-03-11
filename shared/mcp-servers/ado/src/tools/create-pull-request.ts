@@ -1,6 +1,6 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, apiBase, errorResult, reqConfig, repoUrl, sanitizeContent, TASK_PROJECT, TASK_REPO, TASK_BRANCH, TARGET_BRANCH } from "../shared.js";
+import { type ToolDefinition, apiBase, errorResult, reqConfig, repoUrl, sanitizeContent, TASK_PROJECT, TASK_REPO, TASK_BRANCH, TARGET_BRANCH, SOURCE_BRANCH } from "../shared.js";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Pull request title"),
@@ -18,14 +18,14 @@ export const tool: ToolDefinition = {
     description:
       "Create a new pull request in an Azure DevOps repository. " +
       "Source branch name must include the refs/heads/ prefix. " +
-      "Target branch is resolved from configuration (defaults to main).",
+      "Target branch is resolved from configuration: explicit target_branch overrides source_branch, which defaults to main.",
     inputSchema,
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);
     const repositoryId = TASK_REPO ?? String(args.repositoryId);
     const sourceRefName = TASK_BRANCH ? `refs/heads/${TASK_BRANCH}` : String(args.sourceRefName);
-    const targetRefName = `refs/heads/${TARGET_BRANCH ?? "main"}`;
+    const targetRefName = `refs/heads/${TARGET_BRANCH || SOURCE_BRANCH || "main"}`;
     const { title, description, isDraft } = args;
     const url = repoUrl(project, repositoryId, "pullrequests");
 

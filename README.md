@@ -162,7 +162,8 @@ output/
     │   ├── <key>-<startTs>-<ts>-tool-output.log      # Untruncated tool output from hooks
     │   ├── <key>-<startTs>-<ts>-proxy.log            # Squid proxy access log (allowed/denied domains)
     │   ├── <key>-<startTs>-<ts>-sidecar.log          # MCP sidecar gateway output
-    │   └── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    │   ├── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    │   └── hook-manifest.json                        # Hook replay manifest (only when skip_hooks param is set)
     ├── activity-YYYY-MM-DD.log                       # Persistent activity log (all sessions)
     ├── container-YYYY-MM-DD.log                      # Persistent container output log
     └── history/

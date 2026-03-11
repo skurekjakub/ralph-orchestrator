@@ -145,6 +145,8 @@ The `run()` pipeline has four phases:
 
 After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`.
 
+**Post-task hooks:** After result collection and container teardown, `TaskRunner` runs `postTaskHooks` — local-only agent pipelines for analysis, reporting, or improvement tasks. Hook failures are warnings only; they never affect the task result or JIRA transitions. The `skip_hooks` trigger parameter (`@Ralph(skip_hooks)`) bypasses hook execution and writes a `hook-manifest.json` to the output directory, enabling manual replay via `scripts/run-hooks.ts`.
+
 ### TaskResultWriter (`src/services/task-result-writer.ts`)
 
 Extracted service responsible for all post-execution artifacts:

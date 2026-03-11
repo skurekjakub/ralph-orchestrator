@@ -164,7 +164,7 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/config/constants.ts` | Shared constants (`DEFAULT_MODEL`) |
 | `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
 | `src/app-startup.ts` | Startup pipeline: validate → load config → load plugins → setup profiles |
-| `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
+| `src/services/task-runner.ts` | Single operation executor (4-phase pipeline + post-task hooks) |
 | `src/services/task-result-writer.ts` | Post-execution: log collection, transcript attach, summary |
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
 | `src/services/trigger-scanner.ts` | Scans JIRA comments for trigger strings |

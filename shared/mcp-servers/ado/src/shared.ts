@@ -67,6 +67,7 @@ export const TASK_PROJECT = process.env.ADO_PROJECT;
 export const TASK_REPO = process.env.ADO_REPO;
 export const TASK_BRANCH = process.env.TASK_BRANCH;
 export const TARGET_BRANCH = process.env.TARGET_BRANCH;
+export const SOURCE_BRANCH = process.env.SOURCE_BRANCH;
 
 /** Absolute path to the repo root inside the sidecar container. */
 export const REPO_ROOT = process.env.REPO_ROOT;
