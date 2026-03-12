@@ -43,7 +43,57 @@ ARTIFACTS_DIR=$(ls -d {{ hook.taskOutputDir }}/*-artifacts 2>/dev/null | head -1
 SUMMARY=$(ls {{ hook.taskOutputDir }}/*-summary.json 2>/dev/null | head -1)
 ```
 
-If `CLI_DEBUG` does not exist, write status `skipped` and stop.
+If `CLI_DEBUG` does not exist, proceed to **Step 1b: Infrastructure metadata extraction** instead of writing `skipped`.
+
+### Step 1b: Infrastructure metadata extraction (no cli-debug.log)
+
+When cli-debug.log is missing, the CLI crashed before establishing its debug session. Extract whatever metadata is available to help downstream analysis:
+
+```bash
+# Read execution summary for status, duration, exit code
+cat "$SUMMARY" 2>/dev/null
+
+# Check for proxy-blocked domains
+grep "TCP_DENIED\|403" {{ hook.taskOutputDir }}/*-squid-access.log 2>/dev/null
+
+# Check MCP sidecar health
+grep -i "error\|started\|listening" {{ hook.taskOutputDir }}/*-sidecar.log 2>/dev/null | head -20
+
+# Check if any session state was created
+ls {{ hook.taskOutputDir }}/*-session-state/ 2>/dev/null | wc -l
+```
+
+Write an infrastructure metadata file to: `{{ artifactDir }}/{{ agentName }}/subagents/infrastructure.md`
+
+```markdown
+# Infrastructure Metadata (No Subagent Spans)
+
+## Execution Summary
+- **Status:** <from summary.json>
+- **Exit code:** <from summary.json>
+- **Duration:** <from summary.json>
+- **CLI debug log:** missing (CLI crashed before creating it)
+
+## Available Evidence
+- **Proxy log:** <present/missing> — blocked requests: <count>
+- **Sidecar log:** <present/missing> — server status: <summary>
+- **Session state:** <file count>
+- **Artifact directories:** <present/missing>
+
+## Blocked Domains (from proxy log)
+<!-- List all TCP_DENIED/403 entries -->
+
+## MCP Server Status (from sidecar log)
+<!-- List servers that started successfully and any failures -->
+```
+
+Write status as `mapped` with summary noting `"Infrastructure metadata only — 0 subagent spans, CLI crashed before debug session"`.
+
+Set `artifacts` to include `subagents/infrastructure.md` and `output.md`.
+
+Then proceed to **Step 5** (Read orchestrator metadata) to complete the inventory, using the infrastructure metadata in place of subagent data.
+
+---
 
 ### Step 2: Map all subagent spans
 

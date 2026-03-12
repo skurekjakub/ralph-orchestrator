@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ResultPromise } from "execa";
 import type { IAgentProfile } from "../../config/types.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
@@ -18,6 +20,9 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
  * - Active process tracking for graceful shutdown
  */
 export class ClaudeCodeExecutor implements ICliExecutor {
+  /** Prompt file path inside the container — avoids passing large prompts as CLI args. */
+  static readonly PROMPT_FILE = "/workspace/.ralph/prompt.txt";
+
   activeProcess: ResultPromise | null = null;
 
   /** Filesystem paths specific to the Claude Code CLI. */
@@ -52,7 +57,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
    * @returns Raw {@link ContainerExecResult} with exit code and captured output.
    */
   async run(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["-p", prompt]);
+    return this.exec(["-p"], prompt);
   }
 
   /**
@@ -61,28 +66,51 @@ export class ClaudeCodeExecutor implements ICliExecutor {
    * Uses `--continue` to resume the last session, preserving conversation context.
    */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["--continue", "-p", prompt]);
+    return this.exec(["--continue", "-p"], prompt);
+  }
+
+  /**
+   * Write the prompt to a file on the host, visible inside the container via
+   * the target-repo bind mount.
+   */
+  private writePromptFile(prompt: string): void {
+    const dir = join(this.profile.repoPath, ".ralph");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "prompt.txt"), prompt, "utf-8");
   }
 
   /**
    * Internal: build and execute a Claude Code command with shared flags.
    *
-   * @param promptArgs CLI-specific args (e.g. `-p <prompt>` or `--continue -p <prompt>`)
+   * The prompt is written to a file and read inside the container via
+   * `$(cat /workspace/.ralph/prompt.txt)`.
+   *
+   * @param promptFlags Flag(s) preceding the prompt value (e.g. `["-p"]` or `["--continue", "-p"]`).
+   * @param prompt The full prompt text.
    */
-  private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
-    const args = [
-      "--user", "vscode",
-      "app",
+  private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
+    this.writePromptFile(prompt);
+
+    const cliArgs = [
       "claude",
-      ...promptArgs,
+      ...promptFlags,
+      `"$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`,
       "--dangerously-skip-permissions",
       "--mcp-config", "/workspace/.ralph/mcp-config.json",
       "--strict-mcp-config",
     ];
 
     if (this.profile.model) {
-      args.push("--model", this.profile.model);
+      cliArgs.push("--model", this.profile.model);
     }
+
+    const shellCmd = `exec ${cliArgs.join(" ")}`;
+
+    const args = [
+      "--user", "vscode",
+      "app",
+      "sh", "-c", shellCmd,
+    ];
 
     return executeCliCommand(
       this.compose, args, this.profile.timeoutMs, this.containerLogger, "claude", this,

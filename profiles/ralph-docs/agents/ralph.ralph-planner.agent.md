@@ -110,6 +110,8 @@ Write these files under `{{ artifactDir }}/ralph-planner/`:
       "id": "TASK-01",
       "title": "Update channel configuration page",
       "path": "ralph-planner/task-01-update-channel-configuration-page.md",
+      "lifecycle": "not_processed",
+      "attempt": 0,
       "depends_on": [],
       "files": ["src/_documentation/..."],
       "type": "documentation"
@@ -117,6 +119,18 @@ Write these files under `{{ artifactDir }}/ralph-planner/`:
   ]
 }
 ```
+
+`lifecycle` is owned by the orchestrator:
+- `not_processed` — task exists but has not started yet
+- `in_progress` — task is the active writer/reviewer task
+- `done` — task outcome was accepted and the orchestrator advanced past it
+
+`attempt` is also owned by the orchestrator:
+- `0` — task has not started yet
+- `1` — first writer pass for the task
+- `2+` — same-task retry after reviewer feedback
+
+When you create or replace `tasks.json`, initialize every task with `"lifecycle": "not_processed"` and `"attempt": 0`.
 
 ### Task file template
 

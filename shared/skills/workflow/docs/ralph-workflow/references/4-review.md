@@ -1,25 +1,28 @@
-# Phase 4: Review (Three-Reviewer Gate)
+# Phase 4: Review (Six-Reviewer Gate)
 
 ## Before you begin
 
 1. **Read `state.md`** at `.ralph/tasks/{{ taskId }}/state.md`
 2. **Verify the current phase** — this skill is for Phase 4. If `state.md` shows a different current phase, update it now.
 3. **Review completed phases** — confirm Phase 3 (Write) completed a task with a passing build.
-4. **Read the current task** in `state.md` — reviewers are auditing that task only.
+4. **Read `ralph-planner/tasks.json`** and identify the task whose `lifecycle` is `in_progress` — reviewers are auditing that task only.
 
 ## Instructions
 
-Delegate to **all three** reviewer sub-agents. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
+Delegate to **all six** reviewer sub-agents in parallel using the task tool. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
 
 | Sub-agent | Responsibility | Verdict codes |
 |---|---|---|
-| **ralph-reviewer-technical** | Technical accuracy — verifies claims against Xperience source code | `ACC-XXX` |
-| **ralph-reviewer-style** | Style guide compliance & grammar — verifies against style guide and syntax standards | `STY-XXX` |
-| **ralph-reviewer-ia** | Information architecture — evaluates fit within existing docs structure | `IA-XXX` |
+| **ralph-reviewer-technical** | Technical accuracy (Claude) — verifies claims against Xperience source code | `ACC-XXX` |
+| **ralph-reviewer-style** | Style guide compliance & grammar (Claude) — verifies against style guide and syntax standards | `STY-XXX` |
+| **ralph-reviewer-ia** | Information architecture (Claude) — evaluates fit within existing docs structure | `IA-XXX` |
+| **ralph-reviewer-technical-gpt** | Technical accuracy (GPT) — verifies claims against Xperience source code | `ACC-XXX` |
+| **ralph-reviewer-style-gpt** | Style guide compliance & grammar (GPT) — verifies against style guide and syntax standards | `STY-XXX` |
+| **ralph-reviewer-ia-gpt** | Information architecture (GPT) — evaluates fit within existing docs structure | `IA-XXX` |
 
 ### Invocation
 
-Invoke each reviewer as a subagent with the task-id and a one-line directive (e.g. "Review the current planned task for {{ taskId }}"). Each reviewer reads the current planner task, the writer's artifact, and the actual changed files directly from the filesystem. Collect all three verdicts before deciding.
+Invoke all six reviewers as subagents simultaneously via the task tool. Include the task-id and a one-line directive (e.g. "Review the current planned task for {{ taskId }}"). Each reviewer reads the current planner task, the writer's artifact, and the actual changed files directly from the filesystem. Collect all six verdicts before deciding.
 
 **Include changed files in the dispatch prompt.** Before invoking reviewers, check which files the writer modified for the current task (from the writer's latest `output-v{N}.md` or by running `git diff --name-only`). Include this file list in each reviewer's dispatch prompt — this saves 1–2 discovery turns at the start of each review. Example:
 
@@ -34,11 +37,11 @@ If this is a revision review, tell each reviewer so they apply revision-mode len
 
 ### Aggregation
 
-**All three must return APPROVED for the current task.** If ANY reviewer returns NEEDS REVISION, the overall verdict for the current task is NEEDS REVISION.
+**All six must return APPROVED for the current task.** If ANY reviewer returns NEEDS REVISION, the overall verdict for the current task is NEEDS REVISION.
 
-After collecting all three verdicts:
-1. **All APPROVED and the latest writer result was `task-implemented`** → mark the current task complete and return to Phase 3 for the next pending task
-2. **All APPROVED and the latest writer result was `all-tasks-implemented`** → mark the current task complete and proceed to Phase 6
+After collecting all six verdicts:
+1. **All APPROVED and other `not_processed` tasks remain** → mark the current `in_progress` task as `done`, mark the next `not_processed` task as `in_progress` with `attempt: 1`, and return to Phase 3
+2. **All APPROVED and no `not_processed` tasks remain** → mark the current `in_progress` task as `done` and proceed to Phase 6
 3. **Any NEEDS REVISION** → enter Phase 5 (Revision Loop). The writer reads the failing reviewers' artifacts from the filesystem on its own.
 
 ### Aggregation rule
@@ -53,9 +56,9 @@ You do not re-review the documentation. Route mechanically on the reviewer resul
 
 If any reviewer returns **NEEDS REVISION**:
 
-1. **Cycle 1:** Re-dispatch **ralph-writer** with the task-id and a revision-focused directive. **Include the failing reviewer names and their finding IDs in the dispatch prompt** (e.g. "Address reviewer feedback for the current task in {{ taskId }}. Style reviewer: STY-001 passive voice line 45, STY-003 terminology line 72. Technical reviewer: approved."). This eliminates discovery overhead — the writer can go straight to targeted edits instead of reading full reviewer artifacts to find the issues. Then re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
-2. **Cycle 2:** If still not fully approved, re-dispatch the writer again with the same inline-findings pattern and re-run only the reviewer(s) still failing.
-3. **Cycle 3:** If reviewers still do not fully approve, run one final writer revision round for the same task. After this, do NOT review again — proceed onward and note in `state.md` which reviewer(s) did not converge for that task.
+1. **Cycle 1:** Increment the current task's `attempt` in `tasks.json`, then re-dispatch **ralph-writer** with the task-id and a revision-focused directive. **Include the failing reviewer names and their finding IDs in the dispatch prompt** (e.g. "Address reviewer feedback for the current task in {{ taskId }}. Style reviewer: STY-001 passive voice line 45, STY-003 terminology line 72. Technical reviewer: approved."). Then re-invoke **only the reviewer(s) that returned NEEDS REVISION** — do not re-invoke reviewers that already APPROVED.
+2. **Cycle 2:** If still not fully approved, increment the current task's `attempt` again, re-dispatch the writer with the same inline-findings pattern, and re-run only the reviewer(s) still failing.
+3. **Cycle 3:** If reviewers still do not fully approve, increment the current task's `attempt` one last time and run one final writer revision round for the same task. After this, do NOT review again — mark the task `done`, proceed onward, and note in `state.md` which reviewer(s) did not converge for that task.
 
 ### Constructing the revision dispatch prompt
 
@@ -93,10 +96,13 @@ Check whether these were fixed and whether any new issues were introduced.
 
 Update `state.md`:
 - Add Phase 4-5 to "Completed Phases" with review outcome per reviewer for the current task:
-  - Technical: Approved / Approved after N cycles / Not converged
-  - Style: Approved / Approved after N cycles / Not converged
-  - IA: Approved / Approved after N cycles / Not converged
-- If the task was approved, append it to "Completed Tasks"
+  - Technical (Claude): Approved / Approved after N cycles / Not converged
+  - Style (Claude): Approved / Approved after N cycles / Not converged
+  - IA (Claude): Approved / Approved after N cycles / Not converged
+  - Technical (GPT): Approved / Approved after N cycles / Not converged
+  - Style (GPT): Approved / Approved after N cycles / Not converged
+  - IA (GPT): Approved / Approved after N cycles / Not converged
+- If the task was approved, append it to "Completed Tasks" as a human-readable mirror of `tasks.json`
 - If more planned tasks remain, clear "Current Task" and set "Current Phase" to `Phase 3: Write`
 - If the final task was approved, clear "Current Task" and set "Current Phase" to `Phase 6: Commit & Push`
 - If the task did not converge but work should still ship, set "Current Phase" to `Phase 6: Commit & Push` and note the non-converged reviewers

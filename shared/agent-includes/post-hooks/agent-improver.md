@@ -55,6 +55,20 @@ When the analysis identifies issues with a specific subagent, determine the root
 | **New MCP server** | A capability the agent lacks entirely | Custom MCP server for build artifact analysis or test coverage checks |
 | **Profile config** | Model selection, tool permissions, resource limits | Subagent needs a larger context window or different model for complex tasks |
 
+### Infrastructure-Only Findings
+
+When the analysis is an **infrastructure failure report** (the CLI crashed before any subagent executed), most findings are outside agent template scope. Handle them as follows:
+
+| Finding type | Your action | Example |
+|---|---|---|
+| **Pipeline code change** | Escalate to `Proposed (Not Implemented) > Infrastructure Issues` — describe the TypeScript source change needed | Add `failureCategory` to summary.json in `src/logs/collector.ts` |
+| **Proxy/network config** | Escalate to `Proposed (Not Implemented) > Infrastructure Issues` — describe the config change and rationale | Add `release-assets.githubusercontent.com` to squid.conf allowlist |
+| **Diagnostic tooling gap** | Propose a new skill or improve an existing shared include that codifies diagnostic procedures | Create a "pre-flight check" skill for verifying API connectivity |
+| **Post-hooks template gap** | Directly fix the template — this IS in your scope | Run-analyzer/mapper templates need infrastructure failure handling |
+| **Retry/resilience logic** | Escalate to `Proposed (Not Implemented)` — describe the retry strategy | Single-retry for exit code 1 with no artifacts (infra heuristic) |
+
+**Key principle:** For infrastructure failures, your primary value is in improving the *diagnostic pipeline* (how the scientist/analyzer/mapper handle these failures) rather than agent behavior. Make the templates smarter at detecting, classifying, and reporting infrastructure failures so future occurrences produce actionable data immediately.
+
 ### Beyond Local Fixes
 
 Don't limit yourself to tweaking what exists. The analysis may reveal structural problems that need bigger solutions:

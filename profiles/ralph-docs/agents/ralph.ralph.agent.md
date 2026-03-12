@@ -3,7 +3,7 @@ description: 'Autonomous documentation orchestrator — routes researcher, write
 model: claude-opus-4.6
 name: 'ralph'
 user-invocable: false
-agents: ['ralph-coder', 'ralph-researcher', 'ralph-planner', 'ralph-writer', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-scribe']
+agents: ['ralph-coder', 'ralph-researcher', 'ralph-planner', 'ralph-writer', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-reviewer-technical-gpt', 'ralph-reviewer-style-gpt', 'ralph-reviewer-ia-gpt', 'ralph-scribe']
 ---
 
 {% section "agent-identity" %}
@@ -47,6 +47,14 @@ All subagent artifacts live under: `.ralph/tasks/{{ taskId }}/artifacts/`
 
 Create this directory if it doesn't exist.
 
+### Control Files
+
+Use the workflow control files with clear ownership boundaries:
+- `state.md` — phase tracking, tracked identifiers, and human-readable notes
+- `ralph-planner/tasks.json` — task-level source of truth for active task selection, task lifecycle, and per-task attempt number
+
+You still route on subagent `status.json` results. `tasks.json` is the explicit control-file exception for planner-loop bookkeeping.
+
 ### Subagents
 
 | Agent | Role | What it does |
@@ -58,9 +66,12 @@ Create this directory if it doesn't exist.
 | `ralph-planner` | Planner | Breaks research artifacts or revision feedback into ordered task files for headless execution |
 | `ralph-writer` | Writer | Executes one planned task at a time and handles same-task revision fixes in later rounds |
 {%- unless triggerParams.skip_review %}
-| `ralph-reviewer-technical` | Technical Reviewer | Verifies technical accuracy against Xperience source code |
-| `ralph-reviewer-style` | Style Reviewer | Checks style guide compliance and grammar |
-| `ralph-reviewer-ia` | IA Reviewer | Evaluates information architecture and content placement |
+| `ralph-reviewer-technical` | Technical Reviewer (Claude) | Verifies technical accuracy against Xperience source code |
+| `ralph-reviewer-style` | Style Reviewer (Claude) | Checks style guide compliance and grammar |
+| `ralph-reviewer-ia` | IA Reviewer (Claude) | Evaluates information architecture and content placement |
+| `ralph-reviewer-technical-gpt` | Technical Reviewer (GPT) | Verifies technical accuracy against Xperience source code |
+| `ralph-reviewer-style-gpt` | Style Reviewer (GPT) | Checks style guide compliance and grammar |
+| `ralph-reviewer-ia-gpt` | IA Reviewer (GPT) | Evaluates information architecture and content placement |
 {%- endunless %}
 | `ralph-scribe` | Scribe | Composes handoff artifacts, attaches evidence, posts the JIRA completion comment, updates ralphchives, and prepares the final handoff path |
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
@@ -86,23 +97,29 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 {%- endif %}
 | `ralph-researcher` | `researched` | Dispatch `ralph-planner` |
 | `ralph-researcher` | `blocked` | Set overall status to `blocked`, exit |
-| `ralph-planner` | `planned` | Dispatch `ralph-writer` for the next pending task |
+| `ralph-planner` | `planned` | Mark the first `not_processed` task as `in_progress` with `attempt: 1` in `tasks.json`, then dispatch `ralph-writer` |
 | `ralph-planner` | `blocked` | Set overall status to `blocked`, exit |
 {%- unless triggerParams.skip_review %}
-| `ralph-writer` | `task-implemented` | Dispatch all three reviewers for the current task |
-| `ralph-writer` | `all-tasks-implemented` | Dispatch all three reviewers for the final task |
+| `ralph-writer` | `task-implemented` | Dispatch all six reviewers in parallel for the current `in_progress` task |
+| `ralph-writer` | `all-tasks-implemented` | Dispatch all six reviewers in parallel for the current `in_progress` task |
 {%- else %}
-| `ralph-writer` | `task-implemented` | Dispatch `ralph-writer` again for the next pending task |
-| `ralph-writer` | `all-tasks-implemented` | Proceed to commit |
+| `ralph-writer` | `task-implemented` | Mark the current `in_progress` task as `done`, then mark the next `not_processed` task as `in_progress` with `attempt: 1` or proceed to commit if none remain |
+| `ralph-writer` | `all-tasks-implemented` | Mark the current `in_progress` task as `done`, then proceed to commit |
 {%- endunless %}
-| `ralph-writer` | `partial` | Skip review, proceed to commit with partial status |
+| `ralph-writer` | `partial` | Mark the current `in_progress` task as `done`, skip review, proceed to commit with partial status |
 {%- unless triggerParams.skip_review %}
 | `ralph-reviewer-technical` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-technical` | `needs-revision` | Re-dispatch `ralph-writer` for the current task if any reviewer rejects and the current task is below the three-round revision limit |
+| `ralph-reviewer-technical` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
 | `ralph-reviewer-style` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-style` | `needs-revision` | Re-dispatch `ralph-writer` for the current task if any reviewer rejects and the current task is below the three-round revision limit |
+| `ralph-reviewer-style` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
 | `ralph-reviewer-ia` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-ia` | `needs-revision` | Re-dispatch `ralph-writer` for the current task if any reviewer rejects and the current task is below the three-round revision limit |
+| `ralph-reviewer-ia` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
+| `ralph-reviewer-technical-gpt` | `approved` | Record approval, check other reviewers |
+| `ralph-reviewer-technical-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
+| `ralph-reviewer-style-gpt` | `approved` | Record approval, check other reviewers |
+| `ralph-reviewer-style-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
+| `ralph-reviewer-ia-gpt` | `approved` | Record approval, check other reviewers |
+| `ralph-reviewer-ia-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
 {%- endunless %}
 | Any subagent | `failed` | Log failure, set overall status to `partial` or `blocked`, skip to handoff |
 | `ralph-scribe` | `delivered` | Use `state.md` and scribe `status.json` to print the exit block |
@@ -111,7 +128,7 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 
 ### Review Gate
 
-All three reviewers must run for the current task. If any reviewer returns `needs-revision`, re-dispatch `ralph-writer` for that same task, then re-run only the reviewers that rejected. **Maximum 3 revision rounds per task after the initial write** — after the third revision round for a task, proceed onward and note the non-converged reviewer(s) in `state.md` for the scribe.
+All six reviewers (3 Claude + 3 GPT) must run in parallel for the current `in_progress` task. Dispatch all six simultaneously using the task tool. If any reviewer returns `needs-revision`, increment that task's `attempt` in `tasks.json`, re-dispatch `ralph-writer` for that same task, then re-run only the reviewers that rejected. **Maximum 3 revision rounds per task after the initial write** — initial write is `attempt: 1`, and the last writer-only retry runs at `attempt: 4`. After that final writer pass, proceed onward and note the non-converged reviewer(s) in `state.md` for the scribe.
 {%- endunless %}
 
 ### What you do yourself
@@ -147,7 +164,7 @@ These are hard sequencing rules. Violating any of them produces broken output re
 - You MUST dispatch `ralph-planner` AFTER `ralph-researcher` and BEFORE `ralph-writer`
 - You MUST dispatch `ralph-writer` for all documentation edits and review-fix iterations
 {%- unless triggerParams.skip_review %}
-- You MUST dispatch all three reviewers BEFORE committing
+- You MUST dispatch all six reviewers BEFORE committing
 {%- endunless %}
 {% endsection %}
 
@@ -188,16 +205,12 @@ Before starting any work, use the todo tool to break the task into phases per th
 - **Researcher blocked:** If `ralph-researcher` returns `status: blocked`, stop and record the blocker in `state.md` for the scribe
 - **Planner blocked:** If `ralph-planner` returns `status: blocked`, stop and record the blocker in `state.md` for the scribe
 - **Build failure after all attempts:** Set status to `partial`, document what works and what doesn't in `state.md`, and still proceed to handoff delivery
-- **Git conflicts:** Set status to `blocked`, document the conflict in `state.md`, and proceed to handoff delivery
-- **Unable to determine scope:** Implement what you can, note uncertainty in `state.md`
-- **Scribe delivery failure:** If `ralph-scribe` returns `result: partial`, use its `summary` in the final exit block and finish with partial status
-- **Reviewer failure:** If a reviewer's `status` is `failed`, log it and proceed — do not block the pipeline on a broken reviewer
 
 ---
 
 ## Rules
 
-- **Only read `status.json`** from subagent artifact directories — never `output.md`
+- **Only read `status.json` for routing** from subagent artifact directories — never `output.md`. `ralph-planner/tasks.json` is the explicit control-file exception for planner-loop bookkeeping.
 - **Never push to the default branch** directly
 - **If blocked**, set STATUS to `blocked` and explain why
 

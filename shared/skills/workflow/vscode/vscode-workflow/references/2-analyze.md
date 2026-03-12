@@ -24,12 +24,35 @@ After the analyst returns, read `.ralph/tasks/{{ taskId }}/artifacts/ralph-analy
 
 | `result` | Action |
 |---|---|
+{%- if triggerParams.skip_planner %}
 | `analyzed` | Proceed to the next phase (Implement & Review) |
+{%- else %}
+| `analyzed` | Dispatch `ralph-planner` (see below) |
+{%- endif %}
 | Any `status: failed` or `blocked` | Stop, set overall status to `blocked`, proceed to handoff |
 
 **Do NOT read `output.md`** — you are a router. The coder will read the analyst's output directly.
 
 Record the analyst's `summary` field from `status.json` in `state.md` under "Key Decisions".
+{%- unless triggerParams.skip_planner %}
+
+### Dispatch the planner
+
+Delegate to the `ralph-planner` sub-agent. It will:
+- Read the analyst's implementation plan from `.ralph/tasks/{{ taskId }}/artifacts/ralph-analyst/output.md`
+- Break it into ordered task files
+- Write task files to `.ralph/tasks/{{ taskId }}/artifacts/ralph-planner/`
+- Write its status to `.ralph/tasks/{{ taskId }}/artifacts/ralph-planner/status.json`
+
+After the planner returns, read `.ralph/tasks/{{ taskId }}/artifacts/ralph-planner/status.json`.
+
+| `result` | Action |
+|---|---|
+| `planned` | Proceed to the next phase (Implement & Review). Record the task count from `summary` in `state.md`. |
+| `blocked` | Stop, set overall status to `blocked`, proceed to handoff |
+
+**Do NOT read `output.md` or task files** — the coder reads the planner's artifacts directly.
+{%- endunless %}
 
 ## Before moving to the next phase
 

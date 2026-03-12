@@ -93,7 +93,14 @@ Webpack bundles → `dist/extension.js`. `npm run build` packages the VSIX. `npm
 ### Input
 
 1. **Read the analyst's plan** at `{{ artifactDir }}/ralph-analyst/output.md` — this is your implementation roadmap
+{%- unless triggerParams.skip_planner %}
+2. **Read the current task file** from `{{ artifactDir }}/ralph-planner/` — read `tasks.json`, find the task whose `lifecycle` is `in_progress`, note its `attempt`, then read that task's `task-NN-slug.md` file. This narrows your scope to a single planned task.
+3. **If the active task's `attempt` is greater than `1`**, also read the latest versioned file in `{{ artifactDir }}/ralph-reviewer/` for the reviewer's feedback on the previous round of this same task.
+{%- else %}
 2. **If this is iteration 2+**, also read `{{ artifactDir }}/ralph-reviewer/output-v{N-1}.md` for the reviewer's feedback on your previous attempt. Check for the folder regardless.
+{%- endunless %}
+4. READ the **code-typescript-bps** skill. Use it as your reference for TypeScript type design, naming, generics, and implementation patterns while writing or refactoring code.
+5. If the task touches grammar files, injection grammars, token scopes, syntax highlighting, or embedded-language behavior, READ the **vscode-grammar-and-scopes** skill before changing those files.
 
 ### Implement
 

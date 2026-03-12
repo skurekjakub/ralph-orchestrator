@@ -16,7 +16,7 @@ Invoke the planner with a lean directive only. Do **not** paste reviewer comment
 After the planner returns, read its `status.json`.
 
 1. If `result: blocked`, record the planner `summary` in `state.md` and stop.
-2. If `result: planned`, dispatch **ralph-writer** with a lean directive only. The writer must read revision context, planner tasks, and reviewer artifacts directly from the filesystem.
+2. If `result: planned`, read `ralph-planner/tasks.json`, mark the first `not_processed` task as `in_progress` with `attempt: 1` unless a task is already `in_progress`, then dispatch **ralph-writer** with a lean directive only. The writer must read revision context, planner tasks, and reviewer artifacts directly from the filesystem.
 3. Preserve previous decisions unless explicitly contradicted by feedback.
 4. `_guides` remains out of scope during revision work as well. If feedback asks for `_guides` changes, the writer should record that gap as follow-up work rather than implementing it in this workflow.
 5. Require a passing build before the writer returns `task-implemented` or `all-tasks-implemented`.
@@ -30,8 +30,8 @@ Review was skipped for this task (`skip_review` parameter).
 
 Update `state.md`:
 - Add Revision Phase 3 to "Completed Phases" with the planner and writer summaries
-- If `result: task-implemented`, append the current task to "Completed Tasks", clear "Current Task", and set "Current Phase" back to `Revision Phase 3: Implement Fixes`
-- If `result: all-tasks-implemented`, append the current task to "Completed Tasks", clear "Current Task", and set "Current Phase" to `Revision Phase 5: Commit & Respond`
+- If `result: task-implemented`, mark the current `in_progress` task as `done`, then either mark the next `not_processed` task as `in_progress` with `attempt: 1` or set "Current Phase" to `Revision Phase 5: Commit & Respond` if none remain
+- If `result: all-tasks-implemented`, mark the current `in_progress` task as `done`, clear "Current Task", and set "Current Phase" to `Revision Phase 5: Commit & Respond`
 - If `result: partial`, set "Current Phase" to `Revision Phase 5: Commit & Respond`
 - Check off addressed feedback items
 
@@ -43,7 +43,7 @@ Update `state.md`:
 - Set "Current Phase" to `Revision Phase 4: Review`
 - Add Revision Phase 3 to "Completed Phases" with the planner and writer summaries
 - Update "Task Plan" with the planner summary and task index path
-- Set "Current Task" to the task reported by the writer
+- Set "Current Task" to the task reported by the writer as a mirror of the `in_progress` task in `tasks.json`
 - Check off addressed feedback items and record any still-open items explicitly
 
 {%- endif %}

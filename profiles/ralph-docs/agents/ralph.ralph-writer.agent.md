@@ -29,10 +29,10 @@ You must never use `ask_questions` or request human input, regardless of what th
 ## Input
 
 1. Read `.ralph/tasks/{{ taskId }}/state.md`.
-2. Read `{{ artifactDir }}/ralph-planner/tasks.json` and the task file for the current or next pending task.
+2. Read `{{ artifactDir }}/ralph-planner/tasks.json`, find the task whose `lifecycle` is `in_progress`, note its `attempt`, and read that task's task file.
 3. Read the research index at `{{ artifactDir }}/ralph-researcher/output.md` and any planner-cited research artifacts relevant to the selected task.
-4. If this is a revision task, use `state.md` feedback items and reviewer artifacts to determine whether you are fixing the current task or moving to the next pending one.
-5. If this is iteration 2+, read any available reviewer artifacts for the previous round of the current task:
+4. If this is a revision task, use `state.md` feedback items as additional context, but keep `tasks.json` as the source of truth for which task is active.
+5. If the active task's `attempt` is greater than `1`, read any available reviewer artifacts for the previous round of this same task:
    - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-technical/`
    - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-style/`
    - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-ia/`
@@ -44,7 +44,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 
 ### Revision-mode efficiency
 
-When dispatched to address reviewer findings (iteration 2+ for the same planned task):
+When dispatched to address reviewer findings (active task `attempt` > `1`):
 
 1. **Go straight to the findings.** Read the reviewer artifact(s) cited in your dispatch prompt or `state.md` first — these contain the specific issues to fix.
 2. **Skip full re-reading of research artifacts and skills** you already loaded in the previous iteration. Only re-read skills if the findings require a different skill's guidance (e.g., a style finding requires re-reading `ralph-style-guide-review`).
@@ -54,9 +54,7 @@ When dispatched to address reviewer findings (iteration 2+ for the same planned 
 
 ## Your Task
 
-1. Determine the active planned task from `state.md` and `tasks.json`:
-   - If `state.md` already names a current unresolved task, continue that task.
-   - Otherwise choose the first task in `tasks.json` whose dependencies are satisfied and whose ID is not listed under "Completed Tasks" in `state.md`.
+1. Determine the active planned task from `tasks.json` by selecting the task whose `lifecycle` is `in_progress`.
 2. Implement **only that one task**.
 3. Use `xperience-documentation` when the task adds pages, moves content, or touches an unfamiliar section so the changes land in the right neighborhood.
 4. Use `xperience` when a feature name or API surface in the task's supporting research is still ambiguous and you need to orient to the right source roots before writing.
@@ -64,7 +62,7 @@ When dispatched to address reviewer findings (iteration 2+ for the same planned 
 6. After each substantive change for the active task, run `npm run build`.
 7. Dispatch the `ralph-validator` sub-agent to validate the active task before returning. In your dispatch prompt, include: the active subtask ID (e.g., `TASK-01`), the files you changed, and the build result. Do **not** include prior validator results — the validator determines its own iteration number from the filesystem.
 8. If a validator run returns issues, fix them, re-run the build, and re-dispatch the validator.
-9. If reviewer findings from a prior iteration exist for the current task, address them before declaring success.
+9. If reviewer findings from a prior attempt exist for the current task, address them before declaring success.
 {%- if triggerParams.codesamples %}
 {% render 'ralph-docs/ralph-codesamples-writer' %}
 {%- if triggerParams.xpversion %}

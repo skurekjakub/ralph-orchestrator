@@ -7,7 +7,9 @@ description: "Router for the VS Code extension agent workflow — both standard 
 
 This is the **single entry point** for the VS Code extension agent workflow. It routes to phase-specific reference files based on whether this is a standard or revision task.
 
-**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase. It tells you where you are, what you've done, and which reference files to read next.
+**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your phase-level source of truth.** Read it before every phase. It tells you where you are, what you've done, and which reference files to read next.
+
+When the planner loop is active, `ralph-planner/tasks.json` is the task-level control file for active-task selection, task lifecycle, and per-task attempt tracking.
 
 ## Artifact Contract
 
@@ -18,8 +20,9 @@ All subagent communication follows the **agent-as-function** pattern:
 - **status.json**: The ONLY file the orchestrator reads from each subagent. Contains `agent`, `task_id`, `status`, `result`, `summary`, `artifacts`, `next_hint`, `iteration`.
 - **manifest.json**: Append-only audit log at the artifact root. Each subagent appends an entry.
 - **Iterative versioning**: Coder writes `output-v1.md`, `output-v2.md`; reviewer writes `output-v1.md` per iteration. `status.json` is overwritten each iteration.
+- **Planner control file**: When the planner loop is active, `ralph-planner/tasks.json` is an orchestrator-owned control file for task lifecycle and per-task attempt tracking.
 
-**Purity rule**: The orchestrator routes on `status.json` fields only. Never read subagent `output.md` files — downstream subagents read each other's artifacts directly.
+**Purity rule**: The orchestrator routes on `status.json` fields, with `ralph-planner/tasks.json` as the explicit control-file exception for task bookkeeping. Never read subagent `output.md` files for routing — downstream subagents read each other's artifacts directly.
 
 {%- if isRevision %}
 
@@ -30,8 +33,8 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Reference file | Summary |
 |-------|---------------|---------|
 | 1. Understand Feedback | `references/r1-setup.md` | Read reviewer feedback, find existing PR & branch |
-| 2. Analyze Revision | `references/2-analyze.md` | Dispatch analyst in revision mode, read status.json |
-| 3. Fix & Review | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 2. Analyze Revision | `references/2-analyze.md` | Dispatch analyst in revision mode, read status.json{%- unless triggerParams.skip_planner %}; then dispatch planner{%- endunless %} |
+| 3. Fix & Review | `references/3-implement-loop.md` | {%- if triggerParams.skip_planner %}Dispatch coder → reviewer loop (max 2 iterations){%- else %}Per-task coder → reviewer loop (max 3 rounds/task), then planner verification; max 2 planner passes{%- endif %} |
 | 4. Package | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
 | 5. Commit & Respond | `references/r5-commit.md` | Commit, push, reply to PR threads |
 | 6. Handoff | `references/r6-handoff.md` | Update handoff, report to JIRA |
@@ -46,8 +49,8 @@ Execute the following phases **in order**. Before each phase, read the correspon
 | Phase | Reference file | Summary |
 |-------|---------------|---------|
 | 1. Setup | `references/1-setup.md` | Branch verify, state.md init, JIRA greeting |
-| 2. Analyze | `references/2-analyze.md` | Dispatch analyst, read status.json |
-| 3. Implement & Review | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 2. Analyze | `references/2-analyze.md` | Dispatch analyst, read status.json{%- unless triggerParams.skip_planner %}; then dispatch planner{%- endunless %} |
+| 3. Implement & Review | `references/3-implement-loop.md` | {%- if triggerParams.skip_planner %}Dispatch coder → reviewer loop (max 2 iterations){%- else %}Per-task coder → reviewer loop (max 3 rounds/task), then planner verification; max 2 planner passes{%- endif %} |
 | 4. Package | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
 | 5. Commit & Push | `references/5-commit.md` | Pre-commit build, commit, push via MCP |
 | 6. PR | `references/6-pr.md` | Create ADO pull request |

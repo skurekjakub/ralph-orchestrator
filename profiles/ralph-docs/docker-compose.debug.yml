@@ -1,0 +1,14 @@
+name: ralph-debug-env
+
+services:
+  debug:
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    container_name: ralph-copilot-debug
+    volumes:
+      - /tmp/ralph-debug-workspace:/workspace
+    command: sleep infinity
+    environment:
+      # Will test these env vars for 1.0.4 compat
+      GITHUB_TOKEN: "${GH_TOKEN}"

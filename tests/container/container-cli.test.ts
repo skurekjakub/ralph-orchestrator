@@ -1,10 +1,23 @@
 import { describe, it, expect, vi } from "vitest";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor.js";
 import { DEFAULT_MODEL } from "../../src/config/constants.js";
 import { CliType, type CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
 import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return { ...actual, writeFileSync: vi.fn(), mkdirSync: vi.fn() };
+});
+
+/** Extract the `sh -c` shell command from the mocked exec args. */
+function getShellCmd(compose: ReturnType<typeof createMockCompose>["compose"]): string {
+  const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
+  expect(args.slice(0, 5)).toEqual(["--user", "vscode", "app", "sh", "-c"]);
+  return args[5];
+}
 
 // ── CopilotExecutor.paths ────────────────────────────────────────────────────
 
@@ -62,7 +75,7 @@ describe("CopilotExecutor.run", () => {
     }));
 
     const executor = new CopilotExecutor(compose, profile, logger);
-    return { executor, compose };
+    return { executor, compose, profile };
   }
 
   it("passes --disable-builtin-mcps when githubMcpTools is false", async () => {
@@ -70,9 +83,9 @@ describe("CopilotExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--disable-builtin-mcps");
-    expect(args).not.toContain("--add-github-mcp-tool");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--disable-builtin-mcps");
+    expect(shellCmd).not.toContain("--add-github-mcp-tool");
   });
 
   it("passes --add-github-mcp-tool for each declared tool", async () => {
@@ -82,15 +95,10 @@ describe("CopilotExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).not.toContain("--disable-builtin-mcps");
-    const toolFlagIndices = args.reduce<number[]>((acc, a, i) => {
-      if (a === "--add-github-mcp-tool") acc.push(i);
-      return acc;
-    }, []);
-    expect(toolFlagIndices).toHaveLength(2);
-    expect(args[toolFlagIndices[0] + 1]).toBe("get_file_contents");
-    expect(args[toolFlagIndices[1] + 1]).toBe("search_code");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).not.toContain("--disable-builtin-mcps");
+    expect(shellCmd).toContain("--add-github-mcp-tool get_file_contents");
+    expect(shellCmd).toContain("--add-github-mcp-tool search_code");
   });
 
   it("uses profile model when set, DEFAULT_MODEL when not", async () => {
@@ -100,13 +108,21 @@ describe("CopilotExecutor.run", () => {
     await withModel.run("prompt");
     await noModel.run("prompt");
 
-    const args1: string[] = vi.mocked(c1.execWithTimeout).mock.calls[0][0];
-    const args2: string[] = vi.mocked(c2.execWithTimeout).mock.calls[0][0];
+    expect(getShellCmd(c1)).toContain("--model claude-sonnet-4");
+    expect(getShellCmd(c2)).toContain(`--model ${DEFAULT_MODEL}`);
+  });
 
-    const modelIndex1 = args1.indexOf("--model");
-    const modelIndex2 = args2.indexOf("--model");
-    expect(args1[modelIndex1 + 1]).toBe("claude-sonnet-4");
-    expect(args2[modelIndex2 + 1]).toBe(DEFAULT_MODEL);
+  it("writes prompt to file and reads via $(cat) instead of CLI arg", async () => {
+    const { executor, compose, profile } = createExecutor();
+
+    await executor.run("test prompt");
+
+    expect(mkdirSync).toHaveBeenCalledWith(`${profile.repoPath}/.ralph`, { recursive: true });
+    expect(writeFileSync).toHaveBeenCalledWith(
+      `${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8",
+    );
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain(`-p "$(cat ${CopilotExecutor.PROMPT_FILE})"`);
   });
 
   it("uses --continue flag in continueSession", async () => {
@@ -114,12 +130,10 @@ describe("CopilotExecutor.run", () => {
 
     await executor.continueSession("continue working");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--continue");
-    expect(args).toContain("--prompt");
-    const promptIdx = args.indexOf("--prompt");
-    expect(args[promptIdx + 1]).toBe("continue working");
-    expect(args).not.toContain("-p");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--continue --prompt");
+    expect(shellCmd).toContain(`"$(cat ${CopilotExecutor.PROMPT_FILE})"`);
+    expect(shellCmd).not.toMatch(/\b-p\b/);
   });
 
   it("shares common flags between run and continueSession", async () => {
@@ -127,11 +141,11 @@ describe("CopilotExecutor.run", () => {
 
     await executor.continueSession("continuation prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--config-dir");
-    expect(args).toContain("--agent");
-    expect(args).toContain("--allow-all-tools");
-    expect(args).toContain("--share");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--config-dir");
+    expect(shellCmd).toContain("--agent");
+    expect(shellCmd).toContain("--allow-all-tools");
+    expect(shellCmd).toContain("--share");
   });
 });
 
@@ -151,18 +165,19 @@ describe("ClaudeCodeExecutor.run", () => {
     }));
 
     const executor = new ClaudeCodeExecutor(compose, profile, logger);
-    return { executor, compose };
+    return { executor, compose, profile };
   }
 
-  it("passes prompt via -p flag", async () => {
-    const { executor, compose } = createExecutor();
+  it("reads prompt from file via $(cat) instead of inline arg", async () => {
+    const { executor, compose, profile } = createExecutor();
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    const pIdx = args.indexOf("-p");
-    expect(pIdx).toBeGreaterThan(-1);
-    expect(args[pIdx + 1]).toBe("test prompt");
+    expect(writeFileSync).toHaveBeenCalledWith(
+      `${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8",
+    );
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain(`-p "$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`);
   });
 
   it("includes --dangerously-skip-permissions flag", async () => {
@@ -170,8 +185,8 @@ describe("ClaudeCodeExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--dangerously-skip-permissions");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--dangerously-skip-permissions");
   });
 
   it("includes --mcp-config and --strict-mcp-config", async () => {
@@ -179,11 +194,9 @@ describe("ClaudeCodeExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--mcp-config");
-    expect(args).toContain("--strict-mcp-config");
-    const mcpIdx = args.indexOf("--mcp-config");
-    expect(args[mcpIdx + 1]).toBe("/workspace/.ralph/mcp-config.json");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--mcp-config /workspace/.ralph/mcp-config.json");
+    expect(shellCmd).toContain("--strict-mcp-config");
   });
 
   it("includes --model when profile.model is set", async () => {
@@ -191,10 +204,8 @@ describe("ClaudeCodeExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    const modelIdx = args.indexOf("--model");
-    expect(modelIdx).toBeGreaterThan(-1);
-    expect(args[modelIdx + 1]).toBe("claude-sonnet-4");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--model claude-sonnet-4");
   });
 
   it("omits --model when profile.model is not set", async () => {
@@ -202,8 +213,8 @@ describe("ClaudeCodeExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).not.toContain("--model");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).not.toContain("--model");
   });
 });
 
@@ -229,19 +240,17 @@ describe("ClaudeCodeExecutor.continueSession", () => {
 
     await executor.continueSession("continue working");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--continue");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--continue");
   });
 
-  it("passes prompt via -p flag", async () => {
+  it("reads prompt from file via -p $(cat)", async () => {
     const { executor, compose } = createExecutor();
 
     await executor.continueSession("continue working");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    const pIdx = args.indexOf("-p");
-    expect(pIdx).toBeGreaterThan(-1);
-    expect(args[pIdx + 1]).toBe("continue working");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain(`-p "$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`);
   });
 
   it("shares common flags with run()", async () => {
@@ -249,9 +258,9 @@ describe("ClaudeCodeExecutor.continueSession", () => {
 
     await executor.continueSession("continuation prompt");
 
-    const args: string[] = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
-    expect(args).toContain("--dangerously-skip-permissions");
-    expect(args).toContain("--mcp-config");
-    expect(args).toContain("--strict-mcp-config");
+    const shellCmd = getShellCmd(compose);
+    expect(shellCmd).toContain("--dangerously-skip-permissions");
+    expect(shellCmd).toContain("--mcp-config");
+    expect(shellCmd).toContain("--strict-mcp-config");
   });
 });

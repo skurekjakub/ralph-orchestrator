@@ -115,6 +115,8 @@ async function main() {
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,
+    sourceBranch: "",
+    taskBranch: ""
   };
 
   const result = {

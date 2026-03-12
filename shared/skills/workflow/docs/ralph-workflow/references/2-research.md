@@ -36,7 +36,7 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 3: Write`
 - Add Phase 2 to "Completed Phases" with the researcher's and planner's `result` and `summary` from `status.json`
 - Update "Task Plan" with the planner summary and the path to `ralph-planner/tasks.json`
-- Set "Current Task" to `pending selection by writer`
+- Set "Current Task" to `controlled by ralph-planner/tasks.json`
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

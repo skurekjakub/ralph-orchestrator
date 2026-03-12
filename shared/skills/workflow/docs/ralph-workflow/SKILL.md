@@ -7,7 +7,12 @@ description: "Router for the Ralph documentation workflow — both standard (8 p
 
 This skill routes you to the correct phase instructions. Read the reference file for your current phase — each contains full instructions including the "Before moving to Phase N" checklist.
 
-**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase.
+**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your phase-level source of truth.** Read it before every phase.
+
+When the planner loop is active, `ralph-planner/tasks.json` is the task-level control file:
+- `state.md` tracks workflow phase, tracked identifiers, and human-readable notes
+- `ralph-planner/tasks.json` tracks the active task, task lifecycle, and per-task attempt number
+- the orchestrator still routes on subagent `status.json` results rather than on narrative `output.md` artifacts
 
 ---
 
@@ -20,7 +25,7 @@ This skill routes you to the correct phase instructions. Read the reference file
 | Phase | Reference file | Summary |
 |-------|---------------|---------|
 | 1–2. Setup | `references/r1-setup.md` | Understand feedback, find existing branch & PR |
-| 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the next pending fix task |
+| 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the active `in_progress` fix task from `tasks.json` |
 {%- unless triggerParams.skip_review %}
 | 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 {%- endunless %}
@@ -38,7 +43,7 @@ This skill routes you to the correct phase instructions. Read the reference file
 | 1b. Coder | _(use ralph-codesamples-bootstrap skill)_ | Dispatch ralph-coder to bootstrap the codesamples .NET project |
 {%- endif %}
 | 2. Research | `references/2-research.md` | Dispatch ralph-researcher, then ralph-planner to produce task files |
-| 3. Write | `references/3-write.md` | Dispatch ralph-writer for the next pending planned task |
+| 3. Write | `references/3-write.md` | Dispatch ralph-writer for the active `in_progress` planned task from `tasks.json` |
 {%- unless triggerParams.skip_review %}
 | 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 {%- endunless %}

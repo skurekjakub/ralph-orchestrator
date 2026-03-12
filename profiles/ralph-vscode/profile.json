@@ -81,7 +81,10 @@
             "vscode-workflow",
             "test-behavior-testing",
             "test-mocking-strategy",
-            "test-structure-patterns"
+            "test-structure-patterns",
+            "code-typescript-review",
+            "code-typescript-bps",
+            "vscode-grammar-and-scopes"
           ]
         }
       ],

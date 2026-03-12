@@ -81,6 +81,17 @@ Read artifacts from other subagents directly from the filesystem. The orchestrat
 `{{ artifactDir }}/{upstream-agent-name}/output.md` (or `output-v{N}.md` for versioned artifacts)
 {% endraw %}
 
+### Control-file exception
+
+Some workflows define explicit **control files** such as `state.md` or `tasks.json`.
+
+These files are an exception to the normal routing rule:
+- The orchestrator still routes on subagent `status.json` results
+- The orchestrator may also read or update designated control files for phase, task-lifecycle, or per-task-attempt bookkeeping
+- Subagents may read those control files only when their prompt explicitly tells them to
+
+Never use another subagent's narrative artifact (`output.md`, `output-v{N}.md`) as a substitute for `status.json` routing or for a workflow's designated control file.
+
 ### Conversational return
 
 When you finish, return **one line** to the orchestrator:

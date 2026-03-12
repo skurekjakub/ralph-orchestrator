@@ -102,7 +102,7 @@ After it completes, read: `{{ artifactDir }}/subagent-mapper/status.json`
 
 - If `result` is `skipped` → proceed to Step 5 with overall result `skipped`
 - If `status` is `failed` → proceed to Step 5 with overall result `error`
-- If `result` is `mapped` → proceed to Step 2
+- If `result` is `mapped` → proceed to Step 2. **Check the summary** — if it mentions "Infrastructure metadata only" or "0 subagent spans", the mapper found no subagent execution but extracted infrastructure metadata. Proceed to **Step 2b** instead.
 
 ### Step 2: Read mapper inventory
 
@@ -111,6 +111,23 @@ Read `{{ artifactDir }}/subagent-mapper/output.md` to get the **Subagent Summary
 Extract the list of subagent names from the table.
 
 Also note the paths to per-subagent extraction files listed under **Per-Subagent Extractions**.
+
+### Step 2b: Infrastructure failure — single analyzer dispatch
+
+When the mapper returned `mapped` but with infrastructure metadata only (0 subagent spans), the CLI crashed before any subagent execution. Instead of the fan-out loop, dispatch a single `run-analyzer` for infrastructure analysis:
+
+- Target subagent name: `"infrastructure"`
+- Mapper extraction file path: `{{ artifactDir }}/subagent-mapper/subagents/infrastructure.md`
+- Output directory: `{{ artifactDir }}/run-analyzer/infrastructure/`
+
+The run-analyzer will operate in infrastructure failure mode, analyzing proxy logs, sidecar health, and execution metadata.
+
+If the analyzer returns `analyzed`, dispatch `agent-improver`:
+- Target subagent name: `"infrastructure"`
+- Analysis file path: `{{ artifactDir }}/run-analyzer/infrastructure/output.md`
+- Output directory: `{{ artifactDir }}/agent-improver/infrastructure/`
+
+Then skip to **Step 5** (no synthesizer dispatch for infrastructure-only runs — there are no cross-subagent patterns to synthesize).
 
 ### Step 3: Fan-out — analyze and improve each subagent
 

@@ -32,10 +32,13 @@ Read every artifact in `{{ artifactDir }}/`:
 
 - `manifest.json` — see which agents ran and in what order
 - `ralph-analyst/output.md` — implementation plan, ralphchives findings, risks
+{%- unless triggerParams.skip_planner %}
+- `ralph-planner/tasks.json` + `ralph-planner/task-*.md` — planned task breakdown (if planner ran)
+{%- endunless %}
 - `ralph-coder/output-v*.md` — what was changed, build results, iteration notes
 - `ralph-reviewer/output-v*.md` — review findings, pass/fail verdicts
 
-Read each file that exists. Some may be absent (e.g., reviewer skipped on `partial`). That's fine — work with what's there.
+Read each file that exists. Some may be absent (e.g., reviewer skipped on `partial`, planner skipped via `skip_planner`). That's fine — work with what's there.
 
 ### 2. Identify archivable knowledge
 

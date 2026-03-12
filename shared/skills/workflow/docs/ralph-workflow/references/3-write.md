@@ -9,7 +9,11 @@
 
 ## Instructions
 
-Dispatch the **ralph-writer** sub-agent to implement the **next pending planned task**. The writer reads planner tasks and research artifacts directly from the filesystem — do not relay their contents.
+Before dispatching the writer, read `ralph-planner/tasks.json` and ensure exactly one task is active:
+- If a task is already `in_progress`, keep it active
+- Otherwise mark the first `not_processed` task as `in_progress` and set its `attempt` to `1`
+
+Dispatch the **ralph-writer** sub-agent to implement the active planned task. The writer reads planner tasks and research artifacts directly from the filesystem — do not relay their contents.
 
 ### Dispatch
 
@@ -34,8 +38,8 @@ Review using dedicated subagents is skipped for this task.
 Update `state.md`:
 - Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
-- If `result: task-implemented`, append the current task to "Completed Tasks", clear "Current Task", and set "Current Phase" back to `Phase 3: Write`
-- If `result: all-tasks-implemented`, append the current task to "Completed Tasks", clear "Current Task", and set "Current Phase" to `Phase 6: Commit & Push`
+- If `result: task-implemented`, mark the current `in_progress` task as `done`, then either mark the next `not_processed` task as `in_progress` with `attempt: 1` or proceed to `Phase 6: Commit & Push` if none remain
+- If `result: all-tasks-implemented`, mark the current `in_progress` task as `done`, clear "Current Task", and set "Current Phase" to `Phase 6: Commit & Push`
 - If `result: partial`, set "Current Phase" to `Phase 6: Commit & Push`
 - Note: "Phases 4-5 skipped (skip_review)"
 
@@ -47,7 +51,7 @@ Update `state.md`:
 - Set "Current Phase" to `Phase 4: Review`
 - Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
 - Record any new identifiers in "Tracked Identifiers"
-- Keep "Current Task" set to the task reported by the writer until the review loop resolves it
+- Keep "Current Task" as a human-readable mirror of the task whose `lifecycle` is `in_progress` in `tasks.json`
 
 {%- endif %}
 {%- else %}
