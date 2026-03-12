@@ -130,7 +130,6 @@ These parameters are recognized by agent templates and workflow skills. Availabi
 | `xpversion` | `ralph.ralph` | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below. |
 | `adminui` | `ralph.ralph` | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
 | `branch_name` | `ralph.ralph` | Xperience source branch for `git diff` context |
-| `skip_review` | `ralph.ralph` | Skips the review cycle phases in the standard workflow |
 | `release_notes` | `ralph.ralph` | write release notes |
 | `scope` | `ralph.ralph` | Restricts file changes to a specified path |
 | `codesamples` | `ralph.malph` | Adds code sample review checklist |

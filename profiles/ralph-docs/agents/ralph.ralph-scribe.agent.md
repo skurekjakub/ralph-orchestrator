@@ -38,12 +38,8 @@ Your input artifacts are under `{{ artifactDir }}/`:
 | `ralph-planner/task-*.md` | Detailed task files used by the writer and reviewers |
 | `ralph-writer/status.json` | Implementation status, files modified/created, build results |
 | all versioned files in `ralph-writer/` | Task-by-task implementation details — file changes, validation results, notes |
-| `ralph-reviewer-technical/status.json` | Technical review verdict |
-| latest versioned file in `ralph-reviewer-technical/` | Technical review findings and minor notes |
-| `ralph-reviewer-style/status.json` | Style review verdict |
-| latest versioned file in `ralph-reviewer-style/` | Style review findings and minor notes |
-| `ralph-reviewer-ia/status.json` | IA review verdict |
-| latest versioned file in `ralph-reviewer-ia/` | IA review findings and minor notes |
+| `ralph-reviewer-*/status.json` | Review verdicts from all reviewers (technical, style, IA — Claude and GPT variants) |
+| latest versioned file in each `ralph-reviewer-*/` | Review findings and minor notes from each reviewer |
 
 Also read:
 - `.ralph/tasks/{{ taskId }}/state.md` — task state including key decisions, tracked identifiers (branch, PR URL), and completed phases
