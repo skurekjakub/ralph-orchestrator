@@ -164,9 +164,10 @@ When `maxContinuations > 0` in `profile.json`, `ContainerManager.execute()` auto
 | `src/config/constants.ts` | Shared constants (`DEFAULT_MODEL`) |
 | `src/awilix-cradle.ts` | Sole composition root (registers all classes with awilix) |
 | `src/app-startup.ts` | Startup pipeline: validate → load config → load plugins → setup profiles |
-| `src/services/task-runner.ts` | Single operation executor (4-phase pipeline) |
+| `src/services/task-runner.ts` | Single operation executor (4-phase pipeline + post-task hooks) |
 | `src/services/task-result-writer.ts` | Post-execution: log collection, transcript attach, summary |
 | `src/services/task-context.ts` | TaskContext + TaskCallbacks interfaces, buildTaskContext() |
+| `src/services/vcs-source-client.ts` | Provider-resolved PR metadata lookup used for revision branch inference |
 | `src/services/trigger-scanner.ts` | Scans JIRA comments for trigger strings |
 | `src/services/operation-ledger.ts` | Persistent per-issue state machine |
 | `src/container/manager.ts` | Full container lifecycle + stage-based executor creation |
@@ -217,7 +218,7 @@ shared/
                         excluded from git via .git/info/exclude managed by RepoSyncHook)
 ```
 
-Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Variants can also declare additional `mcpServers` (merged with profile-level — effective set is the union). Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
+Profile variants match issues by `projects`, `statuses`, and `commentTrigger`. Each variant contains a `stages` array defining a sequential agent pipeline. The first stage's `agent` determines `agentName`; `displayName` strips the `ralph.` prefix. Stages can run inside Docker (`mode: "container"`) or on the host (`mode: "local"`), with per-stage overrides for agent, model, skills, and timeout. Variants can also declare additional `mcpServers` (merged with profile-level — effective set is the union). Trigger comments support parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`) — parsed into `triggerParams` (key-value lookup), available in templates. The `vcsProvider` field (`"ado" | "github"`, default `"ado"`) controls the auth header format used by the repo-sync hook and selects the PR metadata resolver used for revision branch inference; `repoPat` names the env var holding the git PAT (defaults to `ADO_PAT` for ADO, `GH_TOKEN` for GitHub).
 
 **Bind-mount artifact exclusion.** Docker bind mounts for skills, agent templates, and `.ralph/` create host-side files inside the target repo checkout. The `RepoSyncHook` writes patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` before any git operation, preventing these artifacts from blocking checkout, appearing in status, or being staged.
 

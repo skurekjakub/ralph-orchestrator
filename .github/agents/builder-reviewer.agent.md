@@ -71,7 +71,7 @@ Read `{artifact-root}/manifest.json`, append your entry, write it back.
 | `result` | Meaning |
 |---|---|
 | `approved` | Changes match the plan, validation passes, ready to proceed |
-| `needs-revision` | Issues found that require the implementer to fix |
+| `needs-revision` | Issues found that require the implementer to fix. Any issue, no matter how minor, automatically causes `needs-revision` |
 
 ---
 
@@ -169,7 +169,7 @@ Severity levels:
 - `major` — should fix (plan deviation, convention violation, incomplete implementation)
 - `minor` — nice to have (style, naming, documentation)
 
-Only `critical` and `major` findings result in a `needs-revision` verdict. `minor` findings are informational.
+EVERY findings result in a `needs-revision` verdict. `minor` findings are informational, but still need to be implemented.
 
 Then write `status.json` and append to `manifest.json` per the artifact contract above.
 

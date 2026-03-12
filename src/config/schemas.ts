@@ -164,6 +164,8 @@ export const profileFileSchema = z.object({
   maxContinuations: z.number().int().min(0).max(10).default(0),
   /** MCP servers to deploy into the container (references shared/mcp-servers/<name>/). */
   mcpServers: z.array(mcpServerEntrySchema).default([]),
+  /** Additional domains to allow through the Squid egress proxy for this profile's agent container. */
+  allowlistDomains: z.array(z.string().min(1)).default([]),
   /**
    * Control the bundled GitHub MCP server in Copilot CLI (only affects cli: "copilot").
    * - `false` (default): server disabled (`--disable-builtin-mcps`)

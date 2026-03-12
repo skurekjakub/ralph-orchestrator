@@ -71,7 +71,16 @@ After each subagent completes, read its `status.json` at `{{ artifactDir }}/{age
 
 Dispatch `run-analyzer` with task context. It has access to the log directory and collected logs through its own template variables.
 
+**Infrastructure failure handling:** If the main pipeline's CLI exited before any subagent could execute (e.g., exit code 1 with no cli-debug.log), the run-analyzer will switch to infrastructure failure mode automatically. It will analyze proxy logs, sidecar health, and execution metadata instead of per-subagent spans. Dispatch it normally — it handles both modes.
+
+When dispatching for infrastructure failure analysis, include this context:
+- Target subagent name: `"infrastructure"`
+- Mapper extraction file path: (none — there is no mapper data)
+- Output directory: `{{ artifactDir }}/run-analyzer/infrastructure/`
+
 After it completes, read: `{{ artifactDir }}/run-analyzer/status.json`
+
+If the run-analyzer wrote to a subagent-specific subdirectory (e.g., `run-analyzer/infrastructure/`), also check `{{ artifactDir }}/run-analyzer/infrastructure/status.json`.
 
 ### Step 2: Route based on analysis result
 
@@ -82,6 +91,13 @@ After it completes, read: `{{ artifactDir }}/run-analyzer/status.json`
 ### Step 3: Dispatch agent-improver
 
 Dispatch `agent-improver`. It will read the analyzer's report from the filesystem on its own.
+
+When the run-analyzer produced an infrastructure failure analysis (target subagent was `"infrastructure"`), tell the agent-improver:
+- Target subagent name: `"infrastructure"`
+- Analysis file path: `{{ artifactDir }}/run-analyzer/infrastructure/output.md` (or wherever the analyzer wrote its report)
+- Output directory: `{{ artifactDir }}/agent-improver/infrastructure/`
+
+The agent-improver handles both per-subagent improvements and infrastructure-only findings. For infrastructure findings, it will propose changes to pipeline code, proxy config, and diagnostic tooling rather than agent templates.
 
 After it completes, read: `{{ artifactDir }}/agent-improver/status.json`
 

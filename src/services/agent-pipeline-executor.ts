@@ -113,6 +113,13 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
 
       if (pipelineAborted) {
         this.logger.error(`${stageLabel}: stage failed — aborting pipeline`);
+        if (result.stderr) {
+          const snippet = result.stderr.length > 2000 ? result.stderr.slice(0, 2000) + "…" : result.stderr;
+          this.logger.error(`${stageLabel}: stderr: ${snippet}`);
+        }
+        if (!result.stderr && !result.stdout) {
+          this.logger.error(`${stageLabel}: CLI produced no output — check container health or CLI installation`);
+        }
         break;
       }
 

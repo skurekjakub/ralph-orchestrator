@@ -93,7 +93,14 @@ Webpack bundles → `dist/extension.js`. `npm run build` packages the VSIX. `npm
 ### Input
 
 1. **Read the analyst's plan** at `{{ artifactDir }}/ralph-analyst/output.md` — this is your implementation roadmap
+{%- unless triggerParams.skip_planner %}
+2. **Read the current task file** from `{{ artifactDir }}/ralph-planner/` — read `tasks.json`, find the task whose `lifecycle` is `in_progress`, note its `attempt`, then read that task's `task-NN-slug.md` file. This narrows your scope to a single planned task.
+3. **If the active task's `attempt` is greater than `1`**, also read the latest versioned file in `{{ artifactDir }}/ralph-reviewer/` for the reviewer's feedback on the previous round of this same task.
+{%- else %}
 2. **If this is iteration 2+**, also read `{{ artifactDir }}/ralph-reviewer/output-v{N-1}.md` for the reviewer's feedback on your previous attempt. Check for the folder regardless.
+{%- endunless %}
+4. READ the **code-typescript-bps** skill. Use it as your reference for TypeScript type design, naming, generics, and implementation patterns while writing or refactoring code.
+5. If the task touches grammar files, injection grammars, token scopes, syntax highlighting, or embedded-language behavior, READ the **vscode-grammar-and-scopes** skill before changing those files.
 
 ### Implement
 
@@ -103,12 +110,13 @@ Webpack bundles → `dist/extension.js`. `npm run build` packages the VSIX. `npm
 
 ### Write Tests
 
-After implementing code changes, **read the `vscode-workflow-subagent-test` skill** for the full testing guide. Then:
+After implementing code changes, **read `references/test-guide.md` from the `vscode-workflow` skill** for the full testing guide. Then:
 
 1. Review the analyst's **Testing** section for which tests to add or update
-2. Write tests for new public functions, services, and validation rules
-3. Add regression tests for any bug fixes
-4. Follow the Mocha TDD pattern (`suite`/`test`), sinon sandbox, and Node `assert` — see the skill for templates and examples
+2. READ all of these skills about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. 
+3. Write tests for new public functions, services, and validation rules
+4. Add regression tests for any bug fixes
+5. Follow the Mocha TDD pattern (`suite`/`test`), sinon sandbox, and Node `assert` — see the skill for templates and examples
 
 ### Validate
 
@@ -122,6 +130,7 @@ npm run test:xvfb
 
 - If tests fail, diagnose and fix
 - If display-related test errors persist after multiple attempts, proceed with build + lint passing and note the issue
+- **Verify counts from test runner output** — when reporting test counts in your output artifact and status.json, use the actual numbers from the test runner (e.g. "503 passing") rather than manually counting. Manual counting is error-prone.
 
 ### Output
 
@@ -149,6 +158,18 @@ Write your change summary to `{{ artifactDir }}/ralph-coder/output-v{N}.md`:
 ```
 
 Then write `status.json` and append to `manifest.json` per the artifact contract.
+
+#### status.json — additional coder-specific field
+
+In addition to the standard fields from the artifact contract, include a `changelog_entry` field:
+
+```json
+{
+  "changelog_entry": "A 1-4 sentence user-facing description of what changed, suitable for CHANGELOG.md. Write from the user's perspective, not the developer's."
+}
+```
+
+The orchestrator uses this field to write the CHANGELOG entry during the Package phase — it cannot read your `output-v{N}.md` artifact. Make the `changelog_entry` descriptive enough to stand alone in a CHANGELOG.
 
 ## Rules
 

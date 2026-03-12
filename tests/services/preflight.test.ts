@@ -3,8 +3,8 @@ import {
   buildPreflightContext,
   runPreflight,
 } from "../../src/services/preflight.js";
-import { makeWorkItem, makeWorkItemComment } from "../helpers/factories.js";
-import { createMockResources } from "../helpers/mocks.js";
+import { makeProfile, makeWorkItem, makeWorkItemComment } from "../helpers/factories.js";
+import { createMockLogger, createMockResources, createMockVcsSourceClient, createSilentLogger } from "../helpers/mocks.js";
 const KEY = "DF-1";
 
 describe("runPreflight", () => {
@@ -13,6 +13,7 @@ describe("runPreflight", () => {
       comments: [],
       handoffContent: null,
       prUrl: null,
+      prBranches: null,
     });
     expect(result.ok).toBe(true);
   });
@@ -23,6 +24,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: "some handoff content",
         prUrl: null,
+        prBranches: null,
       });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toContain("PR URL");
@@ -33,6 +35,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: null,
         prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/123",
+        prBranches: null,
       });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toContain("handoff");
@@ -43,6 +46,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: "## Summary\nDid the work.",
         prUrl: "https://github.com/org/repo/pull/42",
+        prBranches: null,
       });
       expect(result.ok).toBe(true);
     });
@@ -54,6 +58,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: "handoff content",
         prUrl: null,
+        prBranches: null,
       });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toContain("pull request");
@@ -64,6 +69,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: null,
         prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/123",
+        prBranches: null,
       });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toContain("handoff");
@@ -74,6 +80,7 @@ describe("runPreflight", () => {
         comments: [],
         handoffContent: "## Summary\nRevision work.",
         prUrl: "https://dev.azure.com/org/proj/_git/repo/pullrequest/42",
+        prBranches: null,
       });
       expect(result.ok).toBe(true);
     });
@@ -83,6 +90,8 @@ describe("runPreflight", () => {
 describe("buildPreflightContext", () => {
   const DS = "jira";
   const mockResources = createMockResources();
+  const mockVcsSourceClient = createMockVcsSourceClient();
+  const profile = makeProfile();
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -96,6 +105,9 @@ describe("buildPreflightContext", () => {
 
     const ctx = await buildPreflightContext(
       mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
       DS,
       KEY,
       comments,
@@ -111,14 +123,14 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, DS, KEY, comments);
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
     expect(ctx.prUrl).toBe("https://github.com/org/repo/pull/42");
   });
 
   it("downloads handoff attachment", async () => {
     mockResources.fetchHandoff.mockResolvedValue("## Handoff content");
 
-    const ctx = await buildPreflightContext(mockResources, DS, KEY, []);
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, []);
     expect(ctx.handoffContent).toBe("## Handoff content");
     expect(mockResources.fetchHandoff).toHaveBeenCalledWith(DS, KEY);
   });
@@ -126,7 +138,7 @@ describe("buildPreflightContext", () => {
   it("returns null handoff when fetchHandoff returns null", async () => {
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, DS, KEY, []);
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, []);
     expect(ctx.handoffContent).toBeNull();
     expect(ctx.prUrl).toBeNull();
   });
@@ -137,7 +149,7 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, DS, KEY, comments);
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
     expect(ctx.prUrl).toBe("https://dev.azure.com/org/proj/_git/repo/pullrequest/99");
   });
 
@@ -147,7 +159,47 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, DS, KEY, comments);
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
     expect(ctx.prUrl).toContain("bitbucket.org");
+  });
+
+  it("resolves PR branch metadata when the VCS source client returns it", async () => {
+    const comments = [
+      makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
+    ];
+    mockResources.fetchHandoff.mockResolvedValue(null);
+    mockVcsSourceClient.resolvePullRequestBranches.mockResolvedValue({
+      sourceBranch: "feature/revision-fix",
+      targetBranch: "main",
+    });
+
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
+
+    expect(ctx.prBranches).toEqual({
+      sourceBranch: "feature/revision-fix",
+      targetBranch: "main",
+    });
+  });
+
+  it("falls back to null PR branch metadata when branch resolution throws", async () => {
+    const comments = [
+      makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
+    ];
+    mockResources.fetchHandoff.mockResolvedValue(null);
+    mockVcsSourceClient.resolvePullRequestBranches.mockRejectedValue(new Error("ado unavailable"));
+    const logger = createMockLogger();
+
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      logger,
+      DS,
+      KEY,
+      comments,
+    );
+
+    expect(ctx.prBranches).toBeNull();
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to resolve PR branch metadata"));
   });
 });

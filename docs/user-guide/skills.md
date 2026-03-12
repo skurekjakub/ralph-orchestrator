@@ -39,53 +39,55 @@ Domain skills provide reference knowledge about specific technologies, patterns,
 
 Workflow skills define sequential phases for agent execution. Each agent type has its own workflow skill set, with each skill covering one phase. Agents read the corresponding skill at the start of each phase.
 
-### Stacky — Fullstack Development (`devralph-workflow-*`)
+### Stacky — Fullstack Development (`devralph-workflow`)
+
+Single consolidated router skill with per-phase reference files. The `isRevision` Liquid flag selects the appropriate workflow table.
 
 Standard workflow (9 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `devralph-workflow-setup` | Create `state.md`, verify workspace/branch, search ralphchives, identify affected components. |
-| 2 | `devralph-workflow-research` | Research the codebase — explore affected areas, trace cross-layer data flows, identify integration points, create implementation plan. |
-| 3 | `devralph-workflow-implement` | Execute the implementation plan. Make code changes and build after every edit. |
-| 4 | `devralph-workflow-test` | Create and run tests. Delegate RSpec tests to the stacky-test-writer sub-agent. |
-| 5 | `devralph-workflow-e2e` | Write Playwright E2E tests for UI-facing changes. Delegate to the stacky-e2e-playwright sub-agent. |
-| 6 | `devralph-workflow-review` | Code review gate. Delegate to stacky-reviewer and stacky-bug-auditor sub-agents. |
-| 7 | `devralph-workflow-commit` | Final build verification, staging, commit with `dev(TASKID)` prefix, push. |
-| 8 | `devralph-workflow-pr` | Create an ADO draft pull request. |
-| 9 | `devralph-workflow-handoff` | Write handoff file, comment on JIRA, print exit block. |
+| 1 | `references/1-setup.md` | Create `state.md`, verify workspace/branch, search ralphchives, identify affected components. |
+| 2 | `references/2-research.md` | Research the codebase — explore affected areas, trace cross-layer data flows, identify integration points, create implementation plan. |
+| 3 | `references/3-implement.md` | Execute the implementation plan. Make code changes and build after every edit. |
+| 4 | `references/4-test.md` | Create and run tests. Delegate RSpec tests to the stacky-test-writer sub-agent. |
+| 5 | `references/5-e2e.md` | Write Playwright E2E tests for UI-facing changes. Delegate to the stacky-e2e-playwright sub-agent. |
+| 6 | `references/6-review.md` | Code review gate. Delegate to stacky-reviewer and stacky-bug-auditor sub-agents. |
+| 7 | `references/7-commit.md` | Final build verification, staging, commit with `dev(TASKID)` prefix, push. |
+| 8 | `references/8-pr.md` | Create an ADO draft pull request. |
+| 9 | `references/9-handoff.md` | Write handoff file, comment on JIRA, print exit block. |
 
 Revision workflow (4 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `devralph-workflow-revision-setup` | Review previous handoff, extract defects from JIRA/reviewer feedback, create fix plan. |
-| 2 | `devralph-workflow-revision-fix` | Implement fixes one at a time, building and testing after each. |
-| 3 | `devralph-workflow-revision-commit` | Commit with `fix(TASKID)` prefix, push to update existing PR. |
-| 4 | `devralph-workflow-revision-handoff` | Update handoff with revision section, comment on JIRA, print exit block. |
+| 1 | `references/r1-setup.md` | Review previous handoff, extract defects from JIRA/reviewer feedback, create fix plan. |
+| 2 | `references/r2-fix.md` | Implement fixes one at a time, building and testing after each. |
+| 3 | `references/r3-commit.md` | Commit with `fix(TASKID)` prefix, push to update existing PR. |
+| 4 | `references/r4-handoff.md` | Update handoff with revision section, comment on JIRA, print exit block. |
 
 ### Ralph — Documentation Writer (`ralph-workflow-*`)
 
-Standard workflow (8 phases):
+Standard workflow — single consolidated skill `ralph-workflow` with reference files per phase:
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `ralph-workflow-setup` | Initialize `state.md` with skill manifest, search ralphchives for prior work. |
-| 2 | `ralph-workflow-research` | Delegate to ralph-researcher sub-agent, validate the 4-section report. |
-| 3 | `ralph-workflow-write` | Implement documentation changes based on researcher's report, validate builds. |
-| 4–5 | `ralph-workflow-review` | Delegate to three reviewer sub-agents (technical, style, IA), aggregate verdicts, run revision loop (max 2 cycles). |
-| 6 | `ralph-workflow-commit` | Pre-commit checkpoint, stage, commit, push. |
-| 7 | `ralph-workflow-pr` | Create ADO draft pull request. |
-| 8 | `ralph-workflow-handoff` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1 | `references/1-setup.md` | Initialize `state.md` with skill manifest, search ralphchives for prior work. |
+| 2 | `references/2-research.md` | Delegate to ralph-researcher sub-agent, validate the 4-section report. |
+| 3 | `references/3-write.md` | Implement documentation changes based on researcher's report, validate builds. |
+| 4–5 | `references/4-review.md` | Delegate to six reviewer sub-agents (technical, style, IA × Claude + GPT), aggregate verdicts, run revision loop (max 3 cycles). |
+| 6 | `references/6-commit.md` | Pre-commit checkpoint, stage, commit, push. |
+| 7 | `references/7-pr.md` | Create ADO draft pull request. |
+| 8 | `references/8-handoff.md` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
 
-Revision workflow (4 phases):
+Revision workflow (same `ralph-workflow` skill, revision reference files):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1–2 | `ralph-workflow-revision-setup` | Read previous handoff and reviewer comments, find existing PR/branch, plan fixes. |
-| 3 | `ralph-workflow-revision-fix` | Implement targeted fixes for each feedback item. |
-| 5 | `ralph-workflow-revision-commit` | Pre-commit build check, commit, push, respond to PR threads. |
-| 6–7 | `ralph-workflow-revision-handoff` | Update handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1–2 | `references/r1-setup.md` | Read previous handoff and reviewer comments, find existing PR/branch, plan fixes. |
+| 3 | `references/r3-fix.md` | Implement targeted fixes for each feedback item. |
+| 5 | `references/r5-commit.md` | Pre-commit build check, commit, push, respond to PR threads. |
+| 6–7 | `references/r6-handoff.md` | Update handoff, attach to JIRA, post to ralphchives, print exit block. |
 
 ### Malph — Documentation Reviewer (`malph-workflow-*`)
 
@@ -114,26 +116,36 @@ Review workflow (7 phases):
 | 6 | `malph-vscode-workflow-deliver` | Post JIRA comment with verdict and issue codes, post file-level PR threads. |
 | 7 | `malph-vscode-workflow-handoff` | Write review-handoff, attach to JIRA, report to ralphchives, print exit block. |
 
-### Ralph (VS Code) — Extension Developer (`vscode-workflow-*`)
+### Ralph (VS Code) — Extension Developer (`vscode-workflow`)
 
-Standard workflow (5 phases):
+Single consolidated router skill with per-phase reference files. The `isRevision` Liquid flag selects the appropriate workflow table.
 
-| Phase | Skill | Description |
+Standard workflow (8 phases):
+
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `vscode-workflow-setup` | Initialize `state.md`, search ralphchives, delegate to analyst for implementation path research. |
-| 2 | `vscode-workflow-execute` | Implement changes in TypeScript, run build/lint/test validation, iterate until passing. |
-| 3 | `vscode-workflow-commit` | Pre-commit build check, stage, commit, push. |
-| 4 | `vscode-workflow-pr` | Create ADO draft pull request. |
-| 5 | `vscode-workflow-handoff` | Write handoff, attach to JIRA, post to ralphchives, print exit block. |
+| 1 | `references/1-setup.md` | Branch verify, state.md init, JIRA greeting |
+| 2 | `references/2-analyze.md` | Dispatch analyst, read status.json |
+| 3 | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4 | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
+| 5 | `references/5-commit.md` | Pre-commit build, commit, push via MCP |
+| 6 | `references/6-pr.md` | Create ADO pull request |
+| 7 | `references/7-handoff.md` | Write handoff, report to JIRA |
+| 8 | `references/8-archive.md` | Dispatch scribe, print exit block |
 
-Revision workflow (4 phases):
+Revision workflow (7 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `vscode-workflow-revision-setup` | Read reviewer feedback, find existing PR/branch, plan fix. |
-| 2 | `vscode-workflow-revision-fix` | Implement fixes, optionally delegate to analyst, validate with build/lint/test. |
-| 3 | `vscode-workflow-revision-commit` | Commit, push, respond to PR review threads. |
-| 4 | `vscode-workflow-revision-handoff` | Update handoff with revision section, attach to JIRA, print exit block. |
+| 1 | `references/r1-setup.md` | Read feedback, find existing PR & branch |
+| 2 | `references/2-analyze.md` | Dispatch analyst in revision mode |
+| 3 | `references/3-implement-loop.md` | Dispatch coder → reviewer loop (max 2 iterations) |
+| 4 | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
+| 5 | `references/r5-commit.md` | Commit, push, reply to PR threads |
+| 6 | `references/r6-handoff.md` | Update handoff, report to JIRA |
+| 7 | `references/8-archive.md` | Dispatch scribe, print exit block |
+
+Domain reference: `references/test-guide.md` — Mocha TDD test writing guide for the coder subagent.
 
 ## Integration Skills
 
@@ -152,8 +164,7 @@ Task skills provide guides for specific task types that don't follow the standar
 
 | Skill | Description |
 |---|---|
-| `ralph-code-samples` | Writing and integrating .NET code samples into documentation using `code_link` Liquid tags. |
-| `ralph-codesamples-project` | Overview of the codesamples .NET solution structure, build workflow, and feature-folder organization. |
+| `ralph-codesamples` | Complete reference for the codesamples .NET project — solution structure, feature-folder organization, `code_link` integration, build workflow, and coding conventions. |
 | `ralph-training-modules` | YAML schema and templates for creating structured training modules and learning paths. |
 | `ralph-write-release-notes` | Format and examples for writing release notes for Xperience features and changes. |
 
@@ -168,7 +179,7 @@ Each profile variant declares which skills are available to its agent. Skills ar
 | **ralph.ralph** (writer) | 28 skills — all domain + task + integration + `ralph-workflow-*` |
 | **ralph.malph** (reviewer) | 15 skills — documentation domain + integration + `malph-workflow-*` |
 | **ralph.overralph** (orchestrator) | 28 skills — same as ralph.ralph |
-| **ralph.stacky** (fullstack dev) | 20 skills — `devralph-*` domain + `devralph-workflow-*` + integration |
+| **ralph.stacky** (fullstack dev) | 8 skills — `devralph-*` domain + `devralph-workflow` + integration |
 
 ### ralph-vscode
 

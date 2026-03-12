@@ -35,7 +35,7 @@ ENV LANG=en_US.UTF-8 \
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git bash build-essential ca-certificates \
-        curl jq gnupg2 wget \
+        curl jq gnupg2 wget unzip \
         libssl-dev libyaml-dev libreadline-dev libffi-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +44,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ============================================================
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============================================================
+# 3.5. SQL Server client tools (sqlcmd)
+# ============================================================
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+        | gpg --dearmor -o /etc/apt/keyrings/microsoft-prod.gpg \
+    && chmod go+r /etc/apt/keyrings/microsoft-prod.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" \
+        > /etc/apt/sources.list.d/microsoft-prod.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
+        msodbcsql18 mssql-tools18 unixodbc \
+    && ln -sf /opt/mssql-tools18/bin/sqlcmd /usr/local/bin/sqlcmd \
     && rm -rf /var/lib/apt/lists/*
 
 # ============================================================
@@ -123,11 +138,9 @@ USER root
 
 # ============================================================
 # 9. Purge build-only tools
-#    curl/wget were needed to fetch install scripts.
-#    gnupg2 needed for NodeSource GPG key.
 #    libcurl stays for git HTTP transport.
 # ============================================================
-RUN apt-get purge -y --auto-remove curl wget gnupg2 \
+RUN apt-get purge -y --auto-remove wget gnupg2 \
     && rm -rf /var/lib/apt/lists/*
 
 USER vscode

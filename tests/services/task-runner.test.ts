@@ -24,7 +24,7 @@ const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
-  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn(), readFileSync: vi.fn().mockReturnValue("{}") };
+  return { ...orig, rmSync: vi.fn(), mkdirSync: vi.fn(), readFileSync: vi.fn().mockReturnValue("{}"), writeFileSync: vi.fn() };
 });
 
 function createMockFactory(container: IContainerManager): ContainerManagerFactory {
@@ -64,7 +64,7 @@ describe("TaskRunner", () => {
 
     const result = await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
     expect(issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, "In Progress", TransitionPhase.BeforeAgent);
-    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, KEY, "ralph", PID);
+    expect(issueManager.postStartComment).toHaveBeenCalledWith(DS, KEY, "ralph", PID, {});
     expect(spies.start).toHaveBeenCalled();
     expect(spies.checkPrerequisites).toHaveBeenCalled();
     expect(spies.prepareConfigDir).toHaveBeenCalled();
@@ -500,6 +500,37 @@ describe("TaskRunner", () => {
       await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
 
       expect(callOrder).toEqual(["stop", "hook-run"]);
+    });
+
+    it("skips hooks and writes manifest when skip_hooks trigger param is set", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), profileSetup: createMockProfileSetupService(), pipelineExecutor: createMockPipelineExecutor() });
+
+      const result = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId, triggerParams: { skip_hooks: "true" } }));
+
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(factory.createLocalSession).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("skip_hooks"));
+
+      const { writeFileSync } = await import("node:fs");
+      expect(writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining("hook-manifest.json"),
+        expect.stringContaining("\"workItemId\""),
+      );
+    });
+
+    it("does not write manifest when skip_hooks is not set", async () => {
+      const hookProfile = makeHookProfile({ name: "analysis", stages: [{ agent: "ralph.analyzer", role: "analyzer" }] });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({ resultWriter: createMockResultWriter(), logger, containerFactory: factory, resources: createMockResources(), issueManager: createMockIssueManager(), profileSetup: createMockProfileSetupService(), pipelineExecutor: createMockPipelineExecutor() });
+
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      const { writeFileSync } = await import("node:fs");
+      expect(writeFileSync).not.toHaveBeenCalled();
     });
   });
 });

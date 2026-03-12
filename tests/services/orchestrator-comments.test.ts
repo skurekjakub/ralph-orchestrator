@@ -33,6 +33,17 @@ describe("OrchestratorComments", () => {
     expect(msg).toContain("starting work");
   });
 
+  it("start includes skip_hooks notice when param is set", () => {
+    const msg = OrchestratorComments.start("ralph", "ralph-docs", { skip_hooks: "true" });
+    expect(msg).toContain("skip_hooks");
+    expect(msg).toContain("run-hooks.ts");
+  });
+
+  it("start omits skip_hooks notice when param is absent", () => {
+    const msg = OrchestratorComments.start("ralph", "ralph-docs", {});
+    expect(msg).not.toContain("skip_hooks");
+  });
+
   it("crashRecovery includes display name and retry guidance", () => {
     const msg = OrchestratorComments.crashRecovery("ralph");
     expect(msg).toContain("ralph");

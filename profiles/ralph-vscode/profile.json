@@ -5,6 +5,13 @@
   "repoPat": "ADO_PAT",
   "cli": "copilot",
   "timeoutMs": 7200000,
+  "allowlistDomains": [
+    ".npmjs.org",
+    "dev.azure.com",
+    "pkgs.dev.azure.com",
+    "vsblob.dev.azure.com",
+    ".artifacts.visualstudio.com"
+  ],
   "mcpServers": [
     {
       "name": "jira-kentico",
@@ -17,7 +24,9 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-autocomplete-vscode",
-        "TASK_BRANCH": "$task.branch"
+        "TASK_BRANCH": "$task.branch",
+        "SOURCE_BRANCH": "$trigger.source_branch",
+        "TARGET_BRANCH": "$trigger.target_branch"
       }
     },
     {
@@ -68,18 +77,14 @@
           "role": "primary",
           "skills": [
             "ralph-ado-pr-workflow",
-            "vscode-workflow-setup",
-            "vscode-workflow-analyze",
-            "vscode-workflow-implement-loop",
-            "vscode-workflow-subagent-test",
-            "vscode-workflow-package",
-            "vscode-workflow-commit",
-            "vscode-workflow-pr",
-            "vscode-workflow-handoff",
-            "vscode-workflow-archive",
-            "vscode-workflow-revision-setup",
-            "vscode-workflow-revision-commit",
-            "vscode-workflow-revision-handoff"
+            "ralph-ralphchives",
+            "vscode-workflow",
+            "test-behavior-testing",
+            "test-mocking-strategy",
+            "test-structure-patterns",
+            "code-typescript-review",
+            "code-typescript-bps",
+            "vscode-grammar-and-scopes"
           ]
         }
       ],

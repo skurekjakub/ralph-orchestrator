@@ -83,6 +83,7 @@ describe("ProfileSetupService", () => {
         ctx.workItem,
         expect.anything(),
         ctx.triggerParams,
+        { sourceBranch: ctx.sourceBranch, taskBranch: ctx.taskBranch },
       );
     });
   });

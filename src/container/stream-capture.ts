@@ -54,6 +54,10 @@ export class StreamCapture {
         }
       }
     });
+    proc.stdout?.on("close", () => {
+      const trimmed = stdoutBuf.trim();
+      if (trimmed) logger.info(`[${tag}] ${trimmed}`);
+    });
 
     let stderrBuf = "";
     proc.stderr?.on("data", (chunk: Buffer | string) => {
@@ -66,6 +70,10 @@ export class StreamCapture {
         const trimmed = line.trim();
         if (trimmed) logger.warn(`[${tag}] ${trimmed}`);
       }
+    });
+    proc.stderr?.on("close", () => {
+      const trimmed = stderrBuf.trim();
+      if (trimmed) logger.warn(`[${tag}] ${trimmed}`);
     });
   }
 

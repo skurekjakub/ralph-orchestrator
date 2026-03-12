@@ -20,8 +20,12 @@ export const OrchestratorComments = {
   },
 
   /** Posted when the agent starts working on an issue. */
-  start(displayName: string, profileId: string): string {
-    return `${PREFIX} 🤖 ${displayName} is starting work on this issue.\nProfile: ${profileId}`;
+  start(displayName: string, profileId: string, triggerParams?: Record<string, string>): string {
+    let msg = `${PREFIX} 🤖 ${displayName} is starting work on this issue.\nProfile: ${profileId}`;
+    if (triggerParams?.skip_hooks) {
+      msg += `\n\n⚠️ Post-task hooks skipped (skip_hooks). Run manually:\n\`npx tsx scripts/run-hooks.ts <outputDir>\``;
+    }
+    return msg;
   },
 
   /** Posted when a crashed operation is recovered on startup. */

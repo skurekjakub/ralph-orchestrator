@@ -95,8 +95,7 @@ function standardContext(profileId: string): TemplateContext {
     skills: [
       "ralph-ado-pr-workflow",
       "ralph-ralphchives",
-      "ralph-workflow-setup",
-      "ralph-workflow-handoff",
+      "ralph-workflow",
     ],
     stageRole: "primary",
     stageMode: "container",
@@ -117,10 +116,7 @@ function revisionContext(profileId: string): TemplateContext {
     prUrl: "https://dev.azure.com/org/project/_git/repo/pullrequest/42",
     skills: [
       "ralph-ado-pr-workflow",
-      "ralph-workflow-revision-setup",
-      "ralph-workflow-revision-fix",
-      "ralph-workflow-revision-commit",
-      "ralph-workflow-revision-handoff",
+      "ralph-workflow",
     ],
   });
 }
@@ -379,7 +375,7 @@ describe("skill template rendering (real files)", () => {
   it("interpolates task variables into skills", async () => {
     const ctx = standardContext("ralph-docs");
     // Pick a skill known to use {{ taskId }}
-    const testSkills = ["ralph-workflow-setup", "ralph-workflow-handoff"];
+    const testSkills = ["ralph-workflow"];
     const availableSkills = (await collectAllSkillNames()).filter((s) => testSkills.includes(s));
     if (availableSkills.length === 0) return;
 
@@ -413,12 +409,7 @@ describe("skill template rendering (real files)", () => {
   });
 
   it("renders skills with revision context", async () => {
-    const revSkills = [
-      "ralph-workflow-revision-setup",
-      "ralph-workflow-revision-fix",
-      "ralph-workflow-revision-commit",
-      "ralph-workflow-revision-handoff",
-    ];
+    const revSkills = ["ralph-workflow"];
     const availableSkills = (await collectAllSkillNames()).filter((s) => revSkills.includes(s));
     if (availableSkills.length === 0) return;
 
@@ -428,6 +419,11 @@ describe("skill template rendering (real files)", () => {
     for (const skill of availableSkills) {
       const rendered = await readFile(join(SKILLS_DIR, ".build", skill, "SKILL.md"), "utf-8");
       expect(rendered.length, `${skill} should produce non-empty output`).toBeGreaterThan(0);
+      // Revision context should render revision references and blank standard ones
+      const revSetup = await readFile(join(SKILLS_DIR, ".build", skill, "references", "r1-setup.md"), "utf-8");
+      expect(revSetup.length, "r1-setup.md should have content in revision context").toBeGreaterThan(10);
+      const stdSetup = await readFile(join(SKILLS_DIR, ".build", skill, "references", "1-setup.md"), "utf-8");
+      expect(stdSetup, "1-setup.md should have no workflow content in revision context").not.toContain("# Phase 1");
     }
   });
 });
@@ -477,6 +473,13 @@ describe("shared agent includes (real files)", () => {
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
+  it("renders post-hooks/subagent-mapper with hook context", async () => {
+    const rendered = await renderInclude("post-hooks/subagent-mapper", hookContext("ralph-docs"));
+    expect(rendered).toContain("DOC-100");
+    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
+  });
+
   it("renders post-hooks/agent-improver with hook context", async () => {
     const rendered = await renderInclude("post-hooks/agent-improver", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
@@ -484,6 +487,13 @@ describe("shared agent includes (real files)", () => {
     // {% raw %} blocks should be consumed — literal Liquid tags preserved in output
     expect(rendered).not.toContain("{% raw %}");
     expect(rendered).not.toContain("{% endraw %}");
+  });
+
+  it("renders post-hooks/run-synthesizer with hook context", async () => {
+    const rendered = await renderInclude("post-hooks/run-synthesizer", hookContext("ralph-docs"));
+    expect(rendered).toContain("DOC-100");
+    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
   it("renders ralph-docs workflow includes", async () => {

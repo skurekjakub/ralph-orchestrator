@@ -27,6 +27,7 @@ import { CliExecutorFactory } from "./container/cli-executor-factory.js";
 import { RepoSyncHook, type ILifecycleHook } from "./container/lifecycle.js";
 import { ProfileSetupService } from "./services/profile-setup-service.js";
 import { AgentPipelineExecutor } from "./services/agent-pipeline-executor.js";
+import { VcsSourceClient } from "./services/vcs-source-client.js";
 import { ContainerLogCollector } from "./container/log-collector.js";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
@@ -127,6 +128,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     pollers:       asValue(pollers),
     issueManager:  asClass(IssueManager).singleton(),
     resources:     asClass(TaskResourceManager).singleton(),
+    vcsSourceClient: asFunction(() => new VcsSourceClient()).singleton(),
 
     // ── Orchestration ─────────────────────────────────────────────────────────
     ledger:         asClass(OperationLedger).singleton(),

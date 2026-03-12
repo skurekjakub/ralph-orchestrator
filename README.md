@@ -112,6 +112,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 5. **Processes one at a time:**
    - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
+  - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing repo sync and `$task.branch` to reuse the PR's real source/target branches
    - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
@@ -162,7 +163,8 @@ output/
     │   ├── <key>-<startTs>-<ts>-tool-output.log      # Untruncated tool output from hooks
     │   ├── <key>-<startTs>-<ts>-proxy.log            # Squid proxy access log (allowed/denied domains)
     │   ├── <key>-<startTs>-<ts>-sidecar.log          # MCP sidecar gateway output
-    │   └── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    │   ├── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    │   └── hook-manifest.json                        # Hook replay manifest (only when skip_hooks param is set)
     ├── activity-YYYY-MM-DD.log                       # Persistent activity log (all sessions)
     ├── container-YYYY-MM-DD.log                      # Persistent container output log
     └── history/

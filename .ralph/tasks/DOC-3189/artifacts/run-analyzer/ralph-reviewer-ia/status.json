@@ -1,0 +1,10 @@
+{
+  "agent": "run-analyzer",
+  "task_id": "DOC-3189",
+  "status": "completed",
+  "result": "analyzed",
+  "summary": "ralph-reviewer-ia pass: excellent review quality across both invocations, one artifact versioning defect (review-findings.json overwrite).",
+  "artifacts": ["run-analyzer/ralph-reviewer-ia/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

@@ -2,6 +2,7 @@ import type { IAgentProfile, IRalphchivesConfig } from "../config/types.js";
 import type { WorkItem } from "../datasource/types.js";
 import { buildTriggerParams } from "../container/setup/agent-includes.js";
 import { join } from "node:path";
+import { slugifyBranchName } from "../util/branch.js";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
@@ -9,6 +10,8 @@ export interface TaskContext {
   readonly profile: IAgentProfile;
   readonly taskId: string;
   readonly triggerParams: Record<string, string>;
+  readonly sourceBranch: string;
+  readonly taskBranch: string;
   readonly isRevision: boolean;
   readonly ralphchivesEnabled: boolean;
   /** PR URL extracted from work item comments during preflight, or null. */
@@ -45,6 +48,7 @@ export function buildTaskContext(
   ralphchivesConfig: IRalphchivesConfig,
   triggerParams?: string[],
   prUrl?: string | null,
+  prBranches?: { sourceBranch: string; targetBranch: string } | null,
   logsDir?: string,
   signal?: AbortSignal,
   onToolOutput?: (line: string) => void,
@@ -55,12 +59,17 @@ export function buildTaskContext(
   const isRevision = revisionStatuses.some(
     (s) => s.toLowerCase() === issueStatus,
   );
+  const resolvedTriggerParams = buildTriggerParams(triggerParams ?? []);
+  const sourceBranch = resolvedTriggerParams["source_branch"] ?? prBranches?.targetBranch ?? "main";
+  const taskBranch = resolvedTriggerParams["branch"] ?? prBranches?.sourceBranch ?? slugifyBranchName(workItem.id, workItem.title);
 
   return {
     workItem,
     profile,
     taskId,
-    triggerParams: buildTriggerParams(triggerParams ?? []),
+    triggerParams: resolvedTriggerParams,
+    sourceBranch,
+    taskBranch,
     isRevision,
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,

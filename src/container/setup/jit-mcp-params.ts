@@ -6,12 +6,19 @@ import type { Logger } from "../../logger.js";
 import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
 import { slugifyBranchName } from "../../util/branch.js";
 
+export interface BranchResolutionContext {
+  readonly sourceBranch?: string;
+  readonly taskBranch?: string;
+}
+
 /** Known runtime macros resolved from the current work item context. */
-const MACROS: Record<string, (workItem: WorkItem, triggerParams?: Record<string, string>) => string> = {
+const MACROS: Record<string, (workItem: WorkItem, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext) => string> = {
   "$task.id": (workItem) => workItem.id,
   "$task.project": (workItem) => workItem.project,
-  "$task.branch": (workItem, triggerParams) =>
-    triggerParams?.['branch'] ?? slugifyBranchName(workItem.id, workItem.title),
+  "$task.branch": (workItem, triggerParams, branchContext) =>
+    branchContext?.taskBranch
+    ?? triggerParams?.["branch"]
+    ?? slugifyBranchName(workItem.id, workItem.title),
   "$task.title": (workItem) => workItem.title,
 };
 
@@ -40,6 +47,7 @@ function resolveEnvValue(
   workItem: WorkItem,
   triggerParams?: Record<string, string>,
   profile?: IAgentProfile,
+  branchContext?: BranchResolutionContext,
 ): string {
   if (!value.startsWith("$")) return value;
 
@@ -67,7 +75,7 @@ function resolveEnvValue(
     const known = Object.keys(MACROS).join(", ");
     throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
   }
-  return resolver(workItem, triggerParams);
+  return resolver(workItem, triggerParams, branchContext);
 }
 
 /** Public contract for JIT MCP param injection. */
@@ -84,7 +92,7 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void;
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext): void;
 }
 
 /**
@@ -98,7 +106,7 @@ export interface IJitMcpConfigWriter {
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>): void {
+  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 
@@ -121,7 +129,7 @@ export class JitMcpConfigWriter implements IJitMcpConfigWriter {
       }
 
       for (const [envVar, rawValue] of Object.entries(envConfig)) {
-        const value = resolveEnvValue(rawValue, workItem, triggerParams, profile);
+        const value = resolveEnvValue(rawValue, workItem, triggerParams, profile, branchContext);
         entry.env[envVar] = value;
         injected++;
       }

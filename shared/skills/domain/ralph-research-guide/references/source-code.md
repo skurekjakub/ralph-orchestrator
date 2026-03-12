@@ -27,6 +27,16 @@ The Xperience product source code is mounted at `resources/repositories/xperienc
 - When docs describe behavior — find the implementation and verify
 - Flag every discrepancy: wrong parameter names, missing overloads, outdated defaults, renamed classes
 
+### Cross-Reference .NET Framework APIs
+
+When your source code exploration surfaces .NET framework or ASP.NET Core types (e.g., `ClaimsPrincipal`, `ClaimTypes`, `[Authorize]`, `IAuthorizationHandler`, `IOptions<T>`), **always cross-reference with `microsoft_docs_search`** before finishing the source code findings section:
+
+1. Search for the specific API name (e.g., `microsoft_docs_search("ClaimTypes.Role")`)
+2. Fetch the top result with `web_fetch` to confirm correct usage, expected behavior, and configuration prerequisites
+3. Note any framework-level requirements the Xperience implementation depends on (e.g., middleware ordering, claims configuration, service registration)
+
+This is especially important for security, authentication, and authorization APIs where incorrect documentation could lead users to misconfigure their applications.
+
 ## Common Patterns in Xperience Source
 
 - **Modules** — `[assembly: RegisterModule(typeof(XModule))]` — module registration

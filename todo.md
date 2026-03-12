@@ -1,6 +1,11 @@
 discord-hitl mcp setup
 
-profile natively internally declare squid.conf extension (based on env setup prereqs) - basic mode only anthropic and copilot apis
+playwright version mismatch - "content": "The workspace playwright wants 1194 but we have 1208 installed. Let me create a symlink to make it work:",
+
+skill to make a meta-skill about an unknown codebase
+
+codesamples:dbcheck
+
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded

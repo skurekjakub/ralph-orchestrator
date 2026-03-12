@@ -14,8 +14,11 @@ Create it if it doesn't exist. Write all output files here.
 **1. Primary artifact** — your main output:
 {% raw %}
 - Non-iterative agents: `{{ artifactDir }}/{{ agentName }}/output.md`
-- Iterative agents (coder, reviewer): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your iteration number
+- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your **cumulative dispatch count** (monotonically increasing across all dispatches for this task, regardless of which planned subtask each dispatch handles)
+- **Agents with custom artifact lists:** If your prompt defines specific named output files (e.g., `handoff.md`, `jira-comment.md`), those replace `output.md` as your primary artifacts. List all of them in your `status.json` `artifacts` array. You do not need to also produce `output.md`.
 {% endraw %}
+
+⚠️ **Determining N:** Before writing your output file, list existing `output-v*.md` files in your artifact directory. Set N = highest existing number + 1. If no files exist, N = 1. **Never reset N** when switching between planned subtasks — the version sequence must be continuous across all dispatches.
 
 **2. status.json** — structured status the orchestrator reads for routing:
 {% raw %}
@@ -39,10 +42,11 @@ Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
 |---|---|
 | `status` | `completed` · `failed` · `blocked` — did you finish? |
 | `result` | Your task-specific outcome code (e.g. `analyzed`, `implemented`, `pass`, `fail`) |
+| `task_id` | Always the **work item ID** (e.g., `DOC-3189`) from `{{ taskId }}` — never a subtask ID like `TASK-01` |
 | `summary` | Enough for a routing decision. Not a report. |
-| `artifacts` | Paths relative to the artifact root |
+| `artifacts` | Paths relative to the artifact root — **must list ALL output files** written across all iterations, not just the latest |
 | `next_hint` | Suggested next agent. Orchestrator can override. |
-| `iteration` | How many times you've run for this task |
+| `iteration` | Cumulative dispatch count for this task (monotonically increasing — if the orchestrator dispatches you 3 times, your 3rd dispatch writes `iteration: 3` regardless of which subtask each dispatch handled) |
 
 **3. manifest.json** — **REQUIRED**: append an entry to the shared audit log:
 {% raw %}
@@ -76,6 +80,17 @@ Read artifacts from other subagents directly from the filesystem. The orchestrat
 {% raw %}
 `{{ artifactDir }}/{upstream-agent-name}/output.md` (or `output-v{N}.md` for versioned artifacts)
 {% endraw %}
+
+### Control-file exception
+
+Some workflows define explicit **control files** such as `state.md` or `tasks.json`.
+
+These files are an exception to the normal routing rule:
+- The orchestrator still routes on subagent `status.json` results
+- The orchestrator may also read or update designated control files for phase, task-lifecycle, or per-task-attempt bookkeeping
+- Subagents may read those control files only when their prompt explicitly tells them to
+
+Never use another subagent's narrative artifact (`output.md`, `output-v{N}.md`) as a substitute for `status.json` routing or for a workflow's designated control file.
 
 ### Conversational return
 

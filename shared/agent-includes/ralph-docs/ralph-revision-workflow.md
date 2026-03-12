@@ -7,22 +7,22 @@ Your prompt already contains:
 - All **JIRA comments** (including reviewer feedback)
 - The original JIRA issue details
 
-Execute the following phases **in order**. Before each phase, read the corresponding skill file for detailed instructions. After each phase, update `state.md` with your progress and the skills needed for the next phase.
+Execute the following phases **in order**. Before each phase, read the **ralph-workflow** skill — it routes you to the correct reference file. After each phase, update `state.md` with your progress.
 
-**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase. It tells you where you are, what you've done, and which skills to read next.
+**Your `state.md` file at `.ralph/tasks/{{ taskId }}/state.md` is your single source of truth.** Read it before every phase.
 
-| Phase | Skill | Summary |
-|-------|-------|---------|
-| 1–2. Setup | ralph-workflow-revision-setup | Understand feedback, find existing branch & PR |
-| 3. Fix | ralph-workflow-revision-fix | Dispatch ralph-writer in revision mode to implement the fixes |
+| Phase | Reference | Summary |
+|-------|-----------|---------|
+| 1–2. Setup | `references/r1-setup.md` | Understand feedback, find existing branch & PR |
+| 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the next pending fix task |
 {%- unless triggerParams.skip_review %}
-| 4. Review | ralph-workflow-review | Three-reviewer gate (technical, style, IA), revision loop |
+| 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
 {%- endunless %}
-| 5. Commit | ralph-workflow-revision-commit | Commit, push, respond to PR threads |
-| 6–7. Handoff & Exit | ralph-workflow-revision-handoff | Update handoff, JIRA comment, exit block |
+| 5. Commit | `references/r5-commit.md` | Commit, push, respond to PR threads |
+| 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, print exit block |
 
 **Before entering each phase:**
 1. Read `state.md`
-2. Read the phase's skill file listed above (or listed in `state.md` under "Skills for this phase")
-3. Follow the skill's instructions
-4. Update `state.md` as directed by the skill's "Before moving to Phase N" section
+2. Read the **ralph-workflow** skill to find the reference file for your current phase
+3. Read the reference file and follow its instructions
+4. Update `state.md` as directed by the reference file's "Before moving to Phase N" section

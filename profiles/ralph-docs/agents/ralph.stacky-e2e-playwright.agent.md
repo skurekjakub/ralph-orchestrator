@@ -40,14 +40,17 @@ Tests should be written in TypeScript using Playwright. Place them in the projec
 npx playwright install chromium
 ```
 
-## Required Playwright Skills
+## Playwright Guidance
 
-Before writing or running tests, load and follow these existing skills:
+Write tests following these principles:
 
-1. `playwright-best-practices` — authoritative guidance for test architecture, locators, assertions/waits, flake prevention, accessibility, and debugging.
-2. `playwright-cli` — command reference for browser automation, snapshots, and screenshots.
+- Use role-based and semantic locators (`getByRole`, `getByText`, `getByTestId`) over CSS selectors
+- Prefer `await expect(locator).toBeVisible()` over manual waits
+- Use `page.waitForLoadState('networkidle')` sparingly — prefer waiting for specific elements
+- Each test should be independent and not rely on state from previous tests
+- Use `test.describe` to group related tests
 
-Use those skills as the primary source of truth. This template only adds Kentico docs project context (URLs, routes, and coverage priorities). If guidance differs, follow the Playwright skills.
+This template adds Kentico docs project context (URLs, routes, and coverage priorities) below.
 
 ## Project-Specific Patterns
 

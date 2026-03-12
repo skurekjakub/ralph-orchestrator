@@ -6,6 +6,7 @@ output/
 # Build artifacts (generated from templates at startup)
 profiles/**/.build/
 shared/skills/.build/
+.builder/
 
 # MCP server build artifacts (custom servers are built before container deployment)
 shared/mcp-servers/*/dist/

@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ResultPromise } from "execa";
 import type { IAgentProfile } from "../../config/types.js";
 import { DEFAULT_MODEL } from "../../config/constants.js";
@@ -28,6 +30,9 @@ export class CopilotExecutor implements ICliExecutor {
 
   /** Copilot CLI debug log directory. */
   static readonly LOG_DIR = "/workspace/.ralph/logs/cli-debug";
+
+  /** Prompt file path inside the container — used with `$(cat ...)` to avoid passing large prompts as CLI args. */
+  static readonly PROMPT_FILE = "/workspace/.ralph/prompt.txt";
 
   /** Subdirectories the CLI needs to create at runtime (must be writable by vscode). */
   static readonly WRITABLE_DIRS = [
@@ -70,7 +75,7 @@ export class CopilotExecutor implements ICliExecutor {
   }
 
   async run(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["-p", prompt]);
+    return this.exec(["-p"], prompt);
   }
 
   /**
@@ -80,19 +85,37 @@ export class CopilotExecutor implements ICliExecutor {
    * context. The continuation prompt is passed via `--prompt`.
    */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["--continue", "--prompt", prompt]);
+    return this.exec(["--continue", "--prompt"], prompt);
+  }
+
+  /**
+   * Write the prompt to a file on the host, visible inside the container via
+   * the target-repo bind mount (`${TARGET_REPO_PATH}:/workspace`).
+   *
+   * Avoids passing multi-KB prompts (with shell metacharacters, quotes,
+   * newlines) as `docker compose exec` CLI arguments.
+   */
+  private writePromptFile(prompt: string): void {
+    const dir = join(this.profile.repoPath, ".ralph");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "prompt.txt"), prompt, "utf-8");
   }
 
   /**
    * Internal: build and execute a Copilot CLI command with shared flags.
    *
-   * @param promptArgs CLI-specific args (e.g. `-p <prompt>` or `--continue --prompt <prompt>`)
+   * The prompt is written to a file on the host and read inside the container
+   * via `$(cat /workspace/.ralph/prompt.txt)`, keeping the `docker compose exec`
+   * command line free of large, unescapable text.
+   *
+   * @param promptFlags Flag(s) preceding the prompt value (e.g. `["-p"]` or `["--continue", "--prompt"]`).
+   * @param prompt The full prompt text.
    */
-  private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
-    const args = [
-      "--user", "vscode",
-      "app",
-      "copilot",
+  private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
+    this.writePromptFile(prompt);
+
+    const shellCmd = [
+      "exec", "copilot",
       "--config-dir", CopilotExecutor.CONFIG_DIR,
       "--additional-mcp-config", `@${CopilotExecutor.MCP_CONFIG_PATH}`,
       "--agent", this.profile.agentName,
@@ -104,7 +127,14 @@ export class CopilotExecutor implements ICliExecutor {
       "--allow-all-tools",
       "--allow-all-paths",
       "--share", CopilotExecutor.TRANSCRIPT_PATH,
-      ...promptArgs,
+      ...promptFlags,
+      `"$(cat ${CopilotExecutor.PROMPT_FILE})"`,
+    ].join(" ");
+
+    const args = [
+      "--user", "vscode",
+      "app",
+      "sh", "-c", shellCmd,
     ];
 
     return executeCliCommand(

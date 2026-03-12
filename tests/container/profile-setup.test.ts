@@ -31,7 +31,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(securityDir, "squid.conf"),
-        "acl allowed_domains dstdomain .github.com\n# MCP_PROXY_DOMAINS\nhttp_access allow allowed_domains",
+        "acl allowed_domains dstdomain .github.com\n# {{PROFILE_DOMAINS}}\nhttp_access allow allowed_domains",
       );
 
       resolveAllProfileSetup(rootDir);
@@ -56,10 +56,9 @@ describe("Profile Setup", () => {
       expect(existsSync(squidPath)).toBe(true);
 
       const squidConf = readFileSync(squidPath, "utf-8");
-      // Squid config is the static baseline — MCP server proxyDomains are no longer injected
-      // (the sidecar has unrestricted direct internet access via ralph-sidecar-external)
-      expect(squidConf).not.toContain(".test-domain.com");
       expect(squidConf).toContain(".github.com");
+      // No profile domains declared, so marker is replaced with placeholder comment
+      expect(squidConf).toContain("# (no profile-specific domains)");
 
       // Attachments directory should exist and be world-writable
       const attachDir = join(profileDir, ".build/attachments");
@@ -126,7 +125,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({ mcpServers: [] }),
+        JSON.stringify({ mcpServers: [], allowlistDomains: [".npmjs.org"] }),
       );
 
       writeFileSync(
@@ -134,7 +133,7 @@ describe("Profile Setup", () => {
         [
           "acl allowed_domains dstdomain .githubcopilot.com",
           "acl allowed_domains dstdomain .anthropic.com",
-          "acl allowed_domains dstdomain .npmjs.org",
+          "# {{PROFILE_DOMAINS}}",
           "http_access allow allowed_domains",
         ].join("\n"),
       );
@@ -147,9 +146,49 @@ describe("Profile Setup", () => {
       const config = JSON.parse(readFileSync(configPath, "utf-8"));
       expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
       expect(config.allowed_urls).toContain("https://*.anthropic.com");
+      // Profile declares .npmjs.org, should appear in copilot config
       expect(config.allowed_urls).toContain("https://*.npmjs.org");
       // MCP servers no longer contribute to the Copilot allowlist — sidecar has direct internet access
       expect(config.allowed_urls.some((u: string) => u.includes("atlassian"))).toBe(false);
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("injects allowlistDomains from profile.json into squid.conf", () => {
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const securityDir = join(rootDir, "shared/security");
+      const profileDir = join(rootDir, "profiles/test-profile");
+
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      mkdirSync(mcpDir, { recursive: true });
+      mkdirSync(securityDir, { recursive: true });
+
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({
+          mcpServers: [],
+          allowlistDomains: [".npmjs.org", "dev.azure.com", ".rubygems.org"],
+        }),
+      );
+
+      writeFileSync(
+        join(securityDir, "squid.conf"),
+        [
+          "acl allowed_domains dstdomain .githubcopilot.com",
+          "# {{PROFILE_DOMAINS}}",
+          "http_access allow allowed_domains",
+        ].join("\n"),
+      );
+
+      resolveAllProfileSetup(rootDir);
+
+      const squidConf = readFileSync(join(profileDir, ".build/squid.conf"), "utf-8");
+      expect(squidConf).toContain("acl allowed_domains dstdomain .npmjs.org");
+      expect(squidConf).toContain("acl allowed_domains dstdomain dev.azure.com");
+      expect(squidConf).toContain("acl allowed_domains dstdomain .rubygems.org");
+      expect(squidConf).toContain("# Profile-specific domains");
+      expect(squidConf).not.toContain("{{PROFILE_DOMAINS}}");
 
       rmSync(rootDir, { recursive: true, force: true });
     });

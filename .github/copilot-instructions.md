@@ -31,7 +31,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `src/container/cli-executors/` | CLI executors — Copilot (`copilot-executor.ts`), Claude Code (`claude-code-executor.ts`), local host-side (`local-copilot-executor.ts`), shared execution helper (`shared-exec.ts`), executor factory (`cli-executor-factory.ts`) |
 | `src/container/setup/` | Agent template renderer (`agent-includes.ts`), MCP manifest loading (`mcp-manifest.ts`), CLI MCP config (`mcp-config.ts`), JIT task-scoped MCP params (`jit-mcp-params.ts`), compose overlay generation (`compose-overlay.ts`), squid proxy config (`squid-config.ts`), profile setup orchestrator (`profile-setup.ts`), compose file resolution (`compose-files.ts`), resource volume mounts (`resource-mounts.ts`) |
 | `src/prompt/` | Prompt builder (`prompt.ts`), content normalizer (`normalizer.ts`), prompt injection auditor (`prompt-auditor.ts`) |
-| `src/services/` | Orchestration services — trigger scanner, profile router, task runner, task result writer, operation ledger, preflight checks, activity log, heartbeat, JIRA comment templates |
+| `src/services/` | Orchestration services — trigger scanner, profile router, task runner, task result writer, operation ledger, preflight checks, VCS PR metadata lookup, activity log, heartbeat, JIRA comment templates |
 | `src/validate/` | Startup validation — env vars, config, profiles, Docker, security infrastructure |
 | `src/util/` | Utility functions — branch name slugification |
 | `src/logs/` | Execution summary writer |
@@ -45,7 +45,7 @@ JIRA poller → comment discovery → operation ledger → task runner → task 
 | `ralph-dashboard/` | Next.js status dashboard (Vercel + Upstash Redis) — multi-agent, auto-refreshing |
 | `dashboard-local/` | Local development dashboard (Vite + React) |
 | `tests/` | Vitest test suite |
-| `scripts/` | Utility scripts (reset test env, validate config) |
+| `scripts/` | Utility scripts (reset test env, validate config, replay hooks) |
 
 ## Commands
 

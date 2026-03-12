@@ -55,7 +55,7 @@ export function generatePreInitScript(mcpServersDir: string, serverNames: string
  * - `mcp-config.json` — URL-based MCP config pointing to sidecar
  * - `gateway.json` — Sidecar gateway config with embedded secrets
  * - `docker-compose.overlay.yml` — Compose overlay with sidecar service
- * - `squid.conf` — Static baseline squid proxy config (MCP sidecar has direct internet access)
+ * - `squid.conf` — Baseline squid proxy config augmented with profile-level allowlist domains
  * - `copilot-config.json` — Copilot CLI config with URL allowlist derived from squid.conf
  *
  * All files go to `profiles/<id>/.build/`. The compose overlay is passed as
@@ -94,7 +94,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[]; mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[] }[] };
+    let parsed: { mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[]; allowlistDomains?: string[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[]; mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[] }[] };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
@@ -181,7 +181,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     );
 
     if (hasBaselineSquid) {
-      const squidConf = generateProfileSquidConf(baselineSquidPath);
+      const squidConf = generateProfileSquidConf(baselineSquidPath, parsed.allowlistDomains ?? []);
       writeFileSync(join(buildDir, "squid.conf"), squidConf, "utf-8");
 
       if (logger) {

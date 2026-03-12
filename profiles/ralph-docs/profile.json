@@ -4,6 +4,17 @@
   "vcsProvider": "ado",
   "cli": "copilot",
   "timeoutMs": 36000000,
+  "allowlistDomains": [
+    ".aka.ms",
+    ".dev.azure.com",
+    ".artifacts.visualstudio.com",
+    ".blob.core.windows.net",
+    ".npmjs.org",
+    ".rubygems.org",
+    ".nuget.org",
+    ".pypi.org",
+    ".pythonhosted.org"
+  ],
   "cleanPaths": [
     "/workspace/.ralph/tasks"
   ],
@@ -20,7 +31,9 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-jekyll",
-        "TASK_BRANCH": "$task.branch"
+        "TASK_BRANCH": "$task.branch",
+        "SOURCE_BRANCH": "$trigger.source_branch",
+        "TARGET_BRANCH": "$trigger.target_branch"
       }
     },
     {
@@ -79,35 +92,23 @@
           "agent": "ralph.ralph",
           "role": "primary",
           "skills": [
+            "ralph-codesamples-bootstrap",
             "ralph-codesamples",
             "ralph-ado-pr-workflow",
             "ralph-source-references",
             "ralph-ralphchives",
             "ralph-new-page-creation",
-            "ralph-page-removal",
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
-            "ralph-codesamples-project",
-            "ralph-screenshots",
             "ralph-codesamples-verification",
-            "ralph-training-modules",
+            "ralph-codesamples-adminui",
             "ralph-write-release-notes",
+            "ralph-task-planning",
             "ralph-research-guide",
-            "ralph-workflow-setup",
-            "ralph-workflow-research",
-            "ralph-workflow-write",
-            "ralph-workflow-review",
-            "ralph-workflow-commit",
-            "ralph-workflow-pr",
-            "ralph-workflow-handoff",
-            "ralph-workflow-revision-setup",
-            "ralph-workflow-revision-fix",
-            "ralph-workflow-revision-commit",
-            "ralph-workflow-revision-handoff",
+            "ralph-workflow",
             "ralph-build-errors",
-            "ralph-callout-selection",
-            "ralph-cross-version-linking",
-            "ralph-xperience-page-permissions"
+            "xperience",
+            "xperience-documentation"
           ]
         }
       ],
@@ -145,13 +146,9 @@
           "skills": [
             "ralph-documentation-syntax",
             "ralph-style-guide-review",
-            "ralph-build-errors",
-            "ralph-callout-selection",
-            "ralph-cross-version-linking",
             "ralph-ado-pr-workflow",
             "ralph-ralphchives",
             "ralph-source-references",
-            "ralph-screenshots",
             "malph-workflow-descend",
             "malph-workflow-investigate",
             "malph-workflow-verify",
@@ -207,19 +204,7 @@
             "devralph-frontend",
             "devralph-jekyll-site",
             "devralph-build-verification",
-            "devralph-workflow-setup",
-            "devralph-workflow-research",
-            "devralph-workflow-implement",
-            "devralph-workflow-test",
-            "devralph-workflow-e2e",
-            "devralph-workflow-review",
-            "devralph-workflow-commit",
-            "devralph-workflow-pr",
-            "devralph-workflow-handoff",
-            "devralph-workflow-revision-setup",
-            "devralph-workflow-revision-fix",
-            "devralph-workflow-revision-commit",
-            "devralph-workflow-revision-handoff",
+            "devralph-workflow",
             "ralph-ado-pr-workflow",
             "ralph-ralphchives"
           ]

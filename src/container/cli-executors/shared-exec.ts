@@ -65,10 +65,16 @@ export async function executeCliCommand(
     processTracker.activeProcess = null;
 
     if (err instanceof ExecaError) {
+      const stderr = capture?.stderr || err.stderr || "";
+      if (stderr) {
+        logger.warn(`${prefix}: CLI exited with code ${err.exitCode ?? 1} — stderr: ${stderr.length > 2000 ? stderr.slice(0, 2000) + "…" : stderr}`);
+      } else {
+        logger.warn(`${prefix}: CLI exited with code ${err.exitCode ?? 1} — no stderr captured (message: ${err.shortMessage})`);
+      }
       return {
         exitCode: err.exitCode ?? 1,
-        stdout: capture?.stdout ?? err.stdout ?? "",
-        stderr: capture?.stderr ?? err.stderr ?? "",
+        stdout: capture?.stdout || err.stdout || "",
+        stderr,
         timedOut: err.timedOut ?? false,
       };
     }

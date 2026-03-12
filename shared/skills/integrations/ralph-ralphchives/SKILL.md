@@ -40,3 +40,11 @@ Before the exit phase, post a task-specific summary:
   - If not found, `post_task_report` to create a new task-keyed topic
 
 This report captures task-specific decisions, implementation details, and outcomes. It becomes searchable for future agents working on related tasks.
+
+### Preventing Duplicate Posts
+
+Context compaction may drop awareness of a successful `reply_to_thread` or `post_task_report` call, causing you to retry and create a duplicate post. To prevent this:
+
+1. **Log every successful write.** After each `reply_to_thread` or `post_task_report`, append a line to `/tmp/ralphchives-post-log.txt` recording the topic ID and action (e.g., `"replied to topic 23"`, `"created task report for DOC-3189"`).
+2. **Check the log before writing.** Before any ralphchives write call, read `/tmp/ralphchives-post-log.txt`. If an entry for the target topic already exists, skip the call.
+3. **The log survives compaction.** Even if your context is compacted and you lose memory of the prior call, the filesystem record remains.

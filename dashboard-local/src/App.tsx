@@ -7,6 +7,7 @@ import { ToolOutputPanel } from "./components/ToolOutputPanel";
 import { QueuePanel } from "./components/QueuePanel";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { LogBrowser } from "./components/LogBrowser";
+import { AgentGraph } from "./components/AgentGraph";
 import { ZoomControls } from "./components/ZoomControls";
 import { Button, ButtonVariant } from "./components/Button";
 import "./styles.css";
@@ -17,7 +18,7 @@ const badgeColors: Record<string, string> = {
   disconnected: "bg-error/15 text-error",
 };
 
-type Tab = "live" | "logs";
+type Tab = "live" | "logs" | "agents";
 
 export function App() {
   const { state, toolOutput, connectionStatus } = useDashboard();
@@ -55,6 +56,13 @@ export function App() {
               className={tab === "logs" ? "bg-info/15 text-info" : ""}
             >
               Logs
+            </Button>
+            <Button
+              onClick={() => setTab("agents")}
+              variant={tab === "agents" ? ButtonVariant.Pill : ButtonVariant.Ghost}
+              className={tab === "agents" ? "bg-info/15 text-info" : ""}
+            >
+              Agents
             </Button>
           </nav>
 
@@ -101,8 +109,10 @@ export function App() {
               </div>
             </>
           )
-        ) : (
+        ) : tab === "logs" ? (
           <LogBrowser />
+        ) : (
+          <AgentGraph />
         )}
       </div>
     </ZoomProvider>

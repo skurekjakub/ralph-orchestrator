@@ -23,6 +23,7 @@ import type { IComposeOverlayWriter } from "../../src/container/setup/compose-ov
 import type { IProfileSetupService } from "../../src/services/profile-setup-service.js";
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor.js";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
+import type { IVcsSourceClient } from "../../src/services/vcs-source-client.js";
 import type { AppStartupDeps } from "../../src/app-startup.js";
 import type { RalphResult, CliPaths } from "../../src/container/types.js";
 import type { ResultPromise } from "execa";
@@ -116,6 +117,14 @@ export function createMockResources(overrides: Partial<Mocked<IResourceManager>>
     attachTranscript: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as Mocked<IResourceManager>;
+}
+
+/** Create a mock VcsSourceClient with all methods stubbed. */
+export function createMockVcsSourceClient(overrides: Partial<Mocked<IVcsSourceClient>> = {}): Mocked<IVcsSourceClient> {
+  return {
+    resolvePullRequestBranches: vi.fn().mockResolvedValue(null),
+    ...overrides,
+  } as Mocked<IVcsSourceClient>;
 }
 
 /** Create a mock IDataSourceConnector with all capabilities (transitions + attachments). */

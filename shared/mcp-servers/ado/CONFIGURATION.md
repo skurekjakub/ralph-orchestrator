@@ -44,7 +44,7 @@ Add to the `mcpServers` array in `profile.json`:
 }
 ```
 
-The `$task.branch` macro resolves to the task's branch name at runtime (built from the JIRA issue key via `slugifyBranch()`).
+The `$task.branch` macro resolves to the task's effective source branch at runtime: explicit `branch` trigger param first, then inferred PR source branch for revision tasks when available, otherwise the slugified task branch name.
 
 ## Tools
 

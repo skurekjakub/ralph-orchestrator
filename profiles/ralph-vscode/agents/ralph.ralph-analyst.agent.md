@@ -87,7 +87,7 @@ Given a JIRA issue (key, summary, description):
 ### Revision mode
 
 This is a **revision**. The previous work was reviewed and feedback was provided. You must:
-1. Read the previous handoff file at `.ralph/tasks/{{ taskId }}/` for context on what was done
+1. Read the previous handoff content embedded in your prompt for context on what was done
 2. Read all PR review threads via the ADO MCP tools (`ado_list_pull_request_threads`)
 3. Read all JIRA comments for reviewer feedback
 4. Produce an implementation plan scoped **only** to the required fixes — do not re-plan the entire task

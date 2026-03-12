@@ -40,11 +40,8 @@ Load these before composing the review:
 Read the following from the artifact directory:
 
 1. `{{ artifactDir }}/malph-scout/scout-findings.json` — build status, requirement gaps, changed files, PR URL
-2. `{{ artifactDir }}/ralph-reviewer-technical/review-findings.json` — technical accuracy findings
-3. `{{ artifactDir }}/ralph-reviewer-style/review-findings.json` — style guide findings
-4. `{{ artifactDir }}/ralph-reviewer-ia/review-findings.json` — information architecture findings
-
-Also read each reviewer's `status.json` for their individual verdict.
+2. Each reviewer's `status.json` — read `{{ artifactDir }}/ralph-reviewer-technical/status.json`, `{{ artifactDir }}/ralph-reviewer-style/status.json`, and `{{ artifactDir }}/ralph-reviewer-ia/status.json` for their individual verdicts
+3. Each reviewer's **findings file** — read the `artifacts` field from each reviewer's `status.json` to discover the correct filename (e.g. `review-findings-v1.json`, `review-findings-v2.json`). Read the **highest-versioned** findings file for each reviewer.
 
 If any reviewer artifact is missing (the reviewer failed to run), note it and proceed with the available findings.
 

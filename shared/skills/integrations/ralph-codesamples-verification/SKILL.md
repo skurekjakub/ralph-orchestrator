@@ -16,13 +16,21 @@ After implementing changes to the codesamples ASP.NET Core project, verify that 
 npm run codesamples:build
 ```
 
-- Start the application if not already running:
+- Start the application if not already running. Keep it running only for the duration of verification:
 
 ```bash
-npm run codesamples:serve
+if ! curl -sf http://localhost:666 >/dev/null; then
+	npm run codesamples:serve > /tmp/codesamples-serve.log 2>&1 &
+	SERVER_PID=$!
+	trap 'if [[ -n "$SERVER_PID" ]]; then kill "$SERVER_PID" 2>/dev/null || true; fi' EXIT
+	for i in $(seq 1 30); do
+		curl -sf http://localhost:666 >/dev/null && break
+		sleep 2
+	done
+fi
 ```
 
-Wait for the startup log confirming the server is ready before proceeding.
+Wait until the application responds on `localhost:666` before proceeding. If startup fails, inspect `/tmp/codesamples-serve.log`.
 
 ## What to Verify
 
@@ -56,6 +64,12 @@ For each page, use `snapshot` to inspect the DOM. Verify:
 - The page loads (no 500 error page, no blank response)
 - Expected content is present (headings, data, form fields)
 - Dynamic data renders correctly (lists populated, values calculated)
+
+Capture screenshots when the task involves visible UI changes, admin UI interactions, or evidence worth attaching to the handoff:
+
+```bash
+playwright-cli screenshot /tmp/mcp-attachments/codesamples-verification-01.png
+```
 
 ### 6. Check for application errors
 
@@ -95,16 +109,12 @@ playwright-cli snapshot
 
 ## Cleanup
 
-Stop the browser when verification is complete:
+Close the browser when done. If you started the application in this session, stop it as well:
 
 ```bash
 playwright-cli close
-```
-
-## Cleanup
-
-Close the browser when done:
-
-```bash
-playwright-cli close
+if [[ -n "$SERVER_PID" ]]; then
+	kill "$SERVER_PID"
+	wait "$SERVER_PID" || true
+fi
 ```

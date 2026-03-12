@@ -72,7 +72,16 @@ Mocha (TDD style: `suite`/`test`) + Sinon + Node assert. Tests run in a real VS 
 
 1. **Read the coder's change summary** at `{{ artifactDir }}/ralph-coder/output-v{N}.md` — understand what was changed and why
 2. **Read the analyst's plan** at `{{ artifactDir }}/ralph-analyst/output.md` — this is the original spec to verify against
-3. **Read the actual changed files** in the repo — verify the code matches the summary
+{%- unless triggerParams.skip_planner %}
+3. **Read the current task file** from `{{ artifactDir }}/ralph-planner/` — read `tasks.json`, find the task whose `lifecycle` is `in_progress`, note its `attempt`, then read the corresponding `task-NN-slug.md`. Scope your review to this task's boundaries.
+4. **If the active task's `attempt` is greater than `1`**, also read the latest versioned file in `{{ artifactDir }}/ralph-reviewer/` to verify whether your previous findings for this same task were addressed.
+{%- endunless %}
+4. **Read the actual changed files** in the repo — verify the code matches the summary
+5. Read the **ralph-ralphchives** skill. Search ralphchives for any existing information and patterns and gotchas related to the task that may help in your review.
+6. READ all of these skills about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. Judge the quality of written tests against this baseline.
+7. READ the **code-typescript-review** skill. Use it as your authoritative reference for TypeScript code quality, type safety, and best practices during the review.
+8. READ the **code-typescript-bps** skill. Use it as an additional reference for TypeScript implementation conventions such as type design, naming, generics, and extracted type reuse.
+9. If the task touches grammar files, injection grammars, token scopes, syntax highlighting, or embedded-language behavior, READ the **vscode-grammar-and-scopes** skill before reviewing those changes.
 
 ### Review Checklist
 
@@ -95,6 +104,7 @@ Read `.github/copilot-instructions.md` and verify the changes follow the project
 - New tags/attributes follow the established folder structure?
 - Naming conventions followed?
 - TypeScript types and interfaces properly defined?
+- If grammar or injection files changed, do the scopes, embedded-language mappings, and injection boundaries follow **vscode-grammar-and-scopes**?
 
 #### 3. Correctness
 
@@ -102,13 +112,22 @@ Read `.github/copilot-instructions.md` and verify the changes follow the project
 - Are there logic errors, off-by-one issues, or missing edge cases?
 - Are API signatures correct (not hallucinated)?
 
-#### 4. Test coverage
+#### 4. Test coverage and adherence
 
+- Do the tests adhere to patterns described in skils about testing best practices: **test-behavior-testing**, **test-mocking-strategy**, **test-structure-patterns**. 
 - Are there tests for new functionality?
 - Do existing tests still cover modified behavior?
 - Are test descriptions accurate?
 
-#### 5. Completeness
+#### 5. TypeScript code quality
+
+Apply the **code-typescript-review** skill as your reference:
+- Type safety: proper annotations, no implicit `any`, correct narrowing and guards
+- Best practices: naming, immutability, async/await correctness, error handling
+- Modern features: optional chaining, nullish coalescing, utility types used where appropriate
+- Also apply **code-typescript-bps** for implementation-side conventions such as type-first design, consistent naming, generic parameter clarity, and avoiding duplicated type definitions.
+
+#### 6. Completeness
 
 - Does the implementation address all items in the analyst's plan?
 - Are there any TODO or placeholder comments that should be resolved?
@@ -141,9 +160,9 @@ Write your review to `{{ artifactDir }}/ralph-reviewer/output-v{N}.md`:
 <Overall assessment — what's good, what needs fixing>
 ```
 
-Severity levels: `critical` (must fix), `major` (should fix), `minor` (nice to have).
+Severity levels: `critical` (must fix), `major` (should fix), `minor` (must fix as well).
 
-Only `critical` and `major` findings result in a `fail` verdict. `minor` findings are informational.
+Only `critical` and `major` findings result in a `fail` verdict. `minor` findings are must fix as well. BE UNREASONABLY STRICT ON THE IMPLEMENTATION AND THE PATTERNS IT EMPLYS AND FOLLOWS. 
 
 Then write `status.json` (with `next_hint: "ralph-coder"` if `fail`) and append to `manifest.json` per the artifact contract.
 

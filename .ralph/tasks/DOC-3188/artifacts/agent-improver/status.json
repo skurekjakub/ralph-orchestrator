@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3188",
+  "status": "completed",
+  "result": "improved",
+  "summary": "4 changes applied: ralphchives 5-tag limit in shared include + both MCP tool descriptions, scribe dispatch leanness in handoff skill. 2 proposals deferred (scribe autonomy, SUG tracking).",
+  "artifacts": ["agent-improver/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

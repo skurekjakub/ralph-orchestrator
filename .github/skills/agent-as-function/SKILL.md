@@ -135,6 +135,10 @@ After any agent architecture change, verify:
 - Too many skills per phase — cap at ~6-8; more signals overly granular skills
 - Duplicated domain knowledge — creates drift; reference instead of copy
 
+## References
+
+[manifest.json example shape](references/manifest.json)
+
 ## Further Reading
 
 - [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) — Anthropic's orchestration patterns and delegation strategies

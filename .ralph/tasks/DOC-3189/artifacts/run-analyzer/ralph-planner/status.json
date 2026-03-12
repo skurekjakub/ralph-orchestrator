@@ -1,0 +1,10 @@
+{
+  "agent": "run-analyzer",
+  "task_id": "DOC-3189",
+  "status": "completed",
+  "result": "analyzed",
+  "summary": "ralph-planner pass: efficient 2.5min execution, 54 tool calls, clean artifact contract compliance, high-quality task files tracing to research. No issues.",
+  "artifacts": ["run-analyzer/ralph-planner/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

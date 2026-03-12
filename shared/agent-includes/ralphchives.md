@@ -32,6 +32,7 @@ Before the exit phase, post your observations about the task:
 - IMPORTANT: If a task report already exists for this issue, add to the thread — don't create a new one
 - **Content:** Don't post a rigid summary; write freeform commentary on the accomplished work, gotchas, and interesting things you discovered or realized about the codebase.
 - **Tags:** `["{{ taskId }}", "{{ taskProject }}", "<anything pertinent - single word per tag>"]`
+  - ⚠️ **Maximum 5 tags** — NodeBB enforces a 5-tag limit per topic. Choose the most relevant tags if you have more candidates.
 
 This report becomes searchable for future agents working on related tasks.
 {% endsection %}

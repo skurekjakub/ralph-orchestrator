@@ -7,6 +7,28 @@ description: "End-to-end workflow for implementing new features or modifying exi
 
 Sequential phases for implementing features in the Ralph Orchestrator codebase. Each phase references a detailed skill or instruction for the specifics — this skill provides the sequence and decision points.
 
+### When NOT to use this skill
+
+Skip this workflow for:
+- Single-file bug fixes or typo corrections
+- Doc-only changes (update the doc directly)
+- Adding a test to existing coverage
+- Changes that don't touch config schemas, DI, or cross-file contracts
+
+If you can complete the change without needing to trace data flow or update interfaces, you don't need this workflow.
+
+### Skills referenced by this workflow
+
+| Skill | Used in | Purpose |
+|---|---|---|
+| **behavior-testing** | Phase 4 | Test observable outputs, not internal call chains |
+| **test-structure-patterns** | Phase 4 | Organize by behavior, Given/When/Then, test naming |
+| **test-mocking-strategy** | Phase 4 | Mock at boundaries only, prefer fakes |
+| **stage-pipeline** | Phase 3 | Execution pipeline, stage modes, executor creation |
+| **local-dashboard** | Phase 3 | Dashboard features, live monitoring |
+| **mcp-builder** | Phase 3 | MCP server creation/modification |
+| **tsx-scripts** | Phase 5 | Ad-hoc TypeScript scripts for debugging |
+
 ### Related documents
 
 | Document | Role |
@@ -119,13 +141,19 @@ All four must pass before proceeding. Fix any failures — don't skip them.
 
 **Goal:** Keep docs in sync with code.
 
-Use the **documentation-maintenance** skill for the full guide. It provides:
-- The canonical doc inventory with staleness risk ratings
-- A duplication map (which structures exist in multiple docs and must be updated together)
-- Per-change-type checklists (added a file? changed config? modified compose infrastructure?)
-- Staleness detection patterns for auditing
+Determine which documents are affected by your change, then update them. The table below is the canonical doc inventory — check each row against your change.
 
-### Quick reference — always check these
+### Change-type quick checks
+
+- **Added a file or directory?** → Update the source directory map in `.github/copilot-instructions.md` and `CLAUDE.md`
+- **Changed config fields or env vars?** → Update `CONFIGURATION.md`, Zod schemas, and `config.json.sample`
+- **Modified the execution pipeline?** → Update `ARCHITECTURE.md` component details and `docs/multistage-pipelines.md`
+- **Changed compose infrastructure?** → Update `docs/compose-layering.md` and `SECURITY.md` if network/hardening changed
+- **Added or modified trigger parameters?** → Update `docs/user-guide/trigger-parameters.md` and `CONFIGURATION.md`
+- **Changed MCP server config?** → Update `MCP.md` and `CONFIGURATION.md` § MCP Servers
+- **Changed agent template variables?** → Update `docs/agent-templates.md`
+
+### Doc inventory — always check these
 
 | Document | What to update |
 |---|---|
@@ -141,10 +169,10 @@ Use the **documentation-maintenance** skill for the full guide. It provides:
 | `docs/compose-layering.md` | Compose merge pattern |
 | `docs/multistage-pipelines.md` | Stage fields, execution modes |
 | `docs/data-source-registration.md` | Plugin integration guide |
+| `docs/user-guide/trigger-parameters.md` | Orchestrator-level and template-level trigger params |
 
 ### Checklist
 
-- [ ] Ran the appropriate change-type checklist from **documentation-maintenance** skill
 - [ ] All duplicated structures updated together (profile trees, env vars, conventions)
 - [ ] No stale references to removed code/files/config
 - [ ] New config fields documented in both types and CONFIGURATION.md

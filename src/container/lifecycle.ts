@@ -3,9 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { IContainerManager } from "./manager.js";
 import type { Logger } from "../logger.js";
-import { TaskContext } from "../services/task-context.js";
+import type { TaskContext } from "../services/task-context.js";
 import { VcsProvider } from "../config/types.js";
-import { slugifyBranchName } from "../util/branch.js";
 
 /**
  * A pre-execution hook that runs between container setup and agent execution.
@@ -129,7 +128,7 @@ export class RepoSyncHook implements ILifecycleHook {
   async execute(_container: IContainerManager, taskCtx: TaskContext, logger: Logger): Promise<void> {
     const { repoPat, vcsProvider, repoPath } = taskCtx.profile;
     const pat = process.env[repoPat];
-    const defaultBranch: string = taskCtx.triggerParams['source_branch'] ?? "main";
+    const defaultBranch = taskCtx.sourceBranch;
     if (!pat) throw new Error(`${repoPat} must be set for repo-sync hook (profile "${taskCtx.profile.id}")`);
 
     // Write exclusion patterns before any git operation so Docker-created
@@ -147,8 +146,7 @@ export class RepoSyncHook implements ILifecycleHook {
     await git(["reset", "--hard", `origin/${defaultBranch}`]);
     logger.info("Repo sync complete");
 
-    const taskBranch = taskCtx.triggerParams['branch']
-      ?? slugifyBranchName(taskCtx.workItem.id, taskCtx.workItem.title);
+    const taskBranch = taskCtx.taskBranch;
 
     if (taskCtx.isRevision) {
       logger.info(`Revision: switching to existing branch ${taskBranch}...`);

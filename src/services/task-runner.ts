@@ -12,7 +12,7 @@ import type { IAgentPipelineExecutor } from "./agent-pipeline-executor.js";
 import { TransitionPhase } from "../orchestrator-types.js";
 import type { TaskContext } from "./task-context.js";
 import { toErrorMessage } from "../util/error.js";
-import { rmSync, mkdirSync } from "node:fs";
+import { rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 
@@ -154,7 +154,7 @@ export class TaskRunner implements ITaskRunner {
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
     await this.issueManager.transitionWorkItem(ctx.workItem.source, ctx.workItem.id, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
-    await this.issueManager.postStartComment(ctx.workItem.source, ctx.workItem.id, ctx.profile.displayName, ctx.profile.id);
+    await this.issueManager.postStartComment(ctx.workItem.source, ctx.workItem.id, ctx.profile.displayName, ctx.profile.id, ctx.triggerParams);
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
@@ -229,6 +229,12 @@ export class TaskRunner implements ITaskRunner {
     const hooks = ctx.profile.postTaskHooks;
     if (!hooks.length) return;
 
+    if (ctx.triggerParams.skip_hooks) {
+      this.logger.info("skip_hooks param set — skipping post-task hooks, writing hook manifest");
+      this.writeHookManifest(ctx, result);
+      return;
+    }
+
     for (const hook of hooks) {
       const hookOutputDir = join(ctx.outputDir, "hooks", hook.name);
       mkdirSync(hookOutputDir, { recursive: true });
@@ -278,5 +284,30 @@ export class TaskRunner implements ITaskRunner {
         this.logger.warn(`[hook:${hook.name}] Unexpected error: ${toErrorMessage(err)}`);
       }
     }
+  }
+
+  /**
+   * Write a JSON manifest with all context needed to replay post-task hooks later.
+   * Saved to `<outputDir>/hook-manifest.json`.
+   */
+  private writeHookManifest(ctx: TaskContext, result: RalphResult): void {
+    const manifest = {
+      taskId: ctx.taskId,
+      workItemId: ctx.workItem.id,
+      source: ctx.workItem.source,
+      profileId: ctx.profile.id,
+      variantKey: ctx.profile.variantKey,
+      triggerParams: ctx.triggerParams,
+      isRevision: ctx.isRevision,
+      outputDir: ctx.outputDir,
+      status: result.status,
+      collectedLogs: result.collectedLogs,
+      hooks: ctx.profile.postTaskHooks,
+      createdAt: new Date().toISOString(),
+    };
+
+    const manifestPath = join(ctx.outputDir, "hook-manifest.json");
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    this.logger.info(`Hook manifest written to ${manifestPath}`);
   }
 }

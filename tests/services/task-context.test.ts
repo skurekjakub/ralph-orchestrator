@@ -19,6 +19,8 @@ describe("buildTaskContext", () => {
     expect(ctx.profile).toBeDefined();
     expect(ctx.taskId).toBe("DF-100-123");
     expect(ctx.triggerParams).toEqual({});
+    expect(ctx.sourceBranch).toBe("main");
+    expect(ctx.taskBranch).toBe("ralph/DF-100-test-work-item-df-100");
     expect(ctx.isRevision).toBe(false);
     expect(ctx.ralphchivesEnabled).toBe(false);
   });
@@ -30,6 +32,22 @@ describe("buildTaskContext", () => {
     );
 
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch: "develop" });
+    expect(ctx.taskBranch).toBe("develop");
+  });
+
+  it("uses PR branch metadata when explicit trigger params are absent", () => {
+    const ctx = buildTaskContext(
+      makeWorkItem(KEY),
+      makeProfile(),
+      "DF-100-123",
+      ralphchivesConfig,
+      undefined,
+      "https://dev.azure.com/org/proj/_git/repo/pullrequest/42",
+      { sourceBranch: "feature/from-pr", targetBranch: "release/31" },
+    );
+
+    expect(ctx.sourceBranch).toBe("release/31");
+    expect(ctx.taskBranch).toBe("feature/from-pr");
   });
 
   it("detects revision status", () => {
