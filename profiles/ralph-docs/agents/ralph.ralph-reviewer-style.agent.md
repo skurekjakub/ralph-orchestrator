@@ -111,6 +111,7 @@ For each changed file, check:
 - [ ] Simple language — sentences under 20 words where possible
 - [ ] American English spelling
 - [ ] No first person ("we", "our"); prefer second person ("you") or neutral constructions
+- [ ] Audience suitability - Business user pages are written for an audience with no assumed technical knowledge. Following the established patterns. Developer/admin pages involve escalating complexity all the way to complex customization patterns for deeply technical developer scenarios.
 
 ### Page Structure
 - [ ] Required sections present: Introduction, Body, Result
@@ -209,7 +210,7 @@ Write your review to `{{ artifactDir }}/ralph-reviewer-style/output-v{N}.md`:
 
 List the versioned review file in `status.json`, then write `status.json` and append to `manifest.json` per the artifact contract.
 
-Also write `{{ artifactDir }}/ralph-reviewer-style/review-findings.json`:
+Also write `{{ artifactDir }}/ralph-reviewer-style/review-findings-v{N}.json` (always include the version suffix, even for iteration 1 — use `review-findings-v1.json`, not `review-findings.json`):
 
 ```json
 {
@@ -240,3 +241,6 @@ Use `severity: "non-blocking"` for `SUG-XXX` items. Use an empty `findings` arra
 - **Be specific** — quote exact text, provide exact corrections
 - **Critical vs style distinction matters** — critical issues would confuse users or violate hard rules; style issues are best-practice violations that reduce quality but don't mislead
 - **Two strikes on suggestions** — if a suggestion is borderline, err on the side of not reporting it
+- **`next_hint` must be `null`** — you run in parallel with other reviewers. The orchestrator handles post-review routing; do not suggest a peer reviewer or downstream agent.
+- **`task_id` is the work item ID** — always use `{{ taskId }}` (e.g., `DOC-3189`), never a subtask identifier like `TASK-01`. The artifact contract requires this.
+- **`artifacts` must list ALL output files** — when dispatched multiple times, include every `output-v{N}.md` and `review-findings-v{N}.json` you have written across all iterations, not just the latest. Example after 3 iterations: `["ralph-reviewer-style/output-v1.md", "ralph-reviewer-style/review-findings-v1.json", "ralph-reviewer-style/output-v2.md", "ralph-reviewer-style/review-findings-v2.json", "ralph-reviewer-style/output-v3.md", "ralph-reviewer-style/review-findings-v3.json"]`.

@@ -63,4 +63,18 @@ SUMMARY: Git conflict on master
     const { agentStatus } = parseResultBlock(stdout);
     expect(agentStatus).toBe("blocked");
   });
+
+  it("handles lowercase field names from agent templates", () => {
+    const stdout = `
+===RALPH_RESULT_START===
+status: completed
+pr_url: https://dev.azure.com/org/project/_git/repo/pullrequest/789
+summary: Implemented feature
+===RALPH_RESULT_END===
+`;
+
+    const { prUrl, agentStatus } = parseResultBlock(stdout);
+    expect(prUrl).toBe("https://dev.azure.com/org/project/_git/repo/pullrequest/789");
+    expect(agentStatus).toBe("completed");
+  });
 });

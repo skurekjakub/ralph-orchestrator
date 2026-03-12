@@ -50,7 +50,9 @@
 
 3. **Attach the handoff file** to the JIRA issue.
 
-4. **Print the exit block** — this signals the orchestrator that you're done:
+4. **Post task report to Ralphchives** — follow the `ralph-ralphchives` skill's "After Completing Work" section: search for an existing task topic, reply or create a new task report summarizing what was done and any patterns/gotchas discovered.
+
+5. **Print the exit block** — this signals the orchestrator that you're done:
 
    ```
    ===RALPH_RESULT_START===

@@ -45,6 +45,8 @@ export class LogCollector implements ILogCollector {
     mkdirSync(issueDir, { recursive: true });
     const filename = `${prefix}-${Date.now()}-summary.json`;
     const path = join(issueDir, filename);
+    const stderrSnippet = result.stderr ? result.stderr.slice(0, 5000) : undefined;
+    const stdoutSnippet = result.status !== "completed" && result.stdout ? result.stdout.slice(0, 5000) : undefined;
     writeFileSync(
       path,
       JSON.stringify(
@@ -55,6 +57,8 @@ export class LogCollector implements ILogCollector {
           exitCode: result.exitCode,
           prUrl: result.prUrl,
           collectedLogs: result.collectedLogs,
+          ...(stderrSnippet && { stderr: stderrSnippet }),
+          ...(stdoutSnippet && { stdout: stdoutSnippet }),
           activityLogPath,
           timestamp: new Date().toISOString(),
         },

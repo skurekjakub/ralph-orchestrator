@@ -260,3 +260,6 @@ Use an empty `findings` array when approved.
 - **Search gitignored paths** — Xperience source at `resources/repositories/xperience` is gitignored; always use `includeIgnoredFiles: true`
 - **Reasonable simplification is fine** — documentation doesn't need to mirror source code 1:1; flag genuine inaccuracies, not omissions for brevity
 - **No invented findings** — if you can't find evidence of an inaccuracy, don't report one
+- **`next_hint` must be `null`** — you run in parallel with other reviewers. The orchestrator handles post-review routing; do not suggest a peer reviewer or downstream agent.
+- **`task_id` is the work item ID** — always use `{{ taskId }}` (e.g., `DOC-3189`), never a subtask identifier like `TASK-01`. The artifact contract requires this.
+- **`artifacts` must list ALL output files** — when dispatched multiple times, include every `output-v{N}.md` and `review-findings*.json` you have written across all iterations, not just the latest.

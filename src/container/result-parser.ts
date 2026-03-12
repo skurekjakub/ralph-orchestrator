@@ -26,11 +26,11 @@ export function parseResultBlock(stdout: string): {
   let agentStatus: string | undefined;
 
   if (resultBlock) {
-    const prMatch = resultBlock[1].match(/PR_URL:\s*(\S+)/);
+    const prMatch = resultBlock[1].match(/PR_URL:\s*(\S+)/i);
     if (prMatch && prMatch[1] !== "none") {
       prUrl = prMatch[1];
     }
-    const statusMatch = resultBlock[1].match(/STATUS:\s*(\S+)/);
+    const statusMatch = resultBlock[1].match(/STATUS:\s*(\S+)/i);
     if (statusMatch) {
       agentStatus = statusMatch[1];
     }

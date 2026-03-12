@@ -31,7 +31,9 @@
       "env": {
         "ADO_PROJECT": "CustomerEducation",
         "ADO_REPO": "kentico-docs-jekyll",
-        "TASK_BRANCH": "$task.branch"
+        "TASK_BRANCH": "$task.branch",
+        "SOURCE_BRANCH": "$trigger.source_branch",
+        "TARGET_BRANCH": "$trigger.target_branch"
       }
     },
     {
@@ -118,13 +120,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6",
-              "skills": [
-                "agent-eval",
-                "agent-as-function-audit",
-                "skill-creator",
-                "mcp-builder"
-              ]
+              "model": "claude-opus-4.6"
             }
           ]
         }
@@ -170,13 +166,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6",
-              "skills": [
-                "agent-eval",
-                "agent-as-function-audit",
-                "skill-creator",
-                "mcp-builder"
-              ]
+              "model": "claude-opus-4.6"
             }
           ]
         }
@@ -214,19 +204,7 @@
             "devralph-frontend",
             "devralph-jekyll-site",
             "devralph-build-verification",
-            "devralph-workflow-setup",
-            "devralph-workflow-research",
-            "devralph-workflow-implement",
-            "devralph-workflow-test",
-            "devralph-workflow-e2e",
-            "devralph-workflow-review",
-            "devralph-workflow-commit",
-            "devralph-workflow-pr",
-            "devralph-workflow-handoff",
-            "devralph-workflow-revision-setup",
-            "devralph-workflow-revision-fix",
-            "devralph-workflow-revision-commit",
-            "devralph-workflow-revision-handoff",
+            "devralph-workflow",
             "ralph-ado-pr-workflow",
             "ralph-ralphchives"
           ]
@@ -240,13 +218,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
-              "model": "claude-opus-4.6",
-              "skills": [
-                "agent-eval",
-                "agent-as-function-audit",
-                "skill-creator",
-                "mcp-builder"
-              ]
+              "model": "claude-opus-4.6"
             }
           ]
         }

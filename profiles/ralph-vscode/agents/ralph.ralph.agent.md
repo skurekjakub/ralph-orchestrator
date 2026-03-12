@@ -60,21 +60,33 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 |---|---|---|
 | `ralph-analyst` | `analyzed` | Dispatch `ralph-coder` |
 | `ralph-coder` | `implemented` | Dispatch `ralph-reviewer` |
-| `ralph-coder` | `partial` | Skip review, proceed to commit with partial status |
-| `ralph-reviewer` | `pass` | Proceed to commit |
+| `ralph-coder` | `partial` | Skip review, proceed to Package with partial status |
+| `ralph-reviewer` | `pass` | Proceed to Package |
 | `ralph-reviewer` | `fail` (iteration < 2) | Dispatch `ralph-coder` again |
-| `ralph-reviewer` | `fail` (iteration = 2) | Accept as-is, proceed to commit |
+| `ralph-reviewer` | `fail` (iteration = 2) | Accept as-is, proceed to Package |
 | `ralph-scribe` | `archived` | Proceed to exit |
 | `ralph-scribe` | `skipped` | Proceed to exit |
 
+If a subagent returns `status: failed` or `status: blocked`, route as follows:
+
+| Agent | Status | Your action |
+|---|---|---|
+| `ralph-analyst` | `failed` or `blocked` | Stop and set overall status to `blocked` |
+| `ralph-coder` | `failed` | Stop and set overall status to `partial` |
+| `ralph-coder` | `blocked` | Stop and set overall status to `blocked` |
+| `ralph-reviewer` | `failed` | Stop and set overall status to `partial` |
+| `ralph-reviewer` | `blocked` | Stop and set overall status to `blocked` |
+| `ralph-scribe` | `failed` | Log it and proceed to exit anyway |
+
 ### Iteration tracking
 
-Track the coder→reviewer loop iteration count. **Maximum 2 iterations.** After 2 rounds, proceed to commit regardless of reviewer verdict.
+Track the coder→reviewer loop iteration count. **Maximum 2 iterations.** After 2 rounds, proceed to Package regardless of reviewer verdict.
 
 ### What you do yourself
 
 These are your responsibilities — never delegate them to a subagent:
 
+- **Package**: bump patch version, update `CHANGELOG.md`, and build the `.vsix`
 - **Commit**: `git add`, `git commit -m "ralph/{{ taskId }}: <summary>"`
 - **Push**: via `ado_push_progress` MCP tool — never `git push` directly
 - **PR**: via `ado_create_pull_request` MCP tool
@@ -111,9 +123,13 @@ Before starting any work, use the todo tool to break the task into phases per th
 {% section "error-handling" %}
 ## Error Handling
 
-- **Analyst blocked:** If `ralph-analyst` returns `status: blocked`, stop and set overall status to `blocked` in the handoff
-- **Coder partial:** If `ralph-coder` returns `result: partial`, skip review loop and proceed to commit with `partial` status
+- **Analyst blocked or failed:** If `ralph-analyst` returns `status: blocked` or `status: failed`, stop and set overall status to `blocked` in the handoff
+- **Coder partial:** If `ralph-coder` returns `result: partial`, skip review loop and proceed to Package with `partial` status
+- **Coder failed:** If `ralph-coder` returns `status: failed`, stop and set overall status to `partial` in the handoff
+- **Reviewer blocked:** If `ralph-reviewer` returns `status: blocked`, stop and set overall status to `blocked` in the handoff
+- **Reviewer failed:** If `ralph-reviewer` returns `status: failed`, stop and set overall status to `partial` in the handoff
 - **Build failure after all iterations:** Set status to `partial`, document what works and what doesn't in the handoff
+- **Scribe failed:** Log it and proceed to exit anyway — archival is non-blocking
 - **Git conflicts:** Set status to `blocked`, document the conflict in the handoff, comment on JIRA
 - **JIRA API failure:** If commenting or attaching fails, log the error but do not block — the orchestrator collects audit logs as a fallback
 

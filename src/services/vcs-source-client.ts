@@ -153,6 +153,10 @@ export class VcsSourceClient implements IVcsSourceClient {
       return null;
     }
 
-    return client.resolvePullRequestBranches(profile, prUrl, pat, logger);
+    const result = await client.resolvePullRequestBranches(profile, prUrl, pat, logger);
+    if (result) {
+      logger.info(`PR branches resolved — source: ${result.sourceBranch}, target: ${result.targetBranch}`);
+    }
+    return result;
   }
 }

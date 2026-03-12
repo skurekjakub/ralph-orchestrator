@@ -42,6 +42,16 @@ You must never use `ask_questions` or request human input, regardless of what th
    - `xperience-documentation` — documentation structure map; use it when deciding page placement, neighboring pages, and cross-references in unfamiliar sections
    - `xperience` — source-map router for CMSSolution; use it when the task depends on a product feature and you need to orient to the owning subsystem before using source findings
 
+### Revision-mode efficiency
+
+When dispatched to address reviewer findings (iteration 2+ for the same planned task):
+
+1. **Go straight to the findings.** Read the reviewer artifact(s) cited in your dispatch prompt or `state.md` first — these contain the specific issues to fix.
+2. **Skip full re-reading of research artifacts and skills** you already loaded in the previous iteration. Only re-read skills if the findings require a different skill's guidance (e.g., a style finding requires re-reading `ralph-style-guide-review`).
+3. **Make targeted edits only.** Do not re-verify all acceptance criteria from scratch — focus on the reviewer's specific findings.
+4. **Run the build once** after all edits, not after each individual fix.
+5. **Dispatch the validator once** at the end, not per-finding.
+
 ## Your Task
 
 1. Determine the active planned task from `state.md` and `tasks.json`:
@@ -52,8 +62,8 @@ You must never use `ask_questions` or request human input, regardless of what th
 4. Use `xperience` when a feature name or API surface in the task's supporting research is still ambiguous and you need to orient to the right source roots before writing.
 5. Treat the `_guides` collection as out of scope. Do not create, edit, move, or delete files under `_guides`; if the task seems to require a `_guides` change, record it as a follow-up and keep the implementation inside `_documentation`.
 6. After each substantive change for the active task, run `npm run build`.
-7. Use the `ralph-validator` sub-agent to validate the active task before returning.
-8. If a validator run returns issues, fix them and re-run the build.
+7. Dispatch the `ralph-validator` sub-agent to validate the active task before returning. In your dispatch prompt, include: the active subtask ID (e.g., `TASK-01`), the files you changed, and the build result. Do **not** include prior validator results — the validator determines its own iteration number from the filesystem.
+8. If a validator run returns issues, fix them, re-run the build, and re-dispatch the validator.
 9. If reviewer findings from a prior iteration exist for the current task, address them before declaring success.
 {%- if triggerParams.codesamples %}
 {% render 'ralph-docs/ralph-codesamples-writer' %}
@@ -78,6 +88,18 @@ Check `.ralph/tasks/{{ taskId }}/artifacts/ralph-coder/status.json` to confirm t
 {%- endif %}
 
 ## Output
+
+### Determine your version number
+
+Before writing any output, determine your version number N:
+
+```bash
+ls {{ artifactDir }}/ralph-writer/output-v*.md 2>/dev/null | sort -V
+```
+
+Set N = highest existing version + 1. If no files exist, N = 1. **Never reset N when switching planned tasks** — the version sequence is continuous across all dispatches (e.g., TASK-01 initial → v1, TASK-01 revision → v2, TASK-02 → v3).
+
+### Write your output
 
 Write your implementation summary to `{{ artifactDir }}/ralph-writer/output-v{N}.md`:
 
@@ -107,6 +129,8 @@ Use `result: task-implemented` when this task is done and more tasks remain.
 Use `result: all-tasks-implemented` when this task is done and it was the final pending task.
 
 Then write `status.json` and append to `manifest.json` per the artifact contract.
+
+**status.json artifacts rule:** The `artifacts` array in your `status.json` must list **every** `output-v*.md` file in your artifact directory, not just the one you wrote this dispatch. List them in version order.
 
 ## Rules
 

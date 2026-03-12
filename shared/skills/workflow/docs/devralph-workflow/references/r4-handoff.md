@@ -22,7 +22,9 @@
 
 3. **Attach the updated handoff file** to the JIRA issue.
 
-4. **Print the exit block:**
+4. **Post task report to Ralphchives** — follow the `ralph-ralphchives` skill's "After Completing Work" section: search for an existing task topic, reply or create a new task report summarizing the revision fixes and any patterns/gotchas discovered.
+
+5. **Print the exit block:**
    ```
    ===RALPH_RESULT_START===
    STATUS: <completed|partial|blocked>

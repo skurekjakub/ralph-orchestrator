@@ -27,7 +27,6 @@ Update `state.md`:
 - Set "Reference file for this phase" to `references/3-implement.md`
   - Also list domain skills for the affected components
 - Add Phase 2 to "Completed Phases" with key findings
-- Ensure "Implementation Plan" has concrete steps
 
 {% endraw %}
 {%- else %}

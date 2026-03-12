@@ -144,6 +144,9 @@ Read the **ralph-ralphchives** skill for posting instructions.
 - If found: `reply_to_thread` with the contents of `{{ artifactDir }}/ralph-scribe/ralphchives-report.md`
 - If not found: `post_task_report` using the contents of `{{ artifactDir }}/ralph-scribe/ralphchives-report.md`
 
+**⚠️ Preventing duplicate posts after compaction:**
+After each successful `reply_to_thread` or `post_task_report` call, immediately write the result to your scratch log (e.g., append a line to `/tmp/scribe-post-log.txt` with the topic ID and action taken). Before any ralphchives write call, check this log first — if you already posted to that topic, do not post again. Context compaction may drop awareness of prior successful calls; the scratch log survives compaction and prevents duplicate posts.
+
 ### 5. Deliver the handoff
 
 After composing the three files:
@@ -174,3 +177,11 @@ The `artifacts` array in your `status.json` should list all three files:
 - **Read upstream artifacts** — aggregate from filesystem, don't invent information
 - **Source all claims** — every statement in the handoff should trace to a specific upstream artifact
 - **Format for humans** — the handoff is read by a human reviewer; the JIRA comment is posted as-is by you
+
+### Compaction-Resilient Composition Strategy
+
+You read many upstream artifacts, which pushes context toward compaction thresholds. To avoid re-reading files after compaction:
+
+1. **Compose one output file at a time.** Read only the artifacts needed for handoff.md, write it, then move to jira-comment.md, then ralphchives-report.md. Do not read all artifacts upfront.
+2. **Extract key facts to a scratch file early.** After reading each status.json or reviewer output, append a 2–3 line summary to `/tmp/scribe-scratch.md` (task status, reviewer verdict, key findings count, file list). If compaction drops the original artifact from context, re-read the scratch file instead of the full artifact.
+3. **Never re-read an artifact you've already extracted.** Before issuing a `view` call, check whether the information you need is already in your scratch file or in an output file you've already written.

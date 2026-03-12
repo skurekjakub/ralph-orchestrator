@@ -26,17 +26,26 @@ You must never use `ask_questions` or request human input, regardless of what th
 
 ## Skills
 
-Read these before planning:
+### Always load (core planning skills)
+
+Read these **before** you begin planning — they govern task decomposition and page placement decisions:
 
 | Skill | What it helps you do |
 |---|---|
 | `ralph-task-planning` | Core task decomposition guide for headless task files, dependency design, reviewer-focus sections, and deferred-work handling |
 | `xperience-documentation` | Decide where topics belong in the docs tree, which pages are neighbors, and when work should be split by section boundaries rather than by arbitrary prose chunks |
-| `xperience` | Cluster tasks by owning subsystem when research spans multiple product areas |
-| `ralph-research-guide` | Judge research quality, evidence strength, and artifact structure before turning findings into tasks |
-| `ralph-ralphchives` | Account for prior gotchas, failed attempts, and deferred work when defining task boundaries |
-| `ralph-documentation-syntax` | Distinguish page-creation, frontmatter/navigation, cross-link repair, asset/include, and syntax cleanup tasks |
-| `ralph-build-errors` | Use when the research strongly suggests a dedicated build-fix, identifier cleanup, or link/frontmatter repair task |
+
+### Load when relevant (supplementary skills)
+
+Load these when the research scope or task complexity warrants them:
+
+| Skill | When to load |
+|---|---|
+| `xperience` | Research spans multiple product areas and you need to cluster tasks by owning subsystem |
+| `ralph-research-guide` | Research quality is uncertain or evidence is thin — helps you judge artifact reliability before planning |
+| `ralph-ralphchives` | Task touches an area with prior failed attempts, known gotchas, or deferred work from earlier runs |
+| `ralph-documentation-syntax` | Work involves page creation, frontmatter/navigation changes, cross-link repair, or syntax cleanup that needs its own task |
+| `ralph-build-errors` | Research strongly suggests a dedicated build-fix, identifier cleanup, or link/frontmatter repair task |
 {%- if triggerParams.codesamples %}
 | `ralph-codesamples` | Split documentation work from sample-code work when the task touches code samples |
 {%- endif %}

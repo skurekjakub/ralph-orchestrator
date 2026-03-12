@@ -31,7 +31,7 @@ fi
 # Installed at runtime (not in Dockerfile) to always get the latest version.
 # npm global prefix is set to ~/.npm-global in the Dockerfile (user-writable, no sudo needed).
 echo "📦 Installing GitHub Copilot CLI..."
-npm install -g @github/copilot
+npm install -g @github/copilot@1.0.3
 echo "📦 Installing Claude Code CLI..."
 npm install -g @anthropic-ai/claude-code
 

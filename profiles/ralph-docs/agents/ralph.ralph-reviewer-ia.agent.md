@@ -209,7 +209,7 @@ Write your review to `{{ artifactDir }}/ralph-reviewer-ia/output-v{N}.md`:
 
 List the versioned review file in `status.json`, then write `status.json` and append to `manifest.json` per the artifact contract.
 
-Also write `{{ artifactDir }}/ralph-reviewer-ia/review-findings.json`:
+Also write `{{ artifactDir }}/ralph-reviewer-ia/review-findings-v{N}.json` (always include the version suffix, even for iteration 1 — use `review-findings-v1.json`, not `review-findings.json`):
 
 ```json
 {
@@ -239,3 +239,6 @@ Use `severity: "non-blocking"` for `SUG-XXX` items. Use an empty `findings` arra
 - **Pragmatic evaluation** — flag issues that would genuinely hurt the user's ability to find or follow content, not theoretical organizational ideals
 - **No reorganization proposals** — don't suggest restructuring parts of the docs that weren't touched by the PR
 - **Evidence-based** — cite specific sibling pages, navigation entries, or cross-references when flagging issues
+- **`next_hint` must be `null`** — you run in parallel with other reviewers. The orchestrator handles post-review routing; do not suggest a peer reviewer or downstream agent.
+- **`task_id` is the work item ID** — always use `{{ taskId }}` (e.g., `DOC-3189`), never a subtask identifier like `TASK-01`. The artifact contract requires this.
+- **`artifacts` must list ALL output files** — when dispatched multiple times, include every `output-v{N}.md` and `review-findings-v{N}.json` you have written across all iterations, not just the latest. Example after 2 iterations: `["ralph-reviewer-ia/output-v1.md", "ralph-reviewer-ia/review-findings-v1.json", "ralph-reviewer-ia/output-v2.md", "ralph-reviewer-ia/review-findings-v2.json"]`.

@@ -43,10 +43,10 @@ Read these skills before starting your research. They contain the techniques, pa
 1. **Check Ralphchives** — search for prior work on this component or feature area. Past observations, gotchas, and failed approaches save you from repeating mistakes.
 2. **Read the research guide** — read **ralph-research-guide** and its reference files before diving in.
 3. **Read xperience-documentation when structure matters** — use it to orient yourself in the docs tree, identify sibling pages, and confirm which section owns the topic using the `xperience-documentation` skill.
-4. **Read xperience before deep source exploration** — identify the likely CMSSolution subsystem so your code searches start in the right roots using the `xperience` skill.
+4. **Read xperience before deep source exploration** — use the `xperience` skill (the source-map router) to identify the likely CMSSolution subsystem so your code searches start in the right roots. **This is a separate skill from `xperience-documentation`** — you must load both. The source-map router covers product source code layout; the documentation skill covers docs structure.
 5. **Explore existing documentation** — find related pages, understand current coverage, identify gaps.
 6. **Explore the Xperience source code** — verify technical claims, find accurate API signatures, class hierarchies, configuration options, enum values, default settings.
-7. **Cross-reference external documentation** — when source code findings need clarification or the task involves .NET/ASP.NET concepts.
+7. **Cross-reference external documentation** — when source code findings involve .NET/ASP.NET framework APIs (e.g., `ClaimsPrincipal`, `[Authorize]`, `IOptions<T>`), **you must use `microsoft_docs_search`** to verify framework-level behavior. Do not skip this step when .NET APIs appear in your findings.
 8. **Treat `_guides` as out of scope** — do not recommend edits in the `_guides` collection. If the best structural answer appears to require `_guides`, call that out explicitly as a follow-up item for a different workflow while keeping your recommended changes inside `_documentation`.
 
 

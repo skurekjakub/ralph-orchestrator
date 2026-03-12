@@ -39,30 +39,32 @@ Domain skills provide reference knowledge about specific technologies, patterns,
 
 Workflow skills define sequential phases for agent execution. Each agent type has its own workflow skill set, with each skill covering one phase. Agents read the corresponding skill at the start of each phase.
 
-### Stacky — Fullstack Development (`devralph-workflow-*`)
+### Stacky — Fullstack Development (`devralph-workflow`)
+
+Single consolidated router skill with per-phase reference files. The `isRevision` Liquid flag selects the appropriate workflow table.
 
 Standard workflow (9 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `devralph-workflow-setup` | Create `state.md`, verify workspace/branch, search ralphchives, identify affected components. |
-| 2 | `devralph-workflow-research` | Research the codebase — explore affected areas, trace cross-layer data flows, identify integration points, create implementation plan. |
-| 3 | `devralph-workflow-implement` | Execute the implementation plan. Make code changes and build after every edit. |
-| 4 | `devralph-workflow-test` | Create and run tests. Delegate RSpec tests to the stacky-test-writer sub-agent. |
-| 5 | `devralph-workflow-e2e` | Write Playwright E2E tests for UI-facing changes. Delegate to the stacky-e2e-playwright sub-agent. |
-| 6 | `devralph-workflow-review` | Code review gate. Delegate to stacky-reviewer and stacky-bug-auditor sub-agents. |
-| 7 | `devralph-workflow-commit` | Final build verification, staging, commit with `dev(TASKID)` prefix, push. |
-| 8 | `devralph-workflow-pr` | Create an ADO draft pull request. |
-| 9 | `devralph-workflow-handoff` | Write handoff file, comment on JIRA, print exit block. |
+| 1 | `references/1-setup.md` | Create `state.md`, verify workspace/branch, search ralphchives, identify affected components. |
+| 2 | `references/2-research.md` | Research the codebase — explore affected areas, trace cross-layer data flows, identify integration points, create implementation plan. |
+| 3 | `references/3-implement.md` | Execute the implementation plan. Make code changes and build after every edit. |
+| 4 | `references/4-test.md` | Create and run tests. Delegate RSpec tests to the stacky-test-writer sub-agent. |
+| 5 | `references/5-e2e.md` | Write Playwright E2E tests for UI-facing changes. Delegate to the stacky-e2e-playwright sub-agent. |
+| 6 | `references/6-review.md` | Code review gate. Delegate to stacky-reviewer and stacky-bug-auditor sub-agents. |
+| 7 | `references/7-commit.md` | Final build verification, staging, commit with `dev(TASKID)` prefix, push. |
+| 8 | `references/8-pr.md` | Create an ADO draft pull request. |
+| 9 | `references/9-handoff.md` | Write handoff file, comment on JIRA, print exit block. |
 
 Revision workflow (4 phases):
 
-| Phase | Skill | Description |
+| Phase | Reference | Description |
 |---|---|---|
-| 1 | `devralph-workflow-revision-setup` | Review previous handoff, extract defects from JIRA/reviewer feedback, create fix plan. |
-| 2 | `devralph-workflow-revision-fix` | Implement fixes one at a time, building and testing after each. |
-| 3 | `devralph-workflow-revision-commit` | Commit with `fix(TASKID)` prefix, push to update existing PR. |
-| 4 | `devralph-workflow-revision-handoff` | Update handoff with revision section, comment on JIRA, print exit block. |
+| 1 | `references/r1-setup.md` | Review previous handoff, extract defects from JIRA/reviewer feedback, create fix plan. |
+| 2 | `references/r2-fix.md` | Implement fixes one at a time, building and testing after each. |
+| 3 | `references/r3-commit.md` | Commit with `fix(TASKID)` prefix, push to update existing PR. |
+| 4 | `references/r4-handoff.md` | Update handoff with revision section, comment on JIRA, print exit block. |
 
 ### Ralph — Documentation Writer (`ralph-workflow-*`)
 
@@ -177,7 +179,7 @@ Each profile variant declares which skills are available to its agent. Skills ar
 | **ralph.ralph** (writer) | 28 skills — all domain + task + integration + `ralph-workflow-*` |
 | **ralph.malph** (reviewer) | 15 skills — documentation domain + integration + `malph-workflow-*` |
 | **ralph.overralph** (orchestrator) | 28 skills — same as ralph.ralph |
-| **ralph.stacky** (fullstack dev) | 20 skills — `devralph-*` domain + `devralph-workflow-*` + integration |
+| **ralph.stacky** (fullstack dev) | 8 skills — `devralph-*` domain + `devralph-workflow` + integration |
 
 ### ralph-vscode
 

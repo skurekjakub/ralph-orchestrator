@@ -112,6 +112,8 @@ These are hard sequencing rules. Violating any of them produces broken output re
 - You MUST dispatch `stacky-coder` for all implementation work and review-fix iterations
 - You MUST dispatch `stacky-test-writer` AFTER implementation, BEFORE committing
 - You MUST dispatch `stacky-reviewer` and `stacky-bug-auditor` BEFORE committing
+
+**Exception:** When `stacky-coder` returns `partial`, skip the test/review/audit loop and proceed directly to commit. Partial status means the coder hit blockers — reviewing incomplete work adds no value.
 {% endsection %}
 
 {% section "known-failure-patterns" %}
