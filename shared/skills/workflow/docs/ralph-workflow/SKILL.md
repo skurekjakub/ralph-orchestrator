@@ -26,9 +26,7 @@ When the planner loop is active, `ralph-planner/tasks.json` is the task-level co
 |-------|---------------|---------|
 | 1–2. Setup | `references/r1-setup.md` | Understand feedback, find existing branch & PR |
 | 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the active `in_progress` fix task from `tasks.json` |
-{%- unless triggerParams.skip_review %}
 | 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
-{%- endunless %}
 | 5. Commit | `references/r5-commit.md` | Commit, push, respond to PR threads |
 | 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, print exit block |
 
@@ -44,9 +42,7 @@ When the planner loop is active, `ralph-planner/tasks.json` is the task-level co
 {%- endif %}
 | 2. Research | `references/2-research.md` | Dispatch ralph-researcher, then ralph-planner to produce task files |
 | 3. Write | `references/3-write.md` | Dispatch ralph-writer for the active `in_progress` planned task from `tasks.json` |
-{%- unless triggerParams.skip_review %}
 | 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
-{%- endunless %}
 | 6. Commit | `references/6-commit.md` | Pre-commit checks, commit, push |
 | 7. PR | `references/7-pr.md` | Create ADO pull request |
 | 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, print exit block |

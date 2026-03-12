@@ -12,9 +12,7 @@ Execute the following phases **in order**. Before each phase, read the **ralph-w
 {%- endif %}
 | 2. Research | `references/2-research.md` | Dispatch ralph-researcher, then ralph-planner to produce task files |
 | 3. Write | `references/3-write.md` | Dispatch ralph-writer for the next pending planned task and use ralph-validator |
-{%- unless triggerParams.skip_review %}
 | 4–5. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
-{%- endunless %}
 | 6. Commit | `references/6-commit.md` | Pre-commit checks, commit, push |
 | 7. PR | `references/7-pr.md` | Create ADO pull request |
 | 8. Handoff & Exit | `references/8-handoff.md` | Dispatch ralph-scribe, deliver to JIRA, print exit block |

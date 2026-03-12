@@ -29,22 +29,6 @@ Do **not** pass research report content, task details, or source references. The
 3. Update "Current Task" with the task ID and title reported by the writer
 4. If `result: partial`, record the blocker from `summary` for the handoff
 
-{%- if triggerParams.skip_review %}
-
-## Before moving to the next phase
-
-Review using dedicated subagents is skipped for this task.
-
-Update `state.md`:
-- Add Phase 3 to "Completed Phases" with the writer's `result` and `summary` from `status.json`
-- Record any new identifiers in "Tracked Identifiers"
-- If `result: task-implemented`, mark the current `in_progress` task as `done`, then either mark the next `not_processed` task as `in_progress` with `attempt: 1` or proceed to `Phase 6: Commit & Push` if none remain
-- If `result: all-tasks-implemented`, mark the current `in_progress` task as `done`, clear "Current Task", and set "Current Phase" to `Phase 6: Commit & Push`
-- If `result: partial`, set "Current Phase" to `Phase 6: Commit & Push`
-- Note: "Phases 4-5 skipped (skip_review)"
-
-{%- else %}
-
 ## Before moving to Phase 4
 
 Update `state.md`:
@@ -53,7 +37,6 @@ Update `state.md`:
 - Record any new identifiers in "Tracked Identifiers"
 - Keep "Current Task" as a human-readable mirror of the task whose `lifecycle` is `in_progress` in `tasks.json`
 
-{%- endif %}
 {%- else %}
 <!-- This file is for the standard workflow. You are running a revision workflow — this file is intentionally empty. -->
 {%- endunless %}

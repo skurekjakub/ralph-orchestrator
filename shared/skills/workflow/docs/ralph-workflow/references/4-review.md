@@ -40,7 +40,7 @@ If this is a revision review, tell each reviewer so they apply revision-mode len
 **All six must return APPROVED for the current task.** If ANY reviewer returns NEEDS REVISION, the overall verdict for the current task is NEEDS REVISION.
 
 After collecting all six verdicts:
-1. **All APPROVED and other `not_processed` tasks remain** → mark the current `in_progress` task as `done`, mark the next `not_processed` task as `in_progress` with `attempt: 1`, and return to Phase 3
+1. **All APPROVED and `not_processed` tasks remain in `tasks.json`** → mark the current `in_progress` task as `done`, mark the next `not_processed` task as `in_progress` with `attempt: 1`, and return to Phase 3
 2. **All APPROVED and no `not_processed` tasks remain** → mark the current `in_progress` task as `done` and proceed to Phase 6
 3. **Any NEEDS REVISION** → enter Phase 5 (Revision Loop). The writer reads the failing reviewers' artifacts from the filesystem on its own.
 
@@ -68,15 +68,15 @@ Read each failing reviewer's `status.json` — the `summary` field contains a co
 Address reviewer feedback for the current task in {{ taskId }}.
 Failing reviewers:
 - ralph-reviewer-style: "4 blocking findings: STY-001 passive voice on line 45, STY-002 wrong terminology on line 72, STY-003 missing callout line 90, STY-004 inconsistent navigation verb line 21"
-- ralph-reviewer-technical: approved (no action needed)
-- ralph-reviewer-ia: approved (no action needed)
+- ralph-reviewer-technical-gpt: "1 blocking finding: ACC-003 incorrect API return type on line 88"
+All other reviewers: approved (no action needed)
 ```
 
 This lets the writer skip artifact discovery reads and go directly to the affected lines.
 
-If all reviewers return **APPROVED** at any point, skip remaining cycles and route based on the latest writer result:
-- `task-implemented` → return to Phase 3 for the next task
-- `all-tasks-implemented` → proceed to Phase 6
+If all reviewers return **APPROVED** at any point, skip remaining cycles and check `tasks.json`:
+- If `not_processed` tasks remain → mark the current task `done`, mark the next `not_processed` task as `in_progress` with `attempt: 1`, and return to Phase 3
+- If no `not_processed` tasks remain → mark the current task `done` and proceed to Phase 6
 
 **Important:** During revision cycles, only re-invoke the failing reviewer(s). A reviewer that already returned APPROVED does not need to re-review unless the writer made broader changes outside the original feedback.
 
@@ -95,13 +95,7 @@ Check whether these were fixed and whether any new issues were introduced.
 ## Before moving to the next phase
 
 Update `state.md`:
-- Add Phase 4-5 to "Completed Phases" with review outcome per reviewer for the current task:
-  - Technical (Claude): Approved / Approved after N cycles / Not converged
-  - Style (Claude): Approved / Approved after N cycles / Not converged
-  - IA (Claude): Approved / Approved after N cycles / Not converged
-  - Technical (GPT): Approved / Approved after N cycles / Not converged
-  - Style (GPT): Approved / Approved after N cycles / Not converged
-  - IA (GPT): Approved / Approved after N cycles / Not converged
+- Add Phase 4-5 to "Completed Phases" with review outcome per reviewer for the current task (e.g. "Technical (Claude): Approved", "Style (GPT): Approved after 2 cycles", "IA (Claude): Not converged")
 - If the task was approved, append it to "Completed Tasks" as a human-readable mirror of `tasks.json`
 - If more planned tasks remain, clear "Current Task" and set "Current Phase" to `Phase 3: Write`
 - If the final task was approved, clear "Current Task" and set "Current Phase" to `Phase 6: Commit & Push`

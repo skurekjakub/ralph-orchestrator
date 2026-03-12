@@ -20,8 +20,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 
 | `result` | Meaning |
 |---|---|
-| `task-implemented` | The current planned task is complete and passed validation, but more tasks remain |
-| `all-tasks-implemented` | The current planned task is complete and no further planned tasks remain |
+| `task-implemented` | The current planned task is complete and passed validation |
 | `partial` | Some changes made, but the task could not be fully completed |
 
 ---
@@ -32,11 +31,8 @@ You must never use `ask_questions` or request human input, regardless of what th
 2. Read `{{ artifactDir }}/ralph-planner/tasks.json`, find the task whose `lifecycle` is `in_progress`, note its `attempt`, and read that task's task file.
 3. Read the research index at `{{ artifactDir }}/ralph-researcher/output.md` and any planner-cited research artifacts relevant to the selected task.
 4. If this is a revision task, use `state.md` feedback items as additional context, but keep `tasks.json` as the source of truth for which task is active.
-5. If the active task's `attempt` is greater than `1`, read any available reviewer artifacts for the previous round of this same task:
-   - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-technical/`
-   - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-style/`
-   - the latest versioned file in `{{ artifactDir }}/ralph-reviewer-ia/`
-6. Read these skills before writing:
+5. If the active task's `attempt` is greater than `1`, read the latest versioned file from every reviewer artifact directory (`{{ artifactDir }}/ralph-reviewer-*/`) for the previous round of this same task.
+6. You MUST Read these skills before writing:
    - `ralph-style-guide-review` — writing standards, page structure, terminology
    - `ralph-documentation-syntax` — Jekyll/Liquid syntax, frontmatter, callouts, includes (also references related skills for cross-version linking and page removal — read those if the task requires them)
    - `xperience-documentation` — documentation structure map; use it when deciding page placement, neighboring pages, and cross-references in unfamiliar sections
@@ -107,7 +103,7 @@ Write your implementation summary to `{{ artifactDir }}/ralph-writer/output-v{N}
 ### Task
 - ID: TASK-XX
 - Title: <task title>
-- Result: task-implemented | all-tasks-implemented | partial
+- Result: task-implemented | partial
 
 ### Files Modified
 - `path/to/file.md` — <what changed>
@@ -123,8 +119,7 @@ Write your implementation summary to `{{ artifactDir }}/ralph-writer/output-v{N}
 <Any deviations from the research plan or unresolved blockers>
 ```
 
-Use `result: task-implemented` when this task is done and more tasks remain.
-Use `result: all-tasks-implemented` when this task is done and it was the final pending task.
+Use `result: task-implemented` when this task is done.
 
 Then write `status.json` and append to `manifest.json` per the artifact contract.
 
