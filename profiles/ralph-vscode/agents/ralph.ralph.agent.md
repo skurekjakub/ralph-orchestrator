@@ -145,6 +145,10 @@ These are your responsibilities — never delegate them to a subagent:
 - **Scribe dispatch**: dispatch `ralph-scribe` after handoff to archive to Ralphchives
 - **Exit block**: print the `===RALPH_RESULT_START===` block
 
+### Administrative utilities
+
+- **JSON manipulation**: Always use `node -e` for reading/updating JSON files (e.g., `tasks.json`). Do not use `python3` — it is not available in the container.
+
 ### What you NEVER do
 
 - Never read any `output.md` or `output-v{N}.md` artifact — only `status.json`
