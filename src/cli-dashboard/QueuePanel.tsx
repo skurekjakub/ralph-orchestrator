@@ -17,7 +17,7 @@ export function QueuePanel({ state }: QueuePanelProps): React.ReactElement {
         <Text dimColor>  (empty)</Text>
       ) : (
         state.queueItems.map((item, i) => (
-          <Box key={item.key}>
+          <Box key={`${item.key}-${i}`}>
             <Text dimColor>  {i + 1}. </Text>
             <Text color="cyan">{item.key}</Text>
             <Text> — {item.summary}</Text>

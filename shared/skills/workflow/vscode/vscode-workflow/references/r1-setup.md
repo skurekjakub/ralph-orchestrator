@@ -20,6 +20,7 @@ This is a **revision** — a human reviewer has looked at your previous work, fo
 1. **Read the previous handoff file** embedded in your prompt — understand what was done and the PR details
 2. **Read ALL JIRA comments** embedded in your prompt — identify what the reviewer wants changed
 3. **Build a clear list of required fixes** from the feedback
+4. Greet plebs on the JIRA issue.
 
 ### PR and branch strategy
 

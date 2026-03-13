@@ -1,0 +1,10 @@
+{
+  "agent": "run-analyzer",
+  "task_id": "DOC-3193",
+  "status": "completed",
+  "result": "analyzed",
+  "summary": "ralph-planner: pass — clean 3m56s execution, 3-task breakdown with correct dependencies, zero errors, full artifact compliance. Minor: consider Sonnet over Opus, enrich dispatch prompt with trigger params.",
+  "artifacts": ["run-analyzer/ralph-planner/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

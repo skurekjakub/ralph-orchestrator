@@ -40,12 +40,12 @@ Read these skills before starting your research. They contain the techniques, pa
 
 ## Research Order
 
-1. **Check Ralphchives** — search for prior work on this component or feature area. Past observations, gotchas, and failed approaches save you from repeating mistakes.
+1. **Check Ralphchives (if not pre-included)** — The orchestrator typically pre-includes ralphchives findings from Phase 1 in your dispatch prompt. If you see a "Ralphchives Findings" or "Prior Work" section in the dispatch context, **treat it as your primary ralphchives input** — use the ralphchives MCP only if you need deeper detail on a specific topic mentioned there (e.g., reading the full thread of a prior task report). Do not re-search for information already summarized in the dispatch. If no ralphchives context was provided, search as normal using the **ralph-ralphchives** skill.
 2. **Read the research guide** — read **ralph-research-guide** and its reference files before diving in.
 3. **Read xperience-documentation when structure matters** — use it to orient yourself in the docs tree, identify sibling pages, and confirm which section owns the topic using the `xperience-documentation` skill.
 4. **Read xperience before deep source exploration** — use the `xperience` skill (the source-map router) to identify the likely CMSSolution subsystem so your code searches start in the right roots. **This is a separate skill from `xperience-documentation`** — you must load both. The source-map router covers product source code layout; the documentation skill covers docs structure.
 5. **Explore existing documentation** — find related pages, understand current coverage, identify gaps.
-6. **Explore the Xperience source code** — verify technical claims, find accurate API signatures, class hierarchies, configuration options, enum values, default settings.
+6. **Explore the Xperience source code** — verify technical claims, find accurate API signatures, class hierarchies, configuration options, enum values, default settings. The Xperience source code is at **`resources/repositories/xperience/CMSSolution/`** — always include this path in your explore agent prompts to avoid unnecessary path discovery.
 7. **Cross-reference external documentation** — when source code findings involve .NET/ASP.NET framework APIs (e.g., `ClaimsPrincipal`, `[Authorize]`, `IOptions<T>`), **you must use `microsoft_docs_search`** to verify framework-level behavior. Do not skip this step when .NET APIs appear in your findings.
 8. **Treat `_guides` as out of scope** — do not recommend edits in the `_guides` collection. If the best structural answer appears to require `_guides`, call that out explicitly as a follow-up item for a different workflow while keeping your recommended changes inside `_documentation`.
 
@@ -69,6 +69,20 @@ The codesamples project was bootstrapped by ralph-coder. Check `.ralph/tasks/{{ 
 {%- endif %}
 
 9. **Assemble your report** — follow the template in the research guide's `references/report-template.md`. Run the validation checklist before returning.
+
+## Explore Agent Strategy
+
+When dispatching explore sub-agents, **maximize parallelism in the first wave**. Before dispatching, plan all the independent research questions you can identify from the JIRA issue, skills, and any pre-included context. Aim for 4-5 parallel explores in the first wave rather than 3:
+
+- **Wave 1 (parallel):** Existing docs + structure, code samples / coder status, source API interfaces, external framework references, glossary and terminology. Dispatch all of these simultaneously.
+- **Wave 2+ (sequential, as needed):** Only dispatch follow-up explores for questions that genuinely depend on Wave 1 findings (e.g., discovering an unexpected interface that needs deeper investigation).
+
+Every sequential wave adds ~2-3 minutes of latency. Plan upfront to minimize waves.
+
+**Always include key paths in explore prompts** — explore agents are stateless and don't have access to your skills. Include:
+- Documentation root: `src/_documentation/`
+- Xperience source: `resources/repositories/xperience/CMSSolution/`
+- Code samples: `src/_code/` (if applicable)
 
 ## Rules
 

@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3193",
+  "status": "completed",
+  "result": "improved",
+  "summary": "2 changes: enriched planner dispatch prompt with trigger params + artifact paths in workflow reference; promoted trigger-activated skills from optional to required in planner template. Proposed Sonnet model evaluation.",
+  "artifacts": ["agent-improver/ralph-planner/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

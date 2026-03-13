@@ -1,11 +1,9 @@
 discord-hitl mcp setup
 
 playwright version mismatch - "content": "The workspace playwright wants 1194 but we have 1208 installed. Let me create a symlink to make it work:",
-
-skill to make a meta-skill about an unknown codebase
+"The installed Playwright expects revision 1194 (chromium-141.0.7390.37) but the cache has revision 1208. The mismatch is causing the issue. Let me try to symlink the existing browsers to the expected paths.",
 
 codesamples:dbcheck
-
 
     lines.push("    environment:");
     lines.push('      REPO_ROOT: "/workspace"'); <- hardcoded

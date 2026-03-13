@@ -19,6 +19,18 @@ Dispatch the **ralph-writer** sub-agent to implement the active planned task. Th
 
 Invoke **ralph-writer** with:
 - The task-id and a one-line directive (e.g. "Implement documentation changes for {{ taskId }}")
+- The active planned task ID and title from `tasks.json` (e.g. "Active task: TASK-01 — Rework eligibility code samples for role targeting")
+- A brief list of key files expected to be affected (from the planned task file's scope), if known — this saves the writer 1–2 discovery turns at the start
+
+Example dispatch prompt:
+```
+Implement documentation changes for {{ taskId }}.
+Active task: TASK-01 — Rework eligibility code samples for role targeting
+Expected files:
+- src/_code/src/CodeSamples/DigitalCommerce/VipCustomerEligibilityOptionsProvider.cs (delete/replace)
+- src/_code/src/CodeSamples/DigitalCommerce/VipCustomerEligibilityValidator.cs (delete/replace)
+- src/_documentation/developers-and-admins/digital-commerce/customer-eligibility-customization.md (update code_link refs)
+```
 
 Do **not** pass research report content, task details, or source references. The writer reads planner and researcher artifacts on its own.
 

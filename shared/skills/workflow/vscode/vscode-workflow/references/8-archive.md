@@ -25,7 +25,15 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/ralph-scribe/status.json`.
 | `skipped` | Proceed to exit (nothing worth archiving) |
 | Any failure | Log it, proceed to exit anyway — archival is non-blocking |
 
-### 3. Print exit block
+### 3. Final state.md update
+
+Update `state.md`:
+- Set "Current Phase" to `Completed`
+- Add Phase 8 to "Completed Phases"
+
+⚠️ **This is mandatory.** Every prior phase also requires a `state.md` update — if you skipped any transitions since Phase 4, backfill them now before exiting. The completed `state.md` is the audit trail for this task.
+
+### 4. Print exit block
 
 Output the result block — this is **mandatory** for orchestrator detection:
 

@@ -1,0 +1,10 @@
+{
+  "agent": "run-synthesizer",
+  "task_id": "DOC-3193",
+  "status": "completed",
+  "result": "synthesized",
+  "summary": "Cross-subagent synthesis complete — key finding: orchestrator missed needs-revision reviewer result due to premature session end (5/6 reviewers collected).",
+  "artifacts": ["run-synthesizer/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

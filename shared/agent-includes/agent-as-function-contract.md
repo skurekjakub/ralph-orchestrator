@@ -64,6 +64,8 @@ Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. 
   "iteration": 1
 }
 ```
+
+⚠️ **Iterative agents:** The `artifacts` array in your manifest entry must list **all artifacts written across all iterations** — not just the current iteration's file. For example, if this is your 2nd dispatch, list both `output-v1.md` and `output-v2.md`. This matches the cumulative listing rule for `status.json`.
 {% endraw %}
 
 ### Completion Sequence

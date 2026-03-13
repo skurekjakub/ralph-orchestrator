@@ -1,0 +1,44 @@
+{
+  "skill_name": "feature-task-planning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to add dark mode support to our React dashboard. It touches the theme provider, all 12 component files, the settings page, and local storage persistence. Plan this out.",
+      "expected_output": "Phase specs (foundation/theme provider, component migration, settings UI, persistence) plus a task-graph JSON with 15-20 tasks, explicit prerequisites, and acceptance criteria per task. Should include a debrief loop asking for feedback before implementation.",
+      "files": [],
+      "expectations": [
+        "Creates plans/<feature>/ directory structure",
+        "Phase specs follow the template (Goal, Dependencies, Outputs consumed by, Tasks with acceptance criteria)",
+        "Task graph JSON includes $schema, version, family, summary, assumptions, tasks array, executionOrder",
+        "Each task has id, phase, ref, title, description, type, target, prerequisites, status, acceptanceCriteria",
+        "Execution order groups parallel-safe tasks",
+        "Presents plan summary and asks for user feedback before proceeding"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Break down adding WebSocket support to our Express API into a task graph. We need a connection manager, event handlers for 5 event types, auth middleware, and client SDK updates.",
+      "expected_output": "Phase specs covering infrastructure (connection manager, auth), event handlers, and client SDK. Task graph with proper dependency chain — auth middleware before event handlers, connection manager before everything.",
+      "files": [],
+      "expectations": [
+        "Phase decomposition separates infrastructure from feature work from client SDK",
+        "Auth middleware task is a prerequisite for event handler tasks",
+        "Connection manager is a prerequisite for all WebSocket tasks",
+        "Task graph has valid executionOrder with parallelSafe flags",
+        "Asks the user to review the plan before implementation"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Turn what we just did into a plan — we designed a directive injection system for our agent pipeline. The design is done, I need it as phases and a task graph.",
+      "expected_output": "Recognizes that design already exists in conversation, extracts phases from the design, produces phase specs and task graph without re-inventing the design. Debrief loop confirms the extraction is accurate.",
+      "files": [],
+      "expectations": [
+        "Extracts structure from conversation history rather than interviewing from scratch",
+        "Phase specs reference specific design decisions already made",
+        "Task graph tasks align with the existing design",
+        "Asks user to verify the extracted plan matches their intent"
+      ]
+    }
+  ]
+}

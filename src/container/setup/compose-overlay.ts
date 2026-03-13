@@ -130,8 +130,8 @@ export function generateComposeOverlay(
     lines.push("    deploy:");
     lines.push("      resources:");
     lines.push("        limits:");
-    lines.push("          memory: 16G");
-    lines.push('          cpus: "4.0"');
+    lines.push("          memory: 24G");
+    lines.push('          cpus: "8.0"');
     lines.push("          pids: 300");
   }
 

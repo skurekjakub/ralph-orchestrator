@@ -1,0 +1,10 @@
+{
+  "agent": "scientist",
+  "task_id": "DOC-3193",
+  "status": "completed",
+  "result": "improved",
+  "summary": "Mapped 3 subagents (of 23 total). ralph-researcher: analyzed+improved (4 changes: ralphchives guidance, source path in dispatch, CMSSolution path inline, explore batching strategy). ralph-planner: analyzed+improved (2 changes: enriched dispatch prompt, promoted trigger-activated skills). ralph-writer: analyzed+improved (3 changes: mandatory codesamples skill, writer dispatch context, view tool preference). Synthesis: synthesized (key finding: orchestrator missed needs-revision reviewer due to premature session end).",
+  "artifacts": ["scientist/status.json"],
+  "next_hint": null,
+  "iteration": 1
+}
