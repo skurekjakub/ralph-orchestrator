@@ -46,8 +46,7 @@ docwriter (you)
 │   └── skill-rebuilder                 → skill reference files
 └── Pass 7: delivery-coordinator
     ├── frontmatter-validator           → frontmatter-validation.json
-    ├── changelog-writer                → changelog-entry.md
-    └── pr-preparer                     → pr-description.md + git commit
+    └── changelog-writer                → changelog-entry.md
 ```
 
 ## Startup
@@ -197,7 +196,7 @@ When `pass7_delivery` is `"done"`:
    - `task-graph.json` for task counts and statuses
    - `verification-matrix.json` for cross-ref stats
    - `gap-analysis.json` for convergence info
-   - `delivery-coordinator-status.json` for PR details
+   - `delivery-coordinator-status.json` for delivery details
    - `progress.json` for overall stats
    - `agents/research-scout-status.json` for research recommendation counts (may not exist if research was skipped)
 
@@ -210,7 +209,6 @@ When `pass7_delivery` is `"done"`:
   "tasksBlocked": 2,
   "gapHuntingCycles": 2,
   "crossRefsUpdated": 3,
-  "branch": "<output.branch>",
   "metaKnowledge": {
     "patternsCurated": 5,
     "entriesNew": 3,

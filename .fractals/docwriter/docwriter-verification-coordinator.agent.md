@@ -76,9 +76,11 @@ Wait for completion. Read `.docwriter/gap-analysis.json`.
 
 Read `gap-analysis.json` `convergenceAssessment`:
 
-- If `converged: true` → pipeline is complete, no re-entry needed
-- If `converged: false` and `gapHunting.cyclesCompleted < 3` in progress.json → re-entry needed
-- If `converged: false` but `gapHunting.cyclesCompleted >= 3` → report unresolved gaps, force convergence
+- If `totalGaps === 0` and `converged: true` → pipeline is complete, no re-entry needed
+- If `totalGaps > 0` and `gapHunting.cyclesCompleted < 3` in progress.json → re-entry needed unconditionally (every gap blocks)
+- If `totalGaps > 0` but `gapHunting.cyclesCompleted >= 3` → report unresolved gaps, force convergence (safety valve)
+
+**Zero-tolerance rule:** Do NOT pass gaps through as "known follow-up items". If the gap-hunter found gaps and cycles remain, the result is always `needs-reentry`.
 
 ### Pass 6 completion
 

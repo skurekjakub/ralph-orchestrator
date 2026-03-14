@@ -154,7 +154,7 @@ An agent's invariant-supremacy section references an artifact that doesn't exist
 
 ### Hardcoded Dynamic Path (Medium)
 
-An agent hardcodes a file path that another agent provides dynamically via its status file. E.g., pr-preparer hardcodes `changelog-entry.md` instead of reading `changelogPath` from changelog-writer status.
+An agent hardcodes a file path that another agent provides dynamically via its status file. E.g., a downstream agent hardcodes `changelog-entry.md` instead of reading `changelogPath` from changelog-writer status.
 
 **Signature:** Agent A outputs a path in its status (`changelogPath: "..."`). Agent B hardcodes the same path instead of reading Agent A's status.
 
