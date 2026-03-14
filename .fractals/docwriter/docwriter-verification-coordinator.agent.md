@@ -85,7 +85,9 @@ Read `gap-analysis.json` `convergenceAssessment`:
 ### Pass 6 completion
 
 Update `progress.json`:
-- Set `passStatus.pass6_gapHunting` to `"done"` (or `"needs-reentry"` if gaps found)
+- Set `passStatus.pass6_gapHunting` to `"done"` (always — the re-entry decision is communicated via `gapHunting.reEntryTarget`, not via the pass status value)
+- If gaps found and cycles < 3: set `gapHunting.reEntryTarget` to the earliest `reEntryTarget` from `gap-analysis.json`
+- If converged or cycles >= 3: set `gapHunting.reEntryTarget` to `null`
 - Increment `gapHunting.cyclesCompleted`
 - Record gap count in `gapHunting.newItemsPerCycle`
 - Set `gapHunting.converged` appropriately

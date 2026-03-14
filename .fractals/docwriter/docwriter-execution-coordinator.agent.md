@@ -42,21 +42,21 @@ If the file is missing or empty, skip this step (no directives active).
 
 ## Dispatch Algorithm
 
-### 0. Check for re-entry gaps
+### 0. Check for re-entry gaps (smart task targeting)
 
 Read `gapHunting.reEntryTarget` from `.docwriter/progress.json`. If it is `"pass4"`, this is a re-entry cycle:
 
 1. Read `.docwriter/gap-analysis.json` and filter for gaps with `reEntryTarget: "pass4"`.
-2. For each gap, identify affected task IDs from the `evidence` field (e.g. "task-graph T-008 and T-012").
-3. Reset those tasks' `status` to `"planned"` in `task-graph.json` so they re-enter the write-review cycle.
-4. Include each gap's `description` and `recommendation` in your dispatch message to the content-writer for the affected task.
+2. Collect the union of all `affectedTaskIds` arrays from those gaps. These are the ONLY tasks that need rework.
+3. Reset ONLY those tasks' `status` to `"planned"` in `task-graph.json`. All other `"written"` tasks are preserved — do NOT reset them.
+4. For each affected task, compile the relevant gap `description` and `recommendation` into your dispatch message to the content-writer.
 5. Log the gap IDs and affected task IDs in your status file under `gapsRelayed`.
 
 If `gapHunting.reEntryTarget` is null or absent, skip this step.
 
-### 1. Read task-graph and determine work queue
+### 1. Read task-graph and risk register to determine work queue
 
-Read `.docwriter/task-graph.json`. Process tasks in `order` sequence, respecting `dependsOn` constraints.
+Read `.docwriter/task-graph.json`. Read `.docwriter/risk-register.json` for per-task risk scores and mitigations. Process tasks in `order` sequence, respecting `dependsOn` constraints.
 
 For each task:
 - If `status` is `"planned"` and all `dependsOn` tasks are `"written"` → eligible for execution
@@ -71,6 +71,8 @@ For each eligible task (in order):
 #### Step A: Dispatch content-writer
 
 Update the task status to `"in-progress"` in task-graph.json.
+
+If the task has `overallRisk` of `critical` or `high` in `risk-register.json`, include the risk mitigations in your dispatch message so the writer and reviewers are aware of specific risk areas.
 
 If this is a rewrite (attempt > 1), first compile review feedback:
 - Read `.docwriter/tasks/<task-id>/style-review.json`

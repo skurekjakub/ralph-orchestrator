@@ -68,6 +68,31 @@ From `knowledge-brief.json` + `task-signals.json`:
 2. Which anti-patterns from the brief were violated? (Tasks that hit the same anti-pattern despite it being in the brief)
 3. Which entries were in the brief but neither used nor relevant? (Over-inclusion by curator)
 
+### Signal B5: Source-code observation extraction (→ candidate source observations)
+
+From `code-analysis.json` + `impact-matrix.json` + `task-signals.json`:
+
+Identify **reusable code→documentation predictors** — characteristics of source code that reliably predict specific documentation needs. These are NOT domain insights about a particular module (B2 handles that). These are generalizable observations about *what kinds of code require what kinds of documentation*.
+
+1. **Structural predictors**: What code characteristics correlated with documentation needs?
+   - File/module types that always require specific doc structures (e.g., "config files with >10 options → parameter table", "middleware chains → sequence diagram")
+   - Complexity indicators that predict documentation depth (e.g., "functions with >5 parameters → usage examples mandatory")
+   - Interface patterns that signal doc requirements (e.g., "public APIs with callback parameters → async usage examples")
+2. **Dependency-driven predictors**: What code relationships predicted cross-reference needs?
+   - Import chains that correlated with cross-doc linking (e.g., "service→repository→model chains → architecture overview page")
+   - Shared configuration consumed by multiple modules → single config reference needed
+3. **Change-type predictors**: What kinds of code changes predicted what kind of doc updates?
+   - New public APIs → API reference pages
+   - Config schema changes → migration guides
+   - Error handling changes → troubleshooting section updates
+   - Breaking changes → changelog entries with examples
+
+Cross-reference with `task-signals.json` to validate: did tasks that followed source-predicted doc needs pass first-attempt review?
+
+**Signal strength**: Always `low` on first discovery (single run). Promotion requires confirmation across 2+ runs via the confidence ladder.
+
+**Quality filter**: Only extract observations that are generalizable beyond the current task's specific files. "The payments module needs a sequence diagram" is a domain insight (B2). "Modules with 3+ inter-service API calls need a sequence diagram" is a source observation (B5).
+
 ## Output
 
 Write `.docwriter/synthesis-signals/context-signals.json`:
@@ -96,6 +121,16 @@ Write `.docwriter/synthesis-signals/context-signals.json`:
       "strength": "low"
     }
   ],
+  "sourceObservations": [
+    {
+      "predictor": "Modules with 3+ inter-service API calls need a sequence diagram in their overview page",
+      "codeCharacteristic": "inter-service-api-density",
+      "predictedDocNeed": "sequence-diagram",
+      "evidence": "2 modules (payments/, orders/) had 4+ cross-service calls and both required sequence diagrams during this run",
+      "strength": "low",
+      "source": "code-analysis"
+    }
+  ],
   "researchEffectiveness": {
     "sourcesEvaluated": 0,
     "sources": {},
@@ -121,6 +156,7 @@ Write status file: `.docwriter/agents/context-signal-analyzer-status.json`:
   "timestamp": "<ISO>",
   "gapSignals": 0,
   "domainInsights": 0,
+  "sourceObservations": 0,
   "researchSourcesEvaluated": 0
 }
 ```

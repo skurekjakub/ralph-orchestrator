@@ -1,17 +1,19 @@
 #!/bin/bash
-# Bootstrap for docwriter fractal orchestrator (29-agent pipeline)
+# Bootstrap for docwriter fractal orchestrator (31-agent pipeline)
 # Run once before first orchestrator invocation
 # Usage: bash docwriter-bootstrap.sh [--clean] [root-dir]
 #
-# Passes: 0 (knowledge curation) → 1 (discovery) → 2 (analysis) → 3 (planning)
-#         → 4 (execution) → 5 (verification) → 6 (gap hunting) → 6.5 (synthesis)
-#         → 7 (delivery)
+# Passes: 0 (knowledge curation) → 0.5 (codebase orientation) → 1 (discovery)
+#         → 2 (analysis) → 3 (planning) → 4 (execution) → 5 (verification)
+#         → 6 (gap hunting) → 6.5 (synthesis) → 7 (delivery)
 #
 # Artifacts: context.json, progress.json, manifest.json, directives.md,
-#            meta/ (knowledge base), agents/ (status files), tasks/ (per-task work)
+#            meta/ (knowledge base + codebase map), agents/ (status files),
+#            tasks/ (per-task work)
 #
 # --clean: Re-run mode — preserves .docwriter/meta/, .docwriter/directives.md,
-#          and synthesis-signals/ while resetting all other artifacts.
+#          context.json, invariant-hashmap.json, invariant-inventory.json, and
+#          synthesis-signals/ while resetting all other artifacts.
 
 set -euo pipefail
 
@@ -29,16 +31,20 @@ if [ "$CLEAN_MODE" = true ]; then
     echo "Error: $ARTIFACT_DIR does not exist. Run without --clean first."
     exit 1
   fi
-  echo "Clean mode: preserving meta/ and resetting pipeline artifacts..."
+  echo "Clean mode: preserving meta/, context.json, and resetting pipeline artifacts..."
 
-  # Preserve meta/, synthesis-signals/, directives.md, and doc-index.json
-  # (user intent + corpus structure are stable across re-runs)
+  # Preserve meta/, synthesis-signals/, directives.md, context.json, doc-index.json,
+  # invariant-hashmap.json, and invariant-inventory.json
+  # (user intent + task context + corpus structure + codebase map + invariant cache are stable across re-runs)
   # Remove everything else
   find "$ARTIFACT_DIR" -mindepth 1 -maxdepth 1 \
     ! -name "meta" \
     ! -name "synthesis-signals" \
     ! -name "directives.md" \
+    ! -name "context.json" \
     ! -name "doc-index.json" \
+    ! -name "invariant-hashmap.json" \
+    ! -name "invariant-inventory.json" \
     -exec rm -rf {} +
 
   # Recreate core directories
@@ -75,6 +81,7 @@ cat > "$ARTIFACT_DIR/progress.json" << 'EOF'
   "currentPass": 0,
   "passStatus": {
     "pass0_knowledgeCuration": "not-started",
+    "pass05_codebaseOrientation": "not-started",
     "pass1_discovery": "not-started",
     "pass2_analysis": "not-started",
     "pass3_planning": "not-started",
@@ -94,6 +101,7 @@ cat > "$ARTIFACT_DIR/progress.json" << 'EOF'
     "tasksVerified": 0,
     "tasksBlocked": 0,
     "knowledgePatternsCurated": 0,
+    "codebaseModulesMapped": 0,
     "researchRecommendationsApproved": 0,
     "knowledgeEntriesNew": 0,
     "skillFilesRegenerated": 0
@@ -118,6 +126,35 @@ if [ "$CLEAN_MODE" = false ]; then
   "version": 1,
   "lastSynthesized": null,
   "entries": []
+}
+EOF
+
+  # Seed: meta/codebase-map.json (persistent repo structure map — built by codebase-curator)
+  cat > "$ARTIFACT_DIR/meta/codebase-map.json" << 'EOF'
+{
+  "version": 1,
+  "lastSurveyed": null,
+  "runCount": 0,
+  "repository": {},
+  "modules": [],
+  "entryPoints": [],
+  "componentRelationships": [],
+  "summary": {
+    "totalModules": 0,
+    "stableModules": 0,
+    "verifiedModules": 0,
+    "surveyedModules": 0,
+    "deprecatedModules": 0
+  }
+}
+EOF
+
+  # Seed: invariant-hashmap.json (incremental invariant scanning cache)
+  cat > "$ARTIFACT_DIR/invariant-hashmap.json" << 'EOF'
+{
+  "version": 1,
+  "lastScanned": null,
+  "files": {}
 }
 EOF
 
@@ -205,12 +242,19 @@ cat > "$ARTIFACT_DIR/manifest.json" << 'EOF'
 []
 EOF
 
-# Seed: context.json template (always regenerated)
-cat > "$ARTIFACT_DIR/context.json" << 'EOF'
+# Seed: context.json template (only on fresh bootstrap — never overwrite existing)
+if [ ! -f "$ARTIFACT_DIR/context.json" ]; then
+  cat > "$ARTIFACT_DIR/context.json" << 'EOF'
 {
   "version": 1,
   "task": {
-    "id": "<FILL: task identifier, e.g. DOC-3187>"
+    "id": "<FILL: task identifier, e.g. DOC-3187>",
+    "description": "<FILL: brief description of the task goal and scope, e.g. Document the new environment-specific config overlay feature>",
+    "instructions": [
+      "<FILL or REMOVE: task-specific rules enforced as invariants for this run only>",
+      "<e.g. All code samples must target .NET 8>",
+      "<e.g. Do not modify pages under /legacy/ — they are frozen>"
+    ]
   },
   "source": {
     "repoPath": "<FILL: path to cloned source repo, e.g. resources/repositories/xperience>",
@@ -229,6 +273,7 @@ cat > "$ARTIFACT_DIR/context.json" << 'EOF'
   }
 }
 EOF
+fi
 
 # Ensure .docwriter/ is in .gitignore (prevents git add -A from staging artifacts)
 GITIGNORE="$ROOT/.gitignore"
@@ -240,7 +285,7 @@ fi
 
 echo ""
 if [ "$CLEAN_MODE" = true ]; then
-  echo "Clean bootstrap at $ARTIFACT_DIR (meta-knowledge preserved)"
+  echo "Clean bootstrap at $ARTIFACT_DIR (meta-knowledge + context preserved)"
 else
   echo "Bootstrapped at $ARTIFACT_DIR"
 fi

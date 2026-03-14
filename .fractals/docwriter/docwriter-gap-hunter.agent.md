@@ -25,17 +25,16 @@ You are `docwriter-gap-hunter`, a specialist in the docwriter fractal orchestrat
 
 ### Additional inputs (if available)
 
-- `.docwriter/knowledge-brief.json` — curated meta-knowledge (focus on `antiPatterns` and `taskRetroLessons`)
+- `.docwriter/knowledge-brief.json` — curated meta-knowledge (focus on `antiPatterns`, `sourceObservations`, and `taskRetroLessons`)
 - `.github/skills/docwriter-meta/references/task-effectiveness.md` — historical task success/failure data
+- `.github/skills/docwriter-meta/references/source-observations.md` — code→doc predictors (code characteristics that predict missing documentation)
 
 ## Invariant Supremacy
 
-**Policy invariants ALWAYS take precedence over meta-knowledge and internet-sourced recommendations.** This is non-negotiable.
+**Policy invariants ALWAYS take precedence over meta-knowledge.** This is non-negotiable.
 
 - If a pattern from `knowledge-brief.json` conflicts with an invariant → discard the pattern
-- If a research recommendation from `research-brief.json` conflicts with an invariant → discard the recommendation
 - If a style evolution conflicts with an invariant → discard the style evolution
-- The research-brief's invariant gate should catch most conflicts, but some may slip through — you are the second line of defense
 
 When discarding, note the discard with the conflicting INV-* ID in your output artifacts for audit trail purposes.
 
@@ -95,6 +94,11 @@ If meta-knowledge is available:
 
 3. Read `knowledge-brief.json` task retro lessons. Apply key lessons from past runs as specific checks.
 
+4. Read `.github/skills/docwriter-meta/references/source-observations.md`. For each source observation (SRC-NNN):
+   - Check if the current codebase has files matching the code characteristic
+   - If yes, verify the predicted documentation need was addressed by a task
+   - Missing predicted doc needs are high-confidence gaps — past runs proved these code characteristics require specific documentation
+
 ## Output
 
 Write `.docwriter/gap-analysis.json`:
@@ -110,6 +114,7 @@ Write `.docwriter/gap-analysis.json`:
       "type": "undocumented-change",
       "description": "Error handler refactoring in src/errors/handler.ts introduced new error codes EC-101 through EC-105. No documentation task covers these.",
       "evidence": "change-inventory AREA-004, file src/errors/handler.ts. No task in task-graph references AREA-004.",
+      "affectedTaskIds": [],
       "recommendation": "Create new task: howto page for error code reference",
       "reEntryTarget": "pass3"
     },
@@ -118,6 +123,7 @@ Write `.docwriter/gap-analysis.json`:
       "type": "stale-content",
       "description": "Page _documentation/troubleshooting/common-errors.md lists error codes that no longer exist after the handler refactoring.",
       "evidence": "Page references EC-001 through EC-010 — handler.ts now uses EC-101 range.",
+      "affectedTaskIds": [],
       "recommendation": "Add update task for common-errors.md",
       "reEntryTarget": "pass3"
     },
@@ -126,6 +132,7 @@ Write `.docwriter/gap-analysis.json`:
       "type": "invariant-gap",
       "description": "INV-codesamples-002 (language tags on code blocks) was not inlined in tasks T-008 and T-012 which both contain code examples.",
       "evidence": "task-graph T-008 and T-012 have code blocks but INV-codesamples-002 is not in their invariants array.",
+      "affectedTaskIds": ["T-008", "T-012"],
       "recommendation": "Add invariant and re-review affected tasks",
       "reEntryTarget": "pass4"
     }
@@ -149,6 +156,16 @@ Each gap must specify where the pipeline should re-enter to fix it:
 - `pass5` — Need additional cross-ref updates
 
 **Every gap MUST have an actionable re-entry target.** There is no `"none"` or informational-only classification. If something is a gap, it blocks the pipeline.
+
+### `affectedTaskIds` — Task-Level Targeting
+
+Every gap MUST include an `affectedTaskIds` array of existing T-* IDs from `task-graph.json` that are affected by this gap.
+
+- **`pass4` gaps**: List the specific tasks that need rework (e.g. `["T-008", "T-012"]`). The execution-coordinator resets ONLY these tasks — all other completed tasks are preserved.
+- **`pass3` gaps**: List tasks that need modification, or `[]` if the gap requires entirely new tasks that don't exist yet. The task-planner uses this to selectively update the task-graph instead of regenerating it.
+- **`pass2`/`pass5` gaps**: Use `[]` (these passes don't operate on individual tasks).
+
+This field enables smart re-entry — only gap-identified work is redone, not the entire pass.
 
 ## Convergence
 

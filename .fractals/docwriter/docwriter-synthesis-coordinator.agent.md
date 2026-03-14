@@ -73,7 +73,7 @@ Invoke `@docwriter-skill-rebuilder`.
 
 Wait for status file: `.docwriter/agents/skill-rebuilder-status.json`
 
-Validate: all 5 reference files exist in `.github/skills/docwriter-meta/references/`.
+Validate: all 6 reference files exist in `.github/skills/docwriter-meta/references/`.
 
 **On failure**: Log warning, skill files may be stale (non-fatal).
 
