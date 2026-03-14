@@ -24,9 +24,10 @@ Complete schema reference for `task-graph-<family>.json` files. The task graph i
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `$schema` | string | Yes | Human-readable one-liner describing the graph |
-| `version` | number | Yes | Schema version (start at 1) |
+| `version` | number | Yes | File version number — must match the `-v<N>` suffix in the filename |
 | `family` | string | Yes | Logical grouping (e.g., `"manual"`, `"orchestrator"`, `"directives"`) |
 | `generatedAt` | string | Yes | ISO-8601 creation timestamp |
+| `versionNote` | string | No | One-line summary of what changed from the previous version (required for v2+) |
 | `description` | string | Yes | What this graph implements, one paragraph max |
 | `implementedAt` | string | No | ISO-8601 date when all tasks were completed (added post-implementation) |
 | `implementationStatus` | string | No | `"complete"` when all tasks are done |
@@ -167,9 +168,26 @@ Groups tasks into ordered steps, noting parallelism opportunities:
 
 ## Marking Completion
 
-When all tasks are implemented, update the graph:
+When all tasks are implemented, create a **new version** of the task graph:
 
-1. Set every task's `status` to `"implemented"`
-2. Add `"implementedAt": "<ISO-date>"` to the header
-3. Add `"implementationStatus": "complete"` to the header
-4. Update `"description"` to reflect completion (past tense)
+1. Increment `version` and create a new file with matching `-v<N>` suffix
+2. Set every task's `status` to `"implemented"`
+3. Add `"implementedAt": "<ISO-date>"` to the header
+4. Add `"implementationStatus": "complete"` to the header
+5. Set `"versionNote": "All tasks implemented — final"`
+6. Update `"description"` to reflect completion (past tense)
+
+Previous versions are never modified. The version history serves as an audit trail of plan evolution.
+
+## Versioning
+
+Task graphs are immutable once created. Every change — whether from debrief feedback, mid-implementation discovery, or status updates — produces a new file:
+
+```
+task-graph-manual-v1.json    ← initial plan
+task-graph-manual-v2.json    ← post-debrief revision
+task-graph-manual-v3.json    ← mid-implementation addition
+task-graph-manual-v4.json    ← final (all implemented)
+```
+
+The `version` field in the JSON must match the file suffix. The `ref` fields in tasks must point to the correct version of each phase spec (e.g., `"phase-2-core-v2.md § 2.1"`).

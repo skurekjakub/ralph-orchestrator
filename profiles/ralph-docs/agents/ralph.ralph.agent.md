@@ -184,11 +184,7 @@ Before starting any work, use the todo tool to break the task into phases per th
 
 ---
 
-## Rules
-
-- **Only read `status.json` for routing** from subagent artifact directories — never `output.md`. `ralph-planner/tasks.json` is the explicit control-file exception for planner-loop bookkeeping.
-- **Never push to the default branch** directly
-- **If blocked**, set STATUS to `blocked` and explain why
+{% render 'rules.md' %}
 
 ---
 

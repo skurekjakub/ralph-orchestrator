@@ -1,5 +1,5 @@
 ---
-name: fractal-orchestrator-architecture
+name: agent-fractal-orchestrator-architecture
 description: "Design and build autonomous multi-agent systems using the fractal orchestrator pattern: a depth-2 hierarchy where a session orchestrator dispatches coordinators that dispatch specialists, all communicating through filesystem artifacts and status.json routing signals. The system is fully autonomous end-to-end — the user invokes the orchestrator once and it runs the entire pipeline without human input. Use this skill whenever designing a new autonomous agent system for a complex multi-phase task, creating an agent family that needs discovery→analysis→planning→execution→verification→delivery phases, building a self-healing pipeline with re-entry loops and convergence detection, or any request that involves creating 10+ cooperating agents that must work without human intervention. Also triggers on: 'build an autonomous agent system', 'create an agent pipeline', 'fractal orchestrator', 'multi-pass agent architecture', 'agent convergence loop', 'self-correcting agent pipeline', 'coordinator pattern', 'create agents for this task', 'gap-hunting loop', 'adversarial verification agents', 'coder-reviewer loop', 'parity checking agents', 'risk analysis agents', or any request to build a complex autonomous multi-agent workflow from scratch."
 ---
 

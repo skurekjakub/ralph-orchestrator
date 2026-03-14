@@ -99,7 +99,7 @@ Never use another subagent's narrative artifact (`output.md`, `output-v{N}.md`) 
 When you finish, return **one line** to the orchestrator:
 
 ```
-Done. Status: {status}, result: {result}.
+Done. Status: {status}, result: {result}. → Read status.json and route.
 ```
 
 Never include artifact content in your conversational return. The orchestrator doesn't need it — it reads `status.json`.

@@ -1,12 +1,12 @@
 {
   "$schema": "Docwriter directive-injection task graph — adds mid-run directive injection to the 29-agent pipeline",
   "version": 1,
-  "family": "manual",
-  "generatedAt": "2026-03-13T00:00:00Z",
+  "family": "directives",
+  "generatedAt": "2026-03-14T00:00:00Z",
   "description": "Adds a mid-run directive injection mechanism. Users edit .docwriter/directives.md while the pipeline is running; the orchestrator and all coordinators read it on every invocation, integrating new instructions into the existing plan. Enables scope changes, process overrides, context injection, and task-specific guidance without restarting the pipeline.",
   "summary": {
-    "totalTasks": 17,
-    "phases": 5,
+    "totalTasks": 13,
+    "phases": 4,
     "newFiles": 0,
     "modifiedAgentFiles": 8,
     "modifiedInfraFiles": 1,
@@ -47,6 +47,10 @@
     {
       "decision": "Bootstrap creates directives.md with format template; --clean preserves it",
       "rationale": "Directives may contain session-spanning intent that survives pipeline re-runs, similar to meta/ preservation."
+    },
+    {
+      "decision": "Invariant guard + directivesApplied tracking baked into each agent task, not retrofitted",
+      "rationale": "Eliminates a separate cross-cutting sweep phase. Each agent task includes invariant supremacy enforcement and status schema extension as part of its acceptance criteria."
     }
   ],
   "directiveFormat": {
@@ -107,8 +111,8 @@
     {
       "id": "D-002",
       "phase": 1,
-      "title": "Modify bootstrap — add directives.md template + --clean preservation",
-      "description": "Bootstrap creates .docwriter/directives.md with a template showing all section headings and brief inline help. --clean mode preserves directives.md alongside meta/ (user intent may span re-runs).",
+      "title": "Modify bootstrap — add directives.md template, --clean preservation, header update",
+      "description": "Bootstrap creates .docwriter/directives.md with a template showing all section headings and brief inline help. --clean mode preserves directives.md alongside meta/ (user intent may span re-runs). Update bootstrap header comment to mention directives.md as part of the artifact set.",
       "type": "modify",
       "target": ".github/agents/docwriter-bootstrap.sh",
       "prerequisites": [],
@@ -121,14 +125,15 @@
         "Fresh bootstrap creates directives.md with all 5 section headings as template",
         "Template includes inline help comments explaining each section",
         "--clean mode preserves directives.md (not deleted during reset)",
-        "Existing directives.md is NOT overwritten on fresh bootstrap if already present"
+        "Existing directives.md is NOT overwritten on fresh bootstrap if already present",
+        "Header comment mentions directives.md in artifact list"
       ]
     },
     {
       "id": "D-003",
       "phase": 2,
-      "title": "Add directive reading to orchestrator startup + routing overrides",
-      "description": "Add a 'Read Directives' step to the orchestrator's startup sequence (after validate context, before routing table scan). Parse directives.md by section. Handle ## Routing directives: skip-pass, halt-before-pass, force-rerun. Log active directives in manifest.json. Add directive acknowledgment to progress.json.",
+      "title": "Add directive reading, routing overrides, conflict detection + invariant enforcement to orchestrator",
+      "description": "Add a 'Read Directives' step to the orchestrator's startup sequence (after validate context, before routing table scan). Parse directives.md by section. Handle ## Routing directives: skip-pass, halt-before-pass, force-rerun. Detect conflicting directives (e.g., 'skip Pass 2' + 'force-rerun Pass 2') and log warnings. Any directive conflicting with an invariant is flagged and ignored. Log active directives in manifest.json. Add directivesApplied tracking to progress.json.",
       "type": "modify",
       "target": ".github/agents/docwriter.agent.md",
       "prerequisites": ["D-001"],
@@ -138,30 +143,19 @@
         "## Routing directives handled: skip-pass (sets pass to done), halt-before-pass (stops routing), force-rerun (resets pass status)",
         "Active directives logged in manifest.json on each invocation",
         "Missing or empty directives.md is a no-op (pipeline runs normally)",
-        "progress.json gains directives section tracking active directive count and last-read timestamp"
+        "Conflicting routing directives detected and logged as warnings",
+        "More specific scope wins on conflict (explicit pass directive beats global)",
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Invalid directives (nonexistent pass, malformed section) logged as warnings, not errors",
+        "progress.json gains directives section tracking active directive count and last-read timestamp",
+        "Status includes directivesApplied array: { section, summary, action } for each applied directive"
       ]
     },
     {
       "id": "D-004",
-      "phase": 2,
-      "title": "Add directive conflict detection + invariant supremacy enforcement to orchestrator",
-      "description": "Orchestrator detects conflicting directives (e.g., 'skip Pass 2' + 'force-rerun Pass 2') and logs warnings. Any directive that would override an invariant constraint is flagged and ignored with a manifest warning.",
-      "type": "modify",
-      "target": ".github/agents/docwriter.agent.md",
-      "prerequisites": ["D-003"],
-      "status": "not-started",
-      "acceptanceCriteria": [
-        "Conflicting routing directives detected and logged as warnings",
-        "More specific scope wins on conflict (explicit pass directive beats global)",
-        "Invariant-conflicting directives flagged and ignored with manifest entry",
-        "Invalid directives (nonexistent pass, malformed section) logged as warnings, not errors"
-      ]
-    },
-    {
-      "id": "D-005",
       "phase": 3,
       "title": "Modify discovery-coordinator — directive integration",
-      "description": "Add directive reading step before dispatch sequence. Read ## Global, ## Context, and ## Pass 1 sections. Apply: scope filtering (narrow/broaden diff analysis scope), specialist skip directive, additional context for specialists. Relay applicable directives to specialists in dispatch message.",
+      "description": "Add directive reading step before dispatch sequence. Read ## Global, ## Context, and ## Pass 1 sections. Apply: scope filtering (narrow/broaden diff analysis scope), specialist skip directive, additional context for specialists. Relay applicable directives to specialists in dispatch message. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-discovery-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -171,14 +165,15 @@
         "Handles ## Pass 1 directives (scope filtering, skip agent)",
         "Relays applicable Global + Context + Pass 1 directives to specialists in dispatch",
         "Missing/empty directives.md is a no-op",
-        "Logs which directives were applied in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-006",
+      "id": "D-005",
       "phase": 3,
       "title": "Modify analysis-coordinator — directive integration",
-      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 2, ## Pass 3 sections. Apply: skip research-scout, narrow analysis scope, focus impact mapping, adjust planning priorities. Relay to specialists.",
+      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 2, ## Pass 3 sections. Apply: skip research-scout, narrow analysis scope, focus impact mapping, adjust planning priorities. Relay to specialists. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-analysis-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -188,14 +183,15 @@
         "Handles ## Pass 2 directives (skip research-scout, narrow scope, focus areas)",
         "Handles ## Pass 3 directives (planning priority overrides, task scope)",
         "Relays applicable directives to each specialist in dispatch",
-        "Logs applied directives in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-007",
+      "id": "D-006",
       "phase": 3,
       "title": "Modify execution-coordinator — directive integration",
-      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 4, and ## Task T-NNN sections. Apply: skip specific reviewers, task-specific writing guidance, quality threshold overrides. Inline task-scoped directives into per-task dispatch context for content-writer and reviewers.",
+      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 4, and ## Task T-NNN sections. Apply: skip specific reviewers, task-specific writing guidance, quality threshold overrides. Inline task-scoped directives into per-task dispatch context for content-writer and reviewers. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-execution-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -206,14 +202,15 @@
         "## Pass 4 directives applied to all tasks (e.g., skip persona review)",
         "Reviewer-skip directives cause coordinator to skip that reviewer and auto-pass its verdict",
         "Relays applicable directives to content-writer and reviewers per task",
-        "Logs applied directives in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-008",
+      "id": "D-007",
       "phase": 3,
       "title": "Modify verification-coordinator — directive integration",
-      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 5, ## Pass 6 sections. Apply: force convergence, narrow gap-hunting scope, skip cross-ref update. Relay to specialists.",
+      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 5, ## Pass 6 sections. Apply: force convergence, narrow gap-hunting scope, skip cross-ref update. Relay to specialists. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-verification-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -222,14 +219,15 @@
         "Reads directives.md before dispatching specialists",
         "## Pass 6 'force convergence' directive ends gap-hunting immediately",
         "Scope-narrowing directives passed to gap-hunter",
-        "Logs applied directives in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-009",
+      "id": "D-008",
       "phase": 3,
       "title": "Modify synthesis-coordinator — directive integration",
-      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 6.5 sections. Apply: skip subagents, force full skill rebuild, knowledge integration overrides. Relay to subagents.",
+      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 6.5 sections. Apply: skip subagents, force full skill rebuild, knowledge integration overrides. Relay to subagents. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-synthesis-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -238,14 +236,15 @@
         "Reads directives.md before dispatching subagents",
         "## Pass 6.5 directives handled (skip subagent, force rebuild, integration overrides)",
         "Relays applicable directives to subagents in dispatch",
-        "Logs applied directives in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-010",
+      "id": "D-009",
       "phase": 3,
       "title": "Modify delivery-coordinator — directive integration",
-      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 7 sections. Apply: PR description additions, commit message overrides, changelog scope. Relay to specialists.",
+      "description": "Add directive reading step. Read ## Global, ## Context, ## Pass 7 sections. Apply: PR description additions, commit message overrides, changelog scope. Relay to specialists. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-delivery-coordinator.agent.md",
       "prerequisites": ["D-001"],
@@ -254,14 +253,15 @@
         "Reads directives.md before dispatching specialists",
         "## Pass 7 directives handled (PR notes, commit message, changelog scope)",
         "Relays applicable directives to specialists in dispatch",
-        "Logs applied directives in coordinator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-011",
+      "id": "D-010",
       "phase": 3,
       "title": "Modify knowledge-curator — directive reading (direct-dispatch agent)",
-      "description": "Add directive reading step since this agent is dispatched directly by the orchestrator (not via a coordinator). Read ## Global, ## Context, ## Pass 0 sections. Apply: curation focus overrides, source priority hints, skip curation directive.",
+      "description": "Add directive reading step since this agent is dispatched directly by the orchestrator (not via a coordinator). Read ## Global, ## Context, ## Pass 0 sections. Apply: curation focus overrides, source priority hints, skip curation directive. Include invariant supremacy guard and directivesApplied tracking.",
       "type": "modify",
       "target": ".github/agents/docwriter-knowledge-curator.agent.md",
       "prerequisites": ["D-001"],
@@ -271,49 +271,18 @@
         "## Pass 0 directives handled (focus overrides, source priorities, skip)",
         "## Context directives used to inform task profile enrichment",
         "Missing/empty file is a no-op",
-        "Logs applied directives in curator status file"
+        "Invariant-conflicting directives flagged and ignored with manifest entry",
+        "Status file includes directivesApplied array: { section, summary, action }"
       ]
     },
     {
-      "id": "D-012",
+      "id": "D-011",
       "phase": 4,
-      "title": "Add invariant supremacy guard to all 8 directive-reading agents",
-      "description": "Each of the 8 agents that reads directives.md must include a rule: 'If any directive conflicts with an invariant from invariant-inventory.json, the invariant wins unconditionally. Log the conflict in your status file and manifest.json.' This is applied uniformly to: orchestrator, 6 coordinators, knowledge-curator.",
-      "type": "modify",
-      "target": "8 agent files (D-003 through D-011)",
-      "prerequisites": ["D-003", "D-004", "D-005", "D-006", "D-007", "D-008", "D-009", "D-010", "D-011"],
-      "status": "not-started",
-      "acceptanceCriteria": [
-        "All 8 directive-reading agents include invariant supremacy rule for directives",
-        "Conflict detection: directive vs. invariant with logging",
-        "Consistent wording across all 8 agents",
-        "Manifest logging on invariant-directive conflict"
-      ]
-    },
-    {
-      "id": "D-013",
-      "phase": 4,
-      "title": "Add directive-applied tracking to coordinator status file schema",
-      "description": "Extend every coordinator status JSON schema with a directivesApplied array listing which directives were read and how they influenced dispatch decisions. Format: { section, summary, action }. This enables post-run audit of directive influence.",
-      "type": "modify",
-      "target": "All 6 coordinators + orchestrator + knowledge-curator status schemas",
-      "prerequisites": ["D-005", "D-006", "D-007", "D-008", "D-009", "D-010", "D-011"],
-      "status": "not-started",
-      "acceptanceCriteria": [
-        "Status file schema includes directivesApplied array",
-        "Each entry has: section (Global|Context|Pass N|Task T-NNN), summary (human-readable), action (what changed)",
-        "Empty array when no directives present",
-        "Consistent schema across all 8 agents"
-      ]
-    },
-    {
-      "id": "D-014",
-      "phase": 5,
       "title": "Update docwriter-guide — directives section",
       "description": "Add a new ## Mid-Run Directives section to the guide: what directives.md is, the 5 section types with examples, precedence rules, invariant supremacy, how to add/remove directives, what happens on each coordinator invocation. Add troubleshooting entries.",
       "type": "modify",
       "target": ".github/agents/docwriter-guide.md",
-      "prerequisites": ["D-012", "D-013"],
+      "prerequisites": ["D-003", "D-004", "D-005", "D-006", "D-007", "D-008", "D-009", "D-010"],
       "status": "not-started",
       "acceptanceCriteria": [
         "New ## Mid-Run Directives section with complete format reference",
@@ -325,13 +294,13 @@
       ]
     },
     {
-      "id": "D-015",
-      "phase": 5,
+      "id": "D-012",
+      "phase": 4,
       "title": "Update docwriter-architecture — directive flow section",
       "description": "Add a new section to the architecture doc explaining the directive injection system: reading hierarchy, relay pattern, conflict resolution, audit trail, interaction with invariant system and re-entry mechanics.",
       "type": "modify",
       "target": ".github/agents/docwriter-architecture.md",
-      "prerequisites": ["D-012", "D-013"],
+      "prerequisites": ["D-003", "D-004", "D-005", "D-006", "D-007", "D-008", "D-009", "D-010"],
       "status": "not-started",
       "acceptanceCriteria": [
         "New architecture section covering directive flow",
@@ -343,27 +312,13 @@
       ]
     },
     {
-      "id": "D-016",
-      "phase": 5,
-      "title": "Update bootstrap comment header for directives",
-      "description": "Update the bootstrap script header comment to mention directives.md as part of the artifact set.",
-      "type": "modify",
-      "target": ".github/agents/docwriter-bootstrap.sh",
-      "prerequisites": ["D-002"],
-      "status": "not-started",
-      "acceptanceCriteria": [
-        "Header comment mentions directives.md",
-        "Artifact list in comments includes directives.md"
-      ]
-    },
-    {
-      "id": "D-017",
-      "phase": 5,
+      "id": "D-013",
+      "phase": 4,
       "title": "End-to-end verification",
       "description": "Verify: all 8 modified agents read directives.md, all include invariant supremacy guard, all status schemas include directivesApplied, bootstrap creates template, --clean preserves file, guide and architecture docs are consistent, format spec matches implementation.",
-      "type": "verify",
+      "type": "verification",
       "target": "All modified files",
-      "prerequisites": ["D-014", "D-015", "D-016"],
+      "prerequisites": ["D-011", "D-012"],
       "status": "not-started",
       "acceptanceCriteria": [
         "All 8 agents reference directives.md reading in their instructions",
@@ -379,13 +334,11 @@
   ],
   "executionOrder": {
     "steps": [
-      { "step": 1, "tasks": ["D-001", "D-002"], "note": "Foundation: format spec + bootstrap modification" },
-      { "step": 2, "tasks": ["D-003"], "note": "Orchestrator directive reading + routing overrides" },
-      { "step": 3, "tasks": ["D-004"], "note": "Orchestrator conflict detection + invariant enforcement" },
-      { "step": 4, "tasks": ["D-005", "D-006", "D-007", "D-008", "D-009", "D-010", "D-011"], "note": "All 6 coordinators + knowledge-curator (parallel-safe)" },
-      { "step": 5, "tasks": ["D-012", "D-013"], "note": "Cross-cutting: invariant supremacy rollout + status schema extension" },
-      { "step": 6, "tasks": ["D-014", "D-015", "D-016"], "note": "Documentation: guide + architecture + bootstrap header" },
-      { "step": 7, "tasks": ["D-017"], "note": "End-to-end verification" }
+      { "step": 1, "tasks": ["D-001", "D-002"], "parallelSafe": true, "note": "Foundation: format spec + bootstrap modification (independent)" },
+      { "step": 2, "tasks": ["D-003"], "parallelSafe": false, "note": "Orchestrator directive reading, routing overrides, conflict detection + invariant enforcement" },
+      { "step": 3, "tasks": ["D-004", "D-005", "D-006", "D-007", "D-008", "D-009", "D-010"], "parallelSafe": true, "note": "All 6 coordinators + knowledge-curator — each includes invariant guard + directivesApplied schema" },
+      { "step": 4, "tasks": ["D-011", "D-012"], "parallelSafe": true, "note": "Documentation: guide + architecture" },
+      { "step": 5, "tasks": ["D-013"], "parallelSafe": false, "note": "End-to-end verification" }
     ]
   }
 }

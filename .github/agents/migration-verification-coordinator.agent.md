@@ -27,23 +27,58 @@ The session orchestrator tells you which mode to operate in:
 For the given slice ID:
 
 1. Read the slice's `verificationOracles` array from `.migration/task-graph.json`
-2. For each declared oracle, dispatch the corresponding validator:
+2. For each declared oracle, dispatch the corresponding validator agent:
 
 | Oracle | Agent |
 |---|---|
 | `journey` | `migration-journey-validator` |
 | `contract` | `migration-contract-validator` |
 
-3. After all oracle validators complete, dispatch `migration-parity-checker` to aggregate results
+### Dispatch: Journey Validator
 
-4. Read parity-checker's `status.json`:
+```
+DISPATCH: migration-journey-validator
+REASON: Running journey verification for slice S-NNN
+CONTEXT: Slice ID: S-NNN, Old app URL: <oldApp.url>
+```
+
+Read its `status.json` at `.migration/agents/journey-validator/status.json`.
+
+### Dispatch: Contract Validator
+
+```
+DISPATCH: migration-contract-validator
+REASON: Running contract verification for slice S-NNN
+CONTEXT: Slice ID: S-NNN, Old app URL: <oldApp.url>
+```
+
+Read its `status.json` at `.migration/agents/contract-validator/status.json`.
+
+### Dispatch: Parity Checker
+
+After all oracle validators complete, dispatch the parity checker to aggregate results:
+
+```
+DISPATCH: migration-parity-checker
+REASON: Aggregating oracle results for slice S-NNN
+CONTEXT: Slice ID: S-NNN
+```
+
+Read parity-checker's `status.json` at `.migration/agents/parity-checker/status.json`:
    - `result: verified` → slice passes, write your status with `result: verified`
    - `result: failed-parity` → slice fails, write your status with `result: failed-parity`
 
 ## Gap-Hunting Mode
 
-1. Dispatch `migration-gap-hunter`
-2. Read its `status.json`:
+### Dispatch: Gap Hunter
+
+```
+DISPATCH: migration-gap-hunter
+REASON: Running adversarial gap-hunting across full codebase
+CONTEXT: Source code path from context.json
+```
+
+Read its `status.json` at `.migration/agents/gap-hunter/status.json`:
    - `result: uncovered-gap` → new items found. Write your status with `result: uncovered-gap` and `next_hint` indicating re-entry pass:
      - If new items need semantic analysis → `next_hint: "pass-2"`
      - If new items can go to planning → `next_hint: "pass-3"`

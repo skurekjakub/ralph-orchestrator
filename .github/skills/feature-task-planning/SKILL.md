@@ -21,10 +21,12 @@ Don't use this for quick single-file changes or exploratory work.
 
 | Artifact | Format | Purpose |
 |---|---|---|
-| Phase specs | `plans/<feature>/phase-N-<name>.md` | Deep design: rationale, code snippets, schemas, edge cases, acceptance criteria |
-| Task graph | `plans/<feature>/task-graph-<family>.json` | Flat task list with IDs, prerequisites, targets, status tracking, execution order |
+| Phase specs | `plans/<feature>/phase-N-<name>-v<V>.md` | Deep design: rationale, code snippets, schemas, edge cases, acceptance criteria |
+| Task graph | `plans/<feature>/task-graph-<family>-v<V>.json` | Flat task list with IDs, prerequisites, targets, status tracking, execution order |
 
 The phase specs are the *why and how*. The task graph is the *what and when*.
+
+**Both artifacts are versioned.** Every modification to the plan produces a new file — never edit a previous version in place. See [Plan Versioning](#plan-versioning) below.
 
 ## Workflow
 
@@ -59,7 +61,7 @@ The typical phase progression (adapt as needed):
 
 ### Step 3: Write Phase Specs
 
-For each phase, create `plans/<feature>/phase-N-<name>.md` following this structure:
+For each phase, create `plans/<feature>/phase-N-<name>-v1.md` following this structure:
 
 ```markdown
 # Phase N: <Name>
@@ -100,7 +102,7 @@ Phase spec guidelines:
 
 ### Step 4: Build the Task Graph
 
-After all phase specs are written, create `plans/<feature>/task-graph-<family>.json`. This is a structured JSON file that flattens all phase tasks into a single ordered list with explicit dependencies.
+After all phase specs are written, create `plans/<feature>/task-graph-<family>-v1.json`. This is a structured JSON file that flattens all phase tasks into a single ordered list with explicit dependencies. The `version` field in the JSON header must match the file suffix (v1 → `"version": 1`).
 
 Read `references/task-graph-schema.md` for the complete JSON schema. Key principles:
 
@@ -123,18 +125,22 @@ Present:
 4. **Risk areas** — phases or tasks that are complex, uncertain, or have broad blast radius
 5. **Open questions** — anything you're unsure about
 
-Then ask for feedback:
+Then use `ask_questions` to collect feedback. Always include these questions (adapt wording to context):
 - "Does this phasing make sense? Should any phases be split or merged?"
 - "Are there missing tasks or unnecessary ones?"
 - "Do the design decisions align with your intent?"
 - "Any constraints I missed?"
 
 Iterate until the user approves. Each iteration:
-1. Incorporate feedback into the phase specs
-2. Update the task graph to reflect changes (task additions, removals, reordering)
-3. Re-present the updated plan
+1. Edit the current phase specs and task graph **in place** — these are still drafts under active review
+2. Re-present the updated plan, noting what changed from the previous iteration
+3. Use `ask_questions` again to collect the next round of feedback
 
-Do not begin implementation until the user explicitly approves the plan.
+Always use `ask_questions` for the debrief — never just print questions inline. This ensures the user gets a structured prompt they can respond to.
+
+The debrief loop operates on the current version. No version bump occurs until the user approves — the draft is mutable while under review.
+
+Once the user explicitly approves the plan, the current files become the approved baseline (v1). **Only then** does the versioning clock start — subsequent changes (mid-implementation discoveries, status updates) create new versions. Do not begin implementation until approved.
 
 ### Step 6: Implementation
 
@@ -148,17 +154,52 @@ Execute tasks in the order specified by `executionOrder.steps`. For each step:
 
 After each phase completes, do a brief checkpoint with the user if the feature is large.
 
-When all tasks are complete, mark the task graph's statuses as `"implemented"` and add `implementedAt` and `implementationStatus: "complete"` to the header.
+When all tasks are complete, create a final version of the task graph with all statuses set to `"implemented"` and add `implementedAt` and `implementationStatus: "complete"` to the header. This final version is the completion record.
+
+If the plan changes mid-implementation (tasks added, reordered, or removed based on discoveries), create a new versioned task graph and corresponding phase specs rather than editing the approved versions. Note the reason for the mid-implementation change in the new version's `designDecisions`.
+
+## Plan Versioning
+
+Every modification to the plan creates new files — previous versions are never edited in place. This provides a complete audit trail of how the plan evolved through refinement and implementation.
+
+### Naming Convention
+
+```
+plans/<feature>/
+  phase-1-foundation-v1.md          ← approved baseline (edited in place during debrief)
+  phase-1-foundation-v2.md          ← mid-implementation change
+  phase-2-core-logic-v1.md          ← unchanged across iterations
+  task-graph-manual-v1.json         ← approved baseline (edited in place during debrief)
+  task-graph-manual-v2.json         ← mid-implementation change
+  task-graph-manual-v3.json         ← final (all tasks implemented)
+```
+
+### Rules
+
+1. **File suffix matches JSON `version` field** — `task-graph-manual-v3.json` has `"version": 3`
+2. **Phase spec `ref` fields track versions** — `"ref": "phase-2-core-logic-v1.md § 2.1"`
+3. **Only the highest-numbered version is active** — earlier versions are frozen history
+4. **Unchanged files keep their version** — if Phase 3 spec is untouched across three task graph iterations, it stays at v1. Don't create empty version bumps.
+5. **Each new version carries a `versionNote`** — one line in the task graph header explaining what changed (e.g., `"versionNote": "Added D-018 per user feedback on conflict resolution"`)
+
+### When to Create a New Version
+
+| Trigger | New task graph version? | New phase spec version? |
+|---|---|---|
+| Debrief feedback (pre-approval) | No — edit v1 in place | No — edit v1 in place |
+| Mid-implementation plan change | Yes | Only for affected phases |
+| Task status updates only (in-progress → implemented) | Yes | No |
+| All tasks complete (final) | Yes | No |
 
 ## Splitting Into Multiple Task Graphs
 
 For very large features, split into multiple task graph files in the same `plans/<feature>/` directory:
 
-- `task-graph-manual.json` — changes applied directly (e.g., editing agent files)
-- `task-graph-orchestrator.json` — changes requiring orchestrator infrastructure
-- `task-graph-<variant>.json` — any other logical grouping
+- `task-graph-manual-v1.json` — changes applied directly (e.g., editing agent files)
+- `task-graph-orchestrator-v1.json` — changes requiring orchestrator infrastructure
+- `task-graph-<variant>-v1.json` — any other logical grouping
 
-Each graph is independent but can reference the same phase specs. Document the split rationale in an `overview.md` or `dual-family-architecture.md` file.
+Each graph is independently versioned and can reference the same phase specs. Document the split rationale in an `overview.md` or `dual-family-architecture.md` file.
 
 ## Status Lifecycle
 
@@ -170,9 +211,11 @@ not-started → in-progress → implemented
                           → deferred (moved to follow-up)
 ```
 
-Graph-level status:
+Status changes produce a new task graph version. The final version has graph-level completion markers:
 ```json
 {
+  "version": 4,
+  "versionNote": "All tasks implemented — final",
   "implementationStatus": "complete",
   "implementedAt": "2026-03-13"
 }

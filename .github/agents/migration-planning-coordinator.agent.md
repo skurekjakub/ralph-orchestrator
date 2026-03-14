@@ -29,21 +29,57 @@ Read `.migration/context.json` for migration parameters.
 
 When the session orchestrator dispatches you for Pass 2 (behavior-matrix.json doesn't exist yet):
 
-1. Dispatch `migration-semantics-analyzer` first — it must complete before dependency analysis
-2. Read its `status.json` at `.migration/agents/semantics-analyzer/status.json`
-3. If `result: deepened`, dispatch `migration-dependency-analyzer`
-4. Read its `status.json` at `.migration/agents/dependency-analyzer/status.json`
-5. If both report `deepened`, write your own status with `result: deepened`
+### Step 1: Dispatch Semantics Analyzer
+
+```
+DISPATCH: migration-semantics-analyzer
+REASON: Extracting behavioral semantics for all discovered features
+CONTEXT: Pass 2 — behavior-matrix.json does not exist yet
+```
+
+Read its `status.json` at `.migration/agents/semantics-analyzer/status.json`.
+
+### Step 2: Dispatch Dependency Analyzer
+
+If semantics analyzer reports `result: deepened`:
+
+```
+DISPATCH: migration-dependency-analyzer
+REASON: Building feature dependency graph from behavior matrix
+CONTEXT: Pass 2 — behavior-matrix.json now exists
+```
+
+Read its `status.json` at `.migration/agents/dependency-analyzer/status.json`.
+
+If both report `deepened`, write your own status with `result: deepened`.
 
 ## Routing — Pass 3 (Planning)
 
 When the session orchestrator dispatches you for Pass 3 (behavior-matrix.json exists but task-graph.json doesn't):
 
-1. Dispatch `migration-slice-planner` first — slices must exist before risk analysis
-2. Read its `status.json` at `.migration/agents/slice-planner/status.json`
-3. If `result: planned`, dispatch `migration-risk-analyzer`
-4. Read its `status.json` at `.migration/agents/risk-analyzer/status.json`
-5. If both report `planned`, write your own status with `result: planned`
+### Step 1: Dispatch Slice Planner
+
+```
+DISPATCH: migration-slice-planner
+REASON: Decomposing features into migration slices
+CONTEXT: Pass 3 — behavior-matrix.json exists, task-graph.json does not
+```
+
+Read its `status.json` at `.migration/agents/slice-planner/status.json`.
+
+### Step 2: Dispatch Risk Analyzer
+
+If slice planner reports `result: planned`:
+
+```
+DISPATCH: migration-risk-analyzer
+REASON: Assessing risk per migration slice
+CONTEXT: Pass 3 — task-graph.json now exists
+```
+
+Read its `status.json` at `.migration/agents/risk-analyzer/status.json`.
+
+If both report `planned`, write your own status with `result: planned`.
 
 ## Mode Detection
 

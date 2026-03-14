@@ -2,11 +2,14 @@
 
 Copy this template when creating a new phase spec. Adapt the sections to fit the phase — not every section is needed for every phase.
 
+Phase specs are versioned: `phase-N-<name>-v1.md`, `phase-N-<name>-v2.md`, etc. When debrief feedback or mid-implementation changes affect a phase, create a new versioned file — never edit a previous version in place. Only bump versions for phases that actually changed; unchanged phases keep their current version number.
+
 ---
 
 ```markdown
 # Phase N: <Name>
 
+**Version**: v1
 **Goal**: One sentence describing the end state of this phase.
 **Dependencies**: Phase X, Phase Y (or "None" if entry phase)
 **Outputs consumed by**: Phase A, Phase B

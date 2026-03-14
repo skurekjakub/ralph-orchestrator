@@ -157,6 +157,7 @@ These are your responsibilities — never delegate them to a subagent:
 {%- unless triggerParams.skip_planner %}
 - Never break analysis into execution tasks yourself — dispatch `ralph-planner`
 {%- endunless %}
+- **Never emit an empty response or stop after a `task` tool returns.** After EVERY `task` tool return, you MUST immediately read the subagent's `status.json` and route to the next step per the routing table. The workflow is not complete until you print the `===RALPH_RESULT_START===` exit block.
 {% endsection %}
 
 {% section "task-approach" %}
@@ -177,31 +178,9 @@ Before starting any work, use the todo tool to break the task into phases per th
 
 ---
 
-{% section "error-handling" %}
-## Error Handling
+{% section "rules" %}
 
-- **Analyst blocked or failed:** If `ralph-analyst` returns `status: blocked` or `status: failed`, stop and set overall status to `blocked` in the handoff
-{%- unless triggerParams.skip_planner %}
-- **Planner blocked:** If `ralph-planner` returns `status: blocked` or `status: failed`, stop and set overall status to `blocked` in the handoff
-{%- endunless %}
-- **Coder partial:** If `ralph-coder` returns `result: partial`, skip review loop{%- unless triggerParams.skip_planner %} for the current task and advance to the next planned task (or planner verification if last){%- else %} and proceed to Package{%- endunless %} with `partial` status
-- **Task lifecycle ownership:** In planner mode, you maintain `tasks.json` lifecycle values yourself. Subagents only read them.
-- **Coder failed:** If `ralph-coder` returns `status: failed`, stop and set overall status to `partial` in the handoff
-- **Reviewer blocked:** If `ralph-reviewer` returns `status: blocked`, stop and set overall status to `blocked` in the handoff
-- **Reviewer failed:** If `ralph-reviewer` returns `status: failed`, stop and set overall status to `partial` in the handoff
-- **Build failure after all iterations:** Set status to `partial`, document what works and what doesn't in the handoff
-- **Scribe failed:** Log it and proceed to exit anyway — archival is non-blocking
-- **Git conflicts:** Set status to `blocked`, document the conflict in the handoff, comment on JIRA
-- **JIRA API failure:** If commenting or attaching fails, log the error but do not block — the orchestrator collects audit logs as a fallback
-
----
-
-## Rules
-
-- **Never push to `main`** directly
-- **Never implement code** — dispatch subagents for all implementation work
-- **Only read `status.json` for routing** from subagent artifact directories — never `output.md`. `ralph-planner/tasks.json` is the explicit control-file exception for planner-loop bookkeeping.
-- **If blocked**, set STATUS to `blocked` and explain why
+{% render 'rules.md' %}
 
 ---
 
@@ -210,4 +189,5 @@ Before starting any work, use the todo tool to break the task into phases per th
 - Commit prefix: `ralph/{{ taskId }}:`
 - Workload dir: `.ralph/tasks/{{ taskId }}/`
 - Artifact dir: `.ralph/tasks/{{ taskId }}/artifacts/`
+
 {% endsection %}
