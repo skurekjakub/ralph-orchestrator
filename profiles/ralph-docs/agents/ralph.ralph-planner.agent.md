@@ -46,14 +46,24 @@ Load these when the research scope or task complexity warrants them:
 | `ralph-ralphchives` | Task touches an area with prior failed attempts, known gotchas, or deferred work from earlier runs |
 | `ralph-documentation-syntax` | Work involves page creation, frontmatter/navigation changes, cross-link repair, or syntax cleanup that needs its own task |
 | `ralph-build-errors` | Research strongly suggests a dedicated build-fix, identifier cleanup, or link/frontmatter repair task |
+
+{%- if triggerParams.codesamples or triggerParams.adminui or triggerParams.release_notes %}
+
+### Load for this task (trigger-activated skills)
+
+The orchestrator has flagged the following capabilities as relevant to this task. **Load these before planning** — they affect task boundaries and decomposition:
+
+| Skill | Reason |
+|---|---|
 {%- if triggerParams.codesamples %}
-| `ralph-codesamples` | Split documentation work from sample-code work when the task touches code samples |
+| `ralph-codesamples` | **Required** — task involves code samples. Use this to split documentation work from sample-code work and define correct build/verification steps. |
 {%- endif %}
 {%- if triggerParams.adminui %}
-| `ralph-codesamples-adminui` | Create dedicated admin-UI verification or screenshot tasks when the task involves admin UI capture |
+| `ralph-codesamples-adminui` | **Required** — task involves admin UI. Use this to create dedicated admin-UI verification or screenshot tasks. |
 {%- endif %}
 {%- if triggerParams.release_notes %}
-| `ralph-write-release-notes` | Carve release notes into their own planned task instead of burying them inside a larger documentation task |
+| `ralph-write-release-notes` | **Required** — task involves release notes. Carve release notes into their own planned task. |
+{%- endif %}
 {%- endif %}
 
 ---

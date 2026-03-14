@@ -15,9 +15,7 @@ Execute the following phases **in order**. Before each phase, read the **ralph-w
 |-------|-----------|---------|
 | 1–2. Setup | `references/r1-setup.md` | Understand feedback, find existing branch & PR |
 | 3. Fix | `references/r3-fix.md` | Dispatch ralph-planner, then ralph-writer for the next pending fix task |
-{%- unless triggerParams.skip_review %}
 | 4. Review | `references/4-review.md` | Review the current task, revise it if needed, then advance to the next task |
-{%- endunless %}
 | 5. Commit | `references/r5-commit.md` | Commit, push, respond to PR threads |
 | 6. Handoff & Exit | `references/r6-handoff.md` | Dispatch ralph-scribe, deliver revision handoff, print exit block |
 

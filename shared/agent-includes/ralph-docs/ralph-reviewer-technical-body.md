@@ -223,7 +223,7 @@ Write your review to `{{ artifactDir }}/ralph-reviewer-technical/output-v{N}.md`
 
 List the versioned review file in `status.json`, then write `status.json` and append to `manifest.json` per the artifact contract.
 
-Also write `{{ artifactDir }}/ralph-reviewer-technical/review-findings.json`:
+Also write `{{ artifactDir }}/ralph-reviewer-technical/review-findings-v{N}.json` (always include the version suffix, even for iteration 1 — use `review-findings-v1.json`, not `review-findings.json`):
 
 ```json
 {
@@ -255,4 +255,4 @@ Use an empty `findings` array when approved.
 - **No invented findings** — if you can't find evidence of an inaccuracy, don't report one
 - **`next_hint` must be `null`** — you run in parallel with other reviewers. The orchestrator handles post-review routing; do not suggest a peer reviewer or downstream agent.
 - **`task_id` is the work item ID** — always use `{{ taskId }}` (e.g., `DOC-3189`), never a subtask identifier like `TASK-01`. The artifact contract requires this.
-- **`artifacts` must list ALL output files** — when dispatched multiple times, include every `output-v{N}.md` and `review-findings*.json` you have written across all iterations, not just the latest.
+- **`artifacts` must list ALL output files** — when dispatched multiple times, include every `output-v{N}.md` and `review-findings-v{N}.json` you have written across all iterations, not just the latest. Example after 3 iterations: `["ralph-reviewer-technical/output-v1.md", "ralph-reviewer-technical/review-findings-v1.json", "ralph-reviewer-technical/output-v2.md", "ralph-reviewer-technical/review-findings-v2.json", "ralph-reviewer-technical/output-v3.md", "ralph-reviewer-technical/review-findings-v3.json"]`.

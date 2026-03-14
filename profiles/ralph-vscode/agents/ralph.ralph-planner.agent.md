@@ -92,15 +92,22 @@ Read the analyst's `status.json` and then read the full implementation plan at `
 - **Grammar Impact** — whether `kfmarkdown.json` needs changes
 - **Risks & Edge Cases** — constraints for task boundaries
 
+If they exist, also read these helper exploration artifacts as supporting context:
+- `{{ artifactDir }}/robinson-explorer/output.md` — architecture map and owner files
+- `{{ artifactDir }}/vasco-explorer/output.md` — analogous patterns, tests, grammar touchpoints, edge cases
+
+The analyst output remains the source of truth. Use the explorer artifacts to sharpen task boundaries and reviewer focus.
+
 ### Verification pass (second dispatch)
 
 When you are dispatched **after** all planned tasks have been executed (the orchestrator will tell you this is a verification pass), your job changes:
 
 1. **Re-read the analyst's plan** at `{{ artifactDir }}/ralph-analyst/output.md` — this is the original spec
-2. **Read your own previous `tasks.json`** and task files to understand what was planned
-3. **Read the coder's and reviewer's latest artifacts** to understand what was actually implemented
-4. **Inspect the current codebase** — read the files that were supposed to change and verify the spec requirements are met
-5. **Compare implemented state against the spec** — look for:
+2. **Re-read helper exploration artifacts if present** at `{{ artifactDir }}/robinson-explorer/output.md` and `{{ artifactDir }}/vasco-explorer/output.md` when you need the original architecture or precedent context
+3. **Read your own previous `tasks.json`** and task files to understand what was planned
+4. **Read the coder's and reviewer's latest artifacts** to understand what was actually implemented
+5. **Inspect the current codebase** — read the files that were supposed to change and verify the spec requirements are met
+6. **Compare implemented state against the spec** — look for:
    - Missing acceptance criteria from the analyst's plan
    - Incomplete implementations (partially done items)
    - Integration gaps between tasks (e.g., registration missing after definition was added)

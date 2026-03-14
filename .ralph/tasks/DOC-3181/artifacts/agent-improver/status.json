@@ -1,0 +1,10 @@
+{
+  "agent": "agent-improver",
+  "task_id": "DOC-3181",
+  "status": "completed",
+  "result": "improved",
+  "summary": "4 changes applied: reviewer file list in dispatch prompts, node-e preference, time-budget awareness, resume-from-partial guidance. 2 infrastructure items escalated.",
+  "artifacts": ["agent-improver/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

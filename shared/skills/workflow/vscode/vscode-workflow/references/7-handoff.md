@@ -40,9 +40,11 @@ Create at `/tmp/mcp-attachments/handoff-{{ taskId }}.md`:
 <!-- Link to the ADO PR -->
 ```
 
-### 2. Upload handoff to JIRA
+### 2. Upload handoff + the .vsix binary to JIRA
 
 Use the `jira_add_attachment` tool to upload the handoff file to **{{ taskId }}** with file name `handoff-{{ taskId }}.md`.
+
+Also upload the latest compiled .vsix binary for the patch version you incremented to.
 
 ### 3. Post completion comment
 

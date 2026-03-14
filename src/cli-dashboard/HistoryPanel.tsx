@@ -37,8 +37,8 @@ export function HistoryPanel({ completed }: HistoryPanelProps): React.ReactEleme
       {completed.length === 0 ? (
         <Text dimColor>  (none yet)</Text>
       ) : (
-        [...completed].reverse().slice(0, 5).map((task) => (
-          <Box key={task.key}>
+        [...completed].reverse().slice(0, 5).map((task, i) => (
+          <Box key={`${task.key}-${task.completedAt}-${i}`}>
             <Text>
               {"  "}
               {statusIcon(task.status)} {task.key} — {task.summary} (

@@ -11,8 +11,7 @@
 
 ### Pre-commit check
 
-- Verify the latest writer iteration reported `result: all-tasks-implemented` (or that the task is intentionally partial)
-- Verify all planned revision tasks were completed or explicitly deferred
+- Verify all planned tasks in `ralph-planner/tasks.json` have `lifecycle: "done"` (or are explicitly deferred as `partial`)
 - Verify all feedback items from `state.md` have been addressed
 
 ### Commit & push

@@ -65,14 +65,12 @@ You still route on subagent `status.json` results. `tasks.json` is the explicit 
 | `ralph-researcher` | Researcher | Explores docs, source code, and Ralphchives; produces a structured research report for downstream agents |
 | `ralph-planner` | Planner | Breaks research artifacts or revision feedback into ordered task files for headless execution |
 | `ralph-writer` | Writer | Executes one planned task at a time and handles same-task revision fixes in later rounds |
-{%- unless triggerParams.skip_review %}
 | `ralph-reviewer-technical` | Technical Reviewer (Claude) | Verifies technical accuracy against Xperience source code |
 | `ralph-reviewer-style` | Style Reviewer (Claude) | Checks style guide compliance and grammar |
 | `ralph-reviewer-ia` | IA Reviewer (Claude) | Evaluates information architecture and content placement |
 | `ralph-reviewer-technical-gpt` | Technical Reviewer (GPT) | Verifies technical accuracy against Xperience source code |
 | `ralph-reviewer-style-gpt` | Style Reviewer (GPT) | Checks style guide compliance and grammar |
 | `ralph-reviewer-ia-gpt` | IA Reviewer (GPT) | Evaluates information architecture and content placement |
-{%- endunless %}
 | `ralph-scribe` | Scribe | Composes handoff artifacts, attaches evidence, posts the JIRA completion comment, updates ralphchives, and prepares the final handoff path |
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
 
@@ -99,37 +97,17 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 | `ralph-researcher` | `blocked` | Set overall status to `blocked`, exit |
 | `ralph-planner` | `planned` | Mark the first `not_processed` task as `in_progress` with `attempt: 1` in `tasks.json`, then dispatch `ralph-writer` |
 | `ralph-planner` | `blocked` | Set overall status to `blocked`, exit |
-{%- unless triggerParams.skip_review %}
 | `ralph-writer` | `task-implemented` | Dispatch all six reviewers in parallel for the current `in_progress` task |
-| `ralph-writer` | `all-tasks-implemented` | Dispatch all six reviewers in parallel for the current `in_progress` task |
-{%- else %}
-| `ralph-writer` | `task-implemented` | Mark the current `in_progress` task as `done`, then mark the next `not_processed` task as `in_progress` with `attempt: 1` or proceed to commit if none remain |
-| `ralph-writer` | `all-tasks-implemented` | Mark the current `in_progress` task as `done`, then proceed to commit |
-{%- endunless %}
 | `ralph-writer` | `partial` | Mark the current `in_progress` task as `done`, skip review, proceed to commit with partial status |
-{%- unless triggerParams.skip_review %}
-| `ralph-reviewer-technical` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-technical` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-| `ralph-reviewer-style` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-style` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-| `ralph-reviewer-ia` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-ia` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-| `ralph-reviewer-technical-gpt` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-technical-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-| `ralph-reviewer-style-gpt` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-style-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-| `ralph-reviewer-ia-gpt` | `approved` | Record approval, check other reviewers |
-| `ralph-reviewer-ia-gpt` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
-{%- endunless %}
+| Any `ralph-reviewer-*` | `approved` | Record approval, check remaining reviewers |
+| Any `ralph-reviewer-*` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
 | Any subagent | `failed` | Log failure, set overall status to `partial` or `blocked`, skip to handoff |
 | `ralph-scribe` | `delivered` | Use `state.md` and scribe `status.json` to print the exit block |
 | `ralph-scribe` | `partial` | Note the delivery gap from `summary`, then print the exit block with partial status |
-{%- unless triggerParams.skip_review %}
 
 ### Review Gate
 
 All six reviewers (3 Claude + 3 GPT) must run in parallel for the current `in_progress` task. Dispatch all six simultaneously using the task tool. If any reviewer returns `needs-revision`, increment that task's `attempt` in `tasks.json`, re-dispatch `ralph-writer` for that same task, then re-run only the reviewers that rejected. **Maximum 3 revision rounds per task after the initial write** — initial write is `attempt: 1`, and the last writer-only retry runs at `attempt: 4`. After that final writer pass, proceed onward and note the non-converged reviewer(s) in `state.md` for the scribe.
-{%- endunless %}
 
 ### What you do yourself
 
@@ -163,9 +141,7 @@ These are hard sequencing rules. Violating any of them produces broken output re
 - You MUST dispatch `ralph-researcher` BEFORE any implementation work begins
 - You MUST dispatch `ralph-planner` AFTER `ralph-researcher` and BEFORE `ralph-writer`
 - You MUST dispatch `ralph-writer` for all documentation edits and review-fix iterations
-{%- unless triggerParams.skip_review %}
 - You MUST dispatch all six reviewers BEFORE committing
-{%- endunless %}
 {% endsection %}
 
 {% section "known-failure-patterns" %}
@@ -208,11 +184,7 @@ Before starting any work, use the todo tool to break the task into phases per th
 
 ---
 
-## Rules
-
-- **Only read `status.json` for routing** from subagent artifact directories — never `output.md`. `ralph-planner/tasks.json` is the explicit control-file exception for planner-loop bookkeeping.
-- **Never push to the default branch** directly
-- **If blocked**, set STATUS to `blocked` and explain why
+{% render 'rules.md' %}
 
 ---
 

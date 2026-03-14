@@ -71,6 +71,16 @@ Note the final outcome in `state.md`:
 
 The planner produced a `tasks.json` with ordered task files. Process each task sequentially. For each task, run a coder→reviewer loop (max 3 revision rounds per task).
 
+#### Resuming from a partial state
+
+If a previous session was interrupted (e.g., SIGINT at timeout), the `tasks.json` may show a task as `in_progress` even though the coder completed. Before starting the loop, **read `tasks.json` and check for stale `in_progress` tasks**:
+
+1. If a task is `in_progress`, check whether `ralph-coder/status.json` has `result: "implemented"` for that task
+2. If the coder completed but no reviewer ran, **dispatch the reviewer** for that task instead of re-dispatching the coder
+3. If the coder's `status.json` is missing or has a different task context, re-dispatch the coder from scratch
+
+This prevents re-implementing work that was already done in a prior session.
+
 Track two counters:
 - **Current task lifecycle** — exactly one task should be `in_progress` at a time in `tasks.json`
 - **Current task attempt** — the active task's `attempt` field tracks same-task retries; `1` is the first implementation round

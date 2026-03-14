@@ -8,6 +8,7 @@ import { QueuePanel } from "./components/QueuePanel";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { LogBrowser } from "./components/LogBrowser";
 import { AgentGraph } from "./components/AgentGraph";
+import { FractalGraph } from "./components/FractalGraph";
 import { ZoomControls } from "./components/ZoomControls";
 import { Button, ButtonVariant } from "./components/Button";
 import "./styles.css";
@@ -18,7 +19,7 @@ const badgeColors: Record<string, string> = {
   disconnected: "bg-error/15 text-error",
 };
 
-type Tab = "live" | "logs" | "agents";
+type Tab = "live" | "logs" | "agents" | "fractal";
 
 export function App() {
   const { state, toolOutput, connectionStatus } = useDashboard();
@@ -63,6 +64,13 @@ export function App() {
               className={tab === "agents" ? "bg-info/15 text-info" : ""}
             >
               Agents
+            </Button>
+            <Button
+              onClick={() => setTab("fractal")}
+              variant={tab === "fractal" ? ButtonVariant.Pill : ButtonVariant.Ghost}
+              className={tab === "fractal" ? "bg-info/15 text-info" : ""}
+            >
+              Fractal
             </Button>
           </nav>
 
@@ -111,8 +119,10 @@ export function App() {
           )
         ) : tab === "logs" ? (
           <LogBrowser />
-        ) : (
+        ) : tab === "agents" ? (
           <AgentGraph />
+        ) : (
+          <FractalGraph />
         )}
       </div>
     </ZoomProvider>

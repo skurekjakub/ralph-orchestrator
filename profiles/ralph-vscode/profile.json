@@ -4,7 +4,7 @@
   "vcsProvider": "ado",
   "repoPat": "ADO_PAT",
   "cli": "copilot",
-  "timeoutMs": 7200000,
+  "timeoutMs": 36000000,
   "allowlistDomains": [
     ".npmjs.org",
     "dev.azure.com",

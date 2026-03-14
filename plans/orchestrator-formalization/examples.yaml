@@ -1,0 +1,497 @@
+# EFSM examples — YAML encoding. All 7 machines for the docwriter family.
+# Compare with examples.json for identical semantics in both formats.
+
+# ─────────────────────────────────────────────────────────────────────
+# ORCHESTRATOR
+# ─────────────────────────────────────────────────────────────────────
+
+orchestrator:
+  $schema: docwriter-efsm-v1
+  machine: docwriter
+  description: Session orchestrator — routes 9-pass pipeline via coordinator results
+
+  variables:
+    cycle:
+      type: counter
+      min: 0
+      max: 3
+      initial: 0
+    reentryTarget:
+      type: enum
+      values: [none, P2, P3, P4, P5_6]
+      initial: none
+
+  states:
+    INIT:  { type: initial }
+    P0:    { type: dispatch, dispatch: knowledge-curator,        pass: 0,   nonBlocking: true }
+    P1:    { type: dispatch, dispatch: discovery-coordinator,    pass: 1 }
+    P2:    { type: dispatch, dispatch: analysis-coordinator,     pass: 2 }
+    P3:    { type: dispatch, dispatch: analysis-coordinator,     pass: 3 }
+    P4:    { type: dispatch, dispatch: execution-coordinator,    pass: 4 }
+    P5_6:  { type: dispatch, dispatch: verification-coordinator, pass: 5 }
+    P6_5:  { type: dispatch, dispatch: synthesis-coordinator,    pass: 6.5, nonBlocking: true }
+    P7:    { type: dispatch, dispatch: delivery-coordinator,     pass: 7 }
+    DONE:  { type: terminal, result: pipeline-complete }
+    ERROR: { type: terminal, result: error }
+
+  transitions:
+    - from: INIT
+      to: P0
+      on: _start
+
+    - from: P0
+      to: P1
+      on: [done, error]
+      # P0 non-blocking — error degrades, does not halt
+
+    - from: P1
+      to: P2
+      on: discovery-complete
+
+    - from: P1
+      to: ERROR
+      on: error
+
+    - from: P2
+      to: P3
+      on: pass2-complete
+
+    - from: P2
+      to: ERROR
+      on: error
+
+    - from: P3
+      to: P4
+      on: pass3-complete
+
+    - from: P3
+      to: ERROR
+      on: error
+
+    - from: P4
+      to: P5_6
+      on: execution-complete
+
+    - from: P4
+      to: ERROR
+      on: error
+
+    - from: P5_6
+      to: P6_5
+      on: converged
+      actions:
+        - set: reentryTarget
+          value: none
+
+    - from: P5_6
+      on: needs-reentry
+      guard: cycle < 3
+      to:
+        switch: $input.target
+        cases:
+          P2: P2
+          P3: P3
+          P4: P4
+          P5_6: P5_6
+      actions:
+        - increment: cycle
+        - set: reentryTarget
+          value: $input.target
+        - cascade:
+            from: $input.target
+            through: P5_6
+
+    - from: P5_6
+      to: P6_5
+      on: needs-reentry
+      guard: cycle >= 3
+      actions:
+        - set: reentryTarget
+          value: none
+      # Forced convergence — max cycles exceeded
+
+    - from: P6_5
+      to: P7
+      on: [knowledge-synthesized, error]
+      # P6.5 non-blocking — error degrades, does not halt
+
+    - from: P7
+      to: DONE
+      on: delivery-complete
+
+    - from: P7
+      to: ERROR
+      on: [error, blocked]
+
+
+# ─────────────────────────────────────────────────────────────────────
+# DISCOVERY COORDINATOR (simplest — linear chain)
+# ─────────────────────────────────────────────────────────────────────
+
+discovery-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: discovery-coordinator
+  description: Pass 1 — diff analysis then corpus scan
+
+  variables: {}
+
+  states:
+    DIFF:   { type: dispatch, dispatch: diff-analyzer,  pass: 1 }
+    CORPUS: { type: dispatch, dispatch: corpus-scanner, pass: 1 }
+    DONE:   { type: terminal, result: discovery-complete }
+    ERROR:  { type: terminal, result: error }
+
+  transitions:
+    - from: DIFF
+      to: CORPUS
+      on: change-inventory-ready
+
+    - from: DIFF
+      to: ERROR
+      on: error
+
+    - from: CORPUS
+      to: DONE
+      on: doc-index-ready
+
+    - from: CORPUS
+      to: ERROR
+      on: error
+
+
+# ─────────────────────────────────────────────────────────────────────
+# ANALYSIS COORDINATOR (two modes, fork-join)
+# ─────────────────────────────────────────────────────────────────────
+
+analysis-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: analysis-coordinator
+  description: Pass 2 (analysis) and Pass 3 (planning) — mode selected by progress state
+
+  variables:
+    gapRelayed:
+      type: boolean
+      initial: false
+
+  modes:
+    pass2:
+      when: pass2_analysis != done
+      entry: P2_INVARIANT
+    pass3:
+      when: pass2_analysis == done && pass3_planning != done
+      entry: P3_TASK_PLAN
+
+  states:
+    P2_INVARIANT: { type: dispatch, dispatch: invariant-scanner, pass: 2 }
+    P2_PARALLEL:
+      type: fork
+      pass: 2
+      slots:
+        code:     { dispatch: code-analyzer }
+        research: { dispatch: research-scout, nonBlocking: true }
+    P2_IMPACT:  { type: dispatch, dispatch: impact-mapper,  pass: 2 }
+    P2_DONE:    { type: terminal, result: pass2-complete }
+
+    P3_TASK_PLAN: { type: dispatch, dispatch: task-planner,  pass: 3 }
+    P3_RISK:      { type: dispatch, dispatch: risk-analyzer, pass: 3 }
+    P3_DONE:      { type: terminal, result: pass3-complete }
+
+    ERROR: { type: terminal, result: error }
+
+  transitions:
+    - from: P2_INVARIANT
+      to: P2_PARALLEL
+      on: done
+
+    - from: P2_INVARIANT
+      to: ERROR
+      on: error
+
+    - from: P2_PARALLEL
+      to: P2_IMPACT
+      on: fork-complete
+      guard: slot.code == done && (slot.research == done || slot.research == error)
+      # Research non-blocking — fork completes even on research failure
+
+    - from: P2_PARALLEL
+      to: ERROR
+      on: fork-complete
+      guard: slot.code == error
+
+    - from: P2_IMPACT
+      to: P2_DONE
+      on: done
+
+    - from: P2_IMPACT
+      to: ERROR
+      on: error
+
+    - from: P3_TASK_PLAN
+      to: P3_RISK
+      on: done
+
+    - from: P3_TASK_PLAN
+      to: ERROR
+      on: error
+
+    - from: P3_RISK
+      to: P3_DONE
+      on: done
+
+    - from: P3_RISK
+      to: ERROR
+      on: error
+
+
+# ─────────────────────────────────────────────────────────────────────
+# EXECUTION COORDINATOR (foreach + nested sub-machine)
+# ─────────────────────────────────────────────────────────────────────
+
+execution-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: execution-coordinator
+  description: Pass 4 — iterates task-graph with write-then-review loop per task
+
+  variables: {}
+
+  foreach:
+    collection: task-graph.json
+    filter: status == planned
+    order: order asc, respecting dependsOn
+    itemVariable: task
+    eligibility: task.dependsOn.every(d => d.status == written)
+
+    itemMachine:
+      variables:
+        attempt:
+          type: counter
+          min: 1
+          max: 3
+          initial: 1
+
+      states:
+        WRITE:     { type: dispatch, dispatch: content-writer }
+        STYLE_REV: { type: dispatch, dispatch: style-reviewer }
+        ACC_REV:   { type: dispatch, dispatch: accuracy-reviewer }
+        PERS_REV:  { type: dispatch, dispatch: persona-reviewer }
+        WRITTEN:   { type: terminal, result: written }
+        BLOCKED:   { type: terminal, result: blocked }
+
+      transitions:
+        - from: WRITE
+          to: STYLE_REV
+          on: done
+
+        - from: WRITE
+          to: BLOCKED
+          on: error
+
+        - from: STYLE_REV
+          to: ACC_REV
+          on: [approved, approved-with-notes]
+
+        - from: STYLE_REV
+          to: WRITE
+          on: rejected
+          guard: attempt < 3
+          actions: [{ increment: attempt }]
+
+        - from: STYLE_REV
+          to: BLOCKED
+          on: rejected
+          guard: attempt >= 3
+
+        - from: ACC_REV
+          to: PERS_REV
+          on: [approved, approved-with-notes]
+
+        - from: ACC_REV
+          to: WRITE
+          on: rejected
+          guard: attempt < 3
+          actions: [{ increment: attempt }]
+
+        - from: ACC_REV
+          to: BLOCKED
+          on: rejected
+          guard: attempt >= 3
+
+        - from: PERS_REV
+          to: WRITTEN
+          on: [approved, approved-with-notes]
+
+        - from: PERS_REV
+          to: WRITE
+          on: rejected
+          guard: attempt < 3
+          actions: [{ increment: attempt }]
+
+        - from: PERS_REV
+          to: BLOCKED
+          on: rejected
+          guard: attempt >= 3
+
+    completionState: ALL_DONE
+
+  states:
+    ALL_DONE: { type: terminal, result: execution-complete }
+    ERROR:    { type: terminal, result: error }
+
+  transitions: []
+
+
+# ─────────────────────────────────────────────────────────────────────
+# VERIFICATION COORDINATOR
+# ─────────────────────────────────────────────────────────────────────
+
+verification-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: verification-coordinator
+  description: Pass 5 (cross-ref) + Pass 6 (gap hunting) → convergence decision
+
+  variables: {}
+
+  states:
+    CROSSREF:
+      type: dispatch
+      dispatch: cross-ref-updater
+      pass: 5
+    GAP_HUNT:
+      type: dispatch
+      dispatch: gap-hunter
+      pass: 6
+    CONVERGED:
+      type: terminal
+      result: converged
+    NEEDS_REENTRY:
+      type: terminal
+      result: needs-reentry
+      output:
+        target: $gapHunter.reEntryTarget
+    FORCED_CONVERGENCE:
+      type: terminal
+      result: converged
+    ERROR:
+      type: terminal
+      result: error
+
+  transitions:
+    - from: CROSSREF
+      to: GAP_HUNT
+      on: done
+
+    - from: CROSSREF
+      to: ERROR
+      on: error
+
+    - from: GAP_HUNT
+      to: CONVERGED
+      on: converged
+
+    - from: GAP_HUNT
+      to: NEEDS_REENTRY
+      on: gaps-found
+      guard: $input.cyclesCompleted < 3
+      # Output includes reEntryTargets array consumed by orchestrator
+
+    - from: GAP_HUNT
+      to: FORCED_CONVERGENCE
+      on: gaps-found
+      guard: $input.cyclesCompleted >= 3
+
+
+# ─────────────────────────────────────────────────────────────────────
+# SYNTHESIS COORDINATOR
+# ─────────────────────────────────────────────────────────────────────
+
+synthesis-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: synthesis-coordinator
+  description: Pass 6.5 — signal analysis → knowledge integration → skill rebuild
+
+  variables: {}
+
+  states:
+    TASK_SIG:  { type: dispatch, dispatch: task-signal-analyzer,    nonBlocking: true }
+    CTX_SIG:   { type: dispatch, dispatch: context-signal-analyzer, nonBlocking: true }
+    INTEGRATE: { type: dispatch, dispatch: knowledge-integrator }
+    REBUILD:   { type: dispatch, dispatch: skill-rebuilder,         nonBlocking: true }
+    DONE:      { type: terminal, result: knowledge-synthesized }
+    ERROR:     { type: terminal, result: error }
+
+  transitions:
+    - from: TASK_SIG
+      to: CTX_SIG
+      on: [done, error]
+
+    - from: CTX_SIG
+      to: INTEGRATE
+      on: [done, error]
+
+    - from: INTEGRATE
+      to: REBUILD
+      on: done
+
+    - from: INTEGRATE
+      to: ERROR
+      on: error
+      # Integrator failure is fatal
+
+    - from: REBUILD
+      to: DONE
+      on: [done, error]
+
+
+# ─────────────────────────────────────────────────────────────────────
+# DELIVERY COORDINATOR
+# ─────────────────────────────────────────────────────────────────────
+
+delivery-coordinator:
+  $schema: docwriter-efsm-v1
+  machine: delivery-coordinator
+  description: Pass 7 — validation → changelog → PR
+
+  variables: {}
+
+  states:
+    GATE:        { type: gate, requires: "pass6_gapHunting == done && converged == true" }
+    FRONTMATTER: { type: dispatch, dispatch: frontmatter-validator }
+    CHANGELOG:   { type: dispatch, dispatch: changelog-writer }
+    PR:          { type: dispatch, dispatch: pr-preparer }
+    DONE:        { type: terminal, result: delivery-complete }
+    BLOCKED:     { type: terminal, result: blocked }
+    ERROR:       { type: terminal, result: error }
+
+  transitions:
+    - from: GATE
+      to: FRONTMATTER
+      on: gate-passed
+
+    - from: GATE
+      to: BLOCKED
+      on: gate-failed
+
+    - from: FRONTMATTER
+      to: CHANGELOG
+      on: [all-valid, issues-found]
+      # Advisory, not blocking
+
+    - from: FRONTMATTER
+      to: ERROR
+      on: error
+
+    - from: CHANGELOG
+      to: PR
+      on: done
+
+    - from: CHANGELOG
+      to: ERROR
+      on: error
+
+    - from: PR
+      to: DONE
+      on: done
+
+    - from: PR
+      to: ERROR
+      on: error

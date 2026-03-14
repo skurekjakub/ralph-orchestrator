@@ -90,7 +90,7 @@ Trigger parameters extend agent behavior per-invocation without changing the tem
 @Ralph(param1, param2, key=value)
 ```
 
-- **Bare params** (flags): `codesamples`, `skip_review`, `verbose`
+- **Bare params** (flags): `codesamples`, `verbose`
 - **Key-value params**: `branch_name=feature/new-api`, `source_branch=release/30`, `scope=src/_documentation/developers`
 
 ### Parsing
@@ -131,7 +131,6 @@ Both callsigns invoke the same agent template. `@RalphDf` targets the DF project
 |---|---|---|
 | `codesamples` | flag | Renders ASP.NET code project instructions (build commands, namespace conventions, `code_link` tag usage) |
 | `branch_name` | key=value | Adds Xperience source branch context — git diff commands against `master` for the specified branch |
-| `skip_review` | flag | Skips Phase 4–5 review cycle (sub-agent review + revision loop) |
 | `source_branch` | key=value | Overrides `main` as the base branch for `git checkout -b` and the PR target branch |
 | `scope` | key=value | Restricts file changes to the specified path; out-of-scope work goes to handoff as follow-up |
 

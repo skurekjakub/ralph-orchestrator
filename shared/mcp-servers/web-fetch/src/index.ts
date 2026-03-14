@@ -17,9 +17,17 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import TurndownService from "turndown";
 import { z } from "zod";
 
 const DEFAULT_MAX_LENGTH = 50_000;
+
+const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced" });
+turndown.remove(["script", "style", "noscript", "iframe"]);
+
+function isHtml(contentType: string | null): boolean {
+  return !!contentType && contentType.includes("text/html");
+}
 
 /** Create a fresh McpServer with the web_fetch tool registered. */
 function createMcpServer(): McpServer {
@@ -66,7 +74,9 @@ function createMcpServer(): McpServer {
         };
       }
 
-      const text = await response.text();
+      const raw = await response.text();
+      const contentType = response.headers.get("content-type");
+      const text = isHtml(contentType) ? turndown.turndown(raw) : raw;
       const truncated = text.length > maxLength;
       const content = truncated ? text.slice(0, maxLength) : text;
       const suffix = truncated

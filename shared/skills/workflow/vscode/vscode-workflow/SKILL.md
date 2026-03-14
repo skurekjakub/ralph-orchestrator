@@ -24,6 +24,8 @@ All subagent communication follows the **agent-as-function** pattern:
 
 **Purity rule**: The orchestrator routes on `status.json` fields, with `ralph-planner/tasks.json` as the explicit control-file exception for task bookkeeping. Never read subagent `output.md` files for routing — downstream subagents read each other's artifacts directly.
 
+**Anti-halt rule**: After every subagent dispatch (`task` tool return), the orchestrator MUST immediately read `status.json` and route to the next step. Never emit an empty response or stop mid-workflow — the workflow is not complete until the `===RALPH_RESULT_START===` exit block is printed.
+
 {%- if isRevision %}
 
 ## Revision Workflow
@@ -32,7 +34,7 @@ Execute the following phases **in order**. Before each phase, read the correspon
 
 | Phase | Reference file | Summary |
 |-------|---------------|---------|
-| 1. Understand Feedback | `references/r1-setup.md` | Read reviewer feedback, find existing PR & branch |
+| 1. Understand Feedback | `references/r1-setup.md` | Read reviewer feedback, find existing PR & branch. Greet plebs on the JIRA issue |
 | 2. Analyze Revision | `references/2-analyze.md` | Dispatch analyst in revision mode, read status.json{%- unless triggerParams.skip_planner %}; then dispatch planner{%- endunless %} |
 | 3. Fix & Review | `references/3-implement-loop.md` | {%- if triggerParams.skip_planner %}Dispatch coder → reviewer loop (max 2 iterations){%- else %}Per-task coder → reviewer loop (max 3 rounds/task), then planner verification; max 2 planner passes{%- endif %} |
 | 4. Package | `references/4-package.md` | Bump patch version, update CHANGELOG, build .vsix |
@@ -70,5 +72,5 @@ Execute the following phases **in order**. Before each phase, read the correspon
 1. Read `state.md` to determine your current phase
 2. Read the reference file listed in the workflow table above for that phase
 3. Follow the reference file's instructions
-4. Update `state.md` as directed by the reference file's transition section
+4. **Update `state.md`** as directed by the reference file's "Before moving to" section — this is mandatory at **every** phase transition, including Phases 5–8. Do not skip state.md updates even when the remaining phases feel routine.
 5. Repeat from step 1

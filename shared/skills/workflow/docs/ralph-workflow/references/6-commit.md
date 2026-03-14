@@ -10,8 +10,7 @@
 ## Instructions
 
 **Pre-commit checkpoint:** Re-read `state.md` and verify:
-- The latest writer `status.json` reported `result: all-tasks-implemented` (or the task is intentionally being delivered as `partial`)
-- All planned tasks in `ralph-planner/tasks.json` were either completed or explicitly deferred
+- All planned tasks in `ralph-planner/tasks.json` have `lifecycle: "done"` (or are explicitly deferred as `partial`)
 - All review phases are complete (or skipped)
 
 Stage, commit, and push:
