@@ -1,0 +1,650 @@
+{
+  "$schema": "Fantasy-writer meta-knowledge extension — adds cross-run learning to the fiction writer agent system",
+  "version": 1,
+  "family": "fantasy-writer-meta-knowledge",
+  "generatedAt": "2026-03-15T21:00:00Z",
+  "description": "Adds a cross-run meta-knowledge system to the fantasy-writer agent pipeline, modeled after the docwriter's proven knowledge-curator → signal-analyzer → knowledge-integrator pattern. Enables the fiction writer to learn from previously written books — discovering what creative approaches worked, what failed in review, what craft decisions improved prose quality, and carrying forward domain-specific insights about its own storytelling tendencies. This is a FUTURE EXTENSION to be applied after the factory produces the base agent family.",
+  "summary": {
+    "totalTasks": 23,
+    "phases": 5,
+    "newAgentFiles": 7,
+    "modifiedAgentFiles": 5,
+    "newDirectories": 3,
+    "agentCount": {
+      "before": "~47 (base factory output)",
+      "after": "~54 (base + 7 meta-knowledge agents)",
+      "delta": "+7 (1 coordinator + 4 specialists + 2 analyzers)"
+    }
+  },
+  "assumptions": [
+    "The fractal factory has already produced the base fantasy-writer agent family (~47 agents, 9 phases)",
+    "The base pipeline uses a session orchestrator with pass-based routing (similar to docwriter)",
+    "Series architecture from the domain brief is already implemented (series/, book-N/ directory structure)",
+    "Adversarial auditors already produce structured findings with severity levels",
+    "Beta reading lenses already produce structured per-lens findings",
+    "The guide agent already writes story-config.json and launches the pipeline",
+    "A bootstrap script exists that creates the working directory structure"
+  ],
+  "designDecisions": [
+    {
+      "decision": "Model after docwriter's knowledge-curator + synthesis-coordinator pattern, not a novel design",
+      "rationale": "The docwriter fractal has a battle-tested meta-knowledge system with proven confidence calibration, quality gates, and cold-start handling. Adapting it to fiction-writing is lower risk than inventing a new pattern."
+    },
+    {
+      "decision": "Meta-knowledge lives in output/meta/ (sibling to series/ and book-N/), not inside series/",
+      "rationale": "Meta-knowledge is about the writing PROCESS (what approaches worked), not the story CONTENT (what happens in the world). Series knowledge tracks narrative facts; meta-knowledge tracks craft learnings. Mixing them would conflate two different concerns."
+    },
+    {
+      "decision": "Six knowledge categories adapted from docwriter: craft-patterns, craft-anti-patterns, pacing-insights, voice-insights, worldbuilding-insights, run-retrospectives",
+      "rationale": "These map to the fiction-writer's unique concerns. Docwriter's 'source-observations' (code→doc predictors) becomes 'pacing-insights' (scene-type→prose-quality predictors). Docwriter's 'domain-insights' splits into 'voice-insights' and 'worldbuilding-insights' because fiction has two distinct knowledge domains."
+    },
+    {
+      "decision": "Meta-knowledge synthesis runs as Pass 8.5 (after beta reading, before polish), not after delivery",
+      "rationale": "Signal extraction depends on reviewer findings (which pass first-attempt? which needed multiple cycles?). It must run before delivery so the knowledge is available for the NEXT run, and after beta reading so it captures the full review picture."
+    },
+    {
+      "decision": "Knowledge curator runs as Pass 0 (before concept development), same as docwriter",
+      "rationale": "Meta-knowledge from prior runs must be available to all downstream phases. The concept phase especially benefits — if the system learned that certain premise structures consistently produced weak middles, that insight should shape plotting."
+    },
+    {
+      "decision": "Confidence ladder is identical to docwriter: low → medium → high across 1 → 2 → 3+ runs",
+      "rationale": "The docwriter's ladder is calibrated for LLM signal quality. Fiction writing has similarly noisy signals — a single successful approach could be luck, not a pattern. The strict ladder prevents premature trust."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "FK-001",
+      "phase": 1,
+      "ref": "phase-1-bootstrap-meta-directories",
+      "title": "Extend bootstrap — create meta/ directory tree + seed files",
+      "description": "Modify the fantasy-writer bootstrap script to create output/meta/ with subdirectories for each knowledge category: craft-patterns/, craft-anti-patterns/, pacing-insights/, voice-insights/, worldbuilding-insights/, run-retrospectives/. Seed meta/index.json (version 1, empty entries array) and meta/confidence-ladder.md (the calibration rules).",
+      "type": "modify",
+      "target": "fantasy-writer-bootstrap.sh",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "creates": [
+          "output/meta/",
+          "output/meta/craft-patterns/",
+          "output/meta/craft-anti-patterns/",
+          "output/meta/pacing-insights/",
+          "output/meta/voice-insights/",
+          "output/meta/worldbuilding-insights/",
+          "output/meta/run-retrospectives/",
+          "output/meta/index.json",
+          "output/meta/confidence-ladder.md",
+          "output/synthesis-signals/"
+        ],
+        "modifies": ["fantasy-writer-bootstrap.sh"]
+      },
+      "acceptanceCriteria": [
+        "Bootstrap creates output/meta/ with all 6 subdirectories",
+        "Bootstrap creates output/synthesis-signals/",
+        "meta/index.json seeded with {version: 1, entries: [], lastSynthesized: null}",
+        "confidence-ladder.md documents the low→medium→high promotion rules"
+      ]
+    },
+    {
+      "id": "FK-002",
+      "phase": 1,
+      "ref": "phase-1-bootstrap-progress-schema",
+      "title": "Extend progress.json schema — add meta-knowledge pass tracking",
+      "description": "Add pass0_knowledgeCuration and pass85_knowledgeSynthesis fields to the progress.json schema so the orchestrator can track meta-knowledge pass completion.",
+      "type": "modify",
+      "target": "progress.json schema",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["progress.json"]
+      },
+      "acceptanceCriteria": [
+        "progress.json includes pass0_knowledgeCuration field (not-started | done)",
+        "progress.json includes pass85_knowledgeSynthesis field (not-started | done)",
+        "Existing pass fields are unchanged"
+      ]
+    },
+    {
+      "id": "FK-003",
+      "phase": 2,
+      "ref": "phase-2-knowledge-curator-agent",
+      "title": "Create fantasy-writer-knowledge-curator agent",
+      "description": "Create the knowledge curator agent (dispatched at Pass 0 before concept development). Reads output/meta/index.json + all knowledge entry files, builds a task profile from story-config.json (genre, tropes, heat level, series position), scores entries by relevance using 4-factor scoring (domain overlap 40%, confidence 25%, recency 20%, usage 15%), and writes a knowledge-brief.json with curated insights grouped by consumer phase. Handles cold-start gracefully (empty brief, not an error). Modeled directly on docwriter-knowledge-curator.",
+      "type": "create",
+      "target": "fantasy-writer-knowledge-curator.agent.md",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["fantasy-writer-knowledge-curator.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Agent reads meta/index.json and all referenced knowledge entry files",
+        "Builds a task profile from story-config.json (genre, tropes, heat-level, series-position, prior-book-count)",
+        "4-factor relevance scoring with ≥0.4 threshold, max 20 entries in brief",
+        "Groups entries by primary consumer: concept-agents, worldbuilding-agents, character-agents, plotting-agents, drafting-agents, revision-agents, beta-readers",
+        "Cold-start produces valid empty brief with coldStart: true",
+        "Detects stale entries (>90 days, <3 usages) and flags for synthesis attention",
+        "Writes knowledge-brief.json and own status file"
+      ]
+    },
+    {
+      "id": "FK-004",
+      "phase": 2,
+      "ref": "phase-2-knowledge-brief-schema",
+      "title": "Define knowledge-brief.json schema",
+      "description": "Specify the complete JSON schema for the knowledge brief artifact, including task profile, per-category knowledge sections (craft-patterns, craft-anti-patterns, pacing-insights, voice-insights, worldbuilding-insights, run-retro-lessons), stale entries, conflicts, and summary stats.",
+      "type": "specification",
+      "target": "output/knowledge-brief.json",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["knowledge-brief-schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Schema covers: taskProfile, craftPatterns[], craftAntiPatterns[], pacingInsights[], voiceInsights[], worldbuildingInsights[], runRetroLessons[], staleEntries[], conflicts[], summary{}",
+        "Each entry in arrays includes: id, title, insight, applicability, invariantsReferenced, confidence, relevanceScore, sourceRun, usageCount, consumers[]",
+        "taskProfile includes: genre, tropes, heatLevel, seriesPosition, priorBookCount, historicalSimilarity",
+        "summary includes: counts per category, coldStart boolean, truncated boolean, relevanceThreshold"
+      ]
+    },
+    {
+      "id": "FK-005",
+      "phase": 2,
+      "ref": "phase-2-craft-signal-analyzer",
+      "title": "Create fantasy-writer-craft-signal-analyzer agent",
+      "description": "Create the craft signal analyzer (dispatched during Pass 8.5 synthesis). Reads per-chapter review artifacts (adversarial auditor findings, beta reader lens reports, revision logs) and extracts three signal types: (A1) craft approaches that passed first-attempt review → candidate craft-patterns, (A2) approaches that required multiple revision cycles → candidate craft-anti-patterns, (A3) pacing decisions that correlated with positive/negative beta reader feedback → candidate pacing-insights. Analog of docwriter-task-signal-analyzer.",
+      "type": "create",
+      "target": "fantasy-writer-craft-signal-analyzer.agent.md",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["fantasy-writer-craft-signal-analyzer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Reads all per-chapter adversarial audit findings, beta reader reports, and revision logs",
+        "Signal A1: Identifies chapters passing first-attempt review across all lenses, extracts structural/craft approach used",
+        "Signal A2: Identifies chapters needing 2+ revision cycles, identifies root cause of first rejection",
+        "Signal A3: Correlates pacing decisions (scene-sequel structure, chapter length, tension placement) with beta-reader pacing audit results",
+        "Each signal has strength rating: low (single chapter), medium (2+ chapters same run), confirm-existing (matches existing entry)",
+        "Writes synthesis-signals/craft-signals.json"
+      ]
+    },
+    {
+      "id": "FK-006",
+      "phase": 2,
+      "ref": "phase-2-narrative-signal-analyzer",
+      "title": "Create fantasy-writer-narrative-signal-analyzer agent",
+      "description": "Create the narrative signal analyzer (dispatched during Pass 8.5 synthesis). Reads global pipeline artifacts (worldbuilding consistency findings, character voice audits, romance arc satisfaction scores, series continuity results) and extracts three signal types: (B1) voice patterns that maintained consistency → candidate voice-insights, (B2) worldbuilding approaches that avoided contradictions → candidate worldbuilding-insights, (B3) meta-knowledge brief effectiveness — which curated entries were actually used vs. ignored. Analog of docwriter-context-signal-analyzer.",
+      "type": "create",
+      "target": "fantasy-writer-narrative-signal-analyzer.agent.md",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["fantasy-writer-narrative-signal-analyzer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Signal B1: Extracts voice patterns from craft-reader lens findings — which POV voice techniques maintained consistency across chapters",
+        "Signal B2: Extracts worldbuilding approaches from fantasy-reader lens and adversarial auditor findings — which subcategory decomposition strategies avoided contradictions",
+        "Signal B3: Cross-references knowledge-brief.json entries against actual reviewer citations to compute usage rate and effectiveness",
+        "Cross-references with craft-signals.json to avoid duplicate signal extraction",
+        "Writes synthesis-signals/narrative-signals.json"
+      ]
+    },
+    {
+      "id": "FK-007",
+      "phase": 2,
+      "ref": "phase-2-knowledge-integrator",
+      "title": "Create fantasy-writer-knowledge-integrator agent",
+      "description": "Create the knowledge integrator (dispatched during Pass 8.5 after both analyzers). Reads both signal files, applies strict confidence ladder (low→medium→high across runs), quality gate (reusability + actionability + non-redundancy), deduplication against existing index, and writes new/updated knowledge entries + run retrospective. This is the ONLY agent that writes to output/meta/. Modeled directly on docwriter-knowledge-integrator.",
+      "type": "create",
+      "target": "fantasy-writer-knowledge-integrator.agent.md",
+      "prerequisites": ["FK-005", "FK-006"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["fantasy-writer-knowledge-integrator.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Merges and deduplicates signals from both analyzer outputs",
+        "Confidence ladder: new signal = low, confirmed in 2+ runs = medium, 3+ runs + >80% acceptance = high. Never auto-promotes to high in same run.",
+        "Quality gate: all three criteria (reusability, actionability, non-redundancy) must pass",
+        "Writes entries to appropriate meta/ subdirectory with YAML frontmatter (id, title, type, confidence, domains, dates, usageCount, sourceRun, deprecated)",
+        "Updates meta/index.json atomically (read-compute-write)",
+        "Writes run retrospective to meta/run-retrospectives/<book-id>-<timestamp>.json",
+        "Status file reports: newEntries, updatedEntries, discarded, retrospectiveWritten"
+      ]
+    },
+    {
+      "id": "FK-008",
+      "phase": 2,
+      "ref": "phase-2-knowledge-entry-schema",
+      "title": "Define meta-knowledge entry file format",
+      "description": "Specify the markdown + YAML frontmatter format for each knowledge entry type: craft-patterns (CP-NNN), craft-anti-patterns (CA-NNN), pacing-insights (PI-NNN), voice-insights (VI-NNN), worldbuilding-insights (WI-NNN). Each entry has: Insight section, Evidence section (citing specific chapters/runs), Applicability section (when to use/avoid).",
+      "type": "specification",
+      "target": "output/meta/",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["meta-knowledge-entry-schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Frontmatter fields defined: id, title, type, confidence, domains[], discoveredDate, lastReferencedDate, usageCount, sourceRun, invariantsReferenced[], craftToolsReferenced[], deprecated",
+        "Body structure: ## Insight, ## Evidence (citing specific chapters and runs), ## Applicability (when useful, when not)",
+        "ID conventions: CP-NNN, CA-NNN, PI-NNN, VI-NNN, WI-NNN",
+        "Domains vocabulary defined: concept, worldbuilding, character, plotting, style, drafting, revision, beta-reading"
+      ]
+    },
+    {
+      "id": "FK-009",
+      "phase": 2,
+      "ref": "phase-2-synthesis-coordinator",
+      "title": "Create fantasy-writer-synthesis-coordinator agent",
+      "description": "Create the synthesis coordinator (dispatched at Pass 8.5). Routes the 3 synthesis subagents in sequence: craft-signal-analyzer → narrative-signal-analyzer → knowledge-integrator. Validates each step's output before proceeding. Handles degraded mode (empty signals → integrator still runs). Modeled on docwriter-synthesis-coordinator.",
+      "type": "create",
+      "target": "fantasy-writer-synthesis-coordinator.agent.md",
+      "prerequisites": ["FK-005", "FK-006", "FK-007"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["fantasy-writer-synthesis-coordinator.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Dispatches craft-signal-analyzer first, waits for status",
+        "Dispatches narrative-signal-analyzer second, waits for status",
+        "Dispatches knowledge-integrator third, waits for status",
+        "Validates each agent's output files exist and are well-formed",
+        "On analyzer failure: logs warning, creates empty signal file, continues in degraded mode",
+        "On integrator failure: marks synthesis as failed, writes error status",
+        "Reports all subagent results in own status file"
+      ]
+    },
+    {
+      "id": "FK-010",
+      "phase": 2,
+      "ref": "phase-2-run-retrospective-schema",
+      "title": "Define run retrospective JSON schema",
+      "description": "Specify the per-run retrospective format capturing quantified outcomes: total chapters, first-attempt acceptance rate per review lens, total revision cycles, patterns discovered, anti-patterns discovered, knowledge entries created/updated, which craft toolbox items were selected vs. which correlated with quality.",
+      "type": "specification",
+      "target": "output/meta/run-retrospectives/",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": ["run-retrospective-schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Schema includes: bookId, seriesPosition, completedAt, totalChapters, firstAttemptRate (overall + per lens), totalRevisionCycles",
+        "Schema includes: craftToolboxSelected[], craftToolboxEffectiveness{} (per tool: applied count, first-attempt rate when applied)",
+        "Schema includes: patternsDiscovered, antiPatternsDiscovered, insightsDiscovered, entriesUpdated",
+        "Schema includes: knowledgeBriefUtilization (entries briefed, entries cited, entries ignored)"
+      ]
+    },
+    {
+      "id": "FK-011",
+      "phase": 3,
+      "ref": "phase-3-orchestrator-pass0-routing",
+      "title": "Modify orchestrator — add Pass 0 knowledge curation routing",
+      "description": "Add a routing rule to the session orchestrator: before dispatching Pass 1 (concept development), check if pass0_knowledgeCuration is not done. If not, dispatch fantasy-writer-knowledge-curator. After curator completes, set pass0_knowledgeCuration = done and proceed to Pass 1.",
+      "type": "modify",
+      "target": "fantasy-writer.agent.md (session orchestrator)",
+      "prerequisites": ["FK-003", "FK-002"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fantasy-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Orchestrator checks pass0_knowledgeCuration before entering Pass 1",
+        "Dispatches knowledge-curator when pass0 is not done",
+        "Reads curator status file and validates knowledge-brief.json exists",
+        "Sets pass0_knowledgeCuration = done before proceeding",
+        "Pass 1+ phases proceed unchanged if pass0 already done (re-entry safe)"
+      ]
+    },
+    {
+      "id": "FK-012",
+      "phase": 3,
+      "ref": "phase-3-orchestrator-pass85-routing",
+      "title": "Modify orchestrator — add Pass 8.5 synthesis routing",
+      "description": "Add a routing rule: after Pass 8 (beta reading) converges and before Pass 9 (polish/delivery), check if pass85_knowledgeSynthesis is not done. If not, dispatch fantasy-writer-synthesis-coordinator. After synthesis completes, set pass85_knowledgeSynthesis = done and proceed to Pass 9.",
+      "type": "modify",
+      "target": "fantasy-writer.agent.md (session orchestrator)",
+      "prerequisites": ["FK-009", "FK-002"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fantasy-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Orchestrator checks pass85_knowledgeSynthesis after pass8 (beta reading) is done",
+        "Dispatches synthesis-coordinator when pass85 is not done",
+        "Reads coordinator status file and validates meta/index.json was updated",
+        "Sets pass85_knowledgeSynthesis = done before proceeding to pass9 (polish)",
+        "Pass 9 proceeds unchanged if pass85 already done (re-entry safe)"
+      ]
+    },
+    {
+      "id": "FK-013",
+      "phase": 3,
+      "ref": "phase-3-orchestrator-agents-list",
+      "title": "Update orchestrator agents list and architecture diagram",
+      "description": "Add the 4 new direct-dispatch agents to the orchestrator's agents list and update the ASCII architecture diagram to show Pass 0 and Pass 8.5 positions in the pipeline.",
+      "type": "modify",
+      "target": "fantasy-writer.agent.md (session orchestrator)",
+      "prerequisites": ["FK-011", "FK-012"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fantasy-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "agents[] frontmatter includes knowledge-curator and synthesis-coordinator",
+        "Architecture diagram shows Pass 0 before concept, Pass 8.5 between beta-reading and polish",
+        "Diagram shows synthesis-coordinator's 3 subagents (craft-signal-analyzer, narrative-signal-analyzer, knowledge-integrator)"
+      ]
+    },
+    {
+      "id": "FK-014",
+      "phase": 4,
+      "ref": "phase-4-concept-agents-brief-consumption",
+      "title": "Modify concept phase agents — consume knowledge brief",
+      "description": "Update the concept development agents (idea distillation, theme extraction, craft toolbox selector) to read knowledge-brief.json if it exists. Specifically: the craft toolbox selector should check if prior runs discovered that certain tools correlated with high first-attempt acceptance for similar story types. Concept-level agents should check for anti-patterns that suggest certain premise structures led to weak middles or unsatisfying arcs.",
+      "type": "modify",
+      "target": "concept phase agents",
+      "prerequisites": ["FK-003"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["concept phase agents (2-3 files)"]
+      },
+      "acceptanceCriteria": [
+        "Agents read knowledge-brief.json if it exists, skip gracefully if absent",
+        "Craft toolbox selector considers craftPatterns entries when selecting tools for the new story",
+        "Concept agents check craftAntiPatterns entries for premise-level warnings",
+        "Agents note which brief entries they consulted in their status files (for B3 effectiveness tracking)"
+      ]
+    },
+    {
+      "id": "FK-015",
+      "phase": 4,
+      "ref": "phase-4-worldbuilding-agents-brief-consumption",
+      "title": "Modify worldbuilding phase agents — consume knowledge brief",
+      "description": "Update worldbuilding agents to read knowledge-brief.json's worldbuildingInsights section. If prior runs discovered that certain subcategory decomposition strategies avoided contradictions, or that magic system documentation approaches prevented downstream continuity issues, apply those insights.",
+      "type": "modify",
+      "target": "worldbuilding phase agents",
+      "prerequisites": ["FK-003"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["worldbuilding phase agents (2-4 files)"]
+      },
+      "acceptanceCriteria": [
+        "Agents read knowledge-brief.json worldbuildingInsights if available",
+        "Worldbuilding agents apply insights about subcategory organization that reduced contradictions",
+        "Magic system agent applies insights about documentation approaches that prevented downstream continuity failures",
+        "Agents note which brief entries they consulted in their status files"
+      ]
+    },
+    {
+      "id": "FK-016",
+      "phase": 4,
+      "ref": "phase-4-drafting-agents-brief-consumption",
+      "title": "Modify drafting phase agents — consume knowledge brief",
+      "description": "Update chapter drafting agents to read knowledge-brief.json's craftPatterns and pacingInsights sections. If prior runs discovered that certain scene-sequel structures, chapter length targets, or tension placement strategies correlated with first-attempt review acceptance, apply those insights during drafting.",
+      "type": "modify",
+      "target": "drafting phase agents",
+      "prerequisites": ["FK-003"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["drafting phase agents (2-4 files)"]
+      },
+      "acceptanceCriteria": [
+        "Chapter drafter reads craftPatterns and pacingInsights from brief",
+        "Drafter considers insights about scene structures that correlated with quality",
+        "Drafter considers insights about pacing patterns that received positive beta-reader feedback",
+        "Agents note which brief entries they consulted in their status files"
+      ]
+    },
+    {
+      "id": "FK-017",
+      "phase": 4,
+      "ref": "phase-4-revision-agents-brief-consumption",
+      "title": "Modify revision and beta-reader agents — consume knowledge brief",
+      "description": "Update revision and beta-reader agents to read knowledge-brief.json's craftAntiPatterns section. If prior runs discovered recurring failure modes (e.g., 'dialogue tags overused in romantic scenes', 'magic system costs forgotten in action climaxes'), beta readers should specifically look for those patterns. This gives reviewers institutional memory.",
+      "type": "modify",
+      "target": "revision + beta-reader agents",
+      "prerequisites": ["FK-003"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["revision and beta-reader agents (4-6 files)"]
+      },
+      "acceptanceCriteria": [
+        "Revision agents read craftAntiPatterns from brief and add them to their review checklist",
+        "Beta reader lenses read relevant insight categories and use them to calibrate sensitivity",
+        "Craft reader lens specifically checks for anti-patterns from prior runs",
+        "All consuming agents note which brief entries they consulted"
+      ]
+    },
+    {
+      "id": "FK-018",
+      "phase": 4,
+      "ref": "phase-4-guide-run-mode-detection",
+      "title": "Modify guide agent — detect existing meta/ state and report lineage",
+      "description": "Update the guide agent to check if output/meta/index.json exists and has entries. If so, report to the user: 'Found knowledge from N prior runs (X patterns, Y anti-patterns, Z insights). This will be used to guide the new story.' This gives the user visibility into the learning state.",
+      "type": "modify",
+      "target": "fantasy-writer-guide.agent.md",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fantasy-writer-guide.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Guide checks for output/meta/index.json on startup",
+        "If present with entries: reports count of entries by type, count of prior runs (from retrospectives), highest-confidence entries",
+        "If absent or empty: reports 'First run — no prior knowledge available. Meta-knowledge will be collected after this run completes.'",
+        "Report is informational only — does not block or alter the user interaction flow"
+      ]
+    },
+    {
+      "id": "FK-019",
+      "phase": 5,
+      "ref": "phase-5-cold-start-verification",
+      "title": "Verify cold-start path — first run produces valid empty brief + populates meta/",
+      "description": "End-to-end verification that the first run (no prior meta-knowledge) works correctly: curator produces a valid empty brief, all consuming agents gracefully skip brief consultation, synthesis extracts signals and writes initial entries, retrospective is written, index is populated.",
+      "type": "verification",
+      "target": "full pipeline",
+      "prerequisites": ["FK-011", "FK-012", "FK-014", "FK-015", "FK-016", "FK-017", "FK-018"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "Curator writes knowledge-brief.json with coldStart: true, all sections empty",
+        "No downstream agent errors when brief sections are empty arrays",
+        "Synthesis runs after beta reading — both analyzers produce signals",
+        "Integrator writes at least 1 knowledge entry (there should always be SOMETHING learned)",
+        "Retrospective file is created in meta/run-retrospectives/",
+        "meta/index.json has entries > 0 after first run completes"
+      ]
+    },
+    {
+      "id": "FK-020",
+      "phase": 5,
+      "ref": "phase-5-sequel-run-verification",
+      "title": "Verify sequel path — second run consumes prior meta-knowledge",
+      "description": "End-to-end verification that the second run (with prior meta-knowledge from run 1) works correctly: curator produces a non-empty brief with relevant entries, consuming agents cite entries from the brief, synthesis detects confirmed patterns and promotes confidence levels, retrospective reports knowledge utilization stats.",
+      "type": "verification",
+      "target": "full pipeline",
+      "prerequisites": ["FK-019"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "Curator writes knowledge-brief.json with coldStart: false, at least one non-empty section",
+        "At least one consuming agent cites a brief entry in its status file",
+        "Integrator promotes at least one entry from low→medium (confirmed in 2nd run)",
+        "Retrospective reports knowledgeBriefUtilization with entries > 0",
+        "No duplicate entries in meta/index.json",
+        "Total entries in index is higher than after run 1"
+      ]
+    },
+    {
+      "id": "FK-021",
+      "phase": 5,
+      "ref": "phase-5-confidence-ladder-verification",
+      "title": "Verify confidence ladder enforcement across runs",
+      "description": "Verify that the strict confidence ladder is enforced: run 1 entries start at low, run 2 confirmation promotes to medium, run 3+ confirmation with >80% acceptance promotes to high. No entry ever jumps levels. Violated entries (approach was used but reviewer rejected) are demoted.",
+      "type": "verification",
+      "target": "output/meta/index.json",
+      "prerequisites": ["FK-020"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "No entry has confidence: 'high' with fewer than 3 sourceRuns",
+        "No entry has confidence: 'medium' with fewer than 2 sourceRuns",
+        "All new entries from a single run have confidence: 'low'",
+        "Violated entries are demoted (confidence decreased, demotion note present)",
+        "Confidence promotions are logged in the integrator status file"
+      ]
+    },
+    {
+      "id": "FK-022",
+      "phase": 5,
+      "ref": "phase-5-separation-of-concerns-verification",
+      "title": "Verify meta-knowledge vs. series-knowledge separation",
+      "description": "Verify that meta-knowledge (output/meta/) and series knowledge (output/series/) remain cleanly separated. Meta-knowledge tracks process insights (craft approaches, pacing strategies). Series knowledge tracks narrative facts (world state, character positions, plot threads). No agent writes to both.",
+      "type": "verification",
+      "target": "output/meta/ vs output/series/",
+      "prerequisites": ["FK-019"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "knowledge-integrator ONLY writes to output/meta/ — never touches series/",
+        "Series knowledge agents ONLY write to output/series/ — never touch meta/",
+        "Meta-knowledge entries reference craft approaches, not narrative content",
+        "Series knowledge entries reference story facts, not process techniques",
+        "No entry in meta/index.json contains story-specific content (character names, plot points)"
+      ]
+    },
+    {
+      "id": "FK-023",
+      "phase": 5,
+      "ref": "phase-5-domain-brief-update",
+      "title": "Update domain-brief.md — add Cross-Run Meta-Knowledge section",
+      "description": "Add a new section to the domain brief documenting the meta-knowledge system as a designed architectural feature. This ensures the factory understands the pattern when producing agents. Describes: the meta/ directory purpose, the Pass 0 / Pass 8.5 lifecycle, the confidence ladder, the knowledge categories, and the separation from series knowledge.",
+      "type": "modify",
+      "target": ".fractal-factory/domain-brief.md",
+      "prerequisites": ["FK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractal-factory/domain-brief.md"]
+      },
+      "acceptanceCriteria": [
+        "New section 'Cross-Run Meta-Knowledge System' added after 'Series Architecture & Sequel Production'",
+        "Describes: purpose (learn from prior runs), location (output/meta/), lifecycle (Pass 0 curation → Pass 8.5 synthesis)",
+        "Documents 6 knowledge categories with domain vocabulary",
+        "Documents confidence ladder (low→medium→high) and quality gate (reusability, actionability, non-redundancy)",
+        "Explicitly distinguishes meta-knowledge (process insights) from series knowledge (narrative facts)",
+        "References the docwriter pattern as the architectural precedent"
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "phase": 1,
+        "tasks": ["FK-001"],
+        "parallelSafe": false,
+        "note": "Foundation — bootstrap directory structure and seed files"
+      },
+      {
+        "step": 2,
+        "phase": 1,
+        "tasks": ["FK-002"],
+        "parallelSafe": false,
+        "note": "Progress schema depends on FK-001"
+      },
+      {
+        "step": 3,
+        "phase": 2,
+        "tasks": ["FK-004", "FK-008", "FK-010"],
+        "parallelSafe": true,
+        "note": "Schemas/specs — all independent, define contracts before agents"
+      },
+      {
+        "step": 4,
+        "phase": 2,
+        "tasks": ["FK-003", "FK-005", "FK-006"],
+        "parallelSafe": true,
+        "note": "Create 3 independent specialist agents (curator, 2 analyzers)"
+      },
+      {
+        "step": 5,
+        "phase": 2,
+        "tasks": ["FK-007"],
+        "parallelSafe": false,
+        "note": "Integrator depends on both analyzers' output contract"
+      },
+      {
+        "step": 6,
+        "phase": 2,
+        "tasks": ["FK-009"],
+        "parallelSafe": false,
+        "note": "Synthesis coordinator depends on all 3 subagents"
+      },
+      {
+        "step": 7,
+        "phase": 3,
+        "tasks": ["FK-011", "FK-012"],
+        "parallelSafe": true,
+        "note": "Orchestrator routing (Pass 0 and Pass 8.5 are independent additions)"
+      },
+      {
+        "step": 8,
+        "phase": 3,
+        "tasks": ["FK-013"],
+        "parallelSafe": false,
+        "note": "Orchestrator diagram update depends on both routing rules"
+      },
+      {
+        "step": 9,
+        "phase": 4,
+        "tasks": ["FK-014", "FK-015", "FK-016", "FK-017"],
+        "parallelSafe": true,
+        "note": "Consumer modifications — all independent (concept, world, drafting, revision agents)"
+      },
+      {
+        "step": 10,
+        "phase": 4,
+        "tasks": ["FK-018"],
+        "parallelSafe": false,
+        "note": "Guide agent run-mode detection"
+      },
+      {
+        "step": 11,
+        "phase": 5,
+        "tasks": ["FK-023"],
+        "parallelSafe": false,
+        "note": "Domain brief update — can be done before verification"
+      },
+      {
+        "step": 12,
+        "phase": 5,
+        "tasks": ["FK-019"],
+        "parallelSafe": false,
+        "note": "Cold-start verification — validates first-run path end-to-end"
+      },
+      {
+        "step": 13,
+        "phase": 5,
+        "tasks": ["FK-020", "FK-022"],
+        "parallelSafe": true,
+        "note": "Sequel verification + separation-of-concerns verification (independent checks)"
+      },
+      {
+        "step": 14,
+        "phase": 5,
+        "tasks": ["FK-021"],
+        "parallelSafe": false,
+        "note": "Confidence ladder verification — needs multiple runs to validate"
+      }
+    ]
+  }
+}

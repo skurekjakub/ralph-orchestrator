@@ -17,17 +17,22 @@ Read `.fractal-factory/context.json` for:
 - `target.namingPrefix` — agent naming prefix
 - `target.outputDirectory` — where produced files will ultimately go
 
+Read `.fractal-factory/progress.json` for:
+- `gapHunting.currentCycle` — if > 0, this is a re-entry run
+
 ## Inputs
 
 1. **`context.json`** — naming prefix, output directory
-2. **`roster.json`** — the complete agent roster:
+2. **`progress.json`** — pipeline state (check `gapHunting.currentCycle` for re-entry)
+3. **`roster.json`** — the complete agent roster:
    - For each agent: name, level, parent, children, result codes, reads/writes, routing table, anti-laziness flag
-3. **`architecture.json`** — full architecture:
+4. **`architecture.json`** — full architecture:
    - `pipeline` — pass definitions with purposes and conditions
    - `artifacts` — schema details for Write Rules sections
    - `depth` — depth decisions for coordinator structure
-4. **`domain-model.json`** — subdomains, invariants (needed for domain-specific content in specialist prompts)
-5. **`test-plan.json`** — test scenarios (referenced by verification agents' prompts)
+5. **`domain-model.json`** — subdomains, invariants (needed for domain-specific content in specialist prompts)
+6. **`test-plan.json`** — test scenarios (referenced by verification agents' prompts)
+7. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
 
 ## Process
 
@@ -35,8 +40,10 @@ Read `.fractal-factory/context.json` for:
 
 Load `roster.json` and identify which agents need prompt files written. Check each agent's `status` field:
 - `designed` → needs prompt file (proceed)
-- `written` → already done (skip unless re-entry)
+- `written` → already done on a previous pass (skip on first run)
 - `reviewed` or `verified` → skip
+
+**Re-entry handling**: If `progress.json.gapHunting.currentCycle > 0`, this is a re-entry run. The execution-coordinator will have reset targeted agents from `written` back to `designed` before dispatching you. Read `gap-report.json` and extract gaps targeting "pass4" or "execution" — use the `suggestedFix` descriptions to guide your re-writes for those specific agents.
 
 ### Step 2: Write Agents in Bottom-Up Order
 

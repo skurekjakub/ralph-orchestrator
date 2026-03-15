@@ -168,3 +168,58 @@ Watch for Re-Entry Handling sections at the bottom of coordinator agents that co
 **Signature:** Mode detection says "if pass not started → run normally". Re-Entry Handling says "skip this step on re-entry". But cascade reset ensures the mode detection always triggers the "run normally" branch, making the Re-Entry Handling section dead.
 
 **Fix pattern:** Remove the Re-Entry Handling section. Add a brief note to the mode detection explaining that cascade reset naturally handles re-entry.
+
+## Status Clear Verification
+
+When auditing re-entry, verify that the orchestrator explicitly defines which status.json files to delete for each pass.
+
+### What to Check
+
+1. **Pass-to-agent mapping exists.** The orchestrator's re-entry logic must include a concrete mapping of pass names to the list of agents whose status.json files get deleted. A vague instruction like "clear status files for agents in those passes" is insufficient — the orchestrator LLM may miss agents or delete the wrong files.
+
+2. **All agents in the pass are covered.** For each pass, every specialist plus the coordinator itself must be listed. Missing an agent means its status.json survives the reset, and the coordinator will skip it on re-dispatch (treating it as "already completed").
+
+3. **Downstream-only deletion.** Only passes from the re-entry target through the gap-hunting pass should have their status files deleted. Earlier passes (and meta-knowledge/synthesis passes that run only once) should be preserved.
+
+4. **gap-report.json preserved.** The gap report must survive cascade reset — coordinators in re-entered passes read it for gap context. If the orchestrator deletes it, re-entered coordinators lose the reason for re-entry.
+
+### How to Check
+
+Read the orchestrator's re-entry logic section. Verify it contains an explicit list like:
+```
+- analysis: pipeline-architect, artifact-designer, depth-analyzer, analysis-coordinator
+- planning: roster-planner, routing-planner, test-planner, planning-coordinator
+```
+
+Then verify every agent file in the pass's directory is included in the list. Missing agents = status files survive = re-entry skips them.
+
+## Specialist Workload Analysis
+
+When tracing data flow through a specialist, assess whether the agent's workload exceeds what can be reliably processed in a single invocation.
+
+### Scale Indicators
+
+For verification/gap-hunting specialists:
+- **Category count**: How many independent check areas does the agent define?
+- **Artifact fan-in**: How many distinct artifacts does it read?
+- **Cross-reference density**: How many category-pairs need to be cross-referenced?
+
+### Workload Formula
+
+Rough complexity estimate: `categories × avg_artifacts_per_category × cross_reference_factor`
+
+| Complexity | Assessment | Risk |
+|-----------|-----------|------|
+| < 10 | Manageable | Low — agent can handle in one pass |
+| 10–20 | Borderline | Medium — later categories may get shallow treatment |
+| > 20 | Overloaded | High — promote to sub-coordinator |
+
+### Fix Pattern: Specialist → Sub-Coordinator
+
+When a specialist is overloaded:
+
+1. Group its categories into 2–3 area clusters (aim for 2–3 categories per specialist)
+2. Create a new specialist agent for each cluster
+3. Promote the original agent to a coordinator that dispatches the new specialists sequentially
+4. The sub-coordinator aggregates results and writes the unified output (e.g., unified gap-report.json)
+5. Update the parent coordinator's routing table to dispatch the sub-coordinator instead of the original specialist

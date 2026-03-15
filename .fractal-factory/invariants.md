@@ -96,6 +96,10 @@ The beta reading phase MUST include an originality check that specifically flags
 
 ## Process Invariants
 
+### Parameterization
+
+The created agent must have input fields that allow the specify rough book word count. For example 100k words in addition to other optional parameters as specified in the domain brief.
+
 ### I23: Adversarial Phase Gates
 Every creative phase (Concept, Worldbuilding, Character, Plotting, Style, Drafting) MUST include an adversarial consistency audit BEFORE the phase is considered complete. The auditor actively tries to break the phase's output — finding contradictions, logic gaps, consistency failures, and weak spots. The auditor cross-references against ALL prior phase artifacts, not just the current phase's output. Critical findings block phase completion. This is non-negotiable — no phase may skip its consistency gate.
 
@@ -113,6 +117,24 @@ The system must produce what was specified in the concept phase. If the concept 
 
 ### I28: Series Artifact Isolation & Subcategory Decomposition
 Every book's artifacts MUST be organized under a book-level directory (`book-1/`, `book-2/`, etc.). The series knowledge base lives at the series root and is the single source of cross-book truth. Per-book artifacts may reference the series knowledge base but MUST NOT directly reference another book's internal artifacts. Within each artifact type (world, characters, outline, revision, beta-feedback, etc.), content MUST be decomposed into subcategory files within typed directories — not stored as monolithic files. An agent loading magic rules should not need to ingest geography; an agent checking a single character's arc should not need to load every character. Cross-references between subcategories use relative file paths, never vague prose references.
+
+### I29: Foreshadowing Resolution Completeness
+Every foreshadowing plant MUST resolve by the story's end. Dangling plants — details that were set up to mean something but never paid off — are failures. The foreshadowing ledger must show a 1:1 plant-to-payoff mapping with zero unresolved entries at final delivery. Red herrings are an exception ONLY when they are explicitly tagged as intentional red herrings in the ledger and serve a narrative purpose (misdirection for a twist).
+
+### I30: POV Voice Distinctiveness
+In multi-POV stories, each POV character MUST have a recognizably distinct narrative voice. A beta reader should be able to identify the POV character within the first 3-4 sentences of any section without being told explicitly. If a POV section could plausibly belong to a different character with only name changes, that is a failure.
+
+### I31: Micro-Tension Continuity
+No prose passage longer than half a page may exist without at least one active source of tension — plot, interpersonal, internal, environmental, anticipatory, or dramatic irony. Tension-free stretches are dead pages. The revision phase MUST audit for and flag tension voids.
+
+### I32: Thematic Coherence
+Every story must have 2-3 explicitly identified thematic pillars. These themes must be visible in worldbuilding design (magic system as metaphor), character arc design (each lead embodies a different relationship to the theme), and plot structure (the central conflict literalizes the thematic argument). A story with no discernible theme, or with themes that contradict each other accidentally, is a structural failure.
+
+### I33: Emotional State Variety
+No major character may occupy the same dominant emotional state in two consecutive chapters. Emotional throughlines must show variety and escalation. If a character is "anxious" in Chapter 5, they cannot be "anxious" as the dominant emotion in Chapter 6 — they must have shifted (to dread, to reckless defiance, to forced calm, etc.). Stagnant emotional states signal stagnant character development.
+
+### I34: Dialogue Function Mandate
+Every dialogue exchange of 3+ lines MUST serve at least one identifiable narrative function: advance plot, reveal character, build/strain a relationship, create conflict, convey disguised exposition, or shift the scene's emotional register. Dialogue that exists purely as filler or that could be removed without any loss is a failure.
 
 ---
 
@@ -169,3 +191,41 @@ A visual/textual pacing chart showing tension rise-and-fall across all chapters.
 
 ### T14: Scene-Sequel MRU (Motivation-Reaction Units)
 At the sentence/paragraph level within scenes: external stimulus (Motivation) is followed by character response (Reaction) in the order Feeling → Reflex → Rational Action. Best for: action sequences, fight scenes, high-tension moments. May be loosened for: introspective passages, slow-paced romance, poetic prose.
+
+## Advanced Craft Tools
+
+### T15: Foreshadowing Plant-Payoff Ledger
+Maintain an explicit register mapping every foreshadowing plant to its payoff — chapter planted, chapter resolved, perceived purpose on first read, actual purpose on reveal. Every plant must resolve; every major payoff must have at least one plant. Best for: mystery-laced fantasy, political intrigue, prophecy-driven narratives. May be loosened for: character-driven stories with minimal plot twists, though the ledger still helps track thematic echoes.
+
+### T16: Symbolic Motif Weaving
+Assign 3-5 recurring symbols/motifs to thematic pillars (e.g., "fire" = passion/destruction, "mirrors" = self-knowledge). Track appearances per chapter to ensure consistent density without overuse. Motifs should escalate or transform alongside the themes they represent — the same symbol means something different in Act 3 than Act 1. Best for: literary fantasy, thematic stories. May be loosened for: pure action-adventure fantasy where thematic depth isn't the primary draw.
+
+### T17: POV Voice Fingerprint Verification
+For each POV character, define measurable voice parameters: sentence length distribution, vocabulary register, metaphor preference, emotional expression style, humor frequency, observation focus. Verify these fingerprints in every POV section during review. A reader should be able to identify the POV character within 3-4 sentences without being told. Best for: all multi-POV stories — nearly always selected for romantic fantasy's standard dual-POV. Less critical for: single-POV stories.
+
+### T18: Information Asymmetry Mapping
+Track what each character knows vs. what the reader knows vs. what other characters know. Map these gaps per chapter. The most powerful emotional moments in romantic fantasy come from dramatic irony — the reader knows both leads' feelings before either lead does. Manage reveals so that information asymmetries create tension, not confusion. Best for: dual-POV romantic fantasy, political intrigue, stories with secrets. Less relevant for: single-POV with no secrets.
+
+### T19: Micro-Tension Audit
+Every page must sustain at least one form of tension — not necessarily plot tension, but interpersonal friction, internal conflict, unanswered questions, sensory unease, anticipation, or dramatic irony. During revision, flag any half-page stretch with zero tension source and inject at least one. Best for: all stories, but especially important for: slow-burn romance where overt conflict is sparse, quiet fantasy, travel sequences.
+
+### T20: Emotional Throughline Charting
+Chart each lead's specific emotional state (not just "happy/sad" — use granular labels: ashamed, yearning, defiant, tender, betrayed, exhilarated) per chapter. Verify variety (no emotion repeats in adjacent chapters for the same character), escalation (emotional intensity generally increases toward climax), and motivation (every emotional shift is caused by a scene event). Best for: all character-driven fiction.
+
+### T21: Vulnerability Escalation Ladder
+Map 5-8 escalating vulnerability moments per lead across the story. Each successive vulnerability requires more courage than the previous — early: admitting a preference; middle: revealing a fear; late: exposing a wound; climax: fully trusting another with their deepest self. Vulnerability met with tenderness deepens the bond; vulnerability exploited creates devastating reversals. Best for: all romance, trauma-recovery narratives. May be loosened for: action-heavy fantasy where the romantic thread is lighter.
+
+### T22: Chapter Hook-and-Close Catalogue
+During outlining, assign each chapter an opening hook type (action, question, voice, image, emotional) and a closing technique (cliffhanger, unanswered question, emotional precipice, promise, tonal shift). Ensure variety across consecutive chapters — no two adjacent chapters should use the same hook or close type. Best for: all serialized fiction, especially chapter-a-day web fiction or any story where reader retention per chapter matters.
+
+### T23: Mystery Box Inventory
+Track the count of active unresolved questions the reader is holding at any point. Maintain a target range (typically 3-5 active questions). When a question is answered, open a new one within 1-2 chapters. Too few active questions → boredom; too many → cognitive overload and disengagement. Best for: mystery-laced fantasy, political fantasy, any plot-driven story. Less critical for: character studies, slice-of-life.
+
+### T24: Dialogue Subtext Gap Analysis
+For every significant conversation (romantic, confrontational, political), document the gap between what each character says and what they mean. The wider the gap, the more tension the scene carries. Climactic moments often work because the gap finally closes — a character says exactly what they mean for the first time. Best for: slow-burn romance, political intrigue, stories with guarded characters.
+
+### T25: Thematic Argument Scaffolding
+Structure each theme (2-3 per story) as an argument: a question, competing answers (embodied by characters/factions), and a resolution earned through the protagonist's experience. Act 1 introduces the question, Act 2 tests easy answers, Act 3 forces the hardest version. Theme should echo in worldbuilding (magic system as metaphor), character design, plot structure, and prose imagery. Best for: literary fantasy, stories with something to say. May be loosened for: pure entertainment-first adventure fantasy.
+
+### T26: Sensory Signature Anchoring
+Assign each major character a dominant sensory channel for emotional expression — one feels emotions in their hands (clenching, trembling, reaching), another as chest tightness/expansion, another as auditory distortion (sounds becoming too loud or muffled). Key emotional moments must be anchored in these character-specific physical responses rather than generic descriptions ("heart raced"). Best for: immersive prose, all character-driven fiction.

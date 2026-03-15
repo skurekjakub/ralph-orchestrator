@@ -407,6 +407,65 @@ The system produces per-book and series-level artifacts, each decomposed into su
 - **Pacing**: Chapters should flow naturally with varied tension, avoiding both the "sagging middle" and rushed endings
 - **Voice distinctness**: Each POV character must have a recognizably different internal voice
 
+## Advanced Craft Dimensions
+
+These dimensions go beyond the basic pipeline phases. Each represents a cross-cutting craft discipline that professional fiction editors and writing coaches emphasize. The system should integrate these throughout the pipeline, not as standalone phases.
+
+### Foreshadowing & Symbolism Architecture
+
+The system must treat foreshadowing as a **deliberate engineering discipline**, not a happy accident discovered in revision:
+
+- **Foreshadowing Ledger**: During plotting (Phase 4), create an explicit foreshadowing plan — every plant (setup) maps to a payoff, with the chapter numbers for each. Plants should be distributed naturally so they read as worldbuilding/character detail on first encounter but become unmistakable in hindsight.
+- **Symbolic Motif Tracking**: Identify 3-5 recurring symbols or motifs tied to thematic pillars (e.g., "fire" for passion and destruction, "mirrors" for self-knowledge, "locked doors" for secrets). Track their appearance across chapters to ensure consistent density and escalation.
+- **Imagery Callback System**: When a significant image appears early (a character's first glimpse of the love interest, a description of a place that matters later), the system should echo that imagery at the emotional climax — transformed by everything that's happened between. This creates "bookend" resonance.
+- **Red Herrings**: For mystery/intrigue elements, deliberately plant 2-3 red herrings per major reveal. These must be fair (plausible enough to mislead) but distinguishable in hindsight from true plants.
+
+### Multi-POV Craft Engineering
+
+Romantic fantasy commonly uses dual POV (alternating between the two romantic leads). The system must handle this with precision:
+
+- **POV Transition Protocol**: Every POV switch must be motivated — either by a cliffhanger/question in the departing POV that the new POV can answer or illuminate, or by a time/space jump that the narrative requires. No arbitrary switching.
+- **Information Asymmetry Management**: Track what each POV character knows vs. what the reader knows. The most powerful romantic tension comes from dramatic irony — the reader knows both characters' feelings but neither character does. Map these asymmetries in the continuity tracker.
+- **Voice Calibration Matrix**: For each POV character, define 8-10 measurable voice parameters: average sentence length, vocabulary register (formal/colloquial), metaphor type preference, emotional expression style (internal/external), humor frequency, observation focus (people/objects/abstract), paragraph length tendency, dialogue style (verbose/terse). These become the "voice fingerprint" verified in every beta read.
+- **POV-Specific Worldbuilding**: The same location or event should read differently through different POV characters. A ballroom through the eyes of a political schemer reads differently than through the eyes of a socially anxious mage. The same magic system is experienced differently by a practitioner vs. a non-practitioner.
+
+### Emotional Resonance Engineering
+
+The system must engineer emotional impact rather than hoping it emerges:
+
+- **Emotional Throughline Mapping**: For each of the two leads, chart their emotional state across every chapter — not just "happy/sad" but specific emotional textures (ashamed, yearning, defiant, tender, betrayed, exhilarated). Ensure variety, escalation, and that emotional shifts are motivated by scene events.
+- **Micro-Tension Craft**: Every page should have at least one form of tension — not necessarily plot tension, but interpersonal friction, internal conflict, unanswered questions, sensory discomfort, anticipation, or dramatic irony. Tension-free pages are dead pages.
+- **Vulnerability Engineering**: The most powerful romantic moments come from characters showing vulnerability — and that vulnerability being met with tenderness, not exploitation. Map 5-8 escalating vulnerability moments per lead across the story, each requiring more courage than the previous.
+- **Emotional Contrast Pairing**: Pair emotionally intense scenes with contrasting recovery beats. After a devastating revelation → a moment of unexpected kindness. After a triumph → a quiet doubt. The contrast amplifies both emotions.
+- **Sensory Anchoring**: Key emotional moments must be anchored in specific physical sensations — not generic "her heart raced" but character-specific, scene-specific physicality. Each lead's emotional responses should manifest through different sensory channels (one feels emotions in their hands, another in their chest, another as auditory distortion, etc.).
+
+### Reader Experience Design
+
+Think of the reader as a user — their experience must be designed, not left to chance:
+
+- **Chapter Hook Engineering**: Every chapter opens with a hook that creates a micro-commitment to keep reading. Types: action hook (mid-scene start), question hook (something doesn't make sense), voice hook (irresistible narrative voice), image hook (striking visual), emotional hook (powerful feeling). Vary hook types across chapters.
+- **Page-Turner Architecture**: Every chapter ends with a reason to turn the page — either an outright cliffhanger, an unanswered question, an emotional precipice, a promise of something the reader wants, or a tonal shift that creates anticipation. Map the chapter-ending technique per chapter during plotting.
+- **Mystery Box Management**: At any given point, the reader should be tracking 3-5 unresolved questions. Too few = boring, too many = confusing. As questions are answered, new ones must open. Track the "active question count" across chapters.
+- **Payoff Spacing**: Readers need periodic payoffs (answered questions, emotional resolutions, plot victories) to sustain engagement. No stretch of more than 3-4 chapters without at least one meaningful payoff. Large payoffs (act climaxes) should be preceded by 2-3 smaller ones that build momentum.
+- **Re-readability Seeding**: Plant details that only make sense on re-read — a character's odd reaction explained by a later revelation, a throwaway dialogue line that's actually the theme in disguise, a description that gains new meaning with hindsight. These reward attentive readers and create word-of-mouth buzz.
+
+### Dialogue Craft System
+
+Dialogue is where most fiction either sings or dies. The system needs a dedicated craft approach:
+
+- **Dialogue Function Tagging**: Every dialogue exchange must serve at least one of: advance plot, reveal character, build relationship, convey exposition (disguised), create conflict, provide comic relief, or increase tension. Tag each exchange during outlining.
+- **Subtext Layering**: In charged scenes (romantic, political, confrontational), characters should rarely say what they mean directly. The gap between what's said and what's meant is where tension lives. Map the subtext for every significant conversation during outlining.
+- **Speech Pattern Differentiation**: Beyond vocabulary and register, differentiate characters by: average exchange length, question-to-statement ratio, how they handle disagreement (deflect/confront/withdraw), pet phrases (used sparingly — max 3 per character, max 1 use per 5 chapters), and whether they control or yield in conversations.
+- **Beat Action Integration**: Dialogue should be interleaved with character action beats — physical gestures, environmental interaction, involuntary reactions — that reveal what dialogue alone cannot. Avoid "talking heads" scenes where characters speak in a void.
+
+### Thematic Architecture
+
+Theme should be designed into the story's DNA, not sprinkled on:
+
+- **Thematic Argument Structure**: Each thematic pillar (2-3 per story) is actually an argument — the story explores a question and arrives at an answer through character experience. Map: what's the question, what are the competing answers (embodied by different characters/factions), and how does the protagonist's journey resolve it?
+- **Theme Echo in All Systems**: Theme should be visible in worldbuilding (the magic system metaphorically reflects the theme), in character design (each character embodies a different relationship to the theme), in plot structure (the central conflict is actually the thematic conflict made literal), and in prose style (imagery patterns reinforce the theme).
+- **Thematic Escalation**: The thematic argument should escalate alongside the plot — Act 1 introduces the question, Act 2 tests easy answers and finds them wanting, Act 3 forces the hardest version of the question and demands a genuine answer.
+
 ## Non-Goals
 
 - The system does NOT need to handle cover design, ISBN assignment, or publishing logistics

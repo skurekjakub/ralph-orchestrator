@@ -183,3 +183,45 @@ A coordinator has no instructions for what to do when a dispatched specialist fa
 **Signature:** Read each coordinator's sections. One is missing "Error Handling" while all siblings have it.
 
 **Impact:** On specialist failure, the coordinator has no guidance. It may hang, retry indefinitely, or propagate a malformed status.
+
+### Coordinator Overloaded Specialist (Medium)
+
+A specialist agent is responsible for too many categories, domains, or validation areas in a single invocation. The agent has 5+ distinct methodologies or check areas described in its Process section, each requiring reading multiple artifacts and cross-referencing different data sets. This exceeds what a single LLM invocation can reliably execute.
+
+**Signature:** A specialist's Process section lists 5+ independent categories/methodologies, each with its own inputs, cross-references, and output schema elements. The total information the agent must hold in context exceeds what can be reliably processed in one session.
+
+**Impact:** The agent takes shortcuts on later categories, hallucinates results, or produces shallow analysis for areas beyond its context capacity. Quality degrades as category count grows — especially categories near the end of the Process section, which the agent deprioritizes.
+
+**Fix pattern:** Promote the specialist to a sub-coordinator and create dedicated specialist agents, each responsible for a bounded subset (2–3 categories) of the original agent's work. The sub-coordinator dispatches specialists sequentially, aggregates their gap reports, and writes the unified output.
+
+### Missing Pass in Pipeline Schema (High)
+
+The progress tracking schema or pipeline description omits a pass that agents actually execute. The orchestrator routes to the pass, the coordinator exists, but the progress schema has no field for it.
+
+**Signature:** The orchestrator's routing table routes on `passes.X.status`, but the progress schema definition doesn't include pass X. Or the pipeline description lists N passes but the schema has fields for N-1.
+
+**Impact:** No state tracking for the missing pass. The orchestrator can't detect whether the pass completed, can't cascade-reset it during re-entry, and crash recovery doesn't account for it.
+
+### Stale Description Count (Low)
+
+An agent's frontmatter `description` or instructions reference a specific count (e.g., "8 categories", "7 passes", "27 agents") that no longer matches the actual inventory after changes.
+
+**Signature:** Grep for numeric counts in frontmatter descriptions and instruction text. Compare against actual inventory.
+
+**Impact:** Cosmetic but misleading — the agent may self-limit to the stated count or skip items beyond it.
+
+### Orphaned Slice/Batch Constraint (Medium)
+
+The orchestrator or a coordinator has an instruction limiting work to N items at a time (e.g., "3 slices", "5 tasks per batch") that was added for a specific design iteration but hasn't been validated against the current architecture. The constraint may be vestigial or contradicted by how the coordinator is actually dispatched.
+
+**Signature:** Found a constraint like "Do not invoke X with more than N slices/tasks/items at a time" in an orchestrator or coordinator. No corresponding mechanism in the dispatched agent to enforce or benefit from the constraint.
+
+**Impact:** Either the constraint is silently ignored (agents don't know about batch limits) or it artificially limits throughput without the verification benefit it was designed for.
+
+### Re-entry Resets to Wrong Status (High)
+
+During re-entry, the orchestrator or coordinator resets agent/task status to a value that causes the agent to be skipped instead of re-processed. E.g., resetting to `pending` when the processing agent only processes `designed` items, or not resetting at all.
+
+**Signature:** Trace the re-entry path: orchestrator resets passes → coordinator re-dispatches → specialist checks item status. Does the specialist's status filter include the post-reset value?
+
+**Impact:** Re-entry runs produce no changes. The pipeline appears to converge (no new gaps because nothing was rewritten) but the original issues persist into delivery.

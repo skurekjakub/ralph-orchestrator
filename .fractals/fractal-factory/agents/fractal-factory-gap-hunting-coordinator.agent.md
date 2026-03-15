@@ -40,6 +40,7 @@ Read `.fractal-factory/progress.json` for:
 | `agents/fractal-factory-gap-hunter/status.json` | missing | Dispatch `fractal-factory-gap-hunter` |
 | `agents/fractal-factory-gap-hunter/status.json` | `result: "clean"` | Write own status: `result: "converged"` |
 | `agents/fractal-factory-gap-hunter/status.json` | `result: "dirty"` | Write own status: `result: "gaps-found"` (orchestrator handles re-entry decision) |
+| `agents/fractal-factory-gap-hunter/status.json` | `result: "failed"` | Write own status: `result: "failed"` (orchestrator treats as forced convergence) |
 
 ## Write Rules
 
@@ -69,5 +70,6 @@ Write to `.fractal-factory/agents/fractal-factory-gap-hunting-coordinator/status
 **Result codes**:
 - `converged` — gap-hunter found zero new items (pipeline can proceed to delivery)
 - `gaps-found` — gap-hunter found new items (orchestrator decides on re-entry)
+- `failed` — gap-hunter encountered a critical error and could not complete its analysis
 
 Prepend entry to `.fractal-factory/manifest.json` (newest first).

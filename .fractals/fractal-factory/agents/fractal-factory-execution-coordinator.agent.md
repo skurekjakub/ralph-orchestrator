@@ -30,14 +30,26 @@ Read `.fractal-factory/context.json` for:
 
 Read `.fractal-factory/progress.json` for:
 - `passes.execution.status` — should be `"active"` when you're dispatched
+- `gapHunting.currentCycle` — if > 0, this is a re-entry run
+
+## Re-Entry Awareness
+
+If `progress.json.gapHunting.currentCycle > 0`, this pass is being re-entered after gap hunting found issues:
+1. Read `.fractal-factory/gap-report.json`
+2. Extract all gaps where `reEntryTarget` includes "pass4" or "execution"
+3. Read `.fractal-factory/roster.json` — for agents targeted by gaps, reset their `status` from `"written"` back to `"designed"` so the prompt-writer will re-write them
+4. Delete the prompt-writer's and prompt-reviewer's status.json files to force a fresh loop
+5. When dispatching the prompt-writer, include gap context: summarize relevant gaps and their `suggestedFix` descriptions so it prioritizes addressing those specific agents
 
 ## Inputs
 
 1. **`context.json`** — retry limits
 2. **`progress.json`** — pass status
-3. **`agents/fractal-factory-prompt-writer/status.json`** — writer result
-4. **`agents/fractal-factory-prompt-reviewer/status.json`** — reviewer result
-5. **`agents/fractal-factory-infra-writer/status.json`** — infra result
+3. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
+4. **`roster.json`** — agent roster (read on re-entry to reset targeted agents to `designed`)
+5. **`agents/fractal-factory-prompt-writer/status.json`** — writer result
+6. **`agents/fractal-factory-prompt-reviewer/status.json`** — reviewer result
+7. **`agents/fractal-factory-infra-writer/status.json`** — infra result
 
 ## Routing Table
 

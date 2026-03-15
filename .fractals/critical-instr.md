@@ -12,3 +12,9 @@ Do not invoke execution coordiantor with more than 3 slices at a time. This is t
 Never invoke tasks/tools or skills that have background starting in the description - Agent started in background with agent_id: agent-0. You can use read_agent to... in the description
 
 Never use the /fleet command.
+
+## Termination rules
+
+After all phases have been sucessfully verfied/delivered/approved, print the following block and exit:
+
+======MIGRATION DONE=======

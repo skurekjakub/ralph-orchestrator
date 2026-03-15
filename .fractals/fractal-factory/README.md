@@ -2,7 +2,7 @@
 
 A meta-level fractal orchestrator that **produces validated fractal agent families** from domain specifications. Give it a domain description, supporting documents, and behavioral invariants — it outputs a complete agent system with orchestrator, coordinators, specialists, artifact schemas, bootstrap script, golden tests, and documentation.
 
-The factory itself follows the fractal pattern: session orchestrator → 7 coordinators → 16 specialists, running a 7-pass pipeline from discovery through delivery.
+The factory itself follows the fractal pattern: session orchestrator → 8 coordinators → 24 specialists, running a pipeline from knowledge curation through delivery with gap-hunting re-entry loops.
 
 ## Quick Start
 
@@ -34,8 +34,11 @@ User invokes fractal-factory-guide (once)
    fractal-factory-guide
        ↓ builds context.json, invokes:
    fractal-factory (session orchestrator)
-       ↓ 7-pass pipeline routing
+       ↓ pipeline routing
    ┌─────────────────────────────────────────────────────────────┐
+   │ Pass 0: Knowledge Curation                                 │
+   │   knowledge-curator (reads meta/index.json)                │
+   ├─────────────────────────────────────────────────────────────┤
    │ Pass 1: Discovery                                          │
    │   discovery-coordinator                                    │
    │     → domain-scanner → invariant-extractor                 │
@@ -61,8 +64,16 @@ User invokes fractal-factory-guide (once)
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 6: Gap Hunting                                        │
    │   gap-hunting-coordinator                                  │
-   │     → gap-hunter                                           │
+   │     → gap-hunter (sub-coordinator)                         │
+   │       → coverage-hunter (cats 1-3)                         │
+   │       → artifact-hunter (cats 4-6)                         │
+   │       → infrastructure-hunter (cats 7-9)                   │
    │     (if dirty → re-enter Pass 2 or 3, max 3 cycles)       │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Synthesis: Meta-Knowledge Extraction                       │
+   │   synthesis-coordinator                                    │
+   │     → factory-signal-analyzer → context-signal-analyzer    │
+   │     → knowledge-integrator (writes to meta/)               │
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 7: Delivery                                           │
    │   delivery-coordinator                                     │
@@ -76,12 +87,14 @@ User invokes fractal-factory-guide (once)
 |---|---|---|---|
 | `fractal-factory` | orchestrator | guide | All |
 | `fractal-factory-guide` | guide | user | — |
+| `fractal-factory-knowledge-curator` | specialist | orchestrator | 0 |
 | `fractal-factory-discovery-coordinator` | coordinator | orchestrator | 1 |
 | `fractal-factory-analysis-coordinator` | coordinator | orchestrator | 2 |
 | `fractal-factory-planning-coordinator` | coordinator | orchestrator | 3 |
 | `fractal-factory-execution-coordinator` | coordinator | orchestrator | 4 |
 | `fractal-factory-verification-coordinator` | coordinator | orchestrator | 5 |
 | `fractal-factory-gap-hunting-coordinator` | coordinator | orchestrator | 6 |
+| `fractal-factory-synthesis-coordinator` | coordinator | orchestrator | Synthesis |
 | `fractal-factory-delivery-coordinator` | coordinator | orchestrator | 7 |
 | `fractal-factory-domain-scanner` | specialist | discovery-coord | 1 |
 | `fractal-factory-invariant-extractor` | specialist | discovery-coord | 1 |
@@ -98,12 +111,18 @@ User invokes fractal-factory-guide (once)
 | `fractal-factory-infra-writer` | specialist | execution-coord | 4 |
 | `fractal-factory-checklist-validator` | specialist | verification-coord | 5 |
 | `fractal-factory-audit-oracle` | specialist | verification-coord | 5 |
-| `fractal-factory-gap-hunter` | specialist | gap-hunting-coord | 6 |
+| `fractal-factory-gap-hunter` | sub-coordinator | gap-hunting-coord | 6 |
+| `fractal-factory-coverage-hunter` | specialist | gap-hunter | 6 |
+| `fractal-factory-artifact-hunter` | specialist | gap-hunter | 6 |
+| `fractal-factory-infrastructure-hunter` | specialist | gap-hunter | 6 |
+| `fractal-factory-factory-signal-analyzer` | specialist | synthesis-coord | Synthesis |
+| `fractal-factory-context-signal-analyzer` | specialist | synthesis-coord | Synthesis |
+| `fractal-factory-knowledge-integrator` | specialist | synthesis-coord | Synthesis |
 | `fractal-factory-packager` | specialist | delivery-coord | 7 |
 | `fractal-factory-documentation-writer` | specialist | delivery-coord | 7 |
 | `fractal-factory-report-writer` | specialist | delivery-coord | 7 |
 
-**Total: 27 agents** (1 orchestrator + 1 guide + 7 coordinators + 16 specialists + 2 meta agents: guide and orchestrator)
+**Total: 36 agents** (1 guide + 1 orchestrator + 8 coordinators + 1 knowledge-curator + 1 sub-coordinator + 22 specialists + 3 synthesis specialists)
 
 ## Artifact Directory
 
@@ -134,6 +153,9 @@ User invokes fractal-factory-guide (once)
 ├── verification-report.json  — Checklist validation results
 ├── audit-report.json         — Oracle audit findings
 ├── gap-report.json           — Gap-hunting results
+├── meta/                     — Meta-knowledge store (managed by knowledge-integrator)
+│   ├── index.json            — Registry of all knowledge entries
+│   └── entries/              — Individual knowledge entries (JSON)
 └── packaging-report.json     — Final packaging completeness
 ```
 

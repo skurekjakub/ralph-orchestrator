@@ -1,10 +1,16 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-15T18:55:42.001Z",
-  "currentPass": 1,
+  "lastUpdated": "2026-03-15T22:00:00.000Z",
+  "currentPass": 0,
   "passes": {
+    "pass0_knowledgeCuration": {
+      "status": "pending",
+      "completedAgents": 0,
+      "totalAgents": 1,
+      "coordinator": null
+    },
     "pass1_discovery": {
-      "status": "active",
+      "status": "pending",
       "completedAgents": 0,
       "totalAgents": 4,
       "coordinator": "fractal-factory-discovery-coordinator"
@@ -13,7 +19,7 @@
       "status": "pending",
       "completedAgents": 0,
       "totalAgents": 3,
-      "coordinator": "fractal-factory-planning-coordinator"
+      "coordinator": "fractal-factory-analysis-coordinator"
     },
     "pass3_planning": {
       "status": "pending",
@@ -37,7 +43,13 @@
       "status": "pending",
       "completedAgents": 0,
       "totalAgents": 1,
-      "coordinator": "fractal-factory-verification-coordinator"
+      "coordinator": "fractal-factory-gap-hunting-coordinator"
+    },
+    "synthesis": {
+      "status": "pending",
+      "completedAgents": 0,
+      "totalAgents": 1,
+      "coordinator": null
     },
     "pass7_delivery": {
       "status": "pending",
@@ -56,7 +68,7 @@
   },
   "gapHunting": {
     "cyclesCompleted": 0,
-    "maxCycles": 3,
+    "maxCycles": 10,
     "newItemsPerCycle": [],
     "converged": false
   }
