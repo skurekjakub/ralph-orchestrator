@@ -1,6 +1,6 @@
 ---
 description: 'Scans the source repository structure to produce a raw survey of modules, APIs, tech stack, and component relationships.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-codebase-surveyor'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Builds one subagent prompt file at a time from an approved spec.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-subagent-builder'
 user-invocable: false
 ---

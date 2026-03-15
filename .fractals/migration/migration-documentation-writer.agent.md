@@ -1,6 +1,6 @@
 ---
 description: 'Documentation writer — produces decision log, changelog, and migration notes from artifacts.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-documentation-writer'
 user-invocable: false
 ---

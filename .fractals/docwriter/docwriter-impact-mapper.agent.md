@@ -1,6 +1,6 @@
 ---
 description: 'Cross-references code changes with doc corpus to determine which pages need updates, new pages, or stale-content fixes.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-impact-mapper'
 user-invocable: false
 ---

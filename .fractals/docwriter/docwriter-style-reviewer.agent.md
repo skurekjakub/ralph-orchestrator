@@ -1,6 +1,6 @@
 ---
 description: 'Reviews documentation for style guide compliance, structural conventions, Jekyll formatting, and cross-ref syntax.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-style-reviewer'
 user-invocable: false
 ---

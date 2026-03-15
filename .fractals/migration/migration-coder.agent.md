@@ -1,6 +1,6 @@
 ---
 description: 'Implements one migration slice at a time — reads slice spec, writes migrated code.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-coder'
 user-invocable: false
 ---

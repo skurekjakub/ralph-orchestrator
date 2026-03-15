@@ -127,7 +127,7 @@ Run this checklist after ALL phases are implemented to verify end-to-end correct
   - 1 bootstrap script (`docwriter-bootstrap.sh`)
   → Total: 32 files in `.github/agents/docwriter*`
 
-- [ ] **All frontmatter correct**: Every `.agent.md` file has `description`, `model: Claude Opus 4.6 (copilot)`, `name`, and `user-invocable`. Router agents have `agents` array.
+- [ ] **All frontmatter correct**: Every `.agent.md` file has `description`, `model: claude-opus-4.6`, `name`, and `user-invocable`. Router agents have `agents` array.
 
 - [ ] **Skill directory exists**: `.github/skills/docwriter-meta/` with `SKILL.md` and 5 placeholder reference files.
 

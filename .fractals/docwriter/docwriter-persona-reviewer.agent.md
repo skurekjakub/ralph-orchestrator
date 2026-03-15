@@ -1,6 +1,6 @@
 ---
 description: 'Reviews documentation for correct persona targeting, audience-appropriate tone/depth, and taxonomy compliance.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-persona-reviewer'
 user-invocable: false
 ---

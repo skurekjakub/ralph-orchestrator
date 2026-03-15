@@ -1,6 +1,6 @@
 ---
 description: 'Audits one built subagent file at a time against its approved spec.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-subagent-build-auditor'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Maps background jobs, cron tasks, and worker processes into the feature inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-job-mapper'
 user-invocable: false
 ---

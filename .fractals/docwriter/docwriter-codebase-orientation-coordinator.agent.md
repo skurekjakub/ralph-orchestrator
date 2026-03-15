@@ -1,6 +1,6 @@
 ---
 description: 'Coordinates codebase orientation — dispatches surveyor and curator to build/maintain a persistent repo map.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-codebase-orientation-coordinator'
 agents: ["docwriter-codebase-surveyor", "docwriter-codebase-curator"]
 user-invocable: false

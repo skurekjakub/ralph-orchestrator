@@ -1,6 +1,6 @@
 ---
 description: 'Reviews coder output against invariants, acceptance criteria, and error paths. Approves or rejects.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-reviewer'
 user-invocable: false
 ---

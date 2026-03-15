@@ -60,17 +60,11 @@ export function parseAssistantUsageEntries(content: string): AssistantUsageEntry
     const tsMs = new Date(headerMatch[1]).getTime();
 
     // Scan ahead for the JSON usage block (typically within 10-20 lines).
-    // The outer `{` is usually 1 line before the `"usage"` key, so when
-    // we find `"usage"` we back up to capture the full object.
+    // Extract just the inner "usage": { ... } object (~8 lines), not the full
+    // response JSON which can span 50+ lines with choices/tool_calls.
     for (let j = i + 1; j < Math.min(i + 25, lines.length); j++) {
       if (lines[j].includes('"usage"')) {
-        // Look back up to 3 lines for the opening `{`
-        let start = j;
-        for (let k = j - 1; k >= Math.max(j - 3, i + 1); k--) {
-          const stripped = lines[k].replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z\s+\[DEBUG]\s*/, "").trim();
-          if (stripped === "{") { start = k; break; }
-        }
-        const usage = extractUsageBlock(lines, start);
+        const usage = extractUsageBlock(lines, j);
         if (usage) {
           entries.push({ tsMs, ...usage });
           break;
@@ -91,11 +85,10 @@ interface UsageFields {
 
 /**
  * Extract { prompt_tokens, completion_tokens, cached_tokens, total_tokens }
- * from a JSON block starting around the given line index.
+ * from the `"usage": { ... }` line onward. Captures only the inner value
+ * object (~8 lines), not the full API response which can span 50+ lines.
  */
 function extractUsageBlock(lines: string[], startIndex: number): UsageFields | null {
-  // Collect lines until we've captured the full usage object.
-  // The object is typically a small JSON fragment spanning 6-8 lines.
   let jsonFragment = "";
   let braceDepth = 0;
   let started = false;
@@ -111,7 +104,8 @@ function extractUsageBlock(lines: string[], startIndex: number): UsageFields | n
       if (ch === "}" && started) {
         braceDepth--;
         if (braceDepth === 0) {
-          return parseUsageJson(jsonFragment);
+          // jsonFragment is the inner { ... } of usage — wrap with key for parseUsageJson
+          return parseUsageJson('{ "usage": ' + jsonFragment + " }");
         }
       }
     }
@@ -156,10 +150,18 @@ export function splitEntriesByAgent(
   const sorted = [...subagentSpans].sort((a, b) => a.startMs - b.startMs);
 
   function findOwner(tsMs: number): SubagentSpan | null {
+    let best: SubagentSpan | null = null;
+    let bestStart = -Infinity;
     for (const span of sorted) {
-      if (tsMs >= span.startMs && span.endMs != null && tsMs <= span.endMs) return span;
+      if (tsMs >= span.startMs && span.endMs != null && tsMs <= span.endMs) {
+        // Prefer the most recently started span (deepest/most specific match).
+        if (span.startMs > bestStart) {
+          best = span;
+          bestStart = span.startMs;
+        }
+      }
     }
-    return null;
+    return best;
   }
 
   const mainEntries: ContextWindowEntry[] = [];

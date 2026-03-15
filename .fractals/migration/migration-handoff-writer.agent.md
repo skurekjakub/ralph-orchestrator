@@ -1,6 +1,6 @@
 ---
 description: 'Handoff writer — produces the final delivery summary with coverage, outstanding items, and recommendations.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-handoff-writer'
 user-invocable: false
 ---

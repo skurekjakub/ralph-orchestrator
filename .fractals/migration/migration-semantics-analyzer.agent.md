@@ -1,6 +1,6 @@
 ---
 description: 'Extracts behavioral semantics — state transitions, validation rules, auth rules, error paths, invariants — per feature.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-semantics-analyzer'
 user-invocable: false
 ---

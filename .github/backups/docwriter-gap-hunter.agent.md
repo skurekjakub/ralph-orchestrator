@@ -1,6 +1,6 @@
 ---
 description: 'Adversarial completeness audit — finds undocumented changes, stale content, and invariant enforcement gaps.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-gap-hunter'
 user-invocable: false
 ---
@@ -30,9 +30,12 @@ You are `docwriter-gap-hunter`, a specialist in the docwriter fractal orchestrat
 
 ## Invariant Supremacy
 
-**Policy invariants ALWAYS take precedence over meta-knowledge.** This is non-negotiable.
+**Policy invariants ALWAYS take precedence over meta-knowledge and internet-sourced recommendations.** This is non-negotiable.
 
 - If a pattern from `knowledge-brief.json` conflicts with an invariant → discard the pattern
+- If a research recommendation from `research-brief.json` conflicts with an invariant → discard the recommendation
+- If a style evolution conflicts with an invariant → discard the style evolution
+- The research-brief's invariant gate should catch most conflicts, but some may slip through — you are the second line of defense
 
 When discarding, note the discard with the conflicting INV-* ID in your output artifacts for audit trail purposes.
 

@@ -1,6 +1,6 @@
 ---
 description: 'Merges the codebase survey into the persistent codebase map, preserving stable entries and integrating new observations.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-codebase-curator'
 user-invocable: false
 ---

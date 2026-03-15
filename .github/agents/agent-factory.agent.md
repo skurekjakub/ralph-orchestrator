@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous agent that creates complete agent-as-function families. Takes a description of what the agent should do and produces orchestrator, subagents, skills, and routing infrastructure.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'Agent Factory'
 agents: ["factory-explorer", "factory-roster-architect", "factory-roster-auditor", "factory-subagent-architect", "factory-subagent-auditor", "factory-subagent-builder", "factory-subagent-build-auditor", "factory-skill-architect", "factory-skill-builder", "factory-skill-auditor", "factory-orchestrator-builder", "factory-orchestrator-auditor", "factory-family-integrator", "factory-family-auditor"]
 user-invocable: true

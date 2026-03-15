@@ -1,6 +1,6 @@
 ---
 description: 'Planning coordinator — routes semantics analysis (Pass 2) and planning (Pass 3) phases.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-planning-coordinator'
 agents: ["migration-semantics-analyzer", "migration-dependency-analyzer", "migration-slice-planner", "migration-risk-analyzer"]
 user-invocable: false

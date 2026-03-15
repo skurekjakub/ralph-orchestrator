@@ -1,6 +1,6 @@
 ---
 description: 'Analysis-planning coordinator — dispatches invariant scanning, code analysis, research scouting, impact mapping, task planning, and risk analysis.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-analysis-coordinator'
 agents: ["docwriter-code-analyzer", "docwriter-invariant-scanner", "docwriter-impact-mapper", "docwriter-task-planner", "docwriter-risk-analyzer", "docwriter-research-scout"]
 user-invocable: false

@@ -1,6 +1,6 @@
 ---
 description: 'Discovery coordinator — dispatches 6 domain mappers and validates feature-inventory completeness.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-discovery-coordinator'
 agents: ["migration-feature-mapper", "migration-route-mapper", "migration-api-mapper", "migration-data-mapper", "migration-job-mapper", "migration-config-mapper"]
 user-invocable: false

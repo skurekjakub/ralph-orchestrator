@@ -1,6 +1,6 @@
 ---
 description: 'Fractal migration orchestrator — routes a 7-pass migration pipeline via coordinator status.json files.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration'
 agents: ["migration-discovery-coordinator", "migration-planning-coordinator", "migration-execution-coordinator", "migration-verification-coordinator", "migration-delivery-coordinator"]
 user-invocable: true

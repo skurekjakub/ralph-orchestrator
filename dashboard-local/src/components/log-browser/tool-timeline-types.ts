@@ -110,3 +110,81 @@ export interface AssistantUsageEntry {
   /** Total tokens (prompt + completion). */
   totalTokens: number;
 }
+
+/** Tree node representing a single subagent invocation with nesting. */
+export interface SubagentTreeNode {
+  /** Unique node ID (e.g. "node-0", "node-1"). */
+  id: string;
+  /** Nesting depth (0 = synthetic root). */
+  depth: number;
+  /** Parent node ID (null for root). */
+  parentId: string | null;
+  /** Child invocations. */
+  children: SubagentTreeNode[];
+  /** 1-based invocation index per agent name (e.g. content-writer #3). */
+  invocationIndex: number;
+  /** Context window entries attributed to this node. */
+  contextWindowEntries: ContextWindowEntry[];
+  /** Assistant usage entries attributed to this node. */
+  assistantUsageEntries: AssistantUsageEntry[];
+  /** True if this span never received a subagent_completed event. */
+  unclosed?: boolean;
+  /** All SubagentSpan fields inlined. */
+  name: string;
+  fullName: string;
+  definitionModel?: string;
+  resolvedModel: string;
+  didFallback: boolean;
+  startTs: string;
+  endTs?: string;
+  startMs: number;
+  endMs?: number;
+  durationMs?: number;
+  toolCallCount: number;
+  modelCallCount: number;
+  toolCalls: SubagentToolCall[];
+}
+
+/** Result of tree-based parsing. */
+export interface ParsedTree {
+  /** Synthetic root node (depth 0). */
+  root: SubagentTreeNode;
+  /** Flat array of all nodes including root for easy lookup. */
+  allNodes: SubagentTreeNode[];
+}
+
+/** Per-agent-type breakdown row for run summary. */
+export interface AgentBreakdownEntry {
+  /** Agent display name. */
+  name: string;
+  /** Number of invocations. */
+  count: number;
+  /** Total duration across all invocations (ms). */
+  totalDurationMs: number;
+  /** Total tokens consumed. */
+  totalTokens: number;
+  /** Total compaction events detected across this agent type. */
+  compactionCount: number;
+  /** Max depth reached by this agent type. */
+  maxDepth: number;
+}
+
+/** Aggregate statistics for an entire run. */
+export interface RunSummary {
+  /** Total wall-clock duration of the run (ms). */
+  totalDurationMs: number;
+  /** Total number of subagent invocations. */
+  totalInvocations: number;
+  /** Maximum nesting depth. */
+  maxDepth: number;
+  /** Total prompt tokens across all invocations. */
+  totalPromptTokens: number;
+  /** Total completion tokens across all invocations. */
+  totalCompletionTokens: number;
+  /** Total cached tokens across all invocations. */
+  totalCachedTokens: number;
+  /** Number of compaction events detected. */
+  compactionCount: number;
+  /** Per-agent-type breakdown. */
+  agentBreakdown: AgentBreakdownEntry[];
+}

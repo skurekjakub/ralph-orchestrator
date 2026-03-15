@@ -1,6 +1,6 @@
 ---
 name: "Planner"
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 description: Researches change requests, asks clarifying questions, and produces specification, plan, and task breakdown files
 argument-hint: Describe wanted change or paste JIRA ID + ticket description here
 ---

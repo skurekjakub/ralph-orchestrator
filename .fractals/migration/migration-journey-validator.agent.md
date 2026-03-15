@@ -1,6 +1,6 @@
 ---
 description: 'Runs Playwright user journey comparisons between old and new systems per slice.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-journey-validator'
 user-invocable: false
 ---

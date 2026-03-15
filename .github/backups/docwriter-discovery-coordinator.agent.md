@@ -1,6 +1,6 @@
 ---
 description: 'Discovery coordinator — dispatches diff-analyzer and corpus-scanner, validates outputs.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-discovery-coordinator'
 agents: ["docwriter-diff-analyzer", "docwriter-corpus-scanner"]
 user-invocable: false

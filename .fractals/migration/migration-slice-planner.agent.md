@@ -1,6 +1,6 @@
 ---
 description: 'Decomposes analyzed features into dependency-ordered migration slices with inline invariants.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-slice-planner'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Builds one skill at a time from an approved skill spec.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-skill-builder'
 user-invocable: false
 ---

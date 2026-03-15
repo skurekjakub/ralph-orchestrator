@@ -1,6 +1,6 @@
 ---
 description: 'Fractal documentation orchestrator — routes a 9-pass doc pipeline via coordinator status.json files.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter'
 agents: ["docwriter-knowledge-curator", "docwriter-discovery-coordinator", "docwriter-analysis-coordinator", "docwriter-execution-coordinator", "docwriter-verification-coordinator", "docwriter-synthesis-coordinator", "docwriter-delivery-coordinator"]
 user-invocable: true

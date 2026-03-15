@@ -1,6 +1,6 @@
 ---
 description: 'Reads all guidelines files, extracts enforceable rules with unique IDs into a structured invariant inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-invariant-scanner'
 user-invocable: false
 ---

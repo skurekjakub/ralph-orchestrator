@@ -1,0 +1,93 @@
+{
+  "title": "Dashboard-local test rewrite — skill compliance audit",
+  "skills": [
+    "behavior-testing",
+    "test-mocking-strategy",
+    "test-structure-patterns"
+  ],
+  "auditSummary": {
+    "totalFiles": 20,
+    "compliant": 17,
+    "needsRewrite": 3
+  },
+  "compliantFiles": [
+    { "file": "src/useDashboard.test.tsx", "reason": "Uses MockWebSocket fake at boundary, behavior-named tests, asserts on hook return values" },
+    { "file": "src/useZoom.test.tsx", "reason": "Tests via rendered components (public API), asserts on DOM + cookie output" },
+    { "file": "src/components/Button.test.tsx", "reason": "Tests rendered behavior, vi.fn() for callback boundary, behavior-named" },
+    { "file": "src/components/dashboard-panels.test.tsx", "reason": "Pure prop-in/DOM-out tests, vi.useFakeTimers for clock boundary only" },
+    { "file": "src/components/log-browser/ToolTimelineSummary.test.tsx", "reason": "No mocks, tests rendered output from real data" },
+    { "file": "src/components/log-browser/ToolTimeline.test.tsx", "reason": "Mocks fetch at HTTP boundary, asserts on rendered output" },
+    { "file": "src/components/log-browser/ToolTimelineSubagents.test.tsx", "reason": "No mocks, tests expand/collapse behavior via user interaction" },
+    { "file": "src/components/log-browser/ToolTimelineCallList.test.tsx", "reason": "No mocks, tests rendered output" },
+    { "file": "src/components/log-browser/SubagentContextChart.test.tsx", "reason": "No mocks, 6 behavior tests on rendered output" },
+    { "file": "src/components/log-browser/ContextWindowChart.test.tsx", "reason": "No mocks, 7+ behavior tests on rendered output" },
+    { "file": "src/components/log-browser/log-browser-leaf-components.test.tsx", "reason": "vi.fn() for callback boundaries only, tests rendered output" },
+    { "file": "src/components/log-browser/cli-debug-subagent-parser.test.ts", "reason": "Pure function tests, no mocks, asserts on return values" },
+    { "file": "src/components/log-browser/tool-log-timeline-parser.test.ts", "reason": "Pure function tests, no mocks" },
+    { "file": "src/components/log-browser/context-window-parser.test.ts", "reason": "13 pure function tests, thorough behavioral coverage" },
+    { "file": "src/components/log-browser/__tests__/cli-debug-subagent-parser.test.ts", "reason": "12 behavior tests, clear Given/When/Then, no mocks" },
+    { "file": "src/logApiPlugin.test.ts", "reason": "Uses real filesystem (tmpdir) + fake ServerResponse at boundary, excellent pattern" },
+    { "file": "src/__tests__/fractalLogPlugin.test.ts", "reason": "5 behavior tests with real parser, no mocks" }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "file": "src/test/fakes.ts",
+      "action": "create",
+      "title": "Extract MockWebSocket fake to shared test utility",
+      "detail": "Move MockWebSocket class from useDashboard.test.tsx to src/test/fakes.ts for reuse in App.test.tsx. Per test-mocking-strategy: prefer reusable fakes over inline mocks.",
+      "deps": []
+    },
+    {
+      "id": "T2",
+      "file": "src/useDashboard.test.tsx",
+      "action": "update",
+      "title": "Import MockWebSocket from shared fakes",
+      "detail": "Replace inline MockWebSocket class with import from src/test/fakes.ts. No behavior change.",
+      "deps": ["T1"]
+    },
+    {
+      "id": "T3",
+      "file": "src/useLogBrowser.test.tsx",
+      "action": "rewrite",
+      "title": "Split multi-behavior test into focused tests",
+      "violations": [
+        "behavior-testing: 'Each test verifies one behavior' — second test covers load-content, error-fallback, and clear-selection in one test"
+      ],
+      "detail": "Split 'loads file content and falls back gracefully on file fetch errors' into 3 tests: (1) loads file content for selected file, (2) shows fallback message on fetch error, (3) clears file content when selection is set to null.",
+      "deps": []
+    },
+    {
+      "id": "T4",
+      "file": "src/App.test.tsx",
+      "action": "rewrite",
+      "title": "Replace vi.mock of internal modules with boundary fakes",
+      "violations": [
+        "test-mocking-strategy: vi.mock('./useDashboard') mocks internal hook instead of WebSocket boundary",
+        "test-mocking-strategy: vi.mock('./components/LogBrowser') mocks internal collaborator",
+        "behavior-testing: tests break if useDashboard is refactored to Context pattern"
+      ],
+      "detail": "Use MockWebSocket fake at WebSocket boundary + fetch mock at HTTP boundary. Render real useDashboard, LogBrowser, and child components. Assert on rendered output.",
+      "deps": ["T1"]
+    },
+    {
+      "id": "T5",
+      "file": "src/components/LogBrowser.test.tsx",
+      "action": "rewrite",
+      "title": "Replace vi.mock of internal modules with fetch boundary mock",
+      "violations": [
+        "test-mocking-strategy: vi.mock('../useLogBrowser') mocks internal hook instead of fetch boundary",
+        "test-mocking-strategy: vi.mock('./log-browser/ToolTimeline') mocks internal collaborator"
+      ],
+      "detail": "Mock fetch at HTTP boundary. Render real useLogBrowser and ToolTimeline. Test loading → loaded → file-selection → timeline-opening flow through actual user interaction.",
+      "deps": []
+    },
+    {
+      "id": "T6",
+      "action": "verify",
+      "title": "Run full test suite",
+      "detail": "npx vitest run --reporter verbose — all tests must pass.",
+      "deps": ["T1", "T2", "T3", "T4", "T5"]
+    }
+  ]
+}

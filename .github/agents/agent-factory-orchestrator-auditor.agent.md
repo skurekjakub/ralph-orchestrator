@@ -1,6 +1,6 @@
 ---
 description: 'Audits the built orchestrator for purity, routing completeness, and correct control-file usage.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-orchestrator-auditor'
 user-invocable: false
 ---

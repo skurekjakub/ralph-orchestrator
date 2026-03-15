@@ -1,6 +1,6 @@
 ---
 description: 'Builds directed dependency graph between features and identifies migration clusters.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-dependency-analyzer'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Aggregates oracle results per slice and determines verified/failed-parity status.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-parity-checker'
 user-invocable: false
 ---

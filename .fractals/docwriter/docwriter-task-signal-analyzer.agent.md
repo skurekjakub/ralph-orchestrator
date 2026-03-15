@@ -1,6 +1,6 @@
 ---
 description: 'Analyzes per-task artifacts from the pipeline run to extract knowledge signals — first-attempt successes, multi-cycle failures, and pattern effectiveness.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-task-signal-analyzer'
 user-invocable: false
 ---

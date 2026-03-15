@@ -1,6 +1,6 @@
 ---
 description: 'Hardening checker — verifies production readiness: performance, resilience, accessibility, observability, rollback.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-hardening-checker'
 user-invocable: false
 ---

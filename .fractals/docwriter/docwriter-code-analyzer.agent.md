@@ -1,6 +1,6 @@
 ---
 description: 'Deep code comprehension — traces call chains and extracts behavioral impact for every changed file.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-code-analyzer'
 user-invocable: false
 ---

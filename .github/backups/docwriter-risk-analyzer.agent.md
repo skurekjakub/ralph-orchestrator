@@ -1,6 +1,6 @@
 ---
 description: 'Assesses risk across 6 dimensions for each planned documentation task.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-risk-analyzer'
 user-invocable: false
 ---

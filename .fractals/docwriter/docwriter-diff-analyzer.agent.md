@@ -1,6 +1,6 @@
 ---
 description: 'Parses Git diff, categorizes changes by product area, emits structured change inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-diff-analyzer'
 user-invocable: false
 ---

@@ -9,16 +9,13 @@
 
 ## Instructions
 
-Delegate to **all six** reviewer sub-agents in parallel using the task tool. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
+Delegate to **all listed** reviewer sub-agents in parallel using the task tool. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
 
 | Sub-agent | Responsibility | Verdict codes |
 |---|---|---|
 | **ralph-reviewer-technical** | Technical accuracy (Claude) — verifies claims against Xperience source code | `ACC-XXX` |
 | **ralph-reviewer-style** | Style guide compliance & grammar (Claude) — verifies against style guide and syntax standards | `STY-XXX` |
 | **ralph-reviewer-ia** | Information architecture (Claude) — evaluates fit within existing docs structure | `IA-XXX` |
-| **ralph-reviewer-technical-gpt** | Technical accuracy (GPT) — verifies claims against Xperience source code | `ACC-XXX` |
-| **ralph-reviewer-style-gpt** | Style guide compliance & grammar (GPT) — verifies against style guide and syntax standards | `STY-XXX` |
-| **ralph-reviewer-ia-gpt** | Information architecture (GPT) — evaluates fit within existing docs structure | `IA-XXX` |
 
 ### Invocation
 

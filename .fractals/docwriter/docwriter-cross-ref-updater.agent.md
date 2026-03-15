@@ -1,6 +1,6 @@
 ---
 description: 'Finds and updates cross-references in pages linking to/from modified documentation pages.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-cross-ref-updater'
 user-invocable: false
 ---

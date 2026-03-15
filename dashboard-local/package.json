@@ -13,7 +13,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/d3-sankey": "^0.12.5",
     "@xyflow/react": "^12.10.1",
+    "d3-sankey": "^0.12.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-is": "^19.2.4",

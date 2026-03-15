@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { parseCliDebugSubagents } from "./cli-debug-subagent-parser";
+import { flattenTree, parseCliDebugTree } from "./cli-debug-subagent-parser";
 import { parseAssistantUsageEntries, parseContextWindowEntries } from "./context-window-parser";
 import { buildTimeline } from "./tool-log-timeline-parser";
 import type { AssistantUsageEntry, ContextWindowEntry, SubagentSpan } from "./tool-timeline-types";
@@ -68,7 +68,7 @@ export function useToolTimelineData({
 
   const subagentSpans = useMemo(() => {
     if (!cliDebugContent) return [];
-    return parseCliDebugSubagents(cliDebugContent);
+    return flattenTree(parseCliDebugTree(cliDebugContent));
   }, [cliDebugContent]);
 
   const subagentByName = useMemo(() => {

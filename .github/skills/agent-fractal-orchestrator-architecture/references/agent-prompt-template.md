@@ -7,7 +7,7 @@ Universal structure for writing agent prompts in a fractal orchestrator system. 
 ```markdown
 ---
 description: '<one-line description of what this agent does — optimized for skill matching>'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: '<domain>-<agent-name>'
 user-invocable: false
 ---

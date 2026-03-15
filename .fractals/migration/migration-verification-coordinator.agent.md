@@ -1,6 +1,6 @@
 ---
 description: 'Verification coordinator — inline per-slice oracle dispatch and gap-hunting batch mode.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-verification-coordinator'
 agents: ["migration-journey-validator", "migration-contract-validator", "migration-parity-checker", "migration-gap-hunter"]
 user-invocable: false

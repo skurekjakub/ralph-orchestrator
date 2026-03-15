@@ -1,6 +1,6 @@
 ---
 description: 'Verifies every technical claim in written content against actual source code.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-accuracy-reviewer'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Adversarial completeness audit — finds undocumented changes, stale content, and invariant enforcement gaps.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-gap-hunter'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Writes or updates a single documentation page per invocation, following inlined invariants and docFacts.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-content-writer'
 user-invocable: false
 ---

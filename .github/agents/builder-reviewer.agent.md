@@ -1,6 +1,6 @@
 ---
 description: 'Reviews implementer changes against the plan phase to verify correctness and compliance.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'builder-reviewer'
 user-invocable: false
 ---

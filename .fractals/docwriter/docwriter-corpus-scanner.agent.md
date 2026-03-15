@@ -1,6 +1,6 @@
 ---
 description: 'Scans entire doc workspace, indexes every page with front matter, headings, cross-references, and topic clusters.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-corpus-scanner'
 user-invocable: false
 ---

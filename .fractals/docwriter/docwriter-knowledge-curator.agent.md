@@ -1,6 +1,6 @@
 ---
 description: 'Curates task-relevant meta-knowledge from the accumulated knowledge base into a focused brief for downstream agents.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-knowledge-curator'
 user-invocable: false
 ---

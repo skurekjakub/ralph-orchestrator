@@ -1,6 +1,6 @@
 ---
 description: 'Execution coordinator — orchestrates the content-writer → triple-reviewer loop for each documentation task.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-execution-coordinator'
 agents: ["docwriter-content-writer", "docwriter-style-reviewer", "docwriter-accuracy-reviewer", "docwriter-persona-reviewer"]
 user-invocable: false

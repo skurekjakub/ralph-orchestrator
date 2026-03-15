@@ -1,6 +1,6 @@
 ---
 description: 'Converts impact matrix into dependency-ordered task graph with inlined invariants per task.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-task-planner'
 user-invocable: false
 ---

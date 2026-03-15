@@ -107,7 +107,7 @@ Each criterion should be:
 
 ```markdown
 **Bad**: Agent works correctly.
-**Good**: Agent file has valid frontmatter with model: Claude Opus 4.6 (copilot).
+**Good**: Agent file has valid frontmatter with model: claude-opus-4.6.
 
 **Bad**: Integration is complete.
 **Good**: Orchestrator's routing table includes Pass 0 → docwriter-knowledge-curator.

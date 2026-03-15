@@ -1,6 +1,6 @@
 ---
 description: 'Designs the family roster, workflow shape, skill inventory, and control-file queues before any implementation starts.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-roster-architect'
 user-invocable: false
 ---
@@ -58,7 +58,7 @@ Write to `{artifact-root}/pass-{pass-index}/roster/architect/`:
   "orchestrator": {
     "name": "",
     "role": "",
-    "model": "Claude Opus 4.6 (copilot)"
+    "model": "claude-opus-4.6"
   },
   "orderingConstraints": [],
   "parallelGroups": [],

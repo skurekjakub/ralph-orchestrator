@@ -1,6 +1,6 @@
 ---
 description: 'Audits the family roster before any implementation begins.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-roster-auditor'
 user-invocable: false
 ---
