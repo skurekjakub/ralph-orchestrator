@@ -83,13 +83,13 @@ Specify which passes can be re-entered and from where:
 {
   "reEntryRules": [
     {
-      "trigger": "gap-hunter finds new items needing analysis",
+      "trigger": "gap-hunting coordinator finds new items needing analysis",
       "reEntryPass": 2,
       "resetPasses": [2, 3, 4, 5, 6],
       "maxReEntries": 3
     },
     {
-      "trigger": "gap-hunter finds new items ready for planning",
+      "trigger": "gap-hunting coordinator finds new items ready for planning",
       "reEntryPass": 3,
       "resetPasses": [3, 4, 5, 6],
       "maxReEntries": 3
@@ -108,7 +108,7 @@ Specify which passes can be re-entered and from where:
 
 Based on domain complexity:
 - How many gap-hunting cycles are reasonable?
-- What's the convergence signal? (zero new items from gap-hunter)
+- What's the convergence signal? (zero new items from gap hunting)
 - What happens at the convergence limit? (proceed to delivery with outstanding items flagged)
 
 ## Write Rules
@@ -139,7 +139,7 @@ Read `.fractal-factory/architecture.json`, then update the `pipeline` section:
     "reEntryRules": [...],
     "convergence": {
       "maxGapCycles": 3,
-      "convergenceSignal": "gap-hunter returns zero new items",
+      "convergenceSignal": "gap-hunting coordinator returns gaps-found = false / zero new items",
       "limitBehavior": "proceed to delivery with outstanding items flagged"
     }
   },

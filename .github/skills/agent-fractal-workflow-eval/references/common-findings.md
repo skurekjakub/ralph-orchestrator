@@ -88,6 +88,14 @@ Agent references a file or field name from an earlier version of the pipeline th
 
 **Impact:** Non-fatal if the agent has a fallback, but creates confusion and potential errors if the pipeline changes further.
 
+### Routing Document Dispatch Drift (Medium)
+
+The routing document's path descriptions or coordinator dispatch sequences no longer match the actual coordinator prompts after a workflow refactor. This often happens when a specialist is promoted to a sub-coordinator or when a per-item loop is replaced by a bulk processor.
+
+**Signature:** `ROUTING-ARCHITECTURE.md` describes a coordinator dispatching children in sequence A, but the coordinator prompt now dispatches sequence B, or describes a loop over tasks/agents that the prompt no longer performs.
+
+**Impact:** Audits and future refactors are performed against a false model of the system. Path-by-path debugging becomes unreliable because the canonical path reference is stale.
+
 ## Low
 
 ### Cosmetic Schema Inconsistency

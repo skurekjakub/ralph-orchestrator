@@ -42,7 +42,7 @@ For each coordinator, estimate how many direct specialists it would need:
 - **Analysis**: One per analysis type (behavioral, dependency, risk) × complexity factor
 - **Planning**: Decomposer + dependency analyzer + risk analyzer + test planner
 - **Execution**: Coder + reviewer + test-writer (fixed pattern)
-- **Verification**: Oracle validators (one per invariant type) + gap-hunter
+- **Verification**: Oracle validators (one per invariant type) + specialist hunters for gap hunting
 - **Delivery**: Packager + doc-writer + report-writer (fixed pattern)
 
 ### Step 3: Apply Depth Decision Criteria

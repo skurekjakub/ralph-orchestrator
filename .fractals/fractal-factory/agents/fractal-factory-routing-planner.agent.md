@@ -39,7 +39,7 @@ For each pass in `architecture.json.pipeline.passes`:
 
 Add re-entry rules from `architecture.json.pipeline.reEntryRules`:
 ```
-| agents/gap-hunter/status.json | result: "dirty" | Read gap-report, reset passes, re-dispatch |
+| agents/gap-hunting-coordinator/status.json | result: "gaps-found" | Read gap-report, reset passes, re-dispatch |
 ```
 
 ### Step 2: Build Coordinator Routing Tables

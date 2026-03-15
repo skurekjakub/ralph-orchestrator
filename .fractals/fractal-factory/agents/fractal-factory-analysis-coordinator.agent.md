@@ -76,7 +76,7 @@ Write to `.fractal-factory/agents/fractal-factory-analysis-coordinator/status.js
   "agent": "fractal-factory-analysis-coordinator",
   "task_id": "pass2/coordination",
   "status": "completed",
-  "result": "complete",
+  "result": "complete | failed",
   "summary": "Analysis pass complete. Architect: {result}, Designer: {result}, Analyzer: {result}.",
   "artifacts": ["agents/fractal-factory-analysis-coordinator/status.json"],
   "next_hint": null,

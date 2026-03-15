@@ -142,4 +142,4 @@ Only the **cradle factory** (`awilix-cradle.ts`) imports concrete classes for in
 
 ## Agent Workflow Rules
 
-**After completing any task, always use `ask_questions` to prompt for the next task.** See `.github/copilot-agent-instructions.md` for details. This is mandatory — never end a turn without it.
+**After completing any task, output the result and corresponding response fully and then use `ask_questions`.**

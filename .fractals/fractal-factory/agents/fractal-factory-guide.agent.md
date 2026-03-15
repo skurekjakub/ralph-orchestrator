@@ -87,7 +87,7 @@ Write the gathered information to `.fractal-factory/context.json`:
 Show the user a summary of the configuration. Ask for confirmation. On confirmation:
 
 1. Invoke `fractal-factory` (the session orchestrator)
-2. The orchestrator runs the entire 7-pass pipeline autonomously
+2. The orchestrator runs the full pipeline autonomously (Pass 0 + 7 domain passes + synthesis)
 3. When the orchestrator completes, read its status.json and report the result to the user
 
 ### Step 6: Report Results

@@ -6,9 +6,9 @@ Execution path reference for the Fractal Factory pipeline. Documents every path 
 
 | ID | Name | Entry Condition | Terminal State |
 |---|---|---|---|
-| P-01 | Happy Path | All passes succeed, gap-hunter converges | `delivered` |
-| P-02 | Gap Re-Entry | Gap-hunter reports `dirty` within cycle limit | Re-enters P-01 at Pass 2 or 3 |
-| P-03 | Forced Convergence | Gap-hunter dirty at max cycles | `delivered-with-gaps` |
+| P-01 | Happy Path | All passes succeed, gap hunting converges | `delivered` |
+| P-02 | Gap Re-Entry | Gap-hunting coordinator reports `gaps-found` within cycle limit | Re-enters P-01 at Pass 2 or 3 |
+| P-03 | Forced Convergence | Gap-hunting coordinator reports `gaps-found` at max cycles | `delivered-with-gaps` |
 | P-04 | Discovery Blocked | Discovery coordinator returns `blocked` | `failed` |
 | P-05 | Analysis Failed | Analysis coordinator returns `failed` | `failed` |
 | P-06 | Planning Failed | Planning coordinator returns `failed` | `failed` |
@@ -16,10 +16,10 @@ Execution path reference for the Fractal Factory pipeline. Documents every path 
 | P-08 | Execution Partial | Execution returns `complete-with-blocked` | Continues to verification (P-01) |
 | P-09 | Verification With Issues | Verification returns `verified-with-issues` | Continues to gap hunting (P-01) |
 | P-10 | Verification Failed | Verification coordinator returns `failed` | `failed` |
-| P-11 | Gap-Hunter Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` (forced) |
+| P-11 | Gap-Hunting Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` (forced) |
 | P-12 | Crash Recovery | Active pass found on startup | Resets to pending, re-dispatches |
-| P-13 | Knowledge Curator Cold Start | No meta/ store available | Pass 0 skipped (non-fatal) |
-| P-14 | Knowledge Curator Failed | Knowledge curator returns `failed` | Pass 0 skipped (non-fatal) |
+| P-13 | Knowledge Curator Cold Start | No meta/ store available | Pass 0 completes without prior knowledge |
+| P-14 | Knowledge Curator Failed | Knowledge curator returns `failed` | Pass 0 completes in degraded mode |
 | P-15 | Synthesis Degraded | Synthesis returns `degraded` or `failed` | Continues to delivery (non-fatal) |
 
 ## Path Descriptions
@@ -31,15 +31,13 @@ Pass 0 → Pass 1 → Pass 2 → Pass 3 → Pass 4 → Pass 5 → Pass 6 → Syn
   ↓        ↓        ↓        ↓        ↓        ↓        ↓          ↓          ↓
 curator  disc-c   anal-c   plan-c   exec-c   veri-c   gaph-c    synth-c    delv-c
            ↓        ↓        ↓        ↓        ↓        ↓          ↓          ↓
-        scanr    p-arch    rost-p   p-writ   chk-v   gap-h      f-sig     packgr
-        inv-x    art-d     rout-p   p-revw   aud-o     ↓        c-sig     doc-wr
-        ast-a    dep-a     test-p   infr-w             ↓        k-int     rpt-wr
-        exm-a                                       cov-h
-                                                    art-h
-                                                    inf-h
+        scanr    p-arch    rost-p   p-writ   chk-v   cov-h      f-sig     packgr
+        inv-x    art-d     rout-p   p-revw   aud-o   art-h      c-sig     doc-wr
+        ast-a    dep-a     test-p   infr-w           inf-h      k-int     rpt-wr
+        exm-a
 ```
 
-All coordinators return success. Gap-hunter returns `clean`. Pipeline proceeds through synthesis to delivery. Orchestrator writes `result: "delivered"`.
+All coordinators return success. Gap hunting converges with zero aggregated gaps. Pipeline proceeds through synthesis to delivery. Orchestrator writes `result: "delivered"`.
 
 ### P-02: Gap Re-Entry
 
@@ -61,7 +59,7 @@ Triggered when gap-hunting-coordinator returns `result: "gaps-found"` and `gapHu
 | planning | roster-planner, routing-planner, test-planner, planning-coordinator |
 | execution | prompt-writer, prompt-reviewer, infra-writer, execution-coordinator |
 | verification | checklist-validator, audit-oracle, verification-coordinator |
-| gapHunting | gap-hunter, coverage-hunter, artifact-hunter, infrastructure-hunter, gap-hunting-coordinator |
+| gapHunting | coverage-hunter, artifact-hunter, infrastructure-hunter, gap-hunting-coordinator |
 
 ### P-03: Forced Convergence
 
@@ -100,7 +98,7 @@ Verification coordinator returns `result: "failed"`:
 - Critical verification failure (e.g., no agents could be validated at all)
 - Pipeline halts — orchestrator writes `result: "failed"`
 
-### P-11: Gap-Hunter Failed
+### P-11: Gap-Hunting Failed
 
 Gap-hunting coordinator returns `result: "failed"`:
 - All 3 specialist hunters failed
@@ -164,20 +162,20 @@ Sequential. Roster planner creates `roster.json`, routing planner adds routing t
 ### Execution Coordinator (Pass 4)
 
 ```
-For each agent in roster.json where status != "written" and status != "blocked":
-    prompt-writer → prompt-reviewer
-    (on rejection: loop up to 3 times)
-    infra-writer (for infrastructure agents only)
+prompt-writer → prompt-reviewer
+(on rejection: loop up to 3 times)
+infra-writer
 ```
 
-The coordinator iterates through the roster. For each agent:
-1. Dispatches prompt-writer to produce the `.agent.md` file
-2. Dispatches prompt-reviewer to validate
-3. On rejection (up to 3 retries), re-dispatches prompt-writer with feedback
-4. On 3 rejections, marks agent as `blocked`
-5. After all agents, dispatches infra-writer for bootstrap/schema generation
+The execution coordinator dispatches the prompt-writer once for the full roster, then dispatches the prompt-reviewer against the resulting prompt set, and finally dispatches the infra-writer.
 
-**Re-entry awareness:** Only processes agents whose status was reset. Already-written agents (from a previous pass) are skipped.
+1. Prompt-writer reads `roster.json` and writes prompt files for all agents whose status is `designed`
+2. Prompt-reviewer reviews the produced prompt set
+3. On rejection (up to 3 retries), the coordinator re-dispatches prompt-writer with reviewer feedback
+4. On max retries, the coordinator proceeds with blocked agents noted
+5. Infra-writer then generates bootstrap/schema infrastructure
+
+**Re-entry awareness:** The coordinator resets only targeted agents in `roster.json` from `written` back to `designed` before re-dispatching prompt-writer.
 
 ### Verification Coordinator (Pass 5)
 
@@ -190,13 +188,10 @@ Sequential. Checklist validator runs structural checks. Audit oracle applies the
 ### Gap-Hunting Coordinator (Pass 6)
 
 ```
-gap-hunter (sub-coordinator)
-    → coverage-hunter (categories 1-3)
-    → artifact-hunter (categories 4-6)
-    → infrastructure-hunter (categories 7-9)
+coverage-hunter → artifact-hunter → infrastructure-hunter
 ```
 
-The gap-hunting coordinator dispatches the gap-hunter sub-coordinator, which in turn dispatches three specialists sequentially. Each specialist writes its own `output.json`. The gap-hunter aggregates them into the unified `gap-report.json`.
+The gap-hunting coordinator dispatches the three specialist hunters sequentially. Each specialist writes its own `output.json`, and the gap-hunting coordinator aggregates those outputs into the unified `gap-report.json`.
 
 ### Synthesis Coordinator (Post-convergence)
 
@@ -233,7 +228,7 @@ pending ──→ active ──→ completed
 ```
                     ┌──────────────────────┐
                     ↓                      │
-Pass 6 active → gap-hunter runs → clean?──┤──yes──→ completed
+Pass 6 active → specialist hunters run → clean?──┤──yes──→ completed
                                           │
                                      no (dirty)
                                           │
@@ -250,8 +245,8 @@ Pass 6 active → gap-hunter runs → clean?──┤──yes──→ complete
 
 | Result | Meaning |
 |---|---|
-| `delivered` | All passes completed, gap-hunter converged |
-| `delivered-with-gaps` | Forced convergence or gap-hunter failed |
+| `delivered` | All passes completed, gap hunting converged |
+| `delivered-with-gaps` | Forced convergence or all gap-hunting specialists failed |
 | `failed` | Critical blocker halted the pipeline |
 
 ## Artifact Dependency Graph
@@ -318,8 +313,8 @@ Coordinators don't just reset — they relay relevant gap items to their special
 
 - `maxGapCycles` (from context.json) bounds the re-entry loop
 - Each cycle increments `gapHunting.currentCycle` in progress.json
-- At max cycles, orchestrator forces convergence regardless of gap-hunter verdict
-- Anti-laziness: gap-hunter specialists must check previous cycle's gaps were addressed
+- At max cycles, orchestrator forces convergence regardless of the aggregated gap-hunting verdict
+- Anti-laziness: gap-hunting specialists must check previous cycle's gaps were addressed
 
 ## Error Classification
 
@@ -341,14 +336,13 @@ Coordinators don't just reset — they relay relevant gap items to their special
 | execution-coordinator | `complete` | `complete-with-blocked` | `failed` |
 | verification-coordinator | `verified` | `verified-with-issues` | `failed` |
 | gap-hunting-coordinator | `converged` | `gaps-found` | `failed` |
-| synthesis-coordinator | `integrated` | `degraded`, `skipped` | `failed` |
+| synthesis-coordinator | `synthesized` | `degraded` | `failed` |
 | delivery-coordinator | `complete` | — | — |
 
-### Sub-Coordinator Result Code Summary
+### Gap-Hunting Specialist Result Code Summary
 
-| Sub-Coordinator | Success | Degraded | Failed |
+| Specialist | Success | Degraded | Failed |
 |---|---|---|---|
-| gap-hunter | `clean` | `dirty` | `failed` |
 | coverage-hunter | `clean` | `dirty` | `failed` |
 | artifact-hunter | `clean` | `dirty` | `failed` |
 | infrastructure-hunter | `clean` | `dirty` | `failed` |

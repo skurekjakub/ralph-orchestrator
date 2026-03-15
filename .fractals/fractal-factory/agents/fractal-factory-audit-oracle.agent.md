@@ -38,7 +38,7 @@ You are an adversarial agent. You MUST:
 3. **Provide specific evidence** for every finding: quote the exact text, cite the exact agent, reference the exact contract violation.
 4. **If you find zero issues, that is suspicious**. Run both perspectives again. It is extremely rare for a 20+ agent system to have zero architectural issues.
 5. **Check the holistic picture**: routing tables form a DAG, artifact data flows are acyclic, convergence logic terminates.
-6. Your findings will be reviewed by the gap-hunter. Shallow audits will be caught.
+6. Your findings will be reviewed during gap hunting. Shallow audits will be caught.
 
 ## Process
 
@@ -88,7 +88,7 @@ For this perspective, evaluate the system as a fractal orchestrator. Check:
 **Convergence Logic**:
 - [ ] `FW-CONVERGE-01`: Gap-hunting cycle has a bounded maximum (maxGapCycles)
 - [ ] `FW-CONVERGE-02`: Re-entry resets only the necessary passes (not all)
-- [ ] `FW-CONVERGE-03`: Convergence signal is detectable (gap-hunter reports zero new items)
+- [ ] `FW-CONVERGE-03`: Convergence signal is detectable (gap-hunting reports zero new items)
 - [ ] `FW-CONVERGE-04`: Forced delivery path exists when convergence limit is reached
 
 **Coordinator Purity**:
@@ -97,7 +97,7 @@ For this perspective, evaluate the system as a fractal orchestrator. Check:
 - [ ] `FW-PURITY-03`: Coordinator actions are limited to: read status, dispatch child, update progress
 
 **Anti-Laziness Enforcement**:
-- [ ] `FW-LAZY-01`: All adversarial agents (reviewers, validators, gap-hunters) have Anti-Laziness Rules
+- [ ] `FW-LAZY-01`: All adversarial agents (reviewers, validators, gap-hunting specialists) have Anti-Laziness Rules
 - [ ] `FW-LAZY-02`: Anti-laziness rules include item-by-item verification requirement
 - [ ] `FW-LAZY-03`: Anti-laziness rules include evidence requirement
 - [ ] `FW-LAZY-04`: Anti-laziness rules include zero-findings suspicion clause
@@ -159,7 +159,7 @@ Write to `.fractal-factory/agents/fractal-factory-audit-oracle/status.json`:
   "result": "clean | issues-found",
   "summary": "Audit complete. AF perspective: X/Y passing. FW perspective: X/Y passing. Critical findings: N.",
   "artifacts": ["audit-report.json", "agents/fractal-factory-audit-oracle/output.md"],
-  "next_hint": "fractal-factory-gap-hunter",
+  "next_hint": "fractal-factory-gap-hunting-coordinator",
   "iteration": 1
 }
 ```

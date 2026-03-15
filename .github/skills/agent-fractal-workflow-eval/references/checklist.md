@@ -112,6 +112,7 @@ Compare agent instructions against architecture documentation:
 - Do the agents' actual behaviors match what the architecture doc describes?
 - Are data flow diagrams accurate?
 - Are artifact dependency graphs complete?
+- Do coordinator internal dispatch sequences in the routing document match the actual coordinator prompts, especially after specialist → sub-coordinator promotions or loop refactors?
 
 **What to look for:** Architectural descriptions that describe an ideal design but don't match what the agents are actually told to do. This is especially common in re-entry logic and directive propagation where the architecture may describe one model but agents implement another.
 

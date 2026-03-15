@@ -119,7 +119,7 @@ You are a **pure router**. You MUST NOT do any substantive work yourself. You di
 ```markdown
 ## Pipeline Routing
 
-{7-pass pipeline routing with re-entry rules}
+{Pass 0 + 7 domain passes + synthesis routing with re-entry rules}
 
 ## Routing Table
 

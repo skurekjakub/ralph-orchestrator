@@ -78,7 +78,7 @@ For each pass, plan the leaf specialists:
 - Name pattern: `{namingPrefix}-{role}`
 
 **Verification specialists** (oracle validators):
-- One per verification approach + gap-hunter
+- One per verification approach + specialist hunters for gap hunting
 - Name pattern: `{namingPrefix}-{role}`
 
 **Delivery specialists** (packaging and documentation):
@@ -159,7 +159,7 @@ Write to `.fractal-factory/roster.json`:
 **Rules**:
 - Assign IDs sequentially: `A-001`, `A-002`, etc.
 - `routingTable` is null at this stage — filled by the routing-planner
-- `antiLaziness` is true for reviewers, gap-hunters, risk analyzers, validators
+- `antiLaziness` is true for reviewers, gap-hunting specialists, risk analyzers, validators
 
 ## Status Contract
 

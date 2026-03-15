@@ -113,7 +113,7 @@ After each coordinator returns, recompute counts from actual artifacts.
 
 ## Re-Entry Rules
 
-When gap-hunter returns `dirty`:
+When gap-hunting coordinator returns `gaps-found`:
 1. Read gap-report.json for re-entry targets
 2. Reset affected passes to `pending`
 3. Increment gapHunting.cyclesCompleted
@@ -124,7 +124,7 @@ When gap-hunter returns `dirty`:
 
 Required for these agent types:
 - **Reviewers**: Must check every item with evidence, cannot give blank approvals
-- **Gap-hunters**: Must document search methodology per category, suspicious if first-pass zero results
+- **Gap-hunting specialists**: Must document search methodology per category, suspicious if first-pass zero results
 - **Risk analyzers**: Must flag at least one risk per unit
 - **Validators**: Must show per-item pass/fail with evidence
 

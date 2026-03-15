@@ -2,7 +2,7 @@
 
 A meta-level fractal orchestrator that **produces validated fractal agent families** from domain specifications. Give it a domain description, supporting documents, and behavioral invariants — it outputs a complete agent system with orchestrator, coordinators, specialists, artifact schemas, bootstrap script, golden tests, and documentation.
 
-The factory itself follows the fractal pattern: session orchestrator → 8 coordinators → 24 specialists, running a pipeline from knowledge curation through delivery with gap-hunting re-entry loops.
+The factory itself follows the fractal pattern: session orchestrator → 8 coordinators → 25 specialists, running a pipeline from knowledge curation through delivery with gap-hunting re-entry loops.
 
 ## Quick Start
 
@@ -62,13 +62,12 @@ User invokes fractal-factory-guide (once)
    │   verification-coordinator                                 │
    │     → checklist-validator → audit-oracle                   │
    ├─────────────────────────────────────────────────────────────┤
-   │ Pass 6: Gap Hunting                                        │
-   │   gap-hunting-coordinator                                  │
-   │     → gap-hunter (sub-coordinator)                         │
-   │       → coverage-hunter (cats 1-3)                         │
-   │       → artifact-hunter (cats 4-6)                         │
-   │       → infrastructure-hunter (cats 7-9)                   │
-   │     (if dirty → re-enter Pass 2 or 3, max 3 cycles)       │
+    │ Pass 6: Gap Hunting                                        │
+    │   gap-hunting-coordinator                                  │
+    │     → coverage-hunter (cats 1-3)                           │
+    │     → artifact-hunter (cats 4-6)                           │
+    │     → infrastructure-hunter (cats 7-9)                     │
+    │     (if dirty → re-enter Pass 2 or 3, max 3 cycles)       │
    ├─────────────────────────────────────────────────────────────┤
    │ Synthesis: Meta-Knowledge Extraction                       │
    │   synthesis-coordinator                                    │
@@ -111,10 +110,9 @@ User invokes fractal-factory-guide (once)
 | `fractal-factory-infra-writer` | specialist | execution-coord | 4 |
 | `fractal-factory-checklist-validator` | specialist | verification-coord | 5 |
 | `fractal-factory-audit-oracle` | specialist | verification-coord | 5 |
-| `fractal-factory-gap-hunter` | sub-coordinator | gap-hunting-coord | 6 |
-| `fractal-factory-coverage-hunter` | specialist | gap-hunter | 6 |
-| `fractal-factory-artifact-hunter` | specialist | gap-hunter | 6 |
-| `fractal-factory-infrastructure-hunter` | specialist | gap-hunter | 6 |
+| `fractal-factory-coverage-hunter` | specialist | gap-hunting-coord | 6 |
+| `fractal-factory-artifact-hunter` | specialist | gap-hunting-coord | 6 |
+| `fractal-factory-infrastructure-hunter` | specialist | gap-hunting-coord | 6 |
 | `fractal-factory-factory-signal-analyzer` | specialist | synthesis-coord | Synthesis |
 | `fractal-factory-context-signal-analyzer` | specialist | synthesis-coord | Synthesis |
 | `fractal-factory-knowledge-integrator` | specialist | synthesis-coord | Synthesis |
@@ -122,7 +120,7 @@ User invokes fractal-factory-guide (once)
 | `fractal-factory-documentation-writer` | specialist | delivery-coord | 7 |
 | `fractal-factory-report-writer` | specialist | delivery-coord | 7 |
 
-**Total: 36 agents** (1 guide + 1 orchestrator + 8 coordinators + 1 knowledge-curator + 1 sub-coordinator + 22 specialists + 3 synthesis specialists)
+**Total: 35 agents** (1 guide + 1 orchestrator + 8 coordinators + 25 specialists)
 
 ## Artifact Directory
 
@@ -178,7 +176,7 @@ Multiple specialists write to the same JSON files. Each agent reads the current 
 The execution coordinator dispatches `prompt-writer` → `prompt-reviewer` for each produced agent. On rejection, the writer is re-dispatched with feedback (max 3 retries). Blocked agents are logged but don't halt the pipeline.
 
 ### Gap-Hunting Convergence
-After verification, the gap-hunter searches for anything missed. If it finds new items: re-enter Pass 2 or 3. Convergence = gap-hunter finds zero new items. Max 3 cycles before forced delivery.
+After verification, the gap-hunting coordinator dispatches the three specialist hunters to search for anything missed. If they find new items: re-enter Pass 2 or 3. Convergence = the aggregated gap-hunting result finds zero new items. Max 3 cycles before forced delivery.
 
 ### Oracle Verification
 Produced agents are validated against the structural validation checklist AND by applying the perspectives from the `agent-as-function-audit` and `fractal-workflow-eval` skills.

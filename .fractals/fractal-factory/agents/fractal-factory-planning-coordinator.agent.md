@@ -76,7 +76,7 @@ Write to `.fractal-factory/agents/fractal-factory-planning-coordinator/status.js
   "agent": "fractal-factory-planning-coordinator",
   "task_id": "pass3/coordination",
   "status": "completed",
-  "result": "complete",
+  "result": "complete | failed",
   "summary": "Planning pass complete. Roster: {result}, Routing: {result}, Tests: {result}.",
   "artifacts": ["agents/fractal-factory-planning-coordinator/status.json"],
   "next_hint": null,

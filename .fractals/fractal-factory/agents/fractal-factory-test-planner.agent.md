@@ -39,8 +39,8 @@ Create at least one scenario per category:
 | **Coder-reviewer loop** | Writer→reviewer cycle with approval | 1 |
 | **Coder-reviewer rejection** | Writer→reviewer cycle with rejection and retry | 1 |
 | **Coder-reviewer block** | Writer→reviewer cycle exceeding max retries | 1 |
-| **Re-entry** | Gap-hunter triggers re-entry into earlier pass | 1 |
-| **Convergence** | Gap-hunter finds zero items → convergence | 1 |
+| **Re-entry** | Gap-hunting coordinator triggers re-entry into earlier pass | 1 |
+| **Convergence** | Gap-hunting coordinator reports zero new items → convergence | 1 |
 | **Convergence limit** | Gap-hunting exceeds maxGapCycles → forced delivery | 1 |
 | **Missing input** | Discovery agent handles missing domain brief | 1 |
 | **Blocked propagation** | Blocked specialist → coordinator → orchestrator chain | 1 |
