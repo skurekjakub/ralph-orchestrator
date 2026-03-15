@@ -85,7 +85,6 @@ export function TokenSankey({ allNodes, width = 800, height = 400 }: TokenSankey
     }
 
     const generator = sankey<SNode, SLink>()
-      .nodeId((_, i) => i)
       .nodeWidth(16)
       .nodePadding(12)
       .extent([[1, 1], [width - 1, height - 20]]);
