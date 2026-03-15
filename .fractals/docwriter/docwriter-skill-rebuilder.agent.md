@@ -1,6 +1,6 @@
 ---
 description: 'Rebuilds the skill reference files from the current state of the meta-knowledge index. Full rebuild from source of truth every synthesis cycle.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-skill-rebuilder'
 user-invocable: false
 ---
@@ -20,6 +20,7 @@ You are `docwriter-skill-rebuilder`, the final step in the synthesis pipeline. Y
   - `.docwriter/meta/anti-patterns/*.md`
   - `.docwriter/meta/domain-insights/*.md`
   - `.docwriter/meta/style-evolutions/*.md`
+  - `.docwriter/meta/source-observations/*.md`
   - `.docwriter/meta/task-retros/*.json`
 
 ## Process
@@ -73,6 +74,18 @@ Emergent style decisions beyond the invariant system — reviewers' cumulative p
 
 Retrospective summaries — first-attempt rates, common failure modes, improvement trends across runs.
 
+#### `.github/skills/docwriter-meta/references/source-observations.md`
+
+Reusable code→documentation predictors — source code characteristics that reliably predict specific documentation needs. Each entry describes a code characteristic, the documentation need it predicts, and evidence from past runs. Format:
+
+```markdown
+### SRC-001: High-parameter functions need usage examples
+- **Confidence**: low | **Domains**: api-reference | **Usage**: 1
+- **Code Characteristic**: Public functions with >5 parameters
+- **Predicted Doc Need**: Usage examples showing common parameter combinations
+- **Source**: DOC-3187 | **Invariants**: (none)
+```
+
 ### Step 3: Rebuild SKILL.md header
 
 Update `.github/skills/docwriter-meta/SKILL.md` with current statistics:
@@ -86,6 +99,7 @@ Accumulated knowledge base for the docwriter agent family.
 - **Total entries**: <count from index>
 - **Patterns**: <count> | **Anti-patterns**: <count>
 - **Domain insights**: <count> | **Style evolutions**: <count>
+- **Source observations**: <count>
 - **Last synthesized**: <timestamp from index>
 - **Pipeline runs contributing**: <count of unique task-retros>
 
@@ -95,6 +109,7 @@ Accumulated knowledge base for the docwriter agent family.
 - [domain-knowledge.md](references/domain-knowledge.md) — Codebase-specific documentation insights
 - [style-decisions.md](references/style-decisions.md) — Emergent style decisions
 - [task-effectiveness.md](references/task-effectiveness.md) — Pipeline effectiveness trends
+- [source-observations.md](references/source-observations.md) — Source code predictors for documentation needs
 ```
 
 ## Output
@@ -105,6 +120,7 @@ Accumulated knowledge base for the docwriter agent family.
 - Rebuilt: `.github/skills/docwriter-meta/references/domain-knowledge.md`
 - Rebuilt: `.github/skills/docwriter-meta/references/style-decisions.md`
 - Rebuilt: `.github/skills/docwriter-meta/references/task-effectiveness.md`
+- Rebuilt: `.github/skills/docwriter-meta/references/source-observations.md`
 - `.docwriter/agents/skill-rebuilder-status.json`:
 ```json
 {
@@ -113,11 +129,12 @@ Accumulated knowledge base for the docwriter agent family.
   "result": "skills-rebuilt",
   "timestamp": "<ISO>",
   "entriesProcessed": 0,
-  "filesRebuilt": 6,
+  "filesRebuilt": 7,
   "patternsCount": 0,
   "antiPatternsCount": 0,
   "domainInsightsCount": 0,
-  "styleEvolutionsCount": 0
+  "styleEvolutionsCount": 0,
+  "sourceObservationsCount": 0
 }
 ```
 

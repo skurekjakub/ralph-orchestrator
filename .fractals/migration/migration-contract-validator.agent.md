@@ -1,6 +1,6 @@
 ---
 description: 'Diffs API contracts between old and new systems — URL patterns, payloads, status codes, error shapes.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-contract-validator'
 user-invocable: false
 ---

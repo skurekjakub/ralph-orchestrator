@@ -1,6 +1,6 @@
 ---
 description: 'Designs one required new skill at a time from the approved roster.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-skill-architect'
 user-invocable: false
 ---

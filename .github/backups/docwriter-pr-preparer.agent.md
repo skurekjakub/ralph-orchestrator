@@ -1,6 +1,6 @@
 ---
 description: 'Stages all doc changes on a git branch, writes PR description, creates commit.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-pr-preparer'
 user-invocable: false
 ---

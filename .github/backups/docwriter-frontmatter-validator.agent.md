@@ -1,6 +1,6 @@
 ---
 description: 'Validates Jekyll front matter, Liquid syntax, and build readiness for all created/modified doc files.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-frontmatter-validator'
 user-invocable: false
 ---

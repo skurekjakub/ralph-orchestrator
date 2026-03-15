@@ -1,6 +1,6 @@
 ---
 description: 'Audits the full family and produces a local repair plan when the family still needs refinement.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-family-auditor'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Explores the workspace to discover existing agents, skills, MCP servers, conventions, and infrastructure patterns relevant to building a new agent family.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-explorer'
 user-invocable: false
 ---

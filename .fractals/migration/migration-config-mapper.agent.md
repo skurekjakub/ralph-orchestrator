@@ -1,6 +1,6 @@
 ---
 description: 'Maps configuration files, environment variables, and feature flags into the feature inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-config-mapper'
 user-invocable: false
 ---

@@ -1,6 +1,6 @@
 ---
 description: 'Verification coordinator — dispatches cross-ref updater and gap hunter, manages convergence loop.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-verification-coordinator'
 agents: ["docwriter-cross-ref-updater", "docwriter-gap-hunter"]
 user-invocable: false

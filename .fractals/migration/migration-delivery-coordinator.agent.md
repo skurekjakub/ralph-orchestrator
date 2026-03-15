@@ -1,6 +1,6 @@
 ---
 description: 'Delivery coordinator — dispatches hardening, documentation, and handoff agents sequentially.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-delivery-coordinator'
 agents: ["migration-hardening-checker", "migration-documentation-writer", "migration-handoff-writer"]
 user-invocable: false

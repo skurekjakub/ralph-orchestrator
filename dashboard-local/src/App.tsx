@@ -9,6 +9,7 @@ import { HistoryPanel } from "./components/HistoryPanel";
 import { LogBrowser } from "./components/LogBrowser";
 import { AgentGraph } from "./components/AgentGraph";
 import { FractalGraph } from "./components/FractalGraph";
+import { FractalExplorer } from "./components/FractalExplorer";
 import { ZoomControls } from "./components/ZoomControls";
 import { Button, ButtonVariant } from "./components/Button";
 import "./styles.css";
@@ -19,7 +20,7 @@ const badgeColors: Record<string, string> = {
   disconnected: "bg-error/15 text-error",
 };
 
-type Tab = "live" | "logs" | "agents" | "fractal";
+type Tab = "live" | "logs" | "agents" | "fractal" | "explorer";
 
 export function App() {
   const { state, toolOutput, connectionStatus } = useDashboard();
@@ -72,6 +73,13 @@ export function App() {
             >
               Fractal
             </Button>
+            <Button
+              onClick={() => setTab("explorer")}
+              variant={tab === "explorer" ? ButtonVariant.Pill : ButtonVariant.Ghost}
+              className={tab === "explorer" ? "bg-info/15 text-info" : ""}
+            >
+              Explorer
+            </Button>
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
@@ -121,6 +129,8 @@ export function App() {
           <LogBrowser />
         ) : tab === "agents" ? (
           <AgentGraph />
+        ) : tab === "explorer" ? (
+          <FractalExplorer />
         ) : (
           <FractalGraph />
         )}

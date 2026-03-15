@@ -1,6 +1,6 @@
 ---
 description: 'Deep code comprehension — traces call chains and extracts behavioral impact for every changed file.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-code-analyzer'
 user-invocable: false
 ---
@@ -16,8 +16,24 @@ You are `docwriter-code-analyzer`, a specialist in the docwriter fractal orchest
 
 - `.docwriter/context.json` — `source.repoPath`, `source.diffRef`, `source.baseBranch`
 - `.docwriter/change-inventory.json` — areas and files from the diff-analyzer
+- `.docwriter/meta/codebase-map.json` — persistent repo structure map (modules, dependencies, API surface — may not exist on first run). When available, use it to orient yourself: know which module each changed file belongs to, what its dependencies are, and where entry points live BEFORE reading code. This avoids redundant structural discovery.
+
+### Additional inputs (if available)
+
+- `.github/skills/docwriter-meta/references/source-observations.md` — accumulated code→doc predictors from past runs. When available, use these observations to guide your analysis — they tell you what code characteristics historically predicted specific documentation needs (e.g., "functions with >5 params need usage examples", "modules with inter-service calls need sequence diagrams"). Apply matching observations as additional `docFacts` extraction prompts.
+
+## Missing Artifact Handling
+
+- If `.github/skills/docwriter-meta/references/source-observations.md` does not exist or contains placeholder text → skip source observation consultation, proceed normally
+- **Never error on missing optional artifacts** — these are enhancements, not requirements
 
 ## Process
+
+### Pre-analysis: Load source observation predictors
+
+If `source-observations.md` is available and non-placeholder, read it once before starting file analysis. For each source observation entry (SRC-NNN), note the **code characteristic** and **predicted doc need**. During per-file analysis (steps 1-5), when you encounter code matching a known characteristic, add the predicted doc need to that file's `docFacts` output. This ensures past learning directly enriches the current analysis.
+
+### Per-file analysis
 
 For **each area** in `change-inventory.json`, and for **each file** within that area:
 
@@ -84,6 +100,44 @@ For **each area** in `change-inventory.json`, and for **each file** within that 
   }
 }
 ```
+
+## Discovery Output (Optional)
+
+During analysis, you may encounter facts that fall **outside the change inventory** but are clearly relevant to documentation quality. Rather than silently discarding these, write a discovery file.
+
+**When to write**: Only when you encounter something concrete and evidenced — not speculative.
+
+**What to look for**:
+- Undocumented public APIs, exported types, or config options not in any doc page
+- Stale doc references to code that has been deleted or renamed
+- Cross-cutting patterns that affect areas beyond the change inventory
+- Missing error handling documentation for user-facing error paths
+
+**File**: `.docwriter/discoveries/code-analyzer--{AREA-ID}--c{cycle}.json` (one per area where discoveries occur)
+
+```json
+{
+  "agent": "docwriter-code-analyzer",
+  "context": "AREA-001",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-CA-001",
+      "type": "undocumented-behavior",
+      "summary": "ConfigMerger.merge() silently drops unknown keys — not documented anywhere",
+      "evidence": "src/config/merger.ts:45 — Object.keys(schema).filter()",
+      "suggestedAction": "Add 'unknown key handling' section to config-merging.md",
+      "affectedArea": "configuration",
+      "severity": "high"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
 
 ## Constraints
 

@@ -1,6 +1,6 @@
 ---
 description: 'Maps UI components, pages, views, and layouts into the feature inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-feature-mapper'
 user-invocable: false
 ---

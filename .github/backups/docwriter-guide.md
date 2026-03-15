@@ -1,6 +1,6 @@
 ---
 description: 'User guide for the docwriter agent family — prints documentation and answers questions about the pipeline.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-guide'
 user-invocable: true
 ---

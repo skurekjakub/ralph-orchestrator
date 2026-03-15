@@ -1,6 +1,6 @@
 ---
 description: 'Parses phased implementation plans into a structured execution plan for the builder orchestrator.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'builder-planner'
 user-invocable: false
 ---

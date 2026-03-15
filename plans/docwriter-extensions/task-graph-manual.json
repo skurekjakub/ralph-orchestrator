@@ -112,7 +112,7 @@
       "prerequisites": ["M-001"],
       "status": "implemented",
       "acceptanceCriteria": [
-        "VS Code frontmatter (description, model: Claude Opus 4.6 (copilot), name, user-invocable: false)",
+        "VS Code frontmatter (description, model: claude-opus-4.6, name, user-invocable: false)",
         "Multi-factor relevance scoring with threshold ≥0.4",
         "Saturation guard caps brief at 20 entries",
         "Consumer-aware grouping (patterns/anti-patterns, domain-insights/style-evolutions, retro lessons)",

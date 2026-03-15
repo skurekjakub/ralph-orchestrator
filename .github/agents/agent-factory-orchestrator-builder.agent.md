@@ -1,6 +1,6 @@
 ---
 description: 'Builds the top-level orchestrator once all component prompts and skills are ready.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-orchestrator-builder'
 user-invocable: false
 ---

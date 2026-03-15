@@ -1,6 +1,6 @@
 ---
 description: 'Delivery coordinator — dispatches front matter validation, changelog writing, and PR preparation.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-delivery-coordinator'
 agents: ["docwriter-frontmatter-validator", "docwriter-changelog-writer", "docwriter-pr-preparer"]
 user-invocable: false

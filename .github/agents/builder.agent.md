@@ -1,6 +1,6 @@
 ---
 description: 'Autonomous orchestrator that executes phased implementation plans by dispatching subagents.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'Builder'
 agents: ["builder-planner", "builder-implementer", "builder-reviewer", "builder-verifier", "builder-scribe"]
 user-invocable: true

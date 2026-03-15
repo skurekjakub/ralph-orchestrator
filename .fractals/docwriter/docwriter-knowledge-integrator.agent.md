@@ -1,6 +1,6 @@
 ---
 description: 'Integrates signal analyzer outputs into the persistent knowledge base. Applies confidence calibration, deduplication, quality gate, and writes knowledge entries + retrospectives.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-knowledge-integrator'
 user-invocable: false
 ---
@@ -31,6 +31,7 @@ Load both signal files. Combine all candidate signals:
 - Candidate anti-patterns (from A2)
 - Style evolutions (from A3)
 - Domain insights (from B1, B2)
+- Source observations (from B5)
 
 **Deduplication**: For each candidate, check if an existing entry in `index.json` covers the same insight:
 - **Same approach + same domain**: Mark as `confirm-existing` — upgrade confidence, update `lastReferencedDate`
@@ -64,12 +65,13 @@ Signals failing the quality gate are discarded with a logged reason.
 ### Step 4: Write knowledge entries
 
 For each signal passing the quality gate:
-1. Generate a unique ID: `PAT-NNN` (pattern), `ANTI-NNN` (anti-pattern), `DOM-NNN` (domain insight), `STYLE-NNN` (style evolution), `RETRO-NNN` (retrospective lesson)
+1. Generate a unique ID: `PAT-NNN` (pattern), `ANTI-NNN` (anti-pattern), `DOM-NNN` (domain insight), `STYLE-NNN` (style evolution), `SRC-NNN` (source observation), `RETRO-NNN` (retrospective lesson)
 2. Write the entry file to the appropriate directory:
    - Patterns → `.docwriter/meta/patterns/<id>.md`
    - Anti-patterns → `.docwriter/meta/anti-patterns/<id>.md`
    - Domain insights → `.docwriter/meta/domain-insights/<id>.md`
    - Style evolutions → `.docwriter/meta/style-evolutions/<id>.md`
+   - Source observations → `.docwriter/meta/source-observations/<id>.md`
 
 Entry file format (Markdown with YAML frontmatter):
 ```markdown
@@ -103,6 +105,40 @@ Group API parameters by functional category rather than alphabetically. Place re
 Applicable to any API reference page with >5 parameters. Less relevant for simple endpoints with 1-2 parameters.
 ```
 
+Source observation entry format (same structure, different content focus):
+```markdown
+---
+id: SRC-001
+title: High-parameter functions need usage examples
+type: source-observation
+confidence: low
+domains: ["api-reference"]
+discoveredDate: <ISO>
+lastReferencedDate: <ISO>
+usageCount: 1
+sourceTask: DOC-3187
+invariantsReferenced: []
+deprecated: false
+---
+
+## Code Characteristic
+
+Public functions/methods with >5 parameters.
+
+## Predicted Documentation Need
+
+Usage examples section showing the most common parameter combinations. Without examples, users must reverse-engineer the parameter interactions from descriptions alone.
+
+## Evidence
+
+- DOC-3187 T-005: Task for `ConfigMerger.merge()` (6 params) required usage examples — first-attempt acceptance
+- DOC-3187 T-008: Task for `TemplateEngine.render()` (7 params) lacked examples initially — reviewer rejected
+
+## Applicability
+
+Any public API with >5 parameters across any codebase. The threshold may need calibration per project.
+```
+
 ### Step 5: Update the index
 
 For each new or updated entry:
@@ -123,6 +159,7 @@ Write `.docwriter/meta/task-retros/<taskId>-<timestamp>.json`:
   "patternsDiscovered": 2,
   "antiPatternsDiscovered": 1,
   "domainInsightsDiscovered": 1,
+  "sourceObservationsDiscovered": 1,
   "entriesUpdated": 3,
   "researchRecommendationsUsed": 2,
   "researchRecommendationsBlocked": 1
@@ -164,6 +201,7 @@ Prepend to `.docwriter/manifest.json`.
 - **Quality gate is mandatory**: All three criteria must pass. No exceptions.
 - **Dedup before write**: Always check index first. Duplicate entries degrade curation quality.
 - **Never modify invariants**: You write to `meta/` only. Invariant files are read-only.
+- **Skip ephemeral invariants**: Invariants with `ephemeral: true` (all `TINV-*` IDs) are task-scoped instructions from `context.json`. Never synthesize patterns, anti-patterns, or domain insights from them. They exist for enforcement only and must not enter the persistent knowledge base.
 - **Atomic index update**: Read index, compute changes, write index once. No partial updates.
 
 ## Completion

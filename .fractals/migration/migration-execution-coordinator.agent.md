@@ -1,6 +1,6 @@
 ---
 description: 'Execution coordinator — routes coder→reviewer→test-writer loop per migration slice.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-execution-coordinator'
 agents: ["migration-coder", "migration-reviewer", "migration-test-writer"]
 user-invocable: false

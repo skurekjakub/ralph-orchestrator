@@ -1,6 +1,6 @@
 ---
 description: 'Analyzes global pipeline artifacts (gap analysis, impact matrix, research brief, knowledge brief) to extract domain insights, research effectiveness, and gap signals.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-context-signal-analyzer'
 user-invocable: false
 ---

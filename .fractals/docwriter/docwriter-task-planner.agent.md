@@ -1,6 +1,6 @@
 ---
 description: 'Converts impact matrix into dependency-ordered task graph with inlined invariants per task.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-task-planner'
 user-invocable: false
 ---
@@ -25,6 +25,7 @@ You are `docwriter-task-planner`, a specialist in the docwriter fractal orchestr
 - `.docwriter/research-brief.json` — invariant-filtered best practice recommendations (may not exist if research-scout was skipped)
 - `.github/skills/docwriter-meta/references/patterns.md` — consolidated pattern catalog
 - `.github/skills/docwriter-meta/references/anti-patterns.md` — known documentation failure modes
+- `.github/skills/docwriter-meta/references/source-observations.md` — code→doc predictors (code characteristics that predict doc needs)
 
 ## Invariant Supremacy
 
@@ -48,25 +49,27 @@ When discarding, note the discard with the conflicting INV-* ID in your output a
 
 ### Pre-planning: Consult accumulated knowledge
 
-Before decomposing tasks:
+Before decomposing tasks, consult available knowledge sources (all optional — skip if absent or placeholder):
 
-1. **Read `.github/skills/docwriter-meta/references/patterns.md`** if it exists. Identify patterns applicable to the doc types in this task set. For each applicable pattern:
-   - Consider it as a structural template for the relevant tasks
-   - Add pattern-derived acceptance criteria (cite PAT-NNN IDs)
+| Source | Action |
+|--------|--------|
+| `patterns.md` skill reference | Identify applicable patterns → use as structural templates, add PAT-NNN acceptance criteria |
+| `anti-patterns.md` skill reference | Add avoidance criteria to affected tasks, escalate risk for matching profiles |
+| `source-observations.md` skill reference | Check code-analysis for matching code characteristics → add predicted doc needs as task requirements (cite SRC-NNN) |
+| `knowledge-brief.json` | Verify pattern alignment with task-graph, include applicability notes |
+| `research-brief.json` | Inline `"approved"`/`"adapted"` recommendations as acceptance criteria (cite REC-NNN); include adaptation notes for adapted recs. **Invariant supremacy**: discard any recommendation conflicting with an invariant |
 
-2. **Read `.github/skills/docwriter-meta/references/anti-patterns.md`** if it exists. For each relevant anti-pattern:
-   - Add an explicit avoidance criterion to affected tasks
-   - Escalate risk factor for tasks matching the anti-pattern profile
+### Step 0: Check for re-entry (smart task targeting)
 
-3. **Check `knowledge-brief.json`** if it exists. For each included pattern/anti-pattern:
-   - Verify alignment with task-graph structure
-   - Include applicability notes in task descriptions
+If `.docwriter/gap-analysis.json` exists AND `.docwriter/task-graph.json` already has tasks, this is a re-entry cycle:
 
-4. **Check `research-brief.json`** if it exists. For each `"approved"` or `"adapted"` recommendation:
-   - If applicable to a task's doc type, inline as an acceptance criterion
-   - Cite the REC-NNN ID so reviewers can trace the source
-   - For `"adapted"` recommendations, inline the adaptation note alongside the recommendation
-   - **Invariant supremacy**: If ANY recommendation conflicts with an inlined invariant from `invariant-inventory.json`, discard the recommendation. Note the discard in the task description.
+1. Read `gap-analysis.json` and filter for gaps with `reEntryTarget: "pass3"`.
+2. For gaps with non-empty `affectedTaskIds` — update ONLY those task definitions in the existing task-graph (add missing invariants, adjust scope, modify acceptance criteria per the gap recommendation). Do NOT regenerate unaffected tasks.
+3. For gaps with empty `affectedTaskIds` — create NEW tasks to address the gap (e.g. undocumented changes needing new pages). Assign new T-NNN IDs continuing from the highest existing.
+4. Preserve all existing `"written"` tasks that are not in any gap's `affectedTaskIds`.
+5. Log which tasks were modified vs created in your status file under `reEntryActions`.
+
+If `gap-analysis.json` does not exist, this is a fresh run — proceed with full planning below.
 
 1. **Group impacts into tasks.** Each task is a logical unit of doc work. Grouping rules:
    - Impacts with `type: "no-doc-impact"` are excluded from task creation — list them in a `noDocImpactSummary` field in task-graph.json for audit trail
@@ -74,21 +77,9 @@ Before decomposing tasks:
    - A new page is always its own task
    - Cross-reference updates from stale-content impacts get their OWN tasks (separate from the primary page update), unless the stale content is on a page already being updated
 
-2. **Define task scope.** For each task:
-   - `targetFile` — the file to create or modify
-   - `action` — `create` | `update` | `update-crossrefs`
-   - `contentType` — concept | tutorial | howto | reference | release-notes
-   - `targetPersonas` — which personas this content targets
-   - `sections` — which sections to add, modify, or remove (for updates)
-   - `docFacts` — relevant entries from code-analysis.json that the writer needs
-   - `relatedImpacts` — IMP-* IDs this task addresses
+2. **Define task scope.** For each task, set: `targetFile`, `action` (`create`|`update`|`update-crossrefs`), `contentType`, `targetPersonas`, `sections` (add/modify/remove), `docFacts` (from code-analysis.json), `relatedImpacts` (IMP-* IDs).
 
-3. **Inline invariants per task.** For each task, select the invariants from `invariant-inventory.json` that apply:
-   - ALL `appliesTo: ["all"]` invariants are included in every task
-   - Content-type-specific invariants (e.g. `["tutorial"]`) only for matching tasks
-   - Persona-specific invariants (e.g. `["developer"]`) only for matching tasks
-   - Jekyll/structure invariants relevant to the task action (create needs more than update)
-   - Each inlined invariant includes its full `id`, `domain`, `rule`, and `source`
+3. **Inline invariants per task.** Select from `invariant-inventory.json`: all `appliesTo: ["all"]` for every task; content-type-specific and persona-specific only for matching tasks; jekyll/structure invariants matching the task action. Each inlined invariant includes full `id`, `domain`, `rule`, `source`.
 
 4. **Order by dependency.** Tasks that create foundational pages must come before tasks that update pages referencing them. Tasks within the same area are ordered: concept pages → howto pages → reference pages → tutorials (since tutorials reference all other types).
 
@@ -190,6 +181,11 @@ Inline the FULL invariant objects — id, domain, rule, source. Do not write `"s
   "result": "task-graph-ready",
   "totalTasks": 20,
   "taskDirectoriesCreated": 20,
+  "reEntryActions": {
+    "tasksModified": [],
+    "tasksCreated": [],
+    "gapsAddressed": []
+  },
   "timestamp": "<ISO>"
 }
 ```

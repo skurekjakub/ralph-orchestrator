@@ -1,6 +1,6 @@
 ---
 description: 'Writes a release notes / changelog entry summarizing all documentation changes from the pipeline run.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-changelog-writer'
 user-invocable: false
 ---

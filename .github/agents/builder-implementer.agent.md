@@ -1,6 +1,6 @@
 ---
 description: 'Implements one phase of an implementation plan — creates and modifies files as specified.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'builder-implementer'
 user-invocable: false
 ---

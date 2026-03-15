@@ -1,6 +1,6 @@
 ---
 description: 'Verifies whole-family completeness and assembles the pass-level family summary before the final family audit.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-family-integrator'
 user-invocable: false
 ---

@@ -37,7 +37,7 @@ docwriter-synthesis-coordinator (Pass 6.5, direct orchestrator dispatch)
 ```yaml
 ---
 description: 'Coordinates the knowledge synthesis pipeline after verification converges. Dispatches signal analyzers, knowledge integrator, and skill rebuilder.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-synthesis-coordinator'
 agents: ["docwriter-task-signal-analyzer", "docwriter-context-signal-analyzer", "docwriter-knowledge-integrator", "docwriter-skill-rebuilder"]
 user-invocable: false
@@ -101,7 +101,7 @@ Prepend to `.docwriter/manifest.json`.
 ```yaml
 ---
 description: 'Analyzes per-task artifacts from the pipeline run to extract knowledge signals — first-attempt successes, multi-cycle failures, and pattern effectiveness.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-task-signal-analyzer'
 user-invocable: false
 ---
@@ -226,7 +226,7 @@ Prepend to `.docwriter/manifest.json`.
 ```yaml
 ---
 description: 'Analyzes global pipeline artifacts (gap analysis, impact matrix, research brief, knowledge brief) to extract domain insights, research effectiveness, and gap signals.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-context-signal-analyzer'
 user-invocable: false
 ---
@@ -344,7 +344,7 @@ Prepend to `.docwriter/manifest.json`.
 ```yaml
 ---
 description: 'Integrates extracted signals into the persistent meta-knowledge base with deduplication, confidence calibration, quality gating, and task retrospective generation.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-knowledge-integrator'
 user-invocable: false
 ---
@@ -585,7 +585,7 @@ Prepend to `.docwriter/manifest.json`.
 ```yaml
 ---
 description: 'Regenerates all meta-skill reference files from the persistent knowledge base. Full rebuild from source of truth — never incremental.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-skill-rebuilder'
 user-invocable: false
 ---

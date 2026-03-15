@@ -28,12 +28,12 @@ describe("useLogBrowser", () => {
     expect(result.current.groups).toHaveLength(0);
   });
 
-  it("loads file content and falls back gracefully on file fetch errors", async () => {
+  it("loads file content for a selected file", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/logs") return new Response(JSON.stringify([makeTaskLogGroup()]));
       if (url.includes("summary.json")) return new Response("summary content");
-      throw new Error("boom");
+      return new Response("not found", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -49,12 +49,47 @@ describe("useLogBrowser", () => {
 
     expect(result.current.fileContent).toBe("summary content");
     expect(result.current.selectedFile).toBe("DOC-3141/summary.json");
+  });
+
+  it("shows fallback message when file fetch fails", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/logs") return new Response(JSON.stringify([makeTaskLogGroup()]));
+      throw new Error("boom");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useLogBrowser());
+
+    await waitFor(() => {
+      expect(result.current.groups).toHaveLength(1);
+    });
 
     await act(async () => {
       await result.current.selectFile("DOC-3141/missing.log");
     });
 
     expect(result.current.fileContent).toBe("Failed to load file");
+  });
+
+  it("clears file content when selection is set to null", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/logs") return new Response(JSON.stringify([makeTaskLogGroup()]));
+      if (url.includes("summary.json")) return new Response("summary content");
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useLogBrowser());
+
+    await waitFor(() => {
+      expect(result.current.groups).toHaveLength(1);
+    });
+
+    await act(async () => {
+      await result.current.selectFile("DOC-3141/summary.json");
+    });
 
     await act(async () => {
       await result.current.selectFile(null);

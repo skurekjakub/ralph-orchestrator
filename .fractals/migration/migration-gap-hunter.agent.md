@@ -1,6 +1,6 @@
 ---
 description: 'Adversarial gap-hunter — searches the full codebase for missed features, hidden behaviors, and incomplete invariant coverage.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-gap-hunter'
 user-invocable: false
 ---

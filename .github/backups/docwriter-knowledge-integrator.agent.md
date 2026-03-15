@@ -1,6 +1,6 @@
 ---
 description: 'Integrates signal analyzer outputs into the persistent knowledge base. Applies confidence calibration, deduplication, quality gate, and writes knowledge entries + retrospectives.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-knowledge-integrator'
 user-invocable: false
 ---

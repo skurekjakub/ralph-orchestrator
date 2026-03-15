@@ -1,6 +1,6 @@
 ---
 description: 'Writes completion report summarizing plan execution results across all phases.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'builder-scribe'
 user-invocable: false
 ---

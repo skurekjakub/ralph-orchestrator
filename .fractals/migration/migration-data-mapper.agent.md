@@ -1,6 +1,6 @@
 ---
 description: 'Maps data models, schemas, and database migrations into the feature inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-data-mapper'
 user-invocable: false
 ---

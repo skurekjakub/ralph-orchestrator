@@ -1,6 +1,6 @@
 ---
 description: 'Assesses migration risk per slice across 6 categories and writes mitigation plans.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-risk-analyzer'
 user-invocable: false
 ---

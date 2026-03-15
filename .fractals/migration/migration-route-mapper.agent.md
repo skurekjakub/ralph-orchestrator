@@ -1,6 +1,6 @@
 ---
 description: 'Maps routes, navigation flows, and URL patterns into the feature inventory.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-route-mapper'
 user-invocable: false
 ---

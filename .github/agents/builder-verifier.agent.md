@@ -1,6 +1,6 @@
 ---
 description: 'Runs the plan verification checklist after all phases complete to validate end-to-end correctness.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'builder-verifier'
 user-invocable: false
 ---

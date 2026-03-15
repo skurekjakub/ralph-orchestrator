@@ -1,28 +1,26 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeOrchestratorState } from "./test/factories";
-
-const useDashboardMock = vi.fn();
-
-vi.mock("./useDashboard", () => ({
-  useDashboard: () => useDashboardMock(),
-}));
-
-vi.mock("./components/LogBrowser", () => ({
-  LogBrowser: () => <div>LOG_BROWSER_VIEW</div>,
-}));
-
+import { MockWebSocket } from "./test/fakes";
 import { App } from "./App";
 
 describe("App", () => {
-  it("shows the live connection placeholder until dashboard state arrives", () => {
-    useDashboardMock.mockReturnValue({
-      state: null,
-      toolOutput: [],
-      connectionStatus: "connecting",
-    });
+  beforeEach(() => {
+    MockWebSocket.reset();
+    vi.stubGlobal("WebSocket", MockWebSocket as unknown as typeof WebSocket);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify([]))),
+    );
+  });
 
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the live connection placeholder until dashboard state arrives", async () => {
     render(<App />);
 
     expect(screen.queryByText("Connecting to orchestrator...")).not.toBeNull();
@@ -30,18 +28,29 @@ describe("App", () => {
 
   it("switches from live view to the logs tab", async () => {
     const user = userEvent.setup();
-    useDashboardMock.mockReturnValue({
-      state: makeOrchestratorState(),
-      toolOutput: ["hello"],
-      connectionStatus: "connected",
-    });
 
     render(<App />);
 
-    expect(screen.queryByText("Container Output")).not.toBeNull();
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBe(1);
+    });
+
+    act(() => {
+      MockWebSocket.instances[0].emitOpen();
+      MockWebSocket.instances[0].emitMessage({
+        type: "state",
+        data: makeOrchestratorState(),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("Container Output")).not.toBeNull();
+    });
 
     await user.click(screen.getByRole("button", { name: "Logs" }));
 
-    expect(screen.queryByText("LOG_BROWSER_VIEW")).not.toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByText("Log Browser")).not.toBeNull();
+    });
   });
 });

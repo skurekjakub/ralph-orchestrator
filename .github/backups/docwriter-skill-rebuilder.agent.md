@@ -1,6 +1,6 @@
 ---
 description: 'Rebuilds the skill reference files from the current state of the meta-knowledge index. Full rebuild from source of truth every synthesis cycle.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-skill-rebuilder'
 user-invocable: false
 ---

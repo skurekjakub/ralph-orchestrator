@@ -1,6 +1,6 @@
 ---
 description: 'Deep-dive architecture reference for the docwriter fractal pipeline — artifact flow, design decisions, agent interactions.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-architecture'
 user-invocable: true
 ---

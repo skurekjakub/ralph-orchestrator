@@ -1,6 +1,6 @@
 ---
 description: 'Writes runnable tests for each migrated slice — invariants, error paths, and happy paths.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'migration-test-writer'
 user-invocable: false
 ---

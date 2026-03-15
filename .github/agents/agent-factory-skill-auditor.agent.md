@@ -1,6 +1,6 @@
 ---
 description: 'Audits one skill at a time against its approved skill spec.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'factory-skill-auditor'
 user-invocable: false
 ---

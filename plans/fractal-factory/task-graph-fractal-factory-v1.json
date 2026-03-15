@@ -1,0 +1,620 @@
+{
+  "$schema": "task-graph-v1",
+  "name": "fractal-factory",
+  "version": 1,
+  "description": "Build the Fractal Factory — a meta-level fractal agent system that produces validated fractal orchestrator agent families from domain specifications.",
+  "outputDirectory": "./fractals/fractal-factory",
+  "phases": [
+    {
+      "id": "P1",
+      "name": "Bootstrap & Infrastructure",
+      "description": "Foundation scripts, schemas, directory structure"
+    },
+    {
+      "id": "P2",
+      "name": "Discovery Specialists",
+      "description": "Pass 1 agents — domain scanning and analysis"
+    },
+    {
+      "id": "P3",
+      "name": "Planning Specialists",
+      "description": "Pass 2–3 agents — architecture, roster, routing, tests"
+    },
+    {
+      "id": "P4",
+      "name": "Execution Specialists",
+      "description": "Pass 4 agents — writer→reviewer loop, infrastructure generation"
+    },
+    {
+      "id": "P5",
+      "name": "Verification Specialists",
+      "description": "Pass 5–6 agents — structural audit, oracle validation, gap hunting"
+    },
+    {
+      "id": "P6",
+      "name": "Delivery Specialists",
+      "description": "Pass 7 agents — packaging, documentation, final report"
+    },
+    {
+      "id": "P7",
+      "name": "Orchestrator & Coordinators",
+      "description": "Top-level hierarchy — session orchestrator, guide, 5 coordinators"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "FF-001",
+      "phase": "P1",
+      "title": "Bootstrap script",
+      "description": "Create fractal-factory-bootstrap.sh — seeds .fractal-factory/ directory, progress.json, context.json template, agent working dirs",
+      "targetFile": "fractals/fractal-factory/fractal-factory-bootstrap.sh",
+      "prerequisites": [],
+      "acceptanceCriteria": [
+        "Creates .fractal-factory/ with all subdirectories",
+        "Seeds progress.json with 7 passes (all pending)",
+        "Seeds context.json template with default values",
+        "Guard: exits early if .fractal-factory/ already exists",
+        "Is executable (chmod +x)"
+      ]
+    },
+    {
+      "id": "FF-002",
+      "phase": "P1",
+      "title": "Progress.json seed schema",
+      "description": "Define the progress.json schema — 7 passes, per-pass status tracking, gapHunting cycle counter, convergence bounds",
+      "targetFile": "fractals/fractal-factory/schemas/progress.schema.md",
+      "prerequisites": [],
+      "acceptanceCriteria": [
+        "Schema covers all 7 passes with status enum",
+        "gapHunting section with cycle, maxCycles, convergenceHistory",
+        "Per-pass completedAgents/totalAgents counters",
+        "Version field for forward compatibility"
+      ]
+    },
+    {
+      "id": "FF-003",
+      "phase": "P1",
+      "title": "Context.json schema",
+      "description": "Define the context.json schema — domain, target, inputs, options sections",
+      "targetFile": "fractals/fractal-factory/schemas/context.schema.md",
+      "prerequisites": [],
+      "acceptanceCriteria": [
+        "domain section: name, description",
+        "target section: outputDirectory, namingPrefix",
+        "inputs section: paths to domain-brief, domain-docs, exemplars, invariants, constraints",
+        "options section: maxDepth, maxAgents, maxGapCycles"
+      ]
+    },
+    {
+      "id": "FF-004",
+      "phase": "P1",
+      "title": "README",
+      "description": "Write the Fractal Factory README — purpose, quick start, architecture overview, input requirements",
+      "targetFile": "fractals/fractal-factory/README.md",
+      "prerequisites": ["FF-001", "FF-002", "FF-003"],
+      "acceptanceCriteria": [
+        "Explains what the factory does",
+        "Quick-start: bootstrap → fill context.json → invoke guide",
+        "Lists all required and optional inputs",
+        "Links to architecture docs"
+      ]
+    },
+    {
+      "id": "FF-005",
+      "phase": "P1",
+      "title": "Domain model schema",
+      "description": "Define domain-model.json schema — the shared artifact populated by discovery specialists",
+      "targetFile": "fractals/fractal-factory/schemas/domain-model.schema.md",
+      "prerequisites": [],
+      "acceptanceCriteria": [
+        "Sections: subdomains, invariants, existingAssets, exemplarPatterns",
+        "Invariant schema: id, description, classification, confidence, source",
+        "Read-modify-write protocol documented",
+        "Version field"
+      ]
+    },
+    {
+      "id": "FF-006",
+      "phase": "P1",
+      "title": "Produced agent schema",
+      "description": "Define produced-agent.schema.md — the structural requirements for every agent prompt the factory writes",
+      "targetFile": "fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": [],
+      "acceptanceCriteria": [
+        "Frontmatter requirements: name, description, model, user-invocable",
+        "Required sections by agent level (specialist, coordinator, orchestrator)",
+        "Status contract format",
+        "Anti-laziness rule requirements"
+      ]
+    },
+    {
+      "id": "FF-010",
+      "phase": "P2",
+      "title": "Domain scanner agent",
+      "description": "Write fractal-factory-domain-scanner.agent.md — reads domain-brief + domain-docs, produces initial domain-model.json structure",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-domain-scanner.agent.md",
+      "prerequisites": ["FF-005"],
+      "acceptanceCriteria": [
+        "Reads domain-brief.md and domain-docs/",
+        "Writes domain-model.json with subdomains array",
+        "Result codes: scanned, insufficient-input",
+        "Interactive tool suppression",
+        "Follows produced-agent schema"
+      ]
+    },
+    {
+      "id": "FF-011",
+      "phase": "P2",
+      "title": "Invariant extractor agent",
+      "description": "Write fractal-factory-invariant-extractor.agent.md — extracts behavioral/structural rules from invariants.md + domain-docs, updates domain-model.json",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-invariant-extractor.agent.md",
+      "prerequisites": ["FF-005"],
+      "acceptanceCriteria": [
+        "Reads invariants.md, domain-docs/, existing domain-model.json",
+        "Adds invariants array to domain-model.json (read-modify-write)",
+        "Invariant classification: behavioral, structural, quality, workflow",
+        "Confidence scoring 0.3–1.0",
+        "Result codes: extracted"
+      ]
+    },
+    {
+      "id": "FF-012",
+      "phase": "P2",
+      "title": "Asset auditor agent",
+      "description": "Write fractal-factory-asset-auditor.agent.md — scans existing skills, tools, templates for reuse in the produced system",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-asset-auditor.agent.md",
+      "prerequisites": ["FF-005"],
+      "acceptanceCriteria": [
+        "Scans shared/skills/, shared/agent-includes/, context.json input paths",
+        "Adds existingAssets array to domain-model.json",
+        "Per-asset: name, type, reusability assessment, path",
+        "Result codes: audited"
+      ]
+    },
+    {
+      "id": "FF-013",
+      "phase": "P2",
+      "title": "Exemplar analyzer agent",
+      "description": "Write fractal-factory-exemplar-analyzer.agent.md — analyzes provided exemplar agent families for patterns to replicate",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-exemplar-analyzer.agent.md",
+      "prerequisites": ["FF-005"],
+      "acceptanceCriteria": [
+        "Reads exemplars/ directory",
+        "Adds exemplarPatterns array to domain-model.json",
+        "Extracts: hierarchy patterns, naming conventions, artifact patterns, routing idioms",
+        "Result codes: analyzed, no-exemplars",
+        "Handles missing exemplars gracefully"
+      ]
+    },
+    {
+      "id": "FF-020",
+      "phase": "P3",
+      "title": "Pipeline architect agent",
+      "description": "Write fractal-factory-pipeline-architect.agent.md — designs the produced system's pipeline (passes, entry/exit conditions, re-entry rules)",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md",
+      "prerequisites": ["FF-010", "FF-011", "FF-012", "FF-013"],
+      "acceptanceCriteria": [
+        "Reads domain-model.json for complexity signals",
+        "Writes architecture.json pipeline section",
+        "Defines passes with entry/exit conditions",
+        "Defines re-entry rules from gap hunting",
+        "Result codes: designed"
+      ]
+    },
+    {
+      "id": "FF-021",
+      "phase": "P3",
+      "title": "Artifact designer agent",
+      "description": "Write fractal-factory-artifact-designer.agent.md — designs shared artifacts, JSON schemas, read-modify-write contracts for the produced system",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-artifact-designer.agent.md",
+      "prerequisites": ["FF-020"],
+      "acceptanceCriteria": [
+        "Reads architecture.json pipeline for artifact flow",
+        "Writes architecture.json artifacts section",
+        "Per-artifact: name, schema, readers, writers, format",
+        "Read-modify-write protocols for multi-writer artifacts",
+        "Result codes: designed"
+      ]
+    },
+    {
+      "id": "FF-022",
+      "phase": "P3",
+      "title": "Depth analyzer agent",
+      "description": "Write fractal-factory-depth-analyzer.agent.md — decides per-coordinator whether depth-2 or depth-3 is needed based on complexity metrics",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-depth-analyzer.agent.md",
+      "prerequisites": ["FF-020"],
+      "acceptanceCriteria": [
+        "Reads architecture.json and domain-model.json",
+        "Writes architecture.json depth section with per-coordinator decisions",
+        "Decision criteria: subdomain count, invariant density, cross-cutting concerns",
+        "Threshold: >8 specialists or >3 cross-cutting invariants → depth-3",
+        "Result codes: analyzed"
+      ]
+    },
+    {
+      "id": "FF-023",
+      "phase": "P3",
+      "title": "Roster planner agent",
+      "description": "Write fractal-factory-roster-planner.agent.md — plans the full agent roster with names, levels, parents, dispatches",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+      "prerequisites": ["FF-021", "FF-022"],
+      "acceptanceCriteria": [
+        "Reads architecture.json (pipeline, artifacts, depth decisions)",
+        "Writes roster.json with all agents",
+        "Per-agent: id, name, level, parent, children, resultCodes, artifacts, status",
+        "Naming convention: prefix-role pattern",
+        "Result codes: planned"
+      ]
+    },
+    {
+      "id": "FF-024",
+      "phase": "P3",
+      "title": "Routing planner agent",
+      "description": "Write fractal-factory-routing-planner.agent.md — designs routing tables, re-entry rules, convergence bounds for the produced system",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md",
+      "prerequisites": ["FF-023"],
+      "acceptanceCriteria": [
+        "Reads roster.json for agent hierarchy and result codes",
+        "Updates roster.json with routingTable per coordinator/orchestrator",
+        "Every child result code maps to an action",
+        "Re-entry rules with pass targets",
+        "Convergence bounds documented",
+        "Result codes: planned"
+      ]
+    },
+    {
+      "id": "FF-025",
+      "phase": "P3",
+      "title": "Test planner agent",
+      "description": "Write fractal-factory-test-planner.agent.md — creates golden test scenarios for the produced agent family",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-test-planner.agent.md",
+      "prerequisites": ["FF-023", "FF-024"],
+      "acceptanceCriteria": [
+        "Reads roster.json and architecture.json",
+        "Writes test-plan.json with golden scenarios",
+        "Coverage: at least one scenario per agent type (specialist, coordinator, orchestrator)",
+        "Scenarios: input conditions, expected result codes, expected artifacts",
+        "Edge cases: re-entry, blocked agents, convergence limit",
+        "Result codes: planned"
+      ]
+    },
+    {
+      "id": "FF-030",
+      "phase": "P4",
+      "title": "Prompt writer agent",
+      "description": "Write fractal-factory-prompt-writer.agent.md — writes one produced agent prompt per invocation following the universal template",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md",
+      "prerequisites": ["FF-006", "FF-023", "FF-024"],
+      "acceptanceCriteria": [
+        "Reads target agent spec from roster.json by ID",
+        "Handles all agent types: specialist, coordinator, orchestrator",
+        "Follows the universal agent prompt template",
+        "Includes status contract with exact result codes from roster",
+        "Includes anti-laziness rules for flagged agents",
+        "Interactive tool suppression on all produced prompts",
+        "Updates roster.json status: designed → written",
+        "Result codes: written, spec-incomplete"
+      ]
+    },
+    {
+      "id": "FF-031",
+      "phase": "P4",
+      "title": "Prompt reviewer agent",
+      "description": "Write fractal-factory-prompt-reviewer.agent.md — reviews one written prompt against structural checklist and roster spec",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md",
+      "prerequisites": ["FF-006", "FF-023", "FF-024"],
+      "acceptanceCriteria": [
+        "Structural checks: frontmatter, interactive suppression, status contract",
+        "Content checks vary by agent level (specialist/coordinator/orchestrator)",
+        "Cross-references roster.json for completeness",
+        "Anti-laziness rules prevent blank approvals",
+        "Writes structured review (not prose)",
+        "Result codes: approved, rejected"
+      ]
+    },
+    {
+      "id": "FF-032",
+      "phase": "P4",
+      "title": "Infrastructure writer agent",
+      "description": "Write fractal-factory-infra-writer.agent.md — generates bootstrap script, artifact schemas, skills, golden tests for the produced system",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-infra-writer.agent.md",
+      "prerequisites": ["FF-023", "FF-024", "FF-025"],
+      "acceptanceCriteria": [
+        "Writes bootstrap.sh following bootstrap-template.md pattern",
+        "Writes artifact schemas matching architecture.json",
+        "Writes golden test files from test-plan.json",
+        "All JSON seed files are valid",
+        "Result codes: infrastructure-written"
+      ]
+    },
+    {
+      "id": "FF-040",
+      "phase": "P5",
+      "title": "Checklist validator agent",
+      "description": "Write fractal-factory-checklist-validator.agent.md — runs the full validation checklist against all produced agents",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-checklist-validator.agent.md",
+      "prerequisites": ["FF-006", "FF-030", "FF-031"],
+      "acceptanceCriteria": [
+        "Covers ALL validation checklist categories: structural, routing, artifact, pipeline, anti-laziness, resumability",
+        "Per-item pass/fail with evidence",
+        "Severity classification: critical vs warning",
+        "Structured JSON output (verification-report.json)",
+        "Fails on any critical item",
+        "Result codes: pass, fail"
+      ]
+    },
+    {
+      "id": "FF-041",
+      "phase": "P5",
+      "title": "Audit oracle agent",
+      "description": "Write fractal-factory-audit-oracle.agent.md — applies agent-as-function-audit and fractal-workflow-eval perspectives to produced agents",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-audit-oracle.agent.md",
+      "prerequisites": ["FF-030", "FF-031"],
+      "acceptanceCriteria": [
+        "Applies agent-as-function-audit checks: pure-router, artifact consistency, routing gaps, status drift, contradictions",
+        "Applies fractal-workflow-eval checks: data flow, re-entry safety, directive propagation, dead paths, lost context",
+        "Per-finding: location, description, severity, suggested fix",
+        "Structured JSON output (audit-report.json)",
+        "Result codes: clean, issues-found"
+      ]
+    },
+    {
+      "id": "FF-042",
+      "phase": "P5",
+      "title": "Gap hunter agent",
+      "description": "Write fractal-factory-gap-hunter.agent.md — adversarial search for missing agents, broken routing, orphan artifacts across 8 categories",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-gap-hunter.agent.md",
+      "prerequisites": ["FF-030", "FF-031", "FF-032"],
+      "acceptanceCriteria": [
+        "Searches 8 categories: agent coverage, invariant propagation, artifact orphans, routing completeness, schema consistency, test coverage, depth-3 necessity, missing roles",
+        "Per-category search methodology documented",
+        "Re-entry classification per new item",
+        "Anti-laziness: methodology required even for zero-result categories",
+        "Convergence tracking (iteration counter)",
+        "Result codes: clean, dirty"
+      ]
+    },
+    {
+      "id": "FF-050",
+      "phase": "P6",
+      "title": "Packager agent",
+      "description": "Write fractal-factory-packager.agent.md — assembles output directory at target path, validates completeness",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-packager.agent.md",
+      "prerequisites": ["FF-040", "FF-041", "FF-042"],
+      "acceptanceCriteria": [
+        "Copies all produced files to target directory",
+        "Validates: every roster agent has a .agent.md file",
+        "Validates: every agent has status verified",
+        "Reports blocked/missing agents",
+        "Writes packaging-report.json",
+        "Result codes: packaged, incomplete"
+      ]
+    },
+    {
+      "id": "FF-051",
+      "phase": "P6",
+      "title": "Documentation writer agent",
+      "description": "Write fractal-factory-documentation-writer.agent.md — generates architecture doc, user guide, roster reference for the produced system",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-documentation-writer.agent.md",
+      "prerequisites": ["FF-050"],
+      "acceptanceCriteria": [
+        "Writes architecture.md: pipeline, agent hierarchy, artifact flow, re-entry rules",
+        "Writes user-guide.md: quick start, monitoring, troubleshooting",
+        "Writes roster.md: full agent table with roles, result codes, artifacts",
+        "Cross-references roster.json for accuracy",
+        "Result codes: documented"
+      ]
+    },
+    {
+      "id": "FF-052",
+      "phase": "P6",
+      "title": "Report writer agent",
+      "description": "Write fractal-factory-report-writer.agent.md — final handoff report with coverage stats, outstanding items, quality metrics",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-report-writer.agent.md",
+      "prerequisites": ["FF-051"],
+      "acceptanceCriteria": [
+        "Coverage statistics from real data (domain, invariant, routing, test)",
+        "Outstanding items from gap-report.json",
+        "Quality metrics from verification + audit reports",
+        "Recommendations section",
+        "Result codes: delivered"
+      ]
+    },
+    {
+      "id": "FF-060",
+      "phase": "P7",
+      "title": "Session orchestrator agent",
+      "description": "Write fractal-factory.agent.md — top-level pipeline driver, 7-pass routing, progress.json ownership, gap-hunting re-entry",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "prerequisites": ["FF-070", "FF-071", "FF-072", "FF-073", "FF-074"],
+      "acceptanceCriteria": [
+        "Pipeline routing table covers all 7 passes",
+        "Re-entry logic resets correct passes on gap-hunter dirty",
+        "Convergence bound enforced (maxCycles from context.json)",
+        "Progress recomputation from coordinator status files",
+        "Pure routing — no substantive work",
+        "All coordinator result codes handled",
+        "Result codes: delivered, delivered-with-gaps, failed"
+      ]
+    },
+    {
+      "id": "FF-061",
+      "phase": "P7",
+      "title": "Guide agent",
+      "description": "Write fractal-factory-guide.agent.md — human-facing entry point, context gathering, orchestrator invocation",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-guide.agent.md",
+      "prerequisites": ["FF-060"],
+      "acceptanceCriteria": [
+        "Gathers domain info, inputs, target path, constraints from user",
+        "Writes valid context.json",
+        "Invokes fractal-factory orchestrator via agent-as-function",
+        "Presents final report to user",
+        "Only agent with user-invocable: true",
+        "MAY use ask_questions (only agent allowed to)"
+      ]
+    },
+    {
+      "id": "FF-070",
+      "phase": "P7",
+      "title": "Discovery coordinator",
+      "description": "Write fractal-factory-discovery-coordinator.agent.md — sequential dispatch of 4 discovery specialists",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-discovery-coordinator.agent.md",
+      "prerequisites": ["FF-010", "FF-011", "FF-012", "FF-013"],
+      "acceptanceCriteria": [
+        "Sequential dispatch: scanner → extractor → auditor → analyzer",
+        "All child result codes mapped",
+        "insufficient-input propagates as blocked",
+        "Purity rule enforced",
+        "Result codes: complete, blocked"
+      ]
+    },
+    {
+      "id": "FF-071",
+      "phase": "P7",
+      "title": "Planning coordinator",
+      "description": "Write fractal-factory-planning-coordinator.agent.md — dual-mode (Pass 2 analysis, Pass 3 roster/routing/tests)",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-planning-coordinator.agent.md",
+      "prerequisites": ["FF-020", "FF-021", "FF-022", "FF-023", "FF-024", "FF-025"],
+      "acceptanceCriteria": [
+        "Mode detection from progress.json",
+        "Pass 2: pipeline-architect → artifact-designer → depth-analyzer",
+        "Pass 3: roster-planner → routing-planner → test-planner",
+        "All child result codes mapped",
+        "Purity rule — no design decisions",
+        "Result codes: pass-2-complete, pass-3-complete"
+      ]
+    },
+    {
+      "id": "FF-072",
+      "phase": "P7",
+      "title": "Execution coordinator",
+      "description": "Write fractal-factory-execution-coordinator.agent.md — writer→reviewer loop with 3-retry limit, then infra-writer",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-execution-coordinator.agent.md",
+      "prerequisites": ["FF-030", "FF-031", "FF-032"],
+      "acceptanceCriteria": [
+        "Bottom-up writing order: specialists → coordinators → orchestrator",
+        "Writer→reviewer loop with max 3 retries per agent",
+        "Blocked agents tracked but don't halt pipeline",
+        "Infra-writer dispatched after all prompts",
+        "Purity rule — no prompt writing or reviewing",
+        "Result codes: complete, complete-with-blocked"
+      ]
+    },
+    {
+      "id": "FF-073",
+      "phase": "P7",
+      "title": "Verification coordinator",
+      "description": "Write fractal-factory-verification-coordinator.agent.md — dual-mode (Pass 5 verify, Pass 6 gap-hunt)",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-verification-coordinator.agent.md",
+      "prerequisites": ["FF-040", "FF-041", "FF-042"],
+      "acceptanceCriteria": [
+        "Mode detection from progress.json",
+        "Pass 5: checklist-validator → audit-oracle",
+        "Pass 6: gap-hunter only",
+        "Checklist failure doesn't block audit-oracle",
+        "Convergence signal propagated",
+        "Result codes: verified, verified-with-issues, converged, gaps-found"
+      ]
+    },
+    {
+      "id": "FF-074",
+      "phase": "P7",
+      "title": "Delivery coordinator",
+      "description": "Write fractal-factory-delivery-coordinator.agent.md — sequential packager → doc-writer → report-writer",
+      "targetFile": "fractals/fractal-factory/agents/fractal-factory-delivery-coordinator.agent.md",
+      "prerequisites": ["FF-050", "FF-051", "FF-052"],
+      "acceptanceCriteria": [
+        "Sequential dispatch: packager → documentation-writer → report-writer",
+        "Incomplete packaging doesn't block documentation",
+        "All child result codes mapped",
+        "Purity rule",
+        "Result codes: complete"
+      ]
+    }
+  ],
+  "executionOrder": [
+    {
+      "wave": 1,
+      "description": "Foundation — all independent bootstrap tasks",
+      "tasks": ["FF-001", "FF-002", "FF-003", "FF-005", "FF-006"]
+    },
+    {
+      "wave": 2,
+      "description": "README (depends on schemas) + all 4 discovery specialists (depend on domain-model schema)",
+      "tasks": ["FF-004", "FF-010", "FF-011", "FF-012", "FF-013"]
+    },
+    {
+      "wave": 3,
+      "description": "Pipeline architect (depends on discovery agents being designed)",
+      "tasks": ["FF-020"]
+    },
+    {
+      "wave": 4,
+      "description": "Artifact designer + depth analyzer (depend on pipeline architect)",
+      "tasks": ["FF-021", "FF-022"]
+    },
+    {
+      "wave": 5,
+      "description": "Roster planner (depends on artifact designer + depth analyzer)",
+      "tasks": ["FF-023"]
+    },
+    {
+      "wave": 6,
+      "description": "Routing planner (depends on roster planner)",
+      "tasks": ["FF-024"]
+    },
+    {
+      "wave": 7,
+      "description": "Test planner + prompt writer + prompt reviewer (depend on roster + routing)",
+      "tasks": ["FF-025", "FF-030", "FF-031"]
+    },
+    {
+      "wave": 8,
+      "description": "Infrastructure writer + discovery coordinator (depend on planning agents + discovery agents)",
+      "tasks": ["FF-032", "FF-070"]
+    },
+    {
+      "wave": 9,
+      "description": "Checklist validator + audit oracle + planning coordinator (depend on execution agents + planning agents)",
+      "tasks": ["FF-040", "FF-041", "FF-071"]
+    },
+    {
+      "wave": 10,
+      "description": "Gap hunter + execution coordinator (depend on verification agents + execution agents)",
+      "tasks": ["FF-042", "FF-072"]
+    },
+    {
+      "wave": 11,
+      "description": "Packager + verification coordinator (depend on gap hunter + verification agents)",
+      "tasks": ["FF-050", "FF-073"]
+    },
+    {
+      "wave": 12,
+      "description": "Documentation writer + delivery coordinator (depend on packager + delivery agents)",
+      "tasks": ["FF-051", "FF-074"]
+    },
+    {
+      "wave": 13,
+      "description": "Report writer",
+      "tasks": ["FF-052"]
+    },
+    {
+      "wave": 14,
+      "description": "Session orchestrator (depends on all 5 coordinators)",
+      "tasks": ["FF-060"]
+    },
+    {
+      "wave": 15,
+      "description": "Guide agent (depends on orchestrator)",
+      "tasks": ["FF-061"]
+    }
+  ],
+  "stats": {
+    "totalTasks": 30,
+    "phases": 7,
+    "waves": 15,
+    "agentFiles": 25,
+    "schemaFiles": 4,
+    "bootstrapFiles": 1
+  }
+}

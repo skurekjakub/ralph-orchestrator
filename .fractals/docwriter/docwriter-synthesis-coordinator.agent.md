@@ -1,6 +1,6 @@
 ---
 description: 'Coordinates the knowledge synthesis pipeline after verification converges. Dispatches signal analyzers, knowledge integrator, and skill rebuilder.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-synthesis-coordinator'
 agents: ["docwriter-task-signal-analyzer", "docwriter-context-signal-analyzer", "docwriter-knowledge-integrator", "docwriter-skill-rebuilder"]
 user-invocable: false
@@ -73,7 +73,7 @@ Invoke `@docwriter-skill-rebuilder`.
 
 Wait for status file: `.docwriter/agents/skill-rebuilder-status.json`
 
-Validate: all 5 reference files exist in `.github/skills/docwriter-meta/references/`.
+Validate: all 6 reference files exist in `.github/skills/docwriter-meta/references/`.
 
 **On failure**: Log warning, skill files may be stale (non-fatal).
 

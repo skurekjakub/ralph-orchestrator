@@ -17,7 +17,7 @@
 ```yaml
 ---
 description: 'Researches latest documentation best practices from curated internet sources and filters recommendations through policy invariants.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-research-scout'
 user-invocable: false
 ---

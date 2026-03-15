@@ -25,7 +25,7 @@ Discovery coordinator is NOT modified for Phase 2 — it continues to handle onl
 ```yaml
 ---
 description: 'Curates task-relevant meta-knowledge from the accumulated knowledge base into a focused brief for downstream agents.'
-model: Claude Opus 4.6 (copilot)
+model: claude-opus-4.6
 name: 'docwriter-knowledge-curator'
 user-invocable: false
 ---
@@ -313,7 +313,7 @@ The curator is read-only and doesn't have the reviewer feedback data needed to d
 
 ## Acceptance Criteria
 
-- [ ] `docwriter-knowledge-curator.agent.md` exists with correct frontmatter (model: Claude Opus 4.6 (copilot), user-invocable: false)
+- [ ] `docwriter-knowledge-curator.agent.md` exists with correct frontmatter (model: claude-opus-4.6, user-invocable: false)
 - [ ] Multi-factor relevance scoring implemented with domain overlap (40%), confidence (25%), recency (20%), usage (15%)
 - [ ] Relevance threshold at 0.4 filters out low-quality entries
 - [ ] Saturation guard caps brief at 20 entries maximum
