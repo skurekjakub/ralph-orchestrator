@@ -34,6 +34,7 @@ If the system is a flat orchestrator → subagent setup without passes or re-ent
 | `references/checklist.md` | Always — the core evaluation checklist |
 | `references/common-findings.md` | Always — pattern library for classifying issues |
 | `references/data-flow-analysis.md` | When auditing re-entry, artifact consumption, or pass handoffs |
+| `references/routing-document.md` | Always — the routing document specification and maintenance rules |
 
 ## Process
 
@@ -92,8 +93,64 @@ When the user asks to fix findings:
 3. After fixing, do a targeted re-check of the affected area — don't re-run the full audit
 4. Mark each finding as resolved
 
+### Phase 5: Update Routing Document
+
+**Mandatory after every audit that produces fixes.** See `references/routing-document.md` for the full specification.
+
+The routing document (`ROUTING-ARCHITECTURE.md` in the agent family's root directory) is the canonical path-by-path reference for the pipeline. It enumerates every distinct execution path with trigger conditions, agent sequences, artifacts, progress mutations, and error handling.
+
+After applying fixes:
+
+1. **Read the existing routing document** (if it exists). If it doesn't exist, create one from scratch following the specification in `references/routing-document.md`.
+2. **Update affected paths.** For each fix, identify which execution paths (P-01, P-02, etc.) are affected and update their descriptions to reflect the new behavior.
+3. **Add new paths** if a fix introduces a previously undocumented execution branch.
+4. **Remove dead paths** if a fix eliminates an execution branch.
+5. **Update the reference sections** (artifact dependency graph, progress state machine, coordinator dispatch sequences) if they are affected by the fixes.
+6. **Verify path count.** Every conditional branch in the orchestrator's routing table and every error/recovery path in coordinators must be represented as a distinct path entry. If you count N conditional branches across all agents but the document has fewer than N paths, paths are missing.
+
+## Path-by-Path Debugging
+
+**When evaluating a workflow, always trace each execution path individually rather than evaluating the whole pipeline holistically.** This is the primary audit methodology.
+
+### Why Path-by-Path
+
+Holistic audits miss issues that only manifest on specific execution paths. A coordinator's instructions may be correct for the happy path but broken for re-entry. An artifact dependency may be satisfied in the first run but missing during a skip-pass directive. Path-by-path tracing forces you to hold one specific scenario constant and verify every step in that scenario.
+
+### How to Apply
+
+1. **Start from the routing document.** Each path entry (P-01, P-02, etc.) is an independent scenario to trace.
+2. **For each path**, walk through every agent dispatch in sequence:
+   - What state does the agent see when invoked on THIS path?
+   - Does the agent's mode detection / conditional logic route to the correct branch for THIS state?
+   - Are all required artifacts available at this point in THIS path? (An artifact produced in Pass 2 exists on P-01 but NOT on P-11 if Pass 2 was skipped.)
+   - Does the agent's output correctly advance the pipeline for THIS path's next step?
+3. **Record findings per path.** Tag each finding with the path ID (e.g., "P-02: coordinator doesn't relay gap context"). This makes it clear which scenarios are affected.
+4. **Cross-reference for overlapping issues.** After tracing all paths individually, check if the same root cause appears across multiple paths. Consolidate into a single finding with multiple path references.
+
+### Path Priority for Auditing
+
+Not all paths are equally important. Audit in this order:
+
+| Priority | Paths | Rationale |
+|----------|-------|-----------|
+| 1 | P-01 (happy path) | Most common execution — must be flawless |
+| 2 | P-02, P-08, P-10 (re-entry, rewrite loop, forced convergence) | Re-entry is the most error-prone area |
+| 3 | P-03 (crash recovery) | Data integrity under failure |
+| 4 | P-04, P-05, P-06, P-07, P-14 (non-blocking failures, degraded modes) | Graceful degradation |
+| 5 | P-09, P-13, P-15 (blocked tasks, front-matter issues, cold start) | Edge cases |
+| 6 | P-11, P-12 (directive-driven paths) | User-driven, less frequent |
+
+### Minimum Path Coverage
+
+An audit is NOT complete unless at minimum these paths have been traced:
+- **P-01** (happy path) — validates the baseline
+- **P-02** (gap-hunting re-entry) — validates the most fragile logic
+- **P-03** (crash recovery) — validates state machine integrity
+
 ## Principles
 
+- **Always debug path by path.** Never evaluate the pipeline as a single holistic system. Use the routing document to enumerate paths, then trace each one individually. This catches path-specific bugs that holistic audits miss.
+- **Always maintain the routing document.** After any audit that produces fixes, update `ROUTING-ARCHITECTURE.md`. If it doesn't exist, create it. A stale routing document is worse than none — it actively misleads.
 - **Trace data, not just instructions.** The most dangerous bugs are where Agent A writes artifact X but Agent B (which needs X) never reads it. Always verify the full read/write chain.
 - **Simulate re-entry.** Mentally walk through what happens when the orchestrator cascade-resets passes. Which agents get re-invoked? What state do they see? Do they know *why* they're re-running?
 - **Check reachability.** If an agent has conditional branches (mode detection, re-entry handling), verify each branch is actually reachable given how the orchestrator manages state. Dead branches mislead the agent.

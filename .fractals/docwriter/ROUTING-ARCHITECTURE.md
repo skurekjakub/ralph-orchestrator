@@ -74,12 +74,12 @@ Startup
 │  │    Write: invariant-inventory.json, invariant-hashmap.json
 │  ├─ → code-analyzer ‖ research-scout (parallel, independent)
 │  │    code-analyzer Read: change-inventory.json, meta/codebase-map.json, [source-observations.md skill ref]
-│  │    code-analyzer Write: code-analysis.json
+│  │    code-analyzer Write: code-analysis.json, [discoveries/code-analyzer--*.json]
 │  │    research-scout Read: change-inventory.json, invariant-inventory.json
-│  │    research-scout Write: research-brief.json
+│  │    research-scout Write: research-brief.json, [discoveries/research-scout--*.json]
 │  ├─ → impact-mapper (after code-analyzer + corpus-scanner)
 │  │    Read: code-analysis.json, doc-index.json, change-inventory.json, [research-brief.json]
-│  │    Write: impact-matrix.json
+│  │    Write: impact-matrix.json, [discoveries/impact-mapper--*.json]
 │  ├─ Status: agents/analysis-coordinator-status.json (result: pass2-complete)
 │  ⇒ pass2_analysis = "done"
 │
@@ -97,7 +97,7 @@ Startup
 │  ├─ For EACH task in task-graph.json (by order, respecting dependsOn):
 │  │  ├─ → content-writer (with task ID, risk info if high/critical)
 │  │  │    Read: task def, code-analysis.json, impact-matrix.json, knowledge-brief.json, invariants
-│  │  │    Write: actual doc files + tasks/<id>/writer-output.json
+│  │  │    Write: actual doc files + tasks/<id>/writer-output.json, [discoveries/content-writer--*.json]
 │  │  ├─ → style-reviewer → accuracy-reviewer → persona-reviewer (sequential)
 │  │  │    Read: written doc file + task def + invariants + knowledge-brief.json
 │  │  │    Write: tasks/<id>/{style,accuracy,persona}-review.json
@@ -108,11 +108,12 @@ Startup
 ├─ Pass 5-6: verification-coordinator
 │  ├─ Pass 5: → cross-ref-updater
 │  │    Read: all written doc files, doc-index.json
-│  │    Write: verification-matrix.json
+│  │    Write: verification-matrix.json, [discoveries/cross-ref-updater--*.json]
 │  │  ⇒ pass5_verification = "done"
 │  ├─ Pass 6: → gap-hunter
 │  │    Read: change-inventory.json, task-graph.json, written docs, invariant-inventory.json,
-│  │          [knowledge-brief.json], [task-effectiveness.md skill ref], [source-observations.md skill ref]
+│  │          [knowledge-brief.json], [task-effectiveness.md skill ref], [source-observations.md skill ref],
+│  │          [discoveries/*.json]
 │  │    Write: gap-analysis.json
 │  │  Evaluate: totalGaps === 0, converged === true
 │  │  ⇒ pass6_gapHunting = "done", gapHunting.reEntryTarget = null, converged = true
@@ -144,13 +145,15 @@ Startup
    └─ Write pipeline-summary.json, report to user
 ```
 
-**Artifacts produced (in order):** knowledge-brief.json → codebase-survey.json → meta/codebase-map.json → change-inventory.json → doc-index.json → invariant-inventory.json → code-analysis.json → research-brief.json → impact-matrix.json → task-graph.json → risk-register.json → [doc files + review JSONs per task] → verification-matrix.json → gap-analysis.json → synthesis-signals/ → meta/ updates → frontmatter-validation.json → changelog-entry.md → pipeline-summary.json
+**Artifacts produced (in order):** knowledge-brief.json → codebase-survey.json → meta/codebase-map.json → change-inventory.json → doc-index.json → invariant-inventory.json → code-analysis.json → [discoveries/*.json] → research-brief.json → impact-matrix.json → task-graph.json → risk-register.json → [doc files + review JSONs per task + discoveries/*.json] → verification-matrix.json → [discoveries/*.json] → gap-analysis.json → synthesis-signals/ → meta/ updates → frontmatter-validation.json → changelog-entry.md → pipeline-summary.json
 
 ---
 
 ## P-02: Gap-Hunting Re-Entry
 
 Gaps found during Pass 6. The orchestrator cascade-resets downstream passes and re-executes. **Smart task targeting:** gap-hunter emits `affectedTaskIds` per gap, enabling downstream agents to selectively update only affected work instead of redoing entire passes.
+
+**Discovery accumulation:** Discovery files in `.docwriter/discoveries/` persist across re-entry cycles. Each file includes a `cycle` field so the gap-hunter can distinguish new discoveries from previously processed ones. On re-entry, leaf agents write new discovery files with the incremented cycle number — previous cycle files remain untouched, providing a cumulative record of all out-of-scope findings.
 
 ```
 Pass 6 completes:
@@ -502,6 +505,24 @@ Not an error — next run will have another chance to extract signals.
 ```
 
 **Escalation:** If knowledge-integrator itself fails (not just signal analyzers), synthesis is marked as failed, skill-rebuilder is skipped, and the coordinator writes error status. The orchestrator treats this as non-blocking (P-06).
+
+---
+
+## P-14b: Empty Discovery Directory
+
+No leaf agents wrote discovery files during any pass. The `discoveries/` directory is empty.
+
+```
+Pass 6: gap-hunter
+│
+├─ Step 7 (discovery consumption):
+│    Glob discoveries/*.json → 0 files
+│    Skip step entirely
+│    Set: discoveriesProcessed=0, discoveriesConvertedToGaps=0, discoveriesDeduplicated=0
+│
+Impact: Gap-hunter runs Steps 1-6 normally. No discoveries to convert.
+Not an error — agents only write discoveries when they encounter out-of-scope issues.
+```
 
 ---
 

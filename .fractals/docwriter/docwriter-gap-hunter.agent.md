@@ -28,6 +28,7 @@ You are `docwriter-gap-hunter`, a specialist in the docwriter fractal orchestrat
 - `.docwriter/knowledge-brief.json` — curated meta-knowledge (focus on `antiPatterns`, `sourceObservations`, and `taskRetroLessons`)
 - `.github/skills/docwriter-meta/references/task-effectiveness.md` — historical task success/failure data
 - `.github/skills/docwriter-meta/references/source-observations.md` — code→doc predictors (code characteristics that predict missing documentation)
+- `.docwriter/discoveries/*.json` — out-of-scope findings from leaf agents (code-analyzer, content-writer, impact-mapper, research-scout, cross-ref-updater)
 
 ## Invariant Supremacy
 
@@ -42,6 +43,7 @@ When discarding, note the discard with the conflicting INV-* ID in your output a
 
 - If `.docwriter/knowledge-brief.json` does not exist → skip all meta-knowledge steps, proceed normally
 - If `.github/skills/docwriter-meta/references/*.md` contain placeholder text → skip skill consultation, proceed normally
+- If `.docwriter/discoveries/` is empty or absent → skip Step 7, set discovery summary fields to 0
 - **Never error on missing optional artifacts** — these are enhancements, not requirements
 
 ## Process
@@ -99,6 +101,28 @@ If meta-knowledge is available:
    - If yes, verify the predicted documentation need was addressed by a task
    - Missing predicted doc needs are high-confidence gaps — past runs proved these code characteristics require specific documentation
 
+### 7. Discovery consumption
+
+Glob `.docwriter/discoveries/*.json`. If none exist, skip this step.
+
+For each discovery file:
+1. Parse the `discoveries` array
+2. Group discoveries by `type`
+3. Cross-reference against gaps already found in Steps 1–6 to deduplicate:
+   - If a discovery describes the same issue as an existing gap (same affected area + same type of problem), skip it — the gap already covers it
+   - If a discovery adds new evidence to an existing gap, note it in that gap's `evidence` field
+4. For novel discoveries not covered by existing gaps, convert to formal gap entries using this type mapping:
+   - `undocumented-behavior` → gap type `undocumented-change`
+   - `missing-coverage` → gap type `undocumented-change`
+   - `stale-content` → gap type `stale-content`
+   - `cross-cutting-concern` → gap type `undocumented-change`
+   - `scope-expansion` → gap type `undocumented-change`
+5. Set `reEntryTarget` based on the discovery's `suggestedAction`:
+   - If action requires new tasks → `pass3`
+   - If action requires content update to existing task → `pass4`
+   - If action requires cross-ref fixes → `pass5`
+6. Include `"discoverySource": "<agent>--<context>--c<cycle>"` in converted gap entries for traceability
+
 ## Output
 
 Write `.docwriter/gap-analysis.json`:
@@ -141,7 +165,10 @@ Write `.docwriter/gap-analysis.json`:
     "totalGaps": 3,
     "reEntryNeeded": true,
     "reEntryTargets": ["pass3", "pass4"],
-    "converged": false
+    "converged": false,
+    "discoveriesProcessed": 5,
+    "discoveriesConvertedToGaps": 2,
+    "discoveriesDeduplicated": 3
   }
 }
 ```

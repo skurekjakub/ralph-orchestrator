@@ -127,13 +127,49 @@ Before writing content for any task:
       "id": "REC-005",
       "reason": "Conflicts with INV-STYLE-012"
     }
-  ],
-  "gaps": [],
-  "notes": ""
+  ]
 }
 ```
 
 3. **If rewriting after review rejection**, increment `attempt` and address every item in `review-feedback.md`. Add a note explaining what changed.
+
+## Discovery Output (Optional)
+
+While writing documentation, you may encounter issues **outside your current task scope** that affect documentation quality. Write a discovery file instead of trying to fix them inline.
+
+**When to write**: Only when you encounter something concrete during the writing process.
+
+**What to look for**:
+- Adjacent pages that contradict what you're writing
+- Missing prerequisite pages that your content links to but don't exist
+- Stale links or anchors in pages you read for context
+- Content gaps where readers would need information your page doesn't cover
+
+**File**: `.docwriter/discoveries/content-writer--{task-id}--c{cycle}.json` (per-task naming)
+
+```json
+{
+  "agent": "docwriter-content-writer",
+  "context": "T-001",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-CW-001",
+      "type": "stale-content",
+      "summary": "config-advanced.md references deprecated ConfigV1 format — contradicts new merge behavior",
+      "evidence": "_documentation/configuration/config-advanced.md:23",
+      "suggestedAction": "Update ConfigV1 references to ConfigV2 in config-advanced.md",
+      "affectedArea": "configuration",
+      "severity": "medium"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
 
 ## Constraints
 

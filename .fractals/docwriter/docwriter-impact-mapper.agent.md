@@ -124,6 +124,44 @@ If `research-brief.json` exists:
 }
 ```
 
+## Discovery Output (Optional)
+
+During impact mapping, you may identify documentation impacts that fall **outside the pages covered by the change inventory**. Write a discovery file rather than adding impacts for pages you have no mandate to touch.
+
+**When to write**: Only when you find concrete evidence of an out-of-scope impact.
+
+**What to look for**:
+- Pages in doc-index affected by the changes but not in any task's scope
+- Cross-cutting concerns that span more areas than code-analysis identified
+- New pages needed that aren't covered by any existing task
+- Impact chains that propagate beyond the immediate change footprint
+
+**File**: `.docwriter/discoveries/impact-mapper--global--c{cycle}.json`
+
+```json
+{
+  "agent": "docwriter-impact-mapper",
+  "context": "global",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-IM-001",
+      "type": "missing-coverage",
+      "summary": "API rate-limiting changes also affect the troubleshooting guide — not in any task scope",
+      "evidence": "code-analysis AREA-003 shows rate-limit changes; troubleshooting.md references old limits",
+      "suggestedAction": "Add task to update rate-limit values in troubleshooting.md",
+      "affectedArea": "troubleshooting",
+      "severity": "medium"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
+
 ## Constraints
 
 - **Every change from code-analysis must produce at least one impact entry.** Even if the impact is `no-doc-impact`, record it with a reason.

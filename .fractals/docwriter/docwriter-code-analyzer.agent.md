@@ -101,6 +101,44 @@ For **each area** in `change-inventory.json`, and for **each file** within that 
 }
 ```
 
+## Discovery Output (Optional)
+
+During analysis, you may encounter facts that fall **outside the change inventory** but are clearly relevant to documentation quality. Rather than silently discarding these, write a discovery file.
+
+**When to write**: Only when you encounter something concrete and evidenced — not speculative.
+
+**What to look for**:
+- Undocumented public APIs, exported types, or config options not in any doc page
+- Stale doc references to code that has been deleted or renamed
+- Cross-cutting patterns that affect areas beyond the change inventory
+- Missing error handling documentation for user-facing error paths
+
+**File**: `.docwriter/discoveries/code-analyzer--{AREA-ID}--c{cycle}.json` (one per area where discoveries occur)
+
+```json
+{
+  "agent": "docwriter-code-analyzer",
+  "context": "AREA-001",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-CA-001",
+      "type": "undocumented-behavior",
+      "summary": "ConfigMerger.merge() silently drops unknown keys — not documented anywhere",
+      "evidence": "src/config/merger.ts:45 — Object.keys(schema).filter()",
+      "suggestedAction": "Add 'unknown key handling' section to config-merging.md",
+      "affectedArea": "configuration",
+      "severity": "high"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
+
 ## Constraints
 
 - **Analyze every file in every area.** No skipping, no sampling.

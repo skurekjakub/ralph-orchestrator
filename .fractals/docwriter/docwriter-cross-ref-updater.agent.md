@@ -92,6 +92,44 @@ Write `.docwriter/verification-matrix.json`:
 }
 ```
 
+## Discovery Output (Optional)
+
+During cross-reference verification, you may encounter link or reference issues **outside the pages you're mandated to check**. Write a discovery file rather than silently ignoring them.
+
+**When to write**: Only when you find concrete evidence of a cross-reference problem beyond your scope.
+
+**What to look for**:
+- Broken links in pages not in the current verification matrix
+- Orphaned pages with no incoming links that should be linked from updated pages
+- Anchor targets that have drifted in pages outside your scope
+- Circular reference chains that span unrelated page clusters
+
+**File**: `.docwriter/discoveries/cross-ref-updater--global--c{cycle}.json`
+
+```json
+{
+  "agent": "docwriter-cross-ref-updater",
+  "context": "global",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-XR-001",
+      "type": "stale-content",
+      "summary": "troubleshooting.md#old-anchor is broken — anchor was renamed in a previous task cycle",
+      "evidence": "troubleshooting.md links to config-merging.md#old-anchor which no longer exists",
+      "suggestedAction": "Fix anchor reference in troubleshooting.md to point to #config-merge-behavior",
+      "affectedArea": "troubleshooting",
+      "severity": "low"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
+
 ## Constraints
 
 - **Check every incoming link.** If doc-index says 12 pages link to the affected page, check all 12.

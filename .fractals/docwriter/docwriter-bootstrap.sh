@@ -50,6 +50,7 @@ if [ "$CLEAN_MODE" = true ]; then
   # Recreate core directories
   mkdir -p "$ARTIFACT_DIR/agents"
   mkdir -p "$ARTIFACT_DIR/tasks"
+  mkdir -p "$ARTIFACT_DIR/discoveries"
   mkdir -p "$ARTIFACT_DIR/synthesis-signals"
 elif [ -d "$ARTIFACT_DIR" ]; then
   echo "Artifact directory already exists at $ARTIFACT_DIR"
@@ -61,6 +62,7 @@ else
   # Core directories
   mkdir -p "$ARTIFACT_DIR/agents"
   mkdir -p "$ARTIFACT_DIR/tasks"
+  mkdir -p "$ARTIFACT_DIR/discoveries"
 
   # Meta-knowledge directories (persistent across --clean runs)
   mkdir -p "$ARTIFACT_DIR/meta/patterns"

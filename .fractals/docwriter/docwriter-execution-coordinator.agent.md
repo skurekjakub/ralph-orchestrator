@@ -84,6 +84,8 @@ Invoke `@docwriter-content-writer` with the task ID.
 
 Wait for completion. Verify the target file was written/updated and `writer-output.json` exists.
 
+**Discovery files**: Leaf agents (content-writer, reviewers) may write files to `.docwriter/discoveries/`. Do NOT read, modify, or delete these files — they are consumed exclusively by the gap-hunter in Pass 6.
+
 #### Step B: Dispatch all three reviewers
 
 Invoke `@docwriter-style-reviewer` with the task ID.

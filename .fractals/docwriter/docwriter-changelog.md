@@ -1,5 +1,33 @@
 # Docwriter Agent Family — Changelog
 
+## 2026-03-15
+
+### Discovery Registry
+
+Added `.docwriter/discoveries/` directory as a persistent, append-only channel for leaf agents to record out-of-scope findings during pipeline execution. Discoveries accumulate across re-entry cycles and are consumed by the gap-hunter in Pass 6 Step 7.
+
+**Bootstrap lifecycle:**
+- **docwriter-bootstrap.sh** — `discoveries/` created on fresh bootstrap and recreated on `--clean` (cycle-specific, not preserved like meta/)
+
+**Leaf agent wiring (writers — optional output):**
+- **docwriter-code-analyzer.agent.md** — Discovery Output section: undocumented APIs, stale refs, cross-cutting patterns. File: `discoveries/code-analyzer--{AREA-ID}--c{cycle}.json`
+- **docwriter-content-writer.agent.md** — Discovery Output section: adjacent page contradictions, missing prerequisites, stale links. File: `discoveries/content-writer--{task-id}--c{cycle}.json`. Dead `gaps`/`notes` fields removed from writer-output.json schema.
+- **docwriter-impact-mapper.agent.md** — Discovery Output section: out-of-scope page impacts, cross-cutting spillover. File: `discoveries/impact-mapper--global--c{cycle}.json`
+- **docwriter-research-scout.agent.md** — Discovery Output section: deprecation notices, breaking changes, new best practices. File: `discoveries/research-scout--global--c{cycle}.json`
+- **docwriter-cross-ref-updater.agent.md** — Discovery Output section: broken links outside scope, orphaned pages, drifted anchors. File: `discoveries/cross-ref-updater--global--c{cycle}.json`
+
+**Coordinator awareness:**
+- **docwriter-execution-coordinator.agent.md** — Non-interference note: discovery files owned by leaf agents, consumed exclusively by gap-hunter in Pass 6
+
+**Gap-hunter consumption (reader):**
+- **docwriter-gap-hunter.agent.md** — New input: `discoveries/*.json`. New Step 7 after Step 6: glob → group by type → cross-ref against existing gaps → convert novel discoveries to formal gaps with `discoverySource` traceability field. Type mapping: `undocumented-behavior`/`missing-coverage`/`cross-cutting-concern`/`scope-expansion` → gap `undocumented-change`; `stale-content` → gap `stale-content`. Output schema: 3 new convergence fields (`discoveriesProcessed`, `discoveriesConvertedToGaps`, `discoveriesDeduplicated`). Missing artifact handling: empty/absent `discoveries/` → skip Step 7, zero summary fields.
+
+**Documentation:**
+- **ROUTING-ARCHITECTURE.md** — Artifact chain updated with `[discoveries/*.json]` at Pass 2/4/5 output points. Pass 2/4/5/6 data flows updated with discovery writes/reads. P-02 re-entry: discovery accumulation across cycles documented. New P-14b: Empty Discovery Directory degraded mode.
+
+**Schema (per-discovery entry):**
+`id` (DISC-XX-NNN), `type` (undocumented-behavior|missing-coverage|stale-content|cross-cutting-concern|scope-expansion), `summary`, `evidence`, `suggestedAction`, `affectedArea`, `severity` (high|medium|low)
+
 ## 2026-03-14
 
 ### Source Observations Meta-Knowledge

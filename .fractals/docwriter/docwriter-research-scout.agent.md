@@ -128,6 +128,44 @@ Note which curated sources were useful vs. not. This metadata feeds back to the 
 ```
 - Prepend to `.docwriter/manifest.json`
 
+## Discovery Output (Optional)
+
+During research, you may encounter information that falls **outside the current task scope** but is clearly relevant to documentation quality. Write a discovery file rather than trying to expand scope.
+
+**When to write**: Only when you find concrete external evidence of a documentation issue.
+
+**What to look for**:
+- Official API changes not reflected in current documentation
+- Deprecation notices affecting documented features
+- New best practices from official sources that contradict current docs
+- Breaking changes in dependencies that require doc updates
+
+**File**: `.docwriter/discoveries/research-scout--global--c{cycle}.json`
+
+```json
+{
+  "agent": "docwriter-research-scout",
+  "context": "global",
+  "cycle": 1,
+  "timestamp": "<ISO>",
+  "discoveries": [
+    {
+      "id": "DISC-RS-001",
+      "type": "stale-content",
+      "summary": "Official SDK docs now recommend async-first pattern — our guide shows sync approach",
+      "evidence": "https://docs.example.com/sdk/v3/migration — async migration guide",
+      "suggestedAction": "Update SDK usage examples in getting-started.md to async pattern",
+      "affectedArea": "getting-started",
+      "severity": "high"
+    }
+  ]
+}
+```
+
+**Discovery types**: `undocumented-behavior`, `missing-coverage`, `stale-content`, `cross-cutting-concern`, `scope-expansion`
+
+Only write the file if you have discoveries. No empty discovery files.
+
 ## Critical Rules
 
 - **Invariant supremacy**: If ANY doubt exists about whether a recommendation conflicts with an invariant, classify it as `blocked`. Do not reason your way around invariant conflicts.
