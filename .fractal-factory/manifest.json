@@ -1,1 +1,179 @@
-[]
+[
+  {
+    "timestamp": "2026-03-16T02:15:00Z",
+    "agent": "fractal-factory-prompt-reviewer",
+    "task_id": "pass4/prompt-review",
+    "artifacts": [
+      "agents/fractal-factory-prompt-reviewer/status.json",
+      "agents/fractal-factory-prompt-reviewer/output.md"
+    ],
+    "status": "completed",
+    "result": "rejected",
+    "iteration": 1,
+    "summary": "Reviewed 67 agents: 20 approved, 47 rejected. Routing agents pass; all specialists have generic boilerplate."
+  },
+  {
+    "timestamp": "2026-03-16T01:50:56Z",
+    "agent": "fractal-factory-planning-coordinator",
+    "task_id": "pass3/coordination",
+    "artifacts": [
+      "agents/fractal-factory-planning-coordinator/status.json"
+    ],
+    "status": "completed",
+    "result": "complete",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T01:49:50.192126+00:00",
+    "agent": "fractal-factory-test-planner",
+    "task_id": "pass3/test-planning",
+    "artifacts": [
+      "test-plan.json",
+      "agents/fractal-factory-test-planner/output.md",
+      "agents/fractal-factory-test-planner/status.json"
+    ],
+    "status": "completed",
+    "result": "planned",
+    "iteration": 1,
+    "summary": "Created 21 test scenarios: P0=7, P1=11, P2=3. Covers 10 categories including all coordinators, auditor loops, per-chapter iteration, revision-beta cycles, cross-cutting agents, and edge cases."
+  },
+  {
+    "timestamp": "2026-03-16T00:25:34Z",
+    "agent": "fractal-factory-routing-planner",
+    "task_id": "pass3/routing-design",
+    "artifacts": [
+      "routing.json",
+      "agents/fractal-factory-routing-planner/output.md",
+      "agents/fractal-factory-routing-planner/status.json"
+    ],
+    "status": "completed",
+    "result": "planned",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T00:16:46Z",
+    "agent": "fractal-factory-roster-planner",
+    "task_id": "pass3/roster-planning",
+    "artifacts": [
+      "roster.json",
+      "agents/fractal-factory-roster-planner/output.md"
+    ],
+    "status": "completed",
+    "result": "planned",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T00:05:54Z",
+    "agent": "fractal-factory-analysis-coordinator",
+    "task_id": "pass2/coordination",
+    "artifacts": [
+      "agents/fractal-factory-analysis-coordinator/status.json"
+    ],
+    "status": "completed",
+    "result": "complete",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T00:04:49Z",
+    "agent": "fractal-factory-depth-analyzer",
+    "task_id": "pass2/depth-analysis",
+    "artifacts": [
+      "architecture.json",
+      "agents/fractal-factory-depth-analyzer/output.md"
+    ],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T00:35:00Z",
+    "agent": "fractal-factory-artifact-designer",
+    "task_id": "pass2/artifact-design",
+    "artifacts": [
+      "architecture.json",
+      "agents/fractal-factory-artifact-designer/output.md"
+    ],
+    "status": "completed",
+    "result": "designed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-16T00:25:00Z",
+    "agent": "fractal-factory-pipeline-architect",
+    "task_id": "pass2/pipeline-design",
+    "artifacts": [
+      "architecture.json",
+      "agents/fractal-factory-pipeline-architect/output.md"
+    ],
+    "status": "completed",
+    "result": "designed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-15T23:18:33Z",
+    "agent": "fractal-factory-discovery-coordinator",
+    "task_id": "pass1/coordination",
+    "artifacts": [
+      "agents/fractal-factory-discovery-coordinator/status.json"
+    ],
+    "status": "completed",
+    "result": "complete",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-15T23:16:25Z",
+    "agent": "fractal-factory-exemplar-analyzer",
+    "task_id": "pass1/exemplar-analysis",
+    "artifacts": [
+      "domain-model.json",
+      "agents/fractal-factory-exemplar-analyzer/output.md"
+    ],
+    "status": "completed",
+    "result": "analyzed",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-15T23:28:00Z",
+    "agent": "fractal-factory-asset-auditor",
+    "task_id": "pass1/asset-audit",
+    "artifacts": [
+      "domain-model.json",
+      "agents/fractal-factory-asset-auditor/output.md"
+    ],
+    "status": "completed",
+    "result": "audited",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-15T23:15:00Z",
+    "agent": "fractal-factory-invariant-extractor",
+    "task_id": "pass1/invariant-extraction",
+    "artifacts": [
+      "domain-model.json",
+      "agents/fractal-factory-invariant-extractor/output.md"
+    ],
+    "status": "completed",
+    "result": "extracted",
+    "iteration": 1
+  },
+  {
+    "timestamp": "2026-03-15T23:02:00Z",
+    "agent": "fractal-factory-domain-scanner",
+    "artifacts": [
+      "domain-model.json",
+      "agents/fractal-factory-domain-scanner/output.md"
+    ],
+    "status": "completed",
+    "result": "scanned",
+    "iteration": 1
+  },
+  {
+    "agent": "fractal-factory-knowledge-curator",
+    "task_id": "pass0/knowledge-curation",
+    "timestamp": "2026-03-15T22:49:42Z",
+    "result": "cold-start",
+    "artifacts": [
+      "knowledge-brief.json"
+    ]
+  }
+]

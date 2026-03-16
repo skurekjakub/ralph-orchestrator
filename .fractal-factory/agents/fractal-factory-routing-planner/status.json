@@ -1,0 +1,13 @@
+{
+  "agent": "fractal-factory-routing-planner",
+  "task_id": "pass3/routing-design",
+  "status": "completed",
+  "result": "planned",
+  "summary": "Designed routing tables for 9 coordinators + 10 sub-coordinators + 1 orchestrator = 20 routing agents. Total routing entries: 161. 8 auditor gate loops (all bounded at 3 retries). 4 per-chapter iteration loops. 3 parallel dispatch groups. 1 orchestrator-level revision\u2194beta-reading loop (bounded at 2 cycles). All routing gaps resolved \u2014 every child result code maps to an action, all blocks propagate upward, all loops have convergence bounds.",
+  "artifacts": [
+    "routing.json",
+    "agents/fractal-factory-routing-planner/output.md"
+  ],
+  "next_hint": "fractal-factory-test-planner",
+  "iteration": 1
+}

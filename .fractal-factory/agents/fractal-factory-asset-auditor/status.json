@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-asset-auditor",
+  "task_id": "pass1/asset-audit",
+  "status": "completed",
+  "result": "audited",
+  "summary": "Found 26 reusable assets: 5 direct, 4 adaptable, 17 reference-only. Types: 7 skills, 5 agent-templates, 1 MCP server, 6 shared-includes, 7 tools. Scanned ~75 total assets across shared/skills, shared/agent-includes, shared/mcp-servers, shared/hooks, .github/skills, profiles, and exemplar agents. The fractal orchestrator exemplar family (35 agents) is the primary architectural reference. The agent-as-function-contract and rules includes are directly reusable. Most domain-specific skills (Xperience, ADO, CodeGraph, Playwright) are irrelevant — the fantasy-writer domain needs entirely novel craft knowledge skills.",
+  "artifacts": ["domain-model.json", "agents/fractal-factory-asset-auditor/output.md"],
+  "next_hint": "fractal-factory-exemplar-analyzer",
+  "iteration": 1
+}

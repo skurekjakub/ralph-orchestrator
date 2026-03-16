@@ -55,7 +55,7 @@ User invokes fractal-factory-guide (once)
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 4: Execution                                          │
    │   execution-coordinator                                    │
-   │     → prompt-writer ↔ prompt-reviewer (loop, max 3)        │
+    │     → prompt-writer ↔ prompt-reviewer (batches of 5, max 3 retries per batch) │
    │     → infra-writer                                         │
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 5: Verification                                       │
@@ -173,7 +173,7 @@ User invokes fractal-factory-guide (once)
 Multiple specialists write to the same JSON files. Each agent reads the current state, adds its entries (identified by `discoveredBy` field), preserves all entries from other agents, and writes back.
 
 ### Coder-Reviewer Loop
-The execution coordinator dispatches `prompt-writer` → `prompt-reviewer` for each produced agent. On rejection, the writer is re-dispatched with feedback (max 3 retries). Blocked agents are logged but don't halt the pipeline.
+The execution coordinator dispatches `prompt-writer` → `prompt-reviewer` in deterministic batches of up to 5 produced agents. On rejection, the writer is re-dispatched with feedback for that same batch (max 3 retries per batch). Exhausted batch members are marked `blocked`, and the pipeline continues with later batches.
 
 ### Gap-Hunting Convergence
 After verification, the gap-hunting coordinator dispatches the three specialist hunters to search for anything missed. If they find new items: re-enter Pass 2 or 3. Convergence = the aggregated gap-hunting result finds zero new items. Max 3 cycles before forced delivery.

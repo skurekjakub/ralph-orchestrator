@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-roster-planner",
+  "task_id": "pass3/roster-planning",
+  "status": "completed",
+  "result": "planned",
+  "summary": "Planned 67 agents: 1 guide, 1 orchestrator, 9 coordinators, 10 sub-coordinators, 46 specialists (including 3 shared cross-cutting). Depth-2: 4 coordinators (concept, style, revision, polish). Depth-3: 5 coordinators (worldbuilding, character, plotting, drafting, beta-reading) with 10 sub-coordinators. 67/80 budget (84%), 13 slots headroom. Consolidated 3 craft-knowledge shared agents into 1 craft-tracker. Added chapter-reviser to revision phase (+1 over architecture estimate). 10 anti-laziness agents (all auditors + craft-enforcer + craft-tracker).",
+  "artifacts": ["roster.json", "agents/fractal-factory-roster-planner/output.md"],
+  "next_hint": "fractal-factory-routing-planner",
+  "iteration": 1
+}

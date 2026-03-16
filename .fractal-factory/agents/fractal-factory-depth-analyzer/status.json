@@ -1,0 +1,13 @@
+{
+  "agent": "fractal-factory-depth-analyzer",
+  "task_id": "pass2/depth-analysis",
+  "status": "completed",
+  "result": "analyzed",
+  "summary": "Depth decisions: 4 coordinators at depth-2 (concept, style, revision, polish), 5 at depth-3 (worldbuilding, character, plotting, drafting, beta-reading). Total estimated agents: 68 (budget: within-limit, 12 headroom).",
+  "artifacts": [
+    "architecture.json",
+    "agents/fractal-factory-depth-analyzer/output.md"
+  ],
+  "next_hint": "fractal-factory-roster-planner",
+  "iteration": 1
+}

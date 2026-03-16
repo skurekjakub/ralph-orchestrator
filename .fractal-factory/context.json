@@ -16,7 +16,7 @@
     "constraints": null
   },
   "options": {
-    "maxDepth": 4,
+    "maxDepth": 3,
     "maxAgents": 80,
     "maxGapCycles": 10,
     "maxWriterReviewerRetries": 10,

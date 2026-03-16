@@ -162,18 +162,20 @@ Sequential. Roster planner creates `roster.json`, routing planner adds routing t
 ### Execution Coordinator (Pass 4)
 
 ```
-prompt-writer → prompt-reviewer
-(on rejection: loop up to 3 times)
+prompt-writer(batch of up to 5) → prompt-reviewer(same batch)
+(on rejection: retry same batch up to 3 times)
+(on approval: advance to next batch until no designed/written agents remain)
 infra-writer
 ```
 
-The execution coordinator dispatches the prompt-writer once for the full roster, then dispatches the prompt-reviewer against the resulting prompt set, and finally dispatches the infra-writer.
+The execution coordinator dispatches the prompt-writer and prompt-reviewer in bounded batches, then dispatches the infra-writer only after all batches are either reviewed or blocked.
 
-1. Prompt-writer reads `roster.json` and writes prompt files for all agents whose status is `designed`
-2. Prompt-reviewer reviews the produced prompt set
-3. On rejection (up to 3 retries), the coordinator re-dispatches prompt-writer with reviewer feedback
-4. On max retries, the coordinator proceeds with blocked agents noted
-5. Infra-writer then generates bootstrap/schema infrastructure
+1. Prompt-writer reads `roster.json` and writes prompt files for the first up to 5 eligible agents in bottom-up order
+2. Prompt-reviewer reviews that same batch only
+3. On rejection (up to 3 retries), the coordinator re-dispatches prompt-writer with reviewer feedback for the still-`written` agents in that batch
+4. On approval, the coordinator starts the next batch until no `designed` or `written` agents remain
+5. On max retries, the coordinator marks the remaining batch agents `blocked` in `roster.json` and continues with later batches
+6. Infra-writer then generates bootstrap/schema infrastructure
 
 **Re-entry awareness:** The coordinator resets only targeted agents in `roster.json` from `written` back to `designed` before re-dispatching prompt-writer.
 

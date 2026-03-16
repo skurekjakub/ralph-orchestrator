@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-discovery-coordinator",
+  "task_id": "pass1/coordination",
+  "status": "completed",
+  "result": "complete",
+  "summary": "Discovery pass complete. Scanner: scanned (14 subdomains, ~39 agents estimated). Extractor: extracted (81 invariants — 38 non-negotiable, 26 craft toolbox, 17 implicit). Auditor: audited (26 reusable assets — 5 direct, 4 adaptable, 17 reference-only). Analyzer: analyzed (20 exemplar patterns from 1 family — 14 directly applicable, 6 adaptable).",
+  "artifacts": ["agents/fractal-factory-discovery-coordinator/status.json"],
+  "next_hint": null,
+  "iteration": 1
+}

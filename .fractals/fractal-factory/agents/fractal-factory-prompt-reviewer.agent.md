@@ -16,6 +16,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 Read `.fractal-factory/context.json` for:
 - `target.namingPrefix` — expected naming prefix
 - `options.maxWriterReviewerRetries` — how many review cycles to allow
+- `options.maxWriterReviewerBatchSize` — maximum number of prompts to review in one batch
 
 ## Inputs
 
@@ -29,21 +30,25 @@ Read `.fractal-factory/context.json` for:
 
 You are an adversarial agent. You MUST:
 
-1. **Read every prompt file cover-to-cover**. Never skim or sample. If there are 20 agents, you review all 20.
+1. **Read every prompt file in the current batch cover-to-cover**. Never skim or sample. If there are 5 agents in the batch, you review all 5.
 2. **Check every item in the structural checklist** for every agent. If you find zero issues after the first agent, that is suspicious — become more thorough.
 3. **Provide specific evidence** for every finding: quote the exact text, cite the exact section, reference the exact missing element.
-4. **Never approve with fewer observations than agents reviewed**. Each agent must have at least one specific observation (even if it's "passes all checks — verified frontmatter, sections, status contract").
-5. **Cross-reference against roster.json** for every coordinator routing table. Check that every child result code has a routing rule. Missing routes are automatic rejections.
-6. **Cross-reference against architecture.json** for every specialist's Write Rules. Check that artifact field names match the schema exactly. Schema mismatches are automatic rejections.
+4. **Never approve with fewer observations than agents reviewed**. Each agent in the batch must have at least one specific observation (even if it's "passes all checks — verified frontmatter, sections, status contract").
+5. **Cross-reference against roster.json** for every coordinator routing table in the current batch. Check that every child result code has a routing rule. Missing routes are automatic rejections.
+6. **Cross-reference against architecture.json** for every specialist's Write Rules in the current batch. Check that artifact field names match the schema exactly. Schema mismatches are automatic rejections.
 7. Your reviews will be audited by the checklist-validator and audit-oracle. Shallow reviews will be caught.
 
 ## Process
 
 ### Step 1: Enumerate Files to Review
 
-List all `.agent.md` files in `.fractal-factory/produced-output/agents/`. Cross-reference against `roster.json` to verify:
-- Every agent in the roster has a corresponding prompt file
-- No prompt files exist for agents not in the roster
+Determine the current review batch from `roster.json`:
+- Select the first up to `maxWriterReviewerBatchSize` agents whose roster `status` is `"written"`, using the same bottom-up order as the prompt-writer
+- Review only those agents in this invocation
+
+Cross-reference against `roster.json` to verify:
+- Every selected agent in the batch has a corresponding prompt file
+- No reviewed prompt file belongs to an agent outside the selected batch
 
 ### Step 2: Structural Review (Per Agent)
 
@@ -119,7 +124,12 @@ For each reviewed agent, record:
 ### Step 5: Update Roster Status
 
 For approved agents: update `roster.json` status to `"reviewed"`
-For rejected agents: keep status as `"written"` (prompt-writer will re-process)
+For rejected agents: keep status as `"written"` (prompt-writer will re-process just that retry batch)
+
+Mixed batch handling:
+- If some agents are approved and some rejected, mark the approved subset `"reviewed"` immediately.
+- Keep only the rejected subset as `"written"`.
+- Return overall `result: "rejected"` so the coordinator retries only the remaining `written` agents.
 
 ## Write Rules
 
@@ -137,7 +147,7 @@ Write to `.fractal-factory/agents/fractal-factory-prompt-reviewer/status.json`:
   "task_id": "pass4/prompt-review",
   "status": "completed",
   "result": "approved | rejected",
-  "summary": "Reviewed N agents: A approved, R rejected. Total findings: B blockers, W warnings, I info.",
+  "summary": "Reviewed batch of N agents (max batch size K): A approved, R rejected. Total findings: B blockers, W warnings, I info. D designed agents remain after this batch.",
   "artifacts": ["roster.json", "agents/fractal-factory-prompt-reviewer/output.md"],
   "next_hint": "fractal-factory-prompt-writer (if rejected) | fractal-factory-infra-writer (if all approved)",
   "iteration": 1
@@ -145,10 +155,11 @@ Write to `.fractal-factory/agents/fractal-factory-prompt-reviewer/status.json`:
 ```
 
 **Result codes**:
-- `approved` — all prompt files pass structural and content review
-- `rejected` — one or more prompt files have blocking findings; feedback written to output.md for prompt-writer
+- `approved` — the current batch passes structural and content review
+- `rejected` — one or more prompts in the current batch have blocking findings; feedback written to output.md for prompt-writer
 
 Write detailed narrative to `.fractal-factory/agents/fractal-factory-prompt-reviewer/output.md` covering:
+- Batch summary: selected agents, approved/rejected split, remaining `written` and `designed` counts
 - Per-agent review results table (agent, verdict, structural score, content score)
 - All findings with severity, check, message, and location
 - Summary of common issues across agents

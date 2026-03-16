@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-15T22:49:42Z",
+  "coldStart": true,
+  "taskRelevance": "No prior meta-knowledge exists for the fantasy-writer domain. This is the first Fractal Factory run for this agent family. The pipeline will proceed without accumulated insights — all discovery, analysis, planning, and execution passes will rely entirely on domain documents, exemplars, and invariants provided in context.json. Future runs will benefit from craft-domain signals captured during this session's synthesis pass.",
+  "insights": [],
+  "staleEntries": []
+}

@@ -16,6 +16,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 Read `.fractal-factory/context.json` for:
 - `options.maxGapCycles` — convergence cycle limit
 - `options.maxWriterReviewerRetries` — coder→reviewer loop limit
+- `options.maxWriterReviewerBatchSize` — maximum items a loop coordinator may process per review batch
 
 ## Inputs
 
@@ -66,10 +67,12 @@ For each coordinator in the roster:
 ```
 | Read | Condition | Action |
 | agents/{writer}/status.json | result: "written" | Dispatch {reviewer} |
-| agents/{reviewer}/status.json | result: "approved" | Advance to next item |
+| agents/{reviewer}/status.json | result: "approved" | Advance to next batch |
 | agents/{reviewer}/status.json | result: "rejected" (retries < max) | Re-dispatch {writer} |
 | agents/{reviewer}/status.json | result: "rejected" (retries >= max) | Mark blocked, skip |
 ```
+
+Loop coordinators must batch work explicitly. If the writer/reviewer pair could otherwise process dozens of items, add a deterministic batch selector and cap each batch at `options.maxWriterReviewerBatchSize`.
 
 **Dual-mode coordinators** (handle multiple passes):
 ```
@@ -112,6 +115,7 @@ Update each agent's `routingTable` field in roster.json with:
   "loopConfig": null | {
     "writer": "{agent-name}",
     "reviewer": "{agent-name}",
+    "maxBatchSize": 5,
     "maxRetries": 3,
     "onMaxRetries": "mark-blocked"
   }

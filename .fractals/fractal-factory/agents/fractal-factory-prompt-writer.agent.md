@@ -16,6 +16,7 @@ You must never use `ask_questions` or request human input, regardless of what th
 Read `.fractal-factory/context.json` for:
 - `target.namingPrefix` — agent naming prefix
 - `target.outputDirectory` — where produced files will ultimately go
+- `options.maxWriterReviewerBatchSize` — maximum number of prompts to write in one batch
 
 Read `.fractal-factory/progress.json` for:
 - `gapHunting.currentCycle` — if > 0, this is a re-entry run
@@ -33,21 +34,30 @@ Read `.fractal-factory/progress.json` for:
 5. **`domain-model.json`** — subdomains, invariants (needed for domain-specific content in specialist prompts)
 6. **`test-plan.json`** — test scenarios (referenced by verification agents' prompts)
 7. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
+8. **`agents/fractal-factory-prompt-reviewer/status.json`** — reviewer verdict for the current batch
+9. **`agents/fractal-factory-prompt-reviewer/output.md`** — reviewer feedback for rejected agents in the current batch
 
 ## Process
 
 ### Step 1: Read the Roster
 
-Load `roster.json` and identify which agents need prompt files written. Check each agent's `status` field:
-- `designed` → needs prompt file (proceed)
-- `written` → already done on a previous pass (skip on first run)
-- `reviewed` or `verified` → skip
+Load `roster.json` and identify the current batch to write. Use bottom-up order and the hard limit from `options.maxWriterReviewerBatchSize`.
+
+Batch selection rules:
+- If `agents/fractal-factory-prompt-reviewer/status.json` exists with `result: "rejected"`, prioritize the first up to `maxWriterReviewerBatchSize` agents whose roster `status` is `"written"`. This is the retry batch.
+- Otherwise, select the first up to `maxWriterReviewerBatchSize` agents whose roster `status` is `"designed"`.
+- Never write more than the selected batch.
+- Skip agents with `status` `"reviewed"`, `"verified"`, or `"blocked"`.
 
 **Re-entry handling**: If `progress.json.gapHunting.currentCycle > 0`, this is a re-entry run. The execution-coordinator will have reset targeted agents from `written` back to `designed` before dispatching you. Read `gap-report.json` and extract gaps targeting "pass4" or "execution" — use the `suggestedFix` descriptions to guide your re-writes for those specific agents.
 
-### Step 2: Write Agents in Bottom-Up Order
+**Reviewer retry handling**: If the current batch is a retry batch, read `agents/fractal-factory-prompt-reviewer/output.md` and apply the blocking feedback only to the currently selected `written` agents. Do not rewrite unrelated prompts.
+
+### Step 2: Write the Selected Batch in Bottom-Up Order
 
 Start with leaf specialists, then coordinators, then orchestrator. This ensures that when writing a coordinator's routing table, all child result codes are already defined.
+
+Apply this ordering only within the selected batch. If 23 agents remain and the batch limit is 5, write the first 5 eligible agents in bottom-up order and stop.
 
 **Bottom-up order**:
 1. Discovery specialists
@@ -175,6 +185,7 @@ Do not write generic placeholder prompts. Every specialist must have:
 
 After writing each agent's prompt file, update `roster.json`:
 - Set the agent's `status` to `"written"`
+- Leave unselected `designed` agents unchanged for later batches
 
 ## Write Rules
 
@@ -196,7 +207,7 @@ Write to `.fractal-factory/agents/fractal-factory-prompt-writer/status.json`:
   "task_id": "pass4/prompt-writing",
   "status": "completed",
   "result": "written | spec-incomplete",
-  "summary": "Wrote N agent prompt files: O orchestrator, G guide, C coordinators, S specialists. M marked with anti-laziness rules.",
+   "summary": "Wrote batch of N agent prompt files (max batch size K): O orchestrator, G guide, C coordinators, S specialists. M marked with anti-laziness rules. R designed agents remain.",
   "artifacts": ["roster.json", "produced-output/agents/*.agent.md", "agents/fractal-factory-prompt-writer/output.md"],
   "next_hint": "fractal-factory-prompt-reviewer",
   "iteration": 1
@@ -204,10 +215,11 @@ Write to `.fractal-factory/agents/fractal-factory-prompt-writer/status.json`:
 ```
 
 **Result codes**:
-- `written` — all agent prompt files written successfully
+- `written` — the selected batch of agent prompt files was written successfully
 - `spec-incomplete` — some roster entries lack sufficient information to write complete prompts (logged in output.md)
 
 Write narrative to `.fractal-factory/agents/fractal-factory-prompt-writer/output.md` covering:
+- Batch summary: selected agents, batch size, remaining `designed` count
 - Agent count: total written, by level
 - Agents with anti-laziness rules
 - Any agents skipped and why

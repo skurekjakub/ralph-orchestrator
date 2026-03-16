@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-knowledge-curator",
+  "task_id": "pass0/knowledge-curation",
+  "status": "completed",
+  "result": "cold-start",
+  "summary": "No prior meta-knowledge found in meta/index.json (empty array, zero entries). Cold-start brief produced with no insights. The fantasy-writer domain pipeline will proceed using only domain-brief.md, invariants.md, and exemplar agents as input. Craft-domain signals will be captured during the synthesis pass for future runs.",
+  "artifacts": ["knowledge-brief.json"],
+  "next_hint": "fractal-factory-discovery-coordinator",
+  "iteration": 1
+}
