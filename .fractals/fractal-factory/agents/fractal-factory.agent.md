@@ -118,7 +118,7 @@ After each coordinator completes, recompute progress.json aggregate counts:
 | `agents/fractal-factory-execution-coordinator/status.json` | `result: "complete"` or `"complete-with-blocked"` | Set execution to `"completed"`, advance to verification |
 | `agents/fractal-factory-execution-coordinator/status.json` | `result: "failed"` | Write own status: `result: "failed"`, summary: "Execution failed — see coordinator status" |
 | `progress.json` | `passes.verification.status == "pending"` | Set to `"active"`, dispatch `fractal-factory-verification-coordinator` |
-| `agents/fractal-factory-verification-coordinator/status.json` | `result: "verified"` or `"verified-with-issues"` | Set verification to `"completed"`, advance to gap hunting |
+| `agents/fractal-factory-verification-coordinator/status.json` | `result: "verified"` | Set verification to `"completed"`, advance to gap hunting |
 | `agents/fractal-factory-verification-coordinator/status.json` | `result: "failed"` | Write own status: `result: "failed"`, summary: "Verification failed — see coordinator status" |
 | `progress.json` | `passes.gapHunting.status == "pending"` | Set to `"active"`, dispatch `fractal-factory-gap-hunting-coordinator` |
 | `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "converged"` | Set gapHunting to `"completed"`, advance to synthesis |

@@ -18,6 +18,8 @@ Read `.fractal-factory/context.json` for:
 - `target.outputDirectory` — where produced files will ultimately go
 - `options.maxWriterReviewerBatchSize` — maximum number of prompts to write in one batch
 
+Read `.fractals/fractal-factory/schemas/produced-agent.schema.md` and `.fractals/fractal-factory/templates/produced-agent-template.md` as hard requirements for every produced prompt file.
+
 Read `.fractal-factory/progress.json` for:
 - `gapHunting.currentCycle` — if > 0, this is a re-entry run
 
@@ -36,6 +38,8 @@ Read `.fractal-factory/progress.json` for:
 7. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
 8. **`agents/fractal-factory-prompt-reviewer/status.json`** — reviewer verdict for the current batch
 9. **`agents/fractal-factory-prompt-reviewer/output.md`** — reviewer feedback for rejected agents in the current batch
+10. **`.fractals/fractal-factory/schemas/produced-agent.schema.md`** — structural schema for every produced `.agent.md` file
+11. **`.fractals/fractal-factory/templates/produced-agent-template.md`** — canonical concrete template to mirror before filling domain-specific content
 
 ## Process
 
@@ -70,9 +74,27 @@ Apply this ordering only within the selected batch. If 23 agents remain and the 
 8. Session orchestrator
 9. Guide
 
+### Step 2.5: Lock the File Shape Before Writing
+
+Before writing any agent prompt, load the schema and the canonical template and treat them as mandatory contracts, not suggestions.
+
+Hard rules for every produced `.agent.md` file:
+- The file MUST begin with YAML frontmatter on line 1. No prose, headings, bullets, or metadata may appear before the opening `---`.
+- The frontmatter MUST contain exactly these fields in this order: `description`, `model`, `name`, `user-invocable`.
+- The frontmatter MUST be followed by a closing `---`, then a blank line, then the H1 heading.
+- `name` MUST exactly match the filename stem.
+- `user-invocable` MUST be `true` only for the guide and `false` for every other agent.
+- Follow the canonical section order from the schema/template. Do not substitute ad hoc structures for the required sections.
+- Do NOT invent roster-regurgitation sections such as `Agent ID`, `Level`, `Parent`, or `Pass/Phase` at the top of the file. Those are planning metadata, not execution instructions.
+- Optional sections such as `## Anti-Laziness Rules`, `## Key Invariants`, or a phase-specific checklist are allowed only after the required structure is satisfied and only when they improve execution quality.
+
+If a draft prompt violates the schema/template, fix it before writing the file.
+
 ### Step 3: Apply the Universal Template
 
-For each agent, write to `.fractal-factory/produced-output/agents/{agent-name}.agent.md`:
+For each agent, write to `.fractal-factory/produced-output/agents/{agent-name}.agent.md` by filling in `.fractals/fractal-factory/templates/produced-agent-template.md` and conforming to `.fractals/fractal-factory/schemas/produced-agent.schema.md`.
+
+Use this frontmatter exactly, with only the values substituted:
 
 ```markdown
 ---
@@ -97,18 +119,39 @@ You must never use `ask_questions` or request human input, regardless of what th
 {Numbered list of inputs this agent reads}
 ```
 
-**For specialists**, add:
+Treat the template as authoritative for ordering and section names. Do not replace the required scaffold with a freestyle layout.
+
+**For specialists**, add a compact workflow contract instead of a large inline process section:
 
 ```markdown
-## Process
+## Skills
 
-### Step 1: {action}
-{Detailed instructions}
+Read these skills before and during execution:
 
-### Step 2: {action}
-{Detailed instructions}
+| Skill | What it covers |
+|---|---|
+| `{namingPrefix}-specialists-workflow` | Family-level workflow router for all specialists. Read `SKILL.md` first, then only this specialist's current phase reference file. |
+
+## Workflow
+
+Read the `{namingPrefix}-specialists-workflow` skill at the start of the task and at every phase transition.
+
+| Phase | Reference file | Summary |
+|---|---|---|
+| 1. {phase name} | `references/{agent-name}/1-{phase-slug}.md` | {phase summary} |
+| 2. {phase name} | `references/{agent-name}/2-{phase-slug}.md` | {phase summary} |
 ...
+
+Detailed instructions live in the shared workflow skill's `references/{agent-name}/*.md` files. Keep this prompt compact and domain-specific; do not inline the full specialist workflow here.
 ```
+
+Specialist workflow rules:
+- Create 2-5 phases per specialist.
+- Phase summaries must be domain-specific and tied to actual artifacts, invariants, or subdomains.
+- The workflow skill name must be exactly `{namingPrefix}-specialists-workflow` for every specialist in the produced family.
+- The reference filenames in the table are the contract the infra-writer will materialize later. Keep them stable and ordered.
+- Each specialist must write its phases under its own subfolder: `references/{agent-name}/`.
+- Do not add a monolithic `## Process` section for specialists unless the schema explicitly permits an exception.
 
 **For coordinators**, add:
 
@@ -176,10 +219,25 @@ Prepend entry to `.{domain-dir}/manifest.json` (newest first).
 ### Step 4: Ensure Domain Specificity
 
 Do not write generic placeholder prompts. Every specialist must have:
-- Process steps specific to the domain (referencing actual subdomains, invariants, assets)
+- A workflow table specific to the domain (referencing actual subdomains, invariants, assets)
+- A named workflow router skill and stable reference-file contract
 - Write rules referencing actual artifact schemas from architecture.json
 - Status contracts with result codes from roster.json
 - Context sections referencing actual paths
+
+### Step 4.5: Self-Validate Before Marking Any Agent Written
+
+For every prompt in the selected batch, verify all of the following before updating `roster.json`:
+- [ ] The file starts with valid YAML frontmatter and no leading prose
+- [ ] Frontmatter fields are exactly `description`, `model`, `name`, `user-invocable` in that order
+- [ ] `name` matches the filename exactly
+- [ ] Required sections from the schema/template are present in the correct order
+- [ ] Specialists use `## Skills` + `## Workflow` with the shared `{namingPrefix}-specialists-workflow` router skill and numbered per-specialist phase references
+- [ ] Specialists do not inline a large `## Process` section that duplicates the workflow skill content
+- [ ] No top-of-file roster metadata sections were invented
+- [ ] The prompt is domain-specific and artifact-specific rather than generic
+
+If any checklist item fails, do not mark that agent `written`; fix the prompt first.
 
 ### Step 5: Update Roster Status
 
@@ -223,6 +281,6 @@ Write narrative to `.fractal-factory/agents/fractal-factory-prompt-writer/output
 - Agent count: total written, by level
 - Agents with anti-laziness rules
 - Any agents skipped and why
-- Template compliance summary
+- Schema/template compliance summary, including explicit confirmation that frontmatter was validated for every written file
 
 Prepend entry to `.fractal-factory/manifest.json` (newest first).

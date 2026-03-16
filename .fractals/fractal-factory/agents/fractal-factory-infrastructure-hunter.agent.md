@@ -57,7 +57,8 @@ You are an adversarial agent. You MUST:
 **Methodology**: Check that the produced system includes:
 - Schema documentation for every artifact
 - At least one README or guide document
-- Skill stubs for referenced skills
+- One shared specialists workflow router skill and numbered per-specialist reference files
+- Auxiliary skills for referenced reusable/adaptable assets
 - Agent count in README matches actual agent file count
 - Pipeline pass count in architecture docs matches actual routing table entries
 

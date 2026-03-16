@@ -14,13 +14,12 @@ Execution path reference for the Fractal Factory pipeline. Documents every path 
 | P-06 | Planning Failed | Planning coordinator returns `failed` | `failed` |
 | P-07 | Execution Failed | Execution coordinator returns `failed` | `failed` |
 | P-08 | Execution Partial | Execution returns `complete-with-blocked` | Continues to verification (P-01) |
-| P-09 | Verification With Issues | Verification returns `verified-with-issues` | Continues to gap hunting (P-01) |
-| P-10 | Verification Failed | Verification coordinator returns `failed` | `failed` |
-| P-11 | Gap-Hunting Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` (forced) |
-| P-12 | Crash Recovery | Active pass found on startup | Resets to pending, re-dispatches |
-| P-13 | Knowledge Curator Cold Start | No meta/ store available | Pass 0 completes without prior knowledge |
-| P-14 | Knowledge Curator Failed | Knowledge curator returns `failed` | Pass 0 completes in degraded mode |
-| P-15 | Synthesis Degraded | Synthesis returns `degraded` or `failed` | Continues to delivery (non-fatal) |
+| P-09 | Verification Failed | Verification coordinator returns `failed` | `failed` |
+| P-10 | Gap-Hunting Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` (forced) |
+| P-11 | Crash Recovery | Active pass found on startup | Resets to pending, re-dispatches |
+| P-12 | Knowledge Curator Cold Start | No meta/ store available | Pass 0 completes without prior knowledge |
+| P-13 | Knowledge Curator Failed | Knowledge curator returns `failed` | Pass 0 completes in degraded mode |
+| P-14 | Synthesis Degraded | Synthesis returns `degraded` or `failed` | Continues to delivery (non-fatal) |
 
 ## Path Descriptions
 
@@ -85,20 +84,13 @@ Execution coordinator returns `result: "complete-with-blocked"`:
 - Pipeline continues to verification — partial coverage is better than none
 - Blocked agents are recorded in roster.json with `status: "blocked"`
 
-### P-09: Verification With Issues
-
-Verification coordinator returns `result: "verified-with-issues"`:
-- Some verification checks failed but didn't block
-- Pipeline continues to gap hunting — issues may be caught as gaps
-- Issues recorded in verification-report.json
-
-### P-10: Verification Failed
+### P-09: Verification Failed
 
 Verification coordinator returns `result: "failed"`:
-- Critical verification failure (e.g., no agents could be validated at all)
+- Any verification issue is a failing condition, whether found by the checklist-validator or the audit-oracle
 - Pipeline halts — orchestrator writes `result: "failed"`
 
-### P-11: Gap-Hunting Failed
+### P-10: Gap-Hunting Failed
 
 Gap-hunting coordinator returns `result: "failed"`:
 - All 3 specialist hunters failed
@@ -106,7 +98,7 @@ Gap-hunting coordinator returns `result: "failed"`:
 - Advances to Synthesis then delivery
 - Orchestrator writes `result: "delivered-with-gaps"`
 
-### P-12: Crash Recovery
+### P-11: Crash Recovery
 
 On startup, orchestrator detects `passes.X.status == "active"`:
 
@@ -115,14 +107,14 @@ On startup, orchestrator detects `passes.X.status == "active"`:
 3. Children with existing status.json are skipped (already completed)
 4. Resume routing from the reset pass
 
-### P-13 & P-14: Pass 0 Degraded/Failed
+### P-12 & P-13: Pass 0 Degraded/Failed
 
 Knowledge curator returns `cold-start` (no meta/ store) or `failed`:
 - Pass 0 set to `completed` (non-fatal)
 - Pipeline continues to Pass 1 without knowledge-brief.json
 - Specialists operate without meta-knowledge context (reduced quality but functional)
 
-### P-15: Synthesis Degraded
+### P-14: Synthesis Degraded
 
 Synthesis coordinator returns `degraded` or `failed`:
 - Meta-knowledge wasn't fully extracted
@@ -336,7 +328,7 @@ Coordinators don't just reset — they relay relevant gap items to their special
 | analysis-coordinator | `complete` | — | `failed` |
 | planning-coordinator | `complete` | — | `failed` |
 | execution-coordinator | `complete` | `complete-with-blocked` | `failed` |
-| verification-coordinator | `verified` | `verified-with-issues` | `failed` |
+| verification-coordinator | `verified` | — | `failed` |
 | gap-hunting-coordinator | `converged` | `gaps-found` | `failed` |
 | synthesis-coordinator | `synthesized` | `degraded` | `failed` |
 | delivery-coordinator | `complete` | — | — |

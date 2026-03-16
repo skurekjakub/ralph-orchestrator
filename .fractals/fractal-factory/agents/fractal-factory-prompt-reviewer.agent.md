@@ -25,6 +25,8 @@ Read `.fractal-factory/context.json` for:
 3. **`architecture.json`** — artifact schemas and pipeline design (reference for correctness)
 4. **`domain-model.json`** — domain context (reference for domain specificity checks)
 5. **`produced-output/agents/*.agent.md`** — the prompt files to review
+6. **`.fractals/fractal-factory/schemas/produced-agent.schema.md`** — canonical structural schema for produced prompts
+7. **`.fractals/fractal-factory/templates/produced-agent-template.md`** — canonical template the writer is expected to mirror
 
 ## Anti-Laziness Rules
 
@@ -55,10 +57,13 @@ Cross-reference against `roster.json` to verify:
 For each prompt file, verify the structural checklist:
 
 **Frontmatter**: 
+- [ ] File starts with YAML frontmatter on line 1 — no prose or headings before `---`
 - [ ] Has `description`, `model`, `name`, `user-invocable`
+- [ ] Frontmatter keys appear in the exact order `description`, `model`, `name`, `user-invocable`
 - [ ] `name` matches the filename (minus `.agent.md`)
 - [ ] `user-invocable` is `false` (except guide)
 - [ ] `model` is set (not empty)
+- [ ] Frontmatter closes before the H1 and is followed by a blank line
 
 **Required Sections**:
 - [ ] `# {Display Name}` — H1 heading exists
@@ -66,10 +71,13 @@ For each prompt file, verify the structural checklist:
 - [ ] `ask_questions` suppression — "You must never use `ask_questions`" present (except guide)
 - [ ] `## Context` — present and references actual artifact paths
 - [ ] `## Inputs` — present with numbered list
+- [ ] File does not invent top-of-file roster metadata sections like `Agent ID`, `Level`, `Parent`, or `Pass/Phase`
 
 **Type-Specific Sections**:
-- [ ] Specialists: `## Process` with numbered steps (at least 2)
-- [ ] Coordinators: `## Purity Rule` and `## Routing Table` present; NO `## Process` section
+- [ ] Specialists: `## Skills` section names exactly one shared workflow router skill matching `{namingPrefix}-specialists-workflow`
+- [ ] Specialists: `## Workflow` section exists with at least 2 numbered phases and `references/<agent-name>/<n>-<slug>.md` entries
+- [ ] Specialists: prompt explicitly says detailed instructions live in the workflow skill reference files, not inline here
+- [ ] Coordinators: `## Purity Rule` and `## Routing Table` present; NO specialist-style workflow section
 - [ ] Orchestrator: `## Pipeline Routing` and `## Routing Table` present
 - [ ] Adversarial agents: `## Anti-Laziness Rules` present with ≥ 4 specific rules
 
@@ -80,9 +88,11 @@ For each prompt file, verify the structural checklist:
 ### Step 3: Content Review (Per Agent)
 
 **Domain specificity**: The prompt must reference domain-specific concepts, not just generic placeholders:
-- [ ] Specialist Process steps mention actual subdomains, artifacts, or invariants
+- [ ] Specialist workflow phases mention actual subdomains, artifacts, or invariants
 - [ ] Write Rules reference actual artifact field names from architecture.json
 - [ ] Context section references actual `.{domain}/` paths
+- [ ] Overall file shape conforms to the produced-agent schema/template rather than a freestyle layout
+- [ ] Specialist workflow skill contract is precise enough for the infra-writer to generate the shared router skill and per-specialist phase folders without inventing missing structure
 
 **Routing completeness** (coordinators only):
 - [ ] Every child agent listed in roster.json appears in the routing table

@@ -2,6 +2,8 @@
 
 Structural requirements for every `.agent.md` file the fractal factory writes. The prompt-writer follows this schema; the prompt-reviewer validates against it.
 
+Concrete authoring scaffold: `.fractals/fractal-factory/templates/produced-agent-template.md`. The template is mandatory for ordering and frontmatter shape; this schema defines the rules behind it.
+
 ## Universal Structure
 
 Every produced agent prompt follows this exact structure:
@@ -28,7 +30,7 @@ Read `.<domain>/context.json` for <what the agent needs>.
 
 <List every artifact this agent reads>
 
-## <Process Section — varies by agent type>
+## <Execution Section — varies by agent type>
 
 <See type-specific sections below>
 
@@ -49,22 +51,45 @@ Prepend to `.<domain>/manifest.json` (newest first).
 
 ### Specialist (Leaf Worker)
 
-The process section is titled `## Process` or `## What To Do`:
+Specialists use progressive disclosure. The main prompt stays compact and routes the agent to one family-level workflow skill with numbered phase references grouped by specialist.
 
 ```markdown
-## Process
+## Skills
 
-1. Read <input artifacts>
-2. <Specific analysis/generation steps>
-3. <Quality criteria — be VERY specific>
-4. Write <output artifacts>
-5. Write status.json
+| Skill | What it covers |
+|---|---|
+| `<namingPrefix>-specialists-workflow` | Family-level workflow router for all specialists. Read `SKILL.md` first, then only this specialist's current phase reference file. |
+
+## Workflow
+
+Read the `<namingPrefix>-specialists-workflow` skill at the start of the task and at every phase transition.
+
+| Phase | Reference file | Summary |
+|---|---|---|
+| 1. `<phase-name>` | `references/<agent-name>/1-<phase-slug>.md` | `<what phase 1 does>` |
+| 2. `<phase-name>` | `references/<agent-name>/2-<phase-slug>.md` | `<what phase 2 does>` |
 ```
 
 Must include:
-- **Explicit tasks**: Not "analyze the code" but "for each function, extract: name, parameters, return type, side effects, and error paths"
-- **Quality bar**: What constitutes acceptable output
-- **Edge cases**: What to do when input is missing, ambiguous, or contradictory
+- **One shared workflow router skill** for all specialists, named `<namingPrefix>-specialists-workflow`
+- **2-5 numbered phases** with stable reference filenames under `references/<agent-name>/`
+- **Progressive disclosure rule**: instruct the agent to read only the current phase reference file, not all phase details at once
+- **Domain-specific phase summaries**: the workflow table must mention actual artifacts, invariants, or subdomains
+
+The detailed instructions belong in the produced skill files under:
+
+```text
+skills/workflow/<namingPrefix>-specialists-workflow/
+├── SKILL.md
+└── references/
+    ├── <agent-name>/
+    │   ├── 1-<phase-slug>.md
+    │   ├── 2-<phase-slug>.md
+    │   └── ...
+    └── <other-agent-name>/...
+```
+
+The prompt must not duplicate those detailed phase instructions inline.
 
 ### Coordinator (Pure Router)
 
@@ -197,3 +222,11 @@ Examples:
 ```
 
 Roles should be descriptive and unambiguous. Avoid generic names like "worker" or "helper".
+
+## Progressive Disclosure Rules
+
+- Every produced specialist must use a workflow router skill instead of a monolithic inline workflow.
+- The workflow skill is the single entry point for all specialists in the produced family; the numbered `references/<agent-name>/*.md` files contain the detailed phase instructions for each specialist.
+- Reference file names must be stable and ordered (`1-...`, `2-...`, etc.) so agents can advance phase-by-phase without loading the whole workflow.
+- Do not generate one separate workflow skill per specialist; that would create unnecessary skill-count overhead in agent context.
+- Reviewers and validators should treat large inline specialist workflows as schema drift unless the agent type is explicitly exempted.
