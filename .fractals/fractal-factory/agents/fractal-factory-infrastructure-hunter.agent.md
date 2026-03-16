@@ -72,6 +72,7 @@ You are an adversarial agent. You MUST:
 - The orchestrator's routing table includes Pass 0 (knowledge curation) and a synthesis pass
 - The progress schema includes `pass0` and `synthesis` fields
 - A `meta/` directory structure is defined in architecture.json
+- The meta-knowledge docs and synthesis prompts state the boundary that raw per-run invariant inventories stay run-local and only reusable abstractions may persist in `meta/`
 
 **Gap**: A missing or incomplete meta-knowledge pipeline component.
 

@@ -34,9 +34,17 @@ Read every `.json` file in `synthesis-signals/`. Combine into a unified signal l
 
 For each candidate signal, evaluate ALL THREE criteria:
 
+Hard exclusion before the gate:
+- Raw domain-local invariant inventories, copied rule lists, and one-run invariant catalogs are never written to `meta/`.
+- Invariant-related knowledge may pass only if it has been abstracted into a reusable heuristic, verification strategy, decomposition rule, or recurring failure mode.
+
 **Criterion 1 — Reusability**: Is this insight applicable beyond the current specific task?
 - PASS: Describes a recurring pattern or generalizable strategy.
 - FAIL: Specific to a single file, single input, or single run with no general applicability.
+
+Invariant-specific interpretation:
+- FAIL: "This domain had invariants A, B, C."
+- PASS: "Cross-cutting invariants are often discovered too late unless planning creates explicit coverage hooks."
 
 **Criterion 2 — Actionability**: Does this insight suggest a concrete action?
 - PASS: An agent can do something differently based on this knowledge.
@@ -47,6 +55,8 @@ For each candidate signal, evaluate ALL THREE criteria:
 - FAIL: An existing entry already captures it. (If the signal strengthens an existing entry, promote confidence instead.)
 
 **ALL THREE must pass.** Log rejected signals with the failing criterion.
+
+If a candidate signal fails the hard exclusion, reject it even if it might otherwise appear reusable.
 
 ### Step 3: Apply Confidence Ladder
 

@@ -149,6 +149,11 @@ For each artifact, look for:
 - **Voice insights**: Character voice consistency observations
 - **Revision strategies**: Which revision approaches fixed the most issues}
 
+Hard boundary:
+- Do NOT emit raw domain-local invariant lists as signals.
+- Do NOT persist copied rule catalogs from a single run.
+- If an invariant-related observation is worth keeping, rewrite it as a reusable heuristic, verification strategy, or recurring failure mode.
+
 Each signal requires:
 - `type`: One of the domain's knowledge categories
 - `content`: The actual insight (2-4 sentences)
@@ -225,8 +230,12 @@ Read all verification, audit, and gap-hunting outputs from the current run.
 Look for:
 - **Agent performance patterns**: Which agents required multiple retries? Which completed on first pass?
 - **Pipeline bottleneck patterns**: Which passes took the most gap-hunting cycles? Where did convergence stall?
-- **Invariant violation patterns**: Which invariants were violated most frequently? Any new invariants emerging?
+- **Invariant-handling failure patterns**: Which kinds of invariant work were missed repeatedly? Were failures caused by discovery blind spots, propagation gaps, or weak verification strategy?
 - **Convergence patterns**: How many cycles to converge? Did forced delivery happen?
+
+Hard boundary:
+- Do NOT emit raw invariant content as persistent knowledge.
+- If an invariant-related observation is worth keeping, express it as a reusable process pattern or failure mode.
 
 ### Step 3: Filter Against Brief
 
@@ -292,6 +301,10 @@ Read every `.json` file in `synthesis-signals/`. Combine into a unified signal l
 ### Step 2: Apply Quality Gate
 
 For each candidate signal, evaluate ALL THREE criteria:
+
+Hard exclusion before the gate:
+- Raw domain-local invariant inventories, copied rule lists, and one-run invariant catalogs are never written to `meta/`.
+- Invariant-related knowledge may pass only if it has been abstracted into a reusable heuristic, verification strategy, decomposition rule, or recurring failure mode.
 
 **Criterion 1 — Reusability**: Is this insight applicable beyond the current specific task?
 - PASS: Describes a recurring pattern or generalizable strategy.

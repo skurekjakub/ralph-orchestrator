@@ -183,6 +183,9 @@ Produced agents are validated against the structural validation checklist AND by
 
 Pass 5 is strict: if either verifier finds any issue, the verification pass fails. There is no pass-with-warnings outcome.
 
+### Meta-Knowledge Boundary
+Cross-run meta-knowledge is for reusable patterns, strategies, and recurring failure modes. It is not an ever-growing cache of raw domain invariants from prior runs. Per-run invariants stay in the current run's discovery, planning, and verification artifacts unless they have been tightly abstracted into reusable invariant-handling heuristics.
+
 ### Progressive Disclosure For Produced Specialists
 Produced specialists should not carry their full workflow inline in the main `.agent.md` prompt. The produced family should expose one shared router skill under `skills/workflow/` named like `{namingPrefix}-specialists-workflow`. That skill is only a signpost: it routes the agent into `references/<specialist-name>/` folders, where the numbered phase files live. The main prompt stays compact and points to the shared skill, while the detailed phase instructions live in per-specialist reference files. This keeps specialist context focused on the active phase without mounting dozens of near-empty workflow skills.
 

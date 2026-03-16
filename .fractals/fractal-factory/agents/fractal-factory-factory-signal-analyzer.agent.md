@@ -40,6 +40,16 @@ For each artifact, look for:
 - **Pipeline architecture patterns**: Was the pipeline shape (pass count, coordinator depth) appropriate for the domain complexity? Were there passes that produced minimal value?
 - **Agent design patterns**: Was the roster size appropriate? Were depth decisions correct (which components needed coordinators vs. direct dispatch)? Did any agents have overlapping responsibilities?
 - **Verification patterns**: Which gap categories found the most issues? What kinds of gaps recurred across cycles?
+- **Invariant-handling heuristics**: Only when they are reusable across domains, such as discovery blind spots, verification strategy patterns, or recurring abstraction mistakes.
+
+Hard boundary:
+- Do NOT emit raw domain-local invariant lists as signals.
+- Do NOT restate "this run had invariants X, Y, Z" as knowledge.
+- If an invariant-related observation is worth keeping, rewrite it as a reusable heuristic, verification strategy, or recurring failure mode.
+
+Examples:
+- Reject: "The produced payments agent had an invariant that refunds require manager approval."
+- Accept: "Approval-gated invariants are often discovered late; when a domain has privileged actions, add explicit approval-path verification scenarios during planning."
 
 Each signal requires:
 - `type`: One of the domain's knowledge categories
@@ -53,6 +63,7 @@ Each signal requires:
 Read `knowledge-brief.json`. For each extracted signal, check:
 - Is this insight already captured at equal or higher confidence? → discard (redundant)
 - Does this signal strengthen an existing entry? → keep, tag as `strengthens: MK-XXX`
+- Does this signal remain domain-local even after rewriting? → discard (not reusable enough for `meta/`)
 
 ### Step 4: Write Signal File
 

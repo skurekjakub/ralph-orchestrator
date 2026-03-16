@@ -193,7 +193,7 @@ The gap-hunting coordinator dispatches the three specialist hunters sequentially
 factory-signal-analyzer → context-signal-analyzer → knowledge-integrator
 ```
 
-Sequential. Factory signal analyzer extracts factory-side learnings. Context signal analyzer extracts domain-side learnings. Knowledge integrator merges both into `meta/` store.
+Sequential. Factory signal analyzer extracts factory-side learnings. Context signal analyzer extracts process-level learnings about pipeline behavior and invariant-handling failures. Knowledge integrator merges both into `meta/` store, but only as reusable patterns, strategies, and recurring failure modes rather than raw domain-local invariant inventories.
 
 ### Delivery Coordinator (Pass 7)
 

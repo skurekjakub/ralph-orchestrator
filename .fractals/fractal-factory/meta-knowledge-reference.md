@@ -70,6 +70,8 @@ Every produced system's meta-knowledge subsystem contains exactly 5 mandatory ag
 - **Naming**: The `{domain-specific-name}` part is derived from the domain — e.g., `craft-signal-analyzer` for a fiction domain, `task-signal-analyzer` for a documentation domain, `migration-signal-analyzer` for a code migration domain.
 - **Key behaviors**:
   - Extract signals from domain-specific artifacts (the produced system's execution and verification outputs).
+  - Invariant-related signals are allowed ONLY when they are abstracted into reusable heuristics, verification strategies, decomposition patterns, or recurring failure modes.
+  - Raw per-run invariant catalogs, copied rule lists, and domain-local invariant inventories are forbidden. Those belong in run-local domain artifacts, not `meta/`.
   - Each signal has: `type` (domain-derived category), `content` (the insight), `strength` (low/medium/high), `sourceArtifact` (where it came from).
   - Minimum 2 signal types per domain (defined at factory time from knowledge categories).
 - **Result codes**: `signals-extracted`, `no-signals` (no actionable patterns found).
@@ -77,10 +79,11 @@ Every produced system's meta-knowledge subsystem contains exactly 5 mandatory ag
 ### 3. Context Signal Analyzer (`{prefix}-context-signal-analyzer`)
 
 - **Level**: Specialist (leaf). Dispatched by synthesis coordinator.
-- **Purpose**: Analyze **process-level observations** — which agents struggled, which converged quickly, which invariants triggered the most failures, how many gap-hunting cycles were needed.
+- **Purpose**: Analyze **process-level observations** — which agents struggled, which converged quickly, which invariant-handling patterns caused failures, how many gap-hunting cycles were needed.
 - **Key behaviors**:
   - Read verification-report, audit-report, gap-report, and progress data.
-  - Extract signals about: agent performance, pipeline bottlenecks, invariant violation patterns, convergence behavior.
+  - Extract signals about: agent performance, pipeline bottlenecks, invariant-handling failure patterns, convergence behavior.
+  - Do NOT emit raw invariant content as persistent knowledge. Context signals may describe recurring process failures around invariants, but not accumulate domain-local rule inventories.
   - Each signal has: `type` (always a process category), `content`, `strength`, `sourceArtifact`.
 - **Result codes**: `signals-extracted`, `no-signals`.
 
@@ -136,10 +139,18 @@ Every candidate signal must pass ALL THREE criteria before the knowledge integra
 **Pass**: The insight is applicable beyond the current specific task. It describes a recurring pattern, not a one-off observation.
 **Fail**: The insight is specific to a single file, single run, or single input and has no general applicability.
 
+Examples:
+- **Fail**: "This run discovered invariants A, B, and C for the payments workflow." That is domain data, not reusable knowledge.
+- **Pass**: "Cross-cutting auth invariants are often underspecified during discovery and should be traced explicitly into verification scenarios." That is reusable.
+
 ### Criterion 2: Actionability
 
 **Pass**: The insight suggests a concrete action — something an agent can do differently based on this knowledge.
 **Fail**: The insight is purely observational ("X happened") without prescriptive value.
+
+Examples:
+- **Fail**: "Invariant churn was high in this run." Observation only.
+- **Pass**: "When invariant churn is high, route the domain back through analysis instead of only planning because verification gaps are usually specification gaps." Actionable.
 
 ### Criterion 3: Non-Redundancy
 
@@ -331,6 +342,7 @@ The factory's artifact-designer derives 3–6 domain-specific knowledge categori
 ### What Meta-Knowledge IS NOT
 
 - **Not domain data**: The domain model, task graph, behavior matrix — these are per-task artifacts. They belong in the domain pipeline, not meta/.
+- **Not raw invariant inventories**: Per-run invariants, copied rule lists, or domain-specific rule catalogs remain in run-local artifacts unless they have been tightly abstracted into reusable heuristics.
 - **Not configuration**: Context.json, options, user preferences — these are inputs, not learned knowledge.
 - **Not a cache**: Meta-knowledge is curated insight, not raw data. The quality gate ensures only actionable, reusable, non-redundant entries persist.
 - **Not a log**: manifest.json is the audit log. meta/ is distilled wisdom, not a record of what happened.
