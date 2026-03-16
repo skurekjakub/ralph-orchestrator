@@ -1,0 +1,35 @@
+{
+  "betaReadingCoordinator": {
+    "agent": "romantic-fantasy-writer-beta-reading-coordinator",
+    "result": "blocked"
+  },
+  "genreLensCoordinator": {
+    "agent": "romantic-fantasy-writer-genre-lens-coordinator",
+    "result": "complete"
+  },
+  "craftLensCoordinator": {
+    "agent": "romantic-fantasy-writer-craft-lens-coordinator",
+    "result": "blocked"
+  },
+  "expectations": {
+    "parallelDispatch": ["genre-lens-coordinator", "craft-lens-coordinator"],
+    "parallelWithinGenre": ["romance-beta-reader", "fantasy-beta-reader"],
+    "parallelWithinCraft": ["craft-beta-reader", "sensitivity-beta-reader", "originality-beta-reader"],
+    "genreCompletedDespiteCraftBlocked": true,
+    "sensitivityReaderBlocked": true,
+    "betaSynthesizerNotDispatched": true,
+    "feedbackArtifactsExist": 4,
+    "feedbackArtifactsMissing": 1,
+    "noDataCorruptionBetweenParallel": true,
+    "agentsExercised": [
+      "romantic-fantasy-writer-beta-reading-coordinator",
+      "romantic-fantasy-writer-genre-lens-coordinator",
+      "romantic-fantasy-writer-craft-lens-coordinator",
+      "romantic-fantasy-writer-romance-beta-reader",
+      "romantic-fantasy-writer-fantasy-beta-reader",
+      "romantic-fantasy-writer-craft-beta-reader",
+      "romantic-fantasy-writer-sensitivity-beta-reader",
+      "romantic-fantasy-writer-originality-beta-reader"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "bookId": "test-book-022",
+  "targetChapters": 1,
+  "scenario": "Polish-coordinator blocks but orchestrator delivers with gaps",
+  "description": "All phases through beta-reading are complete. Polish-coordinator encounters an error and blocks. The orchestrator should still deliver with a delivered-with-gaps result code, since chapters are already revised and beta-approved.",
+  "preconditions": [
+    "All phases concept through beta-reading complete",
+    "progress.json shows beta-reading complete",
+    "Orchestrator dispatching polish-coordinator"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "concept_coordinator": {
+    "status": "completed",
+    "result": "blocked"
+  },
+  "auditor_retries": 3,
+  "blocked_reason": "insufficient story concept after max retries"
+}

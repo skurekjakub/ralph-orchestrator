@@ -1,0 +1,5 @@
+{
+  "bookId": "test-book-016",
+  "scenario": "Specialist behavior: geography-builder produces geography.json",
+  "description": "Validates that the geography-builder specialist creates a complete geography artifact with regions, landmarks, and climate."
+}

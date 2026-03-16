@@ -1,0 +1,10 @@
+{
+  "agent": "romantic-fantasy-writer-geography-builder",
+  "result": "completed",
+  "expectations": {
+    "artifactsWritten": ["world-bible/geography.json"],
+    "geographyContains": ["regions", "landmarks", "climate", "terrain"],
+    "internalConsistency": true,
+    "notes": "geography.json must be consistent with story-concept.json world hints."
+  }
+}

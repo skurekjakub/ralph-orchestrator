@@ -1,0 +1,8 @@
+{
+  "bookId": "test-book-005",
+  "storyIdea": "Something about a world with magic but very vague",
+  "targetChapters": 1,
+  "existingArtifacts": [
+    "story-concept.json"
+  ]
+}

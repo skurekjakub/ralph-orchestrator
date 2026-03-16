@@ -1,0 +1,8 @@
+{
+  "revision_coordinator": {
+    "status": "completed",
+    "result": "blocked"
+  },
+  "chapters_revised": 2,
+  "blocked_at_chapter": 3
+}

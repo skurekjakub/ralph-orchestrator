@@ -1,0 +1,6 @@
+{
+  "bookId": "test-book-014",
+  "styleReferences": [],
+  "scenario": "Edge case: style-coordinator invoked with no style samples",
+  "description": "Validates that the style phase handles missing style references gracefully by generating a generic style guide instead of blocking."
+}

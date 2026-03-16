@@ -1,0 +1,8 @@
+{
+  "bookId": "test-book-020",
+  "currentChapter": 1,
+  "revisionBetaCycles": 0,
+  "existingArtifacts": [
+    "chapters/001/revised.md"
+  ]
+}

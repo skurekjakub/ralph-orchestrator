@@ -1,0 +1,10 @@
+{
+  "bookId": "test-book-007",
+  "gapHuntingCycle": 1,
+  "existingArtifacts": [
+    "characters/CHAR-001.json"
+  ],
+  "gapReport": {
+    "missing": "character CHAR-002 relationship details"
+  }
+}

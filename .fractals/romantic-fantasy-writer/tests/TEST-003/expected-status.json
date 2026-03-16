@@ -1,0 +1,9 @@
+{
+  "concept_coordinator": {
+    "status": "completed",
+    "result": "complete"
+  },
+  "concept_auditor_iterations": 2,
+  "first_audit": "gate-failed",
+  "second_audit": "gate-passed"
+}

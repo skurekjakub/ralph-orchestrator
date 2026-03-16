@@ -1,0 +1,7 @@
+{
+  "bookId": "test-book-015",
+  "targetChapters": 2,
+  "existingArtifacts": [
+    "plot/chapter-outlines/001.json"
+  ]
+}

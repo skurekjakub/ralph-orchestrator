@@ -1,0 +1,11 @@
+{
+  "agent": "romantic-fantasy-writer-romance-arc-designer",
+  "result": "completed",
+  "expectations": {
+    "artifactsWritten": ["characters/romance-arc.json"],
+    "romanceArcContains": ["protagonistA", "protagonistB", "emotionalSpineStages", "conflictPoints", "resolution"],
+    "includesBothProtagonists": true,
+    "resolutionType": "HFN or HEA",
+    "notes": "Romance arc must reference both protagonist profiles and include INV-021 emotional spine stages."
+  }
+}

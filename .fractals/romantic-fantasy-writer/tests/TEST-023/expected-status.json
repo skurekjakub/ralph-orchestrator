@@ -1,0 +1,38 @@
+{
+  "plottingCoordinator": {
+    "agent": "romantic-fantasy-writer-plotting-coordinator",
+    "result": "complete",
+    "iterationCount": 2
+  },
+  "auditReport": {
+    "path": "audit-reports/plotting/gate.json",
+    "entriesExpected": 2,
+    "entryResults": ["failed", "passed"]
+  },
+  "expectations": {
+    "resetOnRetryAgents": [
+      "romantic-fantasy-writer-structural-design-coordinator",
+      "romantic-fantasy-writer-chapter-design-coordinator",
+      "romantic-fantasy-writer-structure-selector",
+      "romantic-fantasy-writer-dual-arc-builder",
+      "romantic-fantasy-writer-tension-mapper",
+      "romantic-fantasy-writer-chapter-outliner",
+      "romantic-fantasy-writer-scene-beat-designer",
+      "romantic-fantasy-writer-plotting-auditor"
+    ],
+    "feedbackPassedToWriters": true,
+    "noStaleStatuses": true,
+    "finalArtifactsConsistent": true,
+    "agentsExercised": [
+      "romantic-fantasy-writer-plotting-coordinator",
+      "romantic-fantasy-writer-structural-design-coordinator",
+      "romantic-fantasy-writer-chapter-design-coordinator",
+      "romantic-fantasy-writer-plotting-auditor",
+      "romantic-fantasy-writer-structure-selector",
+      "romantic-fantasy-writer-dual-arc-builder",
+      "romantic-fantasy-writer-tension-mapper",
+      "romantic-fantasy-writer-chapter-outliner",
+      "romantic-fantasy-writer-scene-beat-designer"
+    ]
+  }
+}

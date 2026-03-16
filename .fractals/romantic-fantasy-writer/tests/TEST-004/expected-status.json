@@ -1,0 +1,8 @@
+{
+  "drafting_coordinator": {
+    "status": "completed",
+    "result": "complete"
+  },
+  "auditor_retries": 2,
+  "final_audit": "gate-passed"
+}

@@ -1,0 +1,5 @@
+{
+  "bookId": "test-book-017",
+  "scenario": "Specialist behavior: romance-arc-designer creates dual arc design",
+  "description": "Validates that the romance-arc-designer creates a romance arc that includes both protagonist profiles and tracks emotional spine stages."
+}

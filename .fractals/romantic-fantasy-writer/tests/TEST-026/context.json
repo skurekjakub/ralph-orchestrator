@@ -1,0 +1,11 @@
+{
+  "bookId": "test-book-026",
+  "targetChapters": 1,
+  "revisionBetaCycles": 0,
+  "scenario": "Beta-reading coordinator fan-out with one reader blocking",
+  "description": "Tests parallel dispatch of beta readers. Genre-lens (2 readers) and craft-lens (3 readers) are dispatched simultaneously. One craft-lens reader (sensitivity) blocks. Validates that: genre-lens completes independently, craft-lens propagates blocked, beta-reading-coordinator propagates blocked, and beta-synthesizer is NOT dispatched.",
+  "preconditions": [
+    "All phases through revision complete",
+    "Chapter 1 revised and ready for beta reading"
+  ]
+}

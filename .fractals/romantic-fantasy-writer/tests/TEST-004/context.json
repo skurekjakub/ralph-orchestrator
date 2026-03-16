@@ -1,0 +1,13 @@
+{
+  "bookId": "test-book-004",
+  "currentChapter": 1,
+  "targetChapters": 1,
+  "existingArtifacts": [
+    "craft-profile.json"
+  ],
+  "craftTools": [
+    "T1",
+    "T5",
+    "T17"
+  ]
+}
