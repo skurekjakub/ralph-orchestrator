@@ -31,7 +31,6 @@ User-provided configuration that parameterizes the fractal factory run. Filled i
     "maxAgents": "<number, default 50 — upper bound on total agents in produced system>",
     "maxGapCycles": "<number, default 3 — how many gap-hunting re-entry cycles before forced delivery>",
     "maxWriterReviewerRetries": "<number, default 3 — prompt-writer → prompt-reviewer loop retry limit>",
-    "maxWriterReviewerBatchSize": "<number, default 5 — maximum agents processed in a single prompt-writer → prompt-reviewer batch>",
     "pipelinePasses": "<string[], which passes the produced system should have — subset of the universal 7>"
   }
 }
@@ -96,4 +95,3 @@ The guide agent validates context.json before invoking the orchestrator:
 - `options.maxDepth` is 2 or 3
 - `options.maxAgents` is between 5 and 100
 - `options.maxGapCycles` is between 1 and 10
-- `options.maxWriterReviewerBatchSize` is between 1 and 10

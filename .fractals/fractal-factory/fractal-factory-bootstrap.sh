@@ -120,7 +120,6 @@ cat > "$ARTIFACT_DIR/context.json" << 'EOF'
     "maxAgents": 50,
     "maxGapCycles": 3,
     "maxWriterReviewerRetries": 3,
-    "maxWriterReviewerBatchSize": 5,
     "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"]
   }
 }

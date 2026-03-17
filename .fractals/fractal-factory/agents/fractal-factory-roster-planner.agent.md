@@ -132,7 +132,6 @@ Write to `.fractal-factory/roster.json`:
       "reads": ["progress.json", "agents/*/status.json"],
       "writes": ["progress.json"],
       "antiLaziness": false,
-      "status": "designed",
       "routingTable": null
     },
     {
@@ -147,14 +146,11 @@ Write to `.fractal-factory/roster.json`:
       "reads": [],
       "writes": ["context.json"],
       "antiLaziness": false,
-      "status": "designed",
       "routingTable": null
     }
   ]
 }
 ```
-
-**Agent status lifecycle**: `designed` → `written` → `reviewed` → `verified` → `blocked`
 
 **Rules**:
 - Assign IDs sequentially: `A-001`, `A-002`, etc.

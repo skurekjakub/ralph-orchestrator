@@ -81,36 +81,50 @@ This guides the produced system's verification agents.
 
 ## Write Rules
 
-### domain-model.json
+### Invariants Directory
 
-Read `.fractal-factory/domain-model.json`, then update:
-- Add entries to the `invariants` array
-- Preserve ALL existing entries in `subdomains`, `existingAssets`, `exemplarPatterns`
-- Update `lastUpdated`
+Write invariants to per-classification files under `.fractal-factory/invariants/`. Each classification has its own file:
 
-Each invariant entry:
+- `.fractal-factory/invariants/behavioral.json`
+- `.fractal-factory/invariants/structural.json`
+- `.fractal-factory/invariants/quality.json`
+- `.fractal-factory/invariants/workflow.json`
+
+Each file uses a standard envelope:
 ```json
 {
-  "id": "INV-001",
-  "description": "The behavioral rule in plain language",
-  "classification": "behavioral | structural | quality | workflow",
-  "confidence": 0.9,
-  "source": "invariants.md, line 15",
-  "affectedSubdomains": ["SD-001", "SD-003"],
-  "verificationStrategy": "Check that all output files contain X",
-  "discoveredBy": "fractal-factory-invariant-extractor"
+  "classification": "behavioral",
+  "lastUpdated": "<ISO-8601-UTC>",
+  "entries": [
+    {
+      "id": "INV-001",
+      "description": "The behavioral rule in plain language",
+      "confidence": 0.9,
+      "source": "invariants.md, line 15",
+      "affectedSubdomains": ["SD-001", "SD-003"],
+      "verificationStrategy": "Check that all output files contain X",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    }
+  ]
 }
 ```
 
+After classifying each invariant in Step 4, route it to the appropriate classification file.
+
 **Rules**:
-- Assign IDs sequentially: `INV-001`, `INV-002`, etc. (continue from highest existing ID on re-entry)
+- Assign IDs sequentially: `INV-001`, `INV-002`, etc. IDs are globally unique across all classification files — continue from the highest existing ID across all 4 files on re-entry
 - Global invariants: set `affectedSubdomains` to all subdomain IDs
 - Confidence scoring:
   - 0.9–1.0: Explicitly stated in invariants.md
   - 0.7–0.8: Strongly implied by multiple passages
   - 0.5–0.6: Inferred from context
   - 0.3–0.4: Speculative (flag for user verification)
-- On re-entry: may update confidence of existing invariants, add new ones, but never delete
+- On re-entry: read all 4 classification files, may update confidence of existing invariants, add new ones, but never delete
+- If a classification file does not yet exist, create it with an empty `entries` array
+
+### domain-model.json
+
+Read `.fractal-factory/domain-model.json` only to cross-reference subdomain IDs for the `affectedSubdomains` field. Preserve all existing entries in `subdomains`, `existingAssets`, `exemplarPatterns`.
 
 ## Status Contract
 

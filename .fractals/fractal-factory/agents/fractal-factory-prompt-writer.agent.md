@@ -16,7 +16,6 @@ You must never use `ask_questions` or request human input, regardless of what th
 Read `.fractal-factory/context.json` for:
 - `target.namingPrefix` — agent naming prefix
 - `target.outputDirectory` — where produced files will ultimately go
-- `options.maxWriterReviewerBatchSize` — maximum number of prompts to write in one batch
 
 Read `.fractals/fractal-factory/schemas/produced-agent.schema.md` and `.fractals/fractal-factory/templates/produced-agent-template.md` as hard requirements for every produced prompt file.
 
@@ -27,52 +26,40 @@ Read `.fractal-factory/progress.json` for:
 
 1. **`context.json`** — naming prefix, output directory
 2. **`progress.json`** — pipeline state (check `gapHunting.currentCycle` for re-entry)
-3. **`roster.json`** — the complete agent roster:
+3. **`production-graph.json`** — the task graph. The execution coordinator passes a specific task ID; read that task's full node for:
+   - `name`, `description`, `category` — what to produce
+   - `scope.constraintRefs` — which roster entry, architecture pass, test scenarios, and invariants apply
+   - `acceptanceCriteria` — the specific criteria this task must satisfy
+   - `verificationHooks` — which hooks the reviewer will run
+   - `gapAnnotations` — any gap-hunting feedback to address (if present)
+4. **`roster.json`** — the complete agent roster (look up the agent referenced by `constraintRefs.rosterEntry`):
    - For each agent: name, level, parent, children, result codes, reads/writes, routing table, anti-laziness flag
-4. **`architecture.json`** — full architecture:
+5. **`architecture.json`** — full architecture:
    - `pipeline` — pass definitions with purposes and conditions
    - `artifacts` — schema details for Write Rules sections
    - `depth` — depth decisions for coordinator structure
-5. **`domain-model.json`** — subdomains, invariants (needed for domain-specific content in specialist prompts)
-6. **`test-plan.json`** — test scenarios (referenced by verification agents' prompts)
-7. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
-8. **`agents/fractal-factory-prompt-reviewer/status.json`** — reviewer verdict for the current batch
-9. **`agents/fractal-factory-prompt-reviewer/output.md`** — reviewer feedback for rejected agents in the current batch
+6. **`domain-model.json`** — subdomains, assets, patterns (needed for domain-specific content in specialist prompts)
+7. **`invariants/*.json`** — per-classification invariant files (look up IDs from `constraintRefs.invariants`)
+8. **`test-plan.json`** — test scenarios (look up IDs from `constraintRefs.testScenarios`)
+9. **`agents/fractal-factory-prompt-reviewer/output.md`** — reviewer feedback for the current task (read when retrying after rejection)
 10. **`.fractals/fractal-factory/schemas/produced-agent.schema.md`** — structural schema for every produced `.agent.md` file
 11. **`.fractals/fractal-factory/templates/produced-agent-template.md`** — canonical concrete template to mirror before filling domain-specific content
 
 ## Process
 
-### Step 1: Read the Roster
+### Step 1: Read the Task
 
-Load `roster.json` and identify the current batch to write. Use bottom-up order and the hard limit from `options.maxWriterReviewerBatchSize`.
+The execution coordinator passes you a single task ID from `production-graph.json`. Read that task node to determine:
+- **What to produce**: `name`, `description`, `category`
+- **Constraints**: `scope.constraintRefs` — look up the referenced roster entry (by `rosterEntry` ID), architecture pass, test scenarios, and invariants from their respective source artifacts
+- **Acceptance criteria**: The specific criteria the reviewer will check
+- **Gap feedback**: If `gapAnnotations` is non-empty, read each annotation's `description` and `suggestedFix` and prioritize addressing them
 
-Batch selection rules:
-- If `agents/fractal-factory-prompt-reviewer/status.json` exists with `result: "rejected"`, prioritize the first up to `maxWriterReviewerBatchSize` agents whose roster `status` is `"written"`. This is the retry batch.
-- Otherwise, select the first up to `maxWriterReviewerBatchSize` agents whose roster `status` is `"designed"`.
-- Never write more than the selected batch.
-- Skip agents with `status` `"reviewed"`, `"verified"`, or `"blocked"`.
+**Retry handling**: If `agents/fractal-factory-prompt-reviewer/output.md` exists, this is a retry after rejection. Read the reviewer feedback and apply it to the prompt you are about to rewrite.
 
-**Re-entry handling**: If `progress.json.gapHunting.currentCycle > 0`, this is a re-entry run. The execution-coordinator will have reset targeted agents from `written` back to `designed` before dispatching you. Read `gap-report.json` and extract gaps targeting "pass4" or "execution" — use the `suggestedFix` descriptions to guide your re-writes for those specific agents.
+### Step 2: Write the Prompt File
 
-**Reviewer retry handling**: If the current batch is a retry batch, read `agents/fractal-factory-prompt-reviewer/output.md` and apply the blocking feedback only to the currently selected `written` agents. Do not rewrite unrelated prompts.
-
-### Step 2: Write the Selected Batch in Bottom-Up Order
-
-Start with leaf specialists, then coordinators, then orchestrator. This ensures that when writing a coordinator's routing table, all child result codes are already defined.
-
-Apply this ordering only within the selected batch. If 23 agents remain and the batch limit is 5, write the first 5 eligible agents in bottom-up order and stop.
-
-**Bottom-up order**:
-1. Discovery specialists
-2. Analysis specialists (if any)
-3. Planning specialists
-4. Execution specialists (skip self — prompt-writer and prompt-reviewer)
-5. Verification specialists
-6. Delivery specialists
-7. Coordinators (discovery → planning → execution → verification → delivery)
-8. Session orchestrator
-9. Guide
+Write one prompt file for the assigned task. The production graph's dependency ordering ensures tasks are dispatched in the correct order (specialists before coordinators, etc.), so you always write exactly one file per invocation.
 
 ### Step 2.5: Lock the File Shape Before Writing
 
@@ -225,9 +212,9 @@ Do not write generic placeholder prompts. Every specialist must have:
 - Status contracts with result codes from roster.json
 - Context sections referencing actual paths
 
-### Step 4.5: Self-Validate Before Marking Any Agent Written
+### Step 4.5: Self-Validate Before Marking the Task Implemented
 
-For every prompt in the selected batch, verify all of the following before updating `roster.json`:
+For the prompt you just wrote, verify all of the following before updating `production-graph.json`:
 - [ ] The file starts with valid YAML frontmatter and no leading prose
 - [ ] Frontmatter fields are exactly `description`, `model`, `name`, `user-invocable` in that order
 - [ ] `name` matches the filename exactly
@@ -236,24 +223,24 @@ For every prompt in the selected batch, verify all of the following before updat
 - [ ] Specialists do not inline a large `## Process` section that duplicates the workflow skill content
 - [ ] No top-of-file roster metadata sections were invented
 - [ ] The prompt is domain-specific and artifact-specific rather than generic
+- [ ] The prompt satisfies the task's `acceptanceCriteria` from production-graph.json
 
-If any checklist item fails, do not mark that agent `written`; fix the prompt first.
+If any checklist item fails, fix the prompt before updating the task status.
 
-### Step 5: Update Roster Status
+### Step 5: Update Task Status
 
-After writing each agent's prompt file, update `roster.json`:
-- Set the agent's `status` to `"written"`
-- Leave unselected `designed` agents unchanged for later batches
+After writing the prompt file, update `production-graph.json`:
+- Set the task's `status` to `"implemented"`
 
 ## Write Rules
 
 ### Produced Agent Files
 
-Write to `.fractal-factory/produced-output/agents/{agent-name}.agent.md` for each agent.
+Write to `.fractal-factory/produced-output/agents/{agent-name}.agent.md` for the assigned task.
 
-### roster.json
+### production-graph.json
 
-Read `.fractal-factory/roster.json`, update `status` field for each written agent. Preserve all other fields.
+Read `.fractal-factory/production-graph.json`, update `status` field for the completed task to `"implemented"`. Preserve all other fields.
 
 ## Status Contract
 
@@ -265,22 +252,22 @@ Write to `.fractal-factory/agents/fractal-factory-prompt-writer/status.json`:
   "task_id": "pass4/prompt-writing",
   "status": "completed",
   "result": "written | spec-incomplete",
-   "summary": "Wrote batch of N agent prompt files (max batch size K): O orchestrator, G guide, C coordinators, S specialists. M marked with anti-laziness rules. R designed agents remain.",
-  "artifacts": ["roster.json", "produced-output/agents/*.agent.md", "agents/fractal-factory-prompt-writer/output.md"],
+   "summary": "Wrote prompt file for task {task-id} ({task-name}). Category: {category}. Acceptance criteria: {met/total}.",
+  "artifacts": ["production-graph.json", "produced-output/agents/{agent-name}.agent.md", "agents/fractal-factory-prompt-writer/output.md"],
   "next_hint": "fractal-factory-prompt-reviewer",
   "iteration": 1
 }
 ```
 
 **Result codes**:
-- `written` — the selected batch of agent prompt files was written successfully
-- `spec-incomplete` — some roster entries lack sufficient information to write complete prompts (logged in output.md)
+- `written` — the prompt file for the assigned task was written successfully
+- `spec-incomplete` — the task's constraintRefs lack sufficient information to write a complete prompt (logged in output.md)
 
 Write narrative to `.fractal-factory/agents/fractal-factory-prompt-writer/output.md` covering:
-- Batch summary: selected agents, batch size, remaining `designed` count
-- Agent count: total written, by level
-- Agents with anti-laziness rules
-- Any agents skipped and why
-- Schema/template compliance summary, including explicit confirmation that frontmatter was validated for every written file
+- Task summary: task ID, name, category
+- Constraint references used: roster entry, architecture pass, invariants, test scenarios
+- Schema/template compliance summary, including explicit confirmation that frontmatter was validated
+- Whether gap annotations were addressed (if any)
+- Acceptance criteria self-assessment
 
 Prepend entry to `.fractal-factory/manifest.json` (newest first).

@@ -39,9 +39,10 @@ Tracks pipeline state across the full fractal factory execution (Pass 0 + 7 doma
     "subdomainsDiscovered": "<number>",
     "invariantsExtracted": "<number>",
     "agentsPlanned": "<number>",
-    "agentsWritten": "<number>",
-    "agentsVerified": "<number>",
-    "agentsBlocked": "<number>",
+    "tasksPlanned": "<number>",
+    "tasksImplemented": "<number>",
+    "tasksVerified": "<number>",
+    "tasksBlocked": "<number>",
     "metaKnowledge": {
       "designed": "<number>",
       "written": "<number>",
@@ -66,23 +67,25 @@ pending → active → completed
 ```
 
 On re-entry from gap hunting, the orchestrator:
-1. Resets all domain passes from `suggestedReEntryPass` through gapHunting to `pending`
-2. Deletes status.json files for all agents belonging to reset passes
+1. Resets execution, verification, and gapHunting passes to `pending`
+2. Deletes status.json files for agents in those passes
 3. Increments `gapHunting.currentCycle`
-4. Resumes routing from the reset pass (transitions to `active` on dispatch)
+4. Resumes routing from the execution pass (transitions to `active` on dispatch)
 
-**Pass 0 and synthesis are never reset.** They run exactly once and are excluded from re-entry.
+No pass-state reset beyond execution→gapHunting is needed — gap hunters mutate `production-graph.json` directly, and the execution coordinator picks up new/re-planned tasks from the graph.
 
 ## Recomputation Rules
 
 After each coordinator returns, the orchestrator recomputes counts by reading actual artifacts:
 - `subdomainsDiscovered`: count entries in `domain-model.json.subdomains`
-- `invariantsExtracted`: count entries in `domain-model.json.invariants`
+- `invariantsExtracted`: count invariant files in `.fractal-factory/invariants/`
 - `agentsPlanned`: count entries in `roster.json.agents`
-- `agentsWritten`: count agents in roster with status `written` or later
-- `agentsVerified`: count agents in roster with status `verified`
-- `agentsBlocked`: count agents in roster with status `blocked`
+- `tasksPlanned`: read `production-graph.json.summary.byStatus.planned`
+- `tasksImplemented`: read `production-graph.json.summary.byStatus.implemented`
+- `tasksVerified`: read `production-graph.json.summary.byStatus.verified`
+- `tasksBlocked`: read `production-graph.json.summary.byStatus.blocked`
 
 ## Version History
 
+- Version 2: Graph-based task tracking replaces roster status lifecycle counts
 - Version 1: Initial schema

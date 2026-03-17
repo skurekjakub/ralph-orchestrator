@@ -139,8 +139,8 @@ After each coordinator returns, recompute counts from actual artifacts.
 ## Re-Entry Rules
 
 When gap-hunting coordinator returns `gaps-found`:
-1. Read gap-report.json for re-entry targets
-2. Reset affected passes to `pending`
+1. Gap hunters have already mutated production-graph.json (new tasks, gap annotations)
+2. Reset execution/verification/gapHunting passes to `pending`
 3. Increment gapHunting.cyclesCompleted
 4. If cyclesCompleted >= maxCycles, proceed to delivery
 ```

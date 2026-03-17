@@ -23,12 +23,12 @@ Read `.fractal-factory/context.json` for:
 2. **`progress.json`** — pipeline execution history
 3. **`manifest.json`** — complete audit trail
 4. **`domain-model.json`** — subdomains, invariants, assets, patterns
-5. **`roster.json`** — full agent roster with final statuses
+5. **`roster.json`** — full agent roster
 6. **`architecture.json`** — pipeline, artifacts, depth decisions
 7. **`test-plan.json`** — test scenarios
 8. **`verification-report.json`** — checklist results
 9. **`audit-report.json`** — oracle audit results
-10. **`gap-report.json`** — gap-hunting results (final cycle)
+10. **`production-graph.json`** — task statuses, gap annotations, retry history
 11. **`packaging-report.json`** — packaging completeness
 
 ## Process
@@ -45,7 +45,7 @@ Read `.fractal-factory/context.json` for:
 - `covered = (categories with ≥1 test) / (total categories)`
 
 **Agent coverage**: All planned agents were produced?
-- `covered = (agents with status ≥ written) / (total agents in roster)`
+- `covered = (tasks with status verified) / (total tasks in production-graph)`
 
 ### Step 2: Compile Quality Metrics
 
@@ -58,7 +58,7 @@ From audit-report.json:
 - Critical findings count
 - Findings by perspective (agent-as-function vs. fractal-workflow)
 
-From gap-report.json:
+From production-graph.json:
 - Final cycle verdict
 - Gap-hunting cycles used vs. max
 - Outstanding gaps (if any)
@@ -66,10 +66,10 @@ From gap-report.json:
 ### Step 3: Identify Outstanding Items
 
 Compile everything not yet resolved:
-- Agents with `status: "blocked"` in roster.json
+- Agents with `status: "blocked"` in production-graph.json
 - Critical failures still open in verification-report.json
 - Unresolved findings in audit-report.json
-- Remaining gaps from gap-report.json
+- Tasks with remaining `gapAnnotations` in production-graph.json
 
 Categorize each:
 - `must-fix`: Blocks the produced system from working

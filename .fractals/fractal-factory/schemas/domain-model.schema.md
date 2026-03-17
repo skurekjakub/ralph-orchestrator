@@ -22,19 +22,6 @@ Shared artifact populated incrementally by discovery specialists (Pass 1). Each 
     }
   ],
 
-  "invariants": [
-    {
-      "id": "INV-001",
-      "description": "<string, the behavioral rule>",
-      "classification": "<behavioral | structural | quality | workflow>",
-      "confidence": "<0.3-1.0, how certain we are this invariant is correct>",
-      "source": "<which input file this came from>",
-      "affectedSubdomains": ["SD-001", "SD-003"],
-      "verificationStrategy": "<how to check this invariant holds>",
-      "discoveredBy": "fractal-factory-invariant-extractor"
-    }
-  ],
-
   "existingAssets": [
     {
       "id": "ASSET-001",
@@ -83,22 +70,46 @@ If an agent is re-invoked (gap-hunting re-entry), it:
 | Section | Prefix | Example |
 |---|---|---|
 | Subdomains | `SD-` | `SD-001`, `SD-002` |
-| Invariants | `INV-` | `INV-001`, `INV-002` |
 | Existing Assets | `ASSET-` | `ASSET-001`, `ASSET-002` |
 | Exemplar Patterns | `PATTERN-` | `PATTERN-001`, `PATTERN-002` |
 
 IDs are assigned sequentially within each section. On re-entry, new entries continue from the highest existing ID.
 
-## Invariant Classification
+## Invariants (Separate Storage)
 
-| Classification | Description | Example |
-|---|---|---|
-| `behavioral` | Rules about what the system must or must not do | "Must validate all input before processing" |
-| `structural` | Rules about how the system is organized | "Every coordinator must be a pure router" |
-| `quality` | Rules about output quality standards | "All documentation must include code examples" |
-| `workflow` | Rules about process ordering or handoff | "Verification must happen before delivery" |
+**Invariants are NOT stored in this file.** They live in per-classification files under `.fractal-factory/invariants/`:
+
+| File | Classification |
+|---|---|
+| `invariants/behavioral.json` | Rules about what the system must or must not do |
+| `invariants/structural.json` | Rules about how the system is organized |
+| `invariants/quality.json` | Rules about output quality standards |
+| `invariants/workflow.json` | Rules about process ordering or handoff |
+
+Each file uses the envelope:
+```json
+{
+  "classification": "behavioral",
+  "lastUpdated": "<ISO-8601-UTC>",
+  "entries": [
+    {
+      "id": "INV-001",
+      "description": "<string, the behavioral rule>",
+      "confidence": "<0.3-1.0>",
+      "source": "<which input file this came from>",
+      "affectedSubdomains": ["SD-001", "SD-003"],
+      "verificationStrategy": "<how to check this invariant holds>",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    }
+  ]
+}
+```
+
+Invariant IDs (`INV-` prefix) are globally unique across all 4 classification files. The `fractal-factory-invariant-extractor` is the sole writer. See the invariant-extractor agent prompt for the full write protocol.
 
 ## Confidence Scoring
+
+Applies to invariants in `invariants/*.json`.
 
 | Range | Meaning |
 |---|---|

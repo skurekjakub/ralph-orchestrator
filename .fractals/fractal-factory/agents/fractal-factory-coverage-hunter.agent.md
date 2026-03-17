@@ -24,11 +24,13 @@ Read `.fractal-factory/progress.json` for:
 
 1. **`context.json`** — domain and convergence limits
 2. **`progress.json`** — current gap-hunting cycle number
-3. **`domain-model.json`** — subdomains, invariants, assets, patterns (ground truth of what was discovered)
-4. **`roster.json`** — agent roster (ground truth of what was planned)
-5. **`architecture.json`** — pipeline, artifacts, depth decisions
-6. **`test-plan.json`** — test scenarios
-7. **`produced-output/`** — all produced files
+3. **`production-graph.json`** — the task graph (read for existing tasks, mutate to add new tasks or annotate existing ones)
+4. **`domain-model.json`** — subdomains, assets, patterns (ground truth of what was discovered)
+5. **`invariants/*.json`** — per-classification invariant files (`behavioral.json`, `structural.json`, `quality.json`, `workflow.json`)
+6. **`roster.json`** — agent roster (ground truth of what was planned)
+7. **`architecture.json`** — pipeline, artifacts, depth decisions
+8. **`test-plan.json`** — test scenarios
+9. **`produced-output/`** — all produced files
 
 ## Anti-Laziness Rules
 
@@ -56,7 +58,7 @@ You are an adversarial agent. You MUST:
 
 ### Category 2: Invariant Enforcement
 
-**Methodology**: For each invariant in `domain-model.json`, verify:
+**Methodology**: For each invariant across all files in `invariants/` (`behavioral.json`, `structural.json`, `quality.json`, `workflow.json`), verify:
 - At least one produced agent enforces or checks this invariant
 - The invariant's `verificationStrategy` is implemented by a produced verification agent
 - Test scenarios exist that verify this invariant
@@ -74,9 +76,47 @@ You are an adversarial agent. You MUST:
 
 ## Write Rules
 
+### production-graph.json
+
+Read `.fractal-factory/production-graph.json` and mutate it:
+
+**For missing coverage (new work needed)**: Add new task nodes to the `tasks` array:
+```json
+{
+  "id": "T-GAP-nnn",
+  "name": "<descriptive task name>",
+  "description": "<what gap this task addresses>",
+  "category": "<appropriate category>",
+  "rosterAgentIds": [],
+  "dependsOn": ["<relevant existing task IDs>"],
+  "status": "planned",
+  "priority": 100,
+  "scope": { "constraintRefs": { ... } },
+  "acceptanceCriteria": ["<specific criteria to close the gap>"],
+  "verificationHooks": ["<appropriate hooks>"],
+  "retryHistory": [],
+  "addedBy": "fractal-factory-coverage-hunter",
+  "addedInCycle": "<current cycle number>",
+  "gapAnnotations": []
+}
+```
+
+**For enforcement gaps in existing tasks**: Add entries to the existing task's `gapAnnotations` array:
+```json
+{
+  "annotatedBy": "fractal-factory-coverage-hunter",
+  "cycle": "<current cycle number>",
+  "description": "<what gap was found>",
+  "severity": "critical | warning",
+  "suggestedFix": "<how to address>"
+}
+```
+
+For tasks with gap annotations, also reset their `status` to `"planned"` so the execution coordinator will re-process them.
+
 ### output.json
 
-Write to `.fractal-factory/agents/fractal-factory-coverage-hunter/output.json`:
+Still write the analysis details to `.fractal-factory/agents/fractal-factory-coverage-hunter/output.json` for audit trail:
 
 ```json
 {
@@ -141,7 +181,7 @@ Write to `.fractal-factory/agents/fractal-factory-coverage-hunter/status.json`:
   "status": "completed",
   "result": "clean | dirty | failed",
   "summary": "Cycle N: Searched 3 categories (subdomain coverage, invariant enforcement, routing completeness). Found G gaps (C critical, W warning).",
-  "artifacts": ["agents/fractal-factory-coverage-hunter/output.json", "agents/fractal-factory-coverage-hunter/output.md"],
+  "artifacts": ["production-graph.json", "agents/fractal-factory-coverage-hunter/output.json", "agents/fractal-factory-coverage-hunter/output.md"],
   "next_hint": null,
   "iteration": 1
 }

@@ -24,9 +24,10 @@ Read `.fractal-factory/progress.json` for:
 
 1. **`context.json`** — domain and convergence limits
 2. **`progress.json`** — current gap-hunting cycle number
-3. **`roster.json`** — agent roster (ground truth of what was planned)
-4. **`architecture.json`** — pipeline, artifacts, depth decisions
-5. **`produced-output/`** — all produced files
+3. **`production-graph.json`** — the task graph (read for existing tasks, mutate to add new tasks or annotate existing ones)
+4. **`roster.json`** — agent roster (ground truth of what was planned)
+5. **`architecture.json`** — pipeline, artifacts, depth decisions
+6. **`produced-output/`** — all produced files
 
 ## Anti-Laziness Rules
 
@@ -78,9 +79,47 @@ You are an adversarial agent. You MUST:
 
 ## Write Rules
 
+### production-graph.json
+
+Read `.fractal-factory/production-graph.json` and mutate it:
+
+**For missing coverage (new work needed)**: Add new task nodes to the `tasks` array:
+```json
+{
+  "id": "T-GAP-nnn",
+  "name": "<descriptive task name>",
+  "description": "<what gap this task addresses>",
+  "category": "<appropriate category>",
+  "rosterAgentIds": [],
+  "dependsOn": ["<relevant existing task IDs>"],
+  "status": "planned",
+  "priority": 100,
+  "scope": { "constraintRefs": { ... } },
+  "acceptanceCriteria": ["<specific criteria to close the gap>"],
+  "verificationHooks": ["<appropriate hooks>"],
+  "retryHistory": [],
+  "addedBy": "fractal-factory-infrastructure-hunter",
+  "addedInCycle": "<current cycle number>",
+  "gapAnnotations": []
+}
+```
+
+**For enforcement gaps in existing tasks**: Add entries to the existing task's `gapAnnotations` array:
+```json
+{
+  "annotatedBy": "fractal-factory-infrastructure-hunter",
+  "cycle": "<current cycle number>",
+  "description": "<what gap was found>",
+  "severity": "critical | warning",
+  "suggestedFix": "<how to address>"
+}
+```
+
+For tasks with gap annotations, also reset their `status` to `"planned"` so the execution coordinator will re-process them.
+
 ### output.json
 
-Write to `.fractal-factory/agents/fractal-factory-infrastructure-hunter/output.json`:
+Still write the analysis details to `.fractal-factory/agents/fractal-factory-infrastructure-hunter/output.json` for audit trail:
 
 ```json
 {
@@ -136,7 +175,7 @@ Write to `.fractal-factory/agents/fractal-factory-infrastructure-hunter/status.j
   "status": "completed",
   "result": "clean | dirty | failed",
   "summary": "Cycle N: Searched 3 categories (bootstrap completeness, documentation completeness, meta-knowledge infrastructure). Found G gaps (C critical, W warning).",
-  "artifacts": ["agents/fractal-factory-infrastructure-hunter/output.json", "agents/fractal-factory-infrastructure-hunter/output.md"],
+  "artifacts": ["production-graph.json", "agents/fractal-factory-infrastructure-hunter/output.json", "agents/fractal-factory-infrastructure-hunter/output.md"],
   "next_hint": null,
   "iteration": 1
 }

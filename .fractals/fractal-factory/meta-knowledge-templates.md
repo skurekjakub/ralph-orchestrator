@@ -216,7 +216,7 @@ Read `.{DOMAIN_DIR}/context.json` for task context.
 2. **`progress.json`** — pipeline execution state, cycle counts
 3. **`verification-report.json`** (or equivalent) — which checks passed/failed
 4. **`audit-report.json`** (or equivalent) — architectural findings
-5. **`gap-report.json`** (or equivalent) — gap hunting results
+5. **`production-graph.json`** (or equivalent) — task statuses and gap annotations
 6. **`knowledge-brief.json`** — prior knowledge (to avoid redundancy)
 
 ## Process

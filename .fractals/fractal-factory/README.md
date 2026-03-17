@@ -2,7 +2,7 @@
 
 A meta-level fractal orchestrator that **produces validated fractal agent families** from domain specifications. Give it a domain description, supporting documents, and behavioral invariants — it outputs a complete agent system with orchestrator, coordinators, specialists, artifact schemas, bootstrap script, golden tests, and documentation.
 
-The factory itself follows the fractal pattern: session orchestrator → 8 coordinators → 25 specialists, running a pipeline from knowledge curation through delivery with gap-hunting re-entry loops.
+The factory itself follows the fractal pattern: session orchestrator → 8 coordinators → 26 specialists, running a pipeline from knowledge curation through delivery with gap-hunting re-entry loops.
 
 ## Quick Start
 
@@ -52,22 +52,25 @@ User invokes fractal-factory-guide (once)
    │ Pass 3: Planning                                           │
    │   planning-coordinator                                     │
    │     → roster-planner → routing-planner → test-planner      │
+   │     → production-graph-planner                             │
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 4: Execution                                          │
    │   execution-coordinator                                    │
-    │     → prompt-writer ↔ prompt-reviewer (batches of 5, max 3 retries per batch) │
+   │     → dependency-gated task loop from production-graph.json │
+   │       → prompt-writer ↔ prompt-reviewer (per-task, max 3 retries) │
    │     → infra-writer                                         │
    ├─────────────────────────────────────────────────────────────┤
    │ Pass 5: Verification                                       │
    │   verification-coordinator                                 │
    │     → checklist-validator → audit-oracle                   │
    ├─────────────────────────────────────────────────────────────┤
-    │ Pass 6: Gap Hunting                                        │
-    │   gap-hunting-coordinator                                  │
-    │     → coverage-hunter (cats 1-3)                           │
-    │     → artifact-hunter (cats 4-6)                           │
-    │     → infrastructure-hunter (cats 7-9)                     │
-    │     (if dirty → re-enter Pass 2 or 3, max 3 cycles)       │
+   │ Pass 6: Gap Hunting                                        │
+   │   gap-hunting-coordinator                                  │
+   │     → coverage-hunter (cats 1-3)                           │
+   │     → artifact-hunter (cats 4-6)                           │
+   │     → infrastructure-hunter (cats 7-9)                     │
+   │     (if dirty → new tasks added to production-graph.json,  │
+   │      execution picks up naturally, max 3 cycles)           │
    ├─────────────────────────────────────────────────────────────┤
    │ Synthesis: Meta-Knowledge Extraction                       │
    │   synthesis-coordinator                                    │
@@ -105,6 +108,7 @@ User invokes fractal-factory-guide (once)
 | `fractal-factory-roster-planner` | specialist | planning-coord | 3 |
 | `fractal-factory-routing-planner` | specialist | planning-coord | 3 |
 | `fractal-factory-test-planner` | specialist | planning-coord | 3 |
+| `fractal-factory-production-graph-planner` | specialist | planning-coord | 3 |
 | `fractal-factory-prompt-writer` | specialist | execution-coord | 4 |
 | `fractal-factory-prompt-reviewer` | specialist | execution-coord | 4 |
 | `fractal-factory-infra-writer` | specialist | execution-coord | 4 |
@@ -120,7 +124,7 @@ User invokes fractal-factory-guide (once)
 | `fractal-factory-documentation-writer` | specialist | delivery-coord | 7 |
 | `fractal-factory-report-writer` | specialist | delivery-coord | 7 |
 
-**Total: 35 agents** (1 guide + 1 orchestrator + 8 coordinators + 25 specialists)
+**Total: 36 agents** (1 guide + 1 orchestrator + 8 coordinators + 26 specialists)
 
 ## Artifact Directory
 
@@ -129,10 +133,16 @@ User invokes fractal-factory-guide (once)
 ├── context.json              — User input (domain, paths, options)
 ├── progress.json             — Pipeline state (owned by orchestrator)
 ├── manifest.json             — Prepend-only audit log
-├── domain-model.json         — Discovery output (subdomains, invariants, assets, patterns)
+├── domain-model.json         — Discovery output (subdomains, assets, patterns)
+├── invariants/               — Per-classification invariant files
+│   ├── behavioral.json       — Behavioral invariants
+│   ├── structural.json       — Structural invariants
+│   ├── quality.json          — Quality invariants
+│   └── workflow.json         — Workflow invariants
 ├── architecture.json         — Architecture design (pipeline, artifacts, depth decisions)
 ├── roster.json               — Full agent roster with routing tables
 ├── test-plan.json            — Golden test scenarios
+├── production-graph.json     — Production task graph (runtime state for execution)
 ├── agents/                   — Per-agent status.json and output.md
 │   ├── fractal-factory-domain-scanner/
 │   │   ├── status.json
@@ -150,7 +160,6 @@ User invokes fractal-factory-guide (once)
 │   └── bootstrap.sh          — Bootstrap script for the produced system
 ├── verification-report.json  — Checklist validation results
 ├── audit-report.json         — Oracle audit findings
-├── gap-report.json           — Gap-hunting results
 ├── meta/                     — Meta-knowledge store (managed by knowledge-integrator)
 │   ├── index.json            — Registry of all knowledge entries
 │   └── entries/              — Individual knowledge entries (JSON)
@@ -172,11 +181,11 @@ User invokes fractal-factory-guide (once)
 ### Read-Modify-Write
 Multiple specialists write to the same JSON files. Each agent reads the current state, adds its entries (identified by `discoveredBy` field), preserves all entries from other agents, and writes back.
 
-### Coder-Reviewer Loop
-The execution coordinator dispatches `prompt-writer` → `prompt-reviewer` in deterministic batches of up to 5 produced agents. On rejection, the writer is re-dispatched with feedback for that same batch (max 3 retries per batch). Exhausted batch members are marked `blocked`, and the pipeline continues with later batches.
+### Production-Graph-Driven Execution
+The execution coordinator reads `production-graph.json` and selects the next eligible task (status `planned`, all `dependsOn` tasks verified). It dispatches `prompt-writer` → `prompt-reviewer` for one task at a time. On rejection, the writer is re-dispatched with feedback (max 3 retries per task). Exhausted tasks are marked `blocked`. The coordinator loops until all tasks are verified or blocked.
 
-### Gap-Hunting Convergence
-After verification, the gap-hunting coordinator dispatches the three specialist hunters to search for anything missed. If they find new items: re-enter Pass 2 or 3. Convergence = the aggregated gap-hunting result finds zero new items. Max 3 cycles before forced delivery.
+### Gap-Hunting Graph Mutation
+After verification, the gap-hunting coordinator dispatches the three specialist hunters. Hunters add new task nodes to `production-graph.json` for missing items and annotate existing tasks with `gapAnnotations`. If the graph was mutated, the execution coordinator picks up new/re-planned tasks naturally — no pass resets needed. Convergence = zero new tasks or annotations. Max 3 cycles before forced delivery.
 
 ### Oracle Verification
 Produced agents are validated against the structural validation checklist AND by applying the perspectives from the `agent-as-function-audit` and `fractal-workflow-eval` skills.
@@ -196,3 +205,4 @@ See `schemas/` for full JSON schema documentation:
 - `context.schema.md` — User input configuration
 - `domain-model.schema.md` — Discovery output
 - `produced-agent.schema.md` — Structural requirements for produced agents
+- `production-graph.schema.md` — Production task graph with dependency edges and verification hooks

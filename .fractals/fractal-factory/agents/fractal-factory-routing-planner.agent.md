@@ -16,7 +16,6 @@ You must never use `ask_questions` or request human input, regardless of what th
 Read `.fractal-factory/context.json` for:
 - `options.maxGapCycles` — convergence cycle limit
 - `options.maxWriterReviewerRetries` — coder→reviewer loop limit
-- `options.maxWriterReviewerBatchSize` — maximum items a loop coordinator may process per review batch
 
 ## Inputs
 
@@ -40,7 +39,7 @@ For each pass in `architecture.json.pipeline.passes`:
 
 Add re-entry rules from `architecture.json.pipeline.reEntryRules`:
 ```
-| agents/gap-hunting-coordinator/status.json | result: "gaps-found" | Read gap-report, reset passes, re-dispatch |
+| agents/gap-hunting-coordinator/status.json | result: "gaps-found" | Reset execution/verification/gapHunting, re-dispatch execution |
 ```
 
 ### Step 2: Build Coordinator Routing Tables
@@ -67,12 +66,12 @@ For each coordinator in the roster:
 ```
 | Read | Condition | Action |
 | agents/{writer}/status.json | result: "written" | Dispatch {reviewer} |
-| agents/{reviewer}/status.json | result: "approved" | Advance to next batch |
+| agents/{reviewer}/status.json | result: "approved" | Mark current task complete and select next eligible task |
 | agents/{reviewer}/status.json | result: "rejected" (retries < max) | Re-dispatch {writer} |
 | agents/{reviewer}/status.json | result: "rejected" (retries >= max) | Mark blocked, skip |
 ```
 
-Loop coordinators must batch work explicitly. If the writer/reviewer pair could otherwise process dozens of items, add a deterministic batch selector and cap each batch at `options.maxWriterReviewerBatchSize`.
+Loop coordinators must select exactly one eligible task per iteration from the execution graph, using deterministic priority and dependency rules.
 
 **Dual-mode coordinators** (handle multiple passes):
 ```

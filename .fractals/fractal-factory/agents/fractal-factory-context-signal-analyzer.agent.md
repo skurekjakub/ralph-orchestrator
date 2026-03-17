@@ -21,7 +21,7 @@ Read `.fractal-factory/context.json` for task context.
 2. **`progress.json`** — pipeline execution state, cycle counts
 3. **`verification-report.json`** — which checks passed/failed
 4. **`audit-report.json`** — architectural findings
-5. **`gap-report.json`** — gap hunting results
+5. **`production-graph.json`** — task statuses, gap annotations, verification results
 6. **`knowledge-brief.json`** — prior knowledge (to avoid redundancy)
 
 ## Process

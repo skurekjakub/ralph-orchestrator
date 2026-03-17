@@ -1,25 +1,25 @@
 # Fractal Factory — Routing Architecture
 
-Execution path reference for the Fractal Factory pipeline. Documents every path through the system, coordinator dispatch sequences, the progress state machine, and error classification.
+Execution path reference for the Fractal Factory pipeline. Documents coordinator dispatch order, graph-driven execution flow, gap-hunting re-entry, and failure handling.
 
 ## Path Index
 
 | ID | Name | Entry Condition | Terminal State |
 |---|---|---|---|
 | P-01 | Happy Path | All passes succeed, gap hunting converges | `delivered` |
-| P-02 | Gap Re-Entry | Gap-hunting coordinator reports `gaps-found` within cycle limit | Re-enters P-01 at Pass 2 or 3 |
+| P-02 | Graph Re-Entry | Gap-hunting coordinator reports `gaps-found` within cycle limit | Re-enters P-01 at execution |
 | P-03 | Forced Convergence | Gap-hunting coordinator reports `gaps-found` at max cycles | `delivered-with-gaps` |
 | P-04 | Discovery Blocked | Discovery coordinator returns `blocked` | `failed` |
 | P-05 | Analysis Failed | Analysis coordinator returns `failed` | `failed` |
 | P-06 | Planning Failed | Planning coordinator returns `failed` | `failed` |
 | P-07 | Execution Failed | Execution coordinator returns `failed` | `failed` |
-| P-08 | Execution Partial | Execution returns `complete-with-blocked` | Continues to verification (P-01) |
+| P-08 | Execution Partial | Execution returns `complete-with-blocked` | Continues to verification |
 | P-09 | Verification Failed | Verification coordinator returns `failed` | `failed` |
-| P-10 | Gap-Hunting Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` (forced) |
+| P-10 | Gap-Hunting Failed | Gap-hunting coordinator returns `failed` | `delivered-with-gaps` |
 | P-11 | Crash Recovery | Active pass found on startup | Resets to pending, re-dispatches |
-| P-12 | Knowledge Curator Cold Start | No meta/ store available | Pass 0 completes without prior knowledge |
+| P-12 | Knowledge Curator Cold Start | No meta store available | Pass 0 completes without prior knowledge |
 | P-13 | Knowledge Curator Failed | Knowledge curator returns `failed` | Pass 0 completes in degraded mode |
-| P-14 | Synthesis Degraded | Synthesis returns `degraded` or `failed` | Continues to delivery (non-fatal) |
+| P-14 | Synthesis Degraded | Synthesis returns `degraded` or `failed` | Continues to delivery |
 
 ## Path Descriptions
 
@@ -33,29 +33,26 @@ curator  disc-c   anal-c   plan-c   exec-c   veri-c   gaph-c    synth-c    delv-
         scanr    p-arch    rost-p   p-writ   chk-v   cov-h      f-sig     packgr
         inv-x    art-d     rout-p   p-revw   aud-o   art-h      c-sig     doc-wr
         ast-a    dep-a     test-p   infr-w           inf-h      k-int     rpt-wr
-        exm-a
+        exm-a               p-graph
 ```
 
-All coordinators return success. Gap hunting converges with zero aggregated gaps. Pipeline proceeds through synthesis to delivery. Orchestrator writes `result: "delivered"`.
+Planning produces `production-graph.json`. The execution coordinator repeatedly selects one eligible task from the graph, runs `prompt-writer` then `prompt-reviewer`, updates task state, and continues until all tasks are `verified` or `blocked`. Gap hunting finds no new mutations, so the pipeline proceeds to synthesis and delivery. Orchestrator writes `result: "delivered"`.
 
-### P-02: Gap Re-Entry
+### P-02: Graph Re-Entry
 
 Triggered when gap-hunting-coordinator returns `result: "gaps-found"` and `gapHunting.currentCycle < maxCycles`.
 
-1. Orchestrator reads `gap-report.json` → gets `suggestedReEntryPass` (typically `pass2` or `pass3`)
-2. Increments `gapHunting.currentCycle` in progress.json
-3. Resets all passes from re-entry target through gapHunting to `pending`
-4. Deletes status.json for all agents in reset passes (see pass-to-agent mapping below)
-5. Does NOT delete `gap-report.json` (coordinators need it for context)
-6. Does NOT reset Pass 0 or Synthesis
-7. Resumes routing from the reset pass
+1. Gap hunters have already mutated `production-graph.json`
+2. Orchestrator increments `gapHunting.currentCycle` in `progress.json`
+3. Orchestrator resets only `execution`, `verification`, and `gapHunting` passes to `pending`
+4. Orchestrator deletes status.json for agents in those three passes
+5. Pass 0, discovery, analysis, planning, and synthesis remain untouched
+6. Routing resumes from execution, which naturally picks up newly added or re-planned tasks from the graph
 
 **Pass-to-agent mapping for status deletion:**
 
 | Pass | Agents (status.json deleted on reset) |
 |---|---|
-| analysis | pipeline-architect, artifact-designer, depth-analyzer, analysis-coordinator |
-| planning | roster-planner, routing-planner, test-planner, planning-coordinator |
 | execution | prompt-writer, prompt-reviewer, infra-writer, execution-coordinator |
 | verification | checklist-validator, audit-oracle, verification-coordinator |
 | gapHunting | coverage-hunter, artifact-hunter, infrastructure-hunter, gap-hunting-coordinator |
@@ -65,8 +62,8 @@ Triggered when gap-hunting-coordinator returns `result: "gaps-found"` and `gapHu
 Triggered when gap-hunting returns `gaps-found` but `gapHunting.currentCycle >= maxCycles`.
 
 1. Orchestrator sets gapHunting to `completed`
-2. Advances to Synthesis (gap-report.json available for synthesis agents)
-3. Advances to delivery — delivery coordinator notes outstanding gaps in the report
+2. Pipeline advances to synthesis and delivery
+3. Delivery artifacts report tasks that remain `blocked`, `planned`, `implemented`, or annotated with unresolved gaps
 4. Orchestrator writes `result: "delivered-with-gaps"`
 
 ### P-04 through P-07: Coordinator Failures
@@ -80,22 +77,22 @@ Any coordinator returning `result: "failed"` halts the pipeline:
 ### P-08: Execution Partial
 
 Execution coordinator returns `result: "complete-with-blocked"`:
-- Some agents were blocked (coder-reviewer loop exhausted retries)
-- Pipeline continues to verification — partial coverage is better than none
-- Blocked agents are recorded in roster.json with `status: "blocked"`
+- Some graph tasks exhausted writer-reviewer retries and were marked `blocked`
+- Pipeline continues to verification and gap hunting
+- Delivery reports blocked tasks explicitly
 
 ### P-09: Verification Failed
 
 Verification coordinator returns `result: "failed"`:
-- Any verification issue is a failing condition, whether found by the checklist-validator or the audit-oracle
-- Pipeline halts — orchestrator writes `result: "failed"`
+- Cross-reference safety-net validation found systemic issues
+- Pipeline halts and orchestrator writes `result: "failed"`
 
 ### P-10: Gap-Hunting Failed
 
 Gap-hunting coordinator returns `result: "failed"`:
-- All 3 specialist hunters failed
-- Orchestrator treats as forced convergence — sets gapHunting to `completed`
-- Advances to Synthesis then delivery
+- All three specialist hunters failed
+- Orchestrator treats this as forced convergence
+- Pipeline advances to synthesis then delivery
 - Orchestrator writes `result: "delivered-with-gaps"`
 
 ### P-11: Crash Recovery
@@ -103,23 +100,24 @@ Gap-hunting coordinator returns `result: "failed"`:
 On startup, orchestrator detects `passes.X.status == "active"`:
 
 1. Reset the active pass to `pending`
-2. Delete the coordinator's status.json (coordinator will re-dispatch children)
-3. Children with existing status.json are skipped (already completed)
-4. Resume routing from the reset pass
+2. Delete the active coordinator's status.json
+3. Resume routing from that pass
+
+Children with completed status files are reused unless that pass is part of execution/verification/gap-hunting re-entry.
 
 ### P-12 & P-13: Pass 0 Degraded/Failed
 
-Knowledge curator returns `cold-start` (no meta/ store) or `failed`:
-- Pass 0 set to `completed` (non-fatal)
-- Pipeline continues to Pass 1 without knowledge-brief.json
-- Specialists operate without meta-knowledge context (reduced quality but functional)
+Knowledge curator returns `cold-start` or `failed`:
+- Pass 0 is marked `completed`
+- Pipeline continues without `knowledge-brief.json`
+- Later passes operate without prior meta-knowledge context
 
 ### P-14: Synthesis Degraded
 
 Synthesis coordinator returns `degraded` or `failed`:
-- Meta-knowledge wasn't fully extracted
-- Pipeline continues to delivery (non-fatal)
-- Future factory runs won't benefit from this run's learnings
+- Meta-knowledge integration did not fully succeed
+- Delivery still proceeds
+- Produced system artifacts remain usable
 
 ## Coordinator Dispatch Sequences
 
@@ -129,7 +127,7 @@ Synthesis coordinator returns `degraded` or `failed`:
 domain-scanner → invariant-extractor → asset-auditor → exemplar-analyzer
 ```
 
-Sequential. Each specialist reads the evolving `domain-model.json` and adds its entries (preserving others via read-modify-write).
+Sequential. Each specialist reads the evolving `domain-model.json` and writes its own additions without deleting prior entries.
 
 ### Analysis Coordinator (Pass 2)
 
@@ -137,39 +135,39 @@ Sequential. Each specialist reads the evolving `domain-model.json` and adds its 
 pipeline-architect → artifact-designer → depth-analyzer
 ```
 
-Sequential. Pipeline architect creates `architecture.json`, artifact designer adds artifact definitions, depth analyzer adjusts depth levels.
-
-**Re-entry awareness:** If `gap-report.json` exists and the pass was reset, the coordinator passes gap context to each specialist so they can address identified gaps.
+Sequential. Produces `architecture.json` and depth decisions. Analysis is not re-entered after gap hunting in the graph model.
 
 ### Planning Coordinator (Pass 3)
 
 ```
-roster-planner → routing-planner → test-planner
+roster-planner → routing-planner → test-planner → production-graph-planner
 ```
 
-Sequential. Roster planner creates `roster.json`, routing planner adds routing tables, test planner creates `test-plan.json`.
-
-**Re-entry awareness:** Same gap-context passing as analysis coordinator.
+Sequential. Produces the stateless design artifacts plus `production-graph.json`, which becomes the sole runtime-state artifact for execution.
 
 ### Execution Coordinator (Pass 4)
 
 ```
-prompt-writer(batch of up to 5) → prompt-reviewer(same batch)
-(on rejection: retry same batch up to 3 times)
-(on approval: advance to next batch until no designed/written agents remain)
-infra-writer
+select next eligible graph task
+→ prompt-writer
+→ prompt-reviewer
+→ on reject: retry same task up to 3 times
+→ on approve: mark task verified and select next task
+→ when no eligible tasks remain: infra-writer
 ```
 
-The execution coordinator dispatches the prompt-writer and prompt-reviewer in bounded batches, then dispatches the infra-writer only after all batches are either reviewed or blocked.
+The execution coordinator drives a dependency-gated single-task loop.
 
-1. Prompt-writer reads `roster.json` and writes prompt files for the first up to 5 eligible agents in bottom-up order
-2. Prompt-reviewer reviews that same batch only
-3. On rejection (up to 3 retries), the coordinator re-dispatches prompt-writer with reviewer feedback for the still-`written` agents in that batch
-4. On approval, the coordinator starts the next batch until no `designed` or `written` agents remain
-5. On max retries, the coordinator marks the remaining batch agents `blocked` in `roster.json` and continues with later batches
-6. Infra-writer then generates bootstrap/schema infrastructure
+1. Read `production-graph.json`
+2. Select the highest-priority task with `status: planned` whose `dependsOn` tasks are all `verified`
+3. Dispatch `prompt-writer` for that task only
+4. Dispatch `prompt-reviewer` for that same task
+5. On approval, run the task's verification hooks and mark it `verified`
+6. On rejection below retry limit, mark task `failed-review` and retry writer with feedback
+7. On exhausted retries, mark task `blocked`
+8. After all tasks are terminal or no eligible tasks remain, run `infra-writer`
 
-**Re-entry awareness:** The coordinator resets only targeted agents in `roster.json` from `written` back to `designed` before re-dispatching prompt-writer.
+New work discovered by gap hunters appears directly in `production-graph.json`, so re-entry requires no roster mutation and no batch selection.
 
 ### Verification Coordinator (Pass 5)
 
@@ -177,7 +175,7 @@ The execution coordinator dispatches the prompt-writer and prompt-reviewer in bo
 checklist-validator → audit-oracle
 ```
 
-Sequential. Checklist validator runs structural checks. Audit oracle applies the eval skill perspectives.
+Sequential. This pass is now a post-completion safety net. Primary verification happens per task during execution via task-level verification hooks.
 
 ### Gap-Hunting Coordinator (Pass 6)
 
@@ -185,7 +183,13 @@ Sequential. Checklist validator runs structural checks. Audit oracle applies the
 coverage-hunter → artifact-hunter → infrastructure-hunter
 ```
 
-The gap-hunting coordinator dispatches the three specialist hunters sequentially. Each specialist writes its own `output.json`, and the gap-hunting coordinator aggregates those outputs into the unified `gap-report.json`.
+The gap-hunting coordinator dispatches the three specialist hunters sequentially. Each hunter mutates `production-graph.json` directly by either:
+- adding new tasks with `addedBy` and `addedInCycle`, or
+- annotating existing tasks with `gapAnnotations` and resetting them to `planned`
+
+The coordinator then observes graph mutations for the current cycle and returns:
+- `converged` if no new tasks or annotations were added
+- `gaps-found` if any mutations occurred
 
 ### Synthesis Coordinator (Post-convergence)
 
@@ -193,7 +197,7 @@ The gap-hunting coordinator dispatches the three specialist hunters sequentially
 factory-signal-analyzer → context-signal-analyzer → knowledge-integrator
 ```
 
-Sequential. Factory signal analyzer extracts factory-side learnings. Context signal analyzer extracts process-level learnings about pipeline behavior and invariant-handling failures. Knowledge integrator merges both into `meta/` store, but only as reusable patterns, strategies, and recurring failure modes rather than raw domain-local invariant inventories.
+Sequential. Synthesizes reusable learnings from the run, including process failures and repeated gap patterns.
 
 ### Delivery Coordinator (Pass 7)
 
@@ -201,7 +205,7 @@ Sequential. Factory signal analyzer extracts factory-side learnings. Context sig
 packager → documentation-writer → report-writer
 ```
 
-Sequential. Packager assembles the final output directory. Documentation writer creates user-facing docs. Report writer creates the delivery report.
+Sequential. Uses `production-graph.json` and the verification artifacts to summarize final system state and any outstanding issues.
 
 ## Progress State Machine
 
@@ -214,63 +218,65 @@ pending ──→ active ──→ completed
 ```
 
 - `pending`: Not yet started, or reset by re-entry
-- `active`: Currently executing (coordinator dispatched)
+- `active`: Currently executing
 - `completed`: Coordinator returned a result
+
+Only `execution`, `verification`, and `gapHunting` re-enter after gap detection.
+
+### Task States in production-graph.json
+
+```
+planned → in-progress → implemented → verified
+   │                         │
+   └────→ failed-review ─────┘
+   └────────────────────────→ blocked
+```
+
+- `planned`: Ready or waiting on dependencies
+- `in-progress`: Currently assigned to writer/reviewer loop
+- `implemented`: Writer output exists and is awaiting final validation
+- `verified`: Task fully accepted
+- `failed-review`: Reviewer rejected current attempt
+- `blocked`: Retry budget exhausted or progress impossible
 
 ### Gap-Hunting Cycle
 
 ```
-                    ┌──────────────────────┐
-                    ↓                      │
-Pass 6 active → specialist hunters run → clean?──┤──yes──→ completed
-                                          │
-                                     no (dirty)
-                                          │
-                                   cycle < max?
-                                    │         │
-                                   yes        no
-                                    │         │
-                                    ↓         ↓
-                              re-entry    completed
-                              (P-02)    (forced, P-03)
+Pass 6 active → hunters mutate graph → mutations found?
+                         │                  │
+                        no                 yes
+                         │                  │
+                         ↓             cycle < max?
+                   converged            │        │
+                                        yes      no
+                                         │        │
+                                         ↓        ↓
+                                   re-enter    forced
+                                   execution  convergence
 ```
-
-### Orchestrator Terminal States
-
-| Result | Meaning |
-|---|---|
-| `delivered` | All passes completed, gap hunting converged |
-| `delivered-with-gaps` | Forced convergence or all gap-hunting specialists failed |
-| `failed` | Critical blocker halted the pipeline |
 
 ## Artifact Dependency Graph
 
 ```
-context.json (user input)
+context.json
     │
     ├──→ knowledge-brief.json (Pass 0, optional)
-    │        │
-    │        └──→ [all specialists read if available]
     │
-    ├──→ domain-model.json (Pass 1)
+    ├──→ domain-model.json + invariants/*.json (Pass 1)
     │        │
     │        ├──→ architecture.json (Pass 2)
     │        │        │
     │        │        ├──→ roster.json (Pass 3)
-    │        │        │        │
-    │        │        │        ├──→ produced-output/agents/*.agent.md (Pass 4)
-    │        │        │        ├──→ produced-output/bootstrap.sh (Pass 4)
-    │        │        │        └──→ produced-output/schemas/*.md (Pass 4)
-    │        │        │
-    │        │        └──→ test-plan.json (Pass 3)
+    │        │        ├──→ test-plan.json (Pass 3)
+    │        │        └──→ production-graph.json (Pass 3)
+    │        │                     │
+    │        │                     ├──→ produced-output/agents/*.agent.md (Pass 4)
+    │        │                     ├──→ produced-output/bootstrap.sh (Pass 4)
+    │        │                     ├──→ produced-output/schemas/*.md (Pass 4)
+    │        │                     └──→ gap mutations (Pass 6)
     │        │
-    │        └──→ verification-report.json (Pass 5)
-    │
-    ├──→ audit-report.json (Pass 5)
-    │
-    ├──→ gap-report.json (Pass 6)
-    │        │
-    │        └──→ [coordinators read on re-entry for gap context]
+    │        ├──→ verification-report.json (Pass 5)
+    │        └──→ audit-report.json (Pass 5)
     │
     ├──→ meta/index.json + entries/ (Synthesis)
     │
@@ -281,43 +287,36 @@ context.json (user input)
 
 ### Gap Context Flow
 
-On re-entry, gap context flows from `gap-report.json` through coordinators to specialists:
+Gap context now lives on task nodes in `production-graph.json`:
 
 ```
-gap-report.json
+production-graph.json
     │
-    ├──→ analysis-coordinator (reads gap context, passes to children)
-    │        ├──→ pipeline-architect (receives targeted gap feedback)
-    │        ├──→ artifact-designer (receives targeted gap feedback)
-    │        └──→ depth-analyzer (receives targeted gap feedback)
+    ├──→ execution-coordinator (selects re-planned or newly added tasks)
+    │        ├──→ prompt-writer (reads constraintRefs, acceptanceCriteria, gapAnnotations)
+    │        └──→ prompt-reviewer (checks acceptanceCriteria and verificationHooks)
     │
-    ├──→ planning-coordinator (reads gap context, passes to children)
-    │        ├──→ roster-planner
-    │        ├──→ routing-planner
-    │        └──→ test-planner
-    │
-    └──→ execution-coordinator (reads gap context, passes to children)
-             ├──→ prompt-writer (re-entry aware: reads progress.json + gap-report.json)
-             └──→ prompt-reviewer
+    ├──→ report-writer (summarizes unresolved annotations and blocked tasks)
+    └──→ packager/documentation-writer (final outstanding work reporting)
 ```
 
-Coordinators don't just reset — they relay relevant gap items to their specialists so the specialists know what to fix.
+Analysis and planning are not re-entered. Gap hunters express all required follow-up work as graph mutations, and execution picks it up directly.
 
 ### Convergence Limits
 
-- `maxGapCycles` (from context.json) bounds the re-entry loop
-- Each cycle increments `gapHunting.currentCycle` in progress.json
-- At max cycles, orchestrator forces convergence regardless of the aggregated gap-hunting verdict
-- Anti-laziness: gap-hunting specialists must check previous cycle's gaps were addressed
+- `maxGapCycles` from `context.json` bounds the re-entry loop
+- Each dirty cycle increments `gapHunting.currentCycle` in `progress.json`
+- At max cycles, orchestrator forces convergence regardless of remaining mutations
+- Hunters must avoid duplicate task creation and should annotate existing tasks when the gap is best addressed by rework
 
 ## Error Classification
 
 | Category | Examples | Pipeline Effect |
 |---|---|---|
-| **Fatal** | Discovery blocked, coordinator crashed without status | Pipeline halts, `result: "failed"` |
-| **Degraded** | Execution partial, verification with issues | Pipeline continues with reduced quality |
-| **Non-fatal** | Pass 0 cold start, synthesis failed | Pipeline continues without optional data |
-| **Recoverable** | Crash with active pass | Reset to pending, re-dispatch |
+| Fatal | Discovery blocked, coordinator failed, verification safety-net failure | Pipeline halts, `result: "failed"` |
+| Degraded | Execution returns `complete-with-blocked`, forced convergence | Pipeline continues, `delivered-with-gaps` possible |
+| Non-fatal | Pass 0 cold start, synthesis degraded | Pipeline continues without optional data |
+| Recoverable | Crash with active pass, graph re-entry after gaps | Reset pass to pending, re-dispatch |
 
 ### Coordinator Result Code Summary
 

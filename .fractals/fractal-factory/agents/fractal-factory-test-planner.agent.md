@@ -23,7 +23,7 @@ Read `.fractal-factory/context.json` for:
 1. **`context.json`** — domain name, convergence limits
 2. **`roster.json`** — full agent roster with result codes, routing tables
 3. **`architecture.json`** — pipeline design, artifact schemas, re-entry rules
-4. **`domain-model.json`** — invariants (drive verification test scenarios)
+4. **`invariants/*.json`** — per-classification invariant files (`behavioral.json`, `structural.json`, `quality.json`, `workflow.json`) — drive verification test scenarios
 
 ## Process
 
@@ -58,7 +58,7 @@ For each scenario:
 
 ### Step 3: Cover Invariants
 
-For each invariant in `domain-model.json`:
+For each invariant across all files in `invariants/` (`behavioral.json`, `structural.json`, `quality.json`, `workflow.json`):
 - Create at least one scenario that verifies the invariant holds in the produced system
 - For high-confidence invariants (0.9+): test both the success and violation cases
 - For medium-confidence invariants (0.5–0.8): test the success case
@@ -119,7 +119,7 @@ Write to `.fractal-factory/test-plan.json`:
         "agentCount": "15-25"
       },
       "verificationCriteria": [
-        "All agents in roster have status 'verified'",
+        "All production-graph tasks are either 'verified' or intentionally 'blocked'",
         "produced-output directory contains all expected files",
         "Report includes coverage statistics"
       ],

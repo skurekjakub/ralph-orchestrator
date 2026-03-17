@@ -25,7 +25,7 @@ Read `.fractal-factory/context.json` for:
 3. **`architecture.json`** — artifact list (checklist of expected schema files)
 4. **`verification-report.json`** — any failing agents that should be flagged
 5. **`audit-report.json`** — any unresolved audit findings
-6. **`gap-report.json`** — any outstanding gaps
+6. **`production-graph.json`** — task statuses and outstanding gaps
 7. **`produced-output/`** — all files to package
 
 ## Process

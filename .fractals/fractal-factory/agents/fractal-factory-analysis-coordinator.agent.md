@@ -28,18 +28,10 @@ Read `.fractal-factory/progress.json` for:
 - `passes.analysis.status` — should be `"active"` when you're dispatched
 - `gapHunting.currentCycle` — if > 0, this is a re-entry run
 
-## Re-Entry Awareness
-
-If `progress.json.gapHunting.currentCycle > 0`, this pass is being re-entered after gap hunting found issues. Before dispatching your first child:
-1. Read `.fractal-factory/gap-report.json`
-2. Extract all gaps where `reEntryTarget` includes "pass2" or "analysis"
-3. When dispatching each specialist, include gap context in the dispatch: summarize relevant gaps and their `suggestedFix` descriptions so the specialist can prioritize addressing them
-
 ## Inputs
 
 1. **`progress.json`** — pass status (confirmation you should run)
-2. **`gap-report.json`** — gap-hunting results (read on re-entry when `gapHunting.currentCycle > 0`)
-3. **`agents/fractal-factory-pipeline-architect/status.json`** — architect result
+2. **`agents/fractal-factory-pipeline-architect/status.json`** — architect result
 4. **`agents/fractal-factory-artifact-designer/status.json`** — designer result
 5. **`agents/fractal-factory-depth-analyzer/status.json`** — analyzer result
 

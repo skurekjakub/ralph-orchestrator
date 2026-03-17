@@ -67,22 +67,17 @@ Pass 7: Delivery            → delivery-coordinator
 ### Re-Entry Logic
 
 When the gap-hunting coordinator reports `gaps-found`:
-1. Read `.fractal-factory/gap-report.json` for `suggestedReEntryPass`
-2. Check `progress.json.gapHunting.currentCycle` against `maxCycles`
-3. If within cycle limit:
+1. Check `progress.json.gapHunting.currentCycle` against `maxCycles`
+2. If within cycle limit:
    - Increment `gapHunting.currentCycle`
-   - Reset all passes from `suggestedReEntryPass` through gapHunting to `pending`
-   - **Do NOT reset Pass 0 or Synthesis** — Pass 0 artifacts (`knowledge-brief.json`) remain available. Synthesis runs only once after final convergence.
-   - **Delete status.json files** for all agents belonging to reset passes. Use the pass-to-agent mapping:
-     - analysis: `pipeline-architect`, `artifact-designer`, `depth-analyzer`, `analysis-coordinator`
-     - planning: `roster-planner`, `routing-planner`, `test-planner`, `planning-coordinator`
-     - execution: `prompt-writer`, `prompt-reviewer`, `infra-writer`, `execution-coordinator`
-     - verification: `checklist-validator`, `audit-oracle`, `verification-coordinator`
-    - gapHunting: `coverage-hunter`, `artifact-hunter`, `infrastructure-hunter`, `gap-hunting-coordinator`
+   - **No pass resets needed.** Gap hunters have already mutated `production-graph.json` (added new tasks, annotated existing ones with reset status).
+   - Reset `passes.execution` to `"pending"` so the execution coordinator re-runs and picks up new/re-planned tasks from the graph
+   - Reset `passes.verification` to `"pending"` so verification re-runs after new tasks complete
+   - Reset `passes.gapHunting` to `"pending"` so the next gap-hunting cycle can check convergence
+   - Delete status.json files for: `execution-coordinator`, `prompt-writer`, `prompt-reviewer`, `infra-writer`, `verification-coordinator`, `checklist-validator`, `audit-oracle`, `gap-hunting-coordinator`, `coverage-hunter`, `artifact-hunter`, `infrastructure-hunter`
    - For each agent, delete: `.fractal-factory/agents/fractal-factory-{agent}/status.json`
-   - **Do NOT delete gap-report.json** — coordinators in re-entered passes need it for gap context
-   - Resume routing from the reset pass
-4. If at cycle limit:
+   - Resume routing from the execution pass
+3. If at cycle limit:
    - Log that convergence was not achieved
    - Proceed to Synthesis pass (then delivery with gaps noted)
 
@@ -94,9 +89,10 @@ On startup, if `progress.json` shows any pass with status `"active"`:
 
 ### Progress Recomputation
 
-After each coordinator completes, recompute progress.json aggregate counts:
-- Count agents by status from roster.json
-- Update `counts.designed`, `counts.written`, `counts.reviewed`, `counts.verified` in progress.json
+After each coordinator completes, recompute progress.json aggregate counts from `production-graph.json.summary`:
+- Read `byStatus` counts (planned, inProgress, implemented, verified, blocked, failedReview)
+- Read `byCategory` counts
+- Update `counts` in progress.json to reflect current graph state
 
 ## Routing Table
 
@@ -122,7 +118,7 @@ After each coordinator completes, recompute progress.json aggregate counts:
 | `agents/fractal-factory-verification-coordinator/status.json` | `result: "failed"` | Write own status: `result: "failed"`, summary: "Verification failed — see coordinator status" |
 | `progress.json` | `passes.gapHunting.status == "pending"` | Set to `"active"`, dispatch `fractal-factory-gap-hunting-coordinator` |
 | `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "converged"` | Set gapHunting to `"completed"`, advance to synthesis |
-| `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "gaps-found"` AND `gapHunting.currentCycle < maxCycles` | Execute re-entry logic (see above) |
+| `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "gaps-found"` AND `gapHunting.currentCycle < maxCycles` | Execute re-entry logic — increment cycle, reset execution/verification/gapHunting to pending, delete status.json for execution-through-gapHunting agents, resume from execution pass |
 | `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "gaps-found"` AND `gapHunting.currentCycle >= maxCycles` | Set gapHunting to `"completed"` (forced), advance to synthesis |
 | `agents/fractal-factory-gap-hunting-coordinator/status.json` | `result: "failed"` | Set gapHunting to `"completed"` (forced convergence), advance to synthesis |
 | `progress.json` | `passes.synthesis.status == "pending"` | Set to `"active"`, dispatch `fractal-factory-synthesis-coordinator` |
@@ -150,7 +146,7 @@ Write to `.fractal-factory/agents/fractal-factory/status.json`:
   "task_id": "session",
   "status": "completed",
   "result": "delivered | delivered-with-gaps | failed",
-  "summary": "Pipeline complete. Pass 0 + 7 domain passes executed, N gap-hunting cycles, synthesis {synthesized|degraded}. Final: X agents produced, Y verified, Z outstanding items.",
+  "summary": "Pipeline complete. Pass 0 + 7 domain passes executed, N gap-hunting cycles, synthesis {synthesized|degraded}. Final: X tasks verified, Y blocked, Z outstanding.",
   "artifacts": ["progress.json", "agents/fractal-factory/status.json"],
   "next_hint": null,
   "iteration": 1
