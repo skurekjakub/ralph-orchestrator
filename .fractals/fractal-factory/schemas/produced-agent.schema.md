@@ -91,6 +91,36 @@ skills/workflow/<namingPrefix>-specialists-workflow/
 
 The prompt must not duplicate those detailed phase instructions inline.
 
+### Analysis Specialist (Specialist subtype)
+
+Analysis specialists extract behavioral properties from discovered items. They read discovery output (inventory files) and produce structured analysis artifacts (analysis matrix, dependency graph). Every analysis specialist must:
+
+1. **Extract invariants per item** — this is mandatory regardless of domain. Invariants are behavioral rules that must be preserved/implemented/verified downstream. Zero invariants for an item is suspicious and must be flagged.
+
+2. **Extract domain-specific behavioral properties** — categories defined by the pipeline-architect (e.g., state transitions, validation rules, attack vectors, behavior specs). The categories vary; the structure (per-item property bag) is universal.
+
+3. **Update inventory status** — after analyzing each item, update its status in the inventory artifact from `discovered` to `analyzed`.
+
+4. **Include anti-laziness rules** — analysis specialists must document their analysis methodology per item. "No findings" requires explicit justification.
+
+The workflow for analysis specialists follows the standard progressive disclosure pattern but with these mandatory phases:
+
+| Phase | Purpose |
+|---|---|
+| 1. Read & orient | Read inventory, understand item scope |
+| 2. Deep extraction | Extract domain-specific properties + invariants per item |
+| 3. Cross-reference | Identify cross-cutting patterns, shared invariants, implicit dependencies |
+| 4. Write & validate | Write analysis matrix entries, update inventory status, validate completeness |
+
+The dependency analyzer is a special case — it reads the analysis matrix (output of other analysis specialists) plus source material, and produces the dependency graph. Its phases are:
+
+| Phase | Purpose |
+|---|---|
+| 1. Read analysis matrix | Understand what was extracted per item |
+| 2. Trace relationships | Follow imports, data flow, event coupling, shared state between items |
+| 3. Build graph | Create nodes, typed edges, compute clusters |
+| 4. Write & validate | Write dependency-graph.json, update inventory dependencies, validate acyclicity |
+
 ### Coordinator (Pure Router)
 
 The process section is replaced with:
@@ -118,6 +148,16 @@ Must include:
 - **Every child result code** mapped to an action
 - **Mode detection** if coordinator handles multiple passes
 - **No domain-specific logic** — only status file reading and dispatching
+
+#### Analysis + Planning Coordinator (common pattern)
+
+When analysis and planning are grouped under one coordinator (the default per pipeline-design.md), the coordinator uses mode detection based on analysis artifact existence:
+
+- **Analysis mode**: `analysis-matrix.json` does not exist → dispatch analysis specialists sequentially, then dependency analyzer
+- **Planning mode**: `analysis-matrix.json` exists, `task-graph.json` does not → dispatch planning specialists
+- **Already complete**: both exist → write own status and return
+
+This is the canonical dual-mode coordinator. The mode boundary is the analysis artifacts — their existence is the handoff signal from analysis to planning.
 
 ### Orchestrator (Pipeline Router)
 

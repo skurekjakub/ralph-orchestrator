@@ -70,6 +70,7 @@ Prepend entry to `.<domain>/manifest.json` (newest first).
 ## Type Variants
 
 - **Specialist**: Keep `## Skills` and `## Workflow`. Do not inline a large `## Process` section; the detailed workflow belongs in `skills/workflow/<namingPrefix>-specialists-workflow/references/<agent-name>/*.md`.
+- **Analysis specialist**: Like standard specialist (use `## Skills` and `## Workflow`), but the workflow phases must include invariant extraction as a mandatory output. Add `## Anti-Laziness Rules` requiring per-item analysis documentation. The Write Rules must include both `analysis-matrix.json` and inventory status updates.
 - **Coordinator**: Replace `## Skills` and `## Workflow` with `## Purity Rule` and `## Routing Table`.
 - **Orchestrator**: Include `## Pipeline Routing` before `## Routing Table`.
 - **Adversarial agent**: Add `## Anti-Laziness Rules` before the process or routing logic.

@@ -34,7 +34,7 @@ Read `.fractal-factory/context.json` for:
 
 From the domain model, determine:
 - **Discovery complexity**: How many subdomains? Do they need different scanning approaches?
-- **Analysis depth**: Are invariants complex? Do they require deep behavioral analysis?
+- **Analysis depth**: What behavioral properties need extraction? Every domain has at least: invariants, dependency relationships, and domain-specific behavioral categories (state transitions for migrations, attack vectors for security, behavior specs for test generation, accuracy checks for documentation). Identify the domain-specific extraction categories.
 - **Planning complexity**: Will the task graph have many dependencies?
 - **Execution pattern**: Is it coder→reviewer, or some other pattern? (Write→review is universal for the factory, but the produced system may differ)
 - **Verification needs**: How many invariants need oracle verification?
@@ -47,7 +47,7 @@ Map the 7 universal passes to the domain:
 | Universal Pass | Include if... | Skip if... |
 |---|---|---|
 | 1: Discovery | Always include | — |
-| 2: Analysis | Domain has behavioral rules, complex dependencies | Trivially simple domain |
+| 2: Analysis | Default-on — include unless explicitly justified | Domain creates entirely new artifacts with no existing source material to analyze AND fewer than 3 invariants extracted |
 | 3: Planning | Multiple execution units need ordering | Single-step execution |
 | 4: Execution | Always include (this is where the work happens) | — |
 | 5: Verification | Invariants exist, quality matters | No invariants, no quality bar |
@@ -55,6 +55,15 @@ Map the 7 universal passes to the domain:
 | 7: Delivery | Always include (someone needs the output) | — |
 
 Respect `options.pipelinePasses` from context.json — if the user specified a subset, use that subset unless domain analysis reveals a critical missing pass (document the override).
+
+### Step 2.5: Justify Any Analysis Skip
+
+If you excluded Pass 2 (Analysis), you MUST:
+1. Document why in `architecture.json` under `pipeline.analysisSkipJustification`
+2. Explain what source material was evaluated and why it doesn’t warrant behavioral extraction
+3. Confirm the invariant count from `domain-model.json` is below 3
+
+If you cannot provide a concrete justification, re-include Pass 2. The default is inclusion.
 
 ### Step 3: Define Pass Details
 
@@ -141,7 +150,8 @@ Read `.fractal-factory/architecture.json`, then update the `pipeline` section:
       "maxGapCycles": 3,
       "convergenceSignal": "gap-hunting coordinator returns gaps-found = false / zero new items",
       "limitBehavior": "proceed to delivery with outstanding items flagged"
-    }
+    },
+    "analysisSkipJustification": null
   },
   "artifacts": null,
   "depth": null

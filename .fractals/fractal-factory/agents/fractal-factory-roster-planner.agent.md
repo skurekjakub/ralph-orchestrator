@@ -65,8 +65,19 @@ For each pass, plan the leaf specialists:
 - Map subdomains from `domain-model.json` to agents
 - Name pattern: `{namingPrefix}-{subdomain}-scanner` or `{namingPrefix}-{subdomain}-mapper`
 
-**Analysis specialists** (based on invariant types and complexity):
-- Behavioral analyzer, dependency mapper, risk assessor
+**Analysis specialists** (mandatory when Pass 2 is included):
+
+When `architecture.json.pipeline.passes` includes analysis, plan at minimum:
+
+1. **Domain analysis specialist(s)** — at least one specialist that extracts behavioral properties from discovered items into `analysis-matrix.json`. For complex domains with multiple subdomains, plan one analysis specialist per subdomain cluster. Name pattern: `{namingPrefix}-{domain-qualifier}-analyzer` (e.g., `migration-semantics-analyzer`, `security-threat-modeler`, `test-gen-behavior-extractor`).
+
+2. **Dependency analyzer** — exactly one specialist that builds the dependency graph from the analysis matrix and source material into `dependency-graph.json`. Name pattern: `{namingPrefix}-dependency-analyzer`.
+
+Both must have `antiLaziness: true` for the invariant extraction component — zero invariants for a discovered item is suspicious.
+
+**Analysis specialists** (optional enrichment):
+- Risk assessor, complexity scorer, cross-cutting concern detector
+- Include when the domain model has high invariant counts (>15) or many cross-cutting subdomains
 - Name pattern: `{namingPrefix}-{analysis-type}-analyzer`
 
 **Planning specialists** (task decomposition and ordering):

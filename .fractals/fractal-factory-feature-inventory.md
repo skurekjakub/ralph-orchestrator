@@ -58,6 +58,7 @@ All coordinators follow the **pure router** contract: they dispatch children, re
 - Re-entry awareness: analysis, planning, and execution coordinators pass gap context to children when `gap-report.json` exists and the pass was reset
 - Execution coordinator implements the coder-reviewer batch loop (see §5.1)
 - Gap-hunting coordinator aggregates 3 hunter outputs into unified `gap-report.json`
+- Analysis coordinator enforces default-on analysis: pipeline-architect must justify any Pass 2 skip; artifact-designer enforces mandatory analysis artifacts when Pass 2 present
 
 ### 2.4 Specialist Layer (25 agents)
 
@@ -74,16 +75,16 @@ All coordinators follow the **pure router** contract: they dispatch children, re
 
 | Agent | Reads | Writes | Key Behavior |
 |---|---|---|---|
-| `pipeline-architect` | domain-model.json, context.json | architecture.json (pipeline) | Designs the produced system's pipeline passes — purposes, conditions, re-entry rules. |
-| `artifact-designer` | domain-model.json, architecture.json | architecture.json (artifacts) | Designs shared artifact schemas and data flow between produced agents. |
+| `pipeline-architect` | domain-model.json, context.json | architecture.json (pipeline) | Designs the produced system's pipeline passes — purposes, conditions, re-entry rules. Treats Pass 2 (Analysis) as **default-on** — must include unless explicitly justified. When skipping, writes `pipeline.analysisSkipJustification` to architecture.json. Reframes analysis assessment as "what kind of analysis" rather than "whether to include." |
+| `artifact-designer` | domain-model.json, architecture.json | architecture.json (artifacts) | Designs shared artifact schemas and data flow between produced agents. When Pass 2 is included, enforces mandatory `analysis-matrix.json` (per-item behavioral properties + universal `invariants` array) and `dependency-graph.json` (typed directed edges, clusters). |
 | `depth-analyzer` | domain-model.json, architecture.json | architecture.json (depth) | Decides depth-2 vs depth-3 per coordinator in the produced system based on subdomain complexity. |
 
 #### Planning Specialists (Pass 3)
 
 | Agent | Reads | Writes | Key Behavior |
 |---|---|---|---|
-| `roster-planner` | domain-model.json, architecture.json | roster.json | Plans full agent roster: names, hierarchy, parent relationships, result codes, reads/writes declarations. |
-| `routing-planner` | roster.json, architecture.json | roster.json (routing tables) | Designs routing tables for all produced coordinators: child result code → action mappings. |
+| `roster-planner` | domain-model.json, architecture.json | roster.json | Plans full agent roster: names, hierarchy, parent relationships, result codes, reads/writes declarations. When Pass 2 is included, enforces mandatory minimum: 1 domain analysis specialist + 1 dependency analyzer, both with `antiLaziness: true`. |
+| `routing-planner` | roster.json, architecture.json | roster.json (routing tables) | Designs routing tables for all produced coordinators: child result code → action mappings. Includes canonical analysis+planning dual-mode coordinator pattern with mode detection based on `analysis-matrix.json` / `dependency-graph.json` existence as the analysis-to-planning handoff signal. |
 | `test-planner` | roster.json, architecture.json, invariants/*.json | test-plan.json | Creates golden test scenarios: happy path, specialist behavior, coordinator routing, coder-reviewer loop, re-entry, convergence, edge cases. Covers all invariants. |
 
 #### Execution Specialists (Pass 4)
@@ -194,7 +195,7 @@ On re-entry, passes from the re-entry target through gap-hunting are reset to `p
 | `invariants/structural.json` | invariant-extractor | (same readers) | Per-classification invariant file |
 | `invariants/quality.json` | invariant-extractor | (same readers) | Per-classification invariant file |
 | `invariants/workflow.json` | invariant-extractor | (same readers) | Per-classification invariant file |
-| `architecture.json` | pipeline-architect, artifact-designer, depth-analyzer | Most agents | Read-modify-write — pipeline, artifacts, depth |
+| `architecture.json` | pipeline-architect, artifact-designer, depth-analyzer | Most agents | Read-modify-write — pipeline (incl. `analysisSkipJustification` when Pass 2 skipped), artifacts (incl. mandatory `analysis-matrix.json` + `dependency-graph.json` schemas when Pass 2 included), depth |
 | `roster.json` | roster-planner, routing-planner | Most agents | Read-modify-write — names, hierarchy, result codes, routing tables |
 | `test-plan.json` | test-planner | execution specialists, verification | Write once (unless gap re-entry) |
 | `gap-report.json` | gap-hunting-coordinator | orchestrator, re-entry agents | Aggregated from 3 hunter outputs |
@@ -339,7 +340,7 @@ On re-entry, these agents' `status.json` files are deleted:
 | Progress | `progress.schema.md` | Pipeline state machine: current pass, per-pass status, gap-hunting cycle tracking, recomputation rules |
 | Context | `context.schema.md` | User input: domain name/description, target output directory, naming prefix, input file paths, convergence limits |
 | Domain Model | `domain-model.schema.md` | Discovery output: subdomains, existing assets, exemplar patterns. ID schemes: SD-, ASSET-, PATTERN-. References invariants/ directory for invariant storage. |
-| Produced Agent | `produced-agent.schema.md` | Template for produced agent prompts. Universal structure: YAML frontmatter → Identity → Context → Inputs → Execution → Write Rules → Status Contract. Type-specific variants for specialist (process steps + skills), coordinator (purity rule + routing table), orchestrator (pipeline routing). |
+| Produced Agent | `produced-agent.schema.md` | Template for produced agent prompts. Universal structure: YAML frontmatter → Identity → Context → Inputs → Execution → Write Rules → Status Contract. Type-specific variants for specialist (process steps + skills), coordinator (purity rule + routing table), orchestrator (pipeline routing). Includes **Analysis Specialist** subtype (mandatory invariant extraction, 4-phase workflow, anti-laziness) and **Analysis + Planning Coordinator** dual-mode pattern (mode detection via analysis artifact existence). |
 
 ---
 
@@ -456,6 +457,7 @@ These are rules the factory itself follows (not the produced system's invariants
 8. **Knowledge boundary**: meta-knowledge is reusable patterns only — no raw domain invariant caching across runs.
 9. **Pass 0 / Synthesis immunity**: neither is reset by gap-hunting re-entry.
 10. **Invariant storage separation**: invariants live in per-classification files under `invariants/`, not in `domain-model.json`.
+11. **Analysis default-on**: The pipeline-architect treats Pass 2 (Analysis) as default-on for produced systems. Skipping requires explicit justification in `architecture.json.pipeline.analysisSkipJustification` — the domain must have no existing source material AND fewer than 3 extracted invariants.
 
 ---
 

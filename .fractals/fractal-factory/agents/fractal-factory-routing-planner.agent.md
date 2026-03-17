@@ -82,6 +82,16 @@ Mode detection: check which artifacts exist
 | both exist | already-complete | return |
 ```
 
+**Analysis + Planning coordinator (canonical pattern)**:
+When the planning coordinator owns both Pass 2 (Analysis) and Pass 3 (Planning), use this mode detection:
+```
+| Condition | Mode | Dispatch Chain |
+| analysis-matrix.json missing | analysis mode | dispatch domain-analyzer(s) sequentially → dispatch dependency-analyzer |
+| analysis-matrix.json exists, task-graph.json missing | planning mode | dispatch task-planner → dispatch risk-analyzer |
+| both exist | already-complete | return |
+```
+The analysis artifacts (`analysis-matrix.json`, `dependency-graph.json`) are the mode boundary: their existence signals that analysis is complete and planning can begin.
+
 ### Step 3: Validate Routing Completeness
 
 For every coordinator and orchestrator:
