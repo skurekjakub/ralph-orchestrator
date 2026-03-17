@@ -1,0 +1,26 @@
+{
+  "id": "MK-011",
+  "category": "craft",
+  "subcategory": "invariant-scale",
+  "content": "A domain with 81 invariants (34 non-negotiable + 26 craft-tool conditional + 21 process/structural) is manageable for a 67-agent system when invariants are distributed across phase auditors. The invariant-per-agent reference count followed a bell-curve distribution (median ~5 references per invariant). However, conditional invariants (craft-tool 'when selected' rules) require special routing logic: the craft-profile-selector agent's output must be readable by all downstream auditors so they know which tools to enforce. This was a key architectural decision that worked well but required 4 gap-hunting cycles to fully validate all enforcement paths.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/domain-model.json",
+  "sourceEvidence": "81 invariants in domain-model.json. architecture.json convergence.expectedCycles: 'Fourth cycle is insurance for the craft-tool conditional invariants (26 When selected invariants requiring craft-profile-aware routing).' gap-report Category 2: all 81 invariants verified with distribution from 1-67 references.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

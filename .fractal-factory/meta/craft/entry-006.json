@@ -1,0 +1,26 @@
+{
+  "id": "MK-006",
+  "category": "craft",
+  "subcategory": "write-protocol-pitfall",
+  "content": "Multi-writer artifacts with 'create-once' write protocols are a recurring source of semantic gaps in creative-production systems. When multiple specialist agents write to the same artifact (e.g., characters/index.json written by protagonist-profiler and supporting-cast-developer), the protocol must be 'read-modify-write' with additive semantics, not 'create-once'. This was flagged as warnings AF-ARTIFACT-04a/04b/04c in the audit \u2014 3 artifacts had create-once protocols despite having 2-3 writers. Future runs should default multi-writer artifacts to read-modify-write and require explicit justification for create-once.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/audit-report.json",
+  "sourceEvidence": "AF-ARTIFACT-04a: 'characters/index.json is declared writeProtocol=create-once but has 2 writers... If protagonist-profiler writes first, supporting-cast-developer would see the file exists and incorrectly think it is in a retry.' AF-ARTIFACT-04b: 'characters/{CHAR-NNN}.json... has 3 writers... character-voice-designer needs to add voice fingerprints to existing character files \u2014 this is semantically a read-modify-write operation.'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

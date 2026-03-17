@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-16T00:14:52Z",
+  "lastUpdated": "2026-03-16T17:16:27.075204+00:00",
   "namingPrefix": "romantic-fantasy-writer",
   "agents": [
     {
@@ -21,7 +21,7 @@
         "story-config.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -659,7 +659,7 @@
         "agents/concept-developer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -683,7 +683,7 @@
         "agents/craft-profile-selector/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -709,7 +709,7 @@
         "agents/concept-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -732,7 +732,7 @@
         "agents/geography-builder/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -756,7 +756,7 @@
         "agents/culture-builder/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -781,7 +781,7 @@
         "agents/history-builder/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -804,7 +804,7 @@
         "agents/magic-system-designer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -828,7 +828,7 @@
         "agents/political-structure-builder/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -857,7 +857,7 @@
         "agents/worldbuilding-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -884,7 +884,7 @@
         "agents/protagonist-profiler/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -909,7 +909,7 @@
         "agents/romance-arc-designer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -936,7 +936,7 @@
         "agents/supporting-cast-developer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -961,7 +961,7 @@
         "agents/character-voice-designer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -989,7 +989,7 @@
         "agents/character-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1015,7 +1015,7 @@
         "agents/structure-selector/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1041,7 +1041,7 @@
         "agents/dual-arc-builder/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1066,7 +1066,7 @@
         "agents/tension-mapper/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1092,7 +1092,7 @@
         "agents/chapter-outliner/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1118,7 +1118,7 @@
         "agents/scene-beat-designer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1148,7 +1148,7 @@
         "agents/plotting-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1172,7 +1172,7 @@
         "agents/style-analyzer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1198,7 +1198,7 @@
         "agents/style-guide-writer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1225,7 +1225,7 @@
         "agents/style-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1265,7 +1265,7 @@
         "agents/chapter-drafter/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1290,7 +1290,7 @@
         "agents/pov-voice-maintainer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1317,7 +1317,7 @@
         "agents/continuity-integrator/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1345,7 +1345,7 @@
         "agents/craft-enforcer/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1374,7 +1374,7 @@
         "agents/drafting-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1402,7 +1402,7 @@
         "agents/developmental-editor/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1427,7 +1427,7 @@
         "agents/line-editor/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1453,7 +1453,7 @@
         "agents/copy-editor/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1480,7 +1480,7 @@
         "agents/chapter-reviser/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1509,7 +1509,7 @@
         "agents/revision-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1535,7 +1535,7 @@
         "agents/romance-beta-reader/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1562,7 +1562,7 @@
         "agents/fantasy-beta-reader/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1589,7 +1589,7 @@
         "agents/craft-beta-reader/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1615,7 +1615,7 @@
         "agents/sensitivity-beta-reader/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1640,7 +1640,7 @@
         "agents/originality-beta-reader/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1667,7 +1667,7 @@
         "agents/beta-synthesizer/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1697,7 +1697,7 @@
         "agents/beta-reading-auditor/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1722,7 +1722,7 @@
         "agents/polisher/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1747,7 +1747,7 @@
         "agents/summary-generator/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1773,7 +1773,7 @@
         "agents/delivery-assembler/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1801,7 +1801,7 @@
         "agents/continuity-tracker/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1833,7 +1833,7 @@
         "agents/series-kb-manager/status.json"
       ],
       "antiLaziness": false,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
     },
     {
@@ -1862,8 +1862,31 @@
         "agents/craft-tracker/status.json"
       ],
       "antiLaziness": true,
-      "status": "designed",
+      "status": "reviewed",
       "routingTable": null
+    }
+  ],
+  "universalInvariants": [
+    {
+      "id": "INV-030",
+      "name": "No Silent Failures",
+      "scope": "all agents",
+      "enforcement": "Every agent must report failures explicitly via status.json with result code indicating failure mode. No agent may silently swallow errors, skip work, or report completed when blocked.",
+      "addedInCycle": 1,
+      "gapRef": "IE-001"
+    }
+  ],
+  "gapCycleNotes": [
+    {
+      "cycle": 1,
+      "changes": [
+        "Added universalInvariants array with INV-030 (IE-001: No Silent Failures must be enforced by all agents)",
+        "Verified craft-tracker (A-067) has 'blocked' result code (RC-001)",
+        "Verified continuity-tracker (A-065) has 'blocked' result code (RC-002)",
+        "No new agents added \u2014 roster is complete at 67 agents",
+        "Architecture.json updated to fix 6 ghost agent writer/reader references (AC-001, AC-002, AC-003, CR-001)",
+        "Architecture.json updated with series-kb path note (BC-W01)"
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-03-16T00:23:21Z",
+  "lastUpdated": "2026-03-16T02:45:00Z",
   "designNotes": "Routing tables for the romantic-fantasy-writer produced agent system. Covers 1 orchestrator, 9 coordinators, and 10 sub-coordinators. All paths are relative to the per-book output directory.",
   "globalBounds": {
     "maxAuditorRetries": 3,
@@ -100,6 +100,11 @@
           "action": "dispatch romantic-fantasy-writer-drafting-coordinator"
         },
         {
+          "read": "agents/craft-tracker/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Craft tracking initialization failed — craft-profile.json missing or chapter content unavailable'"
+        },
+        {
           "read": "agents/drafting-coordinator/status.json",
           "condition": "result == 'complete'",
           "action": "update progress.json drafting\u2192complete; dispatch romantic-fantasy-writer-continuity-tracker (full verification)"
@@ -113,6 +118,11 @@
           "read": "agents/continuity-tracker/status.json",
           "condition": "result == 'completed' AND phaseStatuses.revision.status == 'pending'",
           "action": "dispatch romantic-fantasy-writer-revision-coordinator"
+        },
+        {
+          "read": "agents/continuity-tracker/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Continuity verification failed — chapter content unavailable or world-bible files missing'"
         },
         {
           "read": "agents/revision-coordinator/status.json",

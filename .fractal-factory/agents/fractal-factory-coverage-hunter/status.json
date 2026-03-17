@@ -1,0 +1,13 @@
+{
+  "agent": "fractal-factory-coverage-hunter",
+  "task_id": "pass6/coverage-hunt",
+  "status": "completed",
+  "result": "clean",
+  "summary": "Cycle 4: Searched 3 categories (subdomain coverage, invariant enforcement, routing completeness) with two independent passes per category. Found 0 gaps (0 critical, 0 warning). All 14 subdomains covered by 2-32 agents each. All 81 invariants referenced (8 single-ref verified correctly scoped). All 163 routes across 20 routing agents verified — zero ghost references, all paths terminate, all convergence bounds present. Clean since cycle 1.",
+  "artifacts": [
+    "agents/fractal-factory-coverage-hunter/output.json",
+    "agents/fractal-factory-coverage-hunter/output.md"
+  ],
+  "next_hint": null,
+  "iteration": 4
+}

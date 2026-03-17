@@ -1,0 +1,26 @@
+{
+  "id": "MK-012",
+  "category": "craft",
+  "subcategory": "guide-ask-questions-tension",
+  "content": "The guide agent in a creative-production system has an inherent tension: it MUST gather user input (story idea, preferences, constraints) to function, but the factory's ask_questions prohibition (designed for autonomous agents) conflicts with this. The audit oracle flagged this as FW-GUIDE-01: the guide prompt contains a blanket 'never use ask_questions' prohibition while its role requires interactive input gathering. Future creative-domain runs should explicitly carve out the guide agent from the ask_questions prohibition since the guide is by definition the user-facing entry point.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/audit-report.json",
+  "sourceEvidence": "FW-GUIDE-01: 'Guide prompt contains the blanket prohibition \"You must never use ask_questions or request human input\" \u2014 but the guide's role is to gather user input.' Severity: info. The guide is user-invocable=true and parent=user in the roster.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

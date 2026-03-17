@@ -1,0 +1,26 @@
+{
+  "id": "MK-021",
+  "category": "factory-operations",
+  "subcategory": "gap-hunting-convergence-pattern",
+  "content": "Gap convergence followed a clean exponential decay: 22\u21926\u21922\u21920 across 4 cycles, well within the maxGapCycles=10 budget. The 73% reduction per cycle (22\u21926=73%, 6\u21922=67%, 2\u21920=100%) demonstrates that the fix-verify-hunt loop is efficient. Only 4 of 10 allowed cycles were needed, suggesting the maxGapCycles=10 setting is generous for 67-agent systems.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "convergenceTrajectory: [22, 6, 2, 0]. converged: true. currentCycle: 4. maxCycles: 10.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

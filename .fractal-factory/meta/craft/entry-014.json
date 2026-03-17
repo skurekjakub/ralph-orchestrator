@@ -1,0 +1,26 @@
+{
+  "id": "MK-014",
+  "category": "craft",
+  "subcategory": "result-code-vocabulary",
+  "content": "A differentiated result-code vocabulary \u2014 specialists report 'completed', auditors report 'passed'/'rejected', coordinators report 'complete'/'blocked'/'revision-loop' \u2014 enables precise routing decisions in creative pipelines. The 6 distinct result values ('complete', 'completed', 'passed', 'blocked', 'failed', 'revision-loop') mapped unambiguously to routing actions across 163 routes. This vocabulary worked cleanly because each agent type uses a disjoint result-code set, preventing ambiguity in routing conditions.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "Category 3 (Routing Completeness): '163 routes across 20 routing agents. Result code vocabulary is intentionally differentiated: specialists report \"completed\", auditors report \"passed\"/\"rejected\", coordinators report \"complete\"/\"blocked\"/\"revision-loop\". All paths terminate. All convergence bounds present and documented.'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

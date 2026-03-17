@@ -1,0 +1,150 @@
+{
+  "version": 2,
+  "lastUpdated": "2026-03-16T19:55:00Z",
+  "iteration": 3,
+  "cycle": "gap-cycle-2 re-verification",
+  "overallVerdict": "issues-found",
+  "perspectives": {
+    "agentAsFunction": {
+      "checksRun": 16,
+      "checksPassing": 13,
+      "checksFailing": 3,
+      "findings": [
+        {
+          "id": "AF-ARTIFACT-02",
+          "severity": "warning",
+          "agent": "characters/index.json, characters/{CHAR-NNN}.json, chapter-outlines/{N}.json",
+          "description": "Three artifact families have create-once protocol in architecture.json and schemas but are actually multi-writer read-modify-write. Same class as the draft.md issue fixed in cycle 2, but these were missed. (1) characters/index.json: protagonist-profiler creates it, supporting-cast-developer says 'Update characters/index.json with new entries'. (2) characters/{CHAR-NNN}.json: character-voice-designer says 'Write updated characters/CHAR-NNN.json files with refined voiceFingerprint and sensorySig fields' — editing existing files. (3) chapter-outlines/{N}.json: chapter-outliner creates them, scene-beat-designer says 'Update chapter-outlines/{N}.json' — enriching existing files with beats.",
+          "evidence": "architecture.json: characters/index.json writeProtocol='create-once', writers=['protagonist-profiler','supporting-cast-developer']. characters/{CHAR-NNN}.json writeProtocol='create-once', writers=['protagonist-profiler','supporting-cast-developer','character-voice-designer']. chapter-outlines/{N}.json writeProtocol='create-once', writers=['chapter-outliner','scene-beat-designer']. Schema files confirm create-once labeling. Agent prompts describe update/edit operations on existing files. Rules skill defines create-once as 'Check that the file does NOT exist before writing. If it exists, you are in a retry' — agents editing existing files would misinterpret the file's existence as a retry signal.",
+          "recommendation": "Change architecture.json and corresponding schema files to read-modify-write protocol for all three artifact families. Add multi-writer ordering rules (same pattern used for the draft.md fix). For characters/{CHAR-NNN}.json, note that profiler/cast-developer write DIFFERENT files (valid create-once per-file) but voice-designer edits ALL existing files — consider split protocol: create-once for initial creation, read-modify-write for voice refinement pass."
+        },
+        {
+          "id": "AF-ARTIFACT-04",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-character-voice-designer, romantic-fantasy-writer-supporting-cast-developer, romantic-fantasy-writer-scene-beat-designer",
+          "description": "Three agents perform read-modify-write operations on artifacts declared as create-once, violating the write protocol contract. Direct consequence of AF-ARTIFACT-02.",
+          "evidence": "supporting-cast-developer prompt L48: 'Update characters/index.json with new entries'. character-voice-designer prompt L48: 'Write updated characters/CHAR-NNN.json files with refined voiceFingerprint and sensorySig fields'. scene-beat-designer prompt step 6: 'Update chapter-outlines/{N}.json'. All three artifacts are labeled create-once in architecture.json and their schema files.",
+          "recommendation": "Fix jointly with AF-ARTIFACT-02. Update write protocols in architecture.json, schemas, and consider adding sequential ordering specification as done for draft.md."
+        },
+        {
+          "id": "AF-MANIFEST-01",
+          "severity": "info",
+          "agent": "21 pure routers (orchestrator + 8 coordinators + 10 sub-coordinators + guide + orchestrator)",
+          "description": "Pure routers do not reference manifest.json prepend. By design — they produce no creative artifacts, only status.json. Carried from cycle 0.",
+          "evidence": "manifest.schema.md says 'Every agent prepends an entry after completing work.' 21 router agents have no manifest prepend instructions. This is architecturally correct — manifest tracks creative output, not routing decisions.",
+          "recommendation": "No action needed. Document the design decision in manifest.schema.md: 'Pure routers (coordinators, sub-coordinators, orchestrator, guide) do not prepend manifest entries as they produce no creative artifacts.'"
+        }
+      ]
+    },
+    "fractalWorkflow": {
+      "checksRun": 16,
+      "checksPassing": 11,
+      "checksFailing": 5,
+      "findings": [
+        {
+          "id": "FW-PURITY-03",
+          "severity": "warning",
+          "agent": "All 18 coordinators + sub-coordinators (excluding polish-coordinator)",
+          "description": "revision-loop is declared as a result code for all 8 phase coordinators and 10 sub-coordinators, but NO coordinator's routing table contains a code path that produces it. Every coordinator can only write 'complete' or 'blocked'. The orchestrator has a routing rule for revision-loop ('Wait — coordinator is in its internal auditor retry loop') that can never trigger. This is dead routing code across the entire system.",
+          "evidence": "Exhaustive check of all 19 coordinator routing tables in routing.json: every coordinator's achievable output set is {'complete', 'blocked'}. No routing rule action contains 'write own status: revision-loop'. The orchestrator routing table at row 25 handles revision-loop but no agent can produce it. Roster.json declares revision-loop for all 8 phase coordinators.",
+          "recommendation": "Either (a) add a code path: when a coordinator is in its retry loop (retries > 0, retries < max), write status revision-loop before re-dispatching writers, so the orchestrator can observe retry-in-progress state; or (b) remove revision-loop from all coordinator result codes and remove the orchestrator routing rule. Option (a) is semantically richer and enables progress monitoring."
+        },
+        {
+          "id": "FW-HIERARCHY-01",
+          "severity": "info",
+          "agent": "romantic-fantasy-writer (orchestrator)",
+          "description": "Orchestrator dispatches 3 specialists directly: continuity-tracker, series-kb-manager, craft-tracker. These are cross-cutting pipeline boundary agents, not part of any creative phase. Architecturally justified. Carried from cycle 0.",
+          "evidence": "Roster: orchestrator children include continuity-tracker (specialist), series-kb-manager (specialist), craft-tracker (specialist). These agents operate at pipeline transitions (between phases), not within any coordinator's creative phase.",
+          "recommendation": "No action needed. The cross-cutting pattern is standard for pipeline boundary agents."
+        },
+        {
+          "id": "FW-LAZY-01",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-beta-synthesizer, romantic-fantasy-writer-romance-beta-reader, romantic-fantasy-writer-fantasy-beta-reader, romantic-fantasy-writer-craft-beta-reader, romantic-fantasy-writer-sensitivity-beta-reader, romantic-fantasy-writer-originality-beta-reader",
+          "description": "6 adversarial beta-path agents completely lack Anti-Laziness sections. Beta readers are the adversarial review layer for published prose; the synthesizer makes the revision/approve decision. Without anti-laziness enforcement, these agents could rubber-stamp chapters.",
+          "evidence": "Searched all 6 agent prompts for 'Anti-Laziness', 'anti-laziness', 'anti laziness' — zero matches. No section header, no inline reference. Compare with auditors which all have Anti-Laziness sections. The beta readers are adversarial agents with quality-gate responsibilities equal to auditors.",
+          "recommendation": "Add Anti-Laziness Rules section to all 6 beta-path agents. Include: (1) item-by-item verification — every scene must be independently evaluated, (2) evidence requirement — cite specific passages, (3) zero-findings suspicion clause — 'If your first pass finds zero issues in a full chapter, that is suspicious. Re-read.'"
+        },
+        {
+          "id": "FW-LAZY-04",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-character-auditor, romantic-fantasy-writer-plotting-auditor, romantic-fantasy-writer-revision-auditor, romantic-fantasy-writer-style-auditor",
+          "description": "4 of 8 auditors have Anti-Laziness sections but are missing the zero-findings suspicion clause. Without it, these auditors can return 'passed' after a cursory review. Additionally, 5 of 8 auditors lack explicit evidence requirements (cite specific artifacts/passages).",
+          "evidence": "character-auditor: has Anti-Laziness section, has item-by-item, missing zero-suspicion, missing evidence. plotting-auditor: has Anti-Laziness section, has item-by-item, missing zero-suspicion, missing evidence. style-auditor: has Anti-Laziness section, missing item-by-item, missing zero-suspicion, missing evidence. revision-auditor: has Anti-Laziness section, has item-by-item, missing zero-suspicion, has evidence. worldbuilding-auditor: has Anti-Laziness section, has zero-suspicion, missing evidence, missing item-by-item.",
+          "recommendation": "Standardize all 8 auditor Anti-Laziness sections to include all four components: (1) Anti-Laziness section header, (2) item-by-item verification, (3) 'cite specific evidence' requirement, (4) 'If zero findings on first pass, that is suspicious' clause. Consider a shared anti-laziness skill that all auditors reference."
+        },
+        {
+          "id": "FW-ADDITIONAL-01",
+          "severity": "warning",
+          "agent": "29 of 37 non-auditor specialists",
+          "description": "Specialists have no retry awareness mechanism. When a coordinator retries (auditor failed → reset → re-dispatch), specialists re-run from scratch with no access to what the auditor rejected. The coordinator deletes their status and re-dispatches them, but specialists don't read gate files (audit-reports/{phase}/gate.json) and have no 'Step 0: Check for Retry' process. They would produce identical output on retry because they see the same inputs.",
+          "evidence": "Checked all 37 non-auditor specialist prompts: 0/37 reference gate.json or audit-report files in their Reads section. 8/37 have incidental retry-adjacent text (iteration references from skills) but no direct gate-file consumption. The coordinator-patterns skill says 'writers MUST read this on retry' (line 28) referring to audit-reports/{phase}/gate.json, but no specialist prompt implements this instruction.",
+          "recommendation": "Add to every specialist that participates in auditor retry loops: (1) add audit-reports/{phase}/gate.json to Reads section, (2) add 'Step 0: Check for retry — if gate.json exists for this phase, read it and incorporate feedback into your work' as the first process step. This affects ~29 specialists (excluding delivery-assembler, summary-generator, series-kb-manager, and other non-gated agents)."
+        }
+      ]
+    }
+  },
+  "cycleComparisonWithCycle1": {
+    "cycle1Findings": {
+      "warnings": 8,
+      "info": 2,
+      "critical": 0
+    },
+    "cycle2Status": {
+      "resolved": [
+        "AF-CONTRACT-02 (skill result code table) — FIXED via gap CR-003. Table now correctly attributes revision-required to beta-synthesizer data field and revision-loop to all coordinators.",
+        "AF-ARTIFACT-01 (phantom plot-architect reference) — FIXED via gap CR-002. No remaining references to romantic-fantasy-writer-plot-architect in any file."
+      ],
+      "partiallyResolved": [
+        "AF-ARTIFACT-02 (create-once protocol mismatch) — draft.md FIXED via gap AC-005, but 3 additional artifact families (characters/index.json, characters/{CHAR-NNN}.json, chapter-outlines/{N}.json) have the same issue. These were not in scope for cycle 2 gap fixes.",
+        "AF-ARTIFACT-04 (create-once violation) — draft.md FIXED, but same 3 new instances remain.",
+        "FW-LAZY-04 (auditor zero-findings gaps) — All 8 auditors now have Anti-Laziness sections (improvement from cycle 1). But 4 still lack zero-findings suspicion clause."
+      ],
+      "unresolved": [
+        "FW-PURITY-03 (revision-loop dead path) — Unchanged. No coordinator routing table can produce revision-loop.",
+        "FW-LAZY-01 (beta path anti-laziness) — Unchanged. 6 beta-path agents lack Anti-Laziness sections entirely.",
+        "FW-ADDITIONAL-01 (specialist retry feedback gap) — Unchanged. 0/37 specialists reference gate files."
+      ],
+      "carriedDesignDecisions": [
+        "AF-MANIFEST-01 (INFO) — Pure routers lack manifest. By design.",
+        "FW-HIERARCHY-01 (INFO) — Orchestrator dispatches 3 cross-cutting specialists. By design."
+      ]
+    }
+  },
+  "cycle2FixVerification": {
+    "AC-004": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "craft-profile.schema.md now correctly declares create-once protocol with sole writer romantic-fantasy-writer-craft-profile-selector. The reference to plot-architect as a secondary writer is removed. The schema explicitly states: 'Once written, craft-profile.json is immutable — selected tools become binding invariants (INV-069, INV-079).'"
+    },
+    "AC-005": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "chapters.schema.md now declares read-modify-write protocol for draft.md with 4 sequential writers, draftVersion frontmatter field, and explicit multi-writer ordering rules. This matches the roster writer declarations."
+    },
+    "CR-002": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "grep for 'plot-architect' across all agents/, schemas/, and skills/ returns zero matches. The phantom agent reference is completely removed."
+    },
+    "CR-003": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "agent-as-function-contract/SKILL.md result code table now correctly notes revision-required as 'beta-synthesizer (data field in synthesis output, surfaced by beta-reading-coordinator)' and revision-loop as 'All phase coordinators (8) — orchestrator consumes this code for cross-phase routing'."
+    },
+    "DC-W05": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "README.md now shows P0=7, P1=16, P2=3 matching the actual test directory contents. 7 P0 scenarios listed by ID in the README table match TEST-001 through TEST-022 P0 designations."
+    },
+    "MK-W03": {
+      "status": "VERIFIED-FIXED",
+      "evidence": "grep for 'Ralph' and 'ralph' across all skills/ files returns zero matches. The mcp-sidecar/SKILL.md external reference to 'Ralph Orchestrator' has been removed. File has 109 lines with no external references."
+    }
+  },
+  "summary": {
+    "totalChecks": 32,
+    "totalPassing": 24,
+    "totalFailing": 8,
+    "criticalFindings": 0,
+    "warningFindings": 6,
+    "infoFindings": 2,
+    "newIssues": "AF-ARTIFACT-02 now expanded to cover 3 additional artifact families (characters/index.json, characters/{CHAR-NNN}.json, chapter-outlines/{N}.json) not addressed in cycle 2 gap fixes. All 6 cycle-2 gap fixes verified from independent perspective. Remaining warnings are persisting architectural issues that were not targeted by gap hunting.",
+    "architectureHealth": "Good (B+). Sound pipeline architecture, consistent hierarchy, proper convergence bounds via skill indirection, comprehensive invariant coverage. Remaining issues affect documentation accuracy (write protocol labels), adversarial enforcement completeness (anti-laziness gaps), retry mechanism clarity (specialist gate awareness), and routing hygiene (dead revision-loop path). No issues threaten fundamental correctness."
+  }
+}

@@ -1,6 +1,67 @@
 # Roster Planner Output — romantic-fantasy-writer
 
-## Summary
+## Re-Entry Update — Gap Hunting Cycle 1
+
+**Iteration**: 2 (re-entry from gap-hunting cycle 1)
+**Gaps Addressed**: 8 of 22 total gaps (AC-001, AC-002, AC-003, CR-001, BC-W01, IE-001, RC-001, RC-002)
+**Roster Changes**: No new agents. 67 agents confirmed complete.
+**Architecture Changes**: 18 writer/reader field corrections across architecture.json.
+
+### Changes Made
+
+#### 1. Ghost Agent Reference Cleanup (AC-003, CR-001)
+
+Fixed 6 pre-depth-analysis collapsed role names that persisted in architecture.json writer/reader fields after the depth analyzer split them into specialized agents:
+
+| Ghost Name | Replaced With | Affected Artifacts |
+|---|---|---|
+| `romantic-fantasy-writer-orchestrator` | `romantic-fantasy-writer` | progress.json, manifest.json |
+| `romantic-fantasy-writer-worldbuilder` | geography-builder, magic-system-designer, political-structure-builder, culture-builder, history-builder | world-bible/*.json (5 artifacts) |
+| `romantic-fantasy-writer-character-developer` | protagonist-profiler, supporting-cast-developer, character-voice-designer, romance-arc-designer | characters/index.json, characters/{CHAR-NNN}.json, romance-arc-design.json |
+| `romantic-fantasy-writer-plot-architect` | structure-selector, dual-arc-builder, tension-mapper, chapter-outliner, scene-beat-designer | plot-structure.json, dual-arc-timeline.json, chapter-outlines/{N}.json, tension-map.json |
+| `romantic-fantasy-writer-style-calibrator` | `romantic-fantasy-writer-style-guide-writer` | style-guide.json |
+| `romantic-fantasy-writer-adversarial-auditor` | 8 phase-specific auditors (concept-, worldbuilding-, character-, plotting-, style-, drafting-, revision-, beta-reading-auditor) | audit-reports/{phase}/{gate-id}.json |
+
+#### 2. Chapter Summaries Writer Fix (AC-001)
+
+- **Before**: architecture.json listed `romantic-fantasy-writer-polisher` as writer of `chapter-summaries/{N}.json`
+- **After**: Corrected to `romantic-fantasy-writer-summary-generator` (A-063), matching roster.json
+- The polisher (A-062) writes `chapters/{N}/final.md`, not summaries.
+
+#### 3. Craft Profile Multi-Writer Fix (AC-002)
+
+- **Before**: architecture.json specified read-modify-write with two writers: concept-developer + plot-architect
+- **After**: Single writer `romantic-fantasy-writer-craft-profile-selector` (A-023), writeProtocol changed to `create-once`
+- **Rationale**: plot-architect was split into 5 agents during depth analysis; none write craft-profile.json. INV-079 enforcement is done by the plotting-auditor reading craft-profile.json, not by writing to it.
+
+#### 4. Series KB Path Note (BC-W01)
+
+- Added `pathNote` to `series-kb/index.json` artifact clarifying the mapping: artifact key is `series-kb/index.json` (per-book relative), bootstrap creates at `{root}/series/{series-id}/index.json`.
+
+#### 5. Universal Invariant INV-030 (IE-001)
+
+- Added `universalInvariants` array to roster.json with INV-030 "No Silent Failures"
+- Scope: all 67 agents must report failures explicitly via status.json
+- This avoids needing to add INV-030 to each individual agent's record
+
+#### 6. Result Code Verification (RC-001, RC-002)
+
+- Verified `romantic-fantasy-writer-craft-tracker` (A-067) has `blocked` in resultCodes ✓
+- Verified `romantic-fantasy-writer-continuity-tracker` (A-065) has `blocked` in resultCodes ✓
+- Both already had the correct codes. The gap was about unhandled routing in the orchestrator, not missing roster codes.
+
+#### 7. Cross-Cutting Agents Cleanup
+
+- Fixed 3 ghost shared specialist names in architecture.json depth section:
+  - `foreshadowing-architect` → `craft-tracker` (merged during roster planning)
+  - `emotional-throughline-tracker` → `craft-tracker`
+  - `symbolic-motif-tracker` → `craft-tracker`
+- Deduplicated to 3 shared specialists: continuity-tracker, series-kb-manager, craft-tracker
+- Updated estimatedSharedAgents from 5 to 3
+
+---
+
+## Original Summary (Iteration 1)
 
 Planned **67 agents** for the romantic-fantasy-writer system — a complete autonomous pipeline for producing publication-quality romantic fantasy fiction. The roster operates within the 80-agent budget with 13 slots of headroom for gap-hunting additions.
 

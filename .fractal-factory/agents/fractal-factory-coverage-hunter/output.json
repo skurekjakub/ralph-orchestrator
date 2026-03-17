@@ -1,0 +1,44 @@
+{
+  "agent": "fractal-factory-coverage-hunter",
+  "cycle": 4,
+  "categories": [
+    {
+      "id": 1,
+      "name": "Subdomain Coverage",
+      "methodology": "Two-pass verification. Pass 1: For each of 14 subdomains, grep-searched all 67 produced agent files for subdomain-name keywords (e.g. 'worldbuild', 'continuity', 'craft.knowledge'). Pass 2: Cross-referenced all 26 test-plan.json scenarios against subdomain names and IDs to verify test coverage. Both passes confirmed full coverage.",
+      "itemsChecked": 14,
+      "gapsFound": 0,
+      "gaps": [],
+      "resolvedFromPreviousCycles": [],
+      "notes": "All 14 subdomains covered by 2–32 agent files each. All 14 subdomains exercised by test scenarios. SD-001 (user-guide-and-input) has the fewest direct references (2 agents — guide and concept-developer) but this is appropriate since the guide is the entry point. Clean since cycle 1."
+    },
+    {
+      "id": 2,
+      "name": "Invariant Enforcement",
+      "methodology": "Two-pass verification. Pass 1: Grep-searched all 67 agent prompt files for each INV-NNN identifier (INV-001 through INV-081). Zero unreferenced invariants. Pass 2: Enumerated the reference distribution and spot-checked all 8 single-reference invariants: INV-025 (originality-beta-reader), INV-028 (style-analyzer), INV-062 (craft-profile-selector), INV-065/067/077/080 (guide), INV-071 (series-kb-manager). Each single-reference invariant is correctly scoped to its specialist domain.",
+      "itemsChecked": 81,
+      "gapsFound": 0,
+      "gaps": [],
+      "resolvedFromPreviousCycles": [],
+      "notes": "Distribution: 8 invariants with 1 ref, 8 with 2, 11 with 3, 13 with 4, 16 with 5, 10 with 6, 4 with 7, 4 with 8, 1 with 9, 3 with 10, 1 with 11, 1 with 15, 1 with 67 (INV-030 universal). All 8 single-reference invariants confirmed correctly scoped. Clean since cycle 1."
+    },
+    {
+      "id": 3,
+      "name": "Routing Completeness",
+      "methodology": "Two-pass verification. Pass 1: Compared all 20 roster routing agents (1 orchestrator + 9 coordinators + 10 sub-coordinators) against routing.json entries — exact 20/20 match. Verified 163 total route entries, zero empty actions. Verified all 60 dispatched agents exist in roster AND have produced .agent.md files. Checked all termination paths. Pass 2: Audited result code vocabulary — 6 result values used in conditions ('complete', 'completed', 'passed', 'blocked', 'failed', 'revision-loop'). Verified each maps to a defined result code in agent resultCodeMappings. Confirmed convergence bounds: maxAuditorRetries=3, maxRevisionBetaCycles=2, maxChaptersBeforeCheckpoint=5. Confirmed revision-beta loop has explicit maxCycles=2 with graceful degradation (proceed with best-effort).",
+      "itemsChecked": 163,
+      "gapsFound": 0,
+      "gaps": [],
+      "resolvedFromPreviousCycles": [],
+      "notes": "163 routes across 20 routing agents. Result code vocabulary is intentionally differentiated: specialists report 'completed', auditors report 'passed'/'rejected', coordinators report 'complete'/'blocked'/'revision-loop'. All paths terminate. All convergence bounds present and documented. Zero ghost agent references in dispatch actions (60 dispatched agents all verified). Clean since cycle 1."
+    }
+  ],
+  "summary": {
+    "totalCategories": 3,
+    "categoriesClean": 3,
+    "categoriesDirty": 0,
+    "totalGaps": 0,
+    "criticalGaps": 0,
+    "warningGaps": 0
+  }
+}

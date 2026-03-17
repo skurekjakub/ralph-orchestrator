@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-context-signal-analyzer",
+  "task_id": "synthesis/context-signals",
+  "status": "completed",
+  "result": "signals-extracted",
+  "summary": "Extracted 14 process signals across 5 categories: 3 pipeline bottleneck patterns (execution-1 rejection bottleneck, planning-2 test-planner stall, late-cycle hunter speedup), 4 agent performance patterns (discovery/analysis first-pass success, reject-once-then-approve reviewer pattern, infra-writer no-op on metadata-only re-entries), 2 gap hunting convergence patterns (exponential decay 22→6→2→0, coverage-categories-clean-first), 2 invariant violation patterns (ghost-agent dissolution risk, structural-vs-semantic validation gap), 3 iteration/convergence patterns (planning re-entry efficiency, execution diminishing-scope, checklist always-pass). 9 high-strength, 5 medium-strength. Cold start — all signals novel, none filtered by knowledge-brief.",
+  "artifacts": ["synthesis-signals/context-signals.json"],
+  "next_hint": "fractal-factory-knowledge-integrator",
+  "iteration": 1
+}

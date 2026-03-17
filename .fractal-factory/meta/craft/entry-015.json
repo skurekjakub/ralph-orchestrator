@@ -1,0 +1,26 @@
+{
+  "id": "MK-015",
+  "category": "craft",
+  "subcategory": "subdomain-decomposition",
+  "content": "Decomposing a creative-production domain into 10 sequential phases plus 4 cross-cutting concerns (14 total subdomains) produces a natural 1:1 mapping between subdomains and coordinators for the sequential phases, while cross-cutting concerns map to shared infrastructure. This decomposition was stable \u2014 subdomain coverage was clean from cycle 1 with no gaps discovered across 4 gap-hunting cycles, suggesting the initial domain scan correctly identified all subdomains. The 14-subdomain count is likely a good target for similar creative-pipeline domains.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/domain-model.json",
+  "sourceEvidence": "14 subdomains: 10 sequential (user-guide-and-input, concept-development, worldbuilding, character-development, plotting-and-outlining, prose-style-calibration, chapter-drafting, revision-and-editing, beta-reading-simulation, polish-and-delivery) + 4 cross-cutting (adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems). gap-report Category 1: 'All 14 subdomains covered. Clean since cycle 1.'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

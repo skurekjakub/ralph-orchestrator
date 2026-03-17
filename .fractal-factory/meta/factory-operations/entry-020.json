@@ -1,0 +1,26 @@
+{
+  "id": "MK-020",
+  "category": "factory-operations",
+  "subcategory": "agent-performance-pattern",
+  "content": "The prompt-reviewer rejected the initial 67-agent prompt-writer output (cycle 1) but approved all subsequent submissions (cycles 2, 3) on first attempt. This 'reject-once-then-approve' pattern suggests the first-pass writing of a large agent family has predictable quality issues that are corrected on rewrite, while incremental fix passes (re-entry cycles) are reliably approvable.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/manifest.json",
+  "sourceEvidence": "prompt-reviewer cycle 1: 'rejected' (02:15). cycle 2: 'approved' (06:30). cycle 3 re-entry: 'approved' (17:26). cycle 3 re-entry 2: 'approved' (19:03). cycle 3 re-entry 3: 'approved' (21:19).",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

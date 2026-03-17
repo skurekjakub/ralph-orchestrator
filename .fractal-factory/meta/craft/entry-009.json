@@ -1,0 +1,26 @@
+{
+  "id": "MK-009",
+  "category": "craft",
+  "subcategory": "beta-reader-lens-pattern",
+  "content": "Simulating multiple reader perspectives through specialized beta-reader agents (romance-lens, fantasy-lens, craft-lens, sensitivity-lens, originality-lens) produces comprehensive feedback coverage for creative outputs. Each lens applies a distinct evaluation framework, and a synthesizer agent aggregates findings. This pattern is generalizable: any domain where output quality must be assessed from multiple stakeholder perspectives benefits from lens-based evaluation agents coordinated by a synthesizer. The 5-lens + synthesizer structure fit naturally under a depth-3 beta-reading coordinator with genre-lens and craft-lens sub-coordinators.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/roster.json",
+  "sourceEvidence": "beta-reading-coordinator [coordinator] -> genre-lens-coordinator (romance-beta-reader, fantasy-beta-reader) + craft-lens-coordinator (craft-beta-reader, sensitivity-beta-reader, originality-beta-reader) + beta-synthesizer + beta-reading-auditor. 5 independent reader lenses feeding into a single synthesizer.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

@@ -1,5 +1,52 @@
 # Routing Planner Output — romantic-fantasy-writer
 
+---
+
+## Re-Entry Cycle 2 — Gap Hunting Fixes (2026-03-16T02:45:00Z)
+
+### Summary
+
+Re-entry execution triggered by gap-hunting pass (cycle 1 → 2). Fixed 2 critical routing gaps and performed a full completeness audit across all 20 routed agents.
+
+**Changes made**: 2 new routes added to orchestrator routing table (routes now total 26)
+**Routes audited**: 160 total (26 orchestrator + 134 across 19 coordinators)
+**Unhandled result codes remaining**: 0
+
+### RC-001 FIXED: craft-tracker blocked handler
+
+Added to orchestrator routing table after the existing craft-tracker completion route:
+```
+read: agents/craft-tracker/status.json
+condition: result == 'blocked'
+action: write own status: failed; summary: 'Craft tracking initialization failed — craft-profile.json missing or chapter content unavailable'
+```
+
+### RC-002 FIXED: continuity-tracker blocked handler
+
+Added to orchestrator routing table after the existing continuity-tracker completion route:
+```
+read: agents/continuity-tracker/status.json
+condition: result == 'blocked'
+action: write own status: failed; summary: 'Continuity verification failed — chapter content unavailable or world-bible files missing'
+```
+
+### IE-001 Audit: Full Blocked-Handler Coverage Verified
+
+Audited all 20 routing agents. Confirmed:
+- All 12 orchestrator children have both completion and blocked handlers
+- All 8 loop configs handle auditor passed/failed/blocked
+- All 10 sub-coordinators handle child completed/blocked
+- Wildcard handler covers all coordinator revision-loop transient states
+
+### Gaps Not Requiring Routing Changes
+
+- **AC-002**: craft-profile.json is already single-writer via concept-coordinator dispatch — no routing change needed
+- **IE-002**: T25 enforcement is prompt-level for auditors — no routing change needed
+
+---
+
+## Original Routing Design (Cycle 1)
+
 ## Overview
 
 Designed routing tables for **20 routing agents** in the romantic-fantasy-writer produced system:

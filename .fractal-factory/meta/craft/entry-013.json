@@ -1,0 +1,26 @@
+{
+  "id": "MK-013",
+  "category": "craft",
+  "subcategory": "depth-decision-criteria",
+  "content": "Three criteria reliably predict when a phase coordinator needs depth-3 (sub-coordinators): (1) more than 3 distinct sub-area groups requiring different specialists, (2) more than 3 cross-cutting concerns affecting the phase, (3) more than 7 total specialists. Drafting was the strongest depth-3 case (4 cross-cutting + 5 specialists + creative/quality split). The 8-specialist threshold and 3-group threshold from exemplar patterns proved effective \u2014 no depth-3 coordinator was over-complex and no depth-2 coordinator was under-structured.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/architecture.json",
+  "sourceEvidence": "Depth decisions: concept-coordinator depth=2 '3 specialists is well under the 8-specialist threshold'; worldbuilding-coordinator depth=3 '5 distinct world-bible sub-areas exceed the 3-group threshold'; drafting-coordinator depth=3 'STRONGEST depth-3 case. 4 cross-cutting concerns'.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

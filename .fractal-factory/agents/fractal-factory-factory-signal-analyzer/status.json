@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-factory-signal-analyzer",
+  "task_id": "synthesis/factory-signals",
+  "status": "completed",
+  "result": "signals-extracted",
+  "summary": "Extracted 15 signals across 11 categories (hierarchy-design, cross-cutting-agents, adversarial-pattern, two-tier-quality, convergence-trajectory, write-protocol-pitfall, artifact-granularity, sequential-creative-pipeline, beta-reader-lens-pattern, cross-reference-ghost-agents, invariant-scale, guide-ask-questions-tension, depth-decision-criteria, result-code-vocabulary, subdomain-decomposition). 7 high-strength, 8 medium-strength. Cold start — no prior knowledge to filter against. All signals are novel craft-domain insights from the first romantic-fantasy-writer factory run.",
+  "artifacts": ["synthesis-signals/factory-signals.json"],
+  "next_hint": "fractal-factory-context-signal-analyzer",
+  "iteration": 1
+}

@@ -1,0 +1,26 @@
+{
+  "id": "MK-028",
+  "category": "factory-operations",
+  "subcategory": "pipeline-bottleneck-pattern",
+  "content": "Gap hunting cycles 3 and 4 were notably fast (5 min and 15 min respectively) compared to cycles 1-2 (~19-31 min). When the gap count drops below 5, the hunters complete rapidly because their grep-based methodology scales with issue count, not system size. This suggests the factory could skip sequential hunter dispatch and run all 3 hunters in parallel for late-stage cycles.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/manifest.json",
+  "sourceEvidence": "Gap-cycle-3 timestamps: coverage-hunter 19:50 to gap-coordinator 19:55 = 5 min. Gap-cycle-4: coverage-hunter 20:58 to gap-coordinator 21:13 = 15 min. Vs gap-cycle-1: 07:16 to 07:35 = 19 min.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

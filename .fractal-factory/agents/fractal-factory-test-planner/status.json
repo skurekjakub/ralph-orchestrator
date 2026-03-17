@@ -3,12 +3,20 @@
   "task_id": "pass3/test-planning",
   "status": "completed",
   "result": "planned",
-  "summary": "Created 21 test scenarios: P0=7, P1=11, P2=3. Covers 10 categories. All coordinators tested. Auditor loops, per-chapter iteration, revision-beta cycles, cross-cutting agents, and edge cases covered.",
+  "summary": "Re-entry cycle 1: Added 5 test scenarios (TEST-022 through TEST-026) addressing 5 gaps. P0: 1 (delivered-with-gaps), P1: 4 (plotting-auditor, character-auditor, series-sequel, parallel-fanout). Total: 26 scenarios across 10 categories. Invariant coverage: 23 unique invariants referenced. TC-002 noted (execution-pass concern).",
   "artifacts": [
     "test-plan.json",
-    "agents/fractal-factory-test-planner/output.md"
+    "agents/fractal-factory-test-planner/output.md",
+    "agents/fractal-factory-test-planner/status.json"
   ],
   "next_hint": null,
-  "iteration": 1,
-  "timestamp": "2026-03-16T01:49:26.236334+00:00"
+  "iteration": 2,
+  "gapCycle": 1,
+  "gapsAddressed": [
+    "TC-001",
+    "TC-003",
+    "TC-004",
+    "TC-005",
+    "TC-006"
+  ]
 }

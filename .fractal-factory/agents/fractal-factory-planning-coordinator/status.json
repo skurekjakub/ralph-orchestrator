@@ -3,8 +3,16 @@
   "task_id": "pass3/coordination",
   "status": "completed",
   "result": "complete",
-  "summary": "Planning pass complete. Roster: planned (67 agents — 1 guide, 1 orchestrator, 9 coordinators, 10 sub-coordinators, 46 specialists, 67/80 budget). Routing: planned (20 routing agents, 161 entries, auditor gates bounded at 3 retries, revision↔beta loop bounded at 2 cycles). Tests: planned (21 golden scenarios across 10 categories — P0:7, P1:11, P2:3 — covering happy path, auditor rejection, convergence exhaustion, re-entry, per-chapter iteration, cross-cutting agents, revision-beta loops, and edge cases).",
-  "artifacts": ["agents/fractal-factory-planning-coordinator/status.json"],
+  "summary": "Planning pass complete (re-entry cycle 1). Roster: planned (iter 2, 8 gaps fixed: AC-001/002/003, CR-001, BC-W01, IE-001, RC-001/002). Routing: planned (iter 2, 3 gaps fixed: RC-001, RC-002, IE-001). Tests: planned (iter 2, 5 gaps fixed: TC-001, TC-003, TC-004, TC-005, TC-006). All 3 specialists succeeded. 16 of 22 gap-report items addressed in planning pass.",
+  "artifacts": [
+    "agents/fractal-factory-planning-coordinator/status.json"
+  ],
   "next_hint": null,
-  "iteration": 1
+  "iteration": 2,
+  "gapCycle": 1,
+  "childResults": {
+    "roster-planner": "planned",
+    "routing-planner": "planned",
+    "test-planner": "planned"
+  }
 }
