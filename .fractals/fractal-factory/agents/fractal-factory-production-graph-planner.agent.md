@@ -41,6 +41,8 @@ From the inputs, enumerate every discrete unit of work the execution phase must 
 - One task for the session orchestrator `.agent.md` → category: `orchestrator-prompt`
 - One task for the guide `.agent.md` → category: `guide-prompt`
 
+**Note**: If the roster includes a planner specialist (task-graph planner), its prompt task depends on all analysis specialist prompt tasks (the planner reads analysis outputs). If the roster includes an execution coordinator, its prompt task depends on the planner specialist prompt task (the execution coordinator reads the task graph the planner produces).
+
 **Skills** (from architecture.json and roster.json specialist structure):
 - One task for the shared workflow router skill (`{namingPrefix}-specialists-workflow/SKILL.md`) → category: `skill`
 - One task per specialist's reference files folder (`references/{agent-name}/`) → category: `skill`
@@ -48,6 +50,7 @@ From the inputs, enumerate every discrete unit of work the execution phase must 
 
 **Schemas** (from architecture.json artifacts):
 - One task per artifact schema doc → category: `schema`
+- If the produced system uses `task-graph.json`, include a task for the produced task-graph schema doc → category: `schema`
 
 **Bootstrap**:
 - One task for the bootstrap script → category: `bootstrap`
@@ -66,7 +69,9 @@ For each task, compute `dependsOn` following the dependency rules from the schem
 2. **Coordinator prompts** depend on the orchestrator prompt task (the orchestrator defines pipeline routing that coordinators must align with)
 3. **Orchestrator prompt** has no prompt dependencies (written first)
 4. **Guide prompt** depends on the orchestrator prompt task
-5. **Schema tasks** have no prompt dependencies (can be written in parallel with early prompts)
+5. **Planner specialist prompts** depend on all analysis specialist prompt tasks (the planner reads their outputs)
+6. **Execution coordinator prompts** depend on the planner specialist prompt task (the execution coordinator reads the task graph)
+7. **Schema tasks** have no prompt dependencies (can be written in parallel with early prompts)
 6. **Skill tasks** (shared router) depend on all specialist prompt tasks they serve (specialists define the workflow contract that the skill must implement)
 7. **Skill tasks** (per-specialist references) depend on the corresponding specialist prompt task
 8. **Bootstrap** depends on all schema and prompt tasks

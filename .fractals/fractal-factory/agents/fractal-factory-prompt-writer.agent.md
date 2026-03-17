@@ -140,6 +140,13 @@ Specialist workflow rules:
 - Each specialist must write its phases under its own subfolder: `references/{agent-name}/`.
 - Do not add a monolithic `## Process` section for specialists unless the schema explicitly permits an exception.
 
+**For planner specialists** (identified by roster entry having a planner role or the task referencing task-graph decomposition):
+- Use the standard `## Skills` and `## Workflow` progressive disclosure pattern with the shared specialists-workflow skill
+- Define 5 workflow phases: enumerate → dependencies → invariants → criteria → validate
+- Write Rules must reference `.<domain>/task-graph.json` with the produced task graph schema
+- Inputs must include the domain inventory, analysis matrix, and dependency graph
+- Include revision re-dispatch behavior: when re-dispatched (from any source: gap hunting, verification, analysis re-entry, or human feedback), read the feedback artifact and mutate existing graph. Use `annotations` with appropriate `source` value.
+
 **For coordinators**, add:
 
 ```markdown
@@ -154,12 +161,32 @@ You are a **pure router**. You MUST NOT do any substantive work yourself. You di
 | {from roster routing table} | | |
 ```
 
+**For execution coordinators** (identified by roster entry being assigned to Pass 4 / execution pass):
+- Add a `## Task Selection` section before the routing table
+- Task selection reads `.<domain>/task-graph.json`, selects tasks by dependency readiness and priority
+- Routing table uses the graph-driven pattern from `produced-agent.schema.md`
+- Write Rules include `task-graph.json` (status transitions, summary recomputation)
+- Include dependency gate, cascade blocking, and summary recomputation
+
 **For the orchestrator**, add:
 
 ```markdown
 ## Pipeline Routing
 
 {Pass 0 + 7 domain passes + synthesis routing with re-entry rules}
+
+## Progress Update
+
+After each coordinator returns, recompute `progress.json` counts from actual artifacts:
+- Read `.<domain>/task-graph.json.summary.byStatus` for execution unit counts
+- Read `.<domain>/<inventory>.json` for discovery/analysis counts
+- Update `progress.json.counts` to reflect current state
+
+## Human Feedback Check
+
+After the execution coordinator completes a pass, check for `.<domain>/human-feedback.md`:
+- If present and unconsumed: re-dispatch the planner specialist with the feedback, then resume execution
+- Rename consumed file to `human-feedback-rev-{N}.md`
 
 ## Routing Table
 

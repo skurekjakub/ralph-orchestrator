@@ -82,8 +82,14 @@ For the prompt file, verify the structural checklist:
 - [ ] Specialists: `## Skills` section names exactly one shared workflow router skill matching `{namingPrefix}-specialists-workflow`
 - [ ] Specialists: `## Workflow` section exists with at least 2 numbered phases and `references/<agent-name>/<n>-<slug>.md` entries
 - [ ] Specialists: prompt explicitly says detailed instructions live in the workflow skill reference files, not inline here
+- [ ] Planner specialists: `## Workflow` has 5 phases (enumerate → dependencies → invariants → criteria → validate) and Write Rules reference `task-graph.json`
+- [ ] Planner specialists: revision re-dispatch behavior described (multi-source: gap-hunting, verification, analysis, manual → read feedback artifact → mutate existing graph)
 - [ ] Coordinators: `## Purity Rule` and `## Routing Table` present; NO specialist-style workflow section
+- [ ] Execution coordinators: `## Task Selection` section present before `## Routing Table`, referencing `task-graph.json` for dependency-gated dispatch
+- [ ] Execution coordinators: dependency gate, cascade blocking, and summary recomputation specified
 - [ ] Orchestrator: `## Pipeline Routing` and `## Routing Table` present
+- [ ] Orchestrator: `## Progress Update` section present, deriving counts from `task-graph.json.summary.byStatus`
+- [ ] Orchestrator: `## Human Feedback Check` section present (check for `human-feedback.md` after execution coordinator pass)
 - [ ] Adversarial agents: `## Anti-Laziness Rules` present with ≥ 4 specific rules
 
 **Universal Sections**:

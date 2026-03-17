@@ -1,0 +1,444 @@
+{
+  "$schema": "Task graph for making the Fractal Factory produce agent systems that use task-graph.json for dependency-gated execution",
+  "version": 1,
+  "family": "produced-task-graph",
+  "generatedAt": "2025-07-18T00:00:00Z",
+  "description": "Updates the Fractal Factory's schemas, templates, factory agents, and orchestrator skill so that produced agent systems include a planner specialist and a graph-driven execution coordinator, mirroring the migration fractal's proven task-graph pattern.",
+  "summary": {
+    "totalTasks": 17,
+    "phases": 5,
+    "newFiles": 1,
+    "modifiedFiles": 11
+  },
+  "assumptions": [
+    "The migration fractal (.fractals/migration/) is the reference implementation for the task-graph pattern",
+    "The factory's own production-graph.json stays unchanged — only the produced output changes",
+    "Every produced system with Pass 3 (Planning) + Pass 4 (Execution) gets a task graph",
+    "The produced-task-graph.schema.md uses 'tasks' terminology with T-nnn IDs",
+    "Existing fractals (migration, etc.) are not retroactively changed"
+  ],
+  "designDecisions": [
+    {
+      "decision": "Separate schema for produced task graphs (produced-task-graph.schema.md) rather than reusing production-graph.schema.md",
+      "rationale": "The factory's production graph has factory-specific fields (rosterAgentIds, verificationHooks). The produced system's task graph uses domain-generic fields (featureIds, invariants, verificationOracles). Separate schemas prevent confusion between factory-internal and produced-system artifacts."
+    },
+    {
+      "decision": "Planner specialist uses progressive disclosure workflow phases (not single-phase Process)",
+      "rationale": "Consistent with all other specialists in the produced system. Planner work is complex enough for 5 phases (enumerate → dependencies → invariants → criteria → validate). Uses the shared specialists-workflow skill like every other specialist."
+    },
+    {
+      "decision": "Execution coordinator is a coordinator subtype, not a new agent category",
+      "rationale": "It still follows the Purity Rule and uses a routing table. The only difference is that task selection reads task-graph.json instead of following a fixed child sequence. Keeping it as a coordinator subtype maintains the depth-2 hierarchy invariant."
+    },
+    {
+      "decision": "Gap hunters produce side-channel reports, not direct graph mutations",
+      "rationale": "Single-responsibility: gap hunters ONLY find flaws and produce a gap report. The planner specialist is re-dispatched to read the gap report and mutate the task graph. The planner has full context from discovery, analysis, invariants, and the existing graph. Gap hunters should not need to understand graph structure or dependency rules."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "PTG-001",
+      "phase": 1,
+      "ref": "phase-1-foundation-v1.md § 1.1",
+      "title": "Create produced-task-graph.schema.md",
+      "description": "Define the canonical task-graph.json schema for produced systems — task node structure, status lifecycle, dependency rules, scope/invariants/oracle fields, gap-report-driven mutation workflow.",
+      "type": "create",
+      "target": ".fractals/fractal-factory/schemas/produced-task-graph.schema.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "creates": [".fractals/fractal-factory/schemas/produced-task-graph.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Schema is self-contained with no references to factory-internal artifacts",
+        "Status lifecycle matches migration's pattern (planned → in-progress → implemented → verified, with failed-parity and blocked branches)",
+        "scope, invariants, and verificationOracles fields are documented with purpose descriptions",
+        "Schema includes at least two example task entries showing dependency edges",
+        "addedBy and addedInCycle fields support gap-hunting-driven planner re-dispatch",
+        "gapAnnotations field documents gap-report → planner → graph mutation workflow"
+      ]
+    },
+    {
+      "id": "PTG-002",
+      "phase": 1,
+      "ref": "phase-1-foundation-v1.md § 1.2",
+      "title": "Update artifact-contracts.md — promote task-graph.json to first-class",
+      "description": "Move task-graph.json from domain-specific to required artifacts in the orchestrator skill reference, with schema description and progress.json linkage.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/artifact-contracts.md",
+      "prerequisites": ["PTG-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/artifact-contracts.md"]
+      },
+      "acceptanceCriteria": [
+        "task-graph.json appears in the universal artifact directory structure",
+        "Schema is described or cross-referenced",
+        "progress.json counts reference task graph as truth-of-record for unit counts",
+        "Existing domain-specific artifacts section still works"
+      ]
+    },
+    {
+      "id": "PTG-003",
+      "phase": 1,
+      "ref": "phase-1-foundation-v1.md § 1.3",
+      "title": "Update pipeline-design.md — Pass 3 and Pass 4 task-graph references",
+      "description": "Update the pipeline design guide so Pass 3 references the planner specialist and task-graph.json output, and Pass 4 references dependency-gated task selection.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/pipeline-design.md",
+      "prerequisites": ["PTG-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/pipeline-design.md"]
+      },
+      "acceptanceCriteria": [
+        "Pass 3 references task-graph.json as its output artifact",
+        "Pass 4 references task-graph.json for dependency-gated task selection",
+        "The 'Pass 4 Internal Loop' section names task-graph.json explicitly"
+      ]
+    },
+    {
+      "id": "PTG-004",
+      "phase": 2,
+      "ref": "phase-2-schema-template-v1.md § 2.1",
+      "title": "Add planner specialist type to produced-agent.schema.md",
+      "description": "Document the planner specialist as a new agent type — uses progressive disclosure workflow phases (shared specialists-workflow skill), outputs task-graph.json, requires feature ID validation. On gap-hunting re-dispatch, reads gap report and mutates existing graph.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": ["PTG-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/schemas/produced-agent.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Planner specialist type is documented with required sections",
+        "Feature ID validation requirement is explicit",
+        "Relationship to produced-task-graph.schema.md is clear",
+        "Distinction from regular workflow-phase specialists is clear"
+      ]
+    },
+    {
+      "id": "PTG-005",
+      "phase": 2,
+      "ref": "phase-2-schema-template-v1.md § 2.2",
+      "title": "Add execution coordinator graph-driven pattern to produced-agent.schema.md",
+      "description": "Document the execution coordinator as a coordinator subtype with task-graph-driven task selection, dependency gate, cascade blocking, and per-task routing table.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": ["PTG-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/schemas/produced-agent.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Execution coordinator is documented as a coordinator subtype",
+        "Task selection algorithm is explicit (dependency gate, priority ordering)",
+        "Cascade blocking is specified",
+        "Summary recomputation is required after each status transition",
+        "Pattern matches migration-execution-coordinator's structure"
+      ]
+    },
+    {
+      "id": "PTG-006",
+      "phase": 2,
+      "ref": "phase-2-schema-template-v1.md § 2.3",
+      "title": "Update orchestrator pattern for task-graph progress recomputation",
+      "description": "Add Progress Recomputation requirement to the orchestrator section — derive counts from task-graph.json.summary.byStatus.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": ["PTG-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/schemas/produced-agent.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Orchestrator is instructed to derive progress from task-graph.json",
+        "Progress recomputation references byStatus counts specifically"
+      ]
+    },
+    {
+      "id": "PTG-007",
+      "phase": 2,
+      "ref": "phase-2-schema-template-v1.md § 2.4",
+      "title": "Update produced-agent-template.md for new patterns",
+      "description": "Add planner specialist, execution coordinator, and orchestrator progress update variants to the Type Variants section of the canonical template.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/templates/produced-agent-template.md",
+      "prerequisites": ["PTG-004", "PTG-005", "PTG-006"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/templates/produced-agent-template.md"]
+      },
+      "acceptanceCriteria": [
+        "Type Variants section lists planner specialist and execution coordinator",
+        "Planner specialist uses ## Skills/## Workflow (progressive disclosure)",
+        "Execution coordinator has ## Task Selection section",
+        "Orchestrator variant includes ## Progress Update"
+      ]
+    },
+    {
+      "id": "PTG-008",
+      "phase": 3,
+      "ref": "phase-3-factory-agents-v1.md § 3.1",
+      "title": "Update production-graph-planner — planner specialist + task-graph schema tasks",
+      "description": "Update the production-graph-planner's deliverable enumeration to include planner specialist tasks and produced task-graph schema tasks, with correct dependency edges.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-production-graph-planner.agent.md",
+      "prerequisites": ["PTG-004", "PTG-005"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-production-graph-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Planner specialist is enumerated as a deliverable when present in roster",
+        "Task graph schema is enumerated as a schema deliverable",
+        "Dependency edges: planner → analysis specialists, execution coordinator → planner",
+        "No change to factory's own production-graph.json schema"
+      ]
+    },
+    {
+      "id": "PTG-009",
+      "phase": 3,
+      "ref": "phase-3-factory-agents-v1.md § 3.2",
+      "title": "Update routing-planner for graph-driven execution coordinator pattern",
+      "description": "Update the routing-planner's loop coordinator section with an explicit graph-driven pattern referencing task-graph.json for dependency-gated dispatch.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md",
+      "prerequisites": ["PTG-005"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Graph-driven execution coordinator is a distinct pattern from sequential coordinators",
+        "Routing table explicitly references task-graph.json",
+        "Dependency gate, cascade blocking, and summary recomputation are specified",
+        "Orchestrator progress recomputation references task graph"
+      ]
+    },
+    {
+      "id": "PTG-010",
+      "phase": 3,
+      "ref": "phase-3-factory-agents-v1.md § 3.3",
+      "title": "Update prompt-writer for planner and execution coordinator generation",
+      "description": "Add planner specialist and execution coordinator handling to the prompt-writer's template application step — Workflow phases for planners, Task Selection for execution coordinators.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md",
+      "prerequisites": ["PTG-004", "PTG-005", "PTG-007"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Prompt-writer uses ## Skills/## Workflow for planner specialists",
+        "Prompt-writer adds ## Task Selection for execution coordinators",
+        "task-graph.json referenced in Write Rules for both types",
+        "Orchestrator generation includes ## Progress Update",
+        "Planner gap-hunting re-dispatch behavior is included"
+      ]
+    },
+    {
+      "id": "PTG-011",
+      "phase": 3,
+      "ref": "phase-3-factory-agents-v1.md § 3.4",
+      "title": "Update prompt-reviewer for task-graph pattern validation",
+      "description": "Add validation rules for planner specialist structure, execution coordinator graph-driven routing, and orchestrator progress recomputation.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md",
+      "prerequisites": ["PTG-004", "PTG-005", "PTG-006"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Reviewer checks planner specialist structure (Workflow phases, task-graph output)",
+        "Reviewer checks execution coordinator structure (Task Selection, graph-driven routing)",
+        "Reviewer checks orchestrator Progress Update section",
+        "Existing validation rules for standard specialists and coordinators are unchanged"
+      ]
+    },
+    {
+      "id": "PTG-012",
+      "phase": 4,
+      "ref": "phase-4-skill-updates-v1.md § 4.1",
+      "title": "Update agent-prompt-template.md — planner + execution coordinator variants",
+      "description": "Add Planner Specialist and Execution Coordinator (Graph-Driven) template variants to the orchestrator skill's agent prompt template reference.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/agent-prompt-template.md",
+      "prerequisites": ["PTG-004", "PTG-005"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/agent-prompt-template.md"]
+      },
+      "acceptanceCriteria": [
+        "Planner specialist variant documented with progressive disclosure workflow phases",
+        "Execution coordinator variant documented with Task Selection pattern",
+        "Existing specialist and coordinator variants are unchanged"
+      ]
+    },
+    {
+      "id": "PTG-013",
+      "phase": 4,
+      "ref": "phase-4-skill-updates-v1.md § 4.2",
+      "title": "Update agent-roster-template.md — planner specialist role",
+      "description": "Add the planner specialist as a required role in the roster template's role mapping table when Pass 3 is included.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/agent-roster-template.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/agent-roster-template.md"]
+      },
+      "acceptanceCriteria": [
+        "Planner specialist listed as required when Pass 3 is included",
+        "Description mentions task-graph.json as the output"
+      ]
+    },
+    {
+      "id": "PTG-014",
+      "phase": 4,
+      "ref": "phase-4-skill-updates-v1.md § 4.3",
+      "title": "Update worked-example.md — task-graph references",
+      "description": "Update the worked example to show the planner producing task-graph.json in Pass 3 and the execution coordinator doing dependency-gated task selection in Pass 4.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/worked-example.md",
+      "prerequisites": ["PTG-012", "PTG-013"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/worked-example.md"]
+      },
+      "acceptanceCriteria": [
+        "Worked example references task-graph.json in planning and execution passes",
+        "Dependency-gated task selection is shown"
+      ]
+    },
+    {
+      "id": "PTG-015",
+      "phase": 5,
+      "ref": "phase-5-docs-verification-v1.md § 5.1",
+      "title": "Update fractal-factory README",
+      "description": "Add task-graph.json to the produced artifact tree and mention planner specialist / graph-driven execution coordinator in agent type descriptions.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/README.md",
+      "prerequisites": ["PTG-007", "PTG-011"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/README.md"]
+      },
+      "acceptanceCriteria": [
+        "task-graph.json appears in produced artifact tree",
+        "Planner specialist mentioned in agent type descriptions"
+      ]
+    },
+    {
+      "id": "PTG-017",
+      "phase": 3,
+      "ref": "phase-3-factory-agents-v1.md § 3.5",
+      "title": "Update roster-planner — require planner specialist when Pass 3 included",
+      "description": "Update the roster-planner's specialist enumeration to explicitly include a planner specialist for Pass 3, with the task-graph.json as its output artifact and gap-hunting re-dispatch as a required behavior.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+      "prerequisites": ["PTG-004"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Planning specialists section explicitly names a task-graph planner as required for Pass 3",
+        "Planner reads/writes correctly list analysis artifacts as inputs and task-graph.json as output",
+        "Gap-hunting re-dispatch is mentioned as a planner capability"
+      ]
+    },
+    {
+      "id": "PTG-016",
+      "phase": 5,
+      "ref": "phase-5-docs-verification-v1.md § 5.2",
+      "title": "Consistency sweep across all modified files",
+      "description": "Grep-based validation: no stale references, schema↔template↔agents consistency, all cross-references valid.",
+      "type": "verification",
+      "target": ".fractals/fractal-factory/",
+      "prerequisites": ["PTG-001", "PTG-002", "PTG-003", "PTG-004", "PTG-005", "PTG-006", "PTG-007", "PTG-008", "PTG-009", "PTG-010", "PTG-011", "PTG-012", "PTG-013", "PTG-014", "PTG-015", "PTG-017"],
+      "status": "not-started",
+      "artifacts": {},
+      "acceptanceCriteria": [
+        "Zero stale references to old execution coordinator patterns in modified files",
+        "Schema ↔ template ↔ routing-planner ↔ prompt-writer are mutually consistent",
+        "All cross-references between files are valid"
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "phase": 1,
+        "tasks": ["PTG-001"],
+        "parallelSafe": false,
+        "note": "Foundation — create the produced task-graph schema first (everything depends on it)"
+      },
+      {
+        "step": 2,
+        "phase": 1,
+        "tasks": ["PTG-002", "PTG-003", "PTG-013"],
+        "parallelSafe": true,
+        "note": "Update skill references that depend on PTG-001: artifact-contracts, pipeline-design, roster-template"
+      },
+      {
+        "step": 3,
+        "phase": 2,
+        "tasks": ["PTG-004", "PTG-005", "PTG-006"],
+        "parallelSafe": true,
+        "note": "Update produced-agent.schema.md — planner specialist, execution coordinator, orchestrator progress (3 independent sections)"
+      },
+      {
+        "step": 4,
+        "phase": 2,
+        "tasks": ["PTG-007"],
+        "parallelSafe": false,
+        "note": "Update produced-agent-template.md — depends on PTG-004, PTG-005, PTG-006"
+      },
+      {
+        "step": 5,
+        "phase": 3,
+        "tasks": ["PTG-008", "PTG-009", "PTG-017"],
+        "parallelSafe": true,
+        "note": "Update production-graph-planner, routing-planner, and roster-planner (independent factory agents)"
+      },
+      {
+        "step": 6,
+        "phase": 3,
+        "tasks": ["PTG-010", "PTG-011"],
+        "parallelSafe": true,
+        "note": "Update prompt-writer and prompt-reviewer (independent factory agents, both depend on Phase 2)"
+      },
+      {
+        "step": 7,
+        "phase": 4,
+        "tasks": ["PTG-012"],
+        "parallelSafe": false,
+        "note": "Update agent-prompt-template.md in orchestrator skill"
+      },
+      {
+        "step": 8,
+        "phase": 4,
+        "tasks": ["PTG-014"],
+        "parallelSafe": false,
+        "note": "Update worked-example.md (depends on PTG-012, PTG-013)"
+      },
+      {
+        "step": 9,
+        "phase": 5,
+        "tasks": ["PTG-015"],
+        "parallelSafe": false,
+        "note": "Update README"
+      },
+      {
+        "step": 10,
+        "phase": 5,
+        "tasks": ["PTG-016"],
+        "parallelSafe": false,
+        "note": "Final consistency sweep — must be last"
+      }
+    ]
+  }
+}

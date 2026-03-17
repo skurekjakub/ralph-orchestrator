@@ -153,7 +153,7 @@ User invokes fractal-factory-guide (once)
 │   └── ... (one directory per agent)
 ├── produced-output/          — The actual product
 │   ├── agents/               — .agent.md files for the produced system
-│   ├── schemas/              — Artifact JSON schemas
+│   ├── schemas/              — Artifact JSON schemas (incl. produced-task-graph.schema.md)
 │   ├── skills/               — Shared specialists workflow router + domain-specific auxiliary skills
 │   ├── tests/                — Golden test scenario files
 │   ├── docs/                 — Architecture, user guide, roster reference
@@ -184,6 +184,8 @@ Multiple specialists write to the same JSON files. Each agent reads the current 
 ### Production-Graph-Driven Execution
 The execution coordinator reads `production-graph.json` and selects the next eligible task (status `planned`, all `dependsOn` tasks verified). It dispatches `prompt-writer` → `prompt-reviewer` for one task at a time. On rejection, the writer is re-dispatched with feedback (max 3 retries per task). Exhausted tasks are marked `blocked`. The coordinator loops until all tasks are verified or blocked.
 
+The produced systems follow the same pattern: a **planner specialist** decomposes analysis outputs into `task-graph.json` (5-phase progressive disclosure workflow: enumerate → dependencies → invariants → criteria → validate), and a **graph-driven execution coordinator** reads the task graph for dependency-gated task selection, running a coder→reviewer loop per task with cascade blocking and summary recomputation.
+
 ### Gap-Hunting Graph Mutation
 After verification, the gap-hunting coordinator dispatches the three specialist hunters. Hunters add new task nodes to `production-graph.json` for missing items and annotate existing tasks with `gapAnnotations`. If the graph was mutated, the execution coordinator picks up new/re-planned tasks naturally — no pass resets needed. Convergence = zero new tasks or annotations. Max 3 cycles before forced delivery.
 
@@ -204,5 +206,6 @@ See `schemas/` for full JSON schema documentation:
 - `progress.schema.md` — Pipeline state
 - `context.schema.md` — User input configuration
 - `domain-model.schema.md` — Discovery output
-- `produced-agent.schema.md` — Structural requirements for produced agents
+- `produced-agent.schema.md` — Structural requirements for produced agents (specialist, planner specialist, analysis specialist, coordinator, execution coordinator, orchestrator)
 - `production-graph.schema.md` — Production task graph with dependency edges and verification hooks
+- `produced-task-graph.schema.md` — Canonical task graph schema for produced systems (T-nnn IDs, status lifecycle, dependency rules, gap annotations)

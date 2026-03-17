@@ -73,6 +73,32 @@ For each coordinator in the roster:
 
 Loop coordinators must select exactly one eligible task per iteration from the execution graph, using deterministic priority and dependency rules.
 
+**Graph-driven execution coordinators** (task-graph dependency-gated loop):
+
+When the execution coordinator reads `task-graph.json` to select tasks by dependency readiness:
+```
+| Read | Condition | Action |
+| task-graph.json | Eligible task (planned/failed-parity, deps verified) | Select by priority, set in-progress, dispatch coder |
+| agents/{coder}/status.json | result: "implemented" | Dispatch reviewer with task ID |
+| agents/{reviewer}/status.json | result: "approved" | Set task verified, recompute summary, delete child statuses, select next |
+| agents/{reviewer}/status.json | result: "rejected" (retries < max) | Record retry, re-dispatch coder with feedback |
+| agents/{reviewer}/status.json | result: "rejected" (retries >= max) | Set task blocked, cascade-block dependents, recompute summary, select next |
+| task-graph.json | No eligible tasks | Complete |
+```
+
+The graph-driven pattern differs from the generic loop pattern in that:
+- Task selection reads `task-graph.json` instead of following a fixed child sequence
+- Dependency gate checks all `dependsOn` tasks are `verified`
+- Cascade blocking propagates to all tasks that directly or transitively depend on a blocked task
+- `task-graph.json.summary.byStatus` is recomputed after every status transition
+
+**Orchestrator progress recomputation**: The orchestrator's routing table should include a Progress Update step after each coordinator returns, reading `task-graph.json.summary.byStatus` to populate `progress.json.counts`.
+
+**Orchestrator human feedback check**: After the execution coordinator completes a pass, the orchestrator checks for `.<domain>/human-feedback.md`. If present, re-dispatch the planner with the feedback, rename the file to `human-feedback-rev-{N}.md`, then resume execution. Add this as a routing table rule:
+```
+| human-feedback.md | exists and unconsumed | Re-dispatch planner, rename file, resume execution |
+```
+
 **Dual-mode coordinators** (handle multiple passes):
 ```
 Mode detection: check which artifacts exist

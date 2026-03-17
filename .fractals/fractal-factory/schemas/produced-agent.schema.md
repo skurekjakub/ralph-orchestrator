@@ -121,6 +121,47 @@ The dependency analyzer is a special case — it reads the analysis matrix (outp
 | 3. Build graph | Create nodes, typed edges, compute clusters |
 | 4. Write & validate | Write dependency-graph.json, update inventory dependencies, validate acyclicity |
 
+### Planner Specialist (Specialist subtype)
+
+Planner specialists decompose analysis outputs into a task graph. They follow the standard specialist progressive disclosure pattern — shared workflow skill with per-specialist reference files under `references/{planner-name}/`.
+
+Typical planner workflow phases:
+
+| Phase | Summary |
+|---|---|
+| 1. Enumerate tasks | Read inventory + analysis, decompose items into dependency-ordered execution tasks |
+| 2. Assign dependencies | Compute `dependsOn` edges, validate no circular references |
+| 3. Inline invariants + scope | Copy invariants from analysis, define scope boundaries per task |
+| 4. Acceptance criteria | Write verifiable criteria per task, assign verification oracles |
+| 5. Validate + write | Feature ID validation, summary computation, write `task-graph.json` |
+
+On re-dispatch (from gap hunting, verification, analysis re-entry, or human feedback), the planner reads the corresponding feedback artifact and adds/annotates tasks in the existing `task-graph.json` rather than rewriting from scratch. New tasks get `addedInRevision` set to the current revision round.
+
+```markdown
+## Skills
+
+| Skill | What it covers |
+|---|---|
+| `{namingPrefix}-specialists-workflow` | Family-level workflow router. Read SKILL.md, then this specialist's current phase reference. |
+
+## Workflow
+
+| Phase | Reference file | Summary |
+|---|---|---|
+| 1. Enumerate | `references/{planner-name}/1-enumerate.md` | Decompose inventory into execution tasks |
+| 2. Dependencies | `references/{planner-name}/2-dependencies.md` | Compute dependency edges |
+| 3. Invariants | `references/{planner-name}/3-invariants.md` | Inline invariants and scope boundaries |
+| 4. Criteria | `references/{planner-name}/4-criteria.md` | Per-task acceptance criteria and oracles |
+| 5. Validate | `references/{planner-name}/5-validate.md` | Feature ID validation, write task-graph.json |
+```
+
+Must include:
+- **Feature ID validation**: Before writing, validate that every `featureId` references an actual inventory item
+- **Inline invariants**: Copy from analysis, don't cross-reference by ID
+- **Scope boundaries**: Every task must have `scope.sourceFiles`, `scope.targetPattern`, `scope.boundaryNotes`
+- **Acceptance criteria**: At least one verifiable criterion per task
+- **Revision re-dispatch**: When re-dispatched (from any source: gap hunting, verification, analysis re-entry, or human feedback), read the feedback artifact and mutate existing `task-graph.json`. Use `annotations` with the appropriate `source` value.
+
 ### Coordinator (Pure Router)
 
 The process section is replaced with:
@@ -159,6 +200,50 @@ When analysis and planning are grouped under one coordinator (the default per pi
 
 This is the canonical dual-mode coordinator. The mode boundary is the analysis artifacts — their existence is the handoff signal from analysis to planning.
 
+#### Execution Coordinator (Graph-Driven)
+
+The execution coordinator is a coordinator subtype that selects work from `task-graph.json` rather than dispatching children in a fixed sequence. It runs the coder→reviewer loop per task.
+
+```markdown
+## Task Selection
+
+Read `.<domain>/task-graph.json`. Select the next task where:
+1. `status` is `planned` OR `failed-parity`
+2. ALL tasks in `dependsOn` have `status: verified`
+3. If a dependency has `status: blocked`, cascade-block this task
+
+Among eligible tasks, select the one with the lowest `priority` value.
+
+## Routing Table
+
+### Per-Task Loop
+
+| Read | Condition | Action |
+|---|---|---|
+| `task-graph.json` | Eligible task exists | Set to `in-progress`, dispatch coder |
+| `agents/<coder>/status.json` | `result: "implemented"` | Dispatch reviewer |
+| `agents/<reviewer>/status.json` | `result: "approved"` | Set task `verified`, select next |
+| `agents/<reviewer>/status.json` | `result: "rejected"` (retries < max) | Re-dispatch coder with feedback |
+| `agents/<reviewer>/status.json` | `result: "rejected"` (retries >= max) | Set task `blocked`, select next |
+| `task-graph.json` | No eligible tasks | Dispatch test-writer (if present), then complete |
+
+### Task Lifecycle Per Iteration
+
+1. Set `planned` → `in-progress`
+2. Delete coder and reviewer status.json (fresh dispatch)
+3. Dispatch coder with: task ID, description, scope, acceptanceCriteria, invariants
+4. On coder completion, dispatch reviewer with: task ID, acceptanceCriteria, invariants
+5. On approval: `in-progress` → `implemented` → `verified`, recompute summary
+6. On rejection within limit: record attempt, re-dispatch coder with feedback
+7. On rejection at limit: `blocked`, recompute summary, next task
+```
+
+Must include:
+- **Dependency gate**: Explicit check that all `dependsOn` are `verified`
+- **Cascade blocking**: Auto-block tasks whose dependencies are `blocked`
+- **Summary recomputation**: After every status change, recompute `task-graph.json.summary.byStatus`
+- **Coder context passing**: Task's scope, criteria, and invariants must be passed to the coder
+
 ### Orchestrator (Pipeline Router)
 
 Same as coordinator, plus:
@@ -174,7 +259,16 @@ Same as coordinator, plus:
 
 ## Progress Update
 
-After each coordinator returns, recompute counts from actual artifacts.
+After each coordinator returns, recompute `progress.json` counts from actual artifacts:
+- Read `.<domain>/task-graph.json.summary.byStatus` for execution unit counts
+- Read `.<domain>/<inventory>.json` for discovery/analysis counts
+- Update `progress.json.counts` to reflect current state
+
+## Human Feedback Check
+
+After the execution coordinator completes a pass, check for `.<domain>/human-feedback.md`:
+- If present and unconsumed: re-dispatch the planner specialist with the feedback, then resume execution
+- Rename consumed file to `human-feedback-rev-{N}.md` to prevent re-processing
 
 ## Re-Entry Rules
 

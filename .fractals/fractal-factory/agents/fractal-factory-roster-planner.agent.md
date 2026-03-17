@@ -81,7 +81,8 @@ Both must have `antiLaziness: true` for the invariant extraction component — z
 - Name pattern: `{namingPrefix}-{analysis-type}-analyzer`
 
 **Planning specialists** (task decomposition and ordering):
-- Decomposer, dependency analyzer, risk analyzer, test planner
+- Task-graph planner (REQUIRED for Pass 3) — decomposes analysis outputs into `task-graph.json` via progressive disclosure workflow (5 phases: enumerate → dependencies → invariants → criteria → validate). Reads: domain inventory, analysis matrix, dependency graph. Writes: `task-graph.json`. On gap-hunting re-dispatch, reads gap report and mutates existing graph.
+- Risk analyzer — per-task risk assessment
 - Name pattern: `{namingPrefix}-{role}`
 
 **Execution specialists** (coder→reviewer loop):

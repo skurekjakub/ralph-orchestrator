@@ -71,8 +71,10 @@ Prepend entry to `.<domain>/manifest.json` (newest first).
 
 - **Specialist**: Keep `## Skills` and `## Workflow`. Do not inline a large `## Process` section; the detailed workflow belongs in `skills/workflow/<namingPrefix>-specialists-workflow/references/<agent-name>/*.md`.
 - **Analysis specialist**: Like standard specialist (use `## Skills` and `## Workflow`), but the workflow phases must include invariant extraction as a mandatory output. Add `## Anti-Laziness Rules` requiring per-item analysis documentation. The Write Rules must include both `analysis-matrix.json` and inventory status updates.
+- **Planner specialist**: Uses the standard `## Skills` and `## Workflow` progressive disclosure pattern with 5 phases (enumerate → dependencies → invariants → criteria → validate). Output is `task-graph.json`. On re-dispatch (gap hunting, verification, analysis re-entry, or human feedback), reads feedback artifact and mutates existing graph.
 - **Coordinator**: Replace `## Skills` and `## Workflow` with `## Purity Rule` and `## Routing Table`.
-- **Orchestrator**: Include `## Pipeline Routing` before `## Routing Table`.
+- **Execution coordinator**: Include `## Task Selection` before `## Routing Table`. The routing table references `task-graph.json` rather than a fixed child dispatch sequence. Must include dependency gate, cascade blocking, and summary recomputation.
+- **Orchestrator**: Include `## Pipeline Routing`, `## Progress Update`, and `## Human Feedback Check` before `## Routing Table`. The Progress Update derives counts from `task-graph.json.summary.byStatus`. The Human Feedback Check watches for `human-feedback.md` after each execution cycle.
 - **Adversarial agent**: Add `## Anti-Laziness Rules` before the process or routing logic.
 
 ## Non-Negotiable Rules
