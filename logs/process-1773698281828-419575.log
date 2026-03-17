@@ -1,0 +1,93 @@
+2026-03-16T21:58:01.829Z [DEBUG] Sending telemetry event: copilot-cli/extension.activate
+2026-03-16T21:58:02.394Z [DEBUG] ExP request: GET https://telemetry.individual.githubcopilot.com/telemetry?tas-endpoint=githubdevdiv
+2026-03-16T21:58:02.395Z [DEBUG] ExP headers: {"User-Agent":"copilot-cli","X-ExP-SDK-Version":"1","X-VSCode-ExtensionName":"CopilotCLI","X-MSEdge-ClientId":"b6f7bc5e-14df-4fe6-9c77-33a128f218ad","x-exp-parameters":"copilottrackingid=5588be76fa1a67d7dbc61cb2e8678ef7,github_copilotcli_cliversion=1.0.5.9999,github_copilotcli_prerelease=0,github_copilotcli_audience=external,github_copilotcli_experimentationoptin=1,extensionname=CopilotCLI,github_copilotcli_firstlaunchat=1773187200,github_copilotcli_copilotplan=individual_pro"}
+2026-03-16T21:58:02.397Z [DEBUG] OpenTelemetry not enabled (resolveOtelConfig returned null)
+2026-03-16T21:58:02.409Z [DEBUG] Ignoring unknown hook event(s) in /home/jakubs/repositories/ralph-orchestrator/.github/hooks/post-edit-guards.json: PostToolUse
+2026-03-16T21:58:02.411Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: exp_context_fetch)
+2026-03-16T21:58:02.412Z [DEBUG] Ignoring unknown hook event(s) in /home/jakubs/repositories/ralph-orchestrator/.github/hooks/git-operations-guard.json: PreToolUse
+2026-03-16T21:58:02.413Z [DEBUG] No auth info available, skipping custom agents load
+2026-03-16T21:58:02.446Z [INFO] Workspace initialized: f47f750b-080b-4b16-a1e9-fe3d72775d01 (checkpoints: 0)
+2026-03-16T21:58:02.451Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: session_start)
+2026-03-16T21:58:02.452Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: memory_usage)
+2026-03-16T21:58:02.453Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: first_launch)
+2026-03-16T21:58:02.453Z [INFO] Starting Copilot CLI: 1.0.5
+2026-03-16T21:58:02.453Z [INFO] Node.js version: v24.11.1
+2026-03-16T21:58:02.453Z [DEBUG] [remoteHosts] Starting remote host detection for cwd=/home/jakubs/repositories/ralph-orchestrator, featureFlagEnabled=false
+2026-03-16T21:58:02.453Z [DEBUG] [remoteHosts] Feature flag ADO_DETECTION is disabled, skipping detection
+2026-03-16T21:58:03.128Z [INFO] No update needed, current version is 1.0.5, fetched latest release is v1.0.5
+2026-03-16T21:58:03.466Z [WARNING] .github/agents/agent-factory.agent.md: unknown field ignored: agents
+2026-03-16T21:58:03.466Z [WARNING] .github/agents/builder.agent.md: unknown field ignored: agents
+2026-03-16T21:58:03.466Z [WARNING] .github/agents/planner.agent.md: unknown field ignored: argument-hint
+2026-03-16T21:58:03.469Z [DEBUG] Loaded workspace MCP config from /home/jakubs/repositories/ralph-orchestrator/.vscode/mcp.json
+2026-03-16T21:58:03.469Z [DEBUG] Loaded workspace MCP config from .vscode/mcp.json: 3 server(s): microsoft/markitdown, jira-create-issue, CodeGraphContext
+2026-03-16T21:58:03.472Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: mcp_policy_check)
+2026-03-16T21:58:03.473Z [ERROR] Starting MCP client for microsoft/markitdown with 
+command: uvx 
+args: markitdown-mcp@0.0.1a4 
+cwd: undefined
+2026-03-16T21:58:03.473Z [ERROR] Starting MCP client for microsoft/markitdown with command: uvx and args: markitdown-mcp@0.0.1a4
+2026-03-16T21:58:03.474Z [ERROR] Creating MCP client for microsoft/markitdown...
+2026-03-16T21:58:03.474Z [ERROR] Connecting MCP client for microsoft/markitdown...
+2026-03-16T21:58:03.516Z [ERROR] Starting MCP client for jira-create-issue with 
+command: uvx 
+args: fastmcp run ${workspaceFolder}/.github/resources/mcp/jira-create-issue/server.py 
+cwd: undefined
+2026-03-16T21:58:03.517Z [ERROR] Starting MCP client for jira-create-issue with command: uvx and args: fastmcp run ${workspaceFolder}/.github/resources/mcp/jira-create-issue/server.py
+2026-03-16T21:58:03.517Z [ERROR] Creating MCP client for jira-create-issue...
+2026-03-16T21:58:03.517Z [ERROR] Connecting MCP client for jira-create-issue...
+2026-03-16T21:58:03.559Z [ERROR] Starting MCP client for CodeGraphContext with 
+command: cgc 
+args: mcp start 
+cwd: undefined
+2026-03-16T21:58:03.559Z [ERROR] Starting MCP client for CodeGraphContext with command: cgc and args: mcp start
+2026-03-16T21:58:03.559Z [ERROR] Creating MCP client for CodeGraphContext...
+2026-03-16T21:58:03.560Z [ERROR] Connecting MCP client for CodeGraphContext...
+2026-03-16T21:58:03.602Z [ERROR] Failed to start MCP client for microsoft/markitdown: Error: spawn uvx ENOENT
+2026-03-16T21:58:03.602Z [ERROR] Failed to start MCP client for jira-create-issue: Error: spawn uvx ENOENT
+2026-03-16T21:58:03.602Z [ERROR] Failed to start MCP client for CodeGraphContext: Error: spawn cgc ENOENT
+2026-03-16T21:58:03.602Z [ERROR] Recorded failure for server microsoft/markitdown: spawn uvx ENOENT
+2026-03-16T21:58:03.602Z [ERROR] Recorded failure for server jira-create-issue: spawn uvx ENOENT
+2026-03-16T21:58:03.602Z [ERROR] Recorded failure for server CodeGraphContext: spawn cgc ENOENT
+2026-03-16T21:58:03.603Z [ERROR] Starting remote MCP client for github-mcp-server with url: https://api.individual.githubcopilot.com/mcp/readonly
+2026-03-16T21:58:03.603Z [ERROR] Creating MCP client for github-mcp-server...
+2026-03-16T21:58:03.604Z [ERROR] Connecting MCP client for github-mcp-server...
+2026-03-16T21:58:03.609Z [ERROR] MCP transport for CodeGraphContext closed
+2026-03-16T21:58:03.610Z [ERROR] MCP transport for jira-create-issue closed
+2026-03-16T21:58:03.610Z [ERROR] MCP transport for microsoft/markitdown closed
+2026-03-16T21:58:04.412Z [ERROR] MCP client for github-mcp-server connected, took 808ms
+2026-03-16T21:58:04.412Z [ERROR] Started MCP client for remote server github-mcp-server
+2026-03-16T21:58:04.412Z [ERROR] GitHub MCP server configured after authentication
+2026-03-16T21:58:04.413Z [DEBUG] Creating copilot-client for integration ID copilot-developer-cli with token authentication. User-agent: copilot/1.0.5 (linux v24.11.1) term/vscode
+2026-03-16T21:58:04.757Z [DEBUG] Successfully listed 21 models
+2026-03-16T21:58:04.758Z [INFO] Using default model: claude-sonnet-4.6
+2026-03-16T21:58:04.759Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: session_model_change)
+2026-03-16T21:58:04.760Z [DEBUG] Could not initialize tools: buildSettingsAndTools returned undefined
+2026-03-16T21:58:04.760Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: session_model_change)
+2026-03-16T21:58:04.761Z [DEBUG] Could not initialize tools: buildSettingsAndTools returned undefined
+2026-03-16T21:58:04.761Z [INFO] Using model "claude-opus-4.6" from custom agent "fractal-factory"
+2026-03-16T21:58:04.762Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: model_resolution_info)
+2026-03-16T21:58:04.766Z [DEBUG] Loading tools for client: github-mcp-server
+2026-03-16T21:58:04.931Z [DEBUG] [shutdown] Starting shutdown with 7 disposables
+2026-03-16T21:58:04.931Z [DEBUG] [shutdown] Starting dispose: Session.shutdown
+2026-03-16T21:58:04.932Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: session_shutdown)
+2026-03-16T21:58:04.933Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: memory_usage)
+2026-03-16T21:58:04.934Z [DEBUG] [shutdown] Completed dispose: Session.shutdown (2ms)
+2026-03-16T21:58:04.934Z [DEBUG] [shutdown] Starting dispose: closeAllDatabases
+2026-03-16T21:58:04.934Z [DEBUG] [shutdown] Starting dispose: closeSessionStore
+2026-03-16T21:58:04.941Z [DEBUG] [shutdown] Starting dispose: seaInUseLockCleanup
+2026-03-16T21:58:04.941Z [DEBUG] [shutdown] Starting dispose: LSPClientFactory.shutdownAll
+2026-03-16T21:58:04.942Z [DEBUG] [shutdown] Starting dispose: _ye
+2026-03-16T21:58:04.942Z [DEBUG] [shutdown] Starting dispose: autoUpdate
+2026-03-16T21:58:04.942Z [DEBUG] [shutdown] Starting dispose: k5
+2026-03-16T21:58:04.942Z [DEBUG] [shutdown] Completed dispose: closeSessionStore (8ms)
+2026-03-16T21:58:04.943Z [DEBUG] [shutdown] Completed dispose: closeAllDatabases (9ms)
+2026-03-16T21:58:04.943Z [DEBUG] [shutdown] Completed dispose: autoUpdate (1ms)
+2026-03-16T21:58:04.943Z [DEBUG] [shutdown] Completed dispose: LSPClientFactory.shutdownAll (2ms)
+2026-03-16T21:58:04.944Z [DEBUG] [telemetry-queue] Flushing 11 events (23900 B → 2410 B gzipped)
+2026-03-16T21:58:04.947Z [DEBUG] [shutdown] Completed dispose: seaInUseLockCleanup (6ms)
+2026-03-16T21:58:04.947Z [DEBUG] [shutdown] Completed dispose: k5 (5ms)
+2026-03-16T21:58:04.961Z [DEBUG] [telemetry-queue] POST failed: TypeError: fetch failed
+2026-03-16T21:58:04.962Z [DEBUG] [shutdown] Completed dispose: _ye (20ms)
+2026-03-16T21:58:04.962Z [DEBUG] [shutdown] Starting dispose: logger
+2026-03-16T21:58:04.963Z [DEBUG] [shutdown] Completed dispose: logger (1ms)
+2026-03-16T21:58:04.963Z [DEBUG] [shutdown] Shutdown complete
