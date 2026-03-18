@@ -4,7 +4,7 @@ problem statement
 
 This repository describes and showcases a large language model (LLM) coordination architecture I use to manage long-horizon, self-converging, autonomous tasks.
 
-But primarily, it is here for me to attempt to formalize and formulate some kind of a framework for my thoughts and observations resulting from experimenting with and staring at LLM outputs for way longer than is likely healthy.
+But primarily, it is here for me to attempt to formalize and formulate some kind of a framework for my thoughts and observations resulting from experimenting with and staring at LLM outputs for likely way longer than healthy.
 
 A couple of definitions to get started:
 
@@ -39,9 +39,38 @@ Table of contents:
   - [Separating control flow from data flow](#separating-control-flow-from-data-flow)
     - [Iteration and self-convergence](#iteration-and-self-convergence)
     - [The manifest as audit trail and recovery point](#the-manifest-as-audit-trail-and-recovery-point)
-- [Generalizing to multiple nesting levels](#generalizing-to-multiple-nesting-levels)
+- [Generalizing to multiple nesting levels (the agent fractal)](#generalizing-to-multiple-nesting-levels-the-agent-fractal)
   - [Declarative versus imperative prompting](#declarative-versus-imperative-prompting)
-  - [Practical application](#practical-application)
+- [Intermediate artifacts as a method of coordination](#intermediate-artifacts-as-a-method-of-coordination)
+  - [JSON](#json)
+  - [SQL](#sql)
+  - [Alternatives](#alternatives)
+- [Long-horizon task decomposition](#long-horizon-task-decomposition)
+  - [Phase 1 - Problem/Task analysis](#phase-1---problemtask-analysis)
+    - [Prompt composition](#prompt-composition)
+    - [Artifacts](#artifacts)
+  - [Phase 2 - Invariant extraction](#phase-2---invariant-extraction)
+    - [Invariants](#invariants)
+    - [Prompt composition](#prompt-composition-1)
+    - [Artifacts](#artifacts-1)
+  - [Phase 3 - Planning](#phase-3---planning)
+    - [Prompt composition](#prompt-composition-2)
+    - [Artifacts](#artifacts-2)
+  - [Phase 4 - Execution loop](#phase-4---execution-loop)
+    - [Prompt composition](#prompt-composition-3)
+    - [Artifacts](#artifacts-3)
+  - [Phase 5 - Verification](#phase-5---verification)
+    - [Prompt composition](#prompt-composition-4)
+    - [Artifacts](#artifacts-4)
+  - [Phase 6 - Handoff](#phase-6---handoff)
+    - [Prompt composition](#prompt-composition-5)
+    - [Artifacts](#artifacts-5)
+  - [Phase 6.5 - Meta-knowledge synthesis and persistence](#phase-65---meta-knowledge-synthesis-and-persistence)
+    - [Prompt composition](#prompt-composition-6)
+    - [Artifacts](#artifacts-6)
+  - [Phase 0 - Meta-knowledge curation](#phase-0---meta-knowledge-curation)
+    - [Prompt composition](#prompt-composition-7)
+    - [Artifacts](#artifacts-7)
   - [Further generalization](#further-generalization)
 - [Remarks](#remarks)
   - [Routing tables](#routing-tables)
@@ -438,14 +467,14 @@ When the parent restarts, or when a new parent session is started for the same t
 
 The manifest also makes loop detection concrete. If the parent sees three consecutive coder entries all with `result: implemented` followed by reviewer entries with `result: needs-revision`, it has a clear signal that the loop is not converging. It can stop, escalate, or try a different approach. Without the manifest, that information would be scattered across a compacted conversation where half the iterations may have already been summarized away.
 
-# Generalizing to multiple nesting levels
+# Generalizing to multiple nesting levels (the agent fractal)
 
-Once the orchestrator-specialist pattern works at one level, the same idea generalizes naturally:
+Once the orchestrator-specialist pattern works at one level, the same idea generalizes naturally, each node in an agent-subagent system can become an orchestrator for its own sub-workflow. So, in a depth-3 workflow, you would end up with something like:
 
-- orchestrator
-- coordinator
-- subcoordinator
-- specialist
+- **orchestrator** -- top-level session that starts and manages the whole run
+- **coordinator** -- the high-level specialist
+- **subcoordinator** -- for when even more specificity is needed for complex domain solving
+- **specialist** -- the leaf agents producing artifacts and progressing overall pipeline state
 
 At each layer, the parent stays as pure as possible and the child layer absorbs the amount of domain detail appropriate to its scope. The deeper you go, the more concrete the work gets. The higher you stay, the more abstract and routing-oriented the reasoning gets.
 
@@ -457,72 +486,67 @@ That layered exposure is a form of progressive disclosure. Instead of giving one
 
 ## Declarative versus imperative prompting
 
-This architecture also shifts the prompting style.
+I'd like to revisit the concept of declarative vs. imperative prompting discussed in the introduction here and apply it within the context of the discussed agent-as-function approach.
 
-Imperative prompting tells an agent what exact sequence of actions to perform: read this file, inspect that module, write a plan, run this test, summarize the result. That works, but it is fragile. The parent prompt slowly turns into a script, and every extra responsibility increases the chance that the agent drops something during a long session.
+A quick refresher:
 
-Agent-as-function makes a more declarative style possible. Instead of encoding the entire procedure inside one prompt, the system describes the desired state transition for each role and relies on the workflow structure to provide the necessary inputs. The analyst is asked to produce an analysis artifact for this task. The planner is asked to turn that analysis into an executable task graph. The coder is asked to turn the current plan and latest review artifact into the next implementation attempt.
+- **Imperative prompting** tells an agent what exact sequence of actions to perform: read this file, inspect that module, write a plan, run this test, summarize the result. 
+  - Works, but weak to comapction events -> agent loses script, gets sidetracked, often needs human intervention to get on track
 
-So the prompt stops being a full script and starts looking more like a contract over state:
+- **Declarative prompting** encodes the desired system/artifact end state.
+  - Abstract, often results in meandering solutions that dont fully comply with desired end states.
+
+Under the agent-as-function architecture, this has interesting consequences for information propagataion and progressive disclosure. 
+
+As established, the top-level agent directing the entire workflow must remain pure and abstract. Usually, the only prompt it receives is a simple ***begin*** or ***continue*** -- the only information that is realistically encoded is the workflow state:
+
+- **begin** -- fresh workflow
+- **continue** -- in-progress, recovery from crash/interruption likely necessary
+
+And even then the agent still has a strict script to follow. More on that later.
+
+A single agent in the middle of a workflow pipeline receives instructions in the form:
 
 - given the current artifacts and task context
 - produce the next valid artifact and status signal
 - let the workflow decide what happens afterward
 
-That is a much better fit for autonomous systems. The control plane stays explicit, while the work plane stays local to the specialist actually doing the task.
+It then uses inputs from this intermediate state to inform its actions and produce the next set of artifacts.
 
-## Practical application
+To summarize: artifacts produced by upstream agents naturally turn into prompts for the downstream agents, slowly transforming abstract and declarative artifacts into more imperative, tanglible outputs.
 
-Agent-as-function is a way that helps me think about maintaining structure. It is a way to build a wall around the LLM random walk.
+Information and completness flows top down and downstream. From completely abstract to functionality indistinguishable from boots on the ground work.
 
-Current coding harnesses are already pretty strong ReAct environments. The bottleneck is usually not raw tool access. It is the instability introduced by large, noisy, long-lived contexts. Once too much stuff gets shoved into the same conversation, recall gets worse, compaction gets riskier, and each extra handoff becomes more lossy.
+![information flow](assets/agent-fractal.drawio.svg)
 
-By moving intermediate reasoning products out of the parent conversation and into artifacts, the system preserves more signal, reduces accidental coupling between phases, and makes the workflow much easier to inspect, retry, and extend.
-
-
+# Intermediate artifacts as a method of coordination
 
 
+Everything discussed so far, status files, manifests, analysis reports, task graphs, depends on picking a format that both the producing agent and the consuming agent can work with reliably. 
 
-determinism issues
+## JSON
 
-- mental model => building a wall to constraint the LLM random walk
+In practice that means JSON for anything structured and Markdown for anything prose-heavy. The reason JSON dominates the coordination layer is because LLMs are extraordinarily fluent in it. Current models can produce valid JSON on the first attempt almost every time, parse it back without errors, and reason over its contents with high fidelity. They can also generate one-off `jq` commands, node scripts, or python snippets to query, transform, or merge JSON files when needed, without being told how. Leveraging what the LLM is heavily proficient saves context space.
 
-- obvious approaches
+## SQL
 
-context window + compaction events
-- biggest contributors to nondeterminism, degraded output quality
-harness quality
-- prompts/instruction files/skills/agents (sub-system instructions)
+SQL databases are an interesting alternative that I have not tested. In principle, a relational store would give you simple, keyed access to things like task graphs, but thats not really anything JSON doesn't already provide. Also, unlike JSON, the internal structure must be queried, likely increasing overall toolcall roundtrips and eating into precious context window space.
 
-Multiagent workflows (within a single harness - copilot cli)
+## Alternatives
 
-coordinating agent->subagent workflows
+???
 
-context purity
+# Long-horizon task decomposition
 
-concept of orchestrator -> specialist
+In general 5-6 phases always, then add more phases depending on problem domain complxeity
 
-intermediate artifacts as a method of coordination
-- initial exploration
-- problem/task analysis
-- planning -> task graph (structured data - json/sql vs markdown)
+Docwriter breakdown (link to full fractal in repo):
 
+## Phase 1 - Problem/Task analysis
 
+`context.json`
 
-generalizations to multiple nesting levels
-
-- self-convergence
-
-- orchestrator -> coordinator -> subcoordinator -> specialist
-
-- pyramid of purity/abstraction
-    - pure router vs task-driven subagents
-    - progressive disclosure/problem domain exposure
-- declarative vs imperative prompting
-    - no read this, do that
-    - describe desired system state and let the workflow figure out the constraints itself
-
-Example of declarative prompting for a multiagent migration system.
+- declarative prompting
 
 ```json
 {
@@ -560,6 +584,56 @@ Example of declarative prompting for a multiagent migration system.
   ]
 }
 ```
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 2 - Invariant extraction
+
+### Invariants
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 3 - Planning
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 4 - Execution loop
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 5 - Verification
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 6 - Handoff
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 6.5 - Meta-knowledge synthesis and persistence
+
+### Prompt composition
+
+### Artifacts
+
+## Phase 0 - Meta-knowledge curation
+
+### Prompt composition
+
+### Artifacts
+
+
 
 fractal multiagent systems 
 

@@ -68,7 +68,7 @@ Use this template when designing the agent roster for a new fractal orchestrator
 - Run sequentially (semantics before dependencies)
 
 ### Planning Specialists (1–3 agents)
-- Slice planner: decomposes items into dependency-ordered execution units
+- Slice/task-graph planner: decomposes items into dependency-ordered execution units → writes `task-graph.json`. **Required** when Pass 3 is included.
 - Risk analyzer: assesses risk per slice across multiple categories
 - Slice planner runs before risk analyzer (risk needs slices to exist)
 

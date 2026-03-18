@@ -109,7 +109,7 @@ You NEVER do substantive work. You ONLY:
 The orchestrator additionally has:
 - **Pass routing table**: maps passes 1–7 to coordinators
 - **Re-entry rules**: how gap-hunting results trigger earlier passes
-- **Progress recomputation**: after each coordinator, recount items from artifacts
+- **Progress recomputation**: after each coordinator, derive counts from `task-graph.json.summary.byStatus` and update `progress.json.counts`
 
 ```markdown
 ## Pipeline Routing
@@ -125,28 +125,47 @@ The orchestrator additionally has:
 ## Progress Update (after each coordinator)
 
 Read the actual artifacts and recompute:
+- `counts.unitsPlanned` = `task-graph.json.summary.byStatus.planned`
+- `counts.unitsImplemented` = `task-graph.json.summary.byStatus.implemented + verified`
+- `counts.unitsVerified` = `task-graph.json.summary.byStatus.verified`
+- `counts.unitsBlocked` = `task-graph.json.summary.byStatus.blocked`
+- `counts.unitsFailedParity` = `task-graph.json.summary.byStatus.failed-parity`
 - `counts.itemsDiscovered` = count items in inventory
 - `counts.itemsAnalyzed` = count items with status "analyzed"
-- ... etc.
+
+## Human Feedback Check (after execution coordinator)
+
+After the execution coordinator completes a pass, check for `.<domain>/human-feedback.md`.
+If present: re-dispatch the planner with the feedback, then resume execution.
+Rename consumed file to `human-feedback-rev-{N}.md`.
 ```
 
 ### Execution Coordinator (loop router)
 
-The execution coordinator has the coder→reviewer loop:
+The execution coordinator has the coder→reviewer loop with task-graph-driven task selection:
 
 ```markdown
+## Task Selection
+
+Read `.<domain>/task-graph.json`. Select the next task where:
+1. `status` is `planned` OR `failed-parity`
+2. ALL tasks in `dependsOn` have `status: verified`
+3. If a dependency has `status: blocked`, cascade-block this task
+
+Among eligible tasks, select the one with the lowest `priority` value.
+
 ## Execution Loop
 
-For each slice in dependency order:
+For each eligible task from task-graph.json:
 
-1. **Dependency gate**: all slices in `dependsOn` must have `status: "verified"`
-2. **Dispatch coder** with slice ID
+1. **Dependency gate**: all slices in `dependsOn` must have `status: "verified"` (read from `task-graph.json`)
+2. **Dispatch coder** with slice ID, scope, acceptanceCriteria, invariants
 3. **Read reviewer result**:
-   - `approved` → dispatch test-writer, update slice to `implemented`
+   - `approved` → dispatch test-writer, update task to `verified` in `task-graph.json`
    - `rejected` AND `attempts < maxAttempts` → re-dispatch coder (increment attempt)
-   - `rejected` AND `attempts >= maxAttempts` → update slice to `blocked`
-4. Update `task-graph.json` with new slice status
-5. Continue to next slice
+   - `rejected` AND `attempts >= maxAttempts` → update task to `blocked`, cascade-block dependents
+4. Recompute `task-graph.json.summary.byStatus`
+5. Continue to next eligible task
 ```
 
 ### Discovery Specialist
@@ -164,6 +183,16 @@ Analysis specialists emphasize:
 - The exact schema of what they extract per item (invariants, rules, etc.)
 - Evidence requirements (must cite source code, not guess)
 - Status updates on the inventory (mark items as "analyzed")
+
+### Planner Specialist (Task Decomposition)
+
+Planner specialists transform analysis outputs into a task graph. They use the standard progressive disclosure pattern — shared `{namingPrefix}-specialists-workflow` skill with per-specialist reference files under `references/{planner-name}/`.
+
+5 workflow phases: enumerate → dependencies → invariants → criteria → validate.
+
+On re-dispatch (from gap hunting, verification, analysis re-entry, or human feedback), the planner reads the corresponding feedback artifact and adds/annotates tasks in the existing `task-graph.json`.
+
+Write Rules target `.<domain>/task-graph.json`.
 
 ### Execution Specialist (Coder)
 

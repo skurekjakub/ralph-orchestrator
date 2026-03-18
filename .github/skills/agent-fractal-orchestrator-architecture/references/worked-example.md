@@ -46,10 +46,10 @@ Discovery was split into 6 domain-specific scanners, each responsible for one fa
 
 | Agent | Purpose |
 |---|---|
-| `migration-slice-planner` | Decomposes analyzed features into dependency-ordered execution slices with inlined invariants |
+| `migration-slice-planner` | Decomposes analyzed features into dependency-ordered execution slices with inlined invariants → writes `task-graph.json` |
 | `migration-risk-analyzer` | Assesses per-slice risk across 6 categories with specific mitigations |
 
-**Output:** `task-graph.json` (slices) and `risk-register.json` (risks).
+**Output:** `task-graph.json` (dependency-ordered tasks with inlined invariants, scope, and acceptance criteria) and `risk-register.json` (risks).
 
 ### Pass 4: Execution → 3 Specialists (looping)
 
@@ -113,15 +113,20 @@ This makes re-entry safe: when the gap-hunter sends items back to Pass 2, the or
 
 ### Execution Coordinator — Dependency Gate
 
-Before dispatching the coder for a slice, the execution coordinator checks:
+Before dispatching the coder for a task, the execution coordinator reads `task-graph.json` and checks dependency readiness:
 ```
-for each sliceId in slice.dependsOn:
-  read task-graph entry for sliceId
-  if status != "verified":
-    skip this slice (try next one)
+for each task in task-graph.json where status == "planned" or "failed-parity":
+  for each depId in task.dependsOn:
+    read task-graph entry for depId
+    if status != "verified":
+      skip this task (try next one)
+    if status == "blocked":
+      cascade-block this task
+  if all deps verified:
+    select this task (lowest priority value wins)
 ```
 
-This ensures slices build on verified foundations. It also means the execution order adapts dynamically — if slice S-003 depends on S-001 and S-002, but S-002 is still in review, the coordinator processes other independent slices first.
+This ensures tasks build on verified foundations. It also means the execution order adapts dynamically — if task T-003 depends on T-001 and T-002, but T-002 is still in review, the coordinator processes other independent tasks first.
 
 ### Verification Coordinator — Dual Mode
 

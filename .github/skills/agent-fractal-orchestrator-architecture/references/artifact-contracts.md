@@ -12,7 +12,7 @@ Complete reference for the shared artifact system. Every fractal orchestrator sy
 ├── <inventory-file>.json            # Domain-specific inventory (discovery agents write)
 ├── <analysis-file>.json             # Deep analysis per item (analysis agents write)
 ├── <dependency-file>.json           # Relationship graph (dependency analyzer writes)
-├── <task-graph>.json                # Ordered execution slices (planner writes, execution updates)
+├── task-graph.json                  # Dependency-ordered execution tasks (planner writes, execution coordinator updates status). Schema: produced-task-graph.schema.md
 ├── <risk-register>.json             # Per-slice risks (risk analyzer writes)
 ├── <verification-matrix>.json       # Oracle results per slice (verification agents write)
 ├── agents/                          # Per-agent working directories
@@ -88,6 +88,12 @@ Managed exclusively by the session orchestrator. Provides at-a-glance pipeline s
 ```
 
 The orchestrator recomputes `counts` by reading the actual artifact files (inventory, task-graph, verification-matrix) — not by trusting agent summaries. This ensures consistency.
+
+- `counts.unitsPlanned` = `task-graph.json.summary.byStatus.planned`
+- `counts.unitsImplemented` = `task-graph.json.summary.byStatus.implemented + verified`
+- `counts.unitsVerified` = `task-graph.json.summary.byStatus.verified`
+- `counts.unitsBlocked` = `task-graph.json.summary.byStatus.blocked`
+- `counts.unitsFailedParity` = `task-graph.json.summary.byStatus.failed-parity`
 
 ## status.json (Universal Agent Status)
 

@@ -21,7 +21,7 @@ Pass 7: Delivery     — "Package it for the user"
 |---|---|
 | Discovery | Feature mappers per domain (UI, API, routes, data, jobs, config) |
 | Analysis | Semantics extractor (state transitions, invariants, error paths) + dependency analyzer |
-| Planning | Slice planner (feature→slice decomposition) + risk analyzer |
+| Planning | Slice planner (feature→slice decomposition into `task-graph.json`) + risk analyzer |
 | Execution | Coder → reviewer → test-writer loop |
 | Verification | Journey validator + contract validator + parity aggregator |
 | Gap Hunting | Adversarial search for missed features, uncovered invariants |
@@ -32,7 +32,7 @@ Pass 7: Delivery     — "Package it for the user"
 |---|---|
 | Discovery | Scanners per domain (auth, network, secrets, dependencies, compliance, data) |
 | Analysis | Threat modeler (attack vectors, severity, exploitability) |
-| Planning | Remediation planner (prioritized fix units) + risk scorer |
+| Planning | Remediation planner (prioritized fix units → `task-graph.json`) + risk scorer |
 | Execution | Fix implementer → security reviewer loop |
 | Verification | Exploit validator + regression tester |
 | Gap Hunting | Red team agent (adversarial search for bypasses, missed vectors) |
@@ -43,7 +43,7 @@ Pass 7: Delivery     — "Package it for the user"
 |---|---|
 | Discovery | Code scanner per layer (API, services, data, utilities) |
 | Analysis | Behavior extractor (inputs, outputs, error cases, edge cases per function) |
-| Planning | Test plan builder (coverage targets, priority order by risk/complexity) |
+| Planning | Test plan builder (coverage targets → `task-graph.json`, priority order by risk/complexity) |
 | Execution | Test writer → test verifier loop (run tests, check they pass/fail correctly) |
 | Verification | Coverage analyzer + mutation tester |
 | Gap Hunting | Uncovered path detector |
@@ -52,21 +52,23 @@ Pass 7: Delivery     — "Package it for the user"
 ### Documentation Overhaul
 | Pass | Mapping |
 |---|---|
-| Discovery | Content scanner per type (API docs, guides, READMEs, changelogs, comments) |
+| Discovery | Content scanner per type (API docs, guides, READMEs, changelogs, comments, even greenfield discovery projects) |
 | Analysis | Accuracy checker (match docs to actual code behavior) |
-| Planning | Rewrite planner (prioritized by staleness, importance, complexity) |
+| Planning | Rewrite planner (prioritized by staleness, importance, complexity → `task-graph.json`) |
 | Execution | Doc writer → accuracy reviewer loop |
 | Verification | Link checker + code-doc parity validator |
 | Gap Hunting | Undocumented feature scanner |
 | Delivery | Index/TOC generator + publishing-ready formatter |
 
+> **Note:** Every domain mapping example above includes Analysis. This is not coincidental — analysis is the pass that transforms shallow discovery output into deep behavioral understanding. Without it, planning operates on names rather than semantics. Even greenfield discovery proejcts must have thorough understanding of the initial material/domain driving them.
+
 ## Deciding Which Passes to Include
 
 **Always include:** 1 (Discovery), 4 (Execution), 7 (Delivery). These are the minimum viable pipeline.
 
-**Include 2 (Analysis) when:** The domain has behavioral rules, invariants, or semantics that must be extracted before planning. Skip when the domain is simple enough that discovery output is sufficient for planning.
+**Default-on (include unless explicitly justified):** 2 (Analysis). Nearly every domain works with existing material that has behavioral semantics worth extracting. Skip ONLY when: (a) the domain creates something entirely new with no existing source material to analyze, AND (b) the invariant extractor found fewer than 3 invariants. When skipping, the pipeline-architect must document the justification in `architecture.json` under `pipeline.analysisSkipJustification`.
 
-**Include 3 (Planning) when:** Execution units need dependency ordering, risk assessment, or decomposition beyond "do each item." Skip when items are independent and can be processed in any order.
+**Include 3 (Planning) when:** Execution units need dependency ordering, risk assessment, or decomposition beyond "do each item." The planner specialist decomposes analysis outputs into `task-graph.json` — a dependency-ordered set of execution tasks. Skip when items are independent and can be processed in any order.
 
 **Include 5 (Verification) when:** Correctness matters (code, security, contracts). Skip when the output is advisory (documentation, reports) and verification is just proofreading.
 
@@ -80,7 +82,7 @@ Group passes into coordinators by natural phase boundaries:
 |---|---|---|---|
 | Discovery Coordinator | Pass 1 | Always first | All domain mappers completed, inventory validated |
 | Planning Coordinator | Pass 2–3 | Discovery complete | Analysis complete, slices planned, risks assessed |
-| Execution Coordinator | Pass 4 | Planning complete | All slices implemented (or blocked) |
+| Execution Coordinator | Pass 4 | Planning complete | All tasks in `task-graph.json` verified (or blocked) |
 | Verification Coordinator | Pass 5–6 | Execution complete (per slice or batch) | All slices verified, gap hunting converged |
 | Delivery Coordinator | Pass 7 | Verification converged | Hardening + docs + handoff complete |
 
@@ -112,8 +114,8 @@ Orchestrator Re-Entry Logic:
 The execution coordinator runs a per-slice loop:
 
 ```
-for each slice in dependency order:
-  check dependency gate: all dependsOn slices must be "verified"
+for each task in task-graph.json by dependency order and priority:
+  check dependency gate: all dependsOn tasks must be "verified"
   
   attempt = 1
   loop:
@@ -121,16 +123,18 @@ for each slice in dependency order:
     dispatch reviewer(slice)
     if reviewer.result == "approved":
       dispatch test-writer(slice)    // optional
-      update slice.status = "implemented"
+      update task status in task-graph.json to "implemented" → "verified"
+      recompute task-graph.json summary
       break
     elif attempt >= maxAttempts:
-      update slice.status = "blocked"
+      update task status in task-graph.json to "blocked"
+      recompute task-graph.json summary
       break
     else:
       attempt++
       previousFeedback = reviewer.output
 ```
 
-**The dependency gate** ensures slices build on verified foundations. A slice with `dependsOn: ["S-001"]` cannot start until S-001 is `verified`.
+**The dependency gate** ensures tasks build on verified foundations. A task with `dependsOn: ["T-001"]` cannot start until T-001 is `verified`. The execution coordinator reads `task-graph.json` to select the next eligible task (status `planned` or `failed-parity`, all dependencies `verified`), using `priority` to break ties.
 
 **The reviewer role** is CRITICAL. The reviewer is not optional. Without it, coders produce work that looks correct in isolation but violates invariants, drifts from scope, or misses error paths. The reviewer's explicit invariant-by-invariant checklist catches these issues.
