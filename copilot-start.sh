@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- OpenTelemetry Configuration ---
+# export COPILOT_OTEL_ENABLED=true
+# export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
+# export COPILOT_OTEL_EXPORTER_TYPE="otlp-http"
+# export OTEL_SERVICE_NAME="github-copilot"
+# export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
+# export OTEL_LOG_LEVEL="DEBUG"
+export COPILOT_TASK_WAIT_TIMEOUT_SECONDS=360000
+export CONFIGURE_COPILOT_AGENT=true
+export COPILOT_SWE_AGENT_BACKGROUND_AGENTS=true
+export COPILOT_SWE_AGENT_PARALLEL_TASK_EXECUTION=false
+
 marker="===FACTORY DONE==="
 attempt=1
 
