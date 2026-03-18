@@ -114,6 +114,36 @@ describe("parseCliDebugTree", () => {
     expect(scout.endMs).toBeGreaterThan(0);
   });
 
+  it("keeps repeated agents as siblings in partial crashed logs", () => {
+    function makeUnclosedStart(ts: string, agentName: string) {
+      return [
+        makeLine(ts, "[DEBUG] kind: subagent_started"),
+        makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="m"`),
+      ].join("\n");
+    }
+
+    const log = [
+      makeLine("2026-01-01T00:00:00.000Z", "startup"),
+      makeUnclosedStart("2026-01-01T00:01:00.000Z", "ralph.coordinator"),
+      makeLine("2026-01-01T00:01:30.000Z", "[DEBUG] kind: assistant_usage"),
+      makeUnclosedStart("2026-01-01T00:02:00.000Z", "ralph.writer"),
+      makeLine("2026-01-01T00:02:30.000Z", "[DEBUG] kind: assistant_usage"),
+      makeUnclosedStart("2026-01-01T00:03:00.000Z", "ralph.reviewer"),
+      makeUnclosedStart("2026-01-01T00:04:00.000Z", "ralph.writer"),
+      makeLine("2026-01-01T00:05:00.000Z", "shutdown"),
+    ].join("\n");
+
+    const tree = parseCliDebugTree(log);
+    const coordinator = tree.root.children[0];
+
+    expect(coordinator.name).toBe("coordinator");
+    expect(coordinator.children).toHaveLength(2);
+    expect(coordinator.children.map((child) => child.name)).toEqual(["writer", "writer"]);
+    expect(coordinator.children[0].children).toHaveLength(1);
+    expect(coordinator.children[0].children[0].name).toBe("reviewer");
+    expect(coordinator.children[0].endMs).toBe(coordinator.children[1].startMs);
+  });
+
   it("returns empty tree for empty log", () => {
     const tree = parseCliDebugTree("");
     expect(tree.root.children).toHaveLength(0);
@@ -369,5 +399,44 @@ describe("attributeEntriesToTree", () => {
     // Event at 00:20 falls back to root since coordinator is unclosed
     expect(tree.root.contextWindowEntries).toHaveLength(1);
     expect(tree.root.contextWindowEntries[0].usedTokens).toBe(200);
+  });
+
+  it("attributes bounded partial-log telemetry to repeated nested agents", () => {
+    function makeUnclosedStart(ts: string, agentName: string) {
+      return [
+        makeLine(ts, "[DEBUG] kind: subagent_started"),
+        makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="m"`),
+      ].join("\n");
+    }
+
+    const log = [
+      makeLine("2026-01-01T00:00:00.000Z", "startup"),
+      makeUnclosedStart("2026-01-01T00:01:00.000Z", "ralph.coordinator"),
+      makeLine("2026-01-01T00:01:30.000Z", "[DEBUG] kind: assistant_usage"),
+      makeUnclosedStart("2026-01-01T00:02:00.000Z", "ralph.writer"),
+      makeLine("2026-01-01T00:02:30.000Z", "[DEBUG] kind: assistant_usage"),
+      makeUnclosedStart("2026-01-01T00:03:00.000Z", "ralph.reviewer"),
+      makeUnclosedStart("2026-01-01T00:04:00.000Z", "ralph.writer"),
+      makeLine("2026-01-01T00:05:00.000Z", "shutdown"),
+    ].join("\n");
+
+    const tree = parseCliDebugTree(log);
+    const coordinator = tree.root.children[0];
+    const [writer1, writer2] = coordinator.children;
+    const reviewer = writer1.children[0];
+
+    const usageEntries: AssistantUsageEntry[] = [
+      { tsMs: new Date("2026-01-01T00:01:30.000Z").getTime(), promptTokens: 10, completionTokens: 1, cachedTokens: 0, totalTokens: 11 },
+      { tsMs: new Date("2026-01-01T00:02:30.000Z").getTime(), promptTokens: 20, completionTokens: 2, cachedTokens: 0, totalTokens: 22 },
+      { tsMs: new Date("2026-01-01T00:03:30.000Z").getTime(), promptTokens: 30, completionTokens: 3, cachedTokens: 0, totalTokens: 33 },
+      { tsMs: new Date("2026-01-01T00:04:30.000Z").getTime(), promptTokens: 40, completionTokens: 4, cachedTokens: 0, totalTokens: 44 },
+    ];
+
+    attributeEntriesToTree(tree, [], usageEntries);
+
+    expect(coordinator.assistantUsageEntries).toHaveLength(1);
+    expect(writer1.assistantUsageEntries).toHaveLength(1);
+    expect(reviewer.assistantUsageEntries).toHaveLength(1);
+    expect(writer2.assistantUsageEntries).toHaveLength(1);
   });
 });

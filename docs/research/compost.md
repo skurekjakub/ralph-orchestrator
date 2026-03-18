@@ -1,0 +1,2 @@
+
+> Aside: Interestingly, imperative prompting also seems to override almost all pasisvity or reluctance imparted into agent systems via their agent and system prompts. Copilot agents, for example, can be very easily convinced to violate their agent-level directives with simple 

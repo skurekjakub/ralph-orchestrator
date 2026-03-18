@@ -9,6 +9,7 @@ export function parseCliDebugTree(content: string): ParsedTree {
   const lines = content.split("\n");
   let nodeCounter = 0;
   const invocationCounters = new Map<string, number>();
+  const lastInvocationByName = new Map<string, SubagentTreeNode>();
 
   const root: SubagentTreeNode = {
     id: `node-${nodeCounter++}`,
@@ -75,13 +76,10 @@ export function parseCliDebugTree(content: string): ParsedTree {
 
     if (subagentStarted.test(line)) {
       const timestamp = tsMatch?.[1] ?? "";
-      const parent = stack[stack.length - 1];
-      const depth = stack.length;
-
-      const node: SubagentTreeNode = {
+      const nextNode: SubagentTreeNode = {
         id: `node-${nodeCounter++}`,
-        depth,
-        parentId: parent.id,
+        depth: 0,
+        parentId: null,
         children: [],
         invocationIndex: 0,
         contextWindowEntries: [],
@@ -103,35 +101,44 @@ export function parseCliDebugTree(content: string): ParsedTree {
 
         const definitionMatch = ahead.match(agentDefModel);
         if (definitionMatch) {
-          node.fullName = definitionMatch[1];
-          node.name = definitionMatch[1].replace(/^[^.]+\./, "");
-          node.definitionModel = definitionMatch[2];
+          nextNode.fullName = definitionMatch[1];
+          nextNode.name = definitionMatch[1].replace(/^[^.]+\./, "");
+          nextNode.definitionModel = definitionMatch[2];
         }
 
         const finalMatch = ahead.match(agentFinalModel);
         if (finalMatch) {
-          if (!node.fullName) {
-            node.fullName = finalMatch[1];
-            node.name = finalMatch[1].replace(/^[^.]+\./, "");
+          if (!nextNode.fullName) {
+            nextNode.fullName = finalMatch[1];
+            nextNode.name = finalMatch[1].replace(/^[^.]+\./, "");
           }
-          node.resolvedModel = finalMatch[2];
+          nextNode.resolvedModel = finalMatch[2];
         }
 
         if (ahead.match(agentFallback)) {
-          node.didFallback = true;
+          nextNode.didFallback = true;
         }
 
         if (finalMatch) break;
       }
 
-      // Assign invocation index
-      const prevCount = invocationCounters.get(node.name) ?? 0;
-      node.invocationIndex = prevCount + 1;
-      invocationCounters.set(node.name, node.invocationIndex);
+      rewindStackForRepeatedInvocation(stack, nextNode, lastInvocationByName, timestamp, nextNode.startMs);
 
-      parent.children.push(node);
-      allNodes.push(node);
-      stack.push(node);
+      const parent = stack[stack.length - 1];
+      nextNode.parentId = parent.id;
+      nextNode.depth = stack.length;
+
+      // Assign invocation index
+      const prevCount = invocationCounters.get(nextNode.name) ?? 0;
+      nextNode.invocationIndex = prevCount + 1;
+      invocationCounters.set(nextNode.name, nextNode.invocationIndex);
+
+      parent.children.push(nextNode);
+      allNodes.push(nextNode);
+      stack.push(nextNode);
+      if (nextNode.fullName || nextNode.name) {
+        lastInvocationByName.set(nextNode.fullName || nextNode.name, nextNode);
+      }
       insideToolCallsArray = false;
       pendingFunctionBlock = false;
       pendingToolCall = null;
@@ -243,8 +250,9 @@ export function parseCliDebugTree(content: string): ParsedTree {
     root.durationMs = root.endMs - root.startMs;
   }
 
-  reparentUnclosedSpans({ root, allNodes }, unclosedIds);
+  reparentStaleUnclosedSpans({ root, allNodes }, unclosedIds);
   flattenParallelDispatches({ root, allNodes });
+  inferUnclosedSpanBounds(root, root.endMs);
 
   return { root, allNodes };
 }
@@ -254,7 +262,7 @@ export function parseCliDebugTree(content: string): ParsedTree {
  * grandparent. Unclosed spans stay on the stack for the rest of the run,
  * causing all subsequent dispatches to appear falsely nested under them.
  */
-function reparentUnclosedSpans(tree: ParsedTree, unclosedIds: Set<string>): void {
+function reparentStaleUnclosedSpans(tree: ParsedTree, unclosedIds: Set<string>): void {
   if (unclosedIds.size === 0) return;
 
   const nodeMap = new Map<string, SubagentTreeNode>();
@@ -269,6 +277,7 @@ function reparentUnclosedSpans(tree: ParsedTree, unclosedIds: Set<string>): void
     if (node.children.length === 0) continue;
     const parent = node.parentId ? nodeMap.get(node.parentId) : null;
     if (!parent) continue;
+    if (!isStaleUnclosedShell(node)) continue;
 
     // Move all children up to the grandparent
     for (const child of node.children) {
@@ -286,6 +295,62 @@ function reparentUnclosedSpans(tree: ParsedTree, unclosedIds: Set<string>): void
       node.children.sort((a, b) => a.startMs - b.startMs);
     }
   }
+}
+
+function isStaleUnclosedShell(node: SubagentTreeNode): boolean {
+  return node.toolCallCount === 0 && node.modelCallCount === 0 && node.toolCalls.length === 0;
+}
+
+function rewindStackForRepeatedInvocation(
+  stack: SubagentTreeNode[],
+  node: SubagentTreeNode,
+  lastInvocationByName: Map<string, SubagentTreeNode>,
+  boundaryTs: string,
+  boundaryMs: number,
+): void {
+  const lookupKey = node.fullName || node.name;
+  if (!lookupKey) return;
+
+  const previous = lastInvocationByName.get(lookupKey);
+  if (!previous?.parentId) return;
+
+  const parentIndex = stack.findIndex((entry) => entry.id === previous.parentId);
+  if (parentIndex === -1) return;
+
+  while (stack.length - 1 > parentIndex) {
+    const closingNode = stack.pop();
+    if (!closingNode || closingNode === stack[0] || closingNode.endMs) continue;
+    closingNode.endTs = boundaryTs;
+    closingNode.endMs = boundaryMs;
+    if (closingNode.startMs) {
+      closingNode.durationMs = boundaryMs - closingNode.startMs;
+    }
+  }
+}
+
+function inferUnclosedSpanBounds(node: SubagentTreeNode, inheritedEndMs?: number): number {
+  const sortedChildren = [...node.children].sort((a, b) => a.startMs - b.startMs);
+  let latestChildEnd = node.startMs;
+
+  for (let childIndex = 0; childIndex < sortedChildren.length; childIndex++) {
+    const child = sortedChildren[childIndex];
+    const nextSibling = sortedChildren[childIndex + 1];
+    const childEnd = inferUnclosedSpanBounds(child, nextSibling?.startMs ?? inheritedEndMs);
+    if (childEnd > latestChildEnd) {
+      latestChildEnd = childEnd;
+    }
+  }
+
+  const fallbackEnd = inheritedEndMs ?? node.endMs ?? latestChildEnd;
+  const boundedEnd = Math.max(node.startMs, latestChildEnd, fallbackEnd);
+
+  if (node.unclosed) {
+    node.endMs = boundedEnd;
+    node.endTs = new Date(boundedEnd).toISOString();
+    node.durationMs = boundedEnd - node.startMs;
+  }
+
+  return node.endMs ?? node.startMs;
 }
 
 /**
@@ -395,7 +460,7 @@ export function attributeEntriesToTree(
   function findDeepestOwner(tsMs: number): SubagentTreeNode {
     let best = tree.root;
     for (const node of tree.allNodes) {
-      if (node === tree.root || node.unclosed) continue;
+      if (node === tree.root) continue;
       if (tsMs >= node.startMs && (node.endMs == null || tsMs <= node.endMs)) {
         if (node.depth > best.depth) best = node;
       }
