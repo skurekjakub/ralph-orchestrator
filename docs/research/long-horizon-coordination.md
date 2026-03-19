@@ -81,9 +81,12 @@ Table of contents:
   - [Phase 0 - Meta-knowledge curation](#phase-0---meta-knowledge-curation)
     - [Prompt composition](#prompt-composition-7)
     - [Artifacts](#artifacts-7)
-- [Prompt engineering](#prompt-engineering)
+- [Context engineering](#context-engineering)
   - [Prompt guards](#prompt-guards)
   - [Further generalization](#further-generalization)
+- [Case studies](#case-studies)
+  - [Docwriter](#docwriter)
+    - [Meta-knowledge extraction and application](#meta-knowledge-extraction-and-application)
 - [Remarks](#remarks)
   - [Routing tables](#routing-tables)
     - [Transition functions as routers](#transition-functions-as-routers)
@@ -695,7 +698,7 @@ Docwriter breakdown (link to full fractal in repo):
 
 ### Artifacts
 
-# Prompt engineering
+# Context engineering
 
 ## Prompt guards
 
@@ -707,6 +710,41 @@ This is where the fractal part of the name finally shows up. Take any single fra
 ![Fractal orchestration](assets/over-orch.drawio.svg)
 
 At this point, the only thing you are realistically bounded by are invocation cost and available hardware. Every decomposable workflow can be emulated using this architecture, provided the input/output contract between the fractal families is well-curated and structured.
+
+# Case studies
+
+## Docwriter
+
+### Meta-knowledge extraction and application
+
+```json
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "title": "Focused single-persona developer update pages achieve first-attempt acceptance",
+      "insight": "3/3 first-attempt successes share: action=update, contentType=howto, targetPersonas=[developer], estimatedComplexity=medium. Average invariants applied: 5.7. Confirmed across 3 pipeline runs with 80% acceptance rate when applied.",
+      "applicability": "The new role expiration page targets developers. Structure it as a focused single-persona how-to. When updating existing content query pages, these are developer-targeted updates that fit this pattern perfectly — expect high first-attempt rates.",
+      "invariantsReferenced": [],
+      "confidence": "medium",
+      "relevanceScore": 0.70,
+      "sourceTask": "TASK-004, TASK-008, TASK-006",
+      "usageCount": 7,
+      "consumers": ["task-planner", "content-writer"]
+    },
+    {
+      "id": "PAT-002",
+      "title": "High invariant count correlates with first-attempt success for update tasks",
+      "insight": "First-attempt tasks averaged 13.1 invariants vs multi-cycle tasks 6.7. The 3 highest invariant counts (18-29 invariants) all achieved first-attempt acceptance. Promoted to HIGH confidence across 3 pipeline runs.",
+      "applicability": "Apply maximum relevant invariants upfront to both the new role expiration page and content query updates. Don't rely on reviewer feedback — front-load invariant application.",
+      "invariantsReferenced": [],
+      "confidence": "high",
+      "relevanceScore": 0.72,
+      "sourceTask": "TASK-010, TASK-008, T-007",
+      "usageCount": 3,
+      "consumers": ["task-planner", "content-writer"]
+    },
+  ]
+```
 
 # Remarks
 

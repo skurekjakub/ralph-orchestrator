@@ -25,6 +25,15 @@ When a sync `task` call times out (after 300s) and you must poll with `read_agen
 - **Use `since_turn` after the first poll** to skip already-seen output.
 - **Only produce text after the agent completes** (terminal status: completed/blocked/failed).
 
+For example, enter a polling while loop with at least a sleep 600 until the agent completes. do not check every minute or two.
+
+or use
+
+```bash
+Wait for subagent finish
+sleep 600
+```
+
 ## Termination rules
 
 After the delivery phase finishes, print out any pertinent ending information and finish with the following block:
