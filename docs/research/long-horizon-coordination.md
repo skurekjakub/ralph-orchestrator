@@ -40,12 +40,22 @@ Table of contents:
     - [Iteration and self-convergence](#iteration-and-self-convergence)
     - [The manifest as audit trail and recovery point](#the-manifest-as-audit-trail-and-recovery-point)
 - [Generalizing to multiple nesting levels (the agent fractal)](#generalizing-to-multiple-nesting-levels-the-agent-fractal)
-  - [Declarative versus imperative prompting](#declarative-versus-imperative-prompting)
+- [Declarative versus imperative prompting in autonomous systems](#declarative-versus-imperative-prompting-in-autonomous-systems)
 - [Intermediate artifacts as a method of coordination](#intermediate-artifacts-as-a-method-of-coordination)
-  - [JSON](#json)
-  - [SQL](#sql)
+  - [Inputs](#inputs)
+  - [Intermediate steps](#intermediate-steps)
+    - [Initial discovery](#initial-discovery)
+    - [Invariant extraction](#invariant-extraction)
+    - [Task composition](#task-composition)
+    - [Work](#work)
+    - [Verification](#verification)
+  - [Output artifacts](#output-artifacts)
+  - [Data representation](#data-representation)
+    - [Markdown](#markdown)
+    - [JSON](#json)
+    - [SQL](#sql)
   - [Alternatives](#alternatives)
-- [Long-horizon task decomposition](#long-horizon-task-decomposition)
+- [Long-horizon autonomous system decomposition](#long-horizon-autonomous-system-decomposition)
   - [Phase 1 - Problem/Task analysis](#phase-1---problemtask-analysis)
     - [Prompt composition](#prompt-composition)
     - [Artifacts](#artifacts)
@@ -71,9 +81,18 @@ Table of contents:
   - [Phase 0 - Meta-knowledge curation](#phase-0---meta-knowledge-curation)
     - [Prompt composition](#prompt-composition-7)
     - [Artifacts](#artifacts-7)
+- [Prompt engineering](#prompt-engineering)
+  - [Prompt guards](#prompt-guards)
   - [Further generalization](#further-generalization)
 - [Remarks](#remarks)
   - [Routing tables](#routing-tables)
+    - [Transition functions as routers](#transition-functions-as-routers)
+    - [Extended finite state machines](#extended-finite-state-machines)
+    - [Statecharts](#statecharts)
+    - [Practical representation](#practical-representation)
+  - [You don't actually need nested agents](#you-dont-actually-need-nested-agents)
+    - [The alternative: flattening the hierarchy](#the-alternative-flattening-the-hierarchy)
+    - [The spectrum](#the-spectrum)
 
 
 # Primary constraints and assumptions
@@ -484,9 +503,9 @@ At the top, the session orchestrator should know almost nothing about the task d
 
 That layered exposure is a form of progressive disclosure. Instead of giving one agent the whole problem and asking it to hold every constraint in its head for hours, and run against the ever present nemesis of context compaction, the system reveals only the amount of problem space that each layer actually needs.
 
-## Declarative versus imperative prompting
+# Declarative versus imperative prompting in autonomous systems
 
-I'd like to revisit the concept of declarative vs. imperative prompting discussed in the introduction here and apply it within the context of the discussed agent-as-function approach.
+I'd like to revisit the concept of declarative vs. imperative prompting discussed in the introduction here and apply it within the context of the discussed agent-as-function framework.
 
 A quick refresher:
 
@@ -496,7 +515,13 @@ A quick refresher:
 - **Declarative prompting** encodes the desired system/artifact end state.
   - Abstract, often results in meandering solutions that dont fully comply with desired end states.
 
-Under the agent-as-function architecture, this has interesting consequences for information propagataion and progressive disclosure. 
+The interesting observation here is that for complex tasks, you need to combine both approaches - a research session to plan the path, then a transition to an imperative step-by-step sequence for the actual implementation. 
+
+With human-in-the-loop, this is trivial. You plan the workflow, output some intermediate artifacts -- plan files, task graphs, what have you -- and then switch your prompting style inside a fresh agent context.
+
+Autonomous systems, on the other hand, need to gradually and fully independently transition from a discovery and path planning loop to a task-based implementation process that respects domain complexity and external + internal constratints (style guides, requriements, security policies).
+
+Under the *agent-as-function* architecture, this has interesting consequences for information propagataion and progressive disclosure. 
 
 As established, the top-level agent directing the entire workflow must remain pure and abstract. Usually, the only prompt it receives is a simple ***begin*** or ***continue*** -- the only information that is realistically encoded is the workflow state:
 
@@ -521,14 +546,51 @@ Information and completness flows top down and downstream. From completely abstr
 
 # Intermediate artifacts as a method of coordination
 
+As established in the previous section, autonomous systems need to transition from planning to implementation while respecting inherent task and domain scoped constraints.
 
-Everything discussed so far, status files, manifests, analysis reports, task graphs, depends on picking a format that both the producing agent and the consuming agent can work with reliably. 
+Let's break down how systems under agent-as-function get there.
 
-## JSON
+## Inputs
+
+- task description
+- constrains
+  - domain-scoped
+  - task-scoped
+- environment/external constraints
+  - security policies
+  - style guides
+  - workflow ceremonies (version bumps, changelog updates, database migrations) 
+
+## Intermediate steps
+
+### Initial discovery
+
+- derive domain ontology
+- derive task ontology
+- derive environment ontology
+- persist for future runs
+
+### Invariant extraction
+
+### Task composition
+
+### Work
+
+### Verification
+
+## Output artifacts
+
+- targeted changes satisfying the domain, scope, and a union of all constraints
+
+## Data representation
+
+### Markdown
+
+### JSON
 
 In practice that means JSON for anything structured and Markdown for anything prose-heavy. The reason JSON dominates the coordination layer is because LLMs are extraordinarily fluent in it. Current models can produce valid JSON on the first attempt almost every time, parse it back without errors, and reason over its contents with high fidelity. They can also generate one-off `jq` commands, node scripts, or python snippets to query, transform, or merge JSON files when needed, without being told how. Leveraging what the LLM is heavily proficient saves context space.
 
-## SQL
+### SQL
 
 SQL databases are an interesting alternative that I have not tested. In principle, a relational store would give you simple, keyed access to things like task graphs, but thats not really anything JSON doesn't already provide. Also, unlike JSON, the internal structure must be queried, likely increasing overall toolcall roundtrips and eating into precious context window space.
 
@@ -536,7 +598,7 @@ SQL databases are an interesting alternative that I have not tested. In principl
 
 ???
 
-# Long-horizon task decomposition
+# Long-horizon autonomous system decomposition
 
 In general 5-6 phases always, then add more phases depending on problem domain complxeity
 
@@ -633,13 +695,10 @@ Docwriter breakdown (link to full fractal in repo):
 
 ### Artifacts
 
+# Prompt engineering
 
+## Prompt guards
 
-fractal multiagent systems 
-
-- progressive disclosure
-
-- 
 
 ## Further generalization
 
@@ -676,3 +735,119 @@ Orchestrators, coordinators, and subcoordinators in this architectural demo use 
 Since LLMs are overall well-grounded in markdown-based content, this is not that big of an issue, but I would like to experiment with a more formalized way of integrating these systems together. Maybe something like a transition functions from formal language theory?
 
 What you probably don't want to in this case is introduce a completely novel concept that the LLM would need to waste thinking time and tokens to understand (possibly extending the entire workflow by hours in complex systems, and costing more overall). Rather, take the most compact method which the LLMs is familiar with to a sufficient degree from its training data, and use that.
+
+### Transition functions as routers
+
+Instead of tables, we can define a FSM transition function:
+
+**δ: S × Σ → S**
+
+Where **S** is the set of agent phases `{analyst, planner, coder, reviewer, scribe, done, blocked}` and **Σ** is the set of result codes `{analyzed, planned, implemented, needs-revision, approved, rejected, failed, blocked, ...}`.
+
+The manifest is the execution trace — the sequence of (state, input) pairs the machine has consumed so far. The deterministic loop from the section below is literally an FSM interpreter: read the last state, read the input, look up the transition, move.
+
+A plain FSM covers roughly 80% of the routing behavior in these workflows. But some things hide more compelxity that requires us to track more than just single state:
+
+**1. Bounded iteration.** "Dispatch coder again, up to 3 retries" requires counting. A pure FSM has no variables. You can work around this by exploding the state space — `coder_attempt_1`, `coder_attempt_2`, `coder_attempt_3` — which is technically valid because the bounds are finite and small. But it makes the routing table combinatorially larger and harder to read. For a workflow with three retryable phases each allowing three attempts, you go from maybe fifteen rows to forty-five.
+
+**2. Aggregate predicates.** "All slices verified or blocked" is not a predicate over the current state. It requires inspecting the status of N independent sub-workflows simultaneously. A single-tape FSM operating on one current state has no mechanism for this. You need either orthogonal regions (parallel state machines running concurrently) or an external check that collapses the parallel results into a single input symbol before the transition fires.
+
+**3. History-dependent predicates.** Detecting "three consecutive coder→reviewer cycles without convergence" is a predicate over the trace, not the current state. The FSM only knows where it is now. It cannot inspect where it has been unless that history is encoded into the state itself, which again explodes the state space.
+
+### Extended finite state machines
+
+The natural next step is an **extended finite state machine (EFSM)**, which adds guard predicates and variables to each transition:
+
+**δ: S × Σ × G → S × A**
+
+But statecharts feel even better.
+
+### Statecharts
+
+If you push the formalism further, statecharts (Harel, 1987) are the exact model that maps onto the full fractal architecture. They add three constructs on top of EFSM that correspond directly to patterns already present in the essay:
+
+| Statechart construct | Workflow equivalent |
+|---|---|
+| **Hierarchical (nested) states** | A coordinator is a composite state: from the parent's perspective it is one state (`planning`), but internally it decomposes into its own sub-machine (`pass-2 → pass-3 → planned`) |
+| **Orthogonal regions** | Parallel slice execution — each slice runs as an independent concurrent region within a composite `execution` state |
+| **History pseudo-states** | Crash recovery via manifest — re-entering a composite state at the last active sub-state rather than restarting from its initial state |
+
+A fractal workflow with three nesting levels is a statechart with three levels of state hierarchy. The manifest records which sub-state each level was in when it last completed or was interrupted. The deterministic program interpreting the manifest is a statechart runtime.
+
+### Practical representation
+
+The question is not whether statecharts are the right formalism — they are. The question is whether LLMs can consume statechart notation without burning tokens trying to understand it.
+
+Raw SCXML or statechart JSON schemas are probably too unfamiliar. Most models have seen them in training data, but not frequently enough to parse them fluently in a high-stakes autonomous workflow. The token cost of the LLM reasoning about the notation itself, rather than the workflow it describes, could easily exceed the cost of just using a longer but simpler representation.
+
+The practical answer is a **guarded markdown transition table**. It is an EFSM transition table in a format the LLM already knows how to read:
+
+```md
+| State | Input | Guard | Next | Action |
+|---|---|---|---|---|
+| coder | `failed` | retries < 3 | coder | retries++ |
+| coder | `failed` | retries >= 3 | blocked | escalate |
+| reviewer | `needs-revision` | iterations < 5 | coder | iterations++ |
+| reviewer | `needs-revision` | iterations >= 5 | blocked | escalate |
+| reviewer | `approved` | — | scribe | — |
+| slice-batch | * | all_verified | delivery | — |
+| slice-batch | * | any_blocked | blocked | — |
+```
+
+This is formally an EFSM. It is also just a markdown table with two extra columns. The LLM does not need to know what an EFSM is to follow it. It reads the state, checks the guard, and dispatches. The formal model gives you the ability to reason about completeness (are all state-input-guard combinations covered?), reachability (can every state be reached?), and termination (do all paths eventually reach `done` or `blocked`?). The markdown surface keeps it cheap to consume.
+
+For the deterministic loop variant, the transition table can be encoded directly as a JSON lookup with guard functions, and the program evaluates it mechanically. For the LLM orchestrator variant, the same table lives in the prompt as markdown, and the LLM interprets it the same way it would interpret any other routing table — just with an extra column to check.
+
+## You don't actually need nested agents
+
+There is a realization hiding in the agent-as-function pattern that is easy to miss when first thinking about fractal nesting and multi-level hierarchies. Once the manifest exists as an external, persistent record of the workflow callstack, the entire multi-depth agent tree collapses into something much simpler: a deterministic program and a series of single-agent invocations.
+
+Consider what the orchestrator actually does at any given moment. It reads the manifest, finds the last completed entry, looks up the result code in a routing table, and dispatches the next agent. That is not reasoning. That is a lookup. There is no interpretation, no summarization, no judgment call that requires an LLM. It is a conditional branch: given this result, run that agent next.
+
+So the orchestrator does not need to be an agent at all.
+
+Replace it with a plain program. A shell script, a Node process, a Python loop, whatever. The program reads `manifest.json`, checks the last entry's `result` field against a routing table (which can be a simple JSON map or a switch statement), assembles the next agent's prompt from the appropriate template and artifact paths, and invokes a fresh agent session. When that session finishes and writes its `status.json`, the program appends to the manifest and loops.
+
+```
+while not done:
+    last = manifest[-1]
+    next_agent, next_config = routing_table[last.agent][last.result]
+    prompt = render_template(next_agent, task_artifacts)
+    invoke_agent(prompt)          # fresh context, clean session
+    entry = read_status(next_agent)
+    manifest.append(entry)
+```
+
+Every single agent invocation starts with a completely clean context window. There is no parent context to degrade. There is no compaction. There is no accumulated history of previous phases leaking into the current one. The manifest on disk is the only thing that connects one invocation to the next, and the deterministic program is the only thing that reads it for routing purposes.
+
+This is the logical endpoint of context purity taken seriously. If the orchestrator's context is supposed to carry nothing but dispatch-and-route signals, and the routing logic is a deterministic table lookup, then there is no reason for the orchestrator to be an LLM at all. The LLM adds nothing to a decision that is already fully determined by the routing table and the last status code.
+
+What you lose is flexibility at the routing layer. An LLM orchestrator can improvise. If an unexpected result comes back, it can reason about what to do. A deterministic program either has a branch for that case or it does not. In practice this is less of a limitation than it sounds, because any result code you did not anticipate in your routing table is almost certainly something that should halt the workflow and escalate to a human anyway. Hardcoding an `else → stop and report` default covers that.
+
+What you gain is total immunity to the failure mode that motivates this entire essay. The coordinator cannot drift, cannot forget the plan, cannot get sidetracked, cannot lose track of which phase it is in, because it is not an LLM. It is a loop with a lookup table. The only components that carry LLM risk are the leaf agents, and each of those operates in a single bounded session with a clean context, scoped inputs, and a well-defined output contract.
+
+The manifest becomes the callstack of the entire workflow, and the deterministic program becomes the runtime that interprets it.
+
+### The alternative: flattening the hierarchy
+
+There is a second, less radical simplification worth considering. Instead of replacing the orchestrator with a deterministic program, keep it as an LLM agent but collapse the entire depth hierarchy into a flat two-level structure: one orchestrator, many specialists. No coordinators, no subcoordinators, no intermediate layers. Just the top-level agent dispatching leaf agents directly.
+
+This works when the problem decomposes cleanly into independent or loosely-ordered phases. The orchestrator still reads status files, still routes on result codes, and still never touches artifact content. The difference is that instead of dispatching a coordinator that in turn dispatches specialists, the orchestrator dispatches the specialists itself. The routing table gets wider (more entries) but the dispatch depth stays at one.
+
+The cost is the one the context purity argument predicts. A two-level orchestrator managing, say, fifteen specialist phases accumulates fifteen status return lines instead of four or five coordinator returns. That is still far less context pressure than the naive model where every subagent dumps its full output back into the parent. But if the workflow is complex enough -- dozens of phases, multiple iteration loops, branching paths -- the orchestrator's context eventually starts resembling the problem it was designed to avoid. Not because it is carrying data, but because it is carrying enough routing history that compaction events start eating into earlier dispatch records.
+
+There is also a subtler loss. The intermediate coordinator layer is not just a routing relay. In complex workflows, a coordinator can carry domain-scoped context that its parent should not see. A planning coordinator, for example, might track which planning passes have run, which constraints were tightened, and which tasks were split, all within its own bounded session. Flattening that into the top-level orchestrator means the orchestrator now has to track planning-internal state alongside execution-internal state alongside verification-internal state. The responsibilities start merging again.
+
+So the flat hierarchy trades structural depth for operational simplicity. It is the right call when the number of phases is small enough that the orchestrator's context stays clean across the full run. It becomes the wrong call when the workflow's internal branching and iteration complexity would re-create the exact context pressure problem at the orchestrator level.
+
+### The spectrum
+
+These are not three competing architectures. They are points on a spectrum of how much LLM reasoning you actually need at the coordination layer:
+
+| Approach | Coordinator is | Context cost | Flexibility | Best for |
+|---|---|---|---|---|
+| Deterministic loop + manifest | A program | Zero | Routing table only | Well-understood, stable workflows |
+| Flat orchestrator + specialists | One LLM agent | Low-moderate | Can improvise routing | Moderate complexity, few iteration loops |
+| Fractal hierarchy | Multiple LLM agents at different depths | Lowest per-agent | Full domain-scoped reasoning at each layer | High complexity, deep iteration, heterogeneous sub-workflows |
+
+The fractal hierarchy is the most general. The deterministic loop is the most robust. The flat orchestrator is the pragmatic middle ground. In practice, most workflows probably start as a deterministic loop, grow into a flat orchestrator when edge cases demand routing judgment, and only reach the fractal hierarchy when the problem domain genuinely requires domain-scoped reasoning at intermediate coordination layers.
