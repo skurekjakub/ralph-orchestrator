@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # --- OpenTelemetry Configuration ---
 # export COPILOT_OTEL_ENABLED=true
@@ -16,49 +16,57 @@ export COPILOT_LARGE_OUTPUT_MAX_BYTES=104857600
 export COPILOT_BUFFER_EXHAUSTION_THRESHOLD=0.99
 export COPILOT_LARGE_OUTPUT_THRESHOLD_BYTES=204800
 
-marker="===FACTORY DONE==="
-attempt=1
+# --- Ensure log directory exists ---
+mkdir -p /workspace/logs
 
-mkdir -p "./logs"
+DONE_MARKER="===WRITER DONE==="
+AGENT_NAME="docwriter"
+AGENT_FILE="/workspace/.github/agents/${AGENT_NAME}.agent.md"
 
-has_marker() {
-  local needle="$1"
-  local file_path="$2"
+# --- Pre-flight: validate agent file and stop marker ---
+if [[ ! -f "$AGENT_FILE" ]]; then
+  echo "ERROR: Agent file not found: ${AGENT_FILE}" >&2
+  exit 1
+fi
 
-  if command -v rg >/dev/null 2>&1; then
-    rg -Fq "$needle" "$file_path"
-    return $?
-  fi
+if ! grep -qF "$DONE_MARKER" "$AGENT_FILE"; then
+  echo "ERROR: Stop marker '${DONE_MARKER}' not found in ${AGENT_FILE}" >&2
+  exit 1
+fi
 
-  grep -Fq "$needle" "$file_path"
-}
+echo "[$(date)] Pre-flight OK: agent '${AGENT_NAME}' contains stop marker."
 
 while true; do
-  attempt_log="./logs/factory-attempt-${attempt}.log"
-  attempt_share="./logs/share-attempt-${attempt}.md"
+  TIMESTAMP=$(date +%s)
+  LOG_DIR="/workspace/logs"
+  LOG_FILE="${LOG_DIR}/copilot_${TIMESTAMP}.log"
+  SHARE_FILE="${LOG_DIR}/share_${TIMESTAMP}.md"
 
-  echo "[copilot-start] attempt ${attempt}: launching fractal-factory"
+  echo "[$(date)] Starting copilot run (log: ${LOG_FILE})"
 
-  set +e
+  # --- Launch Copilot, tee output to timestamped log ---
   copilot \
     --yolo \
-    --agent "f+ractal-factory" \
+    --agent "docwriter" \
     --log-level "debug" \
-    --log-dir "./logs/" \
-    --share "${attempt_share}" \
+    --log-dir "${LOG_DIR}/" \
+    --share "${SHARE_FILE}" \
     --experimental \
-    -p "begin" \
-    2>&1 | tee "${attempt_log}"
-  copilot_exit=${PIPESTATUS[0]}
-  set -e
+    -p "begin" 2>&1 | tee "${LOG_FILE}"
 
-  if has_marker "${marker}" "${attempt_log}"; then
-    cp "${attempt_share}" "./logs/share.md"
-    echo "[copilot-start] completion marker detected on attempt ${attempt}"
+  EXIT_CODE=${PIPESTATUS[0]}
+
+  # --- Check for done marker in output ---
+  if grep -qF "${DONE_MARKER}" "${LOG_FILE}"; then
+    echo "[$(date)] Found '${DONE_MARKER}' in output. Exiting."
     exit 0
   fi
 
-  echo "[copilot-start] attempt ${attempt} exited with code ${copilot_exit} without ${marker}; restarting"
-  attempt=$((attempt + 1))
-  sleep 1
+  if [[ ${EXIT_CODE} -ne 0 ]]; then
+    echo "[$(date)] Copilot exited with code ${EXIT_CODE}. Restarting in 5s..."
+    sleep 5
+  else
+    echo "[$(date)] Copilot exited cleanly without done marker. Restarting in 2s..."
+    sleep 2
+  fi
 done
