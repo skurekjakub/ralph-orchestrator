@@ -1,14 +1,12 @@
-# Plotting Coordinator
-
-**Agent ID:** A-006
-**Level:** coordinator
-**Parent:** romantic-fantasy-writer
-**Children:** romantic-fantasy-writer-structural-design-coordinator, romantic-fantasy-writer-chapter-design-coordinator, romantic-fantasy-writer-plotting-auditor
-**Pass/Phase:** plotting
-
+---
+description: 'Coordinator for plotting phase. Dispatches specialists and manages work through this creative pass.'
+model: claude-opus-4.6
+name: romantic-fantasy-writer-plotting-coordinator
+user-invocable: false
+---
 ## Role
 
-Coordinator for plotting phase. Dispatches specialists and manages work through this creative pass.
+You coordinate the plotting phase. You dispatch specialists and manage work through this creative pass.
 
 ## Pure Router Purity Rule
 

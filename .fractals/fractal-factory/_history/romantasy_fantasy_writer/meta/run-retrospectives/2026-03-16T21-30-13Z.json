@@ -1,0 +1,30 @@
+{
+  "runTimestamp": "2026-03-16T21:30:13Z",
+  "signalsReceived": 29,
+  "signalsPassed": 29,
+  "signalsRejected": 0,
+  "entriesCreated": 29,
+  "entriesPromoted": 0,
+  "entriesDemoted": 0,
+  "entriesDeprecated": 0,
+  "rejectionReasons": {
+    "not-reusable": 0,
+    "not-actionable": 0,
+    "redundant": 0
+  },
+  "notes": "Cold start run \u2014 first factory execution for fantasy-writer domain. All 29 signals passed quality gate (reusable, actionable, non-redundant against empty store). 15 craft-domain entries + 14 factory-operations entries created at confidence=low. No promotions/demotions possible on first run.",
+  "signalSources": {
+    "factory-signal-analyzer": {
+      "total": 15,
+      "passed": 15,
+      "highStrength": 7,
+      "mediumStrength": 8
+    },
+    "context-signal-analyzer": {
+      "total": 14,
+      "passed": 14,
+      "highStrength": 10,
+      "mediumStrength": 4
+    }
+  }
+}

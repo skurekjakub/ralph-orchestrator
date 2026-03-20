@@ -1,0 +1,2808 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T08:45:00Z",
+  "pipeline": {
+    "passes": [
+      {
+        "pass": 0,
+        "name": "knowledge-curation",
+        "displayName": "Meta-Knowledge Curation",
+        "purpose": "Curate accumulated meta-knowledge from prior factory runs into a task-relevant knowledge-brief.json. On cold start (first run), produce a minimal brief acknowledging no prior signals exist. On subsequent runs, distill craft-domain signals (prose patterns, worldbuilding consistency strategies, invariant enforcement lessons) into actionable guidance for downstream passes.",
+        "entryCondition": "Always first \u2014 runs before any domain pass. Triggered unconditionally at pipeline start.",
+        "exitCondition": "knowledge-brief.json written with coldStart flag set appropriately. Single-agent pass \u2014 no coordinator needed.",
+        "coordinatorHint": null,
+        "estimatedAgents": 1,
+        "parallelizable": false,
+        "notes": "Cold start for this run (first fantasy-writer session). Future runs will have craft-domain signals from the synthesis pass to curate. This pass is a no-op structurally but establishes the knowledge-brief.json contract for downstream consumers."
+      },
+      {
+        "pass": 1,
+        "name": "discovery",
+        "displayName": "Domain Discovery",
+        "purpose": "Scan the fantasy-writer domain to build a comprehensive domain model: 14 subdomains (10 sequential creative phases + 4 cross-cutting concerns), behavioral/quality/workflow/structural invariants, reusable infrastructure assets, and exemplar hierarchy patterns. Produces the domain-model.json that all subsequent passes consume.",
+        "entryCondition": "knowledge-brief.json exists (Pass 0 complete). No other preconditions.",
+        "exitCondition": "All four discovery specialists (domain-scanner, invariant-extractor, asset-auditor, exemplar-analyzer) report status=completed. domain-model.json contains subdomains, invariants, existingAssets, and exemplarPatterns arrays. Discovery coordinator confirms completeness.",
+        "coordinatorHint": "fractal-factory-discovery-coordinator",
+        "estimatedAgents": 5,
+        "parallelizable": true,
+        "notes": "Four specialists scan independent aspects: (1) domain-scanner extracts 14 subdomains from domain-brief.md, (2) invariant-extractor classifies 81 invariants into behavioral/quality/workflow/structural, (3) asset-auditor catalogs 26 reusable assets (7 shared-includes, 11 skills, 3 agent-templates, 4 tools, 1 MCP server), (4) exemplar-analyzer extracts 20 patterns from the fractal-factory exemplar family. All run in parallel under the coordinator. ALREADY COMPLETED in this run."
+      },
+      {
+        "pass": 2,
+        "name": "analysis",
+        "displayName": "Architecture Analysis",
+        "purpose": "Analyze the discovered domain model to determine three architectural decisions: (1) pipeline pass structure and re-entry rules for the produced fantasy-writer system, (2) shared artifact schemas and data flow contracts between agents, (3) hierarchy depth (depth-2 vs depth-3) per coordinator based on subdomain complexity. These three analyses are independent and inform the planning pass.",
+        "entryCondition": "Pass 1 complete \u2014 domain-model.json exists with all four sections populated. Discovery coordinator status=completed.",
+        "exitCondition": "All three analysis specialists (pipeline-architect, artifact-designer, depth-analyzer) report status=completed. architecture.json contains populated pipeline, artifacts, and depth sections.",
+        "coordinatorHint": "fractal-factory-analysis-coordinator",
+        "estimatedAgents": 4,
+        "parallelizable": true,
+        "notes": "Three independent analyses run in parallel: pipeline-architect designs the produced system's pass structure (this agent \u2014 designing the factory pipeline); artifact-designer maps the 30+ artifact types across 14 subdomains into schemas with read-modify-write contracts; depth-analyzer evaluates each subdomain's complexity against the maxDepth=3 budget and maxAgents=80 ceiling. The high complexity of 7 subdomains (worldbuilding, character-development, plotting, chapter-drafting, revision, beta-reading, adversarial-consistency) plus 81 invariants strongly suggests depth-3 is needed for creative phases. CURRENTLY IN PROGRESS."
+      },
+      {
+        "pass": 3,
+        "name": "planning",
+        "displayName": "Roster & Routing Planning",
+        "purpose": "Plan the complete agent roster (up to 80 agents), routing tables for every coordinator and the orchestrator, and golden test scenarios. Roster planning assigns agents to the 14 subdomains respecting hierarchy depth decisions. Routing planning defines the markdown routing tables with read/condition/action columns. Test planning creates scenarios covering the creative pipeline end-to-end, series production, adversarial gate failures, and craft-tool enforcement.",
+        "entryCondition": "Pass 2 complete \u2014 architecture.json fully populated with pipeline, artifacts, and depth sections. All three analysis agents report status=completed.",
+        "exitCondition": "roster.json contains all agents with assigned levels, parents, children, result codes, and artifact assignments. routing-tables.json or equivalent contains routing tables for every coordinator. test-scenarios.json contains golden test cases. Planning coordinator confirms completeness.",
+        "coordinatorHint": "fractal-factory-planning-coordinator",
+        "estimatedAgents": 4,
+        "parallelizable": false,
+        "notes": "Sequential dispatch required: roster-planner runs first (routing and tests depend on knowing agent names and hierarchy). Then routing-planner builds tables using the roster. Finally test-planner creates scenarios referencing both roster and routes. The 14-subdomain, 80-agent budget with depth-3 hierarchy makes this the most complex planning pass. Key decisions: how to allocate the agent budget across 10 sequential phases + 4 cross-cutting concerns, how many specialist writers vs. reviewers per creative phase, and how adversarial auditors integrate as sub-phase gates."
+      },
+      {
+        "pass": 4,
+        "name": "execution",
+        "displayName": "Prompt Writing & Infrastructure",
+        "purpose": "Write all agent prompt files (.agent.md) following the universal prompt template, and produce infrastructure files (bootstrap script, artifact schemas, skill stubs, golden test files). Uses a bounded writer\u2192reviewer loop: prompt-writer produces prompts, prompt-reviewer adversarially checks for structural compliance, content quality, routing completeness, anti-laziness enforcement, and domain-specific correctness. Rejected prompts are re-written with reviewer feedback.",
+        "entryCondition": "Pass 3 complete \u2014 roster.json, routing tables, and test scenarios all exist. Planning coordinator status=completed.",
+        "exitCondition": "All agent prompts written and accepted by reviewer (or max retries reached with best-effort noted). Infrastructure files written. Execution coordinator confirms all roster entries have corresponding prompt files.",
+        "coordinatorHint": "fractal-factory-execution-coordinator",
+        "estimatedAgents": 3,
+        "parallelizable": false,
+        "notes": "Writer\u2192reviewer loop with maxWriterReviewerRetries=10 (from context.json). For ~80 agents, this is the longest pass. The prompt-writer must handle diverse agent types: creative specialists (worldbuilders, character designers, chapter drafters), adversarial auditors (consistency checkers, craft enforcers), structural agents (continuity trackers, series KB managers), and simulation agents (5 beta reader lenses). The reviewer must enforce: pure-router purity for coordinators, ask_questions suppression for all non-guide agents, status.json contract compliance, and domain invariant awareness. Infrastructure includes the produced system's bootstrap script, artifact directory templates, and schema files for the 30+ artifact types."
+      },
+      {
+        "pass": 5,
+        "name": "verification",
+        "displayName": "Dual-Perspective Verification",
+        "purpose": "Validate all produced artifacts from two independent perspectives: (1) checklist-validator runs a structural and behavioral validation checklist \u2014 file existence, template compliance, routing table completeness, artifact schema coverage, invariant enforcement traceability; (2) audit-oracle evaluates from agent-as-function and fractal-workflow-eval perspectives \u2014 contract drift, architecture violations, routing purity violations, cross-reference integrity.",
+        "entryCondition": "Pass 4 complete \u2014 all prompt files and infrastructure files written. Execution coordinator status=completed.",
+        "exitCondition": "Both verification agents report status=completed. If critical issues found, they are logged in verification findings for gap-hunting to process. No verification failure blocks progression to gap-hunting \u2014 issues are carried forward.",
+        "coordinatorHint": "fractal-factory-verification-coordinator",
+        "estimatedAgents": 3,
+        "parallelizable": true,
+        "notes": "Two independent perspectives run in parallel under the coordinator. Given 81 invariants (21 behavioral, 33 quality, 13 workflow, 14 structural), the checklist-validator has substantial work tracing each invariant to its enforcement point in the produced prompts. The audit-oracle checks higher-level architecture: are all 14 subdomains covered, do routing tables form a complete DAG, do artifact contracts have matching producers and consumers, are adversarial gates actually adversarial (not rubber-stamping). The fantasy-writer domain's complexity makes this pass critical \u2014 the cross-cutting concerns (adversarial-consistency, series-knowledge, continuity-tracking, craft-knowledge) are easy to under-specify."
+      },
+      {
+        "pass": 6,
+        "name": "gapHunting",
+        "displayName": "Gap Hunting & Convergence",
+        "purpose": "Systematically search for gaps across 9 categories using 3 specialist hunters: (1) coverage-hunter checks subdomain coverage, invariant enforcement completeness, and routing completeness; (2) artifact-hunter checks artifact schema coverage, test scenario coverage, and cross-reference integrity; (3) infrastructure-hunter checks bootstrap completeness, documentation completeness, and meta-knowledge infrastructure. Findings trigger re-entry into earlier passes for repair.",
+        "entryCondition": "Pass 5 complete \u2014 verification findings exist. Verification coordinator status=completed.",
+        "exitCondition": "All three hunters report status=completed. Gap-report.json aggregated. If gaps-found=false (zero new items across all 9 categories), convergence achieved \u2014 proceed to delivery. If gaps-found=true, trigger re-entry per re-entry rules.",
+        "coordinatorHint": "fractal-factory-gap-hunting-coordinator",
+        "estimatedAgents": 4,
+        "parallelizable": true,
+        "notes": "Three specialist hunters run in parallel, each covering 3 of 9 gap categories. For the fantasy-writer domain, likely gap sources: (a) missing invariant enforcement \u2014 81 invariants touching up to 47 agents each (SD-007 alone has 47 invariant touches) makes it likely some enforcement paths are missed; (b) craft-tool conditional invariants ('When selected: ...') need craft-profile-aware routing that may be under-specified; (c) series production paths (sequel handling, series KB updates, unresolved-threads disposition) are easy to miss on first pass; (d) 5 beta reader lenses need distinct structured-output schemas that may not all be specified. The maxGapCycles=10 allows generous iteration, but convergence should typically occur in 2-4 cycles for this domain."
+      },
+      {
+        "pass": 7,
+        "name": "delivery",
+        "displayName": "Packaging & Delivery",
+        "purpose": "Package the complete fantasy-writer agent system into the target output directory (.fractal-factory/output/romantic-fantasy-writer), write architecture documentation and user guide, and produce a final delivery report with coverage statistics, quality metrics, outstanding items, and recommendations for future iterations.",
+        "entryCondition": "Gap hunting converged (gaps-found=false) OR maxGapCycles reached. Gap-hunting coordinator status=completed with result indicating convergence or limit.",
+        "exitCondition": "All delivery agents report status=completed. Output directory contains all prompt files, infrastructure files, documentation, and the delivery report. Delivery coordinator confirms package integrity.",
+        "coordinatorHint": "fractal-factory-delivery-coordinator",
+        "estimatedAgents": 4,
+        "parallelizable": false,
+        "notes": "Sequential: packager assembles the output directory first (copies and organizes all agent prompts, infrastructure files, artifact schemas into the romantic-fantasy-writer prefix structure), then documentation-writer produces architecture docs and a user guide (how to invoke the produced system, expected inputs/outputs, series production workflow), then report-writer summarizes the entire factory run including coverage statistics (invariants enforced/total, subdomains covered/total, agents produced/budget), quality metrics from verification, and any outstanding gap items. This is the terminal pass."
+      }
+    ],
+    "reEntryRules": [
+      {
+        "id": "RE-001",
+        "trigger": "Gap-hunting coordinator finds new items requiring architectural analysis (e.g., missing artifact schemas, incorrect depth assignments, pipeline pass structure issues)",
+        "reEntryPass": 2,
+        "resetPasses": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "maxReEntries": 2,
+        "notes": "Heaviest re-entry \u2014 resets nearly the entire pipeline. Should be rare; typically only triggered if a fundamental architectural assumption was wrong (e.g., depth-2 is insufficient for a subdomain originally assessed as medium complexity). Deletes status.json for all agents in passes 2-6."
+      },
+      {
+        "id": "RE-002",
+        "trigger": "Gap-hunting coordinator finds new items requiring roster or routing changes (e.g., missing agents for a subdomain, incomplete routing paths, missing test scenarios)",
+        "reEntryPass": 3,
+        "resetPasses": [
+          3,
+          4,
+          5,
+          6
+        ],
+        "maxReEntries": 3,
+        "notes": "Moderate re-entry \u2014 adds or modifies agents in the roster and re-executes downstream. Most likely trigger: gap hunter discovers a subdomain aspect (e.g., series sequel handling, craft-tool conditional enforcement) that needs a dedicated agent not in the original roster. Routing tables are rebuilt to include new agents."
+      },
+      {
+        "id": "RE-003",
+        "trigger": "Gap-hunting coordinator finds items requiring only prompt rewrites or infrastructure updates (e.g., missing invariant enforcement in existing prompts, incomplete artifact schemas, missing skill references)",
+        "reEntryPass": 4,
+        "resetPasses": [
+          4,
+          5,
+          6
+        ],
+        "maxReEntries": 5,
+        "notes": "Lightest meaningful re-entry \u2014 the most common trigger. Typical causes: invariant enforcement gaps (81 invariants across 14 subdomains = many enforcement paths to check), missing cross-references between agent prompts, incomplete craft-tool conditional logic in auditor prompts. Only resets execution, verification, and gap-hunting. High maxReEntries because prompt-level fixes are cheap."
+      },
+      {
+        "id": "RE-004",
+        "trigger": "Verification finds critical structural violations that invalidate prompt correctness (e.g., routing table references non-existent agents, artifact producer/consumer mismatch)",
+        "reEntryPass": 4,
+        "resetPasses": [
+          4,
+          5
+        ],
+        "maxReEntries": 2,
+        "notes": "Verification-triggered re-entry \u2014 bypasses gap hunting. Only triggers on critical (not major/minor) findings from the verification pass. Resets execution and verification only; gap hunting runs fresh after the fix. Prevents the need for a full gap-hunting cycle when the issue is clearly identified by verification."
+      }
+    ],
+    "convergence": {
+      "maxGapCycles": 10,
+      "convergenceSignal": "Gap-hunting coordinator aggregates all three specialist hunter reports and finds gaps-found=false \u2014 zero new items across all 9 categories (subdomain coverage, invariant enforcement, routing completeness, artifact coverage, test coverage, cross-reference integrity, bootstrap completeness, documentation completeness, meta-knowledge infrastructure).",
+      "limitBehavior": "Proceed to delivery (Pass 7) with all outstanding gap items flagged in the delivery report. The report-writer categorizes unresolved gaps by severity and provides remediation guidance. No gap item blocks delivery \u2014 the produced system ships with known limitations documented.",
+      "expectedCycles": "2-4 cycles expected for the fantasy-writer domain. First cycle likely catches invariant enforcement gaps (81 invariants \u00d7 14 subdomains = high surface area) and series-production edge cases. Second cycle catches cross-reference integrity issues from first-cycle prompt additions. Third cycle should be clean for most categories. Fourth cycle is insurance for the craft-tool conditional invariants (26 'When selected' invariants requiring craft-profile-aware routing).",
+      "convergenceAccelerators": [
+        "Gap hunters report declining item counts per cycle \u2014 if total new items drops below 5, convergence is likely on next cycle",
+        "RE-003 (prompt-level fixes) is preferred over RE-002 (roster changes) when possible, to minimize blast radius",
+        "Verification-triggered RE-004 handles critical issues inline without consuming a gap-hunting cycle"
+      ]
+    }
+  },
+  "artifacts": {
+    "designNotes": "Artifacts for the PRODUCED romantic-fantasy-writer agent system. These schemas define how the ~80 agents in the produced novel-writing pipeline communicate. Organized by: (1) universal infrastructure artifacts, (2) domain-specific artifacts grouped by creative phase, (3) cross-cutting tracker artifacts. All paths are relative to the per-book output directory (e.g., books/book-1/).",
+    "universal": [
+      {
+        "name": "story-config.json",
+        "purpose": "User-provided story parameters: idea, target word count, mood/tone, optional style samples, character sketches, world fragments, constraints. The single input contract for the entire pipeline.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Unique story identifier (e.g., 'book-1')"
+            },
+            {
+              "name": "seriesId",
+              "type": "string|null",
+              "description": "Series identifier if part of a series, null for standalone"
+            },
+            {
+              "name": "storyIdea",
+              "type": "string",
+              "description": "Core story premise from the user (minimum viable input per INV-067)"
+            },
+            {
+              "name": "targetWordCount",
+              "type": "number",
+              "description": "Rough target word count (e.g., 100000) per INV-026"
+            },
+            {
+              "name": "mood",
+              "type": "string|null",
+              "description": "Desired mood/tone keywords"
+            },
+            {
+              "name": "characterSketches",
+              "type": "array|null",
+              "description": "Optional rough character ideas from user"
+            },
+            {
+              "name": "worldFragments",
+              "type": "array|null",
+              "description": "Optional world details from user"
+            },
+            {
+              "name": "styleSamples",
+              "type": "array|null",
+              "description": "Optional reference fiction file paths for style extraction (INV-028)"
+            },
+            {
+              "name": "constraints",
+              "type": "object|null",
+              "description": "Optional constraints (heat level, content warnings, etc.)"
+            },
+            {
+              "name": "sequelOf",
+              "type": "string|null",
+              "description": "storyId of predecessor book if this is a sequel"
+            },
+            {
+              "name": "confirmedByUser",
+              "type": "boolean",
+              "description": "Must be true before pipeline launch (INV-080)"
+            },
+            {
+              "name": "createdAt",
+              "type": "string",
+              "description": "ISO-8601 timestamp"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-guide"
+        ],
+        "readers": [
+          "all agents"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "progress.json",
+        "purpose": "Pipeline execution state tracking for the produced system's orchestrator. Tracks which creative phase is active, per-chapter progress, and gate statuses.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Active story identifier"
+            },
+            {
+              "name": "currentPhase",
+              "type": "string",
+              "description": "Active creative phase (concept|worldbuilding|character|plotting|style|drafting|revision|beta-reading|polish)"
+            },
+            {
+              "name": "phaseStatuses",
+              "type": "object",
+              "description": "Map of phase-name \u2192 {status, startedAt, completedAt, gateResult}"
+            },
+            {
+              "name": "chapterProgress",
+              "type": "array",
+              "description": "Per-chapter status: [{chapterNum, drafted, revised, betaRead, polished}]"
+            },
+            {
+              "name": "currentChapter",
+              "type": "number|null",
+              "description": "Chapter currently being processed (for sequential drafting per INV-012)"
+            },
+            {
+              "name": "gapCycles",
+              "type": "number",
+              "description": "Number of revision cycles completed"
+            },
+            {
+              "name": "lastUpdated",
+              "type": "string",
+              "description": "ISO-8601 timestamp"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer"
+        ],
+        "readers": [
+          "romantic-fantasy-writer",
+          "all coordinators"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": null
+      },
+      {
+        "name": "manifest.json",
+        "purpose": "Append-only audit trail of all agent actions. Every agent prepends an entry after completing work (newest first per PATTERN-010).",
+        "schema": {
+          "fields": [
+            {
+              "name": "timestamp",
+              "type": "string",
+              "description": "ISO-8601 timestamp"
+            },
+            {
+              "name": "agent",
+              "type": "string",
+              "description": "Agent name that performed work"
+            },
+            {
+              "name": "task_id",
+              "type": "string",
+              "description": "Phase/task identifier"
+            },
+            {
+              "name": "artifacts",
+              "type": "array",
+              "description": "List of artifact paths written or modified"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "description": "completed|failed"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "description": "Agent-specific result code"
+            },
+            {
+              "name": "iteration",
+              "type": "number",
+              "description": "Iteration number (for multi-pass phases)"
+            }
+          ]
+        },
+        "writers": [
+          "all agents"
+        ],
+        "readers": [
+          "romantic-fantasy-writer",
+          "delivery agents"
+        ],
+        "writeProtocol": "prepend-entry",
+        "ownershipField": "agent"
+      },
+      {
+        "name": "agents/*/status.json",
+        "purpose": "Per-agent routing signal following PATTERN-003. The orchestrator/coordinators read these to make routing decisions. Each agent writes its own status on completion.",
+        "schema": {
+          "fields": [
+            {
+              "name": "agent",
+              "type": "string",
+              "description": "Agent name"
+            },
+            {
+              "name": "task_id",
+              "type": "string",
+              "description": "Task identifier"
+            },
+            {
+              "name": "status",
+              "type": "string",
+              "description": "completed|failed|blocked"
+            },
+            {
+              "name": "result",
+              "type": "string",
+              "description": "Agent-specific result code used in routing tables"
+            },
+            {
+              "name": "summary",
+              "type": "string",
+              "description": "Human-readable summary of what was done"
+            },
+            {
+              "name": "artifacts",
+              "type": "array",
+              "description": "Paths to artifacts produced"
+            },
+            {
+              "name": "next_hint",
+              "type": "string|null",
+              "description": "Suggested next agent"
+            },
+            {
+              "name": "findings",
+              "type": "object|null",
+              "description": "For auditors: {critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "iteration",
+              "type": "number",
+              "description": "Iteration counter"
+            }
+          ]
+        },
+        "writers": [
+          "each agent (own status only)"
+        ],
+        "readers": [
+          "parent coordinator",
+          "orchestrator"
+        ],
+        "writeProtocol": "create-once-per-iteration"
+      }
+    ],
+    "domainSpecific": [
+      {
+        "name": "story-concept.json",
+        "purpose": "Crystallized story concept: refined premise, thematic pillars, genre balance, comp titles, target audience, and high-level arc shapes. The foundational document all downstream phases reference.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier from story-config.json"
+            },
+            {
+              "name": "refinedPremise",
+              "type": "string",
+              "description": "One-paragraph distilled premise"
+            },
+            {
+              "name": "thematicPillars",
+              "type": "array",
+              "description": "2-3 core themes [{id, theme, question, argument}] per INV-063/T25"
+            },
+            {
+              "name": "genreBalance",
+              "type": "object",
+              "description": "{fantasyWeight: 0-1, romanceWeight: 0-1} \u2014 must sum to ~1, neither zero per INV-001"
+            },
+            {
+              "name": "compTitles",
+              "type": "array",
+              "description": "2-4 comparable published titles with brief rationale"
+            },
+            {
+              "name": "targetAudience",
+              "type": "string",
+              "description": "Target reader profile"
+            },
+            {
+              "name": "heatLevel",
+              "type": "string",
+              "description": "Romance heat level (sweet|warm|steamy|explicit)"
+            },
+            {
+              "name": "fantasySubgenre",
+              "type": "string",
+              "description": "Fantasy subgenre (epic|urban|portal|etc)"
+            },
+            {
+              "name": "toneContract",
+              "type": "object",
+              "description": "Tonal promise: {primary, secondary, forbiddenTones} per INV-043/T5"
+            },
+            {
+              "name": "romanceArcType",
+              "type": "string",
+              "description": "High-level romance arc type (enemies-to-lovers, etc)"
+            },
+            {
+              "name": "estimatedChapterCount",
+              "type": "number",
+              "description": "Estimated chapters based on targetWordCount"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-config.json (INV-029)"
+            }
+          ],
+          "idScheme": "N/A \u2014 singleton per story"
+        },
+        "writers": [
+          "romantic-fantasy-writer-concept-developer"
+        ],
+        "readers": [
+          "all downstream creative agents",
+          "adversarial auditors",
+          "series-kb-manager"
+        ],
+        "writeProtocol": "create-once",
+        "ownershipField": null
+      },
+      {
+        "name": "craft-profile.json",
+        "purpose": "Story Craft Profile selecting which of the 26 craft tools (T1\u2013T26) apply to this story. Once set, selected tools become binding invariants for the rest of production (INV-069, INV-079). Minimum 5-8 tools per INV-078.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "selectedTools",
+              "type": "array",
+              "description": "[{toolId: 'T1'\u2013'T26', name, rationale, enforcementPhases: ['drafting','revision',...]}]"
+            },
+            {
+              "name": "toolCount",
+              "type": "number",
+              "description": "Count of selected tools (must be \u22655 per INV-078)"
+            },
+            {
+              "name": "selectionRationale",
+              "type": "string",
+              "description": "Why these tools suit this specific story"
+            },
+            {
+              "name": "bindingFrom",
+              "type": "string",
+              "description": "Phase at which selection was finalized (concept or plotting)"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json (INV-029)"
+            }
+          ],
+          "idScheme": "N/A \u2014 singleton per story"
+        },
+        "writers": [
+          "romantic-fantasy-writer-craft-profile-selector"
+        ],
+        "readers": [
+          "all creative agents",
+          "all adversarial auditors",
+          "craft-knowledge agents"
+        ],
+        "writeProtocol": "create-once",
+        "ownershipField": null,
+        "multiWriterRules": null,
+        "designNote": "AC-002 fix (gap cycle 1): Pre-depth-analysis design had concept-developer + plot-architect as dual writers. After depth analysis, plot-architect was split into structure-selector, dual-arc-builder, tension-mapper, chapter-outliner, scene-beat-designer \u2014 none write craft-profile.json. The actual sole writer is craft-profile-selector (concept phase). INV-079 plotting-phase tool additions are enforced by the plotting-auditor reading craft-profile.json, not by writing to it."
+      },
+      {
+        "name": "world-bible/geography.json",
+        "purpose": "Geography and settings: locations, maps, climate zones, key landmarks, travel distances/methods. Independently loadable subcategory file (INV-074).",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "locations",
+              "type": "array",
+              "description": "[{id: 'LOC-NNN', name, type, description, climate, significance, connectedTo: ['LOC-NNN']}]"
+            },
+            {
+              "name": "travelRules",
+              "type": "object",
+              "description": "How characters move between locations, travel times"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json"
+            }
+          ],
+          "idScheme": "LOC-NNN",
+          "itemSchema": {
+            "id": "string",
+            "name": "string",
+            "type": "string",
+            "description": "string",
+            "climate": "string",
+            "significance": "string",
+            "connectedTo": "array"
+          }
+        },
+        "writers": [
+          "romantic-fantasy-writer-geography-builder"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "continuity-tracker",
+          "phase auditors",
+          "series-kb-manager"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "world-bible/magic-system.json",
+        "purpose": "Magic system design following Sanderson's Laws (INV-048/T10): rules, costs, limitations, known practitioners, power levels. Hard magic requires clear rules before conflict resolution.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "systemName",
+              "type": "string",
+              "description": "Name of the magic system"
+            },
+            {
+              "name": "hardnessLevel",
+              "type": "string",
+              "description": "hard|soft|hybrid \u2014 determines reader understanding requirements"
+            },
+            {
+              "name": "rules",
+              "type": "array",
+              "description": "[{id: 'MAG-NNN', rule, cost, limitation, knownBy: ['CHAR-NNN']}]"
+            },
+            {
+              "name": "powerLevels",
+              "type": "array",
+              "description": "Tiered power levels from weakest to strongest"
+            },
+            {
+              "name": "forbiddenUses",
+              "type": "array",
+              "description": "What magic explicitly cannot do (prevents deus ex machina per INV-009)"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json"
+            }
+          ],
+          "idScheme": "MAG-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-magic-system-designer"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "continuity-tracker",
+          "phase auditors",
+          "series-kb-manager"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "world-bible/politics.json",
+        "purpose": "Political and power structures: factions, governance systems, alliances, conflicts, power dynamics between groups.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "factions",
+              "type": "array",
+              "description": "[{id: 'FAC-NNN', name, type, goals, allies: [], enemies: [], leader}]"
+            },
+            {
+              "name": "governanceSystems",
+              "type": "array",
+              "description": "Types of governance across the world"
+            },
+            {
+              "name": "powerDynamics",
+              "type": "string",
+              "description": "Narrative description of political tension"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json"
+            }
+          ],
+          "idScheme": "FAC-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-political-structure-builder"
+        ],
+        "readers": [
+          "core-characters-coordinator specialists",
+          "plotting-coordinator specialists",
+          "chapter-drafter",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "world-bible/culture.json",
+        "purpose": "Cultural norms: customs, religions, social hierarchies, daily life, naming conventions, festivals, taboos. Prevents anachronisms per INV-018.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "cultures",
+              "type": "array",
+              "description": "[{id: 'CUL-NNN', name, customs, socialStructure, religion, taboos, naming}]"
+            },
+            {
+              "name": "socialRules",
+              "type": "array",
+              "description": "What is/isn't acceptable behavior in this world"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json"
+            }
+          ],
+          "idScheme": "CUL-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-culture-builder"
+        ],
+        "readers": [
+          "core-characters-coordinator specialists",
+          "chapter-drafter",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "world-bible/history.json",
+        "purpose": "World history timeline: key events, legends, era boundaries, historical figures. Establishes what 'happened before' for foreshadowing and backstory.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "eras",
+              "type": "array",
+              "description": "[{id: 'ERA-NNN', name, startYear, endYear, keyEvents}]"
+            },
+            {
+              "name": "legends",
+              "type": "array",
+              "description": "Myths and legends characters might reference"
+            },
+            {
+              "name": "historicalFigures",
+              "type": "array",
+              "description": "Important figures from the past"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to story-concept.json"
+            }
+          ],
+          "idScheme": "ERA-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-history-builder"
+        ],
+        "readers": [
+          "core-characters-coordinator specialists",
+          "plotting-coordinator specialists",
+          "chapter-drafter"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "characters/index.json",
+        "purpose": "Character roster: all named characters with roles, relationships, and POV status. Master index cross-referencing per-character files.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "characters",
+              "type": "array",
+              "description": "[{id: 'CHAR-NNN', name, role, isPOV, arcType, characterFile}]"
+            },
+            {
+              "name": "relationshipWeb",
+              "type": "array",
+              "description": "[{from: 'CHAR-NNN', to: 'CHAR-NNN', type, evolution}]"
+            },
+            {
+              "name": "povCount",
+              "type": "number",
+              "description": "Number of POV characters"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to story-concept.json, world-bible/* (INV-029)"
+            }
+          ],
+          "idScheme": "CHAR-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-protagonist-profiler",
+          "romantic-fantasy-writer-supporting-cast-developer"
+        ],
+        "readers": [
+          "plotting-coordinator specialists",
+          "style-guide-writer",
+          "chapter-drafter",
+          "all auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "characters/{CHAR-NNN}.json",
+        "purpose": "Per-character profile: psychological wound, desire, arc, voice parameters, sensory signature. One file per named character (INV-074). Voice parameters enable INV-003/INV-034 verification.",
+        "schema": {
+          "fields": [
+            {
+              "name": "id",
+              "type": "string",
+              "description": "Character ID (CHAR-NNN)"
+            },
+            {
+              "name": "name",
+              "type": "string",
+              "description": "Character name"
+            },
+            {
+              "name": "role",
+              "type": "string",
+              "description": "lead-romantic|lead-fantasy|antagonist|supporting|mentor|etc"
+            },
+            {
+              "name": "isPOV",
+              "type": "boolean",
+              "description": "Whether this character has POV chapters"
+            },
+            {
+              "name": "psychologicalProfile",
+              "type": "object",
+              "description": "{wound, desire, fear, lie, ghost, need}"
+            },
+            {
+              "name": "arc",
+              "type": "object",
+              "description": "{type, startState, endState, turningPoints: []}"
+            },
+            {
+              "name": "voiceFingerprint",
+              "type": "object",
+              "description": "{vocabularyLevel, sentenceLength, metaphorDensity, emotionalRegister, thoughtPatterns, dialectMarkers} per INV-055/T17"
+            },
+            {
+              "name": "sensorySig",
+              "type": "object",
+              "description": "{dominantChannel, signature, emotionalTriggers} per INV-064/T26"
+            },
+            {
+              "name": "relationships",
+              "type": "array",
+              "description": "[{withCharId, type, dynamicArc}]"
+            },
+            {
+              "name": "physicalDescription",
+              "type": "object",
+              "description": "Appearance details for continuity"
+            },
+            {
+              "name": "agency",
+              "type": "string",
+              "description": "How this character drives plot through active choices (INV-008)"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to world-bible/*, story-concept.json"
+            }
+          ],
+          "idScheme": "CHAR-NNN",
+          "itemSchema": "One file per character, filename matches ID"
+        },
+        "writers": [
+          "romantic-fantasy-writer-protagonist-profiler",
+          "romantic-fantasy-writer-supporting-cast-developer",
+          "romantic-fantasy-writer-character-voice-designer"
+        ],
+        "readers": [
+          "plotting-coordinator specialists",
+          "style-guide-writer",
+          "chapter-drafter",
+          "pov-voice-maintainer",
+          "all auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "romance-arc-design.json",
+        "purpose": "Detailed romance arc between the leads: stages of attraction, key moments, obstacles (internal and external per INV-046/T8), the black moment (INV-045/T7), and resolution (minimum HFN per INV-001). Vulnerability escalation ladder per INV-059/T21.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "leadA",
+              "type": "string",
+              "description": "CHAR-NNN of first lead"
+            },
+            {
+              "name": "leadB",
+              "type": "string",
+              "description": "CHAR-NNN of second lead"
+            },
+            {
+              "name": "arcType",
+              "type": "string",
+              "description": "enemies-to-lovers|friends-to-lovers|forbidden|etc"
+            },
+            {
+              "name": "stages",
+              "type": "array",
+              "description": "[{stage, description, targetChapters}] \u2014 awareness\u2192attraction\u2192resistance\u2192surrender\u2192commitment per INV-021"
+            },
+            {
+              "name": "internalResistance",
+              "type": "object",
+              "description": "{leadA: {fear, wound}, leadB: {fear, wound}} per INV-046/T8"
+            },
+            {
+              "name": "vulnerabilityLadder",
+              "type": "array",
+              "description": "[{step: 1-8, moment, character, emotionalCost}] per INV-059/T21"
+            },
+            {
+              "name": "blackMoment",
+              "type": "object",
+              "description": "{description, triggerEvent, emotionalNadir} per INV-045/T7"
+            },
+            {
+              "name": "resolution",
+              "type": "string",
+              "description": "HFN|HEA \u2014 resolution type (INV-001)"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to characters/*, story-concept.json"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-romance-arc-designer"
+        ],
+        "readers": [
+          "plotting-coordinator specialists",
+          "chapter-drafter",
+          "romance-beta-reader",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "plot-structure.json",
+        "purpose": "Overall story structure: selected framework, act boundaries, key plot beats, subplot registry, stakes escalation (INV-044/T6). The architectural blueprint for chapter outlines.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "framework",
+              "type": "string",
+              "description": "Structural framework (three-act|save-the-cat|heros-journey|custom)"
+            },
+            {
+              "name": "acts",
+              "type": "array",
+              "description": "[{act: 1-3, startChapter, endChapter, thematicFocus, stakesLevel}]"
+            },
+            {
+              "name": "keyBeats",
+              "type": "array",
+              "description": "[{id: 'BEAT-NNN', name, chapter, type: 'fantasy'|'romance'|'both', description}]"
+            },
+            {
+              "name": "subplots",
+              "type": "array",
+              "description": "[{id: 'SUB-NNN', name, characters, startChapter, resolution, type}]"
+            },
+            {
+              "name": "tryFailCycles",
+              "type": "array",
+              "description": "[{challenge, attempts: [{chapter, outcome: 'fail'|'partial'|'succeed'}]}] per INV-042/T4"
+            },
+            {
+              "name": "stakesEscalation",
+              "type": "array",
+              "description": "[{act, whatIsAtRisk, comparedToLast}] per INV-044/T6"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to story-concept.json, characters/*, romance-arc-design.json"
+            }
+          ],
+          "idScheme": "BEAT-NNN, SUB-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-structure-selector"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "continuity-tracker",
+          "phase auditors",
+          "revision agents"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "dual-arc-timeline.json",
+        "purpose": "Fantasy and romance arcs plotted in parallel (INV-050/T12). Maps where each arc's beats land per chapter, showing reinforcement and counterpoint patterns.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "chapters",
+              "type": "array",
+              "description": "[{chapter: N, fantasyBeat: 'BEAT-NNN'|null, romanceBeat: 'BEAT-NNN'|null, relationship: 'reinforce'|'counterpoint'|'independent'}]"
+            },
+            {
+              "name": "interleaveRatio",
+              "type": "object",
+              "description": "{fantasyDominant: [chapters], romanceDominant: [chapters], balanced: [chapters]}"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to plot-structure.json, romance-arc-design.json"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-dual-arc-builder"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "phase auditors",
+          "developmental-editor"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "chapter-outlines/{N}.json",
+        "purpose": "Per-chapter outline: POV character, scene goals, conflict, emotional arc, beat assignments. Must exist before drafting begins (INV-010). One file per chapter.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "pov",
+              "type": "string",
+              "description": "CHAR-NNN of the POV character for this chapter"
+            },
+            {
+              "name": "povTransitionMotivation",
+              "type": "string|null",
+              "description": "Why POV switches here (INV-072) \u2014 null if same POV as previous"
+            },
+            {
+              "name": "scenes",
+              "type": "array",
+              "description": "[{id: 'SCN-NNN', goal, conflict, disaster, valueShift, fiveCommandments}] per INV-039/T1, INV-040/T2, INV-041/T3"
+            },
+            {
+              "name": "emotionalArc",
+              "type": "object",
+              "description": "{startState, endState, pivotMoment} for the POV character"
+            },
+            {
+              "name": "fantasyBeats",
+              "type": "array",
+              "description": "Plot beats from dual-arc-timeline for this chapter"
+            },
+            {
+              "name": "romanceBeats",
+              "type": "array",
+              "description": "Romance beats for this chapter"
+            },
+            {
+              "name": "hookType",
+              "type": "string",
+              "description": "Opening hook type per INV-060/T22"
+            },
+            {
+              "name": "closeType",
+              "type": "string",
+              "description": "Closing technique per INV-060/T22"
+            },
+            {
+              "name": "targetWordCount",
+              "type": "number",
+              "description": "Target words for this chapter"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to plot-structure.json, characters/{pov}.json, dual-arc-timeline.json"
+            }
+          ],
+          "idScheme": "SCN-NNN within each chapter",
+          "itemSchema": "One file per chapter, filename matches chapter number"
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-outliner",
+          "romantic-fantasy-writer-scene-beat-designer"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "continuity-tracker",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "tension-map.json",
+        "purpose": "Tension rise-and-fall chart across all chapters (INV-051/T13). Used during plotting to ensure pacing variation (INV-020) and during revision/beta-reading for pacing verification.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "chapters",
+              "type": "array",
+              "description": "[{chapter: N, tensionLevel: 1-10, tensionType: 'action'|'emotional'|'mystery'|'romantic', pacingNote}]"
+            },
+            {
+              "name": "peaksAndValleys",
+              "type": "array",
+              "description": "[{chapter, type: 'peak'|'valley', significance}]"
+            },
+            {
+              "name": "consecutiveHighCount",
+              "type": "number",
+              "description": "Max consecutive high-tension chapters (should not exceed 3 per INV-020)"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to plot-structure.json"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-tension-mapper"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "developmental-editor",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "style-guide.json",
+        "purpose": "Prose style specification: voice calibration per POV character, scene-type tone palettes, prose rules (metaphor density, sentence rhythm, dialogue ratio). Based on style sample analysis if provided (INV-028, INV-024).",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "globalStyle",
+              "type": "object",
+              "description": "{proseRegister, narrativeDistance, paragraphCadence, dialogueToNarrationRatio}"
+            },
+            {
+              "name": "perPOVCalibration",
+              "type": "array",
+              "description": "[{charId: 'CHAR-NNN', voiceFingerprint, specificRules, exampleSentences}] \u2014 calibrated from character voice fingerprints (INV-055/T17)"
+            },
+            {
+              "name": "sceneTypePalettes",
+              "type": "object",
+              "description": "{action: {tempo, sentenceLength, ...}, romantic: {...}, introspective: {...}, dialogue: {...}}"
+            },
+            {
+              "name": "proseQualityFloor",
+              "type": "object",
+              "description": "Measurable quality thresholds per INV-017 (max clich\u00e9s, adverb limits, etc.)"
+            },
+            {
+              "name": "styleSampleAnalysis",
+              "type": "object|null",
+              "description": "If style samples were provided: extracted abstract patterns (INV-024 \u2014 transformative only, no copying)"
+            },
+            {
+              "name": "toneContract",
+              "type": "object",
+              "description": "Expanded tone contract from story-concept (INV-043/T5)"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to story-concept.json, characters/*, craft-profile.json"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-style-guide-writer"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "line-editor",
+          "pov-voice-maintainer",
+          "phase auditors"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "chapters/{N}/draft.md",
+        "purpose": "Chapter prose draft. Written sequentially (INV-012) \u2014 chapter N+1 cannot start until N is complete. Contains the actual fiction prose with scene breaks marked.",
+        "schema": {
+          "fields": [
+            {
+              "name": "content",
+              "type": "markdown",
+              "description": "Full chapter prose with scene break markers (----)"
+            },
+            {
+              "name": "frontmatter",
+              "type": "yaml",
+              "description": "YAML frontmatter: chapterNum, pov, wordCount, sceneCount, draftVersion"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-drafter",
+          "romantic-fantasy-writer-pov-voice-maintainer",
+          "romantic-fantasy-writer-continuity-integrator",
+          "romantic-fantasy-writer-craft-enforcer"
+        ],
+        "readers": [
+          "revision agents",
+          "beta readers",
+          "continuity-tracker",
+          "adversarial-auditor"
+        ],
+        "writeProtocol": "read-modify-write",
+        "multiWriterRules": {
+          "order": "sequential",
+          "pipeline": [
+            {
+              "writer": "romantic-fantasy-writer-chapter-drafter",
+              "role": "create",
+              "description": "Initial prose draft"
+            },
+            {
+              "writer": "romantic-fantasy-writer-pov-voice-maintainer",
+              "role": "refine",
+              "description": "POV voice consistency pass"
+            },
+            {
+              "writer": "romantic-fantasy-writer-continuity-integrator",
+              "role": "fix",
+              "description": "Continuity corrections"
+            },
+            {
+              "writer": "romantic-fantasy-writer-craft-enforcer",
+              "role": "enforce",
+              "description": "Craft tool compliance pass"
+            }
+          ],
+          "resetOnRetry": true,
+          "note": "AC-005 fix (gap cycle 2): roster.json declares 4 writers through creative-writing-coordinator and quality-integration-coordinator sub-pipelines. All 4 agent prompts confirm this sequential editing pattern."
+        }
+      },
+      {
+        "name": "chapters/{N}/metadata.json",
+        "purpose": "Per-chapter structured metadata: craft tool compliance, scene value shifts, MRU adherence, emotional state tracking. Machine-readable companion to the prose draft.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "pov",
+              "type": "string",
+              "description": "CHAR-NNN of POV character"
+            },
+            {
+              "name": "wordCount",
+              "type": "number",
+              "description": "Actual word count"
+            },
+            {
+              "name": "sceneBreakdown",
+              "type": "array",
+              "description": "[{sceneId: 'SCN-NNN', goal, conflict, disaster, valueShiftFrom, valueShiftTo, sequelReaction}] per INV-039/T1, INV-040/T2"
+            },
+            {
+              "name": "craftToolCompliance",
+              "type": "object",
+              "description": "Per selected tool from craft-profile: {toolId: {compliant: bool, evidence, notes}}"
+            },
+            {
+              "name": "foreshadowingPlants",
+              "type": "array",
+              "description": "[{plantId, description, targetPayoffChapter}] \u2014 new plants in this chapter"
+            },
+            {
+              "name": "emotionalState",
+              "type": "object",
+              "description": "{povStart, povEnd, dominantEmotion} per INV-037, INV-058/T20"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapter-outlines/{N}.json, style-guide.json, continuity-tracker.json"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-drafter"
+        ],
+        "readers": [
+          "revision agents",
+          "continuity-tracker",
+          "drafting-auditor"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "revision-reports/{N}/developmental.json",
+        "purpose": "Developmental edit findings for chapter N: plot holes, pacing issues, motivation gaps, arc satisfaction, thematic drift. First of three mandatory review passes (INV-013).",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'DEV-NNN', severity: 'critical'|'major'|'minor', category, description, location, suggestedFix}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N, overallAssessment}"
+            },
+            {
+              "name": "darlingsIdentified",
+              "type": "array",
+              "description": "Kill-your-darlings candidates per INV-049/T11, INV-081"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/draft.md, plot-structure.json"
+            }
+          ],
+          "idScheme": "DEV-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-developmental-editor"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-chapter-reviser",
+          "adversarial-auditor"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "revision-reports/{N}/line-edit.json",
+        "purpose": "Line edit findings for chapter N: prose quality, voice distinctness, clich\u00e9 detection, show-vs-tell (INV-005), repetition, dialogue naturalism (INV-019). Second mandatory pass.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'LINE-NNN', severity, category: 'voice'|'prose'|'clich\u00e9'|'show-tell'|'repetition'|'dialogue', description, lineRef, suggestedFix}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "voiceConsistency",
+              "type": "object",
+              "description": "{charId, deviations: [{where, expected, actual}]} per INV-015"
+            },
+            {
+              "name": "proseQualityMetrics",
+              "type": "object",
+              "description": "{clich\u00e9Count, adverbCount, passiveVoicePercent, showTellRatio} checked against INV-017 floor"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/draft.md, style-guide.json"
+            }
+          ],
+          "idScheme": "LINE-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-line-editor"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-chapter-reviser"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "revision-reports/{N}/copy-edit.json",
+        "purpose": "Copy edit findings for chapter N: grammar, naming consistency, timeline accuracy, factual accuracy within world rules (INV-018), formatting. Third mandatory pass.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'COPY-NNN', severity, category: 'grammar'|'naming'|'timeline'|'factual'|'formatting', description, lineRef, correction}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "continuityChecks",
+              "type": "array",
+              "description": "Cross-reference results against continuity-tracker.json"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/draft.md, world-bible/*, continuity-tracker.json"
+            }
+          ],
+          "idScheme": "COPY-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-copy-editor"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-chapter-reviser"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "chapters/{N}/revised.md",
+        "purpose": "Revised chapter prose incorporating all three edit passes. Every change must cite which finding prompted it (INV-014). Replaces draft.md as the working version.",
+        "schema": {
+          "fields": [
+            {
+              "name": "content",
+              "type": "markdown",
+              "description": "Revised chapter prose"
+            },
+            {
+              "name": "frontmatter",
+              "type": "yaml",
+              "description": "YAML frontmatter: chapterNum, pov, wordCount, revisionVersion, findingsAddressed: [ids]"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-reviser"
+        ],
+        "readers": [
+          "beta readers",
+          "polish agents",
+          "adversarial-auditor"
+        ],
+        "writeProtocol": "create-once",
+        "notes": "May be overwritten if beta-reading triggers a revision cycle (INV-076). Each version increments revisionVersion."
+      },
+      {
+        "name": "beta-feedback/{N}/romance-lens.json",
+        "purpose": "Romance reader lens: evaluates emotional satisfaction, chemistry, pacing of romantic beats, HFN/HEA delivery, heat level consistency, relationship believability.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "lens",
+              "type": "string",
+              "description": "romance"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'ROM-NNN', severity, category, description, emotionalImpact}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N, emotionalSatisfaction: 1-10}"
+            },
+            {
+              "name": "arcProgressCheck",
+              "type": "object",
+              "description": "Is romance arc on track for this chapter? {expected, actual, assessment}"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/revised.md, romance-arc-design.json"
+            }
+          ],
+          "idScheme": "ROM-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-romance-beta-reader"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "beta-feedback/{N}/fantasy-lens.json",
+        "purpose": "Fantasy reader lens: evaluates worldbuilding immersion, magic system consistency, plot logic, action sequences, world rules adherence.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "lens",
+              "type": "string",
+              "description": "fantasy"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'FAN-NNN', severity, category, description, worldRuleRef}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N, immersionScore: 1-10}"
+            },
+            {
+              "name": "magicConsistency",
+              "type": "object",
+              "description": "Cross-reference magic use against magic-system.json rules"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/revised.md, world-bible/*"
+            }
+          ],
+          "idScheme": "FAN-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-fantasy-beta-reader"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "beta-feedback/{N}/craft-lens.json",
+        "purpose": "Craft reader lens: evaluates adherence to selected craft tools from craft-profile.json, scene structure, pacing, foreshadowing, craft technique execution.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "lens",
+              "type": "string",
+              "description": "craft"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'CRF-NNN', severity, category, craftToolRef: 'T1-T26', description}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "craftToolCompliance",
+              "type": "object",
+              "description": "Per-tool compliance assessment against craft-profile.json"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/revised.md, craft-profile.json"
+            }
+          ],
+          "idScheme": "CRF-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-craft-beta-reader"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "beta-feedback/{N}/sensitivity-lens.json",
+        "purpose": "Sensitivity reader lens: evaluates representation, potential harmful stereotypes, cultural sensitivity, power dynamics in romance, consent portrayal.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "lens",
+              "type": "string",
+              "description": "sensitivity"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'SEN-NNN', severity, category: 'representation'|'stereotype'|'consent'|'power-dynamic', description, suggestedAlternative}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/revised.md, characters/*"
+            }
+          ],
+          "idScheme": "SEN-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-sensitivity-beta-reader"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "beta-feedback/{N}/originality-lens.json",
+        "purpose": "Originality reader lens: flags passages, characters, plot elements, or magic systems that too closely resemble specific published works (INV-023, INV-025). Zero-tolerance plagiarism check.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "lens",
+              "type": "string",
+              "description": "originality"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'ORIG-NNN', severity, category: 'prose-similarity'|'character-similarity'|'plot-similarity'|'magic-similarity', description, resemblesWork, suggestedDifferentiation}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "styleSampleCheck",
+              "type": "object|null",
+              "description": "If style samples were used: verify transformative-only usage (INV-024)"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to chapters/{N}/revised.md, story-config.json"
+            }
+          ],
+          "idScheme": "ORIG-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-originality-beta-reader"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "beta-synthesis/{N}.json",
+        "purpose": "Synthesized beta feedback for chapter N: aggregates all 5 lens findings, de-duplicates, prioritizes by severity. Critical and major findings must be addressed before chapter is accepted (INV-076).",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "aggregatedFindings",
+              "type": "array",
+              "description": "[{id: 'BETA-NNN', originalIds: ['ROM-001','FAN-003'], severity, category, description, requiredAction}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N, totalAcrossLenses, deduplicated}"
+            },
+            {
+              "name": "verdict",
+              "type": "string",
+              "description": "accepted|revision-required \u2014 revision-required if any critical or major findings (INV-076)"
+            },
+            {
+              "name": "revisionPriorities",
+              "type": "array",
+              "description": "Ordered list of findings to address, critical first"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to all 5 beta-feedback/{N}/*.json files"
+            }
+          ],
+          "idScheme": "BETA-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-beta-synthesizer"
+        ],
+        "readers": [
+          "romantic-fantasy-writer-chapter-reviser",
+          "romantic-fantasy-writer"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "chapters/{N}/final.md",
+        "purpose": "Final polished chapter: proofread, formatted, ready for delivery. The terminal version of each chapter.",
+        "schema": {
+          "fields": [
+            {
+              "name": "content",
+              "type": "markdown",
+              "description": "Final chapter prose"
+            },
+            {
+              "name": "frontmatter",
+              "type": "yaml",
+              "description": "YAML frontmatter: chapterNum, pov, wordCount, finalVersion, passedAllGates: true"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-polisher"
+        ],
+        "readers": [
+          "delivery-assembler",
+          "series-kb-manager"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "chapter-summaries/{N}.json",
+        "purpose": "Per-chapter summary for series KB promotion: key events, character development, world changes, unresolved threads, relationship progression.",
+        "schema": {
+          "fields": [
+            {
+              "name": "chapterNum",
+              "type": "number",
+              "description": "Chapter number"
+            },
+            {
+              "name": "keyEvents",
+              "type": "array",
+              "description": "Major plot events in this chapter"
+            },
+            {
+              "name": "characterDevelopment",
+              "type": "object",
+              "description": "Per-character arc movement in this chapter"
+            },
+            {
+              "name": "worldChanges",
+              "type": "array",
+              "description": "New world facts established"
+            },
+            {
+              "name": "unresolvedThreads",
+              "type": "array",
+              "description": "Threads opened or advanced but not resolved"
+            },
+            {
+              "name": "romanceProgression",
+              "type": "string",
+              "description": "Where the romance arc moved"
+            },
+            {
+              "name": "upstreamRef",
+              "type": "string",
+              "description": "Relative path to chapters/{N}/final.md"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-summary-generator"
+        ],
+        "readers": [
+          "series-kb-manager",
+          "delivery-assembler"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "delivery-report.json",
+        "purpose": "Final delivery summary: word counts, chapter roster, quality metrics, craft tool compliance summary, invariant adherence report, outstanding items.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "totalWordCount",
+              "type": "number",
+              "description": "Sum of all chapter word counts"
+            },
+            {
+              "name": "chapterCount",
+              "type": "number",
+              "description": "Total chapters delivered"
+            },
+            {
+              "name": "qualityMetrics",
+              "type": "object",
+              "description": "{avgBetaScore, craftToolCompliance, invariantAdherence, revisionCycles}"
+            },
+            {
+              "name": "outstandingItems",
+              "type": "array",
+              "description": "Minor findings deferred (only minor allowed per INV-076)"
+            },
+            {
+              "name": "seriesKBUpdated",
+              "type": "boolean",
+              "description": "Whether series KB was promoted"
+            },
+            {
+              "name": "artifactManifest",
+              "type": "array",
+              "description": "Complete list of all delivered artifacts with paths"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-delivery-assembler"
+        ],
+        "readers": [
+          "user (via guide)"
+        ],
+        "writeProtocol": "create-once"
+      },
+      {
+        "name": "audit-reports/{phase}/{gate-id}.json",
+        "purpose": "Adversarial audit report per phase gate (INV-027). Every creative phase has a gate that challenges consistency, enforces craft tools, and applies kill-your-darlings (INV-081). Blocks progression on critical findings.",
+        "schema": {
+          "fields": [
+            {
+              "name": "gateId",
+              "type": "string",
+              "description": "Unique gate identifier: GATE-{phase}-NNN"
+            },
+            {
+              "name": "phase",
+              "type": "string",
+              "description": "Creative phase being audited"
+            },
+            {
+              "name": "findings",
+              "type": "array",
+              "description": "[{id: 'AUD-NNN', severity: 'critical'|'major'|'minor', category: 'consistency'|'craft-compliance'|'darling'|'deus-ex-machina'|'continuity', description, artifactRef, suggestedFix}]"
+            },
+            {
+              "name": "summary",
+              "type": "object",
+              "description": "{critical: N, major: N, minor: N}"
+            },
+            {
+              "name": "verdict",
+              "type": "string",
+              "description": "pass|revise|block \u2014 block if any critical findings"
+            },
+            {
+              "name": "craftToolEnforcement",
+              "type": "array",
+              "description": "Per selected tool: {toolId, enforced: bool, violations: []}"
+            },
+            {
+              "name": "darlingsIdentified",
+              "type": "array",
+              "description": "Kill-your-darlings candidates per INV-081"
+            },
+            {
+              "name": "upstreamRefs",
+              "type": "array",
+              "description": "Relative paths to all artifacts reviewed in this gate"
+            }
+          ],
+          "idScheme": "AUD-NNN, GATE-{phase}-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-concept-auditor",
+          "romantic-fantasy-writer-worldbuilding-auditor",
+          "romantic-fantasy-writer-character-auditor",
+          "romantic-fantasy-writer-plotting-auditor",
+          "romantic-fantasy-writer-style-auditor",
+          "romantic-fantasy-writer-drafting-auditor",
+          "romantic-fantasy-writer-revision-auditor",
+          "romantic-fantasy-writer-beta-reading-auditor"
+        ],
+        "readers": [
+          "phase coordinator (for routing)",
+          "revision agents"
+        ],
+        "writeProtocol": "create-once-per-gate"
+      },
+      {
+        "name": "continuity-tracker.json",
+        "purpose": "Running continuity document updated after every chapter draft (INV-011). Tracks character locations, timeline, knowledge state, active promises, and naming consistency.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "timeline",
+              "type": "array",
+              "description": "[{event, chapter, inWorldTime, characters}] \u2014 chronological event log"
+            },
+            {
+              "name": "characterPositions",
+              "type": "object",
+              "description": "Map of CHAR-NNN \u2192 {lastKnownLocation, asOfChapter}"
+            },
+            {
+              "name": "characterKnowledge",
+              "type": "object",
+              "description": "Map of CHAR-NNN \u2192 [{fact, learnedInChapter}] \u2014 what each character knows (INV-056/T18 feeds this)"
+            },
+            {
+              "name": "activePromises",
+              "type": "array",
+              "description": "[{id: 'PROM-NNN', type: 'chekhov'|'foreshadow'|'subplot', description, plantedChapter, status: 'open'|'resolved', resolvedChapter}] per INV-006"
+            },
+            {
+              "name": "namingRegistry",
+              "type": "object",
+              "description": "Canonical spellings of all names, places, terms"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter number of last update"
+            }
+          ],
+          "idScheme": "PROM-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-continuity-tracker",
+          "romantic-fantasy-writer-chapter-drafter"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "adversarial-auditor",
+          "copy-editor",
+          "all beta readers"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Chapter-drafter updates characterPositions, timeline, and activePromises after each chapter. Continuity-tracker performs full consistency verification and may add corrections. Both preserve all existing entries. New entries are appended; existing entries may only have their 'status' field updated (open\u2192resolved)."
+      },
+      {
+        "name": "foreshadowing-ledger.json",
+        "purpose": "Explicit register mapping every foreshadowing plant to its payoff (INV-053/T15). Tracks plant chapter, payoff chapter, red herrings, and completeness.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "entries",
+              "type": "array",
+              "description": "[{id: 'FS-NNN', plant: {description, chapter, lineRef}, payoff: {description, chapter, lineRef}|null, type: 'foreshadow'|'red-herring'|'callback', status: 'planted'|'paid-off'|'abandoned'}]"
+            },
+            {
+              "name": "completionRate",
+              "type": "number",
+              "description": "Percentage of plants with payoffs (target: 100% excluding intentional red herrings)"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter of last update"
+            }
+          ],
+          "idScheme": "FS-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-drafter",
+          "romantic-fantasy-writer-craft-tracker"
+        ],
+        "readers": [
+          "tension-mapper",
+          "adversarial-auditor",
+          "craft-beta-reader",
+          "continuity-tracker"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Chapter-drafter adds new plant entries after each chapter. Craft-tracker updates payoff fields when payoffs are identified in later chapters. Existing entries are never deleted \u2014 status field transitions: planted\u2192paid-off or planted\u2192abandoned."
+      },
+      {
+        "name": "information-asymmetry-map.json",
+        "purpose": "Tracks what each character knows vs. what the reader knows vs. what other characters know (INV-056/T18). Critical for maintaining dramatic irony and avoiding info leaks.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "facts",
+              "type": "array",
+              "description": "[{id: 'FACT-NNN', fact, revealedToReader: {chapter}|null, knownBy: [{charId, learnedChapter}], unknownBy: ['CHAR-NNN']}]"
+            },
+            {
+              "name": "dramaticIronyPoints",
+              "type": "array",
+              "description": "[{factId, readerKnows: true, characterDoesnt: 'CHAR-NNN', activeFromChapter, resolvedChapter}]"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter of last update"
+            }
+          ],
+          "idScheme": "FACT-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-continuity-tracker",
+          "romantic-fantasy-writer-chapter-drafter"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "adversarial-auditor",
+          "fantasy-beta-reader"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Chapter-drafter registers new facts and character knowledge gains. Continuity-tracker verifies no character uses information they haven't learned. Entries are append-only for facts; knownBy arrays grow as characters learn things."
+      },
+      {
+        "name": "mystery-box-inventory.json",
+        "purpose": "Tracks active unresolved questions the reader holds (INV-061/T23). Maintains target range (typically 3-7 active boxes). Used for pacing and engagement control.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "boxes",
+              "type": "array",
+              "description": "[{id: 'MB-NNN', question, openedChapter, closedChapter: null|N, importance: 'major'|'minor', status: 'open'|'closed'}]"
+            },
+            {
+              "name": "activeCount",
+              "type": "number",
+              "description": "Currently open boxes (target: 3-7)"
+            },
+            {
+              "name": "perChapterSnapshot",
+              "type": "array",
+              "description": "[{chapter, activeCount, opened: [], closed: []}] \u2014 trend data"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter of last update"
+            }
+          ],
+          "idScheme": "MB-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-craft-tracker",
+          "romantic-fantasy-writer-chapter-drafter"
+        ],
+        "readers": [
+          "tension-mapper",
+          "chapter-drafter",
+          "adversarial-auditor"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Chapter-drafter opens new boxes and updates perChapterSnapshot. Craft-tracker closes boxes when answers are delivered and recomputes activeCount. Status transitions: open\u2192closed only."
+      },
+      {
+        "name": "emotional-throughline.json",
+        "purpose": "Charts each lead's specific emotional state per chapter boundary (INV-058/T20). Enforces emotional variety (INV-037) \u2014 no character in same emotional state for 3+ consecutive chapters.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "characters",
+              "type": "object",
+              "description": "Map of CHAR-NNN \u2192 [{chapter, emotionalState: granular label, dominantEmotion, intensity: 1-10, trigger}]"
+            },
+            {
+              "name": "varietyCheck",
+              "type": "object",
+              "description": "Map of CHAR-NNN \u2192 {maxConsecutiveSameState, violations: [{chapters, state}]}"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter of last update"
+            }
+          ]
+        },
+        "writers": [
+          "romantic-fantasy-writer-chapter-drafter",
+          "romantic-fantasy-writer-craft-tracker"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "developmental-editor",
+          "romance-beta-reader"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Chapter-drafter appends new chapter entries to each character's array. Craft-tracker recomputes varietyCheck after each update. Character arrays are append-only."
+      },
+      {
+        "name": "symbolic-motif-registry.json",
+        "purpose": "Tracks 3-5 recurring symbols/motifs assigned to thematic pillars (INV-054/T16). Records appearances per chapter with imagery callbacks and evolution.",
+        "schema": {
+          "fields": [
+            {
+              "name": "storyId",
+              "type": "string",
+              "description": "Story identifier"
+            },
+            {
+              "name": "motifs",
+              "type": "array",
+              "description": "[{id: 'MOT-NNN', symbol, linkedTheme, appearances: [{chapter, context, evolution}], targetDensity}]"
+            },
+            {
+              "name": "lastUpdatedChapter",
+              "type": "number",
+              "description": "Chapter of last update"
+            }
+          ],
+          "idScheme": "MOT-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-craft-tracker"
+        ],
+        "readers": [
+          "chapter-drafter",
+          "adversarial-auditor",
+          "craft-beta-reader"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdatedChapter",
+        "multiWriterRules": "Single primary writer (craft-tracker). Initial motifs set during plotting; appearances appended per chapter."
+      },
+      {
+        "name": "series-kb/index.json",
+        "purpose": "Series knowledge base master index. Lives at series level (not per-book). References all per-book KBs and tracks cross-book facts. Append-mostly per INV-070.",
+        "schema": {
+          "fields": [
+            {
+              "name": "seriesId",
+              "type": "string",
+              "description": "Series identifier"
+            },
+            {
+              "name": "books",
+              "type": "array",
+              "description": "[{storyId, title, order, kbPath}]"
+            },
+            {
+              "name": "crossBookFacts",
+              "type": "array",
+              "description": "[{id: 'SKB-NNN', fact, establishedInBook, type: 'world'|'character'|'magic'|'timeline'|'naming'|'style'}]"
+            },
+            {
+              "name": "unresolvedThreads",
+              "type": "array",
+              "description": "[{id: 'UTH-NNN', thread, fromBook, disposition: 'continue'|'resolve'|'drop'|'pending'}] per INV-071"
+            },
+            {
+              "name": "namingConventions",
+              "type": "object",
+              "description": "Canonical names and spellings across the series"
+            },
+            {
+              "name": "lastUpdated",
+              "type": "string",
+              "description": "ISO-8601 timestamp"
+            }
+          ],
+          "idScheme": "SKB-NNN, UTH-NNN"
+        },
+        "writers": [
+          "romantic-fantasy-writer-series-kb-manager"
+        ],
+        "readers": [
+          "concept-developer (for sequels)",
+          "worldbuilding-coordinator specialists",
+          "character-coordinator specialists",
+          "phase auditors"
+        ],
+        "writeProtocol": "read-modify-write",
+        "ownershipField": "lastUpdated",
+        "multiWriterRules": "Single primary writer (series-kb-manager). Append-mostly: facts established in earlier books cannot be silently retconned (INV-070). New books append to books array and add crossBookFacts. unresolvedThreads dispositions updated during sequel concept phase.",
+        "pathNote": "BC-W01 fix: Artifact key is series-kb/index.json (per-book relative reference). Bootstrap creates the actual file at {root}/series/{series-id}/index.json. Agents reference it as series-kb/index.json relative to the book output directory, which symlinks or resolves to the series-level path."
+      }
+    ],
+    "dataFlow": [
+      {
+        "from": "input",
+        "artifact": "story-config.json",
+        "to": "concept",
+        "purpose": "User inputs feed concept development \u2014 story idea, constraints, style samples"
+      },
+      {
+        "from": "concept",
+        "artifact": "story-concept.json",
+        "to": "worldbuilding",
+        "purpose": "Crystallized concept defines world parameters \u2014 genre, setting type, magic needs"
+      },
+      {
+        "from": "concept",
+        "artifact": "craft-profile.json",
+        "to": "plotting",
+        "purpose": "Selected craft tools become binding constraints for plot structure design"
+      },
+      {
+        "from": "worldbuilding",
+        "artifact": "world-bible/*",
+        "to": "character",
+        "purpose": "World rules constrain character abilities, cultural backgrounds, and social dynamics"
+      },
+      {
+        "from": "character",
+        "artifact": "characters/*.json",
+        "to": "plotting",
+        "purpose": "Character arcs, wounds, and relationships shape plot structure and beat placement"
+      },
+      {
+        "from": "character",
+        "artifact": "romance-arc-design.json",
+        "to": "plotting",
+        "purpose": "Romance arc stages and vulnerability ladder inform dual-arc interleave"
+      },
+      {
+        "from": "plotting",
+        "artifact": "chapter-outlines/{N}.json",
+        "to": "drafting",
+        "purpose": "Per-chapter outlines are mandatory input for drafting (INV-010 Outline Before Draft)"
+      },
+      {
+        "from": "plotting",
+        "artifact": "plot-structure.json",
+        "to": "drafting",
+        "purpose": "Act structure, beats, and subplot registry guide chapter-level execution"
+      },
+      {
+        "from": "plotting",
+        "artifact": "dual-arc-timeline.json",
+        "to": "drafting",
+        "purpose": "Fantasy/romance beat assignments per chapter guide arc interleaving"
+      },
+      {
+        "from": "plotting",
+        "artifact": "tension-map.json",
+        "to": "drafting",
+        "purpose": "Tension targets per chapter guide pacing in prose"
+      },
+      {
+        "from": "style",
+        "artifact": "style-guide.json",
+        "to": "drafting",
+        "purpose": "Voice calibration and prose rules constrain how chapters are written"
+      },
+      {
+        "from": "drafting",
+        "artifact": "chapters/{N}/draft.md",
+        "to": "revision",
+        "purpose": "Chapter draft is the input for three-pass editing"
+      },
+      {
+        "from": "drafting",
+        "artifact": "chapters/{N}/metadata.json",
+        "to": "revision",
+        "purpose": "Structured metadata enables craft-aware developmental review"
+      },
+      {
+        "from": "revision",
+        "artifact": "revision-reports/{N}/*.json",
+        "to": "revision",
+        "purpose": "Three edit reports feed the chapter reviser (dev\u2192line\u2192copy\u2192revise)"
+      },
+      {
+        "from": "revision",
+        "artifact": "chapters/{N}/revised.md",
+        "to": "beta-reading",
+        "purpose": "Revised chapter is the input for all five beta reader lenses"
+      },
+      {
+        "from": "beta-reading",
+        "artifact": "beta-feedback/{N}/*.json",
+        "to": "beta-reading",
+        "purpose": "Five lens reports feed the beta synthesizer"
+      },
+      {
+        "from": "beta-reading",
+        "artifact": "beta-synthesis/{N}.json",
+        "to": "revision",
+        "purpose": "Synthesized beta feedback may trigger revision cycle (INV-076 severity-gated)"
+      },
+      {
+        "from": "revision",
+        "artifact": "chapters/{N}/revised.md",
+        "to": "polish",
+        "purpose": "Accepted revised chapter feeds final polish"
+      },
+      {
+        "from": "polish",
+        "artifact": "chapters/{N}/final.md",
+        "to": "delivery",
+        "purpose": "Polished chapters assemble into the delivery package"
+      },
+      {
+        "from": "polish",
+        "artifact": "chapter-summaries/{N}.json",
+        "to": "series-kb",
+        "purpose": "Chapter summaries feed series KB promotion for sequel support"
+      },
+      {
+        "from": "drafting",
+        "artifact": "continuity-tracker.json",
+        "to": "drafting",
+        "purpose": "Updated after each chapter (INV-011); read before next chapter to maintain consistency"
+      },
+      {
+        "from": "drafting",
+        "artifact": "foreshadowing-ledger.json",
+        "to": "drafting",
+        "purpose": "Tracks plant/payoff status across chapters; read to ensure planned payoffs"
+      },
+      {
+        "from": "drafting",
+        "artifact": "information-asymmetry-map.json",
+        "to": "drafting",
+        "purpose": "Prevents character info leaks \u2014 checked before writing character actions"
+      },
+      {
+        "from": "drafting",
+        "artifact": "mystery-box-inventory.json",
+        "to": "drafting",
+        "purpose": "Maintains 3-7 active questions for reader engagement pacing"
+      },
+      {
+        "from": "concept",
+        "artifact": "story-concept.json",
+        "to": "adversarial",
+        "purpose": "Concept is the ground truth for all adversarial consistency checks"
+      },
+      {
+        "from": "all-phases",
+        "artifact": "audit-reports/{phase}/*.json",
+        "to": "all-phases",
+        "purpose": "Adversarial gates produce findings that may block phase progression"
+      },
+      {
+        "from": "series-kb",
+        "artifact": "series-kb/index.json",
+        "to": "concept",
+        "purpose": "For sequels: series KB provides established facts and unresolved threads (INV-071)",
+        "pathNote": "See series-kb/index.json artifact definition for path mapping note (BC-W01)."
+      }
+    ]
+  },
+  "depth": {
+    "maxAllowed": 3,
+    "decisions": [
+      {
+        "coordinator": "concept-coordinator",
+        "mappedSubdomains": [
+          "concept-development"
+        ],
+        "depth": 2,
+        "estimatedSpecialists": 3,
+        "crossCuttingConcerns": 3,
+        "subdomainGroups": 1,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 16,
+        "invariantBreakdown": {
+          "behavioral": 6,
+          "workflow": 3,
+          "structural": 3,
+          "quality": 4
+        },
+        "rationale": "3 specialists (concept-developer, craft-profile-selector, concept-auditor) is well under the 8-specialist threshold. 3 cross-cutting concerns (craft-toolbox-selection, adversarial-consistency, series-knowledge-management) are at the threshold but not over. Single conceptual subdomain group. No criteria trigger depth-3.",
+        "subCoordinators": null
+      },
+      {
+        "coordinator": "worldbuilding-coordinator",
+        "mappedSubdomains": [
+          "worldbuilding"
+        ],
+        "depth": 3,
+        "estimatedSpecialists": 6,
+        "crossCuttingConcerns": 3,
+        "subdomainGroups": 5,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 12,
+        "invariantBreakdown": {
+          "behavioral": 7,
+          "workflow": 1,
+          "structural": 3,
+          "quality": 1
+        },
+        "rationale": "5 distinct world-bible sub-areas (geography, magic-system, politics, culture, history) exceed the 3-group threshold. While 6 specialists are under the 8-specialist cap, the sub-areas produce structurally different artifacts with different dependency chains: physical-world areas (geography, culture, history) reference each other for spatial/temporal consistency, while systems-world areas (magic, politics) define rule systems that constrain all others. Depth-3 separates these two routing patterns.",
+        "subCoordinators": [
+          {
+            "name": "physical-world-coordinator",
+            "purpose": "Routes geography, culture, and history specialists that build the tangible, experiential world. These three share heavy cross-references (geography constrains culture, history explains both).",
+            "specialists": [
+              "geography-builder",
+              "culture-builder",
+              "history-builder"
+            ]
+          },
+          {
+            "name": "systems-world-coordinator",
+            "purpose": "Routes magic-system and political-structure specialists that define the world's rule systems. Magic and politics co-constrain (who has power, how magic affects governance).",
+            "specialists": [
+              "magic-system-designer",
+              "political-structure-builder"
+            ]
+          }
+        ],
+        "additionalSpecialists": [
+          "worldbuilding-auditor"
+        ]
+      },
+      {
+        "coordinator": "character-coordinator",
+        "mappedSubdomains": [
+          "character-development"
+        ],
+        "depth": 3,
+        "estimatedSpecialists": 5,
+        "crossCuttingConcerns": 4,
+        "subdomainGroups": 3,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 16,
+        "invariantBreakdown": {
+          "behavioral": 7,
+          "quality": 5,
+          "workflow": 1,
+          "structural": 3
+        },
+        "rationale": "4 cross-cutting concerns (adversarial-consistency, series-knowledge-management, multi-pov-craft, emotional-resonance) exceed the 3-concern threshold. Character development requires two distinct routing patterns: core character creation (protagonist psychology, romance arc dynamics between leads) operates on deep individual characterization, while ensemble management (supporting cast, voice differentiation across POVs) operates on consistency and distinctiveness across the full cast. The 4 cross-cutting concerns (especially multi-POV craft and emotional resonance) add routing complexity that benefits from separation.",
+        "subCoordinators": [
+          {
+            "name": "core-characters-coordinator",
+            "purpose": "Routes specialists building the central character pair \u2014 protagonist depth (wounds, desires, growth arc) and the romance arc dynamic (chemistry, conflict sources, emotional escalation beats).",
+            "specialists": [
+              "protagonist-profiler",
+              "romance-arc-designer"
+            ]
+          },
+          {
+            "name": "ensemble-coordinator",
+            "purpose": "Routes specialists managing supporting cast with mini-arcs, antagonist design, and per-character voice calibration ensuring POV distinctiveness.",
+            "specialists": [
+              "supporting-cast-developer",
+              "character-voice-designer"
+            ]
+          }
+        ],
+        "additionalSpecialists": [
+          "character-auditor"
+        ]
+      },
+      {
+        "coordinator": "plotting-coordinator",
+        "mappedSubdomains": [
+          "plotting-and-outlining"
+        ],
+        "depth": 3,
+        "estimatedSpecialists": 6,
+        "crossCuttingConcerns": 4,
+        "subdomainGroups": 4,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 41,
+        "invariantBreakdown": {
+          "behavioral": 15,
+          "quality": 14,
+          "workflow": 4,
+          "structural": 8
+        },
+        "rationale": "Two criteria trigger: 4 cross-cutting concerns (adversarial-consistency, craft-knowledge-systems, continuity-tracking, reader-experience-design) AND 4 subdomain groups (structural framework selection, dual-arc timeline design, per-chapter outlining, scene/beat design). With 41 invariants (second-highest of any subdomain \u2014 15 behavioral, 14 quality), this is the most invariant-dense planning phase. The structural-design vs chapter-design split maps naturally to sub-coordinators: structural design selects the framework, builds the macro arc timeline, and maps tension \u2014 these are whole-story decisions. Chapter-level design produces per-chapter outlines and scene beats \u2014 these are granular, iterative decisions. Different routing complexity at each level.",
+        "subCoordinators": [
+          {
+            "name": "structural-design-coordinator",
+            "purpose": "Routes whole-story structural decisions: framework selection (three-act, Save the Cat, Hero's Journey), dual-arc timeline construction (fantasy plot + romance arc interleaved), and tension-map design (rise/fall across chapters).",
+            "specialists": [
+              "structure-selector",
+              "dual-arc-builder",
+              "tension-mapper"
+            ]
+          },
+          {
+            "name": "chapter-design-coordinator",
+            "purpose": "Routes per-chapter granular planning: chapter outline production (POV/goal/conflict/beats per chapter) and scene-beat design (Five Commandments, emotional beats, hook placement).",
+            "specialists": [
+              "chapter-outliner",
+              "scene-beat-designer"
+            ]
+          }
+        ],
+        "additionalSpecialists": [
+          "plot-auditor"
+        ]
+      },
+      {
+        "coordinator": "style-coordinator",
+        "mappedSubdomains": [
+          "prose-style-calibration"
+        ],
+        "depth": 2,
+        "estimatedSpecialists": 3,
+        "crossCuttingConcerns": 3,
+        "subdomainGroups": 2,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 14,
+        "invariantBreakdown": {
+          "behavioral": 6,
+          "quality": 4,
+          "workflow": 1,
+          "structural": 3
+        },
+        "rationale": "3 specialists (style-analyzer, style-guide-writer, style-auditor) is well under the 8-specialist threshold. 3 cross-cutting concerns (adversarial-consistency, multi-pov-craft, series-knowledge-management) are at the threshold but not over. Only 2 subdomain groups (analysis vs guide production). No criteria trigger depth-3.",
+        "subCoordinators": null
+      },
+      {
+        "coordinator": "drafting-coordinator",
+        "mappedSubdomains": [
+          "chapter-drafting"
+        ],
+        "depth": 3,
+        "estimatedSpecialists": 5,
+        "crossCuttingConcerns": 4,
+        "subdomainGroups": 3,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 47,
+        "invariantBreakdown": {
+          "behavioral": 14,
+          "quality": 26,
+          "workflow": 4,
+          "structural": 3
+        },
+        "rationale": "STRONGEST depth-3 case. 4 cross-cutting concerns (adversarial-consistency, continuity-tracking, craft-knowledge-systems, multi-pov-craft) exceed the 3-concern threshold. With 47 invariants \u2014 the highest of ANY subdomain, including 26 quality invariants \u2014 this phase has the densest enforcement requirements. The per-chapter iteration pattern means the coordinator must manage two fundamentally different streams per chapter cycle: (1) the creative-writing stream (drafting prose, maintaining POV voice), and (2) the quality-integration stream (checking continuity, enforcing craft rules, running the adversarial gate). Separating these into sub-coordinators keeps routing tables manageable and makes the per-chapter loop clearer.",
+        "subCoordinators": [
+          {
+            "name": "creative-writing-coordinator",
+            "purpose": "Routes the creative prose production for each chapter: the chapter-drafter writes the actual prose following the outline, and the POV-voice-maintainer ensures character voice consistency and distinctiveness per POV section.",
+            "specialists": [
+              "chapter-drafter",
+              "pov-voice-maintainer"
+            ]
+          },
+          {
+            "name": "quality-integration-coordinator",
+            "purpose": "Routes the quality enforcement stream per chapter: continuity-integrator checks against the continuity tracker, craft-enforcer validates selected craft-tool invariants (foreshadowing callbacks, scene commandments, emotional beats).",
+            "specialists": [
+              "continuity-integrator",
+              "craft-enforcer"
+            ]
+          }
+        ],
+        "additionalSpecialists": [
+          "chapter-auditor"
+        ]
+      },
+      {
+        "coordinator": "revision-coordinator",
+        "mappedSubdomains": [
+          "revision-and-editing"
+        ],
+        "depth": 2,
+        "estimatedSpecialists": 4,
+        "crossCuttingConcerns": 2,
+        "subdomainGroups": 3,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 28,
+        "invariantBreakdown": {
+          "behavioral": 5,
+          "quality": 16,
+          "workflow": 4,
+          "structural": 3
+        },
+        "rationale": "4 specialists (developmental-editor, line-editor, copy-editor, revision-auditor) under the 8-specialist threshold. Only 2 cross-cutting concerns (continuity-tracking, craft-knowledge-systems). 3 subdomain groups (developmental/line/copy) are at the threshold but not over. Despite 28 invariants (third-highest), the three editing passes follow a clean sequential pattern that a single coordinator handles well. No criteria trigger depth-3.",
+        "subCoordinators": null
+      },
+      {
+        "coordinator": "beta-reading-coordinator",
+        "mappedSubdomains": [
+          "beta-reading-simulation"
+        ],
+        "depth": 3,
+        "estimatedSpecialists": 7,
+        "crossCuttingConcerns": 2,
+        "subdomainGroups": 5,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 20,
+        "invariantBreakdown": {
+          "behavioral": 6,
+          "quality": 7,
+          "workflow": 3,
+          "structural": 4
+        },
+        "rationale": "5 distinct reader-lens subdomain groups (romance-reader, fantasy-reader, craft-reader, sensitivity-reader, originality-reader) plus a synthesis stage exceed the 3-group threshold. The 5 lenses naturally split into two clusters: genre-lens readers (romance + fantasy \u2014 assess genre promise fulfillment and world/magic satisfaction) and craft-lens readers (craft + sensitivity + originality \u2014 assess writing quality, representation, and freshness). Each cluster evaluates from a fundamentally different perspective and produces differently-structured feedback. The synthesis stage aggregates both clusters. Depth-3 cleanly maps this two-cluster fan-out pattern.",
+        "subCoordinators": [
+          {
+            "name": "genre-lens-coordinator",
+            "purpose": "Routes genre-focused beta readers: romance-reader (HEA/HFN satisfaction, chemistry, emotional escalation, steam level) and fantasy-reader (worldbuilding immersion, magic consistency, plot tension, lore engagement).",
+            "specialists": [
+              "romance-reader",
+              "fantasy-reader"
+            ]
+          },
+          {
+            "name": "craft-lens-coordinator",
+            "purpose": "Routes craft-and-quality-focused beta readers: craft-reader (prose quality, pacing, structure), sensitivity-reader (representation, harmful tropes, cultural accuracy), originality-reader (clich\u00e9 detection, fresh elements, comp-title differentiation).",
+            "specialists": [
+              "craft-reader",
+              "sensitivity-reader",
+              "originality-reader"
+            ]
+          }
+        ],
+        "additionalSpecialists": [
+          "beta-synthesizer"
+        ]
+      },
+      {
+        "coordinator": "polish-coordinator",
+        "mappedSubdomains": [
+          "polish-and-delivery"
+        ],
+        "depth": 2,
+        "estimatedSpecialists": 3,
+        "crossCuttingConcerns": 1,
+        "subdomainGroups": 2,
+        "exemplarSuggestsDepth3": false,
+        "invariantsAffecting": 10,
+        "invariantBreakdown": {
+          "behavioral": 4,
+          "structural": 5,
+          "quality": 1
+        },
+        "rationale": "3 specialists (proofreader, summary-generator, series-KB-promoter) is well under all thresholds. Only 1 cross-cutting concern (series-knowledge-management). 2 subdomain groups (text finalization, packaging). Lightest coordinator in the system. No criteria trigger depth-3.",
+        "subCoordinators": null
+      }
+    ],
+    "crossCuttingAgents": {
+      "note": "Cross-cutting subdomains (adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems) are NOT separate coordinators. They are implemented as: (1) adversarial auditors embedded per-phase (counted as 'auditor' specialist in each phase coordinator), (2) shared specialist agents invoked by multiple coordinators, and (3) craft knowledge skills.",
+      "sharedSpecialists": [
+        {
+          "name": "continuity-tracker",
+          "invokedBy": [
+            "drafting-coordinator",
+            "revision-coordinator",
+            "beta-reading-coordinator"
+          ],
+          "subdomain": "continuity-tracking"
+        },
+        {
+          "name": "series-kb-manager",
+          "invokedBy": [
+            "concept-coordinator",
+            "worldbuilding-coordinator",
+            "character-coordinator",
+            "polish-coordinator"
+          ],
+          "subdomain": "series-knowledge-management"
+        },
+        {
+          "name": "craft-tracker",
+          "invokedBy": [
+            "plotting-coordinator",
+            "drafting-coordinator",
+            "revision-coordinator",
+            "beta-reading-coordinator"
+          ],
+          "subdomain": "craft-knowledge-systems",
+          "note": "Originally planned as foreshadowing-architect; merged into craft-tracker during roster planning"
+        }
+      ],
+      "estimatedSharedAgents": 3
+    },
+    "totalEstimatedAgents": 68,
+    "agentBreakdown": {
+      "orchestrator": 1,
+      "guide": 1,
+      "depth2Coordinators": {
+        "count": 4,
+        "names": [
+          "concept-coordinator",
+          "style-coordinator",
+          "revision-coordinator",
+          "polish-coordinator"
+        ],
+        "coordinatorAgents": 4,
+        "specialists": 13,
+        "subtotal": 17
+      },
+      "depth3Coordinators": {
+        "count": 5,
+        "names": [
+          "worldbuilding-coordinator",
+          "character-coordinator",
+          "plotting-coordinator",
+          "drafting-coordinator",
+          "beta-reading-coordinator"
+        ],
+        "coordinatorAgents": 5,
+        "subCoordinatorAgents": 10,
+        "specialists": 29,
+        "subtotal": 44
+      },
+      "crossCuttingShared": 5
+    },
+    "budgetStatus": "within-limit",
+    "budgetDetail": "68 of 80 agents used (85%). 12 agents of headroom available for gap-hunting additions (e.g., additional specialist for a subdomain discovered to be under-covered, or an extra auditor for a phase that needs tighter enforcement). No depth-3 decisions were reduced."
+  }
+}

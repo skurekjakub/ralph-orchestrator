@@ -1,0 +1,26 @@
+{
+  "id": "MK-022",
+  "category": "factory-operations",
+  "subcategory": "gap-hunting-convergence-pattern",
+  "content": "Coverage categories (subdomain, invariant, routing, test) were clean from cycle 1 onward \u2014 they never had gaps after initial verification. Infrastructure categories (bootstrap, docs, meta-knowledge) were clean from cycle 2. Only artifact coverage and cross-reference integrity required 3 cycles. The persistent gaps were all caused by a single root issue: ghost references to the dissolved agent 'plot-architect'.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "Category 1 notes: 'Clean since cycle 1'. Category 4 notes: 'Clean since cycle 3'. Category 6 resolvedFromPreviousCycles: CR-004 verified-fixed, CR-005 verified-fixed \u2014 both plot-architect ghost refs.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

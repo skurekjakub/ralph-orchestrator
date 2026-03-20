@@ -1,0 +1,26 @@
+{
+  "id": "MK-003",
+  "category": "craft",
+  "subcategory": "adversarial-pattern",
+  "content": "The adversarial auditor-per-phase pattern (one auditor specialist embedded in each coordinator) is highly effective for creative domains with many invariants. With 81 invariants distributed across 8 phase auditors, each auditor enforces only the invariants relevant to its phase's output. The distribution was well-shaped: most invariants had 3-5 agent references, with only 8 single-reference invariants (each correctly scoped). The universal invariant (INV-030) was referenced by all 67 agents. This distribution pattern ensures no single agent is overburdened while no invariant falls through the cracks.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "Category 2 (Invariant Enforcement): 81 invariants checked, 0 gaps. Distribution: 8 invariants with 1 ref, 8 with 2, 11 with 3, 13 with 4, 16 with 5, 10 with 6, 4 with 7, 4 with 8... All 8 single-reference invariants confirmed correctly scoped. Clean since cycle 1.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

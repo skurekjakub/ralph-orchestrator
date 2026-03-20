@@ -1,0 +1,1892 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T17:16:27.075204+00:00",
+  "namingPrefix": "romantic-fantasy-writer",
+  "agents": [
+    {
+      "id": "A-001",
+      "name": "romantic-fantasy-writer-guide",
+      "displayName": "Guide",
+      "level": "guide",
+      "parent": "user",
+      "children": [
+        "romantic-fantasy-writer"
+      ],
+      "pass": null,
+      "resultCodes": [],
+      "reads": [
+        "delivery-report.json"
+      ],
+      "writes": [
+        "story-config.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-002",
+      "name": "romantic-fantasy-writer",
+      "displayName": "Session Orchestrator",
+      "level": "orchestrator",
+      "parent": "romantic-fantasy-writer-guide",
+      "children": [
+        "romantic-fantasy-writer-concept-coordinator",
+        "romantic-fantasy-writer-worldbuilding-coordinator",
+        "romantic-fantasy-writer-character-coordinator",
+        "romantic-fantasy-writer-plotting-coordinator",
+        "romantic-fantasy-writer-style-coordinator",
+        "romantic-fantasy-writer-drafting-coordinator",
+        "romantic-fantasy-writer-revision-coordinator",
+        "romantic-fantasy-writer-beta-reading-coordinator",
+        "romantic-fantasy-writer-polish-coordinator",
+        "romantic-fantasy-writer-continuity-tracker",
+        "romantic-fantasy-writer-series-kb-manager",
+        "romantic-fantasy-writer-craft-tracker"
+      ],
+      "pass": "all",
+      "resultCodes": [
+        "delivered",
+        "delivered-with-gaps",
+        "failed"
+      ],
+      "reads": [
+        "progress.json",
+        "agents/*/status.json"
+      ],
+      "writes": [
+        "progress.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-003",
+      "name": "romantic-fantasy-writer-concept-coordinator",
+      "displayName": "Concept Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-concept-developer",
+        "romantic-fantasy-writer-craft-profile-selector",
+        "romantic-fantasy-writer-concept-auditor"
+      ],
+      "pass": "concept",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "story-config.json",
+        "agents/concept-developer/status.json",
+        "agents/craft-profile-selector/status.json",
+        "agents/concept-auditor/status.json"
+      ],
+      "writes": [
+        "agents/concept-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-004",
+      "name": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "displayName": "Worldbuilding Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-physical-world-coordinator",
+        "romantic-fantasy-writer-systems-world-coordinator",
+        "romantic-fantasy-writer-worldbuilding-auditor"
+      ],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "story-concept.json",
+        "agents/physical-world-coordinator/status.json",
+        "agents/systems-world-coordinator/status.json",
+        "agents/worldbuilding-auditor/status.json"
+      ],
+      "writes": [
+        "agents/worldbuilding-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-005",
+      "name": "romantic-fantasy-writer-character-coordinator",
+      "displayName": "Character Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-core-characters-coordinator",
+        "romantic-fantasy-writer-ensemble-coordinator",
+        "romantic-fantasy-writer-character-auditor"
+      ],
+      "pass": "character",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "story-concept.json",
+        "world-bible/geography.json",
+        "agents/core-characters-coordinator/status.json",
+        "agents/ensemble-coordinator/status.json",
+        "agents/character-auditor/status.json"
+      ],
+      "writes": [
+        "agents/character-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-006",
+      "name": "romantic-fantasy-writer-plotting-coordinator",
+      "displayName": "Plotting Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-structural-design-coordinator",
+        "romantic-fantasy-writer-chapter-design-coordinator",
+        "romantic-fantasy-writer-plotting-auditor"
+      ],
+      "pass": "plotting",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "story-concept.json",
+        "craft-profile.json",
+        "characters/index.json",
+        "romance-arc-design.json",
+        "agents/structural-design-coordinator/status.json",
+        "agents/chapter-design-coordinator/status.json",
+        "agents/plotting-auditor/status.json"
+      ],
+      "writes": [
+        "agents/plotting-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-007",
+      "name": "romantic-fantasy-writer-style-coordinator",
+      "displayName": "Style Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-style-analyzer",
+        "romantic-fantasy-writer-style-guide-writer",
+        "romantic-fantasy-writer-style-auditor"
+      ],
+      "pass": "style",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "story-config.json",
+        "story-concept.json",
+        "agents/style-analyzer/status.json",
+        "agents/style-guide-writer/status.json",
+        "agents/style-auditor/status.json"
+      ],
+      "writes": [
+        "agents/style-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-008",
+      "name": "romantic-fantasy-writer-drafting-coordinator",
+      "displayName": "Drafting Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-creative-writing-coordinator",
+        "romantic-fantasy-writer-quality-integration-coordinator",
+        "romantic-fantasy-writer-drafting-auditor"
+      ],
+      "pass": "drafting",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "chapter-outlines/{N}.json",
+        "style-guide.json",
+        "agents/creative-writing-coordinator/status.json",
+        "agents/quality-integration-coordinator/status.json",
+        "agents/drafting-auditor/status.json"
+      ],
+      "writes": [
+        "agents/drafting-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-009",
+      "name": "romantic-fantasy-writer-revision-coordinator",
+      "displayName": "Revision Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-developmental-editor",
+        "romantic-fantasy-writer-line-editor",
+        "romantic-fantasy-writer-copy-editor",
+        "romantic-fantasy-writer-chapter-reviser",
+        "romantic-fantasy-writer-revision-auditor"
+      ],
+      "pass": "revision",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "chapters/{N}/draft.md",
+        "agents/developmental-editor/status.json",
+        "agents/line-editor/status.json",
+        "agents/copy-editor/status.json",
+        "agents/chapter-reviser/status.json",
+        "agents/revision-auditor/status.json"
+      ],
+      "writes": [
+        "agents/revision-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-010",
+      "name": "romantic-fantasy-writer-beta-reading-coordinator",
+      "displayName": "Beta Reading Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-genre-lens-coordinator",
+        "romantic-fantasy-writer-craft-lens-coordinator",
+        "romantic-fantasy-writer-beta-synthesizer",
+        "romantic-fantasy-writer-beta-reading-auditor"
+      ],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "complete",
+        "blocked",
+        "revision-loop"
+      ],
+      "reads": [
+        "progress.json",
+        "chapters/{N}/revised.md",
+        "agents/genre-lens-coordinator/status.json",
+        "agents/craft-lens-coordinator/status.json",
+        "agents/beta-synthesizer/status.json",
+        "agents/beta-reading-auditor/status.json"
+      ],
+      "writes": [
+        "agents/beta-reading-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-011",
+      "name": "romantic-fantasy-writer-polish-coordinator",
+      "displayName": "Polish Coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "children": [
+        "romantic-fantasy-writer-polisher",
+        "romantic-fantasy-writer-summary-generator",
+        "romantic-fantasy-writer-delivery-assembler"
+      ],
+      "pass": "polish",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "progress.json",
+        "chapters/{N}/revised.md",
+        "beta-synthesis/{N}.json",
+        "agents/polisher/status.json",
+        "agents/summary-generator/status.json",
+        "agents/delivery-assembler/status.json"
+      ],
+      "writes": [
+        "agents/polish-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-012",
+      "name": "romantic-fantasy-writer-physical-world-coordinator",
+      "displayName": "Physical World Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "children": [
+        "romantic-fantasy-writer-geography-builder",
+        "romantic-fantasy-writer-culture-builder",
+        "romantic-fantasy-writer-history-builder"
+      ],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "agents/geography-builder/status.json",
+        "agents/culture-builder/status.json",
+        "agents/history-builder/status.json"
+      ],
+      "writes": [
+        "agents/physical-world-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-013",
+      "name": "romantic-fantasy-writer-systems-world-coordinator",
+      "displayName": "Systems World Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "children": [
+        "romantic-fantasy-writer-magic-system-designer",
+        "romantic-fantasy-writer-political-structure-builder"
+      ],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "agents/magic-system-designer/status.json",
+        "agents/political-structure-builder/status.json"
+      ],
+      "writes": [
+        "agents/systems-world-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-014",
+      "name": "romantic-fantasy-writer-core-characters-coordinator",
+      "displayName": "Core Characters Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "children": [
+        "romantic-fantasy-writer-protagonist-profiler",
+        "romantic-fantasy-writer-romance-arc-designer"
+      ],
+      "pass": "character",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json",
+        "world-bible/culture.json",
+        "agents/protagonist-profiler/status.json",
+        "agents/romance-arc-designer/status.json"
+      ],
+      "writes": [
+        "agents/core-characters-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-015",
+      "name": "romantic-fantasy-writer-ensemble-coordinator",
+      "displayName": "Ensemble Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "children": [
+        "romantic-fantasy-writer-supporting-cast-developer",
+        "romantic-fantasy-writer-character-voice-designer"
+      ],
+      "pass": "character",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "characters/index.json",
+        "agents/supporting-cast-developer/status.json",
+        "agents/character-voice-designer/status.json"
+      ],
+      "writes": [
+        "agents/ensemble-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-016",
+      "name": "romantic-fantasy-writer-structural-design-coordinator",
+      "displayName": "Structural Design Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "children": [
+        "romantic-fantasy-writer-structure-selector",
+        "romantic-fantasy-writer-dual-arc-builder",
+        "romantic-fantasy-writer-tension-mapper"
+      ],
+      "pass": "plotting",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "craft-profile.json",
+        "characters/index.json",
+        "romance-arc-design.json",
+        "agents/structure-selector/status.json",
+        "agents/dual-arc-builder/status.json",
+        "agents/tension-mapper/status.json"
+      ],
+      "writes": [
+        "agents/structural-design-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-017",
+      "name": "romantic-fantasy-writer-chapter-design-coordinator",
+      "displayName": "Chapter Design Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "children": [
+        "romantic-fantasy-writer-chapter-outliner",
+        "romantic-fantasy-writer-scene-beat-designer"
+      ],
+      "pass": "plotting",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "tension-map.json",
+        "agents/chapter-outliner/status.json",
+        "agents/scene-beat-designer/status.json"
+      ],
+      "writes": [
+        "agents/chapter-design-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-018",
+      "name": "romantic-fantasy-writer-creative-writing-coordinator",
+      "displayName": "Creative Writing Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "children": [
+        "romantic-fantasy-writer-chapter-drafter",
+        "romantic-fantasy-writer-pov-voice-maintainer"
+      ],
+      "pass": "drafting",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "chapter-outlines/{N}.json",
+        "style-guide.json",
+        "characters/{CHAR-NNN}.json",
+        "agents/chapter-drafter/status.json",
+        "agents/pov-voice-maintainer/status.json"
+      ],
+      "writes": [
+        "agents/creative-writing-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-019",
+      "name": "romantic-fantasy-writer-quality-integration-coordinator",
+      "displayName": "Quality Integration Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "children": [
+        "romantic-fantasy-writer-continuity-integrator",
+        "romantic-fantasy-writer-craft-enforcer"
+      ],
+      "pass": "drafting",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "continuity-tracker.json",
+        "agents/continuity-integrator/status.json",
+        "agents/craft-enforcer/status.json"
+      ],
+      "writes": [
+        "agents/quality-integration-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-020",
+      "name": "romantic-fantasy-writer-genre-lens-coordinator",
+      "displayName": "Genre Lens Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "children": [
+        "romantic-fantasy-writer-romance-beta-reader",
+        "romantic-fantasy-writer-fantasy-beta-reader"
+      ],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "agents/romance-beta-reader/status.json",
+        "agents/fantasy-beta-reader/status.json"
+      ],
+      "writes": [
+        "agents/genre-lens-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-021",
+      "name": "romantic-fantasy-writer-craft-lens-coordinator",
+      "displayName": "Craft Lens Sub-Coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "children": [
+        "romantic-fantasy-writer-craft-beta-reader",
+        "romantic-fantasy-writer-sensitivity-beta-reader",
+        "romantic-fantasy-writer-originality-beta-reader"
+      ],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "complete",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "agents/craft-beta-reader/status.json",
+        "agents/sensitivity-beta-reader/status.json",
+        "agents/originality-beta-reader/status.json"
+      ],
+      "writes": [
+        "agents/craft-lens-coordinator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-022",
+      "name": "romantic-fantasy-writer-concept-developer",
+      "displayName": "Concept Developer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "children": [],
+      "pass": "concept",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-config.json"
+      ],
+      "writes": [
+        "story-concept.json",
+        "agents/concept-developer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-023",
+      "name": "romantic-fantasy-writer-craft-profile-selector",
+      "displayName": "Craft Profile Selector",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "children": [],
+      "pass": "concept",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-config.json",
+        "story-concept.json"
+      ],
+      "writes": [
+        "craft-profile.json",
+        "agents/craft-profile-selector/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-024",
+      "name": "romantic-fantasy-writer-concept-auditor",
+      "displayName": "Concept Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "children": [],
+      "pass": "concept",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "craft-profile.json",
+        "story-config.json"
+      ],
+      "writes": [
+        "audit-reports/concept/gate.json",
+        "agents/concept-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-025",
+      "name": "romantic-fantasy-writer-geography-builder",
+      "displayName": "Geography Builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json"
+      ],
+      "writes": [
+        "world-bible/geography.json",
+        "agents/geography-builder/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-026",
+      "name": "romantic-fantasy-writer-culture-builder",
+      "displayName": "Culture Builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json"
+      ],
+      "writes": [
+        "world-bible/culture.json",
+        "agents/culture-builder/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-027",
+      "name": "romantic-fantasy-writer-history-builder",
+      "displayName": "History Builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json",
+        "world-bible/culture.json"
+      ],
+      "writes": [
+        "world-bible/history.json",
+        "agents/history-builder/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-028",
+      "name": "romantic-fantasy-writer-magic-system-designer",
+      "displayName": "Magic System Designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-systems-world-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json"
+      ],
+      "writes": [
+        "world-bible/magic-system.json",
+        "agents/magic-system-designer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-029",
+      "name": "romantic-fantasy-writer-political-structure-builder",
+      "displayName": "Political Structure Builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-systems-world-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/magic-system.json"
+      ],
+      "writes": [
+        "world-bible/politics.json",
+        "agents/political-structure-builder/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-030",
+      "name": "romantic-fantasy-writer-worldbuilding-auditor",
+      "displayName": "Worldbuilding Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "children": [],
+      "pass": "worldbuilding",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json",
+        "world-bible/magic-system.json",
+        "world-bible/politics.json",
+        "world-bible/culture.json",
+        "world-bible/history.json"
+      ],
+      "writes": [
+        "audit-reports/worldbuilding/gate.json",
+        "agents/worldbuilding-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-031",
+      "name": "romantic-fantasy-writer-protagonist-profiler",
+      "displayName": "Protagonist Profiler",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-core-characters-coordinator",
+      "children": [],
+      "pass": "character",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json",
+        "world-bible/culture.json",
+        "world-bible/magic-system.json"
+      ],
+      "writes": [
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json",
+        "agents/protagonist-profiler/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-032",
+      "name": "romantic-fantasy-writer-romance-arc-designer",
+      "displayName": "Romance Arc Designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-core-characters-coordinator",
+      "children": [],
+      "pass": "character",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json"
+      ],
+      "writes": [
+        "romance-arc-design.json",
+        "agents/romance-arc-designer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-033",
+      "name": "romantic-fantasy-writer-supporting-cast-developer",
+      "displayName": "Supporting Cast Developer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-ensemble-coordinator",
+      "children": [],
+      "pass": "character",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "characters/index.json",
+        "world-bible/politics.json",
+        "world-bible/culture.json"
+      ],
+      "writes": [
+        "characters/{CHAR-NNN}.json",
+        "characters/index.json",
+        "agents/supporting-cast-developer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-034",
+      "name": "romantic-fantasy-writer-character-voice-designer",
+      "displayName": "Character Voice Designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-ensemble-coordinator",
+      "children": [],
+      "pass": "character",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json",
+        "story-concept.json"
+      ],
+      "writes": [
+        "characters/{CHAR-NNN}.json",
+        "agents/character-voice-designer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-035",
+      "name": "romantic-fantasy-writer-character-auditor",
+      "displayName": "Character Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "children": [],
+      "pass": "character",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json",
+        "romance-arc-design.json",
+        "world-bible/culture.json"
+      ],
+      "writes": [
+        "audit-reports/character/gate.json",
+        "agents/character-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-036",
+      "name": "romantic-fantasy-writer-structure-selector",
+      "displayName": "Structure Selector",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "craft-profile.json",
+        "characters/index.json",
+        "romance-arc-design.json"
+      ],
+      "writes": [
+        "plot-structure.json",
+        "agents/structure-selector/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-037",
+      "name": "romantic-fantasy-writer-dual-arc-builder",
+      "displayName": "Dual Arc Builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "plot-structure.json",
+        "romance-arc-design.json",
+        "characters/index.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "dual-arc-timeline.json",
+        "agents/dual-arc-builder/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-038",
+      "name": "romantic-fantasy-writer-tension-mapper",
+      "displayName": "Tension Mapper",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "tension-map.json",
+        "agents/tension-mapper/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-039",
+      "name": "romantic-fantasy-writer-chapter-outliner",
+      "displayName": "Chapter Outliner",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-chapter-design-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "tension-map.json",
+        "characters/index.json"
+      ],
+      "writes": [
+        "chapter-outlines/{N}.json",
+        "agents/chapter-outliner/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-040",
+      "name": "romantic-fantasy-writer-scene-beat-designer",
+      "displayName": "Scene Beat Designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-chapter-design-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapter-outlines/{N}.json",
+        "craft-profile.json",
+        "characters/{CHAR-NNN}.json",
+        "romance-arc-design.json"
+      ],
+      "writes": [
+        "chapter-outlines/{N}.json",
+        "agents/scene-beat-designer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-041",
+      "name": "romantic-fantasy-writer-plotting-auditor",
+      "displayName": "Plotting Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "children": [],
+      "pass": "plotting",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "tension-map.json",
+        "chapter-outlines/{N}.json",
+        "craft-profile.json",
+        "story-concept.json",
+        "romance-arc-design.json"
+      ],
+      "writes": [
+        "audit-reports/plotting/gate.json",
+        "agents/plotting-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-042",
+      "name": "romantic-fantasy-writer-style-analyzer",
+      "displayName": "Style Analyzer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "children": [],
+      "pass": "style",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-config.json",
+        "story-concept.json",
+        "characters/{CHAR-NNN}.json"
+      ],
+      "writes": [
+        "agents/style-analyzer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-043",
+      "name": "romantic-fantasy-writer-style-guide-writer",
+      "displayName": "Style Guide Writer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "children": [],
+      "pass": "style",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "style-guide.json",
+        "agents/style-guide-writer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-044",
+      "name": "romantic-fantasy-writer-style-auditor",
+      "displayName": "Style Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "children": [],
+      "pass": "style",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "style-guide.json",
+        "story-concept.json",
+        "craft-profile.json",
+        "characters/{CHAR-NNN}.json"
+      ],
+      "writes": [
+        "audit-reports/style/gate.json",
+        "agents/style-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-045",
+      "name": "romantic-fantasy-writer-chapter-drafter",
+      "displayName": "Chapter Drafter",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-creative-writing-coordinator",
+      "children": [],
+      "pass": "drafting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapter-outlines/{N}.json",
+        "style-guide.json",
+        "characters/{CHAR-NNN}.json",
+        "world-bible/geography.json",
+        "world-bible/magic-system.json",
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "tension-map.json",
+        "continuity-tracker.json",
+        "craft-profile.json",
+        "foreshadowing-ledger.json",
+        "emotional-throughline.json"
+      ],
+      "writes": [
+        "chapters/{N}/draft.md",
+        "chapters/{N}/metadata.json",
+        "continuity-tracker.json",
+        "foreshadowing-ledger.json",
+        "information-asymmetry-map.json",
+        "mystery-box-inventory.json",
+        "emotional-throughline.json",
+        "agents/chapter-drafter/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-046",
+      "name": "romantic-fantasy-writer-pov-voice-maintainer",
+      "displayName": "POV Voice Maintainer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-creative-writing-coordinator",
+      "children": [],
+      "pass": "drafting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "characters/{CHAR-NNN}.json",
+        "style-guide.json"
+      ],
+      "writes": [
+        "chapters/{N}/draft.md",
+        "agents/pov-voice-maintainer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-047",
+      "name": "romantic-fantasy-writer-continuity-integrator",
+      "displayName": "Continuity Integrator",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-quality-integration-coordinator",
+      "children": [],
+      "pass": "drafting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "continuity-tracker.json",
+        "world-bible/geography.json",
+        "characters/index.json",
+        "information-asymmetry-map.json"
+      ],
+      "writes": [
+        "chapters/{N}/draft.md",
+        "agents/continuity-integrator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-048",
+      "name": "romantic-fantasy-writer-craft-enforcer",
+      "displayName": "Craft Enforcer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-quality-integration-coordinator",
+      "children": [],
+      "pass": "drafting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "craft-profile.json",
+        "foreshadowing-ledger.json",
+        "emotional-throughline.json",
+        "symbolic-motif-registry.json",
+        "mystery-box-inventory.json"
+      ],
+      "writes": [
+        "chapters/{N}/draft.md",
+        "agents/craft-enforcer/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-049",
+      "name": "romantic-fantasy-writer-drafting-auditor",
+      "displayName": "Drafting Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "children": [],
+      "pass": "drafting",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "chapters/{N}/metadata.json",
+        "chapter-outlines/{N}.json",
+        "style-guide.json",
+        "craft-profile.json",
+        "continuity-tracker.json"
+      ],
+      "writes": [
+        "audit-reports/drafting/gate.json",
+        "agents/drafting-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-050",
+      "name": "romantic-fantasy-writer-developmental-editor",
+      "displayName": "Developmental Editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "children": [],
+      "pass": "revision",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "plot-structure.json",
+        "dual-arc-timeline.json",
+        "tension-map.json",
+        "romance-arc-design.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "revision-reports/{N}/developmental.json",
+        "agents/developmental-editor/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-051",
+      "name": "romantic-fantasy-writer-line-editor",
+      "displayName": "Line Editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "children": [],
+      "pass": "revision",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "style-guide.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "revision-reports/{N}/line-edit.json",
+        "agents/line-editor/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-052",
+      "name": "romantic-fantasy-writer-copy-editor",
+      "displayName": "Copy Editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "children": [],
+      "pass": "revision",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "continuity-tracker.json",
+        "world-bible/geography.json",
+        "characters/index.json"
+      ],
+      "writes": [
+        "revision-reports/{N}/copy-edit.json",
+        "agents/copy-editor/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-053",
+      "name": "romantic-fantasy-writer-chapter-reviser",
+      "displayName": "Chapter Reviser",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "children": [],
+      "pass": "revision",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "revision-reports/{N}/developmental.json",
+        "revision-reports/{N}/line-edit.json",
+        "revision-reports/{N}/copy-edit.json",
+        "beta-synthesis/{N}.json"
+      ],
+      "writes": [
+        "chapters/{N}/revised.md",
+        "agents/chapter-reviser/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-054",
+      "name": "romantic-fantasy-writer-revision-auditor",
+      "displayName": "Revision Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "children": [],
+      "pass": "revision",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "chapters/{N}/draft.md",
+        "revision-reports/{N}/developmental.json",
+        "revision-reports/{N}/line-edit.json",
+        "revision-reports/{N}/copy-edit.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "audit-reports/revision/gate.json",
+        "agents/revision-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-055",
+      "name": "romantic-fantasy-writer-romance-beta-reader",
+      "displayName": "Romance Beta Reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-genre-lens-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "romance-arc-design.json",
+        "characters/{CHAR-NNN}.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "beta-feedback/{N}/romance-lens.json",
+        "agents/romance-beta-reader/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-056",
+      "name": "romantic-fantasy-writer-fantasy-beta-reader",
+      "displayName": "Fantasy Beta Reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-genre-lens-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "world-bible/geography.json",
+        "world-bible/magic-system.json",
+        "information-asymmetry-map.json",
+        "continuity-tracker.json"
+      ],
+      "writes": [
+        "beta-feedback/{N}/fantasy-lens.json",
+        "agents/fantasy-beta-reader/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-057",
+      "name": "romantic-fantasy-writer-craft-beta-reader",
+      "displayName": "Craft Beta Reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "style-guide.json",
+        "craft-profile.json",
+        "foreshadowing-ledger.json",
+        "symbolic-motif-registry.json"
+      ],
+      "writes": [
+        "beta-feedback/{N}/craft-lens.json",
+        "agents/craft-beta-reader/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-058",
+      "name": "romantic-fantasy-writer-sensitivity-beta-reader",
+      "displayName": "Sensitivity Beta Reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "characters/{CHAR-NNN}.json",
+        "world-bible/culture.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "beta-feedback/{N}/sensitivity-lens.json",
+        "agents/sensitivity-beta-reader/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-059",
+      "name": "romantic-fantasy-writer-originality-beta-reader",
+      "displayName": "Originality Beta Reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "story-concept.json",
+        "craft-profile.json"
+      ],
+      "writes": [
+        "beta-feedback/{N}/originality-lens.json",
+        "agents/originality-beta-reader/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-060",
+      "name": "romantic-fantasy-writer-beta-synthesizer",
+      "displayName": "Beta Synthesizer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "beta-feedback/{N}/romance-lens.json",
+        "beta-feedback/{N}/fantasy-lens.json",
+        "beta-feedback/{N}/craft-lens.json",
+        "beta-feedback/{N}/sensitivity-lens.json",
+        "beta-feedback/{N}/originality-lens.json"
+      ],
+      "writes": [
+        "beta-synthesis/{N}.json",
+        "agents/beta-synthesizer/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-061",
+      "name": "romantic-fantasy-writer-beta-reading-auditor",
+      "displayName": "Beta Reading Auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "children": [],
+      "pass": "beta-reading",
+      "resultCodes": [
+        "passed",
+        "failed",
+        "blocked"
+      ],
+      "reads": [
+        "beta-feedback/{N}/romance-lens.json",
+        "beta-feedback/{N}/fantasy-lens.json",
+        "beta-feedback/{N}/craft-lens.json",
+        "beta-feedback/{N}/sensitivity-lens.json",
+        "beta-feedback/{N}/originality-lens.json",
+        "beta-synthesis/{N}.json",
+        "chapters/{N}/revised.md"
+      ],
+      "writes": [
+        "audit-reports/beta-reading/gate.json",
+        "agents/beta-reading-auditor/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-062",
+      "name": "romantic-fantasy-writer-polisher",
+      "displayName": "Polisher",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "children": [],
+      "pass": "polish",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/revised.md",
+        "style-guide.json",
+        "continuity-tracker.json"
+      ],
+      "writes": [
+        "chapters/{N}/final.md",
+        "agents/polisher/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-063",
+      "name": "romantic-fantasy-writer-summary-generator",
+      "displayName": "Summary Generator",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "children": [],
+      "pass": "polish",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/final.md",
+        "characters/index.json",
+        "plot-structure.json"
+      ],
+      "writes": [
+        "chapter-summaries/{N}.json",
+        "agents/summary-generator/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-064",
+      "name": "romantic-fantasy-writer-delivery-assembler",
+      "displayName": "Delivery Assembler",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "children": [],
+      "pass": "polish",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/final.md",
+        "chapter-summaries/{N}.json",
+        "series-kb/index.json",
+        "story-concept.json"
+      ],
+      "writes": [
+        "delivery-report.json",
+        "agents/delivery-assembler/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-065",
+      "name": "romantic-fantasy-writer-continuity-tracker",
+      "displayName": "Continuity Tracker",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "children": [],
+      "pass": "cross-cutting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "chapters/{N}/revised.md",
+        "world-bible/geography.json",
+        "characters/index.json",
+        "plot-structure.json"
+      ],
+      "writes": [
+        "continuity-tracker.json",
+        "information-asymmetry-map.json",
+        "agents/continuity-tracker/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-066",
+      "name": "romantic-fantasy-writer-series-kb-manager",
+      "displayName": "Series KB Manager",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "children": [],
+      "pass": "cross-cutting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "story-concept.json",
+        "world-bible/geography.json",
+        "world-bible/magic-system.json",
+        "world-bible/politics.json",
+        "world-bible/culture.json",
+        "world-bible/history.json",
+        "characters/index.json",
+        "characters/{CHAR-NNN}.json",
+        "chapter-summaries/{N}.json",
+        "chapters/{N}/final.md"
+      ],
+      "writes": [
+        "series-kb/index.json",
+        "agents/series-kb-manager/status.json"
+      ],
+      "antiLaziness": false,
+      "status": "reviewed",
+      "routingTable": null
+    },
+    {
+      "id": "A-067",
+      "name": "romantic-fantasy-writer-craft-tracker",
+      "displayName": "Craft Tracker",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "children": [],
+      "pass": "cross-cutting",
+      "resultCodes": [
+        "completed",
+        "blocked"
+      ],
+      "reads": [
+        "chapters/{N}/draft.md",
+        "craft-profile.json",
+        "plot-structure.json",
+        "chapter-outlines/{N}.json"
+      ],
+      "writes": [
+        "foreshadowing-ledger.json",
+        "mystery-box-inventory.json",
+        "emotional-throughline.json",
+        "symbolic-motif-registry.json",
+        "agents/craft-tracker/status.json"
+      ],
+      "antiLaziness": true,
+      "status": "reviewed",
+      "routingTable": null
+    }
+  ],
+  "universalInvariants": [
+    {
+      "id": "INV-030",
+      "name": "No Silent Failures",
+      "scope": "all agents",
+      "enforcement": "Every agent must report failures explicitly via status.json with result code indicating failure mode. No agent may silently swallow errors, skip work, or report completed when blocked.",
+      "addedInCycle": 1,
+      "gapRef": "IE-001"
+    }
+  ],
+  "gapCycleNotes": [
+    {
+      "cycle": 1,
+      "changes": [
+        "Added universalInvariants array with INV-030 (IE-001: No Silent Failures must be enforced by all agents)",
+        "Verified craft-tracker (A-067) has 'blocked' result code (RC-001)",
+        "Verified continuity-tracker (A-065) has 'blocked' result code (RC-002)",
+        "No new agents added \u2014 roster is complete at 67 agents",
+        "Architecture.json updated to fix 6 ghost agent writer/reader references (AC-001, AC-002, AC-003, CR-001)",
+        "Architecture.json updated with series-kb path note (BC-W01)"
+      ]
+    }
+  ]
+}

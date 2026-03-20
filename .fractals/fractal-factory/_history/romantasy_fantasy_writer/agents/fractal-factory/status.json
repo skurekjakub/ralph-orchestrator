@@ -1,0 +1,13 @@
+{
+  "agent": "fractal-factory",
+  "task_id": "session",
+  "status": "completed",
+  "result": "delivered",
+  "summary": "Pipeline complete. Pass 0 (cold-start) + 7 domain passes executed. 4 gap-hunting cycles achieved convergence (22\u21926\u21922\u21920). Synthesis: synthesized (29 meta-knowledge entries). Final: 67 agents produced, 67 verified, 0 outstanding items. 176 output files packaged with documentation.",
+  "artifacts": [
+    "progress.json",
+    "agents/fractal-factory/status.json"
+  ],
+  "next_hint": null,
+  "iteration": 1
+}

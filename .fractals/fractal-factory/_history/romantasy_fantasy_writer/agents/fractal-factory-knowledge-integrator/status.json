@@ -1,0 +1,25 @@
+{
+  "agent": "fractal-factory-knowledge-integrator",
+  "task_id": "synthesis/integration",
+  "status": "completed",
+  "result": "integrated",
+  "summary": "29 signals received (15 factory, 14 context). All 29 passed quality gate. 29 new entries created at confidence=low. 0 promoted, 0 deprecated. Cold start \u2014 first factory run for fantasy-writer domain.",
+  "artifacts": [
+    "meta/index.json",
+    "meta/run-retrospectives/2026-03-16T21-30-13Z.json",
+    "meta/craft/entry-001.json through entry-015.json",
+    "meta/factory-operations/entry-016.json through entry-029.json"
+  ],
+  "next_hint": null,
+  "iteration": 1,
+  "details": {
+    "entriesCreated": 29,
+    "entriesPromoted": 0,
+    "entriesDemoted": 0,
+    "entriesDeprecated": 0,
+    "categories": {
+      "craft": 15,
+      "factory-operations": 14
+    }
+  }
+}

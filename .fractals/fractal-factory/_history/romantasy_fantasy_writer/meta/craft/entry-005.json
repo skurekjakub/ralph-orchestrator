@@ -1,0 +1,26 @@
+{
+  "id": "MK-005",
+  "category": "craft",
+  "subcategory": "convergence-trajectory",
+  "content": "For a domain with 81 invariants, 14 subdomains, and 67 agents, the gap-hunting convergence trajectory was 22\u21926\u21922\u21920 over 4 cycles, matching the architecture's prediction of '2-4 cycles'. The heaviest gap categories in cycle 1 were artifact coverage and cross-reference integrity (which had 4 gaps resolved by cycle 3). Subdomain coverage, invariant enforcement, and routing completeness were clean from cycle 1 \u2014 indicating the roster planner and routing planner produced high-quality initial designs. Gap-hunting effort concentrates on cross-reference and artifact protocol issues introduced during prompt writing, not on structural design.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "convergenceTrajectory: [22, 6, 2, 0]. Categories 1-3 (Subdomain Coverage, Invariant Enforcement, Routing Completeness) clean since cycle 1. Category 4 (Artifact Coverage) resolved AC-004, AC-005 by cycle 3. Category 6 (Cross-Reference Integrity) resolved CR-004, CR-005. Categories 7-9 clean since cycle 1.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

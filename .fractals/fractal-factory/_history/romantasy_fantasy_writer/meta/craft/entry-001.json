@@ -1,0 +1,26 @@
+{
+  "id": "MK-001",
+  "category": "craft",
+  "subcategory": "hierarchy-design",
+  "content": "For creative-production pipelines with 9+ sequential phases, a mixed depth-2/depth-3 hierarchy is optimal. Phases with few specialists (\u22643) work well at depth-2, while phases with many distinct sub-areas (5+ groups like worldbuilding's geography/magic/politics/culture/history, or beta-reading's 5 reader lenses) benefit from depth-3 sub-coordinators. This run used depth-2 for concept, style, revision, polish (3-4 specialists each) and depth-3 for worldbuilding, character, plotting, drafting, beta-reading (5-7 specialists each), producing 67 agents within the 80-agent budget at 85% utilization.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/architecture.json",
+  "sourceEvidence": "Depth decisions: concept-coordinator depth=2 (3 specialists, 1 group), worldbuilding-coordinator depth=3 (6 specialists, 5 groups), character-coordinator depth=3 (5 specialists, 3 groups, 4 cross-cutting), beta-reading-coordinator depth=3 (7 specialists, 5 groups). Budget: 68 of 80 used (85%).",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

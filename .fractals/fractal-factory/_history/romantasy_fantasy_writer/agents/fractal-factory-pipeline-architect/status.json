@@ -1,0 +1,13 @@
+{
+  "agent": "fractal-factory-pipeline-architect",
+  "task_id": "pass2/pipeline-design",
+  "status": "completed",
+  "result": "designed",
+  "summary": "Designed 8-pass pipeline (Pass 0-7) for fantasy-writer: knowledge-curation → discovery → analysis → planning → execution → verification → gapHunting → delivery. 4 re-entry rules (RE-001 through RE-004) covering analysis-level, planning-level, execution-level, and verification-triggered re-entry. Convergence limit: 10 cycles (2-4 expected). Estimated 28 factory agents across all passes. All 7 user-requested passes included plus Pass 0.",
+  "artifacts": [
+    "architecture.json",
+    "agents/fractal-factory-pipeline-architect/output.md"
+  ],
+  "next_hint": "fractal-factory-artifact-designer",
+  "iteration": 1
+}

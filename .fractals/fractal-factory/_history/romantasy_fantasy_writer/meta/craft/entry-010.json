@@ -1,0 +1,26 @@
+{
+  "id": "MK-010",
+  "category": "craft",
+  "subcategory": "cross-reference-ghost-agents",
+  "content": "Cross-reference integrity gaps (ghost agent references in artifact reader/writer lists) are a predictable failure mode when roster agents are renamed or restructured during gap-hunting. In this run, gaps CR-004 and CR-005 involved a 'plot-architect' reference in foreshadowing-ledger.json and mystery-box-inventory.json readers \u2014 an agent name that existed in an earlier roster draft but was restructured. Future runs should include an automated cross-reference sweep after any roster modification to catch stale references immediately rather than waiting for the gap-hunting cycle.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/gap-report.json",
+  "sourceEvidence": "Category 6 (Cross-Reference Integrity) resolved: CR-004: 'foreshadowing-ledger.json readers no longer contains plot-architect. Now: [tension-mapper, adversarial-auditor, craft-beta-reader, continuity-tracker].' CR-005: 'mystery-box-inventory.json readers no longer contains plot-architect. Now: [tension-mapper, chapter-drafter, adversarial-auditor].'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

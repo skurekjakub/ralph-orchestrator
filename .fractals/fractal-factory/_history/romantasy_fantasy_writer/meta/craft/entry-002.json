@@ -1,0 +1,26 @@
+{
+  "id": "MK-002",
+  "category": "craft",
+  "subcategory": "cross-cutting-agents",
+  "content": "Cross-cutting concerns in creative-production domains (consistency tracking, series knowledge, craft enforcement) should be implemented as orchestrator-level shared specialists rather than separate coordinator subtrees. This avoids duplicating agents across phases while ensuring every phase can invoke cross-cutting services. This run attached continuity-tracker, series-kb-manager, and craft-tracker directly to the orchestrator as shared specialists accessible by all phase coordinators, which proved cleaner than embedding cross-cutting logic inside each phase.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/architecture.json",
+  "sourceEvidence": "crossCuttingAgents.note: 'Cross-cutting subdomains (adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems) are NOT separate coordinators. They are implemented as: (1) adversarial auditors embedded per-phase, (2) shared specialists at orchestrator level.' roster.json confirms continuity-tracker, series-kb-manager, craft-tracker all have parent=romantic-fantasy-writer (orchestrator).",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

@@ -1,0 +1,1290 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T17:03:27.000689+00:00",
+  "domain": "fantasy-writer",
+  "maxAgents": 80,
+  "maxDepth": 3,
+  "globalBounds": {
+    "maxAuditorRetries": 3,
+    "maxRevisionBetaCycles": 2,
+    "maxChaptersBeforeCheckpoint": 5
+  },
+  "scenarios": [
+    {
+      "id": "TEST-001",
+      "name": "Happy path full pipeline single chapter",
+      "category": "happy-path",
+      "priority": "P0",
+      "description": "Complete pipeline from concept through delivery for single-chapter story",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-001",
+          "targetChapters": 1
+        },
+        "existingArtifacts": [],
+        "inputFiles": [
+          "domain-brief.md"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "All 9 coordinators complete successfully",
+        "Craft-tracker runs after style phase",
+        "Continuity-tracker runs after drafting",
+        "No auditor rejections",
+        "Series-kb-manager updates at end"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "agentCount": "40-55",
+        "artifactsWritten": [
+          "concept.json",
+          "world/*.json",
+          "chapters/chapter-001-polished.md"
+        ]
+      },
+      "verificationCriteria": [
+        "Orchestrator status delivered",
+        "All coordinators status complete",
+        "Chapter 1 polished file exists"
+      ],
+      "relatedInvariants": [
+        "INV-001",
+        "INV-002",
+        "INV-003"
+      ]
+    },
+    {
+      "id": "TEST-002",
+      "name": "Happy path multi-chapter book",
+      "category": "happy-path",
+      "priority": "P0",
+      "description": "Complete pipeline for 3-chapter book with per-chapter iteration",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-002",
+          "targetChapters": 3
+        },
+        "existingArtifacts": [],
+        "inputFiles": [
+          "domain-brief.md"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Concept through style phases complete once",
+        "Drafting iterates 3 chapters",
+        "Revision iterates 3 chapters",
+        "Beta-reading iterates 3 chapters",
+        "Polish processes all 3 chapters"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "chaptersProcessed": 3,
+        "agentCount": "50-67"
+      },
+      "verificationCriteria": [
+        "All 3 chapters polished",
+        "Continuity-tracker ran once",
+        "Series KB includes all chapters"
+      ],
+      "relatedInvariants": [
+        "INV-002",
+        "INV-003",
+        "INV-006"
+      ]
+    },
+    {
+      "id": "TEST-003",
+      "name": "Auditor rejection concept phase retry",
+      "category": "auditor-rejection",
+      "priority": "P0",
+      "description": "Concept-auditor rejects first attempt, accepts on retry",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-003",
+          "storyIdea": "Vague idea"
+        },
+        "existingArtifacts": [],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-concept-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "concept-auditor returns failed on first try",
+        "Coordinator resets writers and retries",
+        "concept-auditor passes on retry",
+        "Coordinator returns complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "auditorRetries": 1
+      },
+      "verificationCriteria": [
+        "Coordinator complete after 1 retry",
+        "Audit report shows rejection then acceptance"
+      ],
+      "relatedInvariants": [
+        "INV-001"
+      ]
+    },
+    {
+      "id": "TEST-004",
+      "name": "Auditor rejection drafting chapter retry",
+      "category": "auditor-rejection",
+      "priority": "P1",
+      "description": "Drafting-auditor rejects twice, passes on 3rd",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-004",
+          "currentChapter": 1
+        },
+        "existingArtifacts": [
+          "craft-profile.json with show-dont-tell"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-drafting-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "drafting-auditor fails twice on craft violations",
+        "Passes on 3rd attempt"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "auditorRetries": 2
+      },
+      "verificationCriteria": [
+        "2 retries, then pass"
+      ],
+      "relatedInvariants": [
+        "INV-005"
+      ]
+    },
+    {
+      "id": "TEST-005",
+      "name": "Convergence exhaustion worldbuilding blocked",
+      "category": "convergence-exhaustion",
+      "priority": "P0",
+      "description": "Worldbuilding-auditor rejects 3 times, hits max, escalates to blocked",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-005"
+        },
+        "existingArtifacts": [
+          "concept.json with vague magic"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-worldbuilding-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "worldbuilding-auditor fails 4 times",
+        "maxAuditorRetries hit",
+        "Coordinator escalates to blocked"
+      ],
+      "expectedOutput": {
+        "resultCode": "blocked",
+        "auditorRetries": 3
+      },
+      "verificationCriteria": [
+        "Coordinator blocked",
+        "Orchestrator fails"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-006",
+      "name": "Convergence exhaustion revision-beta loop",
+      "category": "convergence-exhaustion",
+      "priority": "P1",
+      "description": "Beta returns revision-required twice, hits maxRevisionBetaCycles",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-006",
+          "revisionBetaCycles": 0
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-revised.md"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "beta phase"
+      },
+      "expectedBehavior": [
+        "Beta returns revision-required twice",
+        "maxRevisionBetaCycles hit",
+        "Orchestrator proceeds to polish despite issues"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "revisionBetaCycles": 2
+      },
+      "verificationCriteria": [
+        "Loop ran 2 times",
+        "Delivered with issues"
+      ],
+      "relatedInvariants": [
+        "INV-004"
+      ]
+    },
+    {
+      "id": "TEST-007",
+      "name": "Re-entry from gap hunting",
+      "category": "re-entry",
+      "priority": "P1",
+      "description": "Gap-hunting detects missing character detail, re-enters character phase",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-007",
+          "gapHuntingCycle": 1
+        },
+        "existingArtifacts": [
+          "characters/protagonist.json incomplete",
+          "gap-reports/cycle-001.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "gap resolution"
+      },
+      "expectedBehavior": [
+        "Orchestrator reads gap report",
+        "Re-dispatches character-coordinator",
+        "Gap resolved",
+        "Pipeline continues"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "gapResolved": true
+      },
+      "verificationCriteria": [
+        "Character-coordinator ran twice",
+        "Gap resolved"
+      ],
+      "relatedInvariants": [
+        "INV-003"
+      ]
+    },
+    {
+      "id": "TEST-008",
+      "name": "Per-chapter iteration drafting 5 chapters",
+      "category": "per-chapter-iteration",
+      "priority": "P1",
+      "description": "Drafting-coordinator iterates through 5 chapters",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-008",
+          "targetChapters": 5
+        },
+        "existingArtifacts": [
+          "plot/chapter-outlines/chapter-001.json through 005"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-drafting-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Drafts chapters 1-5 sequentially",
+        "Checkpoint after chapter 5"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "chaptersProcessed": 5
+      },
+      "verificationCriteria": [
+        "All 5 drafts exist",
+        "Checkpoint created"
+      ],
+      "relatedInvariants": [
+        "INV-003",
+        "INV-005"
+      ]
+    },
+    {
+      "id": "TEST-009",
+      "name": "Per-chapter iteration chapter 3 blocks",
+      "category": "per-chapter-iteration",
+      "priority": "P1",
+      "description": "Revision processes ch1-2, ch3 blocks after max retries",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-009",
+          "targetChapters": 4
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-draft.md through 004"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-revision-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Ch1-2 revise successfully",
+        "Ch3 fails auditor 4 times",
+        "Coordinator stops at ch3 block"
+      ],
+      "expectedOutput": {
+        "resultCode": "blocked",
+        "chaptersCompleted": 2
+      },
+      "verificationCriteria": [
+        "Ch1-2 revised",
+        "Ch3-4 not revised"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-010",
+      "name": "Cross-cutting craft-tracker initialization",
+      "category": "cross-cutting-agents",
+      "priority": "P1",
+      "description": "Craft-tracker initializes from craft-profile",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-010"
+        },
+        "existingArtifacts": [
+          "craft-profile.json with 3 techniques"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-craft-tracker",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Reads craft-profile",
+        "Initializes tracking state",
+        "Returns completed"
+      ],
+      "expectedOutput": {
+        "resultCode": "completed",
+        "artifactsWritten": [
+          "craft-tracking/init.json"
+        ]
+      },
+      "verificationCriteria": [
+        "init.json exists with 3 techniques"
+      ],
+      "relatedInvariants": [
+        "INV-005"
+      ]
+    },
+    {
+      "id": "TEST-011",
+      "name": "Cross-cutting continuity-tracker verification",
+      "category": "cross-cutting-agents",
+      "priority": "P1",
+      "description": "Continuity-tracker verifies 3 chapters",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-011",
+          "targetChapters": 3
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-draft.md through 003"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-continuity-tracker",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Reads all 3 chapters",
+        "Finds 1 minor inconsistency",
+        "Logs findings, returns completed"
+      ],
+      "expectedOutput": {
+        "resultCode": "completed",
+        "issuesFound": 1
+      },
+      "verificationCriteria": [
+        "continuity-log.json exists",
+        "Issues logged not blocking"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-012",
+      "name": "Cross-cutting series-kb-manager updates",
+      "category": "cross-cutting-agents",
+      "priority": "P1",
+      "description": "Series-kb-manager updates knowledge base after delivery",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-012",
+          "seriesId": "trilogy"
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-polished.md"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-series-kb-manager",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Reads book metadata",
+        "Updates series KB",
+        "Returns completed"
+      ],
+      "expectedOutput": {
+        "resultCode": "completed",
+        "artifactsWritten": [
+          "series/trilogy/kb.json"
+        ]
+      },
+      "verificationCriteria": [
+        "Series KB exists with book metadata"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-013",
+      "name": "Edge case empty story idea",
+      "category": "edge-case",
+      "priority": "P1",
+      "description": "Concept-coordinator handles empty input",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-013",
+          "storyIdea": ""
+        },
+        "existingArtifacts": [],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-concept-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "concept-developer creates generic concept",
+        "Auditor rejects 4 times",
+        "Coordinator blocks"
+      ],
+      "expectedOutput": {
+        "resultCode": "blocked"
+      },
+      "verificationCriteria": [
+        "Blocked after max retries"
+      ],
+      "relatedInvariants": [
+        "INV-001"
+      ]
+    },
+    {
+      "id": "TEST-014",
+      "name": "Edge case no style references",
+      "category": "edge-case",
+      "priority": "P2",
+      "description": "Style-coordinator handles no reference texts",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-014",
+          "styleReferences": []
+        },
+        "existingArtifacts": [
+          "concept.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-style-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Uses fallback generic style",
+        "Auditor passes",
+        "Returns complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "styleGuideType": "generic"
+      },
+      "verificationCriteria": [
+        "Generic style guide created",
+        "No blocking"
+      ],
+      "relatedInvariants": [
+        "INV-003"
+      ]
+    },
+    {
+      "id": "TEST-015",
+      "name": "Edge case missing chapter outline",
+      "category": "edge-case",
+      "priority": "P1",
+      "description": "Drafting handles missing chapter outline file",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-015",
+          "targetChapters": 2
+        },
+        "existingArtifacts": [
+          "plot/chapter-outlines/chapter-001.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-drafting-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Ch1 drafts successfully",
+        "Ch2 file not found",
+        "Coordinator blocks"
+      ],
+      "expectedOutput": {
+        "resultCode": "blocked",
+        "chaptersCompleted": 1
+      },
+      "verificationCriteria": [
+        "Ch1 exists",
+        "Ch2 does not exist",
+        "Clear error message"
+      ],
+      "relatedInvariants": [
+        "INV-007"
+      ]
+    },
+    {
+      "id": "TEST-016",
+      "name": "Specialist geography-builder creates map",
+      "category": "specialist-behavior",
+      "priority": "P2",
+      "description": "Geography-builder produces valid geography artifact",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-016"
+        },
+        "existingArtifacts": [
+          "concept.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-geography-builder",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Reads concept",
+        "Creates geography.json",
+        "Returns completed"
+      ],
+      "expectedOutput": {
+        "resultCode": "completed",
+        "artifactsWritten": [
+          "world/geography.json"
+        ]
+      },
+      "verificationCriteria": [
+        "geography.json valid and complete"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-017",
+      "name": "Specialist romance-arc-designer dual arc",
+      "category": "specialist-behavior",
+      "priority": "P2",
+      "description": "Romance-arc-designer creates dual protagonist arc",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-017"
+        },
+        "existingArtifacts": [
+          "characters/protagonist-a.json",
+          "characters/protagonist-b.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-romance-arc-designer",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Reads both protagonists",
+        "Creates romance arc",
+        "Returns completed"
+      ],
+      "expectedOutput": {
+        "resultCode": "completed",
+        "artifactsWritten": [
+          "characters/romance-arc.json"
+        ]
+      },
+      "verificationCriteria": [
+        "romance-arc.json includes both protagonists"
+      ],
+      "relatedInvariants": [
+        "INV-001",
+        "INV-004"
+      ]
+    },
+    {
+      "id": "TEST-018",
+      "name": "Coordinator routing worldbuilding sub-coordinators",
+      "category": "coordinator-routing",
+      "priority": "P1",
+      "description": "Worldbuilding dispatches physical-world and systems-world",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-018"
+        },
+        "existingArtifacts": [
+          "concept.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-worldbuilding-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Dispatches physical-world-coordinator (3 specialists)",
+        "Dispatches systems-world-coordinator (2 specialists)",
+        "Auditor passes",
+        "Returns complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "specialistsRan": 5
+      },
+      "verificationCriteria": [
+        "All 5 worldbuilding artifacts exist"
+      ],
+      "relatedInvariants": [
+        "INV-002"
+      ]
+    },
+    {
+      "id": "TEST-019",
+      "name": "Coordinator routing drafting creative-writing",
+      "category": "coordinator-routing",
+      "priority": "P1",
+      "description": "Drafting dispatches creative-writing and quality-integration",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-019",
+          "currentChapter": 1
+        },
+        "existingArtifacts": [
+          "plot/chapter-outlines/chapter-001.json"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-drafting-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Dispatches creative-writing-coordinator (3 specialists)",
+        "Dispatches quality-integration-coordinator (1 specialist)",
+        "Auditor passes",
+        "Returns complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "specialistsRan": 4
+      },
+      "verificationCriteria": [
+        "Chapter draft exists"
+      ],
+      "relatedInvariants": [
+        "INV-003",
+        "INV-005"
+      ]
+    },
+    {
+      "id": "TEST-020",
+      "name": "Revision-beta loop one cycle",
+      "category": "revision-beta-loop",
+      "priority": "P0",
+      "description": "Beta returns revision-required, loops once, then approves",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-020",
+          "revisionBetaCycles": 0
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-revised.md"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "beta phase"
+      },
+      "expectedBehavior": [
+        "Beta returns revision-required",
+        "Orchestrator loops to revision",
+        "Beta approves on second try",
+        "Proceeds to polish"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "revisionBetaCycles": 1
+      },
+      "verificationCriteria": [
+        "Revision ran twice",
+        "Beta ran twice",
+        "Delivered"
+      ],
+      "relatedInvariants": [
+        "INV-004"
+      ]
+    },
+    {
+      "id": "TEST-021",
+      "name": "Revision-beta loop no revision needed",
+      "category": "revision-beta-loop",
+      "priority": "P0",
+      "description": "Beta approves on first pass, no loop",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-021",
+          "revisionBetaCycles": 0
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-revised.md"
+        ],
+        "inputFiles": []
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "beta phase"
+      },
+      "expectedBehavior": [
+        "Beta approves immediately",
+        "No loop triggered",
+        "Proceeds directly to polish"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "revisionBetaCycles": 0
+      },
+      "verificationCriteria": [
+        "Beta ran once",
+        "No re-entry",
+        "Delivered"
+      ],
+      "relatedInvariants": [
+        "INV-004"
+      ]
+    },
+    {
+      "id": "TEST-022",
+      "name": "Delivered-with-gaps polish-coordinator blocked",
+      "category": "coordinator-routing",
+      "priority": "P0",
+      "description": "Exercises the orchestrator's delivered-with-gaps result code via polish-coordinator returning blocked. The polisher specialist fails, causing polish-coordinator to report blocked. The orchestrator reads polish-coordinator blocked and emits delivered-with-gaps rather than failed, since all creative phases completed successfully. Also covers the second path: series-kb-manager blocked producing delivered-with-gaps.",
+      "gapAddressed": "TC-001",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-022",
+          "targetChapters": 1
+        },
+        "existingArtifacts": [
+          "concept.json (complete)",
+          "world/*.json (complete)",
+          "characters/*.json (complete)",
+          "plotting/*.json (complete)",
+          "chapters/chapter-001-revised.md (complete)",
+          "beta-reading/synthesis/chapter-001.json (all passed)"
+        ],
+        "inputFiles": [],
+        "preconditions": [
+          "All phases concept through beta-reading already complete",
+          "progress.json shows beta-reading complete",
+          "Orchestrator is about to dispatch polish-coordinator"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "invoke (resume at polish phase)"
+      },
+      "expectedBehavior": [
+        "Orchestrator dispatches romantic-fantasy-writer-polish-coordinator",
+        "Polish-coordinator dispatches romantic-fantasy-writer-polisher for chapter 1",
+        "Polisher returns blocked (simulated failure)",
+        "Polish-coordinator reads polisher blocked then writes own status: blocked",
+        "Orchestrator reads polish-coordinator blocked then writes own status: delivered-with-gaps; summary: 'Polish incomplete'",
+        "Orchestrator does NOT dispatch series-kb-manager (polish blocked short-circuits)"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered-with-gaps",
+        "artifactsWritten": [
+          "agents/polish-coordinator/status.json (blocked)",
+          "agents/polisher/status.json (blocked)",
+          "agents/romantic-fantasy-writer/status.json (delivered-with-gaps)"
+        ],
+        "agentsExercised": [
+          "romantic-fantasy-writer",
+          "romantic-fantasy-writer-polish-coordinator",
+          "romantic-fantasy-writer-polisher"
+        ]
+      },
+      "verificationCriteria": [
+        "Orchestrator status.json result == 'delivered-with-gaps'",
+        "Orchestrator summary contains 'Polish incomplete'",
+        "Polish-coordinator status.json result == 'blocked'",
+        "Series-kb-manager was NOT dispatched (no status.json for it)",
+        "All phases before polish remain in complete status in progress.json"
+      ],
+      "relatedInvariants": [
+        "INV-027",
+        "INV-013"
+      ],
+      "additionalVariant": {
+        "name": "Delivered-with-gaps series-kb-manager blocked",
+        "description": "Second routing path: polish completes but series-kb-manager returns blocked. Orchestrator emits delivered-with-gaps with summary 'Delivered but series KB update failed'.",
+        "trigger": {
+          "agent": "romantic-fantasy-writer",
+          "action": "invoke (resume at series-kb phase)"
+        },
+        "expectedOutput": {
+          "resultCode": "delivered-with-gaps",
+          "summary": "Delivered but series KB update failed"
+        }
+      }
+    },
+    {
+      "id": "TEST-023",
+      "name": "Plotting-auditor rejection retry with sub-coordinator cascade",
+      "category": "auditor-rejection",
+      "priority": "P1",
+      "description": "Exercises plotting-auditor rejection and the complex retry path. The plotting phase has depth-3 hierarchy with two sub-coordinators (structural-design-coordinator with 3 specialists, chapter-design-coordinator with 2 specialists). On plotting-auditor failure, ALL sub-coordinator and specialist statuses (8 total) must be deleted before re-dispatch.",
+      "gapAddressed": "TC-003",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-023",
+          "targetChapters": 3
+        },
+        "existingArtifacts": [
+          "concept.json (complete)",
+          "world/*.json (complete)",
+          "characters/*.json (complete)"
+        ],
+        "inputFiles": [],
+        "preconditions": [
+          "Concept, worldbuilding, and character phases complete",
+          "Orchestrator dispatching plotting-coordinator"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-plotting-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Plotting-coordinator dispatches structural-design-coordinator",
+        "Structural-design-coordinator dispatches structure-selector, dual-arc-builder, tension-mapper sequentially; all complete",
+        "Structural-design-coordinator returns complete",
+        "Plotting-coordinator dispatches chapter-design-coordinator",
+        "Chapter-design-coordinator dispatches chapter-outliner, scene-beat-designer; all complete",
+        "Chapter-design-coordinator returns complete",
+        "Plotting-coordinator dispatches plotting-auditor",
+        "Plotting-auditor returns FAILED (dual-arc timeline inconsistency with chapter beats)",
+        "Plotting-coordinator reads audit-reports/plotting/gate.json for failure details",
+        "Plotting-coordinator deletes ALL 8 sub-statuses per resetOnRetry config",
+        "Plotting-coordinator increments retries to 1",
+        "Plotting-coordinator re-dispatches structural-design-coordinator (full retry from start)",
+        "On retry: all sub-coordinators and specialists re-run with feedback from gate.json",
+        "Plotting-auditor returns PASSED on retry",
+        "Plotting-coordinator writes own status: complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "auditorRetries": 1,
+        "artifactsWritten": [
+          "plotting/structure.json (rewritten on retry)",
+          "plotting/dual-arc-timeline.json (rewritten on retry)",
+          "plotting/tension-map.json (rewritten on retry)",
+          "plotting/chapter-outlines/*.json (rewritten on retry)",
+          "plotting/scene-beats/*.json (rewritten on retry)",
+          "audit-reports/plotting/gate.json (two entries: failed then passed)"
+        ],
+        "agentsExercised": [
+          "romantic-fantasy-writer-plotting-coordinator",
+          "romantic-fantasy-writer-structural-design-coordinator",
+          "romantic-fantasy-writer-chapter-design-coordinator",
+          "romantic-fantasy-writer-plotting-auditor",
+          "romantic-fantasy-writer-structure-selector",
+          "romantic-fantasy-writer-dual-arc-builder",
+          "romantic-fantasy-writer-tension-mapper",
+          "romantic-fantasy-writer-chapter-outliner",
+          "romantic-fantasy-writer-scene-beat-designer"
+        ]
+      },
+      "verificationCriteria": [
+        "Plotting-coordinator status.json result == 'complete'",
+        "Plotting-coordinator iteration count == 2 (initial + 1 retry)",
+        "audit-reports/plotting/gate.json contains both failed and passed entries",
+        "All 8 resetOnRetry statuses were deleted before re-dispatch",
+        "On retry structural-design-coordinator received feedback artifact path",
+        "Final plotting artifacts are internally consistent",
+        "No stale status.json files from first attempt remain"
+      ],
+      "relatedInvariants": [
+        "INV-010",
+        "INV-021",
+        "INV-027",
+        "INV-050",
+        "INV-051"
+      ]
+    },
+    {
+      "id": "TEST-024",
+      "name": "Character-auditor rejection with depth-3 cascade reset",
+      "category": "auditor-rejection",
+      "priority": "P1",
+      "description": "Exercises character-auditor rejection and the deep recovery path. The character phase has depth-3 hierarchy: character-coordinator dispatches core-characters-coordinator (protagonist-profiler + romance-arc-designer) then ensemble-coordinator (supporting-cast-developer + character-voice-designer) then character-auditor. Rejection triggers deletion of 7 statuses then full re-dispatch.",
+      "gapAddressed": "TC-004",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-024",
+          "targetChapters": 1
+        },
+        "existingArtifacts": [
+          "concept.json (complete with protagonist, love interest, antagonist)",
+          "world/*.json (complete with cultural context for character voices)"
+        ],
+        "inputFiles": [],
+        "preconditions": [
+          "Concept and worldbuilding phases complete",
+          "Orchestrator dispatching character-coordinator"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-character-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Character-coordinator dispatches core-characters-coordinator",
+        "Core-characters-coordinator dispatches protagonist-profiler then romance-arc-designer; both complete",
+        "Core-characters-coordinator returns complete",
+        "Character-coordinator dispatches ensemble-coordinator",
+        "Ensemble-coordinator dispatches supporting-cast-developer then character-voice-designer; both complete",
+        "Ensemble-coordinator returns complete",
+        "Character-coordinator dispatches character-auditor",
+        "Character-auditor returns FAILED (voice parameters not distinct enough; romance arc lacks emotional spine)",
+        "Character-coordinator reads audit-reports/character/gate.json",
+        "Character-coordinator deletes ALL 7 statuses per resetOnRetry config",
+        "Character-coordinator increments retries to 1",
+        "Character-coordinator re-dispatches core-characters-coordinator",
+        "Full pipeline re-runs with feedback from gate.json",
+        "Character-auditor returns PASSED on retry (voices now distinct, romance arc scaffolded)",
+        "Character-coordinator writes own status: complete"
+      ],
+      "expectedOutput": {
+        "resultCode": "complete",
+        "auditorRetries": 1,
+        "artifactsWritten": [
+          "characters/leads/protagonist.json (rewritten on retry)",
+          "characters/leads/love-interest.json (rewritten on retry)",
+          "characters/romance-arc.json (rewritten on retry)",
+          "characters/ensemble/*.json (rewritten on retry)",
+          "characters/voice-parameters.json (rewritten on retry)",
+          "audit-reports/character/gate.json (two entries: failed then passed)"
+        ],
+        "agentsExercised": [
+          "romantic-fantasy-writer-character-coordinator",
+          "romantic-fantasy-writer-core-characters-coordinator",
+          "romantic-fantasy-writer-ensemble-coordinator",
+          "romantic-fantasy-writer-character-auditor",
+          "romantic-fantasy-writer-protagonist-profiler",
+          "romantic-fantasy-writer-romance-arc-designer",
+          "romantic-fantasy-writer-supporting-cast-developer",
+          "romantic-fantasy-writer-character-voice-designer"
+        ]
+      },
+      "verificationCriteria": [
+        "Character-coordinator status.json result == 'complete'",
+        "Character-coordinator iteration count == 2 (initial + 1 retry)",
+        "audit-reports/character/gate.json contains both failed and passed entries",
+        "All 7 resetOnRetry statuses were deleted before re-dispatch",
+        "Feedback artifact path was passed to re-dispatched core-characters-coordinator",
+        "Voice parameters in retry output show measurably distinct values per character",
+        "Romance arc in retry has identifiable emotional spine stages matching INV-021",
+        "No stale status.json files from first attempt remain"
+      ],
+      "relatedInvariants": [
+        "INV-003",
+        "INV-008",
+        "INV-021",
+        "INV-027",
+        "INV-034",
+        "INV-055"
+      ]
+    },
+    {
+      "id": "TEST-025",
+      "name": "Series sequel production with series-kb influence",
+      "category": "cross-cutting-agents",
+      "priority": "P1",
+      "description": "Exercises series/sequel production where a previous book's series-kb influences worldbuilding, character, and plotting decisions. story-config.json has sequelOf and seriesId fields populated. The series-kb-manager reads the existing series KB and downstream coordinators reference it for consistency.",
+      "gapAddressed": "TC-005",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-025",
+          "seriesId": "series-001",
+          "sequelOf": "test-book-001",
+          "targetChapters": 1
+        },
+        "existingArtifacts": [
+          "series-kb/series-001/world-facts.json (from book 1)",
+          "series-kb/series-001/character-facts.json (from book 1)",
+          "series-kb/series-001/timeline.json (from book 1)",
+          "series-kb/series-001/unresolved-threads.json (from book 1, 3 open threads)"
+        ],
+        "inputFiles": [
+          "story-config.json with sequelOf and seriesId"
+        ],
+        "preconditions": [
+          "Previous book (test-book-001) completed and series KB populated",
+          "New book starts fresh but inherits series context"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Orchestrator reads story-config.json, detects sequelOf field",
+        "Concept-coordinator receives series KB path and unresolved-threads.json as input",
+        "Concept phase produces concept.json that references unresolved threads addressed",
+        "Worldbuilding-coordinator reads series-kb world-facts.json for consistency",
+        "Worldbuilding specialists extend (not contradict) existing world facts",
+        "Character-coordinator reads series-kb character-facts.json",
+        "Returning characters maintain established voice parameters and relationships",
+        "Plotting-coordinator references unresolved-threads.json to advance selected threads",
+        "Full pipeline completes through all phases",
+        "Series-kb-manager appends new facts to series KB",
+        "Series-kb-manager updates unresolved-threads.json (resolved marked, new added)",
+        "Orchestrator writes delivered status"
+      ],
+      "expectedOutput": {
+        "resultCode": "delivered",
+        "artifactsWritten": [
+          "concept.json (references sequelOf and unresolved threads)",
+          "world/*.json (extends series KB, no contradictions)",
+          "characters/*.json (returning characters + new characters)",
+          "plotting/*.json (advances/resolves threads from book 1)",
+          "chapters/chapter-001-polished.md",
+          "series-kb/series-001/world-facts.json (appended)",
+          "series-kb/series-001/character-facts.json (appended)",
+          "series-kb/series-001/timeline.json (appended)",
+          "series-kb/series-001/unresolved-threads.json (updated)"
+        ],
+        "agentsExercised": [
+          "romantic-fantasy-writer",
+          "romantic-fantasy-writer-concept-coordinator",
+          "romantic-fantasy-writer-worldbuilding-coordinator",
+          "romantic-fantasy-writer-character-coordinator",
+          "romantic-fantasy-writer-plotting-coordinator",
+          "romantic-fantasy-writer-series-kb-manager"
+        ]
+      },
+      "verificationCriteria": [
+        "Orchestrator status.json result == 'delivered'",
+        "concept.json contains sequelOf reference and lists addressed threads",
+        "World artifacts do not contradict any fact in series KB world-facts.json",
+        "Returning characters have voice parameters consistent with book 1",
+        "At least one unresolved thread from book 1 is advanced or resolved",
+        "series-kb world-facts.json has new entries appended",
+        "series-kb unresolved-threads.json shows status changes",
+        "series-kb timeline.json extends chronologically from book 1",
+        "No series KB facts from book 1 were silently removed (INV-070)"
+      ],
+      "relatedInvariants": [
+        "INV-002",
+        "INV-032",
+        "INV-066",
+        "INV-070",
+        "INV-071"
+      ]
+    },
+    {
+      "id": "TEST-026",
+      "name": "Parallel beta-reader fan-out with partial failure",
+      "category": "coordinator-routing",
+      "priority": "P1",
+      "description": "Exercises parallel agent dispatch in beta-reading. Beta-reading-coordinator fans out to genre-lens-coordinator and craft-lens-coordinator in parallel. Genre-lens fans out 2 readers; craft-lens fans out 3 readers. Tests 2-level parallel dispatch, fan-in synchronization, and partial failure when one reader blocks.",
+      "gapAddressed": "TC-006",
+      "initialState": {
+        "contextJson": {
+          "bookId": "test-book-026",
+          "targetChapters": 1,
+          "revisionBetaCycles": 0
+        },
+        "existingArtifacts": [
+          "chapters/chapter-001-revised.md (revised, ready for beta)"
+        ],
+        "inputFiles": [],
+        "preconditions": [
+          "All phases through revision complete",
+          "progress.json shows chapterProgress[1].revised == true",
+          "Orchestrator dispatching beta-reading-coordinator for chapter 1"
+        ]
+      },
+      "trigger": {
+        "agent": "romantic-fantasy-writer-beta-reading-coordinator",
+        "action": "invoke"
+      },
+      "expectedBehavior": [
+        "Beta-reading-coordinator dispatches genre-lens-coordinator AND craft-lens-coordinator IN PARALLEL",
+        "Genre-lens-coordinator dispatches romance-beta-reader AND fantasy-beta-reader IN PARALLEL",
+        "Craft-lens-coordinator dispatches craft-beta-reader AND sensitivity-beta-reader AND originality-beta-reader IN PARALLEL",
+        "All 5 beta readers run independently on the same revised chapter",
+        "romance-beta-reader completes with feedback",
+        "fantasy-beta-reader completes with feedback",
+        "craft-beta-reader completes with feedback",
+        "sensitivity-beta-reader returns BLOCKED (simulated failure)",
+        "originality-beta-reader completes with feedback",
+        "Craft-lens-coordinator detects sensitivity-beta-reader blocked then writes own status: blocked",
+        "Genre-lens-coordinator detects both readers complete then writes own status: complete",
+        "Beta-reading-coordinator detects craft-lens-coordinator blocked then writes own status: blocked",
+        "Beta-reading-coordinator does NOT dispatch beta-synthesizer (fan-in incomplete)"
+      ],
+      "expectedOutput": {
+        "resultCode": "blocked",
+        "artifactsWritten": [
+          "beta-reading/genre-lens/romance/chapter-001.json (feedback)",
+          "beta-reading/genre-lens/fantasy/chapter-001.json (feedback)",
+          "beta-reading/craft-lens/craft/chapter-001.json (feedback)",
+          "beta-reading/craft-lens/originality/chapter-001.json (feedback)",
+          "agents/genre-lens-coordinator/status.json (complete)",
+          "agents/craft-lens-coordinator/status.json (blocked)",
+          "agents/beta-reading-coordinator/status.json (blocked)"
+        ],
+        "agentsExercised": [
+          "romantic-fantasy-writer-beta-reading-coordinator",
+          "romantic-fantasy-writer-genre-lens-coordinator",
+          "romantic-fantasy-writer-craft-lens-coordinator",
+          "romantic-fantasy-writer-romance-beta-reader",
+          "romantic-fantasy-writer-fantasy-beta-reader",
+          "romantic-fantasy-writer-craft-beta-reader",
+          "romantic-fantasy-writer-sensitivity-beta-reader",
+          "romantic-fantasy-writer-originality-beta-reader"
+        ]
+      },
+      "verificationCriteria": [
+        "Genre-lens-coordinator and craft-lens-coordinator were dispatched simultaneously",
+        "Within genre-lens: romance and fantasy readers dispatched simultaneously",
+        "Within craft-lens: all 3 readers dispatched simultaneously",
+        "Genre-lens-coordinator completed despite craft-lens being blocked",
+        "Craft-lens-coordinator detected partial failure and wrote blocked",
+        "Beta-reading-coordinator propagated blocked from craft-lens-coordinator",
+        "Beta-synthesizer was NOT dispatched (prerequisite not met)",
+        "4 of 5 beta reader feedback artifacts exist",
+        "sensitivity-beta-reader status shows blocked",
+        "No data corruption between parallel readers (distinct output paths)"
+      ],
+      "relatedInvariants": [
+        "INV-013",
+        "INV-025",
+        "INV-068",
+        "INV-076"
+      ],
+      "additionalVariant": {
+        "name": "Parallel beta-reader fan-out all succeed",
+        "description": "Happy-path parallel variant: all 5 beta readers complete, both lens coordinators complete, synthesizer and auditor run. Verifies fan-in synchronization unblocks downstream when all parallel tasks succeed.",
+        "expectedOutput": {
+          "resultCode": "complete",
+          "betaSynthesizerDispatched": true,
+          "betaReadingAuditorDispatched": true
+        }
+      }
+    }
+  ],
+  "summary": {
+    "totalScenarios": 26,
+    "categoryCounts": {
+      "happy-path": 2,
+      "auditor-rejection": 4,
+      "convergence-exhaustion": 2,
+      "re-entry": 1,
+      "per-chapter-iteration": 2,
+      "cross-cutting-agents": 4,
+      "edge-case": 3,
+      "specialist-behavior": 2,
+      "coordinator-routing": 4,
+      "revision-beta-loop": 2
+    },
+    "priorityCounts": {
+      "P0": 7,
+      "P1": 16,
+      "P2": 3
+    },
+    "coverageNotes": [
+      "All 9 coordinators covered in scenarios",
+      "Auditor-gate pattern tested at coordinator and orchestrator levels",
+      "Per-chapter iteration tested for drafting, revision, beta-reading",
+      "Convergence bounds tested at both levels",
+      "Cross-cutting agents craft-tracker, continuity-tracker, series-kb-manager tested",
+      "Revision-beta loop tested with 0, 1, and 2 cycles",
+      "Edge cases cover missing inputs and artifacts",
+      "Sub-coordinator routing tested for worldbuilding and drafting",
+      "[RE-ENTRY 1] delivered-with-gaps result code exercised via both routing paths (polish blocked + series-kb blocked)",
+      "[RE-ENTRY 1] Plotting-auditor rejection tested with depth-3 sub-coordinator cascade reset (8 statuses)",
+      "[RE-ENTRY 1] Character-auditor rejection tested with depth-3 cascade reset (7 statuses) and voice distinctness verification",
+      "[RE-ENTRY 1] Series/sequel production tested with series-kb influence on worldbuilding, character, and plotting",
+      "[RE-ENTRY 1] Parallel beta-reader fan-out tested: 2-level parallel dispatch, fan-in synchronization, and partial failure propagation"
+    ]
+  },
+  "gapHistory": [
+    {
+      "cycle": 1,
+      "timestamp": "2026-03-16T17:03:27.000689+00:00",
+      "gapsAddressed": [
+        "TC-001",
+        "TC-003",
+        "TC-004",
+        "TC-005",
+        "TC-006"
+      ],
+      "gapsNoted": [
+        "TC-002"
+      ],
+      "scenariosAdded": [
+        "TEST-022",
+        "TEST-023",
+        "TEST-024",
+        "TEST-025",
+        "TEST-026"
+      ],
+      "notes": "TC-002 (missing fixture directories for TEST-014, TEST-016, TEST-017) is an execution-pass concern; noted but not actionable in test plan."
+    }
+  ]
+}

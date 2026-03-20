@@ -1,0 +1,1475 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T02:45:00Z",
+  "designNotes": "Routing tables for the romantic-fantasy-writer produced agent system. Covers 1 orchestrator, 9 coordinators, and 10 sub-coordinators. All paths are relative to the per-book output directory.",
+  "globalBounds": {
+    "maxAuditorRetries": 3,
+    "maxRevisionBetaCycles": 2,
+    "maxChaptersBeforeCheckpoint": 5,
+    "notes": "maxAuditorRetries bounds writer\u2192auditor loops at coordinator level. maxRevisionBetaCycles bounds the revision\u2194beta-reading feedback loop at orchestrator level."
+  },
+  "agents": {
+    "romantic-fantasy-writer": {
+      "id": "A-002",
+      "displayName": "Session Orchestrator",
+      "level": "orchestrator",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-concept-coordinator",
+        "romantic-fantasy-writer-worldbuilding-coordinator",
+        "romantic-fantasy-writer-character-coordinator",
+        "romantic-fantasy-writer-plotting-coordinator",
+        "romantic-fantasy-writer-style-coordinator",
+        "romantic-fantasy-writer-craft-tracker",
+        "romantic-fantasy-writer-drafting-coordinator",
+        "romantic-fantasy-writer-continuity-tracker",
+        "romantic-fantasy-writer-revision-coordinator",
+        "romantic-fantasy-writer-beta-reading-coordinator",
+        "romantic-fantasy-writer-polish-coordinator",
+        "romantic-fantasy-writer-series-kb-manager"
+      ],
+      "phaseMap": {
+        "concept": "romantic-fantasy-writer-concept-coordinator",
+        "worldbuilding": "romantic-fantasy-writer-worldbuilding-coordinator",
+        "character": "romantic-fantasy-writer-character-coordinator",
+        "plotting": "romantic-fantasy-writer-plotting-coordinator",
+        "style": "romantic-fantasy-writer-style-coordinator",
+        "drafting": "romantic-fantasy-writer-drafting-coordinator",
+        "revision": "romantic-fantasy-writer-revision-coordinator",
+        "beta-reading": "romantic-fantasy-writer-beta-reading-coordinator",
+        "polish": "romantic-fantasy-writer-polish-coordinator"
+      },
+      "routingTable": [
+        {
+          "read": "progress.json",
+          "condition": "phaseStatuses.concept.status == 'pending'",
+          "action": "dispatch romantic-fantasy-writer-concept-coordinator"
+        },
+        {
+          "read": "agents/concept-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json concept\u2192complete; dispatch romantic-fantasy-writer-worldbuilding-coordinator"
+        },
+        {
+          "read": "agents/concept-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Concept phase blocked'"
+        },
+        {
+          "read": "agents/worldbuilding-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json worldbuilding\u2192complete; dispatch romantic-fantasy-writer-character-coordinator"
+        },
+        {
+          "read": "agents/worldbuilding-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Worldbuilding phase blocked'"
+        },
+        {
+          "read": "agents/character-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json character\u2192complete; dispatch romantic-fantasy-writer-plotting-coordinator"
+        },
+        {
+          "read": "agents/character-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Character phase blocked'"
+        },
+        {
+          "read": "agents/plotting-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json plotting\u2192complete; dispatch romantic-fantasy-writer-style-coordinator"
+        },
+        {
+          "read": "agents/plotting-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Plotting phase blocked'"
+        },
+        {
+          "read": "agents/style-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json style\u2192complete; dispatch romantic-fantasy-writer-craft-tracker (initialize)"
+        },
+        {
+          "read": "agents/style-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Style phase blocked'"
+        },
+        {
+          "read": "agents/craft-tracker/status.json",
+          "condition": "result == 'completed' AND phaseStatuses.drafting.status == 'pending'",
+          "action": "dispatch romantic-fantasy-writer-drafting-coordinator"
+        },
+        {
+          "read": "agents/craft-tracker/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Craft tracking initialization failed — craft-profile.json missing or chapter content unavailable'"
+        },
+        {
+          "read": "agents/drafting-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json drafting\u2192complete; dispatch romantic-fantasy-writer-continuity-tracker (full verification)"
+        },
+        {
+          "read": "agents/drafting-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Drafting phase blocked'"
+        },
+        {
+          "read": "agents/continuity-tracker/status.json",
+          "condition": "result == 'completed' AND phaseStatuses.revision.status == 'pending'",
+          "action": "dispatch romantic-fantasy-writer-revision-coordinator"
+        },
+        {
+          "read": "agents/continuity-tracker/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Continuity verification failed — chapter content unavailable or world-bible files missing'"
+        },
+        {
+          "read": "agents/revision-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json revision\u2192complete; dispatch romantic-fantasy-writer-beta-reading-coordinator"
+        },
+        {
+          "read": "agents/revision-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Revision phase blocked'"
+        },
+        {
+          "read": "agents/beta-reading-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "check beta-synthesis verdicts: if any chapter verdict=='revision-required' AND revisionBetaCycles < maxRevisionBetaCycles \u2192 reset revision+beta status, re-dispatch revision-coordinator; else update progress.json beta-reading\u2192complete, dispatch romantic-fantasy-writer-polish-coordinator"
+        },
+        {
+          "read": "agents/beta-reading-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: failed; summary: 'Beta-reading phase blocked'"
+        },
+        {
+          "read": "agents/polish-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "update progress.json polish\u2192complete; dispatch romantic-fantasy-writer-series-kb-manager"
+        },
+        {
+          "read": "agents/polish-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: delivered-with-gaps; summary: 'Polish incomplete'"
+        },
+        {
+          "read": "agents/series-kb-manager/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: delivered; summary: 'All phases complete, series KB updated'"
+        },
+        {
+          "read": "agents/series-kb-manager/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: delivered-with-gaps; summary: 'Delivered but series KB update failed'"
+        },
+        {
+          "read": "agents/{any-coordinator}/status.json",
+          "condition": "result == 'revision-loop'",
+          "action": "Wait \u2014 coordinator is in its internal auditor retry loop. No action needed; coordinator will eventually resolve to 'complete' or 'blocked'. Re-read on next routing cycle."
+        }
+      ],
+      "revisionBetaLoop": {
+        "description": "After beta-reading completes, if any chapter has beta-synthesis verdict 'revision-required', the orchestrator re-dispatches the revision-coordinator for those chapters, then re-dispatches beta-reading. This forms a bounded loop.",
+        "maxCycles": 2,
+        "triggerCondition": "Any beta-synthesis/{N}.json has verdict == 'revision-required'",
+        "resetOnReEntry": [
+          "agents/revision-coordinator/status.json",
+          "agents/beta-reading-coordinator/status.json"
+        ],
+        "onMaxCycles": "Proceed to polish with best-effort revisions. Log outstanding beta findings in delivery-report.json."
+      },
+      "crossCuttingDispatch": {
+        "craft-tracker": {
+          "dispatchPoints": [
+            "After style-coordinator completes (initialize craft tracking artifacts)",
+            "Drafting-coordinator invokes craft-tracker updates internally via craft-enforcer"
+          ]
+        },
+        "continuity-tracker": {
+          "dispatchPoints": [
+            "After drafting-coordinator completes (full consistency verification)",
+            "Drafting-coordinator invokes continuity updates internally via continuity-integrator"
+          ]
+        },
+        "series-kb-manager": {
+          "dispatchPoints": [
+            "After polish-coordinator completes (promote to series KB)"
+          ]
+        }
+      },
+      "resultCodeMapping": {
+        "delivered": "All 9 creative phases + cross-cutting agents completed successfully",
+        "delivered-with-gaps": "Core phases completed but some optional phases blocked or revision cycles exhausted",
+        "failed": "A mandatory phase (concept, worldbuilding, character, plotting, style, drafting) blocked"
+      },
+      "transientStates": {
+        "revision-loop": "Coordinator is in its internal auditor retry loop. The orchestrator waits and re-checks. This is never a terminal state \u2014 it always resolves to 'complete' or 'blocked'."
+      }
+    },
+    "romantic-fantasy-writer-concept-coordinator": {
+      "id": "A-003",
+      "displayName": "Concept Coordinator",
+      "level": "coordinator",
+      "depth": 2,
+      "pass": "concept",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-concept-developer",
+        "romantic-fantasy-writer-craft-profile-selector",
+        "romantic-fantasy-writer-concept-auditor"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/concept-developer/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-concept-developer"
+        },
+        {
+          "read": "agents/concept-developer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-craft-profile-selector"
+        },
+        {
+          "read": "agents/concept-developer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/craft-profile-selector/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-concept-auditor"
+        },
+        {
+          "read": "agents/craft-profile-selector/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/concept-auditor/status.json",
+          "condition": "result == 'passed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/concept-auditor/status.json",
+          "condition": "result == 'failed' AND retries < maxAuditorRetries",
+          "action": "delete agents/concept-developer/status.json, agents/craft-profile-selector/status.json, agents/concept-auditor/status.json; increment retries; re-dispatch romantic-fantasy-writer-concept-developer"
+        },
+        {
+          "read": "agents/concept-auditor/status.json",
+          "condition": "result == 'failed' AND retries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Concept failed auditor gate after max retries'"
+        },
+        {
+          "read": "agents/concept-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "auditor-gate",
+        "writer": "concept-developer + craft-profile-selector",
+        "reviewer": "concept-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/concept-developer/status.json",
+          "agents/craft-profile-selector/status.json",
+          "agents/concept-auditor/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/concept/gate.json"
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "Concept and craft profile passed auditor gate",
+        "blocked": "Concept development or audit failed/blocked",
+        "revision-loop": "Currently in auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-worldbuilding-coordinator": {
+      "id": "A-004",
+      "displayName": "Worldbuilding Coordinator",
+      "level": "coordinator",
+      "depth": 3,
+      "pass": "worldbuilding",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-physical-world-coordinator",
+        "romantic-fantasy-writer-systems-world-coordinator",
+        "romantic-fantasy-writer-worldbuilding-auditor"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/physical-world-coordinator/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-physical-world-coordinator"
+        },
+        {
+          "read": "agents/physical-world-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-systems-world-coordinator"
+        },
+        {
+          "read": "agents/physical-world-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/systems-world-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-worldbuilding-auditor"
+        },
+        {
+          "read": "agents/systems-world-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/worldbuilding-auditor/status.json",
+          "condition": "result == 'passed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/worldbuilding-auditor/status.json",
+          "condition": "result == 'failed' AND retries < maxAuditorRetries",
+          "action": "read audit-reports/worldbuilding/gate.json to identify failing area; delete sub-coordinator + auditor statuses; increment retries; re-dispatch romantic-fantasy-writer-physical-world-coordinator"
+        },
+        {
+          "read": "agents/worldbuilding-auditor/status.json",
+          "condition": "result == 'failed' AND retries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Worldbuilding failed auditor gate after max retries'"
+        },
+        {
+          "read": "agents/worldbuilding-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "auditor-gate",
+        "writer": "physical-world-coordinator + systems-world-coordinator",
+        "reviewer": "worldbuilding-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/physical-world-coordinator/status.json",
+          "agents/systems-world-coordinator/status.json",
+          "agents/worldbuilding-auditor/status.json",
+          "agents/geography-builder/status.json",
+          "agents/culture-builder/status.json",
+          "agents/history-builder/status.json",
+          "agents/magic-system-designer/status.json",
+          "agents/political-structure-builder/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/worldbuilding/gate.json"
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "All world-bible subcategories built and passed auditor gate",
+        "blocked": "Worldbuilding or audit failed/blocked",
+        "revision-loop": "Currently in auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-character-coordinator": {
+      "id": "A-005",
+      "displayName": "Character Coordinator",
+      "level": "coordinator",
+      "depth": 3,
+      "pass": "character",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-core-characters-coordinator",
+        "romantic-fantasy-writer-ensemble-coordinator",
+        "romantic-fantasy-writer-character-auditor"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/core-characters-coordinator/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-core-characters-coordinator"
+        },
+        {
+          "read": "agents/core-characters-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-ensemble-coordinator"
+        },
+        {
+          "read": "agents/core-characters-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/ensemble-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-character-auditor"
+        },
+        {
+          "read": "agents/ensemble-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/character-auditor/status.json",
+          "condition": "result == 'passed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/character-auditor/status.json",
+          "condition": "result == 'failed' AND retries < maxAuditorRetries",
+          "action": "read audit-reports/character/gate.json; delete sub-coordinator + specialist + auditor statuses; increment retries; re-dispatch romantic-fantasy-writer-core-characters-coordinator"
+        },
+        {
+          "read": "agents/character-auditor/status.json",
+          "condition": "result == 'failed' AND retries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Characters failed auditor gate after max retries'"
+        },
+        {
+          "read": "agents/character-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "auditor-gate",
+        "writer": "core-characters-coordinator + ensemble-coordinator",
+        "reviewer": "character-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/core-characters-coordinator/status.json",
+          "agents/ensemble-coordinator/status.json",
+          "agents/character-auditor/status.json",
+          "agents/protagonist-profiler/status.json",
+          "agents/romance-arc-designer/status.json",
+          "agents/supporting-cast-developer/status.json",
+          "agents/character-voice-designer/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/character/gate.json"
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "All characters profiled, romance arc designed, voices calibrated, passed auditor gate",
+        "blocked": "Character development or audit failed/blocked",
+        "revision-loop": "Currently in auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-plotting-coordinator": {
+      "id": "A-006",
+      "displayName": "Plotting Coordinator",
+      "level": "coordinator",
+      "depth": 3,
+      "pass": "plotting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-structural-design-coordinator",
+        "romantic-fantasy-writer-chapter-design-coordinator",
+        "romantic-fantasy-writer-plotting-auditor"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/structural-design-coordinator/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-structural-design-coordinator"
+        },
+        {
+          "read": "agents/structural-design-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-chapter-design-coordinator"
+        },
+        {
+          "read": "agents/structural-design-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/chapter-design-coordinator/status.json",
+          "condition": "result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-plotting-auditor"
+        },
+        {
+          "read": "agents/chapter-design-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/plotting-auditor/status.json",
+          "condition": "result == 'passed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/plotting-auditor/status.json",
+          "condition": "result == 'failed' AND retries < maxAuditorRetries",
+          "action": "read audit-reports/plotting/gate.json; delete sub-coordinator + specialist + auditor statuses; increment retries; re-dispatch romantic-fantasy-writer-structural-design-coordinator"
+        },
+        {
+          "read": "agents/plotting-auditor/status.json",
+          "condition": "result == 'failed' AND retries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Plotting failed auditor gate after max retries'"
+        },
+        {
+          "read": "agents/plotting-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "auditor-gate",
+        "writer": "structural-design-coordinator + chapter-design-coordinator",
+        "reviewer": "plotting-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/structural-design-coordinator/status.json",
+          "agents/chapter-design-coordinator/status.json",
+          "agents/plotting-auditor/status.json",
+          "agents/structure-selector/status.json",
+          "agents/dual-arc-builder/status.json",
+          "agents/tension-mapper/status.json",
+          "agents/chapter-outliner/status.json",
+          "agents/scene-beat-designer/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/plotting/gate.json"
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "Plot structure, dual-arc timeline, tension map, chapter outlines, and scene beats all passed auditor gate",
+        "blocked": "Plotting or audit failed/blocked",
+        "revision-loop": "Currently in auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-style-coordinator": {
+      "id": "A-007",
+      "displayName": "Style Coordinator",
+      "level": "coordinator",
+      "depth": 2,
+      "pass": "style",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-style-analyzer",
+        "romantic-fantasy-writer-style-guide-writer",
+        "romantic-fantasy-writer-style-auditor"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/style-analyzer/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-style-analyzer"
+        },
+        {
+          "read": "agents/style-analyzer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-style-guide-writer"
+        },
+        {
+          "read": "agents/style-analyzer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/style-guide-writer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-style-auditor"
+        },
+        {
+          "read": "agents/style-guide-writer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/style-auditor/status.json",
+          "condition": "result == 'passed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/style-auditor/status.json",
+          "condition": "result == 'failed' AND retries < maxAuditorRetries",
+          "action": "delete agents/style-analyzer/status.json, agents/style-guide-writer/status.json, agents/style-auditor/status.json; increment retries; re-dispatch romantic-fantasy-writer-style-analyzer"
+        },
+        {
+          "read": "agents/style-auditor/status.json",
+          "condition": "result == 'failed' AND retries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Style failed auditor gate after max retries'"
+        },
+        {
+          "read": "agents/style-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "auditor-gate",
+        "writer": "style-analyzer + style-guide-writer",
+        "reviewer": "style-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/style-analyzer/status.json",
+          "agents/style-guide-writer/status.json",
+          "agents/style-auditor/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/style/gate.json"
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "Style guide written and passed auditor gate",
+        "blocked": "Style calibration or audit failed/blocked",
+        "revision-loop": "Currently in auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-drafting-coordinator": {
+      "id": "A-008",
+      "displayName": "Drafting Coordinator",
+      "level": "coordinator",
+      "depth": 3,
+      "pass": "drafting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-creative-writing-coordinator",
+        "romantic-fantasy-writer-quality-integration-coordinator",
+        "romantic-fantasy-writer-drafting-auditor"
+      ],
+      "perChapterLoop": {
+        "description": "Chapters are drafted sequentially (INV-012). For each chapter N from 1 to estimatedChapterCount: dispatch creative-writing \u2192 quality-integration \u2192 drafting-auditor. Auditor loop applies per-chapter.",
+        "iterationVariable": "N",
+        "iterationSource": "story-concept.json.estimatedChapterCount",
+        "sequentialEnforcement": "Chapter N+1 cannot begin until chapter N passes the drafting auditor gate (INV-012)"
+      },
+      "routingTable": [
+        {
+          "read": "progress.json",
+          "condition": "currentChapter == null",
+          "action": "set currentChapter=1; dispatch romantic-fantasy-writer-creative-writing-coordinator for chapter 1"
+        },
+        {
+          "read": "agents/creative-writing-coordinator/status.json",
+          "condition": "result == 'complete' (for current chapter)",
+          "action": "dispatch romantic-fantasy-writer-quality-integration-coordinator for current chapter"
+        },
+        {
+          "read": "agents/creative-writing-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked; summary: 'Creative writing blocked at chapter N'"
+        },
+        {
+          "read": "agents/quality-integration-coordinator/status.json",
+          "condition": "result == 'complete' (for current chapter)",
+          "action": "dispatch romantic-fantasy-writer-drafting-auditor for current chapter"
+        },
+        {
+          "read": "agents/quality-integration-coordinator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked; summary: 'Quality integration blocked at chapter N'"
+        },
+        {
+          "read": "agents/drafting-auditor/status.json",
+          "condition": "result == 'passed' AND currentChapter < estimatedChapterCount",
+          "action": "update progress.json chapterProgress[N].drafted=true; increment currentChapter; delete per-chapter sub-statuses; dispatch romantic-fantasy-writer-creative-writing-coordinator for next chapter"
+        },
+        {
+          "read": "agents/drafting-auditor/status.json",
+          "condition": "result == 'passed' AND currentChapter == estimatedChapterCount",
+          "action": "update progress.json chapterProgress[N].drafted=true; write own status: complete; summary: 'All chapters drafted and passed auditor gates'"
+        },
+        {
+          "read": "agents/drafting-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries < maxAuditorRetries",
+          "action": "read audit-reports/drafting/gate.json; delete per-chapter sub-statuses; increment chapterRetries; re-dispatch romantic-fantasy-writer-creative-writing-coordinator for same chapter"
+        },
+        {
+          "read": "agents/drafting-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Chapter N failed drafting auditor after max retries'"
+        },
+        {
+          "read": "agents/drafting-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "per-chapter-auditor-gate",
+        "writer": "creative-writing-coordinator + quality-integration-coordinator",
+        "reviewer": "drafting-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/creative-writing-coordinator/status.json",
+          "agents/quality-integration-coordinator/status.json",
+          "agents/drafting-auditor/status.json",
+          "agents/chapter-drafter/status.json",
+          "agents/pov-voice-maintainer/status.json",
+          "agents/continuity-integrator/status.json",
+          "agents/craft-enforcer/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/drafting/gate.json",
+        "perChapter": true,
+        "notes": "Retries counter resets per chapter. Each chapter gets up to maxRetries attempts independently."
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1,
+        "notes": "Per-chapter retry count. Total dispatches = chapters \u00d7 (1 + retries). For a 20-chapter book with no retries, ~60 specialist dispatches."
+      },
+      "resultCodeMapping": {
+        "complete": "All chapters drafted, quality-integrated, and passed auditor gates",
+        "blocked": "A chapter failed drafting or audit",
+        "revision-loop": "Currently in per-chapter auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-revision-coordinator": {
+      "id": "A-009",
+      "displayName": "Revision Coordinator",
+      "level": "coordinator",
+      "depth": 2,
+      "pass": "revision",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-developmental-editor",
+        "romantic-fantasy-writer-line-editor",
+        "romantic-fantasy-writer-copy-editor",
+        "romantic-fantasy-writer-chapter-reviser",
+        "romantic-fantasy-writer-revision-auditor"
+      ],
+      "perChapterLoop": {
+        "description": "For each chapter N: three editing passes (developmental \u2192 line \u2192 copy) run sequentially, then chapter-reviser applies all fixes, then revision-auditor gates quality. Chapters can be processed in any order since editing is independent.",
+        "iterationVariable": "N",
+        "iterationSource": "progress.json.chapterProgress (chapters where drafted==true)",
+        "sequentialEnforcement": "The three editing passes within a chapter are sequential (each builds on the prior). Chapters themselves could be parallel but are routed sequentially for simplicity."
+      },
+      "routingTable": [
+        {
+          "read": "agents/developmental-editor/status.json",
+          "condition": "missing (for current chapter)",
+          "action": "dispatch romantic-fantasy-writer-developmental-editor for chapter N"
+        },
+        {
+          "read": "agents/developmental-editor/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-line-editor for chapter N"
+        },
+        {
+          "read": "agents/developmental-editor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/line-editor/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-copy-editor for chapter N"
+        },
+        {
+          "read": "agents/line-editor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/copy-editor/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-chapter-reviser for chapter N"
+        },
+        {
+          "read": "agents/copy-editor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/chapter-reviser/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-revision-auditor for chapter N"
+        },
+        {
+          "read": "agents/chapter-reviser/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/revision-auditor/status.json",
+          "condition": "result == 'passed' AND more chapters remain",
+          "action": "update progress.json chapterProgress[N].revised=true; advance to next chapter; delete per-chapter sub-statuses; dispatch developmental-editor for next chapter"
+        },
+        {
+          "read": "agents/revision-auditor/status.json",
+          "condition": "result == 'passed' AND all chapters revised",
+          "action": "update progress.json chapterProgress[N].revised=true; write own status: complete"
+        },
+        {
+          "read": "agents/revision-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries < maxAuditorRetries",
+          "action": "read audit-reports/revision/gate.json; delete agents/chapter-reviser/status.json, agents/revision-auditor/status.json; increment chapterRetries; re-dispatch romantic-fantasy-writer-chapter-reviser for same chapter"
+        },
+        {
+          "read": "agents/revision-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Chapter N failed revision auditor after max retries'"
+        },
+        {
+          "read": "agents/revision-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "per-chapter-auditor-gate",
+        "writer": "chapter-reviser",
+        "reviewer": "revision-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/chapter-reviser/status.json",
+          "agents/revision-auditor/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/revision/gate.json",
+        "perChapter": true,
+        "notes": "On retry, only the reviser re-runs (edit reports from dev/line/copy editors are preserved as they represent independent assessments)."
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "All chapters revised through 3 edit passes and passed auditor gate",
+        "blocked": "A chapter failed revision or audit",
+        "revision-loop": "Currently in per-chapter auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-beta-reading-coordinator": {
+      "id": "A-010",
+      "displayName": "Beta Reading Coordinator",
+      "level": "coordinator",
+      "depth": 3,
+      "pass": "beta-reading",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-genre-lens-coordinator",
+        "romantic-fantasy-writer-craft-lens-coordinator",
+        "romantic-fantasy-writer-beta-synthesizer",
+        "romantic-fantasy-writer-beta-reading-auditor"
+      ],
+      "parallelGroups": [
+        {
+          "group": "lens-fan-out",
+          "agents": [
+            "romantic-fantasy-writer-genre-lens-coordinator",
+            "romantic-fantasy-writer-craft-lens-coordinator"
+          ],
+          "notes": "Genre and craft lens coordinators can run in parallel \u2014 they read the same revised chapter independently"
+        }
+      ],
+      "perChapterLoop": {
+        "description": "For each chapter N: fan out to genre-lens-coordinator and craft-lens-coordinator in parallel, then synthesize, then audit. Chapters processed sequentially.",
+        "iterationVariable": "N",
+        "iterationSource": "progress.json.chapterProgress (chapters where revised==true)",
+        "sequentialEnforcement": "Chapters are sequential; within each chapter, the two lens coordinators are parallel."
+      },
+      "routingTable": [
+        {
+          "read": "agents/genre-lens-coordinator/status.json AND agents/craft-lens-coordinator/status.json",
+          "condition": "both missing (for current chapter)",
+          "action": "dispatch romantic-fantasy-writer-genre-lens-coordinator AND romantic-fantasy-writer-craft-lens-coordinator in parallel"
+        },
+        {
+          "read": "agents/genre-lens-coordinator/status.json AND agents/craft-lens-coordinator/status.json",
+          "condition": "both result == 'complete'",
+          "action": "dispatch romantic-fantasy-writer-beta-synthesizer for chapter N"
+        },
+        {
+          "read": "agents/genre-lens-coordinator/status.json OR agents/craft-lens-coordinator/status.json",
+          "condition": "either result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/beta-synthesizer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-beta-reading-auditor for chapter N"
+        },
+        {
+          "read": "agents/beta-synthesizer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/beta-reading-auditor/status.json",
+          "condition": "result == 'passed' AND more chapters remain",
+          "action": "update progress.json chapterProgress[N].betaRead=true; advance to next chapter; delete per-chapter sub-statuses; dispatch lens coordinators for next chapter"
+        },
+        {
+          "read": "agents/beta-reading-auditor/status.json",
+          "condition": "result == 'passed' AND all chapters beta-read",
+          "action": "update progress.json chapterProgress[N].betaRead=true; write own status: complete"
+        },
+        {
+          "read": "agents/beta-reading-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries < maxAuditorRetries",
+          "action": "read audit-reports/beta-reading/gate.json; delete lens + synthesizer + auditor statuses; increment chapterRetries; re-dispatch lens coordinators for same chapter"
+        },
+        {
+          "read": "agents/beta-reading-auditor/status.json",
+          "condition": "result == 'failed' AND chapterRetries >= maxAuditorRetries",
+          "action": "write own status: blocked; summary: 'Chapter N failed beta-reading auditor after max retries'"
+        },
+        {
+          "read": "agents/beta-reading-auditor/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": {
+        "type": "per-chapter-auditor-gate",
+        "writer": "genre-lens-coordinator + craft-lens-coordinator + beta-synthesizer",
+        "reviewer": "beta-reading-auditor",
+        "maxRetries": 3,
+        "onMaxRetries": "escalate-blocked",
+        "resetOnRetry": [
+          "agents/genre-lens-coordinator/status.json",
+          "agents/craft-lens-coordinator/status.json",
+          "agents/beta-synthesizer/status.json",
+          "agents/beta-reading-auditor/status.json",
+          "agents/romance-beta-reader/status.json",
+          "agents/fantasy-beta-reader/status.json",
+          "agents/craft-beta-reader/status.json",
+          "agents/sensitivity-beta-reader/status.json",
+          "agents/originality-beta-reader/status.json"
+        ],
+        "feedbackArtifact": "audit-reports/beta-reading/gate.json",
+        "perChapter": true
+      },
+      "convergenceBounds": {
+        "maxAuditorRetries": 3,
+        "expectedIterations": 1
+      },
+      "resultCodeMapping": {
+        "complete": "All chapters beta-read across 5 lenses, synthesized, and passed auditor gate",
+        "blocked": "A chapter failed beta-reading or audit",
+        "revision-loop": "Currently in per-chapter auditor retry loop (transient state)"
+      }
+    },
+    "romantic-fantasy-writer-polish-coordinator": {
+      "id": "A-011",
+      "displayName": "Polish Coordinator",
+      "level": "coordinator",
+      "depth": 2,
+      "pass": "polish",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-polisher",
+        "romantic-fantasy-writer-summary-generator",
+        "romantic-fantasy-writer-delivery-assembler"
+      ],
+      "perChapterLoop": {
+        "description": "For each chapter N: polisher finalizes prose \u2192 summary-generator creates chapter summary. After all chapters: delivery-assembler produces the final report.",
+        "iterationVariable": "N",
+        "iterationSource": "progress.json.chapterProgress (chapters where betaRead==true OR revised==true)",
+        "sequentialEnforcement": "Chapters can be polished in any order. Delivery assembler runs only after all chapters are polished."
+      },
+      "routingTable": [
+        {
+          "read": "agents/polisher/status.json",
+          "condition": "missing (for current chapter)",
+          "action": "dispatch romantic-fantasy-writer-polisher for chapter N"
+        },
+        {
+          "read": "agents/polisher/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-summary-generator for chapter N"
+        },
+        {
+          "read": "agents/polisher/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/summary-generator/status.json",
+          "condition": "result == 'completed' AND more chapters remain",
+          "action": "update progress.json chapterProgress[N].polished=true; advance to next chapter; delete per-chapter sub-statuses; dispatch polisher for next chapter"
+        },
+        {
+          "read": "agents/summary-generator/status.json",
+          "condition": "result == 'completed' AND all chapters polished",
+          "action": "update progress.json chapterProgress[N].polished=true; dispatch romantic-fantasy-writer-delivery-assembler"
+        },
+        {
+          "read": "agents/summary-generator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/delivery-assembler/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/delivery-assembler/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "convergenceBounds": {
+        "notes": "No auditor loop. Polish is the terminal creative phase. If polishing fails, the coordinator reports blocked."
+      },
+      "resultCodeMapping": {
+        "complete": "All chapters polished, summaries generated, delivery report assembled",
+        "blocked": "Polish or delivery assembly failed"
+      }
+    },
+    "romantic-fantasy-writer-physical-world-coordinator": {
+      "id": "A-012",
+      "displayName": "Physical World Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "worldbuilding",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-geography-builder",
+        "romantic-fantasy-writer-culture-builder",
+        "romantic-fantasy-writer-history-builder"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/geography-builder/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-geography-builder"
+        },
+        {
+          "read": "agents/geography-builder/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-culture-builder"
+        },
+        {
+          "read": "agents/geography-builder/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/culture-builder/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-history-builder"
+        },
+        {
+          "read": "agents/culture-builder/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/history-builder/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/history-builder/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Geography must exist before culture (INV-074: geography constrains cultural norms). Culture must exist before history (history explains both). Sequential dependency chain.",
+      "resultCodeMapping": {
+        "complete": "Geography, culture, and history world-bible subcategories built",
+        "blocked": "A world-building specialist failed"
+      }
+    },
+    "romantic-fantasy-writer-systems-world-coordinator": {
+      "id": "A-013",
+      "displayName": "Systems World Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "worldbuilding",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-magic-system-designer",
+        "romantic-fantasy-writer-political-structure-builder"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/magic-system-designer/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-magic-system-designer"
+        },
+        {
+          "read": "agents/magic-system-designer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-political-structure-builder"
+        },
+        {
+          "read": "agents/magic-system-designer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/political-structure-builder/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/political-structure-builder/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Magic system must be defined before political structures (magic affects who holds power and how governance works).",
+      "resultCodeMapping": {
+        "complete": "Magic system and political structures designed",
+        "blocked": "A systems-world specialist failed"
+      }
+    },
+    "romantic-fantasy-writer-core-characters-coordinator": {
+      "id": "A-014",
+      "displayName": "Core Characters Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "character",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-protagonist-profiler",
+        "romantic-fantasy-writer-romance-arc-designer"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/protagonist-profiler/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-protagonist-profiler"
+        },
+        {
+          "read": "agents/protagonist-profiler/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-romance-arc-designer"
+        },
+        {
+          "read": "agents/protagonist-profiler/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/romance-arc-designer/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/romance-arc-designer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Protagonist profiles (wounds, desires, psychology) must exist before romance arc can be designed between the leads.",
+      "resultCodeMapping": {
+        "complete": "Protagonists profiled and romance arc designed",
+        "blocked": "Core character work failed"
+      }
+    },
+    "romantic-fantasy-writer-ensemble-coordinator": {
+      "id": "A-015",
+      "displayName": "Ensemble Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "character",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-supporting-cast-developer",
+        "romantic-fantasy-writer-character-voice-designer"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/supporting-cast-developer/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-supporting-cast-developer"
+        },
+        {
+          "read": "agents/supporting-cast-developer/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-character-voice-designer"
+        },
+        {
+          "read": "agents/supporting-cast-developer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/character-voice-designer/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/character-voice-designer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Supporting cast must be defined (roles, relationships) before voice fingerprints can be designed for all characters including supporting.",
+      "resultCodeMapping": {
+        "complete": "Supporting cast developed and all character voices designed",
+        "blocked": "Ensemble work failed"
+      }
+    },
+    "romantic-fantasy-writer-structural-design-coordinator": {
+      "id": "A-016",
+      "displayName": "Structural Design Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "plotting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-structure-selector",
+        "romantic-fantasy-writer-dual-arc-builder",
+        "romantic-fantasy-writer-tension-mapper"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/structure-selector/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-structure-selector"
+        },
+        {
+          "read": "agents/structure-selector/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-dual-arc-builder"
+        },
+        {
+          "read": "agents/structure-selector/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/dual-arc-builder/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-tension-mapper"
+        },
+        {
+          "read": "agents/dual-arc-builder/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/tension-mapper/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/tension-mapper/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Framework selection \u2192 dual-arc timeline (needs framework) \u2192 tension mapping (needs both arcs laid out). Strict data dependency chain.",
+      "resultCodeMapping": {
+        "complete": "Plot structure selected, dual arcs built, tension mapped",
+        "blocked": "Structural design failed"
+      }
+    },
+    "romantic-fantasy-writer-chapter-design-coordinator": {
+      "id": "A-017",
+      "displayName": "Chapter Design Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "plotting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-chapter-outliner",
+        "romantic-fantasy-writer-scene-beat-designer"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/chapter-outliner/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-chapter-outliner"
+        },
+        {
+          "read": "agents/chapter-outliner/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-scene-beat-designer"
+        },
+        {
+          "read": "agents/chapter-outliner/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/scene-beat-designer/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/scene-beat-designer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Chapter outlines (POV, goals, conflicts per chapter) must exist before scene beats (Five Commandments, emotional beats) can be designed within them.",
+      "resultCodeMapping": {
+        "complete": "All chapter outlines written and scene beats designed",
+        "blocked": "Chapter design failed"
+      }
+    },
+    "romantic-fantasy-writer-creative-writing-coordinator": {
+      "id": "A-018",
+      "displayName": "Creative Writing Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "drafting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-chapter-drafter",
+        "romantic-fantasy-writer-pov-voice-maintainer"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/chapter-drafter/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-chapter-drafter for current chapter"
+        },
+        {
+          "read": "agents/chapter-drafter/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-pov-voice-maintainer for current chapter"
+        },
+        {
+          "read": "agents/chapter-drafter/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/pov-voice-maintainer/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/pov-voice-maintainer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Chapter draft must be written before POV voice can be verified and adjusted within it.",
+      "resultCodeMapping": {
+        "complete": "Chapter drafted and POV voice verified",
+        "blocked": "Creative writing failed for this chapter"
+      }
+    },
+    "romantic-fantasy-writer-quality-integration-coordinator": {
+      "id": "A-019",
+      "displayName": "Quality Integration Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "drafting",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-continuity-integrator",
+        "romantic-fantasy-writer-craft-enforcer"
+      ],
+      "routingTable": [
+        {
+          "read": "agents/continuity-integrator/status.json",
+          "condition": "missing",
+          "action": "dispatch romantic-fantasy-writer-continuity-integrator for current chapter"
+        },
+        {
+          "read": "agents/continuity-integrator/status.json",
+          "condition": "result == 'completed'",
+          "action": "dispatch romantic-fantasy-writer-craft-enforcer for current chapter"
+        },
+        {
+          "read": "agents/continuity-integrator/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        },
+        {
+          "read": "agents/craft-enforcer/status.json",
+          "condition": "result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/craft-enforcer/status.json",
+          "condition": "result == 'blocked'",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "sequenceRationale": "Continuity check runs first (fixes factual/timeline errors) before craft enforcement (checks structural/technique quality). Both modify the draft but continuity errors are more fundamental.",
+      "resultCodeMapping": {
+        "complete": "Chapter passed continuity and craft enforcement checks",
+        "blocked": "Quality integration failed for this chapter"
+      }
+    },
+    "romantic-fantasy-writer-genre-lens-coordinator": {
+      "id": "A-020",
+      "displayName": "Genre Lens Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "beta-reading",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-romance-beta-reader",
+        "romantic-fantasy-writer-fantasy-beta-reader"
+      ],
+      "parallelGroups": [
+        {
+          "group": "genre-readers",
+          "agents": [
+            "romantic-fantasy-writer-romance-beta-reader",
+            "romantic-fantasy-writer-fantasy-beta-reader"
+          ],
+          "notes": "Both genre lens readers run in parallel \u2014 they read the same revised chapter independently and produce independent feedback"
+        }
+      ],
+      "routingTable": [
+        {
+          "read": "agents/romance-beta-reader/status.json AND agents/fantasy-beta-reader/status.json",
+          "condition": "both missing",
+          "action": "dispatch romantic-fantasy-writer-romance-beta-reader AND romantic-fantasy-writer-fantasy-beta-reader in parallel"
+        },
+        {
+          "read": "agents/romance-beta-reader/status.json AND agents/fantasy-beta-reader/status.json",
+          "condition": "both result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/romance-beta-reader/status.json OR agents/fantasy-beta-reader/status.json",
+          "condition": "either result == 'blocked' (wait for other to finish first)",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "resultCodeMapping": {
+        "complete": "Both genre lens readers provided feedback",
+        "blocked": "A genre lens reader failed"
+      }
+    },
+    "romantic-fantasy-writer-craft-lens-coordinator": {
+      "id": "A-021",
+      "displayName": "Craft Lens Sub-Coordinator",
+      "level": "sub-coordinator",
+      "pass": "beta-reading",
+      "dispatchOrder": [
+        "romantic-fantasy-writer-craft-beta-reader",
+        "romantic-fantasy-writer-sensitivity-beta-reader",
+        "romantic-fantasy-writer-originality-beta-reader"
+      ],
+      "parallelGroups": [
+        {
+          "group": "craft-readers",
+          "agents": [
+            "romantic-fantasy-writer-craft-beta-reader",
+            "romantic-fantasy-writer-sensitivity-beta-reader",
+            "romantic-fantasy-writer-originality-beta-reader"
+          ],
+          "notes": "All three craft lens readers run in parallel \u2014 independent assessments of the same revised chapter"
+        }
+      ],
+      "routingTable": [
+        {
+          "read": "agents/craft-beta-reader/status.json AND agents/sensitivity-beta-reader/status.json AND agents/originality-beta-reader/status.json",
+          "condition": "all missing",
+          "action": "dispatch all three craft lens readers in parallel"
+        },
+        {
+          "read": "agents/craft-beta-reader/status.json AND agents/sensitivity-beta-reader/status.json AND agents/originality-beta-reader/status.json",
+          "condition": "all result == 'completed'",
+          "action": "write own status: complete"
+        },
+        {
+          "read": "agents/craft-beta-reader/status.json OR agents/sensitivity-beta-reader/status.json OR agents/originality-beta-reader/status.json",
+          "condition": "any result == 'blocked' (wait for others to finish first)",
+          "action": "write own status: blocked"
+        }
+      ],
+      "loopConfig": null,
+      "resultCodeMapping": {
+        "complete": "All three craft lens readers provided feedback",
+        "blocked": "A craft lens reader failed"
+      }
+    }
+  }
+}

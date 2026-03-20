@@ -1,0 +1,26 @@
+{
+  "id": "MK-017",
+  "category": "factory-operations",
+  "subcategory": "pipeline-bottleneck-pattern",
+  "content": "Planning pass re-entry (planning-2) consumed ~561 minutes wall-clock, far exceeding any other phase. The gap between gap-cycle-1 completion (07:35) and test-planner completion (17:04) suggests the test-planner re-entry was the primary stall point within planning-2, likely due to generating 5 new test scenarios with full context directories.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/manifest.json",
+  "sourceEvidence": "roster-planner iter 2 at 07:46, routing-planner iter 2 at 08:15, but test-planner iter 2 at 17:04 \u2014 a 9-hour gap between routing completion and test completion.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

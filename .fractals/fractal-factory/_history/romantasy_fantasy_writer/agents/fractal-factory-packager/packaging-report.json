@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T21:35:57.739+00:00",
+  "outputDirectory": ".fractal-factory/output/romantic-fantasy-writer",
+  "completeness": {
+    "agents": {
+      "expected": 67,
+      "present": 67,
+      "verified": 67,
+      "missing": []
+    },
+    "schemas": {
+      "expected": 18,
+      "present": 18,
+      "missing": []
+    },
+    "tests": {
+      "expected": 26,
+      "present": 26,
+      "missing": []
+    },
+    "skills": {
+      "expected": 9,
+      "present": 9,
+      "missing": []
+    },
+    "infrastructure": {
+      "expected": 4,
+      "present": 4,
+      "missing": []
+    }
+  },
+  "totalFiles": 176,
+  "outstandingIssues": {
+    "verificationFailures": [],
+    "auditFindings": [
+      {
+        "id": "AF-ARTIFACT-04a",
+        "severity": "warning",
+        "summary": "characters/index.json create-once protocol has 2 writers \u2014 should be read-modify-write"
+      },
+      {
+        "id": "AF-ARTIFACT-04b",
+        "severity": "warning",
+        "summary": "characters/{CHAR-NNN}.json create-once protocol has 3 writers \u2014 character-voice-designer needs read-modify-write"
+      },
+      {
+        "id": "FW-HIERARCHY-01a",
+        "severity": "warning",
+        "summary": "Orchestrator dispatches 3 specialists directly (continuity-tracker, series-kb-manager, craft-tracker) \u2014 intentional, documented exception"
+      },
+      {
+        "id": "FW-DATAFLOW-01",
+        "severity": "warning",
+        "summary": "concept-developer missing series-kb/index.json in Reads for sequel handling"
+      }
+    ],
+    "unresolvedGaps": []
+  },
+  "gapHuntingConvergence": {
+    "cycles": 4,
+    "trajectory": [
+      22,
+      6,
+      2,
+      0
+    ],
+    "verdict": "converged"
+  },
+  "verificationScore": "1326/1326 (100.0%)",
+  "verdict": "complete"
+}

@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-domain-scanner",
+  "task_id": "pass1/domain-scan",
+  "status": "completed",
+  "result": "scanned",
+  "summary": "Identified 14 subdomains from domain brief: user-guide-and-input, concept-development, worldbuilding, character-development, plotting-and-outlining, prose-style-calibration, chapter-drafting, revision-and-editing, beta-reading-simulation, polish-and-delivery, adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems. Estimated ~39 total agents. 10 phase-aligned subdomains + 4 cross-cutting concerns. No domain-docs provided; worked exclusively from the 474-line domain brief.",
+  "artifacts": ["domain-model.json", "agents/fractal-factory-domain-scanner/output.md"],
+  "next_hint": "fractal-factory-invariant-extractor",
+  "iteration": 1
+}

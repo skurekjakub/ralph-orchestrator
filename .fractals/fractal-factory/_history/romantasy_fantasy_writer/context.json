@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "domain": {
+    "name": "fantasy-writer",
+    "description": "An autonomous multi-agent system that writes romantic fantasy fiction — from initial concept through worldbuilding, character development, plotting, prose style calibration, chapter drafting, adversarial phase gates, multi-pass revision, simulated multi-lens beta reading, and final polish. Designed for series production from day one: all artifacts are organized per-book with a shared series knowledge base enabling seamless sequel creation. Takes story ideas, reference fiction, and style samples as input. Produces complete, publication-quality romantic fantasy chapters with deeply subcategorized supporting artifacts (world bible split by geography/magic/politics/culture/history, per-character files, per-chapter outlines, per-lens beta feedback). Operates with a two-tier quality system: non-negotiable invariants that always apply, plus a craft toolbox of proven techniques selected per-story during concept/plotting and enforced by adversarial auditors."
+  },
+  "target": {
+    "outputDirectory": ".fractal-factory/output/romantic-fantasy-writer",
+    "namingPrefix": "romantic-fantasy-writer"
+  },
+  "inputs": {
+    "domainBrief": ".fractal-factory/domain-brief.md",
+    "domainDocs": null,
+    "exemplars": ".fractals/fractal-factory/agents",
+    "invariants": ".fractal-factory/invariants.md",
+    "constraints": null
+  },
+  "options": {
+    "maxDepth": 3,
+    "maxAgents": 80,
+    "maxGapCycles": 10,
+    "maxWriterReviewerRetries": 10,
+    "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"],
+    "metaKnowledge": {
+      "enabled": true,
+      "domainSignalName": "craft"
+    }
+  }
+}

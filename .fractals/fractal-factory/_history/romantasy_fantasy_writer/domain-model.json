@@ -1,0 +1,1981 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-15T23:16:25Z",
+  "subdomains": [
+    {
+      "id": "SD-001",
+      "name": "user-guide-and-input",
+      "description": "User-facing guide agent that gathers story idea, optional style samples, mood/tone, character sketches, world fragments, and constraints; validates inputs, writes story-config.json, confirms with user, and launches the autonomous pipeline.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "low",
+      "estimatedAgentCount": 1,
+      "crossCuttingConcerns": [
+        "input-validation",
+        "pipeline-orchestration"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-002",
+      "name": "concept-development",
+      "description": "Phase 1 of the creative pipeline: distill raw inputs into a crystallized story concept including thematic pillars, refined premise, comp titles, and a Story Craft Profile that selects which craft toolbox items apply to this specific story.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "medium",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "craft-toolbox-selection",
+        "adversarial-consistency",
+        "series-knowledge-management"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-003",
+      "name": "worldbuilding",
+      "description": "Phase 2: construct a deeply subcategorized world bible covering geography/settings, magic system design (Sanderson's Laws), political/social structures, history/lore, culture/daily life, and fauna/flora. Output is split into individual subcategory files loadable independently.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 3,
+      "crossCuttingConcerns": [
+        "adversarial-consistency",
+        "series-knowledge-management",
+        "continuity-tracking"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-004",
+      "name": "character-development",
+      "description": "Phase 3: build full protagonist profiles with psychological wounds and desires, design the romance arc dynamic between leads, develop supporting cast and antagonist with mini-arcs, create per-character voice guides with measurable parameters, and map the relationship web.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 3,
+      "crossCuttingConcerns": [
+        "adversarial-consistency",
+        "series-knowledge-management",
+        "multi-pov-craft",
+        "emotional-resonance"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-005",
+      "name": "plotting-and-outlining",
+      "description": "Phase 4: select and apply a structural framework (three-act, Save the Cat, Hero's Journey, etc.), produce per-chapter outlines with POV/goal/conflict/beats, map tension rise-and-fall, track subplots, interleave dual fantasy-romance arcs, build foreshadowing ledger, and architect chapter hooks and page-turners.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 4,
+      "crossCuttingConcerns": [
+        "adversarial-consistency",
+        "craft-knowledge-systems",
+        "continuity-tracking",
+        "reader-experience-design"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-006",
+      "name": "prose-style-calibration",
+      "description": "Phase 5: analyze reference fiction for abstract stylistic patterns (sentence rhythm, vocabulary register, metaphor density, dialogue ratio, paragraph cadence), produce a concrete style guide and tone palette by scene type, and define the voice calibration matrix for each POV character.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "medium",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "adversarial-consistency",
+        "multi-pov-craft",
+        "series-knowledge-management"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-007",
+      "name": "chapter-drafting",
+      "description": "Phase 6: write each chapter following the outline while maintaining character voice per POV, scene structure, prose style adherence, worldbuilding consistency, romance pacing, and chapter hooks/cliffhangers. Update the running continuity document after each chapter.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 3,
+      "crossCuttingConcerns": [
+        "adversarial-consistency",
+        "continuity-tracking",
+        "craft-knowledge-systems",
+        "multi-pov-craft"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-008",
+      "name": "revision-and-editing",
+      "description": "Phase 7: three distinct editing passes \u2014 developmental edit (plot holes, pacing, motivation, arc satisfaction, theme), line edit (prose quality, voice distinctness, clich\u00e9 detection, show-vs-tell, repetition), and copy edit (grammar, naming consistency, timeline accuracy, factual accuracy within world rules).",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 4,
+      "crossCuttingConcerns": [
+        "continuity-tracking",
+        "craft-knowledge-systems"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-009",
+      "name": "beta-reading-simulation",
+      "description": "Phase 8: five independent reader lenses (romance reader, fantasy reader, craft reader, sensitivity reader, originality reader), each producing structured findings with severity levels. A synthesis step combines all findings and prioritizes by severity for revision.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 6,
+      "crossCuttingConcerns": [
+        "continuity-tracking",
+        "craft-knowledge-systems"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-010",
+      "name": "polish-and-delivery",
+      "description": "Phase 9: final proofread pass, per-chapter summary generation, series knowledge base promotion (merging per-book facts into series-level directories), and assembly of the complete delivery package with all artifacts organized and cross-referenced.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "medium",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "series-knowledge-management"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-011",
+      "name": "adversarial-consistency",
+      "description": "Cross-cutting auditor pattern applied as a sub-phase gate to every creative phase (1\u20136). Each auditor challenges internal consistency, cross-references all prior artifacts, produces severity-rated findings, blocks on criticals, and enforces the kill-your-darlings mandate. Phase-specific focus areas differ per phase.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "all-creative-phases",
+        "craft-toolbox-enforcement"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-012",
+      "name": "series-knowledge-management",
+      "description": "Cross-cutting: manage the series-level knowledge base lifecycle \u2014 subcategorized artifact organization (world, characters, magic, timeline, unresolved threads, naming, style guide), knowledge promotion from per-book to series directories on completion, sequel input contract enforcement, and cross-book consistency rules (append-mostly, no silent retcons).",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "medium",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "all-creative-phases",
+        "sequel-production",
+        "artifact-organization"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-013",
+      "name": "continuity-tracking",
+      "description": "Cross-cutting: maintain the running continuity tracker (facts, character positions, timeline progression), character knowledge matrix (what each character knows at each chapter boundary), reader promises ledger (Chekhov's guns \u2014 planted/status), and information asymmetry maps between POV characters and reader.",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "medium",
+      "estimatedAgentCount": 2,
+      "crossCuttingConcerns": [
+        "chapter-drafting",
+        "beta-reading-simulation",
+        "adversarial-consistency"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    },
+    {
+      "id": "SD-014",
+      "name": "craft-knowledge-systems",
+      "description": "Cross-cutting advanced craft dimensions integrated throughout the pipeline: foreshadowing/symbolism architecture (ledger, motif tracking, imagery callbacks, red herrings), emotional resonance engineering (throughline mapping, micro-tension, vulnerability escalation, sensory anchoring), dialogue craft (function tagging, subtext layering, speech differentiation, beat action), thematic architecture (argument structure, theme echo, escalation), and reader experience design (hook engineering, page-turner architecture, mystery box management, payoff spacing, re-readability seeding).",
+      "sourceFiles": [
+        ".fractal-factory/domain-brief.md"
+      ],
+      "complexity": "high",
+      "estimatedAgentCount": 3,
+      "crossCuttingConcerns": [
+        "plotting-and-outlining",
+        "chapter-drafting",
+        "revision-and-editing",
+        "beta-reading-simulation"
+      ],
+      "discoveredBy": "fractal-factory-domain-scanner"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "INV-001",
+      "description": "Genre Promise: Every story MUST be romantic fantasy \u2014 fantasy plot arc primary, romance arc as emotional spine. Neither arc may be absent. Romance must reach at minimum a 'happy for now' (HFN) resolution.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I1, line 17",
+      "affectedSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Verify outline contains both fantasy and romance arc beats. Verify final chapter delivers HFN/HEA. Beta romance reader confirms romance arc present and satisfying.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-002",
+      "description": "Internal Consistency: All worldbuilding details (magic rules, geography, political structures, cultural norms, character knowledge) MUST remain internally consistent across every artifact and chapter. Contradictions are system failures. For sequels, consistency extends across books via series knowledge base.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I2, line 19",
+      "affectedSubdomains": [
+        "SD-003",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-011",
+        "SD-012",
+        "SD-013"
+      ],
+      "verificationStrategy": "Cross-reference every factual claim in manuscript against continuity tracker and world bible. Adversarial auditors challenge internal consistency per phase. Series KB consistency check for sequels.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-003",
+      "description": "Character Voice Distinctness: Each POV character MUST have a recognizably distinct internal voice \u2014 vocabulary, sentence rhythm, emotional register, and thought patterns. Indistinguishable POV voices are a failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I3, line 23",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "Strip character names from POV passages and verify distinctness. Compare voice parameters (sentence length, vocabulary register, metaphor type) across POV characters. Beta craft reader checks voice consistency.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-004",
+      "description": "Earned Emotional Beats: Every major emotional beat (first kiss, betrayal, sacrifice, reconciliation) MUST be preceded by sufficient buildup. No emotional payoff without prior investment.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I4, line 26",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "For each major emotional beat, trace backward through preceding chapters to verify buildup exists. Beta reader simulation flags unearned beats.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-005",
+      "description": "Show Don't Tell (for emotions): Character emotions MUST be conveyed primarily through action, dialogue, physical sensation, and internal reaction \u2014 not narrator declarations. Telling acceptable only for background summary or time-skips, never for key emotional moments.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I5, line 28",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "Line edit pass flags every instance of told emotion in key scenes. Count 'she felt/he was' narrator declarations and verify they don't appear in key emotional moments.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-006",
+      "description": "Chekhov's Gun: Every significant element introduced (magical artifact, character secret, prophecy, weapon, relationship tension) MUST either pay off or be explicitly acknowledged as unresolved for series setup. Dangling threads without purpose are failures.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I6, line 31",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Cross-reference continuity tracker's promises ledger \u2014 every planted element must have a corresponding payoff or be tagged as 'series setup' in unresolved-threads.md.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-007",
+      "description": "No Info-Dumping: Worldbuilding exposition MUST be woven into action, dialogue, and character experience. No paragraphs of raw encyclopedic information. One-page rule: no more than one paragraph of pure exposition before returning to scene.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I7, line 34",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Line edit pass flags consecutive exposition paragraphs. Measure longest unbroken exposition stretch per chapter and verify it stays under one paragraph.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-008",
+      "description": "Character Agency: Both romantic leads MUST have agency \u2014 they make active choices that drive the story forward. Neither lead may be a passive recipient of the plot, repeatedly rescued without contributing, or reduced to only reacting.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I8, line 38",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-005",
+        "SD-007",
+        "SD-009"
+      ],
+      "verificationStrategy": "For each lead, count the number of active choices vs. passive reactions per chapter. Verify each lead initiates at least some plot-driving actions. Beta reader romance lens checks both leads are equally developed.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-009",
+      "description": "No Deus Ex Machina: If a magic rule or ability has not been established before it's needed, it MUST NOT be used to resolve conflict. New abilities introduced solely to solve an immediate problem are a critical failure. Applies to non-magical resolutions too \u2014 no cavalry-from-nowhere without prior setup.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I9, line 41",
+      "affectedSubdomains": [
+        "SD-003",
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "For every conflict resolution, verify the capability/resource used was established in a prior chapter. Cross-reference magic system rules and continuity tracker.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-010",
+      "description": "Outline Before Draft: No chapter may be drafted until a chapter-level outline exists specifying POV, scene goal, conflict, emotional arc, and which romance/fantasy beats the chapter hits.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I10, line 45",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007"
+      ],
+      "verificationStrategy": "Verify every chapter draft has a corresponding chapter outline file that predates it. Check outline contains required fields: POV, goal, conflict, emotional arc, beats.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-011",
+      "description": "Continuity Tracking: A continuity document MUST be updated after every chapter draft. It tracks: character locations, timeline, what each character knows, promises made to the reader, and open plot threads. For sequels, extends series-level tracker.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I11, line 48",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-013"
+      ],
+      "verificationStrategy": "After each chapter draft, verify continuity tracker was updated. Check it contains entries for character positions, timeline, character knowledge, reader promises.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-012",
+      "description": "Sequential Chapter Production: Chapters MUST be produced in sequence. Chapter N+1 cannot be drafted until chapter N is complete and its continuity implications are recorded.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I12, line 52",
+      "affectedSubdomains": [
+        "SD-007"
+      ],
+      "verificationStrategy": "Verify chapter file timestamps and continuity tracker updates show strict sequential ordering. No chapter N+1 exists without completed chapter N.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-013",
+      "description": "Multi-Pass Review (Exhaustive): Every chapter MUST go through at minimum: developmental review, line edit, consistency check, AND multi-perspective beta read. All critical and major findings must be resolved before acceptance.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I13, line 54",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "Verify every chapter has corresponding findings files for all four review passes. Verify all critical/major findings have corresponding revision entries in revision-log.md.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-014",
+      "description": "Revision Traceability: Every revision must cite what feedback or finding prompted it. No changes without justification. The revision history must be auditable.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I14, line 58",
+      "affectedSubdomains": [
+        "SD-008"
+      ],
+      "verificationStrategy": "Verify revision-log.md contains a finding reference for every revision. No log entry may lack a source citation.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-015",
+      "description": "Voice Consistency Verification: At verification phase, every POV character's chapters must be compared against each other to ensure voice consistency. Measurable comparison of vocabulary, sentence patterns, emotional register, thought patterns. Drift must be flagged and corrected. For sequels, compare against prior-book voice guide.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I14a, line 60",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-009",
+        "SD-006"
+      ],
+      "verificationStrategy": "Run voice fingerprint comparison across all chapters for each POV character. Quantify vocabulary overlap, sentence length distribution, and metaphor patterns. Flag statistical outliers.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-016",
+      "description": "Continuity Verification (Exhaustive): The verification phase must cross-reference EVERY factual claim in the manuscript against the continuity tracker: character locations, timeline, character knowledge, physical descriptions, names, titles, world rules, magic system behavior, political status. For sequels, extends to series KB.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I14b, line 63",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-013"
+      ],
+      "verificationStrategy": "Exhaustive cross-reference of every factual claim in manuscript against continuity tracker entries. Every discrepancy logged as a finding.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-017",
+      "description": "Prose Quality Floor: No chapter passes verification if it contains: more than 2 instances of clich\u00e9 fantasy prose, more than 3 told-not-shown emotions in key scenes, or more than 5 bland/generic sentences that could appear in any story.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I14c, line 67",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "Count instances of clich\u00e9 phrases (maintain a clich\u00e9 list), told emotions in key scenes, and generic sentences per chapter. Fail any chapter exceeding thresholds (2/3/5).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-018",
+      "description": "No Anachronisms (within world rules): Characters must not reference concepts, technologies, or idioms that don't exist in their world unless worldbuilding explicitly includes them. Modern slang in medieval fantasy is a failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I15, line 72",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Cross-reference dialogue and narration vocabulary against the world bible's technology/culture level. Flag modern idioms, slang, or technology references not present in world rules.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-019",
+      "description": "Dialogue Naturalism: Dialogue must sound like speech, not prose. Characters should interrupt, trail off, use contractions, disagree, and talk past each other. Perfectly articulate philosophical monologues from every character is a failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I16, line 75",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Audit dialogue for naturalness markers: contractions present, interruptions, varied exchange lengths, character-specific speech patterns. Flag monologue-like exchanges.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-020",
+      "description": "Pacing Variation: The story must alternate between high-tension and low-tension scenes. Three consecutive high-action chapters without recovery, or three consecutive slow chapters without rising tension, constitutes a pacing failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I17, line 78",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Map tension level per chapter. Flag any sequence of 3+ consecutive chapters with same tension level (all high or all low).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-021",
+      "description": "Romance Arc Pacing: The romance must escalate through recognizable stages: awareness \u2192 attraction \u2192 tension \u2192 vulnerability \u2192 setback \u2192 deepening \u2192 commitment. Skipping stages is a failure.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I18, line 81",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007"
+      ],
+      "verificationStrategy": "Map romance arc progression against the stage checklist per chapter. Verify no stage is skipped and progression matches outline.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-022",
+      "description": "Antagonist Motivation: The antagonist (person, system, or force) MUST have comprehensible motivations. 'Evil for evil's sake' is only acceptable if the story explicitly explores why. Cardboard villains are failures.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I19, line 84",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-007"
+      ],
+      "verificationStrategy": "Verify antagonist character file contains motivation, methodology, and backstory. Beta fantasy reader checks antagonist feels three-dimensional.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-023",
+      "description": "No Plagiarism \u2014 Zero Tolerance: All prose, dialogue, character names, place names, magic system mechanics, and plot structures MUST be entirely original. Nothing may be directly quotable from or closely paraphraseable of any existing published work. Reference material is for stylistic analysis ONLY.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I20, line 88",
+      "affectedSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Originality reader lens in beta reading specifically flags passages resembling known works. All creative agents instructed to produce wholly original content.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-024",
+      "description": "Transformative Influence Only: When style samples are provided, the system must extract abstract stylistic patterns and apply them to wholly original content. NEVER reproduce specific metaphors, turns of phrase, character archetypes with identifying details, plot beats in same sequence, or distinctive world elements from reference material.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I21, line 92",
+      "affectedSubdomains": [
+        "SD-006",
+        "SD-007"
+      ],
+      "verificationStrategy": "Verify style guide contains only abstract parameters (sentence length, metaphor density, vocabulary register). Cross-check draft prose against reference samples for specific content reproduction.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-025",
+      "description": "Originality Self-Audit: The beta reading phase MUST include an originality check that specifically flags any passage, character, plot element, or world detail that too closely resembles a known published work, citing the similarity and source.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I22, line 94",
+      "affectedSubdomains": [
+        "SD-009"
+      ],
+      "verificationStrategy": "Verify beta-feedback/originality-reader.md exists and contains structured findings. Each finding must cite the concerning similarity and what work it resembles.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-026",
+      "description": "Parameterization: The system must accept rough book word count as an input parameter (e.g., 100k words) in addition to other optional parameters specified in the domain brief.",
+      "classification": "structural",
+      "confidence": 1.0,
+      "source": "invariants.md, Parameterization, lines 99-101",
+      "affectedSubdomains": [
+        "SD-001"
+      ],
+      "verificationStrategy": "Verify guide agent input schema includes word count parameter. Verify story-config.json captures word count target.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-027",
+      "description": "Adversarial Phase Gates: Every creative phase (Concept, Worldbuilding, Character, Plotting, Style, Drafting) MUST include an adversarial consistency audit BEFORE the phase is considered complete. The auditor cross-references against ALL prior phase artifacts. Critical findings block phase completion. Non-negotiable.",
+      "classification": "workflow",
+      "confidence": 1.0,
+      "source": "invariants.md, I23, line 103",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "Verify every creative phase has a corresponding audit findings artifact. Verify no phase was marked complete with unresolved critical findings.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-028",
+      "description": "Input Consumption: When reference stories or style samples are provided, the style analysis agent MUST produce a concrete style guide derived from those inputs, citing specific abstract patterns observed. Ignoring provided inputs is a failure.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I24, line 107",
+      "affectedSubdomains": [
+        "SD-006"
+      ],
+      "verificationStrategy": "When style samples exist in story-config.json, verify style/reference-analysis.md exists and contains specific pattern observations. Verify style-guide.md references these patterns.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-029",
+      "description": "Artifact Cross-References: Every artifact must reference its upstream dependencies. The outline references character and world bibles. The draft references the outline. Revision notes reference the draft and style guide. Orphan artifacts with no upstream references are failures.",
+      "classification": "structural",
+      "confidence": 1.0,
+      "source": "invariants.md, I25, line 110",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "For each artifact, verify it contains references to its upstream dependencies. Check for orphan artifacts with no cross-references.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-030",
+      "description": "No Silent Failures: If an agent cannot complete its task (e.g., cannot maintain consistency, cannot find a satisfying resolution), it MUST surface the problem explicitly rather than producing low-quality output.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I26, line 112",
+      "affectedSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Agent error handling must produce explicit failure reports. Verify no agent silently degrades output quality without flagging the issue.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-031",
+      "description": "Scope Fidelity: The system must produce what was specified in the concept phase. If the concept says 'standalone novel, 20 chapters, enemies-to-lovers, dark tone,' the output must match. Scope drift without explicit re-approval is a failure.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I27, line 116",
+      "affectedSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Compare final output against concept/constraints.md specifications: chapter count, trope adherence, tone consistency, standalone vs series.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-032",
+      "description": "Series Artifact Isolation & Subcategory Decomposition: Every book's artifacts MUST be organized under book-level directory. Series KB at series root. Per-book artifacts MUST NOT directly reference another book's internal artifacts. Content MUST be decomposed into subcategory files within typed directories \u2014 not monolithic files.",
+      "classification": "structural",
+      "confidence": 1.0,
+      "source": "invariants.md, I28, line 118",
+      "affectedSubdomains": [
+        "SD-010",
+        "SD-012"
+      ],
+      "verificationStrategy": "Verify directory structure follows book-N/ isolation. Check no cross-book direct references (only series/ references). Verify artifacts are split into subcategory files, not monoliths.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-033",
+      "description": "Foreshadowing Resolution Completeness: Every foreshadowing plant MUST resolve by story's end. The foreshadowing ledger must show 1:1 plant-to-payoff mapping with zero unresolved entries at final delivery. Red herrings are exceptions ONLY when explicitly tagged as intentional and serve a narrative purpose.",
+      "classification": "behavioral",
+      "confidence": 1.0,
+      "source": "invariants.md, I29, line 121",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Audit foreshadowing ledger for any unresolved plants at delivery. Verify every red herring is tagged as intentional with stated narrative purpose.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-034",
+      "description": "POV Voice Distinctiveness (3-4 sentence test): In multi-POV stories, each POV character MUST be recognizable within the first 3-4 sentences of any section without being explicitly told. If a POV section could belong to a different character with only name changes, that is a failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I30, line 124",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-006",
+        "SD-007",
+        "SD-009"
+      ],
+      "verificationStrategy": "Blind test: strip POV indicators from section openings and verify character identifiability from voice alone within 3-4 sentences.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-035",
+      "description": "Micro-Tension Continuity: No prose passage longer than half a page may exist without at least one active source of tension \u2014 plot, interpersonal, internal, environmental, anticipatory, or dramatic irony. Tension-free stretches are dead pages. Revision MUST audit for tension voids.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I31, line 127",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "During revision, scan every half-page block for at least one identifiable tension source. Flag blocks with zero tension.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-036",
+      "description": "Thematic Coherence: Every story must have 2-3 explicitly identified thematic pillars visible in worldbuilding design (magic as metaphor), character arc design (each lead embodies different relationship to theme), and plot structure (central conflict literalizes thematic argument). No discernible theme or accidentally contradictory themes = structural failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I32, line 130",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005"
+      ],
+      "verificationStrategy": "Verify concept/premise.md contains 2-3 thematic pillars. Trace each theme through worldbuilding, character arcs, and plot structure artifacts. Beta craft reader checks thematic visibility.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-037",
+      "description": "Emotional State Variety: No major character may occupy the same dominant emotional state in two consecutive chapters. Emotional throughlines must show variety and escalation. Stagnant emotional states signal stagnant character development.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I33, line 133",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Chart dominant emotional state per character per chapter. Flag any consecutive chapters with the same dominant emotion for the same character.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-038",
+      "description": "Dialogue Function Mandate: Every dialogue exchange of 3+ lines MUST serve at least one identifiable narrative function: advance plot, reveal character, build/strain relationship, create conflict, convey disguised exposition, or shift emotional register. Filler dialogue is a failure.",
+      "classification": "quality",
+      "confidence": 1.0,
+      "source": "invariants.md, I34, line 136",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008"
+      ],
+      "verificationStrategy": "Tag every dialogue exchange with its narrative function during line edit. Flag exchanges with no identifiable function.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-039",
+      "description": "[Craft Tool T1] Scene-Sequel Structure (Swain): Scenes follow Goal\u2192Conflict\u2192Disaster; Sequels follow Reaction\u2192Dilemma\u2192Decision. Creates compulsive readability. Binding when selected in Story Craft Profile; may be loosened for introspective/lyrical passages.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T1, line 149",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify scene outlines tag Goal/Conflict/Disaster or Reaction/Dilemma/Decision structure. Auditors check drafted scenes follow the pattern where applicable.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-040",
+      "description": "[Craft Tool T2] Scene Value Shifts (Story Grid): Every scene shifts at least one value from beginning to end \u2014 emotional, relational, informational, or situational. A scene where nothing has changed is a dead scene.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T2, line 152",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: for each scene, identify the value(s) that changed. Flag scenes with no identifiable shift.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-041",
+      "description": "[Craft Tool T3] Five Commandments Per Scene (Story Grid): Every scene contains Inciting Incident, Turning Point Progressive Complication, Crisis, Climax, Resolution. May be loosened for quiet character moments or atmospheric interludes.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T3, line 156",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify scene outlines tag all five commandments. Auditors check drafted scenes contain them.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-042",
+      "description": "[Craft Tool T4] Try-Fail Cycles: Characters fail before succeeding at significant challenges. Major problems require at minimum two failed approaches before a solution works. Each failure teaches something.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T4, line 158",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify major challenge resolutions in outline show at least two prior failed attempts. Auditors check drafted chapters follow this pattern.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-043",
+      "description": "[Craft Tool T5] Tone Contract: The opening chapters establish a tonal promise the story must honor throughout. Tonal shifts must be gradual, motivated, and consistent with the story's identity.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T5, line 164",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: compare tone of later chapters against opening chapters' tonal identity. Flag abrupt or unmotivated tonal shifts.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-044",
+      "description": "[Craft Tool T6] Stakes Escalation: Stakes escalate through each act \u2014 what characters risk in Act 3 is greater than Act 1, in both fantasy and romance arcs.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T6, line 167",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: map stakes level per act in both arcs. Verify monotonic increase from Act 1 through Act 3.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-045",
+      "description": "[Craft Tool T7] The Black Moment: A devastating 'all is lost' point where the romance seems doomed and the fantasy plot appears lost. Must feel genuinely threatening. Genre convention for romance-forward stories.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T7, line 169",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify outline contains an explicitly identified Black Moment. Verify drafted Black Moment scene genuinely threatens both arcs.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-046",
+      "description": "[Craft Tool T8] Internal Romantic Resistance: Obstacles between leads include internal resistance (fear, psychological wounds, conflicting beliefs, trust issues). At least half of major romantic obstacles should be internal/psychological.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T8, line 172",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: count internal vs external romantic obstacles in outline. Verify \u226550% are internal/psychological.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-047",
+      "description": "[Craft Tool T9] Subtext in Dialogue: Characters rarely say exactly what they mean, especially in charged scenes. What's unsaid matters as much as spoken. Exception: climactic revelations where directness IS the payoff.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T9, line 176",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: audit charged dialogue scenes for subtext. Flag on-the-nose dialogue in romantic/political/confrontational exchanges.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-048",
+      "description": "[Craft Tool T10] Sanderson's First Law (Magic Clarity): An author's ability to solve conflict with magic is directly proportional to how well the reader understands said magic. Hard magic needs clear rules; soft magic shouldn't solve problems.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T10, line 179",
+      "affectedSubdomains": [
+        "SD-003",
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: classify magic system as hard/soft. For hard: verify rules documented before magic solves conflicts. For soft: verify conflict resolutions come from character choices, not magic.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-049",
+      "description": "[Craft Tool T11] Kill Your Darlings: Every revision pass actively hunts for 'darlings' \u2014 passages, details, or elements that are beautiful or clever but don't serve the story. Removed to killed-darlings file, not deleted.",
+      "classification": "workflow",
+      "confidence": 0.9,
+      "source": "invariants.md, T11, line 182",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify revision passes include darling-hunting. Verify killed-darlings.md exists and contains removed passages with reasoning.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-050",
+      "description": "[Craft Tool T12] Dual-Arc Interleave: The fantasy plot arc and romance arc are plotted in parallel with key beats from each reinforcing or complicating the other. A fantasy crisis should also be a romantic inflection point.",
+      "classification": "structural",
+      "confidence": 0.9,
+      "source": "invariants.md, T12, line 187",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify outline maps both arc beats per chapter. Check key fantasy beats have corresponding romance implications and vice versa.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-051",
+      "description": "[Craft Tool T13] Tension Mapping: A visual/textual pacing chart showing tension rise-and-fall across all chapters. Used during plotting to ensure proper rhythm and avoid flat stretches.",
+      "classification": "structural",
+      "confidence": 0.9,
+      "source": "invariants.md, T13, line 190",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify outline/tension-map.md exists and covers all chapters. Check for flat stretches (3+ chapters at same tension level).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-052",
+      "description": "[Craft Tool T14] Scene-Sequel MRU (Motivation-Reaction Units): At the sentence/paragraph level within scenes: external stimulus (Motivation) followed by character response (Reaction) in the order Feeling \u2192 Reflex \u2192 Rational Action.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T14, line 193",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: spot-check action sequences and high-tension scenes for MRU ordering. Flag reversed reaction order (rational before feeling).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-053",
+      "description": "[Craft Tool T15] Foreshadowing Plant-Payoff Ledger: Maintain an explicit register mapping every foreshadowing plant to its payoff \u2014 chapter planted, chapter resolved, perceived vs actual purpose. Every plant must resolve; every major payoff must have at least one plant.",
+      "classification": "structural",
+      "confidence": 0.9,
+      "source": "invariants.md, T15, line 197",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "When selected: verify foreshadowing ledger exists with plant-payoff mappings. Check for unresolved plants and payoffs without plants at delivery.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-054",
+      "description": "[Craft Tool T16] Symbolic Motif Weaving: Assign 3-5 recurring symbols/motifs to thematic pillars. Track appearances per chapter to ensure consistent density without overuse. Motifs should escalate or transform alongside themes.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T16, line 201",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-014"
+      ],
+      "verificationStrategy": "When selected: verify motif assignment exists in concept artifacts. Track motif appearances per chapter and verify escalation/transformation.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-055",
+      "description": "[Craft Tool T17] POV Voice Fingerprint Verification: For each POV character, define measurable voice parameters (sentence length distribution, vocabulary register, metaphor preference, emotional expression style, humor frequency, observation focus). Verify fingerprints in every POV section during review.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T17, line 203",
+      "affectedSubdomains": [
+        "SD-006",
+        "SD-009",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify voice fingerprint defined per POV character. Run quantitative comparison of voice parameters across all POV sections. Flag statistical drift.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-056",
+      "description": "[Craft Tool T18] Information Asymmetry Mapping: Track what each character knows vs. what the reader knows vs. what other characters know. Map gaps per chapter. Manage reveals so asymmetries create tension, not confusion.",
+      "classification": "structural",
+      "confidence": 0.9,
+      "source": "invariants.md, T18, line 206",
+      "affectedSubdomains": [
+        "SD-013",
+        "SD-005"
+      ],
+      "verificationStrategy": "When selected: verify knowledge-matrix.md tracks per-character and reader knowledge per chapter boundary. Check reveals are sequenced to maximize tension.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-057",
+      "description": "[Craft Tool T19] Micro-Tension Audit: Every page must sustain at least one form of tension. During revision, flag any half-page stretch with zero tension source and inject at least one.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T19, line 209",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: during revision, scan every half-page block for tension sources. Flag and count tension voids.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-058",
+      "description": "[Craft Tool T20] Emotional Throughline Charting: Chart each lead's specific emotional state (granular labels, not just happy/sad) per chapter. Verify variety (no emotion repeats in adjacent chapters for same character), escalation, and motivation.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T20, line 212",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: produce emotional throughline chart per lead. Verify no adjacent-chapter emotion repeats, general escalation toward climax, and scene-event motivation for every shift.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-059",
+      "description": "[Craft Tool T21] Vulnerability Escalation Ladder: Map 5-8 escalating vulnerability moments per lead across the story. Each successive vulnerability requires more courage. Vulnerability met with tenderness deepens bond; exploited creates reversals.",
+      "classification": "behavioral",
+      "confidence": 0.9,
+      "source": "invariants.md, T21, line 216",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify vulnerability ladder exists for each lead (5-8 moments). Check each moment requires more courage than the previous.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-060",
+      "description": "[Craft Tool T22] Chapter Hook-and-Close Catalogue: Assign each chapter an opening hook type and closing technique. Ensure variety across consecutive chapters \u2014 no two adjacent chapters use same hook or close type.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T22, line 219",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify outline tags hook and close types per chapter. Check no two adjacent chapters share the same hook type or close type.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-061",
+      "description": "[Craft Tool T23] Mystery Box Inventory: Track count of active unresolved questions the reader is holding. Maintain target range (typically 3-5). When a question is answered, open a new one within 1-2 chapters.",
+      "classification": "structural",
+      "confidence": 0.9,
+      "source": "invariants.md, T23, line 222",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-013"
+      ],
+      "verificationStrategy": "When selected: maintain active question count per chapter. Verify count stays within 3-5 range. Flag chapters where count drops below 3 or exceeds 5.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-062",
+      "description": "[Craft Tool T24] Dialogue Subtext Gap Analysis: For every significant conversation, document the gap between what each character says and what they mean. The wider the gap, the more tension. Climactic moments work because the gap finally closes.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T24, line 225",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify subtext gap documentation exists for key conversations in outline. Auditors check drafted dialogue carries intended subtext.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-063",
+      "description": "[Craft Tool T25] Thematic Argument Scaffolding: Structure each theme as an argument \u2014 question, competing answers (embodied by characters/factions), resolution earned through protagonist experience. Act 1 introduces, Act 2 tests easy answers, Act 3 forces the hardest version.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T25, line 227",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify thematic argument structure documented in concept artifacts. Trace question/answer/resolution through acts.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-064",
+      "description": "[Craft Tool T26] Sensory Signature Anchoring: Assign each major character a dominant sensory channel for emotional expression (hands, chest, auditory, etc.). Key emotional moments anchored in character-specific physical responses, not generic descriptions.",
+      "classification": "quality",
+      "confidence": 0.9,
+      "source": "invariants.md, T26, line 230",
+      "affectedSubdomains": [
+        "SD-004",
+        "SD-007",
+        "SD-011"
+      ],
+      "verificationStrategy": "When selected: verify sensory signature assigned per character in character files. Check key emotional scenes use character-specific physical responses.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-065",
+      "description": "Guide Agent as Sole User Interface: The guide agent is the ONLY agent that interacts with the user. All other agents in the pipeline are fully autonomous. No agent other than the guide may request user input.",
+      "classification": "structural",
+      "confidence": 0.85,
+      "source": "domain-brief.md, lines 49-57",
+      "affectedSubdomains": [
+        "SD-001"
+      ],
+      "verificationStrategy": "Verify only the guide agent has user-interaction capabilities. All other agent prompts must be autonomous (no ask_questions or user prompts).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-066",
+      "description": "Series-Ready Architecture From Day One: The system MUST be designed for series production even if the first invocation is a standalone. All artifacts organized to enable seamless sequel creation.",
+      "classification": "structural",
+      "confidence": 0.85,
+      "source": "domain-brief.md, line 225",
+      "affectedSubdomains": [
+        "SD-010",
+        "SD-012"
+      ],
+      "verificationStrategy": "Verify artifact directory structure supports series/ and book-N/ layout even for standalone stories. Verify book-summary agent runs even for first book.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-067",
+      "description": "Minimum Viable Input is Story Idea Only: The system must be able to generate a complete story from just a premise. All other inputs (style samples, mood, characters, world, constraints) are optional enrichment.",
+      "classification": "behavioral",
+      "confidence": 0.8,
+      "source": "domain-brief.md, line 44",
+      "affectedSubdomains": [
+        "SD-001",
+        "SD-002"
+      ],
+      "verificationStrategy": "Verify guide agent can proceed with only a story idea. Verify all other input fields have sensible defaults or graceful handling when absent.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-068",
+      "description": "Five Independent Beta Reader Lenses Required: Beta reading must operate as five independent reviewers: romance reader, fantasy reader, craft reader, sensitivity reader, and originality reader. Each produces structured findings with severity levels.",
+      "classification": "structural",
+      "confidence": 0.8,
+      "source": "domain-brief.md, lines 180-215",
+      "affectedSubdomains": [
+        "SD-009"
+      ],
+      "verificationStrategy": "Verify five separate beta reader agents/passes exist. Verify each produces a structured findings file with severity levels (critical/major/minor/suggestion).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-069",
+      "description": "Story Craft Profile Artifact Required: During Concept and Plotting, the system must produce a Story Craft Profile listing which craft toolbox items are selected, why, which are excluded and why, and any per-tool adjustments.",
+      "classification": "workflow",
+      "confidence": 0.85,
+      "source": "domain-brief.md, lines 366-372",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-005"
+      ],
+      "verificationStrategy": "Verify concept/craft-profile.md exists and contains selected tools with rationale, excluded tools with reasoning, and per-tool adjustments.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-070",
+      "description": "Series Knowledge Base Append-Mostly: Facts established in earlier books cannot be silently contradicted. Retcons must be narratively justified (unreliable narrator, new discovery) and explicitly documented in the series KB.",
+      "classification": "behavioral",
+      "confidence": 0.8,
+      "source": "domain-brief.md, lines 358-359",
+      "affectedSubdomains": [
+        "SD-012"
+      ],
+      "verificationStrategy": "For sequels: diff series KB before and after book completion. Verify no established fact was changed without a narrative justification entry.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-071",
+      "description": "Sequel Must Address All Unresolved Threads: The sequel concept phase MUST decide which threads from unresolved-threads.md this book resolves, advances, or deliberately leaves open. No thread may be silently forgotten.",
+      "classification": "behavioral",
+      "confidence": 0.8,
+      "source": "domain-brief.md, line 341",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-012"
+      ],
+      "verificationStrategy": "For sequels: verify concept phase documents disposition of every entry in unresolved-threads.md (resolve/advance/leave-open).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-072",
+      "description": "POV Transition Must Be Motivated: Every POV switch must be motivated \u2014 either by a cliffhanger/question in the departing POV that the new POV can illuminate, or by a time/space jump the narrative requires. No arbitrary switching.",
+      "classification": "quality",
+      "confidence": 0.7,
+      "source": "domain-brief.md, lines 427-428",
+      "affectedSubdomains": [
+        "SD-005",
+        "SD-007"
+      ],
+      "verificationStrategy": "Verify each POV transition in the outline has a stated motivation. During review, check each POV switch connects logically to the preceding section.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-073",
+      "description": "Publication-Ready Prose Quality: Output must be publication-ready romantic fantasy prose \u2014 lush but not purple, emotionally resonant, genre-appropriate. This is the overall quality bar.",
+      "classification": "quality",
+      "confidence": 0.7,
+      "source": "domain-brief.md, line 403",
+      "affectedSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-010"
+      ],
+      "verificationStrategy": "Multi-pass review and beta reading collectively enforce this bar. Final proofread pass verifies publication readiness.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-074",
+      "description": "Subcategory Files Must Be Independently Loadable: Each subcategory file should be self-contained enough to be loaded independently. An agent checking magic rules shouldn't need to load geography.",
+      "classification": "structural",
+      "confidence": 0.8,
+      "source": "domain-brief.md, lines 329-331",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Verify each subcategory file can be understood without loading sibling files. Check for undefined references that require other subcategory files.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-075",
+      "description": "Cross-References Use Relative File Paths: Cross-references between subcategories must use relative file paths (e.g., ../characters/leads/kael.md), never vague prose references like 'see the character bible'.",
+      "classification": "structural",
+      "confidence": 0.8,
+      "source": "domain-brief.md, line 331",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "verificationStrategy": "Scan all artifacts for cross-references. Verify they use relative file paths. Flag vague prose references.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-076",
+      "description": "Severity-Gated Acceptance: All critical and major findings from beta reading MUST be addressed in a revision pass before any chapter is considered complete. Minor findings and suggestions are advisory.",
+      "classification": "workflow",
+      "confidence": 0.8,
+      "source": "domain-brief.md, line 215",
+      "affectedSubdomains": [
+        "SD-008",
+        "SD-009"
+      ],
+      "verificationStrategy": "Cross-reference beta-feedback/synthesis.md critical/major findings against revision-log.md entries. Verify every critical/major finding has a corresponding revision.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-077",
+      "description": "One Story At A Time: The system handles one story at a time \u2014 no simultaneous story production.",
+      "classification": "structural",
+      "confidence": 0.7,
+      "source": "domain-brief.md, line 474",
+      "affectedSubdomains": [
+        "SD-001"
+      ],
+      "verificationStrategy": "System architecture enforces single pipeline execution. No parallel story-writing capability required.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-078",
+      "description": "Craft Toolbox Selection Minimum: The system SHOULD select at least 5-8 tools per story from the Craft Toolbox. Fewer than 5 is likely undercooked; using all rigidly is likely overengineered.",
+      "classification": "quality",
+      "confidence": 0.85,
+      "source": "invariants.md, line 145",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-005"
+      ],
+      "verificationStrategy": "Count selected tools in concept/craft-profile.md. Flag if fewer than 5 (with advisory) or if all 26 are selected without loosening notes.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-079",
+      "description": "Selected Craft Tools Become Binding: Once a craft tool is selected for a story in the Story Craft Profile, it becomes binding for that story. Adversarial auditors verify against the selected toolset, not the full toolbox.",
+      "classification": "workflow",
+      "confidence": 0.95,
+      "source": "invariants.md, lines 143-145",
+      "affectedSubdomains": [
+        "SD-002",
+        "SD-005",
+        "SD-011"
+      ],
+      "verificationStrategy": "Verify auditors load concept/craft-profile.md and check compliance with selected tools only. Verify no auditor enforces unselected tools.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-080",
+      "description": "Story-Config Artifact Before Pipeline Launch: A story-config.json (or equivalent) must be written and confirmed with the user before the autonomous pipeline begins. Captures all user inputs and defaults.",
+      "classification": "workflow",
+      "confidence": 0.8,
+      "source": "domain-brief.md, lines 53-54",
+      "affectedSubdomains": [
+        "SD-001"
+      ],
+      "verificationStrategy": "Verify guide agent produces story-config.json before invoking orchestrator. Verify config contains all input fields (required and optional with defaults).",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    },
+    {
+      "id": "INV-081",
+      "description": "Kill-Your-Darlings Mandatory in Every Adversarial Audit: Every adversarial auditor MUST explicitly look for 'darlings' \u2014 passages, details, or elements that are beautiful/clever but don't serve the story. Darlings moved to killed-darlings file, not deleted.",
+      "classification": "workflow",
+      "confidence": 0.85,
+      "source": "domain-brief.md, line 70",
+      "affectedSubdomains": [
+        "SD-011"
+      ],
+      "verificationStrategy": "Verify every adversarial auditor prompt includes kill-your-darlings check. Verify killed-darlings.md receives flagged items.",
+      "discoveredBy": "fractal-factory-invariant-extractor"
+    }
+  ],
+  "existingAssets": [
+    {
+      "id": "ASSET-001",
+      "name": "agent-as-function-contract",
+      "type": "shared-include",
+      "path": "shared/agent-includes/agent-as-function-contract.md",
+      "description": "Liquid partial defining the filesystem artifact contract for subagents: status.json schema, output versioning, artifact directory conventions, and result-code routing protocol",
+      "reusability": "direct",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-002",
+      "name": "prompt-security",
+      "type": "shared-include",
+      "path": "shared/agent-includes/prompt-security.md",
+      "description": "Prompt injection defense partial: untrusted data handling, data exfiltration prevention, operational safety constraints, scope locks. Template variables for taskId/taskProject scoping",
+      "reusability": "adaptable",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-007",
+        "SD-006"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-003",
+      "name": "rules",
+      "type": "shared-include",
+      "path": "shared/agent-includes/rules.md",
+      "description": "Orchestrator behavioral rules: only read status.json for routing, never push to default branch, set blocked status when stuck, wait for subagent return values",
+      "reusability": "direct",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-004",
+      "name": "personality/ralph",
+      "type": "shared-include",
+      "path": "shared/agent-includes/personality/ralph.md",
+      "description": "Personality partial giving agents identity, name, emoji, and voice. Pattern for injecting distinct personality into each agent role",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-009"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-005",
+      "name": "personality/malph",
+      "type": "shared-include",
+      "path": "shared/agent-includes/personality/malph.md",
+      "description": "Adversarial reviewer personality: theatrically precise, dry wit, detective metaphor. Pattern for how to voice an adversarial auditor agent with distinct personality",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-011",
+        "SD-008",
+        "SD-009"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-006",
+      "name": "ralphchives",
+      "type": "shared-include",
+      "path": "shared/agent-includes/ralphchives.md",
+      "description": "Knowledge base integration partial: search-before-work, post observations, post task reports. Pattern for persistent cross-session knowledge accumulation",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-012",
+        "SD-013"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-007",
+      "name": "agent-as-function",
+      "type": "skill",
+      "path": ".github/skills/agent-as-function/",
+      "description": "Comprehensive skill for designing multi-agent workflows with filesystem artifact handoff, decomposing monolithic prompts, and wiring subagent-as-function patterns",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-008",
+      "name": "agent-as-function-audit",
+      "type": "skill",
+      "path": ".github/skills/agent-as-function-audit/",
+      "description": "Audit skill for checking agent families against artifact-contract compliance, routing-table gaps, prompt contradictions, and skill-mount consistency",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-009",
+      "name": "agent-fractal-orchestrator-architecture",
+      "type": "skill",
+      "path": ".github/skills/agent-fractal-orchestrator-architecture/",
+      "description": "Skill documenting the fractal orchestrator pattern: depth-2 hierarchy, coordinator-specialist dispatch, convergence loops, gap-hunting re-entry, autonomous pipeline design",
+      "reusability": "direct",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-010",
+      "name": "agent-fractal-workflow-eval",
+      "type": "skill",
+      "path": ".github/skills/agent-fractal-workflow-eval/",
+      "description": "Evaluates multi-agent fractal workflows for instruction correctness, data flow integrity, re-entry safety, dead code paths, contradictory instructions, and directive propagation gaps",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-011",
+      "name": "doc-coauthoring",
+      "type": "skill",
+      "path": ".github/skills/doc-coauthoring/",
+      "description": "Structured workflow for collaborative document creation: context gathering, refinement/structure, reader testing. Pattern applicable to user-facing guide interaction",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-001"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-012",
+      "name": "feature-task-planning",
+      "type": "skill",
+      "path": ".github/skills/feature-task-planning/",
+      "description": "Two-artifact planning methodology: phase specification files (detailed design) + task-graph JSON (ordered, dependency-tracked tasks with acceptance criteria)",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-005"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-013",
+      "name": "builder-workflow",
+      "type": "skill",
+      "path": ".github/skills/builder-workflow/",
+      "description": "5-phase plan execution pipeline: setup\u2192parse\u2192execute\u2192verify\u2192report. Dispatches implementer, reviewer, verifier, scribe subagents. Pattern for phased creative pipeline",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-007",
+        "SD-008",
+        "SD-010"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-014",
+      "name": "ralph-docs orchestrator",
+      "type": "agent-template",
+      "path": "profiles/ralph-docs/agents/ralph.ralph.agent.md",
+      "description": "Production orchestrator: pure-router pattern, subagent dispatch table, control-file ownership, researcher\u2192planner\u2192writer\u2192reviewer\u2192scribe pipeline with multi-reviewer consensus",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-015",
+      "name": "fractal-factory orchestrator",
+      "type": "agent-template",
+      "path": ".fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "description": "Fractal orchestrator exemplar: 8-pass pipeline routing, progress.json state management, gap-hunting re-entry loops, coordinator dispatch, purity enforcement. Primary architectural exemplar",
+      "reusability": "direct",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011",
+        "SD-012",
+        "SD-013",
+        "SD-014"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-016",
+      "name": "fractal-factory coordinator agents",
+      "type": "agent-template",
+      "path": ".fractals/fractal-factory/agents/",
+      "description": "Full set of 35 exemplar agents showing coordinator-specialist hierarchy, status.json contracts, result-code routing, writer-reviewer loops, and gap-hunting convergence patterns",
+      "reusability": "direct",
+      "relevantSubdomains": [
+        "SD-001",
+        "SD-002",
+        "SD-003",
+        "SD-004",
+        "SD-005",
+        "SD-006",
+        "SD-007",
+        "SD-008",
+        "SD-009",
+        "SD-010",
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-017",
+      "name": "ralph-task-planning",
+      "type": "skill",
+      "path": "shared/skills/tasks/ralph-task-planning/",
+      "description": "Core planning skill: break work into ordered task files, manage task lifecycle states, track dependencies. Pattern for chapter-level task decomposition",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-005",
+        "SD-007"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-018",
+      "name": "ralph-style-guide-review",
+      "type": "skill",
+      "path": "shared/skills/domain/ralph-style-guide-review/",
+      "description": "Writing standards enforcement: checks for style consistency, grammar, voice. Pattern for prose-style review agents (adapt from docs style to fiction style)",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-006",
+        "SD-008"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-019",
+      "name": "behavior-testing",
+      "type": "skill",
+      "path": ".github/skills/behavior-testing/",
+      "description": "Guide for writing tests that verify behavior/outputs not implementation. Pattern applicable to creative output quality gates",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-011"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-020",
+      "name": "ralph-audit hooks",
+      "type": "tool",
+      "path": "shared/hooks/",
+      "description": "JSONL audit logging hooks: session start/end, tool use pre/post, prompt logging. Infrastructure pattern for tracking creative pipeline execution",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-013"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-021",
+      "name": "profile.json structure",
+      "type": "tool",
+      "path": "profiles/ralph-docs/profile.json",
+      "description": "Profile configuration schema: repo, MCP servers, variants, allowlist domains, timeouts, resources. Template for configuring the fantasy-writer profile",
+      "reusability": "adaptable",
+      "relevantSubdomains": [
+        "SD-001"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-022",
+      "name": "Dockerfile pattern",
+      "type": "tool",
+      "path": "profiles/ralph-docs/Dockerfile",
+      "description": "Container setup pattern: non-root user, locale, Node.js, toolchain installation. Base infrastructure for agent container images",
+      "reusability": "adaptable",
+      "relevantSubdomains": [
+        "SD-001"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-023",
+      "name": "mcp-sidecar",
+      "type": "tool",
+      "path": "shared/mcp-sidecar/",
+      "description": "MCP sidecar process manager: launches and manages MCP server processes alongside agent containers. Infrastructure for tool integration",
+      "reusability": "adaptable",
+      "relevantSubdomains": [
+        "SD-001"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-024",
+      "name": "web-fetch MCP server",
+      "type": "mcp-server",
+      "path": "shared/mcp-servers/web-fetch/",
+      "description": "Fetches URL content as text. Useful if the system needs to fetch reference material or research sources from the web",
+      "reusability": "adaptable",
+      "relevantSubdomains": [
+        "SD-002",
+        "SD-006"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-025",
+      "name": "looper-planner",
+      "type": "skill",
+      "path": ".github/skills/looper-planner/",
+      "description": "5-phase planning workflow: discovery\u2192questions\u2192specification\u2192plan\u2192tasks. Pattern for structured creative pipeline phase transitions",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-002",
+        "SD-005"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    },
+    {
+      "id": "ASSET-026",
+      "name": "post-hooks pattern",
+      "type": "shared-include",
+      "path": "shared/agent-includes/post-hooks/",
+      "description": "Post-task hook agents: subagent-mapper (extracts telemetry), run-analyzer (analyzes performance), agent-improver (applies improvements). Pattern for post-pipeline learning loops",
+      "reusability": "reference-only",
+      "relevantSubdomains": [
+        "SD-010",
+        "SD-014"
+      ],
+      "discoveredBy": "fractal-factory-asset-auditor"
+    }
+  ],
+  "exemplarPatterns": [
+    {
+      "id": "PATTERN-001",
+      "name": "depth-2-phase-coordinators",
+      "source": "exemplars/.fractals/fractal-factory/agents/",
+      "category": "hierarchy",
+      "description": "Organizes the pipeline as orchestrator \u2192 phase-coordinators \u2192 specialists. Each numbered pass (discovery, analysis, planning, execution, verification, gap-hunting, delivery) gets exactly one coordinator. Coordinators never do substantive work \u2014 they only dispatch children and read status.json. This keeps the orchestrator at 8 dispatch decisions max, and coordinators at 2\u20134.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer system should use the same phase-based coordinator organization, with coordinators for concept, worldbuilding, character, plotting, drafting, revision, beta-reading, and polish phases.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-002",
+      "name": "pure-router-purity-rule",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "category": "routing",
+      "description": "Every coordinator and the orchestrator include an explicit '## Purity Rule' section stating they are a pure router. The section lists exactly what actions the agent may take (read status, dispatch children, update own status, prepend manifest) and explicitly prohibits substantive work with 'If you find yourself doing X, STOP' language.",
+      "applicability": "Directly applicable \u2014 all fantasy-writer coordinators must include Purity Rule sections. Prevents coordinators from attempting to write prose, develop characters, or do any creative work themselves.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-003",
+      "name": "status-json-contract",
+      "source": "exemplars/.fractals/fractal-factory/agents/",
+      "category": "artifact",
+      "description": "Every agent writes a status.json with a universal schema: {agent, task_id, status, result, summary, artifacts, next_hint, iteration}. Result codes are a fixed vocabulary per agent declared in the roster. The status.json is the sole communication channel between child and parent \u2014 parents never read output.md, only status.json.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer system must use identical status.json contracts. Result codes like 'drafted', 'revised', 'approved', 'needs-revision' will be domain-specific but the schema stays universal.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-004",
+      "name": "markdown-routing-table",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-discovery-coordinator.agent.md",
+      "category": "routing",
+      "description": "Routing tables use a 3-column markdown table format: | Read | Condition | Action |. The 'Read' column is a status.json path, 'Condition' is a result code check or 'missing', and 'Action' is 'Dispatch X' or 'Write own status'. The 'missing' condition enables crash recovery \u2014 if a child's status.json doesn't exist, dispatch it.",
+      "applicability": "Directly applicable \u2014 all fantasy-writer coordinator prompts should use this exact table format. The 'missing' condition pattern provides automatic crash recovery without additional logic.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-005",
+      "name": "coder-reviewer-loop",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-execution-coordinator.agent.md",
+      "category": "routing",
+      "description": "The writer\u2192reviewer loop is managed by the execution coordinator with a configurable maxRetries. On rejection, the writer is re-dispatched with the reviewer's feedback (stored in output.md). On max retries exhausted, the coordinator marks agents as 'blocked' and proceeds. Loop configuration is explicit: {writer, reviewer, maxRetries, onMaxRetries, retryMechanism}.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer needs drafter\u2192editor loops for chapter writing, worldbuilding\u2192consistency-checker loops, and character\u2192voice-auditor loops. The bounded retry pattern prevents infinite revision cycles.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-006",
+      "name": "gap-hunting-convergence-cycle",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-gap-hunting-coordinator.agent.md",
+      "category": "convergence",
+      "description": "Gap hunting uses 3 parallel specialist hunters (coverage, artifact, infrastructure), each checking 3 categories. Their findings aggregate into gap-report.json with a structured format: {categories[], summary, suggestedReEntryPass}. If dirty, the orchestrator re-enters an earlier pass. A maxGapCycles limit forces convergence. Each cycle deletes status.json files for reset passes but preserves gap-report.json for context.",
+      "applicability": "Adaptable \u2014 the fantasy-writer needs gap hunting but categories should be: narrative coverage (all plot threads resolved), character consistency (voice/motivation coherent), world consistency (magic rules/geography consistent), continuity tracking (cross-chapter/cross-book), prose quality (style calibration adherence), and craft technique verification.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-007",
+      "name": "anti-laziness-enforcement",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md",
+      "category": "anti-laziness",
+      "description": "Adversarial agents (reviewers, validators, gap hunters) include an explicit '## Anti-Laziness Rules' section with 5+ numbered rules: (1) check every item, (2) provide specific evidence, (3) zero-findings-is-suspicious clause requiring a second pass, (4) minimum observation count, (5) your work will be audited. The roster marks these agents with antiLaziness: true.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer's adversarial agents (consistency checker, voice auditor, beta readers, continuity tracker) must have anti-laziness rules. Critical for preventing shallow 'looks good' reviews of creative work where subtle inconsistencies hide.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-008",
+      "name": "prefix-role-naming-convention",
+      "source": "exemplars/.fractals/fractal-factory/agents/",
+      "category": "naming",
+      "description": "All agents follow the pattern: {system-prefix}-{role-descriptor}. Coordinators always end in '-coordinator'. The orchestrator has no suffix (the prefix IS the system). The guide always ends in '-guide'. Specialists use descriptive role names: '-scanner', '-extractor', '-planner', '-writer', '-reviewer', '-hunter', '-oracle'. Compound roles use full hyphenation: 'coverage-hunter', 'prompt-writer'.",
+      "applicability": "Directly applicable \u2014 fantasy-writer agents should follow: romantic-fantasy-writer (orchestrator), romantic-fantasy-writer-guide, romantic-fantasy-writer-drafting-coordinator, romantic-fantasy-writer-chapter-drafter, romantic-fantasy-writer-voice-auditor, etc.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-009",
+      "name": "universal-prompt-template",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md",
+      "category": "artifact",
+      "description": "Every agent prompt follows a universal template: YAML frontmatter (description, model, name, user-invocable) \u2192 H1 title \u2192 role description \u2192 ask_questions suppression \u2192 ## Context \u2192 ## Inputs \u2192 ## Process (specialists) OR ## Purity Rule + ## Routing Table (coordinators) \u2192 ## Write Rules \u2192 ## Status Contract \u2192 manifest prepend instruction. Anti-laziness agents add ## Anti-Laziness Rules before Process.",
+      "applicability": "Directly applicable \u2014 every fantasy-writer agent prompt must follow this exact template structure. Ensures structural consistency across the entire system.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-010",
+      "name": "manifest-prepend-audit-trail",
+      "source": "exemplars/.fractals/fractal-factory/agents/",
+      "category": "artifact",
+      "description": "Every agent prepends an entry to manifest.json (newest first) after completing work. Each entry has: {timestamp, agent, task_id, artifacts, status, result, iteration}. This creates a chronological audit trail of all pipeline activity. The manifest is append-only (prepend-only) \u2014 agents never modify existing entries.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer system needs the same manifest pattern for tracking which agents wrote which chapters, when revisions happened, and how many gap-hunting cycles occurred.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-011",
+      "name": "re-entry-status-deletion",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "category": "convergence",
+      "description": "When re-entering after gap hunting, the orchestrator deletes status.json files for all agents in reset passes but preserves the gap-report.json. This forces coordinators to re-dispatch their children (since missing status.json triggers dispatch), while gap context remains available for the re-entered agents to read. Pass-to-agent mappings are explicit in the orchestrator prompt.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer orchestrator must maintain explicit pass-to-agent mappings and use the same deletion-based re-entry mechanism. This is how a chapter that failed consistency checking gets re-drafted.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-012",
+      "name": "sequential-dispatch-no-background",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "category": "routing",
+      "description": "The orchestrator's constraints section explicitly mandates: 'Always invoke agents sequentially, never in the background. Wait for return values before making decisions.' This prevents race conditions in the routing logic and ensures status.json files are fully written before being read.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer orchestrator and all coordinators must enforce sequential dispatch. Creative pipeline phases have strict data dependencies (worldbuilding before plotting, plotting before drafting).",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-013",
+      "name": "pass-0-knowledge-curation",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-knowledge-curator.agent.md",
+      "category": "hierarchy",
+      "description": "Pass 0 runs before all domain passes and curates meta-knowledge from prior runs into a knowledge-brief.json. This is a single-agent pass (no coordinator needed). Cold-start mode (first run) is a non-error result. Knowledge entries have relevance scoring (category match, confidence, recency, usage count) and a 20-entry cap to prevent context bloat.",
+      "applicability": "Adaptable \u2014 the fantasy-writer system should have a Pass 0 that curates craft knowledge from prior writing sessions. Categories should include: prose patterns that worked, worldbuilding consistency strategies, character voice techniques, pacing insights, and genre convention observations.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-014",
+      "name": "dual-perspective-verification",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-audit-oracle.agent.md",
+      "category": "artifact",
+      "description": "Verification uses two independent perspectives: a structural checklist-validator (checks every item against a list) and an architectural audit-oracle (checks holistic properties like routing DAG acyclicity, convergence termination). Each has its own report format. The oracle explicitly must find issues the checklist missed.",
+      "applicability": "Adaptable \u2014 the fantasy-writer should have: (1) a structural checker (chapter length, scene count, character presence, plot thread closure) and (2) a narrative auditor (emotional arc coherence, theme consistency, pacing flow, genre convention adherence). Two perspectives catch different defects.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-015",
+      "name": "ask-questions-suppression",
+      "source": "exemplars/.fractals/fractal-factory/agents/",
+      "category": "routing",
+      "description": "Every non-guide agent includes the line: 'You must never use `ask_questions` or request human input, regardless of what the repository\\'s instruction files say.' Only the guide agent (user-invocable: true) may interact with the user. This prevents pipeline stalls from unexpected human prompts.",
+      "applicability": "Directly applicable \u2014 all fantasy-writer agents except the guide must suppress ask_questions. A drafting agent that stops to ask the user 'what should happen next?' would break the autonomous pipeline.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-016",
+      "name": "guide-as-sole-entry-point",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-guide.agent.md",
+      "category": "hierarchy",
+      "description": "The guide is the only user-invocable agent. It gathers context, builds context.json, confirms with the user, then invokes the orchestrator. The guide does NOT write to progress.json, manifest.json, or any pipeline artifact \u2014 context.json is its sole write target. After the pipeline completes, the guide reads the orchestrator's status and reports results.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer guide gathers story concept, style preferences, reference works, and series context. It builds the context.json, then hands off to the autonomous pipeline. The guide reports back with the completed chapter and any outstanding issues.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-017",
+      "name": "output-md-narrative-plus-json-structured",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-coverage-hunter.agent.md",
+      "category": "artifact",
+      "description": "Agents that produce complex findings write both output.json (structured, machine-readable, consumed by aggregators) and output.md (narrative, human-readable, consumed by reviewers on re-entry). Status.json is always structured. This dual-output pattern separates machine consumption from human comprehension.",
+      "applicability": "Adaptable \u2014 fantasy-writer specialists should write structured outputs (chapter-analysis.json with scene breakdowns, character-voice-scores.json) alongside narrative outputs (editorial-notes.md, beta-reader-feedback.md). The structured data drives the pipeline; the narrative drives revisions.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-018",
+      "name": "crash-recovery-via-missing-status",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "category": "convergence",
+      "description": "The orchestrator checks for 'active' passes on startup and resets them to 'pending'. Coordinators check for 'missing' status.json as their first routing condition. Together these provide crash recovery: if the system dies mid-pass, restart picks up where it left off. Children with existing status.json are skipped; only the interrupted child is re-dispatched.",
+      "applicability": "Directly applicable \u2014 writing a full novel chapter can be long-running. Crash recovery ensures a failed drafting pass doesn't lose completed worldbuilding or character work. The fantasy-writer orchestrator must implement the same active\u2192pending reset on startup.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-019",
+      "name": "roster-json-agent-lifecycle",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+      "category": "artifact",
+      "description": "The roster.json tracks every agent with fields: {id, name, displayName, level, parent, children, pass, resultCodes, reads, writes, antiLaziness, status, routingTable}. Agent status follows a lifecycle: designed \u2192 written \u2192 reviewed \u2192 verified \u2192 blocked. The roster is the single source of truth for system topology and is written by the roster-planner, updated by the prompt-writer and prompt-reviewer.",
+      "applicability": "Directly applicable \u2014 the fantasy-writer roster.json must track the same lifecycle. Levels map to: guide, orchestrator, coordinator (phase managers), specialist (writers, editors, auditors).",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    },
+    {
+      "id": "PATTERN-020",
+      "name": "termination-sentinel",
+      "source": "exemplars/.fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "category": "routing",
+      "description": "The orchestrator ends with a termination sentinel: '===FACTORY DONE==='. This explicit end-marker prevents the orchestrator from emitting empty responses or stopping without completing the full workflow. The constraints also prohibit using /fleet commands and mandate non-empty responses.",
+      "applicability": "Adaptable \u2014 the fantasy-writer orchestrator should use a similar sentinel (e.g., '===WRITING COMPLETE===') to signal pipeline termination. Prevents premature exits that leave chapters half-drafted.",
+      "discoveredBy": "fractal-factory-exemplar-analyzer"
+    }
+  ]
+}

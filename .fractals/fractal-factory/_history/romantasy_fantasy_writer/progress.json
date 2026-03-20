@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "lastUpdated": "2026-03-16T21:57:29.726388+00:00",
+  "currentPass": "complete",
+  "passes": {
+    "pass0": {
+      "status": "completed",
+      "coordinator": null,
+      "note": "Knowledge curation - direct dispatch to knowledge-curator, no coordinator. Skipped when metaKnowledge.enabled == false."
+    },
+    "discovery": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 4,
+      "coordinator": "fractal-factory-discovery-coordinator"
+    },
+    "analysis": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 3,
+      "coordinator": "fractal-factory-analysis-coordinator"
+    },
+    "planning": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 3,
+      "coordinator": "fractal-factory-planning-coordinator"
+    },
+    "execution": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 3,
+      "coordinator": "fractal-factory-execution-coordinator"
+    },
+    "verification": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 2,
+      "coordinator": "fractal-factory-verification-coordinator"
+    },
+    "gapHunting": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 3,
+      "coordinator": "fractal-factory-gap-hunting-coordinator"
+    },
+    "synthesis": {
+      "status": "completed",
+      "coordinator": "fractal-factory-synthesis-coordinator",
+      "note": "Skipped when metaKnowledge.enabled == false."
+    },
+    "delivery": {
+      "status": "completed",
+      "completedAgents": 0,
+      "totalAgents": 3,
+      "coordinator": "fractal-factory-delivery-coordinator"
+    }
+  },
+  "counts": {
+    "subdomainsDiscovered": 0,
+    "invariantsExtracted": 0,
+    "agentsPlanned": 67,
+    "agentsWritten": 67,
+    "agentsVerified": 67,
+    "agentsBlocked": 0,
+    "metaKnowledge": {
+      "designed": 0,
+      "written": 0,
+      "reviewed": 0,
+      "verified": 0
+    }
+  },
+  "gapHunting": {
+    "currentCycle": 4,
+    "maxCycles": 10,
+    "newItemsPerCycle": [
+      22,
+      6,
+      2
+    ],
+    "converged": true
+  }
+}

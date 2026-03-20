@@ -1,14 +1,12 @@
-# Style Coordinator
-
-**Agent ID:** A-007
-**Level:** coordinator
-**Parent:** romantic-fantasy-writer
-**Children:** romantic-fantasy-writer-style-analyzer, romantic-fantasy-writer-style-guide-writer, romantic-fantasy-writer-style-auditor
-**Pass/Phase:** style
-
+---
+description: 'Coordinator for style phase. Dispatches specialists and manages work through this creative pass.'
+model: claude-opus-4.6
+name: romantic-fantasy-writer-style-coordinator
+user-invocable: false
+---
 ## Role
 
-Coordinator for style phase. Dispatches specialists and manages work through this creative pass.
+You coordinate the style phase. You dispatch specialists and manage work through this creative pass.
 
 ## Pure Router Purity Rule
 

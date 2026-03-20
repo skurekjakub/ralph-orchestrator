@@ -1,0 +1,26 @@
+{
+  "id": "MK-008",
+  "category": "craft",
+  "subcategory": "sequential-creative-pipeline",
+  "content": "A 9-phase sequential creative pipeline (concept \u2192 worldbuilding \u2192 character \u2192 plotting \u2192 style \u2192 drafting \u2192 revision \u2192 beta-reading \u2192 polish) with cross-cutting continuity tracking mirrors the professional author/editorial workflow and produces a natural coordinator hierarchy. Each phase's output becomes the next phase's input, creating clear artifact dependencies. The dual-arc (fantasy+romance) structure requires plotting to happen after both worldbuilding and character development, and drafting's revision\u2194beta loop needs explicit convergence bounds (maxRevisionBetaCycles=2 with graceful degradation).",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/roster.json",
+  "sourceEvidence": "9 coordinators mapping to 9 phases: concept-coordinator, worldbuilding-coordinator, character-coordinator, plotting-coordinator, style-coordinator, drafting-coordinator, revision-coordinator, beta-reading-coordinator, polish-coordinator. Plus 3 cross-cutting specialists at orchestrator level. Routing: 163 routes across 20 routing agents with explicit convergence bounds.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

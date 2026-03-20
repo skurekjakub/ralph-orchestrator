@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-exemplar-analyzer",
+  "task_id": "pass1/exemplar-analysis",
+  "status": "completed",
+  "result": "analyzed",
+  "summary": "Analyzed 1 exemplar family (fractal-factory, 35 agents), extracted 20 patterns (3 hierarchy, 1 naming, 6 artifact, 6 routing, 1 anti-laziness, 3 convergence). 14 directly applicable, 6 adaptable.",
+  "artifacts": ["domain-model.json", "agents/fractal-factory-exemplar-analyzer/output.md"],
+  "next_hint": null,
+  "iteration": 1
+}

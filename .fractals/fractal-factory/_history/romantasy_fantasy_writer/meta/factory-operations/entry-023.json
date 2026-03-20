@@ -1,0 +1,26 @@
+{
+  "id": "MK-023",
+  "category": "factory-operations",
+  "subcategory": "invariant-violation-pattern",
+  "content": "The most persistent cross-reference issue (CR-004/CR-005) stemmed from a dissolved agent ('plot-architect') whose responsibilities were split across multiple specialists during roster planning, but whose name lingered in 2 architecture.json reader arrays. This 'ghost agent' pattern \u2014 where agent dissolution leaves orphaned references in non-prompt artifacts \u2014 is a systematic risk when agents are split or merged during planning.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/agents/fractal-factory-prompt-writer/status.json",
+  "sourceEvidence": "iteration 3 gapsAddressed: ['CR-004', 'CR-005']. summary: 'Removed dissolved agent plot-architect from 2 reader arrays in architecture.json (foreshadowing-ledger.json, mystery-box-inventory.json)'.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

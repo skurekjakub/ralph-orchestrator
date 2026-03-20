@@ -1,0 +1,26 @@
+{
+  "id": "MK-024",
+  "category": "factory-operations",
+  "subcategory": "invariant-violation-pattern",
+  "content": "The audit-oracle found 8 semantic-level issues that the structural checklist-validator (1299/1299, 100%) could not detect: create-once/multi-writer protocol contradictions, hierarchy dispatch exceptions, anti-laziness clause inconsistency, and sequel data flow gaps. This confirms that structural validation is necessary but insufficient \u2014 the oracle's semantic analysis layer catches a distinct class of issues.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/audit-report.json",
+  "sourceEvidence": "summary.comparisonWithChecklistValidator: 'The checklist-validator found 0 failures across 1299 checks... This audit adds a semantic and architectural layer: protocol-writer count compatibility, hierarchy dispatch constraints, data flow traceability.'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}
