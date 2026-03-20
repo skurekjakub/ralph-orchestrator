@@ -1,0 +1,221 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-008",
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "Pages can be secured using a three-tier content access model",
+      "location": "Section: Page security configuration, paragraph 1",
+      "result": "verified",
+      "evidence": "ContentAccessCheckResult.cs defines internal enum with three values: Allowed, NotAuthenticated, Forbidden. MemberAccessHelper.CheckAccess() implements the three-tier logic at lines 19-48.",
+      "docFact": "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403) via internal ContentAccessCheckResult enum"
+    },
+    {
+      "claim": "Public – the page is accessible to all visitors without restrictions",
+      "location": "Section: Page security configuration, bullet 1",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 21-24: if (!isSecured) return ContentAccessCheckResult.Allowed — no further checks performed when content is not secured.",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: !isSecured→Allowed"
+    },
+    {
+      "claim": "Secured – the page requires the visitor to be an authenticated member",
+      "location": "Section: Page security configuration, bullet 2",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 36-44: after isSecured passes, !IsUserAuthenticated(user)→NotAuthenticated; if authenticated and !requiredRoles.Any()→Allowed. Content secured with no roles requires only authentication.",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: !authenticated→NotAuthenticated, no required roles→Allowed"
+    },
+    {
+      "claim": "Secured with member roles – the page requires the visitor to be an authenticated member who belongs to at least one of the designated member roles",
+      "location": "Section: Page security configuration, bullet 3",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 46-48: UserIsInAnyRole(user, requiredRoles) ? Allowed : Forbidden. UserIsInAnyRole (line 71) checks roles.Any(role => user.IsInRole(role)) — 'at least one' is correct.",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: user in any role→Allowed, else→Forbidden"
+    },
+    {
+      "claim": "By default, the IContentRetriever does not include secured pages in the query results",
+      "location": "Section: Page security configuration, paragraph 2",
+      "result": "verified",
+      "evidence": "RetrieveParametersBase.cs line 43: public bool IncludeSecuredItems { get; init; } = false; — defaults to false, meaning secured items are excluded.",
+      "docFact": null
+    },
+    {
+      "claim": "Setting the IncludeSecuredItems property of the RetrievePagesParameters object to true includes secured pages",
+      "location": "Section: Page security configuration, paragraph 2 + code block",
+      "result": "verified",
+      "evidence": "RetrieveParametersBase.cs line 43 defines IncludeSecuredItems as bool property. ContentRetriever.cs line 98 passes parameters.IncludeSecuredItems to GetQueryOptions. RetrievePagesParameters inherits from RetrievePagesParametersBase which extends RetrieveParametersBase.",
+      "docFact": null
+    },
+    {
+      "claim": "The HasAccess extension method on IContentItemFieldsSource is the way to check whether a visitor has access",
+      "location": "Section: Check access with HasAccess, paragraph 1",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs line 19: public static bool HasAccess(this IContentItemFieldsSource contentItem, ClaimsPrincipal user) — confirmed as extension method on IContentItemFieldsSource.",
+      "docFact": "AREA-009: ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — public extension method returning bool"
+    },
+    {
+      "claim": "The method evaluates the page's security state, the visitor's authentication status, and the visitor's member role assignments in a single call",
+      "location": "Section: Check access with HasAccess, paragraph 1",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs lines 24-29: HasAccess reads systemFields.ContentItemIsSecured (security state), passes user (authentication), and systemFields.ContentItemRequiredMemberRoleNames (role assignments) to MemberAccessHelper.CheckAccess in one call.",
+      "docFact": null
+    },
+    {
+      "claim": "Code example uses 'using Kentico.Content.Web.Mvc' namespace for HasAccess",
+      "location": "Section: Check access with HasAccess, code block 1",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs line 6: namespace Kentico.Content.Web.Mvc — the HasAccess extension method is in this namespace.",
+      "docFact": null
+    },
+    {
+      "claim": "page.HasAccess(HttpContext.User) — API call syntax in code example",
+      "location": "Section: Check access with HasAccess, code block 1",
+      "result": "verified",
+      "evidence": "HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) at line 19. ArticlePage implements IContentItemFieldsSource. HttpContext.User is ClaimsPrincipal. Call syntax is correct.",
+      "docFact": "AREA-009: ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal)"
+    },
+    {
+      "claim": "HasAccess returns true if: The page is not secured (public)",
+      "location": "Section: Check access with HasAccess, bullet 1",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 21-24: if (!isSecured) return Allowed. HasAccess returns Allowed == true.",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: !isSecured→Allowed"
+    },
+    {
+      "claim": "HasAccess returns true if: The page is secured and the visitor is authenticated (when no specific member roles are required)",
+      "location": "Section: Check access with HasAccess, bullet 2",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 36-44: IsUserAuthenticated check passes, then !requiredRoles.Any() → Allowed. For secured content with no specific roles, authenticated users get access.",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: !authenticated→NotAuthenticated, no required roles→Allowed"
+    },
+    {
+      "claim": "HasAccess returns true if: The page is secured with member roles and the visitor is authenticated and belongs to at least one of the required roles",
+      "location": "Section: Check access with HasAccess, bullet 3",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.cs lines 46-48: UserIsInAnyRole(user, requiredRoles) ? Allowed : Forbidden. UserIsInAnyRole at line 71: roles.Any(role => user.IsInRole(role)).",
+      "docFact": "AREA-009: MemberAccessHelper.CheckAccess logic: user in any role→Allowed, else→Forbidden"
+    },
+    {
+      "claim": "Razor code: @using Kentico.Content.Web.Mvc and Model.Page.HasAccess(User) syntax",
+      "location": "Section: Check access with HasAccess, code block 2 (Razor)",
+      "result": "verified",
+      "evidence": "Namespace confirmed. In Razor views, User is ClaimsPrincipal (from ControllerBase/RazorPage). Model.Page assumed to implement IContentItemFieldsSource — standard pattern for view models wrapping page data.",
+      "docFact": null
+    },
+    {
+      "claim": "page.SystemFields.ContentItemIsSecured property exists",
+      "location": "Section: Additional security properties (info callout)",
+      "result": "verified",
+      "evidence": "ContentItemFields.cs line 40: public bool ContentItemIsSecured { get; set; }. IContentItemFieldsSource.SystemFields returns ContentItemFields.",
+      "docFact": null
+    },
+    {
+      "claim": "page.SystemFields.ContentItemRequiredMemberRoleNames returns an IReadOnlyCollection<string> of role code names",
+      "location": "Section: Additional security properties (info callout)",
+      "result": "verified",
+      "evidence": "ContentItemFields.cs line 50: public IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames { get; set; }. ContentItemRolesResultProcessor.cs line 48 calls contentItemMemberRoleRetriever.GetMemberRoleCodeNames() — confirmed these are code names.",
+      "docFact": "AREA-006: ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> available on query result containers"
+    },
+    {
+      "claim": "For unsecured pages, the collection is empty",
+      "location": "Section: Additional security properties (info callout)",
+      "result": "verified",
+      "evidence": "ContentQueryDataContainer.cs lines 33-40: RequiredMemberRoleNames getter returns (requiredMemberRoleNames ?? []).ToList().AsReadOnly(). For unsecured items, ContentItemRolesResultProcessor.cs lines 37-40 returns early without setting role names, so requiredMemberRoleNames stays null, and getter converts null to empty collection.",
+      "docFact": "AREA-006: For unsecured items, ContentItemRequiredMemberRoleNames returns empty collection"
+    },
+    {
+      "claim": "Not authenticated (HTTP 401) – the visitor is not signed in. The system issues a challenge that redirects the visitor to the sign-in page.",
+      "location": "Section: Authentication and authorization responses, bullet 1",
+      "result": "verified",
+      "evidence": "ContentAccessCheckResult.cs lines 17-19: NotAuthenticated has seealso HttpStatusCode.Unauthorized (401). ASP.NET Identity standard: 401 triggers LoginPath redirect via cookie authentication challenge.",
+      "docFact": "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403)"
+    },
+    {
+      "claim": "Forbidden (HTTP 403) – the visitor is signed in but does not have the required member role. The system redirects the visitor to the access denied page.",
+      "location": "Section: Authentication and authorization responses, bullet 2",
+      "result": "verified",
+      "evidence": "ContentAccessCheckResult.cs lines 24-27: Forbidden has seealso HttpStatusCode.Forbidden (403), doc comment: 'The user is authenticated but does not have the required role.' ASP.NET Identity standard: 403 triggers AccessDeniedPath redirect.",
+      "docFact": "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403)"
+    },
+    {
+      "claim": "Set LoginPath for unauthenticated redirects and AccessDeniedPath for insufficient-role redirects via ConfigureApplicationCookie",
+      "location": "Section: Authentication and authorization responses, paragraph 2 + code block",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Identity CookieAuthenticationOptions: LoginPath handles 401 challenges, AccessDeniedPath handles 403 forbidden responses. ConfigureApplicationCookie is the standard API from Microsoft.AspNetCore.Identity. ContentAccessCookieAuthenticationConfiguration.cs confirms the system configures these paths.",
+      "docFact": "AREA-009: Content access cookie auth configuration separates login path from access denied path"
+    },
+    {
+      "claim": "options.LoginPath = new PathString(\"/account/signin\") and options.AccessDeniedPath = new PathString(\"/account/access-denied\") code syntax",
+      "location": "Section: Authentication and authorization responses, code block",
+      "result": "verified",
+      "evidence": "LoginPath and AccessDeniedPath are PathString properties on CookieAuthenticationOptions (Microsoft.AspNetCore.Authentication.Cookies). PathString accepts string constructor. Syntax is valid.",
+      "docFact": null
+    },
+    {
+      "claim": "If you set AccessDeniedPath but do not set LoginPath, the system automatically uses the AccessDeniedPath value for unauthenticated redirects as well",
+      "location": "Section: Backward-compatible path handling (info callout)",
+      "result": "verified",
+      "evidence": "ContentAccessCookieAuthenticationConfiguration.cs lines 44-49: var loginPathSet = options.LoginPath.HasValue; var accessDeniedPathSet = options.AccessDeniedPath.HasValue; if (!loginPathSet && accessDeniedPathSet) { options.LoginPath = options.AccessDeniedPath; } — exact match with documented behavior.",
+      "docFact": "AREA-009: Content access cookie auth configuration separates login path from access denied path; auto-fallback when LoginPath not set"
+    },
+    {
+      "claim": "This ensures backward compatibility for projects that previously used only AccessDeniedPath to handle all access denial scenarios",
+      "location": "Section: Backward-compatible path handling (info callout)",
+      "result": "verified",
+      "evidence": "ContentAccessCookieAuthenticationConfiguration.cs class summary (lines 14-21): 'Configures the cookie authentication options to ensure backward compatibility when splitting 403 (Forbidden) into 401 (Unauthorized) and 403 (Forbidden) responses.' Explicit backward compatibility intent.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Page security configuration, code block 'Example - Include secured pages'",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "RetrievePagesParameters with IncludeSecuredItems = true. Property name, type (bool), and usage match RetrieveParametersBase.cs line 43. Method signature contentRetriever.RetrievePages<ArticlePage>() confirmed in ContentRetriever.cs."
+    },
+    {
+      "location": "Section: Check access with HasAccess, code block 'Example - Check access using HasAccess'",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Import 'using Kentico.Content.Web.Mvc' matches namespace of ContentItemFieldsSourceExtensions.cs. page.HasAccess(HttpContext.User) matches signature HasAccess(this IContentItemFieldsSource, ClaimsPrincipal). Return type bool is correct."
+    },
+    {
+      "location": "Section: Check access with HasAccess, code block 'Reflect page security in views'",
+      "language": "cshtml",
+      "result": "verified",
+      "notes": "@using Kentico.Content.Web.Mvc is correct namespace. Model.Page.HasAccess(User) uses Razor's built-in User (ClaimsPrincipal). API usage matches source. Negation (!HasAccess) correctly shows access-denied content."
+    },
+    {
+      "location": "Section: Authentication and authorization responses, code block 'Program.cs'",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "builder.Services.ConfigureApplicationCookie() is standard ASP.NET Identity API. LoginPath and AccessDeniedPath are PathString properties on CookieAuthenticationOptions. new PathString() constructor is valid. Code would work as written in a Program.cs file."
+    }
+  ],
+  "researchRecommendationCheck": [
+    {
+      "recommendation": "REC-012",
+      "cited": true,
+      "followedCorrectly": true,
+      "notes": "REC-012 targets reference documentation of ContentAccessSettings. This how-to page describes the three access modes as a bulleted list (Public/Secured/Secured with member roles) which is appropriate for a how-to context. The cross-reference to the ContentAccessSettings reference page is included. REC-012 table format is correctly deferred to the reference page (TASK-002)."
+    },
+    {
+      "recommendation": "REC-014",
+      "cited": true,
+      "followedCorrectly": true,
+      "notes": "REC-014 asks for simple→complex code progression. The page progresses: (1) IncludeSecuredItems=true (simplest), (2) HasAccess() in controller code (medium), (3) HasAccess() in Razor view (applied). Code samples are preceded by introductory sentences. Progression is correct."
+    }
+  ],
+  "knowledgeBriefCheck": {
+    "status": "skipped",
+    "reason": "Knowledge brief is cold start — no domain insights, patterns, or anti-patterns to check against."
+  },
+  "summary": {
+    "totalClaims": 23,
+    "verified": 23,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 4,
+    "codeExamplesCorrect": 4
+  }
+}

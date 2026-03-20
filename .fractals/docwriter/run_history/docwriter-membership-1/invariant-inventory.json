@@ -1,0 +1,1777 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-invariant-scanner",
+  "generatedAt": "2025-07-24T12:00:00Z",
+  "guidelinesPath": "./.github/resources/",
+  "sourceFiles": [
+    {
+      "path": ".github/resources/styleguides/docs-style-guide.md",
+      "invariantsExtracted": 81
+    },
+    {
+      "path": ".github/resources/styleguides/docs-style-guide-full.md",
+      "invariantsExtracted": 15
+    },
+    {
+      "path": ".github/resources/styleguides/guides-style-guide.md",
+      "invariantsExtracted": 17
+    },
+    {
+      "path": ".github/resources/styleguides/guides-style-guide-full.md",
+      "invariantsExtracted": 12
+    },
+    {
+      "path": ".github/resources/styleguides/typography.md",
+      "invariantsExtracted": 17
+    },
+    {
+      "path": ".github/resources/styleguides/word-list.md",
+      "invariantsExtracted": 33
+    },
+    {
+      "path": ".github/resources/styleguides/drawio-diagrams.md",
+      "invariantsExtracted": 3
+    },
+    {
+      "path": ".github/resources/markdown-syntax.md",
+      "invariantsExtracted": 23
+    },
+    {
+      "path": ".github/resources/new-page-creation.md",
+      "invariantsExtracted": 3
+    },
+    {
+      "path": ".github/resources/codesamples-project.md",
+      "invariantsExtracted": 3
+    },
+    {
+      "path": ".github/resources/playwright-screenshots.md",
+      "invariantsExtracted": 4
+    },
+    {
+      "path": ".github/resources/feature-specifications/code-link-tag-specification.md",
+      "invariantsExtracted": 2
+    }
+  ],
+  "totalInvariants": 213,
+  "invariants": [
+    {
+      "id": "INV-style-001",
+      "rule": "Use sentence case for headings and titles. First letter capitalized, rest lowercase except proper nouns.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines: Use sentence case for both text and headings."
+    },
+    {
+      "id": "INV-style-002",
+      "rule": "Use imperative mood for scenario-based titles and verb-phrase headings (e.g., Create a new project, Deploy your application).",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines + Headings section."
+    },
+    {
+      "id": "INV-style-003",
+      "rule": "Do not prefix titles with How to.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines."
+    },
+    {
+      "id": "INV-style-004",
+      "rule": "Titles must be unique and unambiguous across the documentation. Do not rely on parent page names.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines: Must be unique and unambiguous."
+    },
+    {
+      "id": "INV-style-005",
+      "rule": "Optimize titles for search. Use words a user would search for.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines: Optimize for search."
+    },
+    {
+      "id": "INV-style-006",
+      "rule": "Use existing capitalized noun phrases for feature names: Page Builder, Email Builder, Form Builder, Continuous Integration, etc.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Title guidelines: Use existing noun phrases."
+    },
+    {
+      "id": "INV-style-007",
+      "rule": "Prefer active voice. Use passive only when: (a) active would blame the user, (b) emphasizing the receiver of an action, (c) the actor is not important.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Active voice."
+    },
+    {
+      "id": "INV-style-008",
+      "rule": "Use present simple tense.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Present tense."
+    },
+    {
+      "id": "INV-style-009",
+      "rule": "Use American English spelling (e.g., color not colour).",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: American English."
+    },
+    {
+      "id": "INV-style-010",
+      "rule": "Use consistent terminology. Avoid unnecessary synonyms. The same term every time for UI elements, code, and specific terminology.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Consistency."
+    },
+    {
+      "id": "INV-style-011",
+      "rule": "Avoid the pronoun it. Restate the actual subject for clarity. Pronouns must have clear antecedents and should never leave the paragraph they were introduced in.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Avoid pronoun it."
+    },
+    {
+      "id": "INV-style-012",
+      "rule": "Use indicative and imperative mood. Avoid subjunctive mood of verbs.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules."
+    },
+    {
+      "id": "INV-style-013",
+      "rule": "Use gender-neutral they even for singular usage.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Gender-neutral they."
+    },
+    {
+      "id": "INV-style-014",
+      "rule": "Be inclusive. Do not use culturally specific idioms, slang, holiday references, or sports metaphors.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Be inclusive."
+    },
+    {
+      "id": "INV-style-015",
+      "rule": "Eliminate redundancy. Avoid repetitive ideas and information already covered. Refer to earlier sections when necessary.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Eliminate redundancy."
+    },
+    {
+      "id": "INV-style-016",
+      "rule": "Replace long phrases with single words (because not due to the fact that, if not in the event that, use not utilize).",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Replace long phrases."
+    },
+    {
+      "id": "INV-style-017",
+      "rule": "Avoid filler words: actually, basically, really, just, in fact. Remove unless they add necessary emphasis.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Avoid filler words."
+    },
+    {
+      "id": "INV-style-018",
+      "rule": "Write short sentences. Keep sentences under 20 words when possible.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Write short sentences."
+    },
+    {
+      "id": "INV-style-019",
+      "rule": "Be specific. Replace vague terms with specific ones.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Be specific."
+    },
+    {
+      "id": "INV-style-020",
+      "rule": "Be direct rather than polite. Do not use the word please.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Language: Be direct rather than polite. This includes not using the word please."
+    },
+    {
+      "id": "INV-style-021",
+      "rule": "Keep it simple and concise. Focus on what is necessary. Get to the point fast. Lead with what is important.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Core principles."
+    },
+    {
+      "id": "INV-style-022",
+      "rule": "Use simple English. Readers may not be native speakers.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Language rules: Simple English."
+    },
+    {
+      "id": "INV-style-023",
+      "rule": "Do not add (s) to nouns for optional plurals. Plural contains singular. Write Wait 5 minutes not Wait 5 minute(s).",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Common patterns: Plurals."
+    },
+    {
+      "id": "INV-style-024",
+      "rule": "Lead with conditions/circumstances, then instructions. Example: To delete the document, select Delete (not Select Delete if you want to delete).",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Common patterns: Sentence structure."
+    },
+    {
+      "id": "INV-style-025",
+      "rule": "Never assume users have read a specific page. Any page could be the user first page and needs to work on its own. Link richly to other pages.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Language: Never assume users have read X."
+    },
+    {
+      "id": "INV-style-026",
+      "rule": "Title must not end with -ing form.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Title: Not ending with -ing."
+    },
+    {
+      "id": "INV-style-027",
+      "rule": "Use Select for buttons, check boxes, drop-down lists, radio buttons, items. Do not use Click.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs."
+    },
+    {
+      "id": "INV-style-028",
+      "rule": "Use Clear for unchecking check boxes. Do not use Uncheck.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs: Clear."
+    },
+    {
+      "id": "INV-style-029",
+      "rule": "Use Enter for typing/inserting values. Do not use Type.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs: Enter."
+    },
+    {
+      "id": "INV-style-030",
+      "rule": "Use Open/Close for applications and UI elements.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs."
+    },
+    {
+      "id": "INV-style-031",
+      "rule": "Use Go to for tabs, applications, URLs, UI locations.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs."
+    },
+    {
+      "id": "INV-style-032",
+      "rule": "Use Press only for keyboard interactions.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs: Press."
+    },
+    {
+      "id": "INV-style-033",
+      "rule": "Do not use Click (input-specific). Use Select instead.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Avoid: Click."
+    },
+    {
+      "id": "INV-style-034",
+      "rule": "Do not use Enable/Disable for specific UI elements. Use Select/Clear for check boxes. Enable/disable is allowed for general functionality.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Avoid: Enable/Disable for UI elements."
+    },
+    {
+      "id": "INV-style-035",
+      "rule": "Do not use Check/Uncheck. Use Select/Clear.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Avoid: Check/Uncheck."
+    },
+    {
+      "id": "INV-style-036",
+      "rule": "Do not use Choose. Use Select instead.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Avoid: Choose."
+    },
+    {
+      "id": "INV-style-037",
+      "rule": "Prefer action-focused instructions over UI-focused ones: Save the settings instead of Select the Save button.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Interaction verbs: Prefer action-focused."
+    },
+    {
+      "id": "INV-style-038",
+      "rule": "Use You need to or The conditions must be fulfilled. Avoid You must/should/can/could (implies uncertainty). Exception: You can is OK for optional steps.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Modal verbs section."
+    },
+    {
+      "id": "INV-style-039",
+      "rule": "Avoid must when addressing users directly. Must is acceptable when not writing about people.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide-full.md",
+      "context": "Modal verbs table."
+    },
+    {
+      "id": "INV-style-040",
+      "rule": "Avoid have to because have may mean something different. Not suitable for non-native speakers.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide-full.md",
+      "context": "Modal verbs table."
+    },
+    {
+      "id": "INV-style-041",
+      "rule": "Use common contractions (it is, you are, that is, do not) for friendly, informal tone.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Contractions section."
+    },
+    {
+      "id": "INV-style-042",
+      "rule": "Avoid awkward contractions: there would, it will, they would.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Contractions: Avoid awkward."
+    },
+    {
+      "id": "INV-style-043",
+      "rule": "Never use double contractions.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Contractions: Never double contractions."
+    },
+    {
+      "id": "INV-style-044",
+      "rule": "Never form a contraction from a noun and a verb (e.g., Microsoft is developing).",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Contractions: Never noun + verb contractions."
+    },
+    {
+      "id": "INV-style-045",
+      "rule": "Do not mix contractions and spelled-out equivalents in the same UI text.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Contractions."
+    },
+    {
+      "id": "INV-style-046",
+      "rule": "Use arrow characters (->) for navigation paths: Settings -> Security -> Users.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Navigation section."
+    },
+    {
+      "id": "INV-style-047",
+      "rule": "Do not mix different UI element types in arrow notation.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Navigation."
+    },
+    {
+      "id": "INV-style-048",
+      "rule": "Use only well-known, existing abbreviations. Do not invent abbreviations.",
+      "category": "style",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Abbreviations section."
+    },
+    {
+      "id": "INV-style-049",
+      "rule": "Use etc. instead of three dots (...) except for expand box labels.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Abbreviations."
+    },
+    {
+      "id": "INV-style-050",
+      "rule": "Prefer X of Y over Y apostrophe-s X for readability, especially with inanimate objects.",
+      "category": "style",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Possessives section."
+    },
+    {
+      "id": "INV-style-051",
+      "rule": "In guides, avoid referring to the material as this guide or In this guide. Focus on actions/results. Use this material if absolutely necessary.",
+      "category": "style",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Key Writing Rules."
+    },
+    {
+      "id": "INV-style-052",
+      "rule": "Avoid jargon and complex expressions in guides. Replace metaphors (spin up with create, leverage with use).",
+      "category": "style",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Avoid Jargon."
+    },
+    {
+      "id": "INV-structure-001",
+      "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Documentation page structure: Required elements."
+    },
+    {
+      "id": "INV-structure-002",
+      "rule": "Write an introduction at the beginning of each article providing context, real-world scenarios, and explaining value to the user.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Introduction section."
+    },
+    {
+      "id": "INV-structure-003",
+      "rule": "Introduction must answer: What is the primary use case? Why does it benefit me? When should I use it?",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Introduction: Requirements."
+    },
+    {
+      "id": "INV-structure-004",
+      "rule": "For longer articles, add a Key points tip box with 3-5 bullet points summarizing the article. Do not make it a paragraph.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Key points callout section."
+    },
+    {
+      "id": "INV-structure-005",
+      "rule": "Key points callout: avoid excessive linking. Use sparingly and only when absolutely necessary.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Key points callout."
+    },
+    {
+      "id": "INV-structure-006",
+      "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Body: General guidelines."
+    },
+    {
+      "id": "INV-structure-007",
+      "rule": "Write one action per step for business users. For developer audience, you may merge two related easy steps.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Writing steps."
+    },
+    {
+      "id": "INV-structure-008",
+      "rule": "Aim for around 8 steps per section. If instructions exceed 8 steps, split into subsections with distinct headings.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Keep it manageable."
+    },
+    {
+      "id": "INV-structure-009",
+      "rule": "Describe the end result at the end of each section so readers can confirm they followed instructions correctly.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Result section."
+    },
+    {
+      "id": "INV-structure-010",
+      "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Next steps section."
+    },
+    {
+      "id": "INV-structure-011",
+      "rule": "Articles should be independent of other pages. Exceptions must be properly linked and explained.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Documentation page: should be independent of other pages."
+    },
+    {
+      "id": "INV-structure-012",
+      "rule": "Assume a happy path. User has proper permissions and correct project setup. Mention prerequisites when necessary.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Body: Assume a happy path."
+    },
+    {
+      "id": "INV-structure-013",
+      "rule": "Avoid redundant introduction sentences after headings when the heading already specifies the scenario.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Headings: Avoid introduction sentences."
+    },
+    {
+      "id": "INV-structure-014",
+      "rule": "Use headings with general terms rather than Kentico-specific terminology.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Headings."
+    },
+    {
+      "id": "INV-structure-015",
+      "rule": "Use sentence case for all list items (first letter capitalized).",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Body: Use sentence case for lists."
+    },
+    {
+      "id": "INV-structure-016",
+      "rule": "Use lists and tables to break up long paragraphs and improve readability.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Body: General guidelines."
+    },
+    {
+      "id": "INV-structure-017",
+      "rule": "Use the task-oriented approach (document what scenarios users can accomplish), not feature-oriented.",
+      "category": "structure",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Writing style: Task-Oriented approach."
+    },
+    {
+      "id": "INV-structure-018",
+      "rule": "Avoid over-explaining common concepts. Assume basic familiarity unless audience requires beginner-level guidance.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Writing style."
+    },
+    {
+      "id": "INV-structure-019",
+      "rule": "Reference and example pages: title with Reference - XYZ or Example - XYZ. Prefer embedding on main page; separate pages only when original is too long or relates to multiple pages.",
+      "category": "structure",
+      "severity": "should",
+      "source": "docs-style-guide-full.md",
+      "context": "References and examples section."
+    },
+    {
+      "id": "INV-structure-020",
+      "rule": "Lists must not exceed 3 levels deep.",
+      "category": "structure",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Specialized formatting: Maximum 3 levels deep."
+    },
+    {
+      "id": "INV-structure-021",
+      "rule": "Each guide must have a clear type label: Concept, Tutorial, or How-to (following Diataxis framework).",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Guide Types."
+    },
+    {
+      "id": "INV-structure-022",
+      "rule": "Guides introduction: brief 1-2 sentence summary, define learning outcome in real-world business context, show screenshot/GIF of expected output, list prerequisites.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Introduction and Context."
+    },
+    {
+      "id": "INV-structure-023",
+      "rule": "Keep guides short and focused (A to Z completion). Break long content into multi-step scenarios.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Material Organization."
+    },
+    {
+      "id": "INV-structure-024",
+      "rule": "Always include a table of contents (TOC) markup in guides.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Use a table of contents markup."
+    },
+    {
+      "id": "INV-structure-025",
+      "rule": "Paragraphs in guides: 3-5 sentences maximum. Sections should be less than 3 paragraphs for longer materials.",
+      "category": "structure",
+      "severity": "should",
+      "source": "guides-style-guide.md",
+      "context": "Writing Style."
+    },
+    {
+      "id": "INV-structure-026",
+      "rule": "Do not rely on page continuity. Use self-contained phrasing. Each section must work if reader jumps in mid-guide.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Key Writing Rules."
+    },
+    {
+      "id": "INV-structure-027",
+      "rule": "Each guide in a series must include a Next step section with a clear heading. Use a dedicated heading so it can be removed for module reuse.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Lead users to the next step."
+    },
+    {
+      "id": "INV-structure-028",
+      "rule": "Wrap non-module content (prerequisites, next steps, recaps) in dedicated sections for easy removal during module creation.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Wrap non-module content."
+    },
+    {
+      "id": "INV-structure-029",
+      "rule": "Each guide belongs to exactly one section in the Learn portal guides hierarchy.",
+      "category": "structure",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "File Organization."
+    },
+    {
+      "id": "INV-structure-030",
+      "rule": "Encourage learners to try examples on their own. Include a self-assessment element.",
+      "category": "structure",
+      "severity": "should",
+      "source": "guides-style-guide-full.md",
+      "context": "Help users review what they have learned."
+    },
+    {
+      "id": "INV-formatting-001",
+      "rule": "Use bold for UI element names: application names, tabs, buttons, fields, dialog names.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "UI elements formatting."
+    },
+    {
+      "id": "INV-formatting-002",
+      "rule": "For repeated UI elements in the same paragraph, use italics for second and subsequent mentions.",
+      "category": "formatting",
+      "severity": "should",
+      "source": "typography.md",
+      "context": "Bold formatting."
+    },
+    {
+      "id": "INV-formatting-003",
+      "rule": "Use italics for field values, object names being edited, and site selector values.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Italic formatting."
+    },
+    {
+      "id": "INV-formatting-004",
+      "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Code highlighting."
+    },
+    {
+      "id": "INV-formatting-005",
+      "rule": "Do not use backticks for database table/column names.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Code highlighting."
+    },
+    {
+      "id": "INV-formatting-006",
+      "rule": "Never pluralize code elements directly. Use noun phrases: IUserInfoProvider classes.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Pluralization of code."
+    },
+    {
+      "id": "INV-formatting-007",
+      "rule": "Do not add bold or italics to inline code-highlighted text.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Code highlighting."
+    },
+    {
+      "id": "INV-formatting-008",
+      "rule": "Generally avoid underlining. Use only when describing underlined UI elements.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Other formatting rules."
+    },
+    {
+      "id": "INV-formatting-009",
+      "rule": "Use ALL CAPS only for emphasis (NOT, AND, OR) and standard abbreviations (ID, GUID).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Other formatting rules."
+    },
+    {
+      "id": "INV-formatting-010",
+      "rule": "Punctuation after formatted text must not be bold or italic.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Other formatting rules."
+    },
+    {
+      "id": "INV-formatting-011",
+      "rule": "Use one space between sentences and words. Use 4 spaces for indentation, no tabs or 2-space indents.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Spacing rules."
+    },
+    {
+      "id": "INV-formatting-012",
+      "rule": "Use the serial (Oxford) comma for clarity.",
+      "category": "formatting",
+      "severity": "should",
+      "source": "typography.md",
+      "context": "Commas."
+    },
+    {
+      "id": "INV-formatting-013",
+      "rule": "Always use a comma after for example, e.g., i.e.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Commas."
+    },
+    {
+      "id": "INV-formatting-014",
+      "rule": "Avoid semicolons when possible. Split sentences instead.",
+      "category": "formatting",
+      "severity": "should",
+      "source": "typography.md",
+      "context": "Commas."
+    },
+    {
+      "id": "INV-formatting-015",
+      "rule": "Use hyphens (-) without spaces for compound modifiers (out-of-the-box feature).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Hyphens and dashes."
+    },
+    {
+      "id": "INV-formatting-016",
+      "rule": "Use en dash for ranges (1975-1980), field descriptions, and emphasis. Do not use em dash at all.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "En dash / Em dash."
+    },
+    {
+      "id": "INV-formatting-017",
+      "rule": "Use straight quotes. Punctuation goes inside quotation marks (American English style).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Quotation marks."
+    },
+    {
+      "id": "INV-formatting-018",
+      "rule": "URLs use forward slashes. File system paths use backslashes. Relative paths use forward slashes with tilde.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "File paths and URLs."
+    },
+    {
+      "id": "INV-formatting-019",
+      "rule": "Use a.m./p.m. (lowercase with periods) for time. Close format for temperature: 25C, 175F. Ordinals without spaces or hyphens: 1st, 2nd, 3rd.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Time and measurements."
+    },
+    {
+      "id": "INV-formatting-020",
+      "rule": "In release notes files: use italics for text that would normally be bold. Use bold only for important emphasis.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "typography.md",
+      "context": "Special cases: Release notes."
+    },
+    {
+      "id": "INV-formatting-021",
+      "rule": "Combine action and result in one sentence when possible for steps: Select Edit to open the dialog.",
+      "category": "formatting",
+      "severity": "should",
+      "source": "typography.md",
+      "context": "Steps with information."
+    },
+    {
+      "id": "INV-formatting-022",
+      "rule": "Filenames must be lowercase, hyphenated (kebab-case), reflecting page titles. Filenames determine URL slugs.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "File Naming."
+    },
+    {
+      "id": "INV-formatting-023",
+      "rule": "Screenshot filenames use snake_case and PNG format only.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "playwright-screenshots.md",
+      "context": "File naming."
+    },
+    {
+      "id": "INV-callout-001",
+      "rule": "Use callout types in order of severity: tip (bonus info), info (additional context), note (important points), warning (destructive actions/severe consequences).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Callout boxes."
+    },
+    {
+      "id": "INV-callout-002",
+      "rule": "Always include a bold title on a separate line in callouts, unless the content is a single sentence where the title would be redundant.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Callout rules."
+    },
+    {
+      "id": "INV-callout-003",
+      "rule": "Do not write the callout type name inside the callout (e.g., do not write Note inside a note box).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Callout rules."
+    },
+    {
+      "id": "INV-callout-004",
+      "rule": "Do not misuse callout types. Match severity to the content.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Callout rules."
+    },
+    {
+      "id": "INV-frontmatter-001",
+      "rule": "Every page must have YAML front matter between --- lines with required fields: title, identifier, order, redirect_from, persona, license (for _documentation and _guides collections).",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Front Matter."
+    },
+    {
+      "id": "INV-frontmatter-002",
+      "rule": "Identifier must be snake_case base + collection suffix (_xp for _documentation, _guides for _guides). Must be unique across the whole repo.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Front Matter: Identifier."
+    },
+    {
+      "id": "INV-frontmatter-003",
+      "rule": "Order field: start at 100 for new sections; insert by midpoints (550 between 500 and 600).",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Front Matter: Order."
+    },
+    {
+      "id": "INV-frontmatter-004",
+      "rule": "redirect_from must always include x/<identifier> plus any additional legacy paths.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Front Matter: Redirects."
+    },
+    {
+      "id": "INV-frontmatter-005",
+      "rule": "License tiers: 1 (standard), 2 (advanced). Mandatory for _documentation and _guides collections.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Front Matter: License."
+    },
+    {
+      "id": "INV-frontmatter-006",
+      "rule": "Valid persona values: developer, admin, business, architect, all.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "new-page-creation.md",
+      "context": "Frontmatter Schema."
+    },
+    {
+      "id": "INV-frontmatter-007",
+      "rule": "Identifier structure: unique code name + collection suffix (_guides, _xp, or _collection). Must be unique across the help service.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "new-page-creation.md",
+      "context": "Field-Specific Logic Rules."
+    },
+    {
+      "id": "INV-frontmatter-008",
+      "rule": "For section-specific licensing, use license_info Liquid tag instead of front matter. Content inside license tags is excluded from search indexing.",
+      "category": "frontmatter",
+      "severity": "must",
+      "source": "new-page-creation.md",
+      "context": "Licensing Features."
+    },
+    {
+      "id": "INV-crossref-001",
+      "rule": "When inserting page_link, never guess the identifier. Always get it from the target file front matter. If the target file cannot be found, insert a TODO placeholder.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Create page links without hallucinating identifiers."
+    },
+    {
+      "id": "INV-crossref-002",
+      "rule": "Set the collection parameter in page_link based on source folder: _documentation -> documentation, _guides -> guides, _api -> api. Only required when referencing from a different collection.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Mandatory steps for page links."
+    },
+    {
+      "id": "INV-crossref-003",
+      "rule": "When adding an anchor to page_link, only use an anchor that actually exists on the target page. Do not invent anchors.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Mandatory steps for page links."
+    },
+    {
+      "id": "INV-crossref-004",
+      "rule": "Anchor IDs must start with a letter, contain no whitespace, and use only ASCII letters, digits, underscore, or hyphen.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Anchors."
+    },
+    {
+      "id": "INV-crossref-005",
+      "rule": "External links default target is _blank. Include the URL scheme; bare domains are treated as relative.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "External links."
+    },
+    {
+      "id": "INV-crossref-006",
+      "rule": "Use descriptive link text. Avoid vague phrases like click here or this page.",
+      "category": "crossref",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Avoid: Vague link text."
+    },
+    {
+      "id": "INV-crossref-007",
+      "rule": "In guides, include relevant links naturally within the body text at the point of need. Avoid using the Related Pages component at the end.",
+      "category": "crossref",
+      "severity": "should",
+      "source": "guides-style-guide-full.md",
+      "context": "Avoid using the related pages component."
+    },
+    {
+      "id": "INV-crossref-008",
+      "rule": "Use suppress_warnings=true on page_link when intentionally linking to older/disabled collections.",
+      "category": "crossref",
+      "severity": "should",
+      "source": "markdown-syntax.md",
+      "context": "page_link parameters."
+    },
+    {
+      "id": "INV-persona-001",
+      "rule": "Business users: friendly, positive tone. One action per step. No technical jargon. More screenshots for clarity.",
+      "category": "persona",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Target audiences: Business users."
+    },
+    {
+      "id": "INV-persona-002",
+      "rule": "Business users: assume they work on a team that includes technical people who handle setup tasks.",
+      "category": "persona",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Target audiences: Business users."
+    },
+    {
+      "id": "INV-persona-003",
+      "rule": "Developers and admins: can combine 2 related easy steps. Use developer terminology appropriately. Explain business/marketing terms when needed.",
+      "category": "persona",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Target audiences: Developers and admins."
+    },
+    {
+      "id": "INV-persona-004",
+      "rule": "Adjust vocabulary specifically to the target audience. Do not use business user terminology for developers and vice versa. Explain cross-domain terms.",
+      "category": "persona",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Developers and admins: General rules."
+    },
+    {
+      "id": "INV-persona-005",
+      "rule": "Guides tone: conversational, friendly, encouraging. Use you for personal tone, we/lets for teamwork.",
+      "category": "persona",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Writing Style."
+    },
+    {
+      "id": "INV-persona-006",
+      "rule": "Business user guide materials: provide real-world marketing scenarios. Reference KBank/Dancing Goat demos when possible.",
+      "category": "persona",
+      "severity": "should",
+      "source": "guides-style-guide.md",
+      "context": "Business User Materials."
+    },
+    {
+      "id": "INV-content-001",
+      "rule": "Xperience by Kentico: first mention full name, subsequent Xperience. Use Kentico alone only for the company. Never use Kentico alone for the product.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Product naming."
+    },
+    {
+      "id": "INV-content-002",
+      "rule": "Always: Open the XXX application. Never: Open the XXX app from the application list.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Terminology: Opening applications."
+    },
+    {
+      "id": "INV-content-003",
+      "rule": "Use sign in (verb), sign-in (noun/adjective). Use sign in to (never sign into). Never use log in, login, log on.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Terminology: Authentication."
+    },
+    {
+      "id": "INV-content-004",
+      "rule": "check box: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-005",
+      "rule": "drop-down list: hyphenated.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "UI elements."
+    },
+    {
+      "id": "INV-content-006",
+      "rule": "radio button: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "UI elements."
+    },
+    {
+      "id": "INV-content-007",
+      "rule": "user name: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-008",
+      "rule": "curly brackets: never braces.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "UI elements."
+    },
+    {
+      "id": "INV-content-009",
+      "rule": "scroll bar: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "UI elements."
+    },
+    {
+      "id": "INV-content-010",
+      "rule": "Use minimum for quantities, minimal for probability or quality.",
+      "category": "content",
+      "severity": "must",
+      "source": "docs-style-guide.md",
+      "context": "Terminology."
+    },
+    {
+      "id": "INV-content-011",
+      "rule": "allowlist/denylist: use instead of whitelist/blacklist.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-012",
+      "rule": "email: no hyphen.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-013",
+      "rule": "online: no hyphen.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-014",
+      "rule": "website: one word.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-015",
+      "rule": "web server: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-016",
+      "rule": "blog post: two words.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-017",
+      "rule": "lifecycle: one word.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Time and process terms."
+    },
+    {
+      "id": "INV-content-018",
+      "rule": "startup: one word (noun).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Time and process terms."
+    },
+    {
+      "id": "INV-content-019",
+      "rule": "timeout: one word (noun).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Time and process terms."
+    },
+    {
+      "id": "INV-content-020",
+      "rule": "plugin: one word, no hyphen.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Time and process terms."
+    },
+    {
+      "id": "INV-content-021",
+      "rule": "client-side and server-side: always hyphenated as qualifier.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Architecture terms."
+    },
+    {
+      "id": "INV-content-022",
+      "rule": "front end / back end: two words; hyphenated when qualifying nouns (back-end development).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Architecture terms."
+    },
+    {
+      "id": "INV-content-023",
+      "rule": "file system: two words (not filesystem).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Architecture terms."
+    },
+    {
+      "id": "INV-content-024",
+      "rule": "microsite, multichannel, multilingual: one word, no hyphens.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Architecture terms."
+    },
+    {
+      "id": "INV-content-025",
+      "rule": "Do not use .NET Core. It has been replaced by .NET.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": ".NET terminology."
+    },
+    {
+      "id": "INV-content-026",
+      "rule": "Internet capitalized as a noun; lowercase internet as an adjective.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Internet terminology."
+    },
+    {
+      "id": "INV-content-027",
+      "rule": "Treat data as singular (data is, not data are).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Grammar rules."
+    },
+    {
+      "id": "INV-content-028",
+      "rule": "third party: two words (noun); third-party: hyphenated (adjective).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Grammar rules."
+    },
+    {
+      "id": "INV-content-029",
+      "rule": "e-commerce is deprecated: use commerce. online marketing is deprecated: use Digital marketing.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Deprecated terms."
+    },
+    {
+      "id": "INV-content-030",
+      "rule": "User types: user = admin account holder; member = registered visitor without admin access; visitor = anonymous website user; contact = Xperience entity for visitors. Do not confuse contact with visitor or customer.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "User types and entities."
+    },
+    {
+      "id": "INV-content-031",
+      "rule": "Use visitor over customer for website interaction. Use customer only in commerce contexts.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Preferred terminology."
+    },
+    {
+      "id": "INV-content-032",
+      "rule": "Avoid end user when possible; use specific terms (developers, business users).",
+      "category": "content",
+      "severity": "should",
+      "source": "word-list.md",
+      "context": "Preferred terminology."
+    },
+    {
+      "id": "INV-content-033",
+      "rule": "SaaS is not a proper noun. Use with the definite article the (the SaaS environment). When qualifying: SaaS project, SaaS configuration.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Environment types: SaaS."
+    },
+    {
+      "id": "INV-content-034",
+      "rule": "private cloud: common noun, no capitalization.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Environment types."
+    },
+    {
+      "id": "INV-content-035",
+      "rule": "Xperience Portal: proper noun, no article.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Environment types."
+    },
+    {
+      "id": "INV-content-036",
+      "rule": "live site: two words; hyphenated when qualifying (live-site development).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-037",
+      "rule": "step-by-step: always hyphenated.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Time and process terms."
+    },
+    {
+      "id": "INV-content-038",
+      "rule": "Feature names: capitalize Form Builder, Page Builder, Email Builder, Continuous Integration, Continuous Deployment. Lowercase marketing in Digital marketing.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Xperience features."
+    },
+    {
+      "id": "INV-content-039",
+      "rule": "Admin terminology: administration (full: Xperience administration), admin UI (developer docs), administration interface (non-technical users), application (unit in admin UI).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Admin interface terminology."
+    },
+    {
+      "id": "INV-content-040",
+      "rule": "Clone vs Copy: clone = create duplicate in admin UI listings; copy = add to clipboard for pasting (Page Builder widgets).",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Action terminology."
+    },
+    {
+      "id": "INV-content-041",
+      "rule": "GIFs must be under 5 seconds. Longer content should be saved as video format.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Visual Content."
+    },
+    {
+      "id": "INV-content-042",
+      "rule": "Add alt text and captions for all visuals to make them accessible.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Include visuals."
+    },
+    {
+      "id": "INV-content-043",
+      "rule": "Do not list generic prerequisites (MVC, .NET Core, constructor injection). Focus on XbyK-specific knowledge.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Avoid: Generic prerequisites."
+    },
+    {
+      "id": "INV-content-044",
+      "rule": "Address common customer pitfalls with WARN callouts in guides.",
+      "category": "content",
+      "severity": "should",
+      "source": "guides-style-guide.md",
+      "context": "Tips and Best Practices."
+    },
+    {
+      "id": "INV-content-045",
+      "rule": "Include realistic business examples even in POC-level guides. Avoid generic or artificial examples.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Avoid: Generic examples."
+    },
+    {
+      "id": "INV-content-046",
+      "rule": "Avoid using in Xperience by Kentico in module/path names. Use verb-title in base infinitive form (not -ing).",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Naming patterns."
+    },
+    {
+      "id": "INV-content-047",
+      "rule": "Module intro text must not exceed 152 characters.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Creating modules."
+    },
+    {
+      "id": "INV-content-048",
+      "rule": "Remove all unnecessary comments before merging modules/paths.",
+      "category": "content",
+      "severity": "must",
+      "source": "guides-style-guide-full.md",
+      "context": "Merging completed modules."
+    },
+    {
+      "id": "INV-content-049",
+      "rule": "on-site: hyphenated when qualifying nouns.",
+      "category": "content",
+      "severity": "must",
+      "source": "word-list.md",
+      "context": "Compound words."
+    },
+    {
+      "id": "INV-content-050",
+      "rule": "register is preferred over sign up for account creation.",
+      "category": "content",
+      "severity": "should",
+      "source": "docs-style-guide.md",
+      "context": "Terminology: Register and sign up."
+    },
+    {
+      "id": "INV-content-051",
+      "rule": "Screenshots: hide AIRA panel, exclude left sidebar via clip offset, crop dead space at bottom.",
+      "category": "content",
+      "severity": "must",
+      "source": "playwright-screenshots.md",
+      "context": "Standard capture workflow."
+    },
+    {
+      "id": "INV-content-052",
+      "rule": "Screenshot highlights use red outline (3px solid red) with 3px offset.",
+      "category": "content",
+      "severity": "must",
+      "source": "playwright-screenshots.md",
+      "context": "Capture workflow."
+    },
+    {
+      "id": "INV-content-053",
+      "rule": "Screenshots must be saved to src/_docsassets/<collection>/<target-folder>/.",
+      "category": "content",
+      "severity": "must",
+      "source": "playwright-screenshots.md",
+      "context": "Screenshot output."
+    },
+    {
+      "id": "INV-content-054",
+      "rule": "Visuals must be self-explanatory and standalone. Use notes, comments, legend, and proper sizing.",
+      "category": "content",
+      "severity": "should",
+      "source": "guides-style-guide-full.md",
+      "context": "Include visuals."
+    },
+    {
+      "id": "INV-jekyll-001",
+      "rule": "Use Liquid admonition tags: tip, info, note, warning, key.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Liquid Tags: Admonitions."
+    },
+    {
+      "id": "INV-jekyll-002",
+      "rule": "Code blocks use the code Liquid tag with supported lang values: bash, bicep, c, css, csharp, cshtml, git, graphql, js, java, json, jsx, html, markdown, nginx, powershell, tsx, regex, sql, typescript, yaml. Use lang=text for no highlighting.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Code Blocks."
+    },
+    {
+      "id": "INV-jekyll-003",
+      "rule": "Images use the image Liquid tag with path src/_docsassets/<collection>/<pagefilename>/. Use border=true for UI/screenshot images.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Assets: Images."
+    },
+    {
+      "id": "INV-jekyll-004",
+      "rule": "Files use the file Liquid tag with path src/_docsassets/<collection>/<pagefilename>/. Disposition: download (default) or open.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Assets: Files."
+    },
+    {
+      "id": "INV-jekyll-005",
+      "rule": "Video: YouTube URLs must use /embed/ format.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Assets: Video."
+    },
+    {
+      "id": "INV-jekyll-006",
+      "rule": "Columns layout: up to 4 columns, responsive.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Layout Components: Columns."
+    },
+    {
+      "id": "INV-jekyll-007",
+      "rule": "Card component: use either icon OR image, not both.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Layout Components: Card."
+    },
+    {
+      "id": "INV-jekyll-008",
+      "rule": "Banner modes: primary (default) or secondary.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Layout Components: Banner."
+    },
+    {
+      "id": "INV-jekyll-009",
+      "rule": "Related pages in front matter must be from same collection.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Related Pages."
+    },
+    {
+      "id": "INV-jekyll-010",
+      "rule": "Inline TOC: only minHeadingLevel and maxHeadingLevel params supported inline.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Inline ToC."
+    },
+    {
+      "id": "INV-jekyll-011",
+      "rule": "Table markup uses table/row/cell Liquid tags with header, colspan, rowspan options.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "markdown-syntax.md",
+      "context": "Tables."
+    },
+    {
+      "id": "INV-jekyll-012",
+      "rule": "Use key macro for key takeaways in guides.",
+      "category": "jekyll",
+      "severity": "should",
+      "source": "guides-style-guide.md",
+      "context": "Must Include."
+    },
+    {
+      "id": "INV-jekyll-013",
+      "rule": "When transforming guides into modules, create an admonition using module_link macro.",
+      "category": "jekyll",
+      "severity": "should",
+      "source": "guides-style-guide-full.md",
+      "context": "Inform users about modules."
+    },
+    {
+      "id": "INV-jekyll-014",
+      "rule": "code_link tag requires source and lang attributes. Lang values must be from supported list.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "code-link-tag-specification.md",
+      "context": "Tag Syntax."
+    },
+    {
+      "id": "INV-jekyll-015",
+      "rule": "Section markers in code_link use language-specific comment syntax: // for C#/TS/JS/CSS/JSON, HTML comments for HTML/XML, -- for SQL, # for YAML/Bash/PowerShell.",
+      "category": "jekyll",
+      "severity": "must",
+      "source": "code-link-tag-specification.md",
+      "context": "Section Marker Formats."
+    },
+    {
+      "id": "INV-codesamples-001",
+      "rule": "Use //Include: / //EndInclude: markers to demarcate extractable code regions in the codesamples project.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "codesamples-project.md",
+      "context": "Standalone samples."
+    },
+    {
+      "id": "INV-codesamples-002",
+      "rule": "After every update to codesamples project files, run npm run codesamples:build to verify the project compiles.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "codesamples-project.md",
+      "context": "Build and serve."
+    },
+    {
+      "id": "INV-codesamples-003",
+      "rule": "When adding a new feature area to codesamples, create a new top-level folder following the feature-folder organization pattern.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "codesamples-project.md",
+      "context": "Feature-folder organization."
+    },
+    {
+      "id": "INV-codesamples-004",
+      "rule": "Code comments: use third person singular. Omit subject when clear. Use punctuation in multi-line comments. No final dot for single-line comments. Whitespace after comment symbol.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Source code comments."
+    },
+    {
+      "id": "INV-codesamples-005",
+      "rule": "If a code example has 4 or more parameters in a constructor/attribute, use named parameter syntax for readability.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Source code comments."
+    },
+    {
+      "id": "INV-codesamples-006",
+      "rule": "For incomplete code examples, use ellipsis (three manually written dots). Do not write ellipsis inside comments.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Source code comments."
+    },
+    {
+      "id": "INV-codesamples-007",
+      "rule": "Write ID and GUID as Id and Guid in source code (not comments), treating them as words.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "docs-style-guide-full.md",
+      "context": "Source code comments."
+    },
+    {
+      "id": "INV-codesamples-008",
+      "rule": "Comment only what is important. Do not comment code that is easy to understand.",
+      "category": "codesamples",
+      "severity": "should",
+      "source": "docs-style-guide-full.md",
+      "context": "Source code comments."
+    },
+    {
+      "id": "INV-codesamples-009",
+      "rule": "Developer guide code: focus comments on Kentico-specific methods, not generic .NET. Link to MS documentation for generic .NET concepts.",
+      "category": "codesamples",
+      "severity": "must",
+      "source": "guides-style-guide.md",
+      "context": "Code Examples."
+    },
+    {
+      "id": "INV-codesamples-010",
+      "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+      "category": "codesamples",
+      "severity": "should",
+      "source": "guides-style-guide-full.md",
+      "context": "Material for developers."
+    },
+    {
+      "id": "INV-diagrams-001",
+      "rule": "Draw.io diagrams: use Bootstrap library for UI elements, Material Design for icons.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "drawio-diagrams.md",
+      "context": "Shape Libraries."
+    },
+    {
+      "id": "INV-diagrams-002",
+      "rule": "Draw.io color palette: #AF00FA (shapes), #BCA39A (connectors), #000000/#FFFFFF (text).",
+      "category": "formatting",
+      "severity": "must",
+      "source": "drawio-diagrams.md",
+      "context": "Color Palette."
+    },
+    {
+      "id": "INV-diagrams-003",
+      "rule": "Draw.io font: GT Walsheim Pro only. Set fontFamily to GT Walsheim in generated XML.",
+      "category": "formatting",
+      "severity": "must",
+      "source": "drawio-diagrams.md",
+      "context": "Typography."
+    }
+  ],
+  "summary": {
+    "totalInvariants": 213,
+    "byCategory": {
+      "content": 54,
+      "style": 52,
+      "structure": 30,
+      "formatting": 30,
+      "jekyll": 15,
+      "codesamples": 10,
+      "frontmatter": 8,
+      "crossref": 8,
+      "persona": 6
+    }
+  }
+}

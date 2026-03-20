@@ -1,0 +1,46 @@
+{
+  "agent": "docwriter-knowledge-integrator",
+  "status": "done",
+  "result": "knowledge-integrated",
+  "timestamp": "2026-03-14T16:06:35+00:00",
+  "newEntries": 28,
+  "updatedEntries": 0,
+  "discarded": 2,
+  "discardedDetails": [
+    {
+      "sourceId": "AGG-006",
+      "title": "Research recommendations improve coverage but don't prevent ",
+      "reason": "Fails actionability: the observation that research and invariants serve orthogonal purposes is a truism with no concrete action for downstream agents."
+    },
+    {
+      "sourceId": "STYLE-EVO-006",
+      "title": "Pre-existing icon errors (xp-lock \u2192 xp-diamond) discovered a",
+      "reason": "Fails reusability: specific icon class change (xp-lock\u2192xp-diamond) is not generalizable. The accuracy reviewer already catches pre-existing errors by design."
+    }
+  ],
+  "retrospectiveWritten": true,
+  "retrospectiveFile": "meta/task-retros/member-roles-content-access-security-20260314T160635.json",
+  "sourcesUpdated": 3,
+  "newSourceCandidates": 1,
+  "entrySummary": {
+    "patterns": 7,
+    "antiPatterns": 5,
+    "domainInsights": 11,
+    "styleEvolutions": 6
+  },
+  "confidenceDistribution": {
+    "low": 29,
+    "medium": 0,
+    "high": 0
+  },
+  "coldStart": true,
+  "notes": "Cold-start run: all entries assigned confidence=low per strict confidence ladder. Signals with 2-3 within-run observations have strong evidence but cannot promote above low until confirmed in a second run.",
+  "mergesPerformed": 1,
+  "mergeDetails": [
+    {
+      "merged": "DOM-005",
+      "into": "DOM-002",
+      "reason": "Both CTXGAP-002 and CTXDOM-002 describe the same hub/index page enumeration pattern from different analyzers"
+    }
+  ]
+}

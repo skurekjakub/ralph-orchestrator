@@ -1,0 +1,15 @@
+{
+  "agent": "docwriter-context-signal-analyzer",
+  "status": "done",
+  "result": "context-signals-ready",
+  "timestamp": "2026-03-14T15:58:00.000000+00:00",
+  "gapSignals": 5,
+  "domainInsights": 7,
+  "researchSourcesEvaluated": 8,
+  "researchRecommendationsUsed": "15/18 (83%)",
+  "impactMappingAccuracy": "91% (20/22 impacts)",
+  "riskAnalysisAssessment": "17 risks, 2 fully realized, 5 partially realized",
+  "invariantRejectionRate": "5.2% (11/213 invariants caused rejections)",
+  "metaKnowledge": "cold-start — 0 prior entries, seeding knowledge base from this run",
+  "pipelineConvergence": "cycle-1 convergence, 0 critical/high gaps"
+}

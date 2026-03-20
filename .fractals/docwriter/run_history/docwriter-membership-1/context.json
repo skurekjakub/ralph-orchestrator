@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "source": {
+    "repoPath": "./resources/repositories/xperience",
+    "diffRef": "65412d25da302785ccbca5bf81993079f8819f18",
+    "baseBranch": "master"
+  },
+  "docs": {
+    "workspacePath": "./src/_documentation",
+    "contentCollections": ["_documentation"]
+  },
+  "invariants": {
+    "guidelinesPath": "./github/resources/"
+  },
+  "output": {
+    "branch": "docs/membership"
+  },
+  "notes": "Ignore documentation versions KX13 and older."
+}

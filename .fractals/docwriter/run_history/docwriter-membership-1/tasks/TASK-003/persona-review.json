@@ -1,0 +1,195 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-003",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer", "admin"],
+      "expectedPersonas": ["developer", "admin"],
+      "evidence": "Front matter line 3 declares `persona: developer, admin`, matching the task specification. This was the primary rejection item from attempt 1 (`persona: developer` only) and has been corrected."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "The page maintains strong developer-appropriate tone throughout. Uses precise API terminology (`ApplicationUser`, `ApplicationRole`, `ApplicationRoleStore`, `UserManager`, `IdentityUser`, `IRoleStore<TRole>`, `SecurityStamp`, `SecurityStampValidatorOptions`). References exact .NET framework concepts (ASP.NET Identity, middleware pipeline, `Program.cs`). Inline code with backticks for all class names and methods. Embeds code samples via `code_link` and `code` tags. Assumes SDK familiarity (e.g., line 40: 'add the required UseAuthentication and UseAuthorization middleware'). Architecture section (lines 116–128) provides system-level data flow tracing — appropriately deep for developers."
+    },
+    {
+      "check": "tone-admin",
+      "result": "pass",
+      "evidence": "Attempt 2 addresses all three admin tone failures from attempt 1. (1) Content access model (lines 90–102): line 98 now leads with the admin UI procedure — 'open the item in the administration and set the desired level in its content access options. When using the Secured with roles level, assign the specific member roles that grant access. Changes to access settings take effect immediately for new requests.' The programmatic developer approach (`ContentAccessSettings`, `HasAccess`) follows on line 100, clearly separated with 'For programmatic control'. (2) Disabling user accounts (lines 152–165): line 154 now leads with admin operational impact — 'When you disable a member account using the **Disable** action in the **Members** application, the account is not blocked immediately. Disabled accounts can remain active for up to 30 minutes before the system forces the member to re-authenticate.' Developer SecurityStamp details follow on lines 156+. (3) ApplicationUser.Enabled (lines 132–150): line 134 references the admin UI action — 'The enabled status is also controlled via the **Members** application –> **Disable/Enable** action'. All three sections now layer admin-first operational context before developer implementation details."
+    },
+    {
+      "check": "depth-developer",
+      "result": "pass",
+      "evidence": "Content depth is appropriate for the developer persona. The architecture section (lines 116–128) traces the full bidirectional data flow (ApplicationUser ↔ MemberInfo via MapFromMemberInfo/MapToMemberInfo, MemberExternalLoginInfo for external providers, ApplicationRole ↔ MemberRoleInfo for roles). Code samples demonstrate exact configuration patterns (Identity setup, middleware order, SecurityStampValidatorOptions). Remarks sections address edge cases developers would encounter (SecurityStamp revalidation timing, registration activity logging triggers, preview mode authentication scheme conflicts). The page does not merely say 'use the API' — it shows how, with code references and links to Identity interfaces."
+    },
+    {
+      "check": "depth-admin",
+      "result": "pass",
+      "evidence": "Admin depth calibration has been corrected from attempt 1. Admin-relevant sections now provide the operational context admins need: (1) Content access model (line 98) explains the three tiers with clear labels (Public, Secured, Secured with roles) and the UI workflow for configuring them. (2) Disabling user accounts (line 154) gives the practical impact ('up to 30 minutes') and the action path ('Disable action in Members application'). (3) The architecture section (lines 116–128) remains developer-deep, but this is appropriate — it is clearly labeled 'Xperience ASP.NET Identity architecture' and lives under the 'development' path, signaling to admins that it is an optional deep-dive. The page's structure allows admins to consume the operational sections (Content access model, Management and customization, Disabling user accounts) without needing to parse the architecture internals."
+    },
+    {
+      "check": "multi-persona-layering",
+      "result": "pass",
+      "evidence": "The page correctly layers content for its dual audience. The introduction (lines 17–23) is persona-neutral and accessible to both developers and admins. Operational/admin-relevant sections lead with UI procedures and practical impact, then deepen into developer implementation details. Developer-only sections (architecture, code configuration) are clearly delineated by heading and context. This progressive-depth pattern allows both personas to consume the page effectively without either feeling alienated."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "concept",
+    "docIndexClassification": "concept",
+    "taskContentType": "howto",
+    "result": "pass",
+    "evidence": "The doc-index classifies this page as 'concept' and the page content matches: it opens with a conceptual explanation of registration and authentication (lines 17–23), provides architectural context (lines 116–128), and includes configuration guidance as secondary content. The task definition specifies 'howto' but this is a task-level mismatch — the page's actual 'concept' classification is correct. The 'Configure registration and authentication' section (lines 25–44) has procedural steps but serves the concept's completeness rather than being the page's primary purpose. No page-level change needed."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Registration and authentication",
+      "invariantId": "INV-frontmatter-001",
+      "evidence": "Present and descriptive."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "tYouCw",
+      "invariantId": "INV-frontmatter-002",
+      "evidence": "Present and unique. Legacy identifier format (not snake_case with _xp suffix), but this is an existing page — legacy format is acceptable per INV-frontmatter-002 which applies the naming convention to new pages."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "500",
+      "invariantId": "INV-frontmatter-003",
+      "evidence": "Present. Existing value, no change needed."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/tYouCw",
+      "invariantId": "INV-frontmatter-004",
+      "evidence": "Present, includes x/<identifier> as required."
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer, admin",
+      "invariantId": "INV-frontmatter-006",
+      "evidence": "Both values are valid per INV-frontmatter-006 (valid values: developer, admin, business, architect, all). Matches task requirement and actual content audience."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "invariantId": "INV-frontmatter-005",
+      "evidence": "Present, standard tier."
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": "['BIsuCw', 'member_roles_xp']",
+      "invariantId": "INV-jekyll-009",
+      "evidence": "Present, includes both 'Manage members' (BIsuCw) and new 'Member roles' (member_roles_xp) page. Both are in the same _documentation collection."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "The persona targeting is now consistent with the surrounding page cluster. Child pages — 'Forms authentication' (developer), 'External authentication' (developer), 'Add fields to member objects' (developer) — appropriately target developer-only as they are implementation-specific deep-dives. The parent page (this page) correctly targets both developer and admin since it serves as the overview/entry-point that bridges operational (admin) and implementation (developer) concerns. The admin-focused sibling cluster 'Administration - Registration and authentication' (admin, developer) and the 'Users' parent page (admin, developer) follow the same dual-persona pattern. This page's persona targeting is now aligned with the cluster hierarchy: parent/overview pages serve the broader developer+admin audience, while child/implementation pages narrow to developer-only."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "The page serves both developers and admins per the invariant's combined audience rule. Developer terminology is used appropriately — API names, class references, code samples target developers. Admin-facing content is operationally focused — UI procedures, practical impact statements. Business/marketing terms are explained when used: 'member roles' is explained with its purpose (line 86: 'Control which content on your website is accessible to specific groups of registered members'), and the three-tier content access model (lines 92–96) gives clear labels with operational definitions. Two related steps are combined where appropriate (e.g., line 40: add authentication + authorization middleware in order). This was the failing invariant in attempt 1 — now passes."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Vocabulary is adjusted to each persona. Admin-facing passages use operational terms: 'Disable action', 'Members application', 'administration', 'content access options', 'take effect immediately for new requests'. Developer-facing passages use SDK terms: 'ApplicationUser', 'SecurityStampValidatorOptions', 'ValidationInterval', 'TimeSpan.Zero', 'UserManager.CreateAsync'. No business-user terminology is used inappropriately for the developer/admin audience. Cross-domain terms are explained: 'registered visitors are referred to as members in the system' (line 31)."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "This invariant targets guides collection content ('Guides tone: conversational, friendly, encouraging'). The page is in the _documentation collection, not _guides. Not applicable to this page."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "This invariant targets business users ('Business users: friendly, positive tone'). The page targets developer and admin personas, not business. Not applicable."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "This invariant targets business users ('Business users: assume they work on a team...'). Not applicable to this developer+admin page."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "severity": "should",
+      "evidence": "This invariant targets business user guide materials. Not applicable to this developer+admin documentation page."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Front matter contains all required fields: title (line 2), identifier (line 4), order (line 5), redirect_from (line 8), persona (line 3), license (line 6)."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Both persona values ('developer', 'admin') are in the valid set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "User type terminology is correct and supports clear persona targeting. 'member' used for registered visitors (line 31: 'registered visitors are referred to as members in the system'), 'visitor' for anonymous users (line 52: 'When a visitor attempts to sign in'), 'user' for general Identity user concepts (line 19: 'a user creates an account'). Consistent with the invariant's entity definitions."
+    }
+  ],
+  "attemptComparison": {
+    "attempt1Verdict": "rejected",
+    "attempt1RejectionItems": [
+      "Front matter persona field declared only 'developer', missing 'admin'",
+      "Admin tone absent from Content access model — immediately pivoted to programmatic API without UI procedure",
+      "Admin tone absent from Disabling user accounts — led with SecurityStampValidatorOptions code without operational impact"
+    ],
+    "attempt2Fixes": [
+      {
+        "item": "Front matter persona",
+        "status": "fixed",
+        "evidence": "Line 3 now reads `persona: developer, admin`."
+      },
+      {
+        "item": "Content access model admin lead-in",
+        "status": "fixed",
+        "evidence": "Line 98 now leads with admin UI procedure ('open the item in the administration and set the desired level in its content access options') before line 100's programmatic approach ('For programmatic control, use the ContentAccessSettings class')."
+      },
+      {
+        "item": "Disabling user accounts admin lead-in",
+        "status": "fixed",
+        "evidence": "Line 154 now leads with admin operational impact ('When you disable a member account using the Disable action in the Members application, the account is not blocked immediately. Disabled accounts can remain active for up to 30 minutes') before lines 156+ SecurityStamp technical details."
+      }
+    ],
+    "allRejectionItemsAddressed": true
+  },
+  "summary": {
+    "personaChecksPassed": 6,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "classificationNote": "Page is correctly 'concept'; task's 'howto' designation is a task-level mismatch, not a page issue.",
+    "taxonomyComplete": true,
+    "invariantsPassed": 5,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "consistencyPass": true
+  }
+}

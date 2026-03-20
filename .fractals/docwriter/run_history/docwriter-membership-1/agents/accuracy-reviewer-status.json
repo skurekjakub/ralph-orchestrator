@@ -1,0 +1,10 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "status": "done",
+  "result": "rejected",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "claimsVerified": 15,
+  "claimsIncorrect": 1,
+  "rejectionReason": "Line 57: lock icon (xp-lock) is incorrect — source code uses diamond icon (xp-diamond) for secured pages in content tree"
+}

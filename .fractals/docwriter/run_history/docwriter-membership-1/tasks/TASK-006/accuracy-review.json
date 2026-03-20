@@ -1,0 +1,202 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-006",
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "Xperience provides the option to extend objects representing members (visitors who register an account)",
+      "location": "Opening paragraph, line 17",
+      "result": "verified",
+      "evidence": "MemberInfo (CMS.Membership) is an ORM-connected class with extensible DB columns; ApplicationUser wraps it for ASP.NET Identity. Architecture supports custom fields via Modules > Membership > Classes.",
+      "docFact": null
+    },
+    {
+      "claim": "The default member object can store names, emails, passwords, and supports external logins",
+      "location": "Second paragraph, line 19",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs MapFromMemberInfo (lines 57-73): maps MemberName, MemberEmail, MemberPassword, MemberIsExternal, MemberEnabled, MemberSecurityStamp from MemberInfo.",
+      "docFact": null
+    },
+    {
+      "claim": "First step is to define new fields for `CMS.Membership.MemberInfo`",
+      "location": "Section: Add the new fields to the MemberInfo object, line 32",
+      "result": "verified",
+      "evidence": "MemberInfo.cs is in namespace CMS.Membership (line 7). Registered as ORM object type 'cms.memberrole' via [assembly: RegisterObjectType]. Fields are DB-backed via [DatabaseField] attributes.",
+      "docFact": null
+    },
+    {
+      "claim": "Create a new class that inherits from `Kentico.Membership.ApplicationUser`",
+      "location": "Section: Modify the ApplicationUser class, line 47",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs line 7: namespace Kentico.Membership; line 12: public class ApplicationUser : IdentityUser<int>. Class is non-sealed, non-abstract.",
+      "docFact": null
+    },
+    {
+      "claim": "Override the `MapFromMemberInfo` and `MapToMemberInfo` methods",
+      "location": "Section: Modify the ApplicationUser class, line 49",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs line 57: public virtual void MapFromMemberInfo(MemberInfo source); line 82: public virtual void MapToMemberInfo(MemberInfo target). Both are virtual, overridable.",
+      "docFact": null
+    },
+    {
+      "claim": "Use `MemberInfo.GetValue` and `MemberInfo.SetValue` for custom properties",
+      "location": "Section: Modify the ApplicationUser class, line 51",
+      "result": "verified",
+      "evidence": "MemberInfo inherits AbstractInfo<MemberInfo, IMemberInfoProvider> which inherits from BaseInfo with GetValue/SetValue methods. MemberInfo.cs itself uses GetValue/SetValue in its property implementations (e.g., line 44, 45).",
+      "docFact": null
+    },
+    {
+      "claim": "Code sample: `AddIdentity<ExtendedApplicationUser, ApplicationRole>`",
+      "location": "Section: Configure ASP.NET Identity, code block line 63",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs line 12: public class ApplicationRole : IdentityRole<int> — satisfies IdentityRole constraint for AddIdentity<TUser, TRole>. Has parameterless constructor (line 29). Replaces obsolete NoOpApplicationRole (NoOpApplicationRole.cs line 18: [Obsolete] attribute).",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced"
+    },
+    {
+      "claim": "Code sample: `.AddUserStore<ApplicationUserStore<ExtendedApplicationUser>>()`",
+      "location": "Section: Configure ASP.NET Identity, code block line 67",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs line 18-24: public class ApplicationUserStore<TUser> : IUserPasswordStore<TUser>, IUserEmailStore<TUser>, IUserLoginStore<TUser>, IUserSecurityStampStore<TUser>, IUserRoleStore<TUser> where TUser : ApplicationUser, new(). ExtendedApplicationUser inherits ApplicationUser, satisfying the constraint.",
+      "docFact": null
+    },
+    {
+      "claim": "Code sample: `.AddRoleStore<ApplicationRoleStore<ApplicationRole>>()`",
+      "location": "Section: Configure ASP.NET Identity, code block line 68",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs line 16-17: public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new(). ApplicationRole satisfies the constraint (has parameterless constructor at line 29).",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced"
+    },
+    {
+      "claim": "Code sample: `.AddUserManager<UserManager<ExtendedApplicationUser>>()`",
+      "location": "Section: Configure ASP.NET Identity, code block line 69",
+      "result": "verified",
+      "evidence": "UserManager<TUser> is a standard ASP.NET Identity class from Microsoft.AspNetCore.Identity. Valid registration.",
+      "docFact": null
+    },
+    {
+      "claim": "Code sample: `.AddSignInManager<SignInManager<ExtendedApplicationUser>>()`",
+      "location": "Section: Configure ASP.NET Identity, code block line 70",
+      "result": "verified",
+      "evidence": "SignInManager<TUser> is a standard ASP.NET Identity class from Microsoft.AspNetCore.Identity. Valid registration.",
+      "docFact": null
+    },
+    {
+      "claim": "`Kentico.Membership.ApplicationUser` type derived from `IdentityUser` to represent members",
+      "location": "Remarks – ApplicationUser and MemberInfo, line 102",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs line 12: public class ApplicationUser : IdentityUser<int>. Doc says 'IdentityUser' without generic param — technically IdentityUser<int>, but IdentityUser<int> inherits from IdentityUser<TKey> making this an acceptable simplification in docs context. Pre-existing content, not modified by this task.",
+      "docFact": null,
+      "notes": "Pre-existing content. Minor imprecision: source uses IdentityUser<int>, doc omits the generic parameter. Not an error per se — acceptable docs simplification."
+    },
+    {
+      "claim": "When saving member data (`CreateAsync` or `UpdateAsync` on `UserManager`), Xperience maps data from `ApplicationUser` to `CMS.Membership.MemberInfo`",
+      "location": "Remarks – ApplicationUser and MemberInfo, line 102",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs line 211: user.MapToMemberInfo(memberInfo) inside CreateAsync; line 260: user.MapToMemberInfo(memberInfo) inside UpdateAsync. UserManager delegates to the store.",
+      "docFact": null
+    },
+    {
+      "claim": "When retrieving member data (`UserManager.FindBy*` methods), the member is first retrieved as `MemberInfo` and then converted to `ApplicationUser`",
+      "location": "Remarks – ApplicationUser and MemberInfo, line 104",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs FindByIdInternal (line 355-365): gets MemberInfo via provider, then calls user.MapFromMemberInfo(memberInfo). Same pattern in FindByNameInternal (line 389-403) and FindByEmailInternal (line 615-628).",
+      "docFact": null
+    },
+    {
+      "claim": "Transfer of data between objects is handled by the `MapFromMemberInfo` and `MapToMemberInfo` methods on `ApplicationUser`",
+      "location": "Remarks – ApplicationUser and MemberInfo, line 104",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs: public virtual void MapFromMemberInfo(MemberInfo source) at line 57; public virtual void MapToMemberInfo(MemberInfo target) at line 82.",
+      "docFact": null
+    },
+    {
+      "claim": "`ApplicationRole` extends `IdentityRole<int>`",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 110",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs line 12: public class ApplicationRole : IdentityRole<int>",
+      "docFact": "AREA-002: ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo"
+    },
+    {
+      "claim": "`ApplicationRole` maps to `CMS.Membership.MemberRoleInfo` objects stored in the Xperience database",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 110",
+      "result": "verified",
+      "evidence": "MemberRoleInfo.cs: namespace CMS.Membership (line 7); OBJECT_TYPE = 'cms.memberrole' (line 22); has [DatabaseField] properties (MemberRoleID, MemberRoleName, etc.). ApplicationRole constructor (line 39) calls MapFromMemberRoleInfo(memberRoleInfo).",
+      "docFact": "AREA-002: ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo"
+    },
+    {
+      "claim": "Xperience converts between `ApplicationRole` and `MemberRoleInfo` using the `MapFromMemberRoleInfo` and `MapToMemberRoleInfo` methods on `ApplicationRole`",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 110",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs line 53: public virtual void MapFromMemberRoleInfo(MemberRoleInfo source); line 71: public virtual void MapToMemberRoleInfo(MemberRoleInfo target). ApplicationRoleStore.cs uses both: CreateAsync (line 52) calls role.MapToMemberRoleInfo; FindByIdAsync (line 272) calls role.MapFromMemberRoleInfo.",
+      "docFact": "AREA-002: ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo"
+    },
+    {
+      "claim": "`ApplicationRoleStore<TRole>` implements `IRoleStore<TRole>`",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 112",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs line 16: public class ApplicationRoleStore<TRole> : IRoleStore<TRole>",
+      "docFact": null
+    },
+    {
+      "claim": "`ApplicationRoleStore<TRole>` provides the CRUD operations that `RoleManager` needs to create, update, delete, and look up member roles",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 112",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs: CreateAsync (line 44), UpdateAsync (line 74), DeleteAsync (line 112), FindByIdAsync (line 260/289), FindByNameAsync (line 313). Covers all CRUD operations required by IRoleStore<TRole>.",
+      "docFact": null
+    },
+    {
+      "claim": "Registering `ApplicationRoleStore<ApplicationRole>` in the Identity configuration connects ASP.NET Identity's role management pipeline to the Xperience database",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 112",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs constructor (line 27-30) resolves IInfoProvider<MemberRoleInfo> from DI. All CRUD methods use memberRoleInfoProvider to persist to DB (e.g., CreateAsync line 54: await memberRoleInfoProvider.SetAsync).",
+      "docFact": null
+    },
+    {
+      "claim": "The same bidirectional mapping pattern applies to member roles (mirroring ApplicationUser ↔ MemberInfo)",
+      "location": "Remarks – ApplicationRole and MemberRoleInfo, line 110",
+      "result": "verified",
+      "evidence": "ApplicationUser has MapFromMemberInfo/MapToMemberInfo (virtual methods). ApplicationRole has MapFromMemberRoleInfo/MapToMemberRoleInfo (virtual methods). ApplicationUserStore uses them in Create/Update/Find* operations. ApplicationRoleStore uses them identically. Same bidirectional pattern confirmed.",
+      "docFact": "AREA-002: ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo"
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Configure ASP.NET Identity, code block 1 (lines 61-72)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "All types exist and satisfy their generic constraints: ExtendedApplicationUser inherits ApplicationUser (satisfies where TUser : ApplicationUser, new()); ApplicationRole is non-abstract with parameterless constructor (satisfies where TRole : IdentityRole, new()); ApplicationUserStore<ExtendedApplicationUser> and ApplicationRoleStore<ApplicationRole> are valid generic instantiations. The AddIdentity/AddUserStore/AddRoleStore/AddUserManager/AddSignInManager chain is valid ASP.NET Identity configuration syntax."
+    },
+    {
+      "location": "Section: Configure ASP.NET Identity, code block 2 (lines 76-80)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Constructor injection of UserManager<ExtendedApplicationUser> and SignInManager<ExtendedApplicationUser> is valid DI pattern. Types match the registration in the previous code block."
+    }
+  ],
+  "researchRecommendationChecks": [
+    {
+      "recommendation": "REC-013",
+      "cited": true,
+      "followed": true,
+      "notes": "Doc uses 'members' (not 'users') for registered visitors, 'sign in' (not 'log in'). Line 17: 'members (visitors who register an account)'. Line 82: 'forms authentication' and 'external identity provider' (no 'log in'). Terminology is consistent."
+    },
+    {
+      "recommendation": "REC-015",
+      "cited": true,
+      "followed": true,
+      "notes": "All type names in backticks. No direct pluralization of code elements — uses 'MemberRoleInfo objects' (line 110), 'MemberInfo objects' (line 102). Correct per recommendation."
+    }
+  ],
+  "invariantDiscards": [],
+  "issues": [],
+  "summary": {
+    "totalClaims": 22,
+    "verified": 22,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 2,
+    "codeExamplesCorrect": 2,
+    "notes": "All 22 technical claims verified against actual source code. Both code examples are syntactically correct and use types with valid generic constraints. The new Remarks section (ApplicationRole and MemberRoleInfo) accurately mirrors the existing ApplicationUser/MemberInfo pattern. The code sample correctly replaces NoOpApplicationRole with ApplicationRole and NoOpApplicationRoleStore with ApplicationRoleStore<ApplicationRole>. Both NoOp classes are confirmed [Obsolete] in source. All research recommendations (REC-013, REC-015) are correctly followed. One minor note on pre-existing content: line 102 says 'derived from IdentityUser' while source shows IdentityUser<int>, but this is acceptable documentation simplification and was not modified by this task."
+  }
+}

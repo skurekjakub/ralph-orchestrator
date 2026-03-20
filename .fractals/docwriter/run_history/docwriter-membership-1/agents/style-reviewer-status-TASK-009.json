@@ -1,0 +1,8 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "status": "done",
+  "result": "rejected",
+  "taskId": "TASK-009",
+  "invariantsPassed": 32,
+  "invariantsFailed": 2
+}

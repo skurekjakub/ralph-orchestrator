@@ -1,0 +1,570 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-code-analyzer",
+  "generatedAt": "2025-07-24T15:30:00Z",
+  "commit": "65412d25da302785ccbca5bf81993079f8819f18",
+  "commitMessage": "Merged PR 24883: KX-21831 - Membership roles",
+  "totalAreas": 32,
+  "totalFilesChanged": 305,
+  "featureSummary": "Introduces membership role-based access control for content items and web pages. Replaces the binary IsSecured boolean with a richer ContentAccessSettings model that supports public content, content requiring any authentication, and content restricted to specific member roles. Integrates with ASP.NET Core Identity via ApplicationRole/ApplicationRoleStore, adds role columns to content queries, and propagates role metadata through creation, update, delete, recycle bin, CI, and content sync lifecycles.",
+  "entries": [
+    {
+      "areaId": "AREA-001",
+      "areaName": "Membership Core",
+      "significance": "medium",
+      "summary": "Deletes the internal ClaimsPrincipalIdentityHelper class and inlines its logic into ClaimsPrincipalExtensions.GetAdminIdentity() and several other call sites. This is a refactoring that removes a public (but internal-namespaced) helper class in favor of direct LINQ on ClaimsPrincipal.Identities. MemberRoleInfo and MemberRoleMemberInfo already existed on master and have no diff in this commit.",
+      "publicAPIs": [],
+      "removedAPIs": [
+        "ClaimsPrincipalIdentityHelper.GetIdentityByScheme(ClaimsPrincipal, string) — deleted",
+        "ClaimsPrincipalIdentityHelper.HasIdentityWithScheme(ClaimsPrincipal, string) — deleted",
+        "ClaimsPrincipalIdentityHelper.IsAuthenticatedWithScheme(ClaimsPrincipal, string) — deleted"
+      ],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "ClaimsPrincipalIdentityHelper (CMS.Membership.Internal) was deleted. Any code referencing this public static class will fail to compile. Was in Internal namespace, so external breaking risk is low but possible."
+      ],
+      "behavioralImpact": "No user-visible behavior change. Internal authentication plumbing now uses inline LINQ instead of the removed helper class. The ClaimsPrincipalExtensions.GetAdminIdentity() method produces identical results.",
+      "callChains": [
+        "MembershipContext.AuthenticatedUser → IsAdministrationUser() → ClaimsPrincipalExtensions.GetAdminIdentity() → ClaimsPrincipal.Identities.FirstOrDefault(scheme match)",
+        "AdminUserManager.GetAdminClaimValue() → principal.Identities.FirstOrDefault(scheme match) [was: ClaimsPrincipalIdentityHelper.GetIdentityByScheme()]",
+        "AdminSchemeAuthenticationService.HasAdminIdentity() → context.User.Identities.Any(scheme match) [was: ClaimsPrincipalIdentityHelper.HasIdentityWithScheme()]",
+        "VirtualContextIdentityService.AddVirtualContextIdentity() → context.User.Identities.Any(scheme match) [was: ClaimsPrincipalIdentityHelper.HasIdentityWithScheme()]"
+      ],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-002",
+      "areaName": "Content Item Member Role System",
+      "significance": "high",
+      "summary": "The ContentAccessSettings class is refactored from a struct to a sealed class, gaining == and != operators and null-safe Equals(). The ContentItemMemberRoleManager internal implementation is updated to use ContentItemMemberRoleInfo.Provider directly instead of a cached provider field. The core types (ContentAccessSettings, ContentItemMemberRoleInfo, IContentItemMemberRoleManager, IContentItemMemberRoleRetriever) already existed on master; this commit hardens them.",
+      "publicAPIs": [
+        "ContentAccessSettings: struct → sealed class (type change)",
+        "ContentAccessSettings.operator ==(ContentAccessSettings, ContentAccessSettings) — new",
+        "ContentAccessSettings.operator !=(ContentAccessSettings, ContentAccessSettings) — new"
+      ],
+      "concepts": [
+        "Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)"
+      ],
+      "configOptions": [],
+      "breakingChanges": [
+        "ContentAccessSettings changed from struct to sealed class. Code relying on value-type semantics (default(ContentAccessSettings), stack allocation, struct copy behavior) will break. Equality comparison via == now works correctly (was reference equality for boxed structs, now uses operator overload)."
+      ],
+      "behavioralImpact": "ContentAccessSettings now has proper reference semantics. The factory methods (Public(), Secured(), SecuredWithRoles()) remain the same. Equality comparison is now null-safe and uses operator overloads. The internal ContentItemMemberRoleManager no longer caches the provider field, accessing ContentItemMemberRoleInfo.Provider directly.",
+      "callChains": [
+        "ContentItemCreateManager.Create() → contentItemMemberRoleManager.UpdateBindings(contentItemId, accessSettings)",
+        "ContentItemMetadataManager.UpdateMetadata() → contentItemMemberRoleManager.UpdateBindings(contentItemId, accessSettings)",
+        "IContentItemMemberRoleManager.UpdateBindings() → compares old vs new role IDs → BulkDelete removed + BulkInsert new → TouchKeys cache invalidation",
+        "IContentItemMemberRoleRetriever.GetMemberRoleIds() / GetMemberRoleCodeNames() / GetAccessSettings() → IInfoProvider<ContentItemMemberRoleInfo> queries"
+      ],
+      "dependencies": ["AREA-001"]
+    },
+    {
+      "areaId": "AREA-003",
+      "areaName": "Content Engine Events and Handler Arguments",
+      "significance": "medium",
+      "summary": "All 8 content engine event data state classes gain null validation (ArgumentNullException.ThrowIfNull) on the internal setter of the AccessSettings property. This is a defensive hardening change—the AccessSettings property and ContentAccessSettings type already existed. No new properties or event signatures are added. No handler argument files changed in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "Setting AccessSettings to null on any event data state now throws ArgumentNullException. Previously accepted null silently. This is stricter validation, not a signature change."
+      ],
+      "behavioralImpact": "Event data states for Create, CreateLanguageVariant, Delete, Publish, Unpublish, UpdateDraft, UpdateLanguageMetadata, and UpdateMetadata now enforce non-null AccessSettings. Code in event handlers that sets AccessSettings = null will throw. The default remains ContentAccessSettings.Public().",
+      "callChains": [
+        "ContentItemCreateManager → CreateContentItemEventDataState.AccessSettings = settings → ArgumentNullException.ThrowIfNull(value)",
+        "Same pattern for all 8 event data state classes"
+      ],
+      "dependencies": ["AREA-002"]
+    },
+    {
+      "areaId": "AREA-004",
+      "areaName": "Website Events and Handler Arguments",
+      "significance": "medium",
+      "summary": "Same null validation pattern as AREA-003 applied to 6 website event data state classes (Delete, Move, Publish, Unpublish, UpdateSecuritySettings, UpdateTreePathSlug). Additionally, WebPageMetadata and CreateWebPageParameters gain null validation on their AccessSettings property setters. CreateFolderLanguageVariantEventArgs has a trivial whitespace change. No handler argument signatures changed.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "Setting AccessSettings to null on WebPageMetadata (init accessor) or CreateWebPageParameters (set accessor) now throws ArgumentNullException.",
+        "Setting AccessSettings to null on website event data states now throws ArgumentNullException."
+      ],
+      "behavioralImpact": "Web page creation and update flows now enforce non-null AccessSettings throughout. Developers using CreateWebPageParameters or WebPageMetadata must use ContentAccessSettings.Public() instead of null.",
+      "callChains": [
+        "WebPageCreateManager → CreateWebPageEventDataState.AccessSettings = settings → ThrowIfNull",
+        "WebPageManager.UpdateSecuritySettings() → UpdateWebPageSecuritySettingsEventDataState.AccessSettings = settings → ThrowIfNull"
+      ],
+      "dependencies": ["AREA-002", "AREA-003"]
+    },
+    {
+      "areaId": "AREA-005",
+      "areaName": "Content Item Management",
+      "significance": "medium",
+      "summary": "Content item management classes gain null validation on AccessSettings in parameter and metadata classes. ContentItemCreateManager removes the IDataClassInfoRetriever dependency, using static DataClassInfoProvider instead. ContentItemContainerManager.Create() now accepts an optional ContentAccessSettings parameter (defaults to null, treated as Public internally). ContentItemDeleteManager.FinalizeDeletion() changes so accessSettings defaults to null rather than Public().",
+      "publicAPIs": [
+        "ContentItemMetadata.AccessSettings init accessor — now validates non-null",
+        "CreateContentItemParameters.AccessSettings setter — now validates non-null (both public and internal versions)"
+      ],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "ContentItemMetadata.AccessSettings = null now throws ArgumentNullException",
+        "CreateContentItemParameters.AccessSettings = null now throws ArgumentNullException",
+        "ContentItemCreateManager constructor no longer accepts IDataClassInfoRetriever (internal class, but affects custom DI)"
+      ],
+      "behavioralImpact": "Content item creation and metadata update flows enforce non-null AccessSettings. The container manager now accepts explicit access settings during creation. Deletion flow handles null AccessSettings differently (null means not-populated rather than Public).",
+      "callChains": [
+        "ContentItemCreateManager.Create() → CreateContentItemParameters.AccessSettings → validates non-null → persists IsSecured → calls contentItemMemberRoleManager.UpdateBindings()",
+        "ContentItemContainerManager.Create(params, accessSettings) → forwards to create manager",
+        "ContentItemDeleteManager.FinalizeDeletion() → accessSettings may be null → only populated if event handler sets it"
+      ],
+      "dependencies": ["AREA-002", "AREA-003"]
+    },
+    {
+      "areaId": "AREA-006",
+      "areaName": "Content Query System",
+      "significance": "high",
+      "summary": "Adds ContentItemRequiredMemberRoleNames property to the IContentQueryDataContainer interface (with a default implementation) and its base/implementation classes. A new ContentItemRolesResultProcessor post-processes query results to populate role names for secured content items, including linked items. This is a significant public API addition enabling developers to check content access requirements directly from query results.",
+      "publicAPIs": [
+        "IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> — new property with default interface implementation",
+        "ContentQueryDataContainerBase.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> — new property"
+      ],
+      "concepts": [
+        "Content query results now automatically include member role names for secured items",
+        "Post-processing pipeline: ContentItemRolesResultProcessor runs after query execution",
+        "Lazy loading: role data only fetched from DB when at least one item has ContentItemIsSecured = true"
+      ],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "Developers can now access ContentItemRequiredMemberRoleNames on any content query result container. For secured content items, this returns the code names of member roles required for access (e.g., ['Subscriber', 'Premium_Member']). For unsecured items, returns an empty collection. Works recursively through linked items. No code changes needed—the processor auto-registers and runs transparently.",
+      "callChains": [
+        "ContentQueryExecutor.GetResult() → ContentItemRolesResultProcessor.PostProcessQueryResult() → checks any item IsSecured → IContentItemMemberRoleRetriever.GetMemberRoleCodeNames(contentItemIds) → sets RequiredMemberRoleNames on each container",
+        "Developer access: container.ContentItemRequiredMemberRoleNames or container.GetValue<IReadOnlyCollection<string>>(\"ContentItemRequiredMemberRoleNames\")"
+      ],
+      "dependencies": ["AREA-002"]
+    },
+    {
+      "areaId": "AREA-007",
+      "areaName": "Content Engine Module Registration",
+      "significance": "low",
+      "summary": "The change inventory listed this area but the actual ContentEngineModule.cs diff is minimal. The ContentItemRolesResultProcessor auto-registers via assembly-level RegisterImplementation attribute, not via the module's OnInit().",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No direct behavioral change. Module registration infrastructure unchanged.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-008",
+      "areaName": "Website Page Management",
+      "significance": "medium",
+      "summary": "Website page management classes mirror the content engine changes: WebPageMetadata and CreateWebPageParameters gain null validation on AccessSettings. CreateFolderParameters also gains null validation. The web page create, delete, and update managers propagate AccessSettings through their flows. WebPageRedirectValidator and WebPageItemRestorer unchanged in this commit.",
+      "publicAPIs": [
+        "WebPageMetadata.AccessSettings init — now validates non-null",
+        "CreateWebPageParameters.AccessSettings set — now validates non-null",
+        "CreateFolderParameters.AccessSettings set — now validates non-null"
+      ],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "WebPageMetadata.AccessSettings = null now throws ArgumentNullException",
+        "CreateWebPageParameters.AccessSettings = null now throws ArgumentNullException"
+      ],
+      "behavioralImpact": "Web page creation and update flows enforce non-null AccessSettings values. Developers must explicitly set ContentAccessSettings.Public() for unsecured pages rather than relying on null.",
+      "callChains": [
+        "WebPageCreateManager.Create() → CreateWebPageParameters.AccessSettings → validates non-null → WebPageCreateManager calls member role binding update",
+        "WebPageDraftUpdater.Update() → WebPageUpdateParameters.AccessSettings → validates non-null"
+      ],
+      "dependencies": ["AREA-002", "AREA-004"]
+    },
+    {
+      "areaId": "AREA-009",
+      "areaName": "MVC Content Security and Access Control",
+      "significance": "high",
+      "summary": "Contains the public-facing content access check infrastructure. Key public API: ContentItemFieldsSourceExtensions.HasAccess() extension method on IContentItemFieldsSource. Internal infrastructure includes ContentAccessCheckResult enum (Allowed/NotAuthenticated/Forbidden), SecuredContentAccessValidator, MemberAccessHelper, and ContentAccessCookieAuthenticationConfiguration. These files already existed on master; the changes in this commit are to VirtualContextIdentityService (removing ClaimsPrincipalIdentityHelper dependency) and GetContentItemAssetService (removing cached dependency, adding CONTENT_ITEM_PREFIX constant).",
+      "publicAPIs": [
+        "ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — public extension method (existed before this commit, no change in this diff)"
+      ],
+      "concepts": [
+        "Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403)",
+        "Content access cookie auth configuration separates login path from access denied path",
+        "Virtual context identity service adds member role claims for preview/crawler mode"
+      ],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "VirtualContextIdentityService now uses inline LINQ instead of deleted ClaimsPrincipalIdentityHelper. GetContentItemAssetService removes the ICacheDependencyBuilderFactory dependency and adds a CONTENT_ITEM_PREFIX constant for asset URL handling. The overall content access check system (HasAccess extension, MemberAccessHelper, SecuredContentAccessValidator) was already in place.",
+      "callChains": [
+        "contentItem.HasAccess(user) → MemberAccessHelper.CheckAccess(isSecured, user, roleNames) → checks authentication + role membership → ContentAccessCheckResult",
+        "SecuredContentAccessValidator.CheckAccess(contentItemInfo, httpContext) → retrieves role IDs → MemberAccessHelper.CheckAccess()",
+        "VirtualContextIdentityService.AddVirtualContextIdentity() → adds all member role code names as ClaimTypes.Role claims for preview mode"
+      ],
+      "dependencies": ["AREA-002", "AREA-006"]
+    },
+    {
+      "areaId": "AREA-010",
+      "areaName": "Authentication and Identity Pipeline",
+      "significance": "medium",
+      "summary": "AdminSchemeAuthenticationService.HasAdminIdentity() refactored to inline LINQ replacing deleted ClaimsPrincipalIdentityHelper. AdminSignInManager receives minor refactoring. Icons.cs removes the Campaign icon constant. Other files in this area are mostly campaign/digital marketing related (not membership). The actual authentication pipeline architecture (two-pipeline with AuthenticateAndReplace for admin, AuthenticateAndAdd for preview) was already in place.",
+      "publicAPIs": [
+        "Icons.Campaign constant — removed (breaking for code referencing Icons.Campaign)"
+      ],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "Icons.Campaign (\"xp-campaign\") constant removed from Icons.cs"
+      ],
+      "behavioralImpact": "Admin authentication service uses identical logic via different code path (inline LINQ vs helper class). No functional authentication behavior change. Campaign icon removal is unrelated to membership feature.",
+      "callChains": [
+        "AdminSchemeAuthenticationService.AuthenticateAndReplace() → HasAdminIdentity() → context.User.Identities.Any(scheme match)",
+        "AdminSchemeAuthenticationService.AuthenticateAndAdd() → HasAdminIdentity() → same inline LINQ"
+      ],
+      "dependencies": ["AREA-001"]
+    },
+    {
+      "areaId": "AREA-011",
+      "areaName": "Membership Identity Stores",
+      "significance": "low",
+      "summary": "The change inventory listed ApplicationRole, ApplicationRoleStore, ApplicationUserStore, and service collection extensions as modified, but the actual diff shows only AdminUserManager.cs changed in CMSSolution/Mvc/Kentico.Membership/. The change replaces ClaimsPrincipalIdentityHelper.GetIdentityByScheme() with inline LINQ. ApplicationRole, ApplicationRoleStore, and the IUserRoleStore integration on ApplicationUserStore already existed on master.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "AdminUserManager.GetAdminClaimValue() uses inline LINQ instead of deleted helper. Identical functionality.",
+      "callChains": [
+        "AdminUserManager.GetAdminClaimValue(principal, claimType) → principal.Identities.FirstOrDefault(scheme match) → identity.FindFirst(claimType)"
+      ],
+      "dependencies": ["AREA-001"]
+    },
+    {
+      "areaId": "AREA-012",
+      "areaName": "Admin UI - Member Role Management",
+      "significance": "low",
+      "summary": "The change inventory listed 14 files including member role admin UI pages, but actual diffs show only: KenticoAdminBaseResources.resx (localization strings), KenticoAdminClientResources.resx (client localization), ContentHubExplorerPanelExtenderBase.cs, IContentLanguageAwarePage.cs, ScheduledTaskConfigurationEdit.cs, and TaxonomyList.cs. The member role listing/create/edit pages (MemberRoleList, MemberRoleCreate, MemberRoleEdit) and ContentListingCommandManager already existed on master. No BaseContentItemStatusRetriever.cs diff in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "Admin resource strings updated. No functional changes to member role admin UI pages in this commit—they were already present.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-013",
+      "areaName": "Admin UI - Website Security Settings",
+      "significance": "none",
+      "summary": "No files in CMSSolution/Admin/Kentico.Xperience.Admin.Websites/ changed in this commit (diff is empty). The change inventory listed 7 files but none have actual diffs against master.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-014",
+      "areaName": "Content Synchronization",
+      "significance": "none",
+      "summary": "No files in CMSSolution/ContentSynchronization/ changed in this commit. The change inventory listed 14 files including MemberRoleCompatibilityEvaluator, ContentItemMemberRoleAdapter, and MemberRoleAdapter, but these already existed on master with no diffs. The content sync adapters for member roles were part of a prior commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-015",
+      "areaName": "Continuous Integration Processing",
+      "significance": "none",
+      "summary": "No files in CMSSolution/ContentEngine/ContinuousIntegration/ changed in this commit. The CI custom processor for member roles (ContentItemMemberRoleCustomProcessor) and CI filter already existed on master.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-016",
+      "areaName": "Content Engine Recycle Bin",
+      "significance": "none",
+      "summary": "No files in CMSSolution/ContentEngine/RecycleBin/ changed in this commit. The recycle bin member role support (RecycleBinContentItemCreator, ReusableContentItemRestorer, RecycleBinContentItemDeserializationResultBase) already existed on master.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-017",
+      "areaName": "Database Schema and Migrations",
+      "significance": "none",
+      "summary": "No CMS App_Data CI repository XML files changed in this commit. The database schema for cms.memberrole, cms.memberrolemember, and cms.contentitemmemberrole tables already existed on master. The alternative form definitions (create.xml, edit.xml) for member roles were in place.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-018",
+      "areaName": "DancingGoat Sample Project",
+      "significance": "low",
+      "summary": "DancingGoat repository.config removes om.campaign from the CDRepository object type list. No Program.cs changes, no HttpErrorsController changes, no membership integration changes in this commit. The change inventory overstated the scope.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [
+        "repository.config: om.campaign ObjectType removed from CDRepository configuration"
+      ],
+      "breakingChanges": [],
+      "behavioralImpact": "DancingGoat sample no longer includes campaign objects in its CDRepository. This is a campaign feature cleanup, not membership related.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-019",
+      "areaName": "Project Templates and UI Test App",
+      "significance": "low",
+      "summary": "Boilerplate repository.config removes om.campaign from CDRepository object types (same as DancingGoat). No UITests Program.cs changes in the actual diff.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [
+        "repository.config: om.campaign ObjectType removed from CDRepository configuration"
+      ],
+      "breakingChanges": [],
+      "behavioralImpact": "Boilerplate template no longer includes campaign objects in CDRepository. Campaign cleanup, not membership related.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-020",
+      "areaName": "API Examples and Samples",
+      "significance": "none",
+      "summary": "The change inventory listed Pages.cs but no actual diff exists for the API examples file in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-021",
+      "areaName": "Headless Item Management",
+      "significance": "none",
+      "summary": "No changes to HeadlessItemCreateManager.cs in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-022",
+      "areaName": "Email Marketing",
+      "significance": "none",
+      "summary": "No changes to EmailConfigurationManager.cs in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-023",
+      "areaName": "Content Sync Scripts",
+      "significance": "none",
+      "summary": "No changes to content sync PowerShell scripts in this commit.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-024",
+      "areaName": "Admin Client Frontend",
+      "significance": "low",
+      "summary": "ESLint suppressions updated with new rule entries. Various frontend package.json version bumps. Campaign-related frontend components added/modified (CampaignAssetsTemplate, CampaignCustomerJourneyTemplate, CustomerJourneysJourneyTemplate, etc.). Campaign icon SVG added. ContentHubExplorerPanel and BindingSidepanel updated. These are primarily campaign/customer journey feature additions, not membership related.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "Frontend UI components updated for campaign/customer journey features. No membership role-related frontend changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-025",
+      "areaName": "Globalization and Localization Resources",
+      "significance": "low",
+      "summary": "BaseResources.resx removes objecttype.om_campaign and objecttype.om_campaignreference resource strings. ContentSynchronizationResources.resx may have minor updates. This is campaign cleanup, not membership related.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [
+        "Resource strings objecttype.om_campaign and objecttype.om_campaignreference removed"
+      ],
+      "behavioralImpact": "Campaign-related display names removed from resource files.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-026",
+      "areaName": "Build Infrastructure and API Resolutions",
+      "significance": "low",
+      "summary": "API change resolution files acknowledge expected breaking changes: KX-21849 resolves MemberList/MemberEdit constructor changes (UI page internal), KX-21857 resolves IContentQueryDataContainer.ContentItemRequiredMemberRoleNames as having a default interface implementation (non-breaking). BackendTests.md updated with comprehensive testing guidelines.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "Build infrastructure acknowledges the API surface changes made by the membership roles feature. The API resolution for KX-21857 confirms ContentItemRequiredMemberRoleNames has a default implementation and is therefore additive.",
+      "callChains": [],
+      "dependencies": ["AREA-006"]
+    },
+    {
+      "areaId": "AREA-027",
+      "areaName": "Tests - Membership and Member Role Core",
+      "significance": "none",
+      "summary": "Test files for ApplicationRoleStore, ApplicationUserStore, and member role core functionality. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact. Test coverage for membership roles.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-028",
+      "areaName": "Tests - Content Engine",
+      "significance": "none",
+      "summary": "Test files for content engine including ContentItemStatusRetriever, GetContentItemAssetService, ContentStructureFactory, and content item management tests. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact. Test coverage for content engine with member role integration.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-029",
+      "areaName": "Tests - Websites",
+      "significance": "none",
+      "summary": "Test files for website pages including CreateWebPage, WebPagesApplication, WebPageStatusRetriever, and various web page management tests. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact. Test coverage for website features with member role integration.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-030",
+      "areaName": "Tests - Content Synchronization",
+      "significance": "none",
+      "summary": "Test files for content synchronization including ContentAccessSettingsEvaluator, WebPageDraftDataCreator, and integration test utilities. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact. Test coverage for content sync with member role support.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-031",
+      "areaName": "Tests - Admin and MVC",
+      "significance": "none",
+      "summary": "Test files for admin authentication, authorization policies, admin user manager, and MVC security tests. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact. Test coverage for authentication pipeline changes.",
+      "callChains": [],
+      "dependencies": []
+    },
+    {
+      "areaId": "AREA-032",
+      "areaName": "Tests - Data Engine and Full App",
+      "significance": "none",
+      "summary": "Test files for data engine LINQ queries and full app integration tests. Test-only changes.",
+      "publicAPIs": [],
+      "concepts": [],
+      "configOptions": [],
+      "breakingChanges": [],
+      "behavioralImpact": "No production impact.",
+      "callChains": [],
+      "dependencies": []
+    }
+  ],
+  "crossCuttingConcerns": {
+    "claimsPrincipalIdentityHelperRemoval": {
+      "description": "ClaimsPrincipalIdentityHelper (CMS.Membership.Internal) was deleted. All 4 call sites (ClaimsPrincipalExtensions, AdminSchemeAuthenticationService, VirtualContextIdentityService, AdminUserManager) now use inline LINQ on ClaimsPrincipal.Identities instead.",
+      "affectedAreas": ["AREA-001", "AREA-009", "AREA-010", "AREA-011"]
+    },
+    "contentAccessSettingsStructToClass": {
+      "description": "ContentAccessSettings changed from struct to sealed class. This affects all code paths that create, compare, or pass ContentAccessSettings values through events, parameters, metadata, and handler args.",
+      "affectedAreas": ["AREA-002", "AREA-003", "AREA-004", "AREA-005", "AREA-006", "AREA-008"]
+    },
+    "nullValidationHardening": {
+      "description": "ArgumentNullException.ThrowIfNull added to AccessSettings setters across event data states, parameter classes, and metadata classes. Consistent pattern applied in both content engine and website pipelines.",
+      "affectedAreas": ["AREA-003", "AREA-004", "AREA-005", "AREA-008"]
+    },
+    "campaignCleanup": {
+      "description": "om.campaign removed from CDRepository configs, Icons.Campaign constant deleted, campaign resource strings removed. This is a separate feature change bundled in the same merge commit.",
+      "affectedAreas": ["AREA-010", "AREA-018", "AREA-019", "AREA-024", "AREA-025"]
+    }
+  },
+  "significanceSummary": {
+    "high": ["AREA-002", "AREA-006", "AREA-009"],
+    "medium": ["AREA-001", "AREA-003", "AREA-004", "AREA-005", "AREA-008", "AREA-010"],
+    "low": ["AREA-007", "AREA-011", "AREA-012", "AREA-018", "AREA-019", "AREA-024", "AREA-025", "AREA-026"],
+    "none": ["AREA-013", "AREA-014", "AREA-015", "AREA-016", "AREA-017", "AREA-020", "AREA-021", "AREA-022", "AREA-023", "AREA-027", "AREA-028", "AREA-029", "AREA-030", "AREA-031", "AREA-032"]
+  },
+  "keyDocumentationTopics": [
+    {
+      "topic": "ContentAccessSettings struct-to-class migration",
+      "type": "breaking-change",
+      "priority": 1,
+      "description": "ContentAccessSettings changed from struct to sealed class. Developers must update code that relies on value-type semantics. Now has proper == and != operators."
+    },
+    {
+      "topic": "ContentItemRequiredMemberRoleNames in content queries",
+      "type": "new-api",
+      "priority": 2,
+      "description": "IContentQueryDataContainer now exposes ContentItemRequiredMemberRoleNames property. Auto-populated by ContentItemRolesResultProcessor for secured content items. Returns code names of required member roles."
+    },
+    {
+      "topic": "Null validation on AccessSettings properties",
+      "type": "behavioral-change",
+      "priority": 3,
+      "description": "AccessSettings properties on event data states, parameter classes, and metadata classes now throw ArgumentNullException if set to null. Use ContentAccessSettings.Public() instead of null for unsecured content."
+    },
+    {
+      "topic": "ClaimsPrincipalIdentityHelper removal",
+      "type": "breaking-change",
+      "priority": 4,
+      "description": "CMS.Membership.Internal.ClaimsPrincipalIdentityHelper static class deleted. Was public in an Internal namespace. Functionality replaced by inline LINQ on ClaimsPrincipal.Identities."
+    }
+  ]
+}

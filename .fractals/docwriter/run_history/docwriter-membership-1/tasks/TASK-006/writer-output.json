@@ -1,0 +1,37 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-006",
+  "attempt": 1,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/add-fields-to-member-objects.md",
+  "sectionsModified": [
+    "Configure ASP.NET Identity to work with the modified ApplicationUser (code sample: NoOpApplicationRole → ApplicationRole, NoOpApplicationRoleStore → ApplicationRoleStore<ApplicationRole>)",
+    "Front matter (related_pages: added member_roles_xp)"
+  ],
+  "sectionsAdded": [
+    "Remarks – ApplicationRole and MemberRoleInfo"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced by ApplicationRole/ApplicationRoleStore",
+    "AREA-002: ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo"
+  ],
+  "invariantsApplied": [
+    "INV-formatting-004",
+    "INV-codesamples-010",
+    "INV-structure-011"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-013",
+    "REC-015"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Updated both code sample locations in the Identity configuration block: NoOpApplicationRole → ApplicationRole and NoOpApplicationRoleStore → ApplicationRoleStore<ApplicationRole>. Added new 'Remarks – ApplicationRole and MemberRoleInfo' section after the existing 'Remarks – ApplicationUser and MemberInfo' section, mirroring its structure to explain the bidirectional mapping between ApplicationRole and MemberRoleInfo, and the role of ApplicationRoleStore. Added member_roles_xp to related_pages and linked to the Member roles page for further reading. All type names use backtick formatting per INV-formatting-004 and REC-015. No type names are pluralized directly. Terminology follows REC-013 (member, visitor, sign in). Code sample is compile-ready and consistent with the parent registration-and-authentication.md page (TASK-003) and the member-roles.md page (TASK-001).",
+  "invariantSatisfactionDetails": {
+    "INV-formatting-004": "All API members in backticks: ApplicationRole, ApplicationRoleStore<TRole>, ApplicationRoleStore<ApplicationRole>, IdentityRole<int>, MemberRoleInfo, MapFromMemberRoleInfo, MapToMemberRoleInfo, RoleManager, IRoleStore<TRole>, ApplicationUser, MemberInfo, ExtendedApplicationUser, etc.",
+    "INV-codesamples-010": "Code sample is a single logical block showing the complete Identity configuration with user store, role store, user manager, and sign-in manager — appropriate for a how-to guide. Consistent with the parent page's code sample.",
+    "INV-structure-011": "Article remains self-contained. The new section links to Member roles (member_roles_xp) with proper page_link syntax and adds the identifier to related_pages. The existing link to Registration and authentication (tYouCw) is preserved."
+  }
+}

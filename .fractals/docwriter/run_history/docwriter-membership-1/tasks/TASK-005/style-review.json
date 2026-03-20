@@ -1,0 +1,82 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-005",
+  "attempt": 2,
+  "verdict": "approved",
+  "invariantResults": [
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All inline code elements in prose use backticks: `ClientSecret` (line 71), `value=\"@provider.Name\"` (line 85), `MemberInfo` (line 109), `ClaimTypes` and `ClaimTypes.Email` (line 111), `ClaimTypes.GivenName` (line 149). The modified type names `ApplicationRole` and `ApplicationRoleStore<ApplicationRole>` appear only inside {% code %} blocks, not in prose, so backtick formatting is N/A for the changed lines."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code examples are broken into logical sections: Identity configuration (line 46), Google authentication scope (line 115), claims mapping (line 141), cookie expiration (line 166), secrets storage (lines 192, 204). External code_link references (lines 81, 93, 95, 97) further segment the authentication flow. The modified code block retains its logical structure — the change is a single type substitution within the existing block."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Headings follow h2 -> h3 -> h4 progression without skipped levels. 8 h2 sections, 5 h3 subsections, 2 h4 subsections. All h4 headings ('Sites hosted on Microsoft Azure', 'Private cloud hosting') appear under h3 'On production sites'."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "All required fields present: title, persona, identifier (uIouCw), order (200), license (1), redirect_from (x/uIouCw). Optional toc and related_pages also present and correctly formatted. toc uses only supported params minHeadingLevel/maxHeadingLevel (INV-jekyll-010)."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags properly paired: 6 {% code %}/{% endcode %} pairs, 4 {% code_link %} self-closing tags, 1 {% tip %}/{% endtip %}, 1 {% info %}/{% endinfo %}, 1 {% image %}. All code blocks have lang attribute with valid values (csharp, powershell). All code_link tags have source and lang attributes (INV-jekyll-002, INV-jekyll-014)."
+    },
+    {
+      "category": "callout-formatting",
+      "result": "pass",
+      "evidence": "Both callouts have bold titles on separate lines: '**Storing application secrets**' (line 69) and '**Enabling created accounts**' (line 101). Neither callout contains its type name as text (INV-callout-002, INV-callout-003). Severity matches content: tip for best practice, info for important note (INV-callout-004)."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "All external links use {% external_link %} with linkText (INV-crossref-005, INV-crossref-006). All internal page links use {% page_link %} with identifiers (tYouCw, uoouCw, oAL9Cg). In-page links use {% inpage_link %} correctly (INV-crossref-001). No vague link text."
+    },
+    {
+      "category": "code-block-indentation",
+      "result": "pass",
+      "evidence": "The modified code block (lines 46-65) uses spaces consistently — no tabs detected on lines 48-55. The new line 53 .AddRoleStore<ApplicationRoleStore<ApplicationRole>>() maintains 8-space indentation consistent with adjacent method chain lines 52, 54, 55."
+    },
+    {
+      "category": "sentence-case-headings",
+      "result": "pass",
+      "evidence": "All headings use sentence case per INV-style-001. Proper nouns correctly capitalized: 'Microsoft Azure' (line 217), 'HTTPS' (line 158, standard abbreviation)."
+    },
+    {
+      "category": "ordered-vs-unordered-lists",
+      "result": "pass",
+      "evidence": "Ordered lists used for sequential steps (lines 37-42, 85-89, 136-137, 177-183). Unordered lists used for non-sequential items (lines 23-26, 219-226). Follows INV-structure-006."
+    },
+    {
+      "category": "style-terminology",
+      "result": "pass",
+      "evidence": "Uses 'sign in' (verb form, lines 17, 89) and 'sign-in' as modifier. Uses 'visitors' for anonymous users and 'users' contextually. No instances of 'log in', 'click', 'please', or 'choose' violations found."
+    },
+    {
+      "category": "delta-specific-check",
+      "result": "pass",
+      "evidence": "The attempt 2 change is confined to two lines within the first {% code %} block: line 48 (NoOpApplicationRole -> ApplicationRole) and line 53 (NoOpApplicationRoleStore -> ApplicationRoleStore<ApplicationRole>). Both changes are purely within code content. No new prose, headings, links, or structural elements were introduced. No new style violations possible from this delta."
+    }
+  ],
+  "metaKnowledge": {
+    "knowledgeBriefConsulted": true,
+    "styleEvolutionsApplied": 0,
+    "antiPatternsChecked": 0,
+    "note": "knowledge-brief.json exists but is a cold-start with zero entries (patterns, antiPatterns, styleEvolutions all empty). anti-patterns.md not found. No supplementary criteria to apply."
+  },
+  "summary": {
+    "invariantsPassed": 2,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalPasses": 10
+  }
+}

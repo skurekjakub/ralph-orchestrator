@@ -1,0 +1,145 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-002",
+  "attempt": 3,
+  "verdict": "approved",
+  "targetFile": "developers-and-admins/api/content-item-api/reference-content-access-settings.md",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares 'persona: developer'. The page is an API reference for the C# sealed class ContentAccessSettings — documenting class declaration, properties, static factory methods, equality operators, parameter tables, and exception behavior. This is purely developer-facing content with no admin-operational, business-strategic, or architect-level concerns. Consistent with the task definition's targetPersonas: ['developer']."
+    },
+    {
+      "check": "persona-completeness",
+      "result": "pass",
+      "evidence": "Evaluated whether additional personas are warranted: (1) Admin — no operational/configuration procedures; all interactions are through C# code, not the admin UI. Not applicable. (2) Business — no outcome-focused or strategic framing; content is implementation-level API documentation. Not applicable. (3) Architect — the breaking change section could surface at architecture review, but the content is implementation-migration detail (struct-to-class, default value changes), not system-design or integration-pattern discussion. Sibling reference pages (reference-content-item-query: developer only; reference-content-retriever-api: developer+architect) show architect is added only when content covers retrieval patterns and integration. Not needed here. Developer-only is correct."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Content uses exact API terminology throughout: 'sealed class', 'IEquatable<ContentAccessSettings>', 'operator overloads', 'IReadOnlyCollection<int>', 'ArgumentNullException.ThrowIfNull', 'init accessor'. Code examples are C#-first with inline comments showing property state ('// settings.IsSecured == false'). Assumes familiarity with .NET concepts (struct vs class semantics, reference types, boxing, operator overloading) without explaining them. Migration example shows before/after code patterns. This is precisely the right tone for developer reference material."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Depth is well-calibrated for a developer API reference: (1) Class declaration with namespace — gives the developer the exact type to import. (2) Properties documented with types, access level, and behavioral notes per factory method — complete lookup information. (3) Factory methods with parameter tables, exception tables, and remarks — comprehensive reference. (4) Code examples in each section demonstrate concrete usage, not just abstract descriptions. (5) Breaking change section includes before/after migration code — actionable. (6) Not too deep: does not expose internal implementation (no source code of the class itself, no discussion of how deduplication works internally). The page serves as a complete, self-contained reference that a developer can use without needing to read the source code."
+    },
+    {
+      "check": "vocabulary-audience-fit",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-appropriate: 'static factory methods', 'sealed class', 'value-type semantics', 'stack allocation', 'deduplicated', 'read-only collection', 'fluent API'. No business/marketing terminology that would confuse developers. The term 'member roles' is used correctly per INV-content-030 — 'member' refers to registered visitors without admin access, and the page links to the member_roles_xp page for context. 'Visitor' is used correctly for anonymous website users ('accessible by all visitors without authentication')."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "reference",
+    "actual": "reference",
+    "result": "pass",
+    "evidence": "Title follows 'Reference - ContentAccessSettings' pattern per INV-structure-019. Content is structured API reference: class declaration, properties with type tables, method signatures with parameter/exception tables, comparison table, and equality operator documentation. While it includes usage examples and migration guidance, these serve the reference purpose — showing how to use the documented API elements. No step-by-step tutorial flow or goal-oriented how-to structure. Correctly classified as reference."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Reference - ContentAccessSettings",
+      "evidence": "Follows 'Reference - XYZ' pattern required by INV-structure-019 for reference pages."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "reference_content_access_settings_xp",
+      "evidence": "Snake_case with _xp suffix for _documentation collection per INV-frontmatter-002/INV-frontmatter-007."
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Valid persona value per INV-frontmatter-006. Matches content targeting."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "License tier 1 (standard) per INV-frontmatter-005. Required for _documentation collection."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "700",
+      "evidence": "Follows INV-frontmatter-003. Positioned after existing sibling pages (100-600)."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/reference_content_access_settings_xp",
+      "evidence": "Includes x/<identifier> per INV-frontmatter-004. Fixed from empty array in attempt 2."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All 6 sibling pages in content-item-api/ target 'developer' persona. The two ContentRetriever pages additionally include 'architect' but those cover retrieval patterns with broader system-design implications. The remaining 4 siblings (content-item-query-api, reference-content-item-query, content-item-database-structure, content-item-asset-upload-api) are developer-only, matching this page. Persona targeting is fully consistent with the topic cluster."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona value 'developer' is in the valid set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer/admin content rules followed: uses developer terminology ('sealed class', 'operator overloads', 'IEquatable') appropriately. Does not over-simplify for business audiences. Steps in usage examples are appropriately combined for developer readers."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is adjusted specifically to the developer audience. No business-user terminology used. The term 'member roles' bridges developer and product terminology — correctly linked to member_roles_xp for developer context."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "evidence": "Not directly applicable (page is reference, not step-by-step). However, the usage examples section appropriately presents each example as a self-contained block without unnecessary granularity — consistent with developer-audience step-merging allowance."
+    },
+    {
+      "invariantId": "INV-structure-018",
+      "result": "pass",
+      "evidence": "Page assumes basic C# and .NET familiarity: does not explain what a sealed class is, what operator overloading means, or how IEquatable works. Explains only Xperience-specific concepts (the three-tier access model, factory method behavior). Appropriately avoids over-explaining common developer concepts."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "User type terminology is correct throughout: 'member' for registered visitors ('authenticated member', 'member roles', 'member role IDs'), 'visitor' for anonymous users ('all visitors without authentication'). No confusion between contact/visitor/customer."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user rules — page targets developer persona only. Business tone/screenshot requirements do not apply."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user assumption about technical team — page targets developer persona only."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "evidence": "Guides tone rules — page is in _documentation collection, not _guides. Guide-specific conversational tone rules do not apply."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business user guide materials — page targets developer persona only. KBank/Dancing Goat scenario requirements do not apply."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "consistencyPassed": true,
+    "invariantsPassed": 6,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-007",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/content-retrieval/retrieve-content-items.md",
+  "sectionsModified": [
+    "Content item security three-tier bullet list (lines 263-265) -- replaced em dashes with double hyphens per INV-formatting-016",
+    "IsAuthenticated tip callout (line 357) -- replaced em dash with double hyphen per INV-formatting-016",
+    "Project security properties prose (line 365) -- clarified 'collection is empty' to 'empty or null' per accuracy reviewer note",
+    "Projection code sample comments (lines 382, 385) -- changed imperative '// Project' to third-person '// Projects' per INV-codesamples-004"
+  ],
+  "sectionsAdded": [
+    "## Next steps -- added at end of page with links to member roles, ContentAccessSettings reference, and content item query API per INV-structure-001"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>. Lazy loading: role data only fetched when at least one item has ContentItemIsSecured=true.",
+    "AREA-009: HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — public extension method returning bool. Three-tier: Allowed/NotAuthenticated/Forbidden.",
+    "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403).",
+    "AREA-006: ContentItemRolesResultProcessor post-processes query results. For unsecured items, ContentItemRequiredMemberRoleNames returns empty collection."
+  ],
+  "invariantsApplied": [
+    "INV-structure-001",
+    "INV-structure-006",
+    "INV-formatting-004",
+    "INV-formatting-016",
+    "INV-codesamples-004",
+    "INV-codesamples-010",
+    "INV-persona-003"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-001",
+    "REC-012",
+    "REC-014"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2 rewrite addressing all 3 style reviewer rejections and 1 accuracy reviewer note from attempt 1. Changes: (1) INV-structure-001: Added '## Next steps' section at end of page with three links -- member roles page, ContentAccessSettings reference, and content item query API. (2) INV-formatting-016: Replaced all 4 em dashes (—) with double hyphens (--) on lines 263, 264, 265, and 357. (3) INV-codesamples-004: Changed imperative code comments '// Project the secured state' and '// Project the required member role names' to third-person '// Projects the secured state' and '// Projects the required member role names' on lines 382 and 385. (4) Accuracy note: Clarified line 365 from 'the collection is empty' to 'the collection is empty or null' for public/authenticated-only items, since unsecured items may return null rather than an empty collection. All content outside the targeted lines is preserved unchanged from attempt 1."
+}

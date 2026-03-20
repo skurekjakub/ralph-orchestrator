@@ -1,0 +1,89 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-017",
+  "attempt": 2,
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "Member roles are listed as objects required by content items/pages that are NOT included in content synchronization (i.e., must be pre-existing on target)",
+      "location": "Section: Ensure compatibility between instances, bullet list item (line 188)",
+      "result": "verified",
+      "evidence": "MemberRoleCompatibilityEvaluator.cs exists as an ICompatibilityEvaluator implementation (line 14-18 assembly registration). The Evaluate() method (line 46-79) checks member roles on the target and returns errors if missing or mismatched — confirming member roles are validated for compatibility but NOT transferred by content sync itself.",
+      "docFact": "AREA-014: MemberRoleCompatibilityEvaluator already existed on master"
+    },
+    {
+      "claim": "Member role definitions must exist on all connected instances if content items use role-based access restrictions",
+      "location": "Section: Ensure compatibility between instances, bullet list item (line 188)",
+      "result": "verified",
+      "evidence": "MemberRoleCompatibilityEvaluator.Evaluate() (line 60-76): when a source member role report has no matching GUID on the target, an error string is generated via localizationService.GetString('synchronization.compatibility.memberrole.notfound'). This produces a CompatibilityResult failure, blocking sync. The Create() method (line 32-42) collects only member roles referenced in the sync node graph (i.e., those used by content items), so the check is conditional on usage.",
+      "docFact": "AREA-014: MemberRoleCompatibilityEvaluator already existed on master"
+    },
+    {
+      "claim": "The system matches member roles between instances by their GUID and code name",
+      "location": "Section: Ensure compatibility between instances, bullet list item (line 188)",
+      "result": "verified",
+      "evidence": "MemberRoleCompatibilityEvaluator.Evaluate() line 53-57: queries target member roles by MemberRoleGUID (.WhereIn(nameof(MemberRoleInfo.MemberRoleGUID), reports.Select(r => r.Guid))). Line 61-67: if no GUID match found → 'notfound' error. Line 68-73: if GUID matches but MemberRoleName differs → 'namemismatch' error (using CompatibilityEvaluatorConstants.StringComparison). Both GUID and code name must be compatible.",
+      "docFact": "AREA-014: MemberRoleCompatibilityEvaluator already existed on master"
+    },
+    {
+      "claim": "An error will occur if you try to synchronize a content item for which an exactly matching member role is not available on the target",
+      "location": "Section: Ensure compatibility between instances, paragraph after bullet list (line 190)",
+      "result": "verified",
+      "evidence": "MemberRoleCompatibilityEvaluator.Evaluate() returns CompatibilityResult.From(errors) (line 78) where errors include 'notfound' for missing GUIDs and 'namemismatch' for code name mismatches. Non-null error strings produce a failed CompatibilityResult, which blocks the synchronization operation.",
+      "docFact": "AREA-014: MemberRoleCompatibilityEvaluator already existed on master"
+    },
+    {
+      "claim": "Content access settings are synchronized for content items and pages",
+      "location": "Section: Content sync internals, bullet point (line 236)",
+      "result": "verified",
+      "evidence": "IContentAccessSettingsEvaluator is consumed by multiple restore actions: (1) CreateContentItemRestoreAction.cs line 24,77,86 — uses ResolveContentAccessSettings and sets AccessSettings on content item creation. (2) UpdateContentItemMetadataRestoreAction.cs line 22,46,50 — resolves and applies access settings during content item metadata updates. (3) CreateWebPageRestoreAction.cs line 26,73,157 — applies access settings during web page creation. (4) UpdateWebPageItemUpdateSecuritySettingsRestoreAction.cs line 24,40-43,54 — resolves and applies access settings during web page security updates. Both content items (reusable) and web pages are covered.",
+      "docFact": "AREA-014: ContentItemMemberRoleAdapter and MemberRoleAdapter already existed on master"
+    },
+    {
+      "claim": "If a content item is secured with member role restrictions on the source instance, the same security configuration and role assignments are restored on the target instance",
+      "location": "Section: Content sync internals, bullet point (line 236)",
+      "result": "verified",
+      "evidence": "ContentAccessSettingsEvaluator.ResolveContentAccessSettings() (lines 26-57): (1) Checks sourceContentItem.ContentItemIsSecured — if false, returns ContentAccessSettings.Public(). (2) If secured, resolves member role GUIDs from sync node dependencies (ContentItemMemberRoleInfo → MemberRoleInfo chain via lines 37-44). (3) If no roles found, returns ContentAccessSettings.Secured() (any-authenticated). (4) If roles found, queries target MemberRoleInfo by GUID to get local role IDs (lines 51-54), returns new ContentAccessSettings(true, roleIds). This resolved ContentAccessSettings is then passed to manager.UpdateMetadata() or manager.UpdateSecuritySettings(), faithfully reproducing the source security configuration on the target.",
+      "docFact": "AREA-014: ContentItemMemberRoleAdapter and MemberRoleAdapter already existed on master"
+    },
+    {
+      "claim": "Member role bindings are discovered as content item dependencies in sync payloads (implicit from dependency adapter chain)",
+      "location": "Section: Content sync internals, bullet point (line 236) — implicit in 'role assignments are restored'",
+      "result": "verified",
+      "evidence": "ContentItemMemberRoleAdapter.cs implements IDependencyAdapter<ContentItemInfo> (line 19) and retrieves ContentItemMemberRoleInfo records linked to a content item (lines 22-26). MemberRoleAdapter.cs implements IDependencyAdapter<ContentItemMemberRoleInfo> (line 19) and resolves the actual MemberRoleInfo for each binding (lines 22-28). This two-step adapter chain (ContentItem → ContentItemMemberRole → MemberRole) ensures member role bindings are included in the sync dependency graph.",
+      "docFact": "AREA-014: ContentItemMemberRoleAdapter and MemberRoleAdapter already existed on master"
+    },
+    {
+      "claim": "page_link identifier member_roles_xp correctly resolves to the Member roles documentation page",
+      "location": "Lines 188 and 236 (two page_link tags)",
+      "result": "verified",
+      "evidence": "member-roles.md front matter: identifier: member_roles_xp, title: 'Member roles'. This was the fix in attempt 2 — replacing invalid member_roles_developer_guide_xp with the correct member_roles_xp sourced from the actual front matter.",
+      "docFact": null
+    },
+    {
+      "claim": "page_link identifier 8oouCw correctly resolves to the Secure pages documentation page (linked with linkText 'secured')",
+      "location": "Line 236",
+      "result": "verified",
+      "evidence": "secure-pages.md front matter: identifier: 8oouCw, title: 'Secure pages'. The link context 'secured' accurately describes the target page's subject matter.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [],
+  "researchRecommendationChecks": [],
+  "domainInsightChecks": [
+    {
+      "note": "knowledge-brief.json has 0 domainInsights entries (cold start). No cross-referencing required."
+    }
+  ],
+  "invariantConflicts": [],
+  "summary": {
+    "totalClaims": 9,
+    "verified": 9,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0
+  },
+  "notes": "Attempt 2 review. The only change from attempt 1 was fixing two page_link identifiers: member_roles_developer_guide_xp → member_roles_xp (lines 188 and 236). Verified member_roles_xp matches the actual front matter in member-roles.md. All 7 original technical claims from attempt 1 re-verified with no regressions — source code evidence unchanged. Added 2 new claims for the page_link identifier correctness checks specific to the attempt 2 fix. No research recommendations were cited (researchRecommendationsInlined is empty in task-graph). Knowledge brief has no domain insights (cold start). No invariant conflicts detected."
+}

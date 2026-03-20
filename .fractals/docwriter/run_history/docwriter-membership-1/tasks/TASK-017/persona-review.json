@@ -1,0 +1,139 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-017",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["admin", "developer"],
+      "evidence": "Front matter declares 'persona: admin, developer' (line 3). Both are valid per INV-frontmatter-006. The page addresses operational setup procedures for admins (SaaS connection management, compatibility checklists, troubleshooting) and system-level configuration with code examples for developers (ContentSynchronizationOptions, OpenTelemetry tracing). The new member-role content at lines 188 and 236 serves both audiences: admins learn the requirement ('member role definitions must exist on all connected instances'), developers learn the matching contract ('GUID and code name')."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Content uses precise technical terminology appropriate for developers throughout: 'ContentSynchronizationOptions' (line 55), 'GUID identifiers' and 'code name' (lines 188, 192), 'role-based access restrictions' (line 188), 'Content sync restoration scheduled task' (line 228), 'CMS_Synchronization database table' (line 226), OpenTelemetry source name 'Kentico.Xperience.ContentSynchronization' (line 294). The new content correctly describes the behavioral contract without leaking internal class names (MemberRoleCompatibilityEvaluator, ContentItemMemberRoleAdapter were intentionally omitted per the docFact). Developer readers get sufficient information to understand what must match across instances."
+    },
+    {
+      "check": "tone-admin",
+      "result": "pass",
+      "evidence": "Operational language is clear and actionable for admin readers: 'member role definitions must exist on all connected instances if content items use role-based access restrictions' (line 188) — direct requirement. 'an error will occur if you try to synchronize a content item for which an exactly matching content type or member role is not available on the target' (line 190) — concrete consequence. The Manage synchronization connections section (lines 128–150) provides step-by-step UI procedure. The SaaS staging setup (lines 119–126) uses a numbered procedure. No section forces admin readers through code-level implementation without the choice to skip — 'Content sync internals' (line 221) is clearly labeled as deeper detail."
+    },
+    {
+      "check": "multi-persona-layering",
+      "result": "pass",
+      "evidence": "The page correctly layers content for its dual audience. It progresses from operational setup (admin-first) through to system internals (developer-first): (1) Supported topologies — both audiences, visual diagrams; (2) Set up content sync / SaaS — admin procedures with developer code example; (3) Configure Xperience for content sync — admin-accessible checklist; (4) Ensure compatibility between instances — requirements list readable by both, with technical GUID detail for developers; (5) Content sync internals — deeper system behavior for developers, still operationally readable; (6) Troubleshoot — both audiences. The new line 236 about content access settings synchronization sits correctly in the internals section where technical depth is expected."
+    },
+    {
+      "check": "persona-completeness",
+      "result": "pass",
+      "evidence": "No missing persona tags needed. Content does not contain architect-level system integration patterns (no cross-system topology design guidance beyond what's already admin-scoped) or business-level outcome language. The admin+developer combination matches 22 of 38 pages in the Configuration topic cluster (58%) — this is the dominant pattern. No justification for broadening to 'architect' or 'all'."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "The page is a goal-oriented configuration procedure: it describes how to set up content sync (source/target configuration code, SaaS portal steps), how to configure prerequisite features (permissions, workflows, allowed extensions), how to ensure compatibility, and how to troubleshoot. The new content additions add a compatibility requirement (member roles at line 188) and a sync payload detail (content access settings at line 236) — both fit the how-to pattern of informing the reader what they need to do and what the system does. The page assumes the reader already knows what content sync is (concepts covered in the linked content_sync_xp page). Not a tutorial (no learning scaffold), not a reference (not a structured lookup table), not a concept-only page (contains procedural steps). Classification is correct."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "admin, developer",
+      "invariantId": "INV-frontmatter-006",
+      "evidence": "Both 'admin' and 'developer' are valid persona values per INV-frontmatter-006."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "content_sync_configuration_xp",
+      "invariantId": "INV-frontmatter-002",
+      "evidence": "Identifier uses snake_case with _xp suffix for _documentation collection."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "2",
+      "invariantId": "INV-frontmatter-005",
+      "evidence": "License tier 2 (advanced) is valid."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/content_sync_configuration_xp",
+      "invariantId": "INV-frontmatter-004",
+      "evidence": "Includes required x/<identifier> redirect path."
+    },
+    {
+      "field": "required-fields",
+      "result": "pass",
+      "invariantId": "INV-frontmatter-001",
+      "evidence": "All required fields present: title (line 2), identifier (line 4), order (line 5), redirect_from (line 8), persona (line 3), license (line 6)."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "The page's admin+developer persona targeting is the dominant pattern in the Configuration cluster (22 of 38 pages). Direct neighbors 'Content hub configuration' (admin, developer, howto) and 'AIRA configuration' (developer, admin, howto) use the identical persona+classification combination. The new member-roles and content-access-settings content maintains the same voice and technical depth as existing compatibility items on the page (content types, languages, workspaces). No inconsistency with surrounding pages."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona values 'admin' and 'developer' are both in the valid set {developer, admin, business, architect, all}."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "All required front matter fields present: title, identifier, order, redirect_from, persona, license."
+    },
+    {
+      "invariantId": "INV-frontmatter-002",
+      "result": "pass",
+      "evidence": "Identifier 'content_sync_configuration_xp' follows snake_case + _xp suffix convention."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "evidence": "redirect_from includes 'x/content_sync_configuration_xp'."
+    },
+    {
+      "invariantId": "INV-frontmatter-005",
+      "result": "pass",
+      "evidence": "License value '2' is a valid tier."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content uses developer/admin terminology appropriately: 'GUID and code name' (line 188), 'role-based access restrictions' (line 188), 'ContentSynchronizationOptions' (line 55). Related compatibility items are logically grouped in a bullet list rather than individual steps — appropriate for developer/admin audience per this invariant's allowance to combine related easy steps."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently targeted at developer/admin audience. No business-user marketing language present. No unexplained cross-domain terms. 'Member role' terminology is used consistently (not 'membership role' or 'user role'), matching the product's established terminology. 'Content access settings' (line 236) is the correct product term. No vocabulary would alienate or confuse the target audience."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "evidence": "Not a business-user page. The page appropriately merges related items for developer/admin audience (compatibility requirements list, internals bullet list). No single-action-per-step requirement applies."
+    },
+    {
+      "invariantId": "INV-structure-018",
+      "result": "pass",
+      "evidence": "New content does not over-explain common concepts. Assumes familiarity with content sync, content types, and member roles — linking to dedicated pages (member_roles_xp, 8oouCw) for deeper explanation rather than re-explaining inline. The GUID matching detail in line 192 is appropriate depth for the target audience, not over-explanation."
+    }
+  ],
+  "attemptDelta": {
+    "changeFromAttempt1": "Cross-reference identifier fix only: 'member_roles_developer_guide_xp' → 'member_roles_xp' at lines 188 and 236. No content, tone, or persona-targeting changes. All persona checks from attempt 1 remain valid.",
+    "newIssuesIntroduced": "none"
+  },
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 9,
+    "invariantsFailed": 0
+  }
+}

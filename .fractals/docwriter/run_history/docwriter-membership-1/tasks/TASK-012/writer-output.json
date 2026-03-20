@@ -1,0 +1,51 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "business-users/website-content/secure-pages.md",
+  "sectionsModified": [
+    "Step 4 \u2014 configure page security settings: expanded from single 'Requires authentication' bullet to describe both authentication-only and role-based options with the Membership roles selector",
+    "'Requires authentication' description \u2014 replaced stale binary description with conditional explanation covering both 'signed-in members only' and 'specific member roles' scenarios",
+    "Subpages confirmation dialog \u2014 updated description to match current dialog text ('apply to current page only or all pages located under it')",
+    "End result text \u2014 rewritten to be more precise per INV-structure-009",
+    "Front matter related_pages \u2014 added 'BIsuCw' (Members) and 'member_roles_xp' (developer member roles) cross-references"
+  ],
+  "sectionsAdded": [
+    "Page access levels \u2014 three-tier model explained in business terms (public / signed-in members only / specific member roles)",
+    "Configure page security \u2014 restructured procedure with heading and lead-in sentence per REC-010",
+    "Restrict a page to specific member roles \u2014 dedicated step-by-step procedure for role-based restriction",
+    "Cross-reference info box to Members application for role management",
+    "Next steps \u2014 links to Member roles and Secure content items"
+  ],
+  "sectionsRemoved": [
+    "Opening paragraph ('Pages in the content tree can have their access privileges modified via the Security tab.') \u2014 replaced by structured Page access levels section"
+  ],
+  "docFactsUsed": [
+    "AREA-002: ContentAccessSettings supports three tiers: Public (no auth), Secured (any authenticated), SecuredWithRoles (specific roles)",
+    "AREA-002: Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)",
+    "AREA-002: Factory methods Public(), Secured(), SecuredWithRoles() \u2014 UI maps checkbox unchecked=Public, checked+no roles=Secured, checked+roles=SecuredWithRoles",
+    "AREA-012: Admin UI member role pages already present; localization strings confirm 'Requires authentication' checkbox and 'Membership roles' selector labels",
+    "Source: WebPageSecurityModel.cs \u2014 IsSecured checkbox + RequiredRoles ObjectIdSelectorComponent with VisibleIfTrue, MaximumItems=0 (unlimited)",
+    "Source: KenticoAdminWebsitesResources.resx \u2014 tooltip: 'Restricts access to members with the specified roles. If no roles are selected, the page is accessible to all authenticated members.'",
+    "Source: WebPageSecuritySubmitModel.cs \u2014 confirmation dialog options: 'Apply to this item and all items located under it' / 'Apply to this item only'"
+  ],
+  "invariantsApplied": [
+    "INV-structure-006: Ordered lists used for all step-by-step instructions; bullet points used for unordered options",
+    "INV-structure-007: One action per step for business users throughout both procedures",
+    "INV-structure-009: End result described at end of each procedure section",
+    "INV-persona-001: Friendly positive tone; one action per step; no technical jargon; screenshot placeholders noted",
+    "INV-persona-002: Technical prerequisites delegated to development team ('Your development team must...')"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-010: Location-before-action pattern used throughout; procedures kept under 8 steps; finalizing action (Publish change, Save) as explicit step",
+    "REC-013: Consistent terminology \u2014 'member' for registered visitor, 'visitor' for anonymous user, 'sign in' (verb), 'member role' (not 'membership role' or 'user role')"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [
+    "Screenshot for updated Security tab UI with the Membership roles selector needs to be captured from the admin UI \u2014 HTML comment placeholder added at line 45",
+    "The existing SecurityTab.png image may be outdated and should be recaptured to show the current UI with the Membership roles selector"
+  ],
+  "notes": "Attempt 2: Replaced all 4 occurrences of choose/chosen with select/selected per INV-style-036. Also fixed \"membership roles\" to \"member roles\" on line 49 per REC-013 terminology. Lines 43, 49, 73, 76 all corrected. Addresses STY-001 from review feedback. Additional in-session hotfix: replaced pre-existing xp-lock icon with xp-diamond on line 57 per accuracy review finding (BaseContentItemStatusRetriever.cs:293 uses Icons.Diamond)."
+}

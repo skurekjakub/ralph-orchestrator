@@ -1,0 +1,113 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-015",
+  "attempt": 2,
+  "verdict": "approved",
+  "changeScope": "Attempt 2 added only a bold title line '**Non-nullable AccessSettings**' to the note callout at line 51. No other content changed from attempt 1.",
+  "claims": [
+    {
+      "claim": "Title 'Non-nullable AccessSettings' accurately describes the note content",
+      "location": "Note callout in 'Assign handlers to events' section, line 51 (bold title)",
+      "result": "verified",
+      "evidence": "The AccessSettings property on all 14 event data state classes enforces non-null via ArgumentNullException.ThrowIfNull(value) on the internal setter. 'Non-nullable' accurately describes the runtime behavior: the property cannot be assigned null. 'AccessSettings' is the exact property name (e.g., CreateContentItemEventDataState.cs line 51, PublishWebPageEventDataState.cs line 66). The title is a precise summary of the note body.",
+      "docFact": "AREA-003, AREA-004"
+    },
+    {
+      "claim": "Content item and web page event data states expose an AccessSettings property",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "evidence": "All 8 content engine event data state classes (e.g., CreateContentItemEventDataState.cs line 51) and 6 web page event data state classes (e.g., PublishWebPageEventDataState.cs line 66) have a public AccessSettings property.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "AccessSettings property is of type ContentAccessSettings",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "evidence": "All AccessSettings properties are typed as ContentAccessSettings. Confirmed in CreateContentItemEventDataState.cs line 51: 'public ContentAccessSettings AccessSettings', PublishWebPageEventDataState.cs line 66: same. ContentAccessSettings.cs defines the sealed class in CMS.ContentEngine namespace.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "This property requires a non-null value – setting it to null throws an ArgumentNullException",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "evidence": "ArgumentNullException.ThrowIfNull(value) present on internal setter in all 14 event data state classes. Content engine examples: CreateContentItemEventDataState.cs line 56, UpdateDraftEventDataState.cs line 50. Web page examples: PublishWebPageEventDataState.cs line 71, DeleteWebPageEventDataState.cs line 71, MoveWebPageEventDataState.cs line 83, UnpublishWebPageEventDataState.cs line 71.",
+      "docFact": "AREA-003, AREA-004"
+    },
+    {
+      "claim": "Use ContentAccessSettings.Public() for publicly accessible content",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 31: 'public static ContentAccessSettings Public() => new(false);' with XML doc: 'Creates content access settings for public (unsecured) content. No authentication required.' All event data state backing fields default to ContentAccessSettings.Public() (e.g., CreateContentItemEventDataState.cs line 15, PublishWebPageEventDataState.cs line 18).",
+      "docFact": "AREA-003: Use ContentAccessSettings.Public() for unsecured."
+    },
+    {
+      "claim": "Cross-reference to 'Reference - Global system events' page for affected events and access modes",
+      "location": "Note callout, paragraph 2",
+      "result": "unverifiable",
+      "evidence": "The page link identifier 2AOiCQ is a documentation-internal reference. Consistent with pre-existing usage of the same identifier on line 45 of this page. Cannot verify target page content from source code.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [],
+  "inlineCodeElements": [
+    {
+      "element": "AccessSettings",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "notes": "Matches property name in all event data state classes."
+    },
+    {
+      "element": "ContentAccessSettings",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "notes": "Matches class name: ContentAccessSettings.cs in CMS.ContentEngine namespace."
+    },
+    {
+      "element": "null",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "notes": "Correct C# keyword."
+    },
+    {
+      "element": "ArgumentNullException",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "notes": "Matches exception type used in all setters via ArgumentNullException.ThrowIfNull(value)."
+    },
+    {
+      "element": "ContentAccessSettings.Public()",
+      "location": "Note callout, paragraph 1",
+      "result": "verified",
+      "notes": "Matches static factory method: ContentAccessSettings.cs line 31."
+    }
+  ],
+  "preExistingObservations": [
+    {
+      "observation": "Pre-existing code example handler type mismatch",
+      "location": "Example section, code block line 97",
+      "details": "Handler Page_Create_After uses CreateWebPageLanguageVariantEventArgs, but WebPageEvents.Create expects CreateWebPageEventArgs. Pre-existing issue NOT introduced by TASK-015.",
+      "affectsVerdict": false
+    }
+  ],
+  "regressionCheck": {
+    "performed": true,
+    "result": "no regressions",
+    "notes": "Compared attempt 2 against attempt 1 approved content. The only change is the addition of bold title '**Non-nullable AccessSettings**' on line 51. All previously-verified note body content is unchanged. No accuracy regressions detected."
+  },
+  "invariantSupremacy": {
+    "conflictsDetected": false,
+    "notes": "No conflicts between meta-knowledge/research and policy invariants."
+  },
+  "summary": {
+    "totalClaims": 6,
+    "verified": 5,
+    "incorrect": 0,
+    "unverifiable": 1,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0,
+    "inlineCodeElementsChecked": 5,
+    "inlineCodeElementsCorrect": 5,
+    "narrative": "Attempt 2 accuracy review: APPROVED. The only change from attempt 1 was adding the bold title '**Non-nullable AccessSettings**' to the note callout. This title is technically accurate — 'Non-nullable' correctly describes the runtime enforcement (ArgumentNullException.ThrowIfNull on all 14 event data state setters), and 'AccessSettings' is the exact property name. All 5 verifiable claims in the note body remain unchanged and verified against source code at commit 65412d25. The 1 unverifiable claim is a cross-reference to an internal doc page. No accuracy regressions from attempt 1."
+  }
+}

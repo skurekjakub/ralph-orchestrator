@@ -1,0 +1,38 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-013",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "business-users/content-hub/content-items.md",
+  "sectionsModified": [
+    "Secure content items \u2014 rewrote intro paragraph to describe two-tier security model (authentication + role restriction) instead of authentication only",
+    "Availability note \u2014 updated terminology from 'users are authenticated' to 'members are signed in'; added parenthetical noting role restrictions"
+  ],
+  "sectionsAdded": [
+    "Require authentication \u2014 dedicated subsection with step-by-step procedure for authentication-only security",
+    "Restrict to member roles \u2014 new subsection with step-by-step procedure for role-based content restriction, including info callout with prerequisite cross-reference to Members page",
+    "Availability of secured content items \u2014 extracted the existing availability note into its own subsection for clarity"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-002: Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)",
+    "AREA-002: Content items can now be restricted to specific member roles, not just any authenticated user",
+    "AREA-012: Admin UI for security settings already supports role selection"
+  ],
+  "invariantsApplied": [
+    "INV-structure-006",
+    "INV-structure-007",
+    "INV-persona-001",
+    "INV-persona-002"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-010",
+    "REC-013"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [
+    "Screenshot image ContentItemSecuritySettingsRoles.jpg is a placeholder \u2014 an actual screenshot of the expanded Security settings UI with role selection needs to be captured from the admin UI"
+  ],
+  "notes": "Attempt 2: Applied all 8 fixes from review feedback. (1) Replaced 3x enable/disable with select/clear per INV-style-034 on lines 368, 390, 398. (2) Replaced 4x \"Security section\" with \"Membership access section\" per ACC-001 evidence from contentengine.contenthub.properties.security.category resx key resolving to \"Membership access\" on lines 356, 368, 390, 398. (3) Replaced lock icon (xp-lock) with diamond icon (xp-diamond) per ACC-002 evidence from Icons.cs:971 and BaseContentItemStatusRetriever.cs:293 on line 358."
+}

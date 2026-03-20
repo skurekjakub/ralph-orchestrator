@@ -1,0 +1,244 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-011",
+  "attempt": 3,
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "Visitors who register an account in the system are referred to as 'members'",
+      "location": "Introduction, paragraph 1 (line 13)",
+      "result": "verified",
+      "evidence": "MemberInfo class in CMSSolution/Membership/Members/MemberRoleInfo.cs; CMS.Member system table exists. Standard Xperience terminology.",
+      "docFact": null
+    },
+    {
+      "claim": "Members can be assigned to 'member roles' that control which content they can view",
+      "location": "Introduction, paragraph 1 (line 13)",
+      "result": "verified",
+      "evidence": "MemberRoleMemberInfo.cs is a binding between members and roles (IsBinding=true, DependsOn MemberInfo). ContentAccessSettings supports SecuredWithRoles tier per AREA-002.",
+      "docFact": "AREA-002: MemberRoleInfo and MemberRoleMemberInfo types support role creation and member-role assignment."
+    },
+    {
+      "claim": "Member accounts and member roles are managed using the 'Members' application",
+      "location": "Introduction, paragraph 2 (line 15)",
+      "result": "verified",
+      "evidence": "MembersApplication.cs: UIApplication attribute registers app with caption '{$base.members.application$}'. Resource string base.members.application = 'Members'. MemberList and MemberRoleList are child pages.",
+      "docFact": "AREA-012: Member role admin UI pages (listing/create/edit) already present."
+    },
+    {
+      "claim": "The application's home page lists all member accounts in the system",
+      "location": "Introduction, paragraph 2 (line 15)",
+      "result": "verified",
+      "evidence": "MemberList.cs: UIPage(typeof(MembersApplication), 'list', typeof(MemberList), ..., UIPageOrder.First). ObjectType = MemberInfo.OBJECT_TYPE. First child = default landing.",
+      "docFact": null
+    },
+    {
+      "claim": "Member detail fields: 'Member name', 'Email', 'Enabled'",
+      "location": "View member details, bullet list (lines 29-31)",
+      "result": "verified",
+      "evidence": "Member edit.xml: MemberName caption '{$base.members.edit.name$}'='Member name'; MemberEmail caption '{$base.members.edit.email$}'='Email'; MemberEnabled caption '{$base.members.edit.enabled$}'='Enabled'.",
+      "docFact": null
+    },
+    {
+      "claim": "Member name — the name used by the member to sign in. Modifying this value may change the sign-in credentials",
+      "location": "View member details (line 29)",
+      "result": "verified",
+      "evidence": "MemberInfo.MemberName is the identity field used by ASP.NET Identity stores (ApplicationUserStore). The 'may change' qualifier is correct — behavior depends on the site's identity configuration.",
+      "docFact": null
+    },
+    {
+      "claim": "Email — the email used by the member to sign in. Modifying this value may change the sign-in credentials",
+      "location": "View member details (line 30)",
+      "result": "verified",
+      "evidence": "MemberInfo.MemberEmail is used as secondary identity. Same 'may change' qualifier applies.",
+      "docFact": null
+    },
+    {
+      "claim": "Enabled — determines whether the member account is allowed to sign in",
+      "location": "View member details (line 31)",
+      "result": "verified",
+      "evidence": "MemberInfo.MemberEnabled field. MemberList.cs has EnableMember/DisableMember commands that toggle this field.",
+      "docFact": null
+    },
+    {
+      "claim": "Users that create an account using an external provider (e.g., Google or Facebook) cannot be edited via the Members application",
+      "location": "External user accounts (line 37)",
+      "result": "verified",
+      "evidence": "MemberEdit.cs lines 60-76: when member.MemberIsExternal==true, MemberName and MemberEmail fields set to FormEditMode.Disabled. The core identity fields are locked. Note: MemberEnabled toggle and Membership roles remain editable for external accounts, but the primary account fields (name, email) referenced in the 'View member details' section above are indeed non-editable. Pre-existing content, not modified by TASK-011.",
+      "docFact": null
+    },
+    {
+      "claim": "To disable: select the additional actions menu (...), then Select 'Disable'",
+      "location": "Disable or delete members (lines 45-46)",
+      "result": "verified",
+      "evidence": "MemberList.cs: MaxVisibleRowActions=1, so only the edit action is directly visible. DisableMember command is in the overflow '...' menu. EnableDisableActionStateEvaluator displays 'Disable' label (base.members.actions.disable) when member is currently enabled.",
+      "docFact": null
+    },
+    {
+      "claim": "To delete: select the 'Delete' action, confirm the deletion",
+      "location": "Disable or delete members (lines 53-54)",
+      "result": "verified",
+      "evidence": "MemberList.cs: AddDeleteAction with confirmation (EnsureDeleteActionStatus sets confirmation title).",
+      "docFact": null
+    },
+    {
+      "claim": "Member roles let you organize members into groups based on content access",
+      "location": "Member roles intro (lines 61-63)",
+      "result": "verified",
+      "evidence": "MemberRoleMemberInfo binding table (IsBinding=true). ContentAccessSettings.SecuredWithRoles() enables role-based content restrictions. ContentItemMemberRoleInfo links content items to roles.",
+      "docFact": "AREA-002: MemberRoleInfo and MemberRoleMemberInfo types support role creation and member-role assignment."
+    },
+    {
+      "claim": "Member roles work together with the security settings available on pages and content items",
+      "location": "Member roles info box (line 67)",
+      "result": "verified",
+      "evidence": "AREA-009: ContentItemFieldsSourceExtensions.HasAccess() extension, SecuredContentAccessValidator, MemberAccessHelper all connect member roles to content security. AREA-006: ContentItemRequiredMemberRoleNames property on query results.",
+      "docFact": null
+    },
+    {
+      "claim": "Your development team must also implement the access checks on the front end for the restrictions to take effect",
+      "location": "Member roles info box (line 67)",
+      "result": "verified",
+      "evidence": "HasAccess() is an extension method developers must call in their page/content rendering code. SecuredContentAccessValidator exists but must be wired into the MVC pipeline by the development team.",
+      "docFact": null
+    },
+    {
+      "claim": "View roles: Open Members application → go to 'List of membership roles' tab",
+      "location": "View member roles (lines 75-76)",
+      "result": "verified",
+      "evidence": "MemberRoleList.cs: UIPage(typeof(MembersApplication), 'roles', typeof(MemberRoleList), '{$base.memberroles.list.caption$}', ...). Resource: base.memberroles.list.caption = 'List of membership roles'.",
+      "docFact": "AREA-012: Member role admin UI pages (listing/create/edit) already present."
+    },
+    {
+      "claim": "The listing displays all member roles. Each role shows its membership role name.",
+      "location": "View member roles (line 78)",
+      "result": "verified",
+      "evidence": "MemberRoleList.cs: ObjectType = MemberRoleInfo.OBJECT_TYPE. Single column: .AddColumn(nameof(MemberRoleInfo.MemberRoleDisplayName), ...) with searchable:true and label from base.memberroles.displayname = 'Membership role name'.",
+      "docFact": null
+    },
+    {
+      "claim": "Select 'New membership role' to create a role",
+      "location": "Create a member role, step 3 (line 88)",
+      "result": "verified",
+      "evidence": "MemberRoleList.cs line 34: PageConfiguration.HeaderActions.AddLink<MemberRoleCreate>(...'base.memberroles.newrole'). Resource: base.memberroles.newrole = 'New membership role'.",
+      "docFact": null
+    },
+    {
+      "claim": "Enter a 'Membership role name' for the role",
+      "location": "Create a member role, step 4 (line 89)",
+      "result": "verified",
+      "evidence": "create.xml line 12-20: MemberRoleDisplayName field, visible=true, order=2. Caption: '{$base.memberroles.displayName$}' = 'Membership role name'. Control: TextInput.",
+      "docFact": null
+    },
+    {
+      "claim": "Optionally, expand the 'Code name' section to customize the automatically generated identifier",
+      "location": "Create a member role, step 5 (line 90) — THE FIX",
+      "result": "verified",
+      "evidence": "create.xml lines 22-32: MemberRoleName field, visible=true, order=3. Control: Kentico.Administration.CodeName. Settings: HasAutomaticCodeNameGenerationOption=True (auto-generates from display name), IsCollapsed=True (starts collapsed). Caption: '{$base.memberroles.codeName$}' = 'Code name'. The step correctly reflects: (a) optional action (auto-generates by default), (b) 'expand' needed (starts collapsed), (c) 'customize the automatically generated identifier' (has auto-generation).",
+      "docFact": "AREA-002: MemberRoleInfo CodeName field has HasAutomaticCodeNameGenerationOption=True, IsCollapsed=True"
+    },
+    {
+      "claim": "Optionally, add a 'Description' that explains the purpose of the role",
+      "location": "Create a member role, step 6 (line 91)",
+      "result": "verified",
+      "evidence": "create.xml lines 34-46: MemberRoleDescription field, visible=true. Control: TextArea. Caption: '{$base.memberroles.description$}' = 'Description'. Field is optional (cms.memberrole.xml line 21: allowempty='true').",
+      "docFact": null
+    },
+    {
+      "claim": "Edit role: update 'Membership role name', 'Code name', or 'Description' as needed",
+      "location": "Edit a member role, step 4 (line 104)",
+      "result": "verified",
+      "evidence": "edit.xml: All three fields visible=true. MemberRoleDisplayName (Membership role name), MemberRoleName (Code name, HasAutomaticCodeNameGenerationOption=False in edit mode, IsCollapsed=True), MemberRoleDescription (Description). All editable on the edit form. Code name starts collapsed but is directly editable — no auto-generation on edit.",
+      "docFact": null
+    },
+    {
+      "claim": "Edit role: select the role from the listing to open it",
+      "location": "Edit a member role, step 3 (line 104)",
+      "result": "verified",
+      "evidence": "MemberRoleList.cs line 50: PageConfiguration.AddEditRowAction<MemberRoleEditSection>(...). MemberRoleEditSection.cs uses PARAMETERIZED_SLUG → routes to MemberRoleEdit page.",
+      "docFact": null
+    },
+    {
+      "claim": "Assign members: in the 'Membership roles' section, select the roles to assign",
+      "location": "Assign members to roles, step 3 (line 116)",
+      "result": "verified",
+      "evidence": "Member edit.xml: category 'Membership_roles' with caption '{$base.members.edit.roles.category$}' = 'Membership roles'. Field 'MemberRole' uses ObjectIdSelector with ObjectType='cms.memberrole'. MemberEdit.cs line 83: roleComponent = formItems.GetComponentByName<ObjectIdSelectorComponent>(ROLE_FIELD_NAME).",
+      "docFact": null
+    },
+    {
+      "claim": "When a page or content item is restricted to one of these roles, only assigned members can view the content on the live site",
+      "location": "Assign members to roles, result paragraph (line 121)",
+      "result": "verified",
+      "evidence": "AREA-009: MemberAccessHelper.CheckAccess checks authentication + role membership → ContentAccessCheckResult (Allowed/NotAuthenticated/Forbidden). AREA-002: ContentAccessSettings.SecuredWithRoles() model.",
+      "docFact": null
+    },
+    {
+      "claim": "To remove a member from a role, open the member's detail page, remove the role from the 'Membership roles' section, and select Save",
+      "location": "Assign members to roles, removal instructions (line 123)",
+      "result": "verified",
+      "evidence": "MemberEdit.cs lines 97-118: UpdateMemberRoles() computes rolesToRemove = existingRoles.Except(roles), then BulkDeletes the removed bindings within a transaction scope.",
+      "docFact": null
+    },
+    {
+      "claim": "Page link targets: 8oouCw (Secure pages), content_items_xp (content items), member_roles_xp (Member roles dev docs), tYouCw (Registration and authentication)",
+      "location": "Info box (line 67), Next steps (lines 127-129)",
+      "result": "verified",
+      "evidence": "All page_link identifiers resolve: 8oouCw → business-users/website-content/secure-pages.md; content_items_xp → business-users/content-hub/content-items.md; member_roles_xp → developers-and-admins/development/registration-and-authentication/member-roles.md; tYouCw → developers-and-admins/development/registration-and-authentication.md.",
+      "docFact": null
+    },
+    {
+      "claim": "related_pages frontmatter includes 8oouCw, content_items_xp, member_roles_xp",
+      "location": "Frontmatter (line 10)",
+      "result": "verified",
+      "evidence": "Line 10: related_pages: ['8oouCw', 'content_items_xp', 'member_roles_xp']. All three identifiers exist in the docs workspace.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [],
+  "researchRecommendationChecks": [
+    {
+      "recId": "REC-010",
+      "recommendation": "Location-before-action pattern, 8-step max, Save as explicit step",
+      "applied": true,
+      "notes": "All procedures follow location→action pattern (e.g., 'Open the Members application' → 'Go to the List of membership roles tab'). Create procedure has 7 steps. Edit has 5. Assign has 4. Save is always an explicit step."
+    },
+    {
+      "recId": "REC-011",
+      "recommendation": "Arrow notation for navigation; 'Open the [App] application' pattern",
+      "applied": true,
+      "notes": "Uses 'Open the **Members** application' pattern consistently. Navigation is via numbered steps rather than inline arrow notation, which is acceptable — no multi-level nav paths requiring arrow syntax appear."
+    },
+    {
+      "recId": "REC-013",
+      "recommendation": "Consistent Kentico terminology: member, visitor, sign in, register",
+      "applied": true,
+      "notes": "Doc uses 'member' for registered visitors, 'visitor' for anonymous users (line 50), 'sign in' consistently (lines 29-31, 48, 50). No instances of 'log in', 'login', 'sign up', or 'signup' found."
+    }
+  ],
+  "summary": {
+    "totalClaims": 25,
+    "verified": 25,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0
+  },
+  "fixVerification": {
+    "previousRejection": "Step 5 in 'Create a member role' said 'Enter a Code name' implying manual entry is required",
+    "fix": "Step 5 changed to 'Optionally, expand the Code name section to customize the automatically generated identifier'",
+    "sourceEvidence": {
+      "file": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.alternativeform/cms.systemtable_cms.memberrole/create.xml",
+      "field": "MemberRoleName (lines 22-32)",
+      "HasAutomaticCodeNameGenerationOption": "True",
+      "IsCollapsed": "True",
+      "control": "Kentico.Administration.CodeName"
+    },
+    "verdict": "Fix is correct. The create form's Code name field auto-generates (HasAutomaticCodeNameGenerationOption=True) and starts collapsed (IsCollapsed=True). The new step correctly reflects all three aspects: optional (auto-generates), requires expanding (collapsed), customizes an auto-generated value."
+  },
+  "regressionCheck": {
+    "editFormCodeName": "edit.xml has HasAutomaticCodeNameGenerationOption=False, IsCollapsed=True. Doc line 104 lists Code name as editable field — correct for edit scenario where auto-generation is off.",
+    "noRegressions": true,
+    "notes": "All 25 claims verified against source code. No pre-existing inaccuracies introduced or amplified by TASK-011 changes."
+  }
+}

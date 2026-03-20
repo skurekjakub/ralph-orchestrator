@@ -1,0 +1,287 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-003",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication.md",
+  "reviewScope": "Full page review with focus on writer-modified content (attempt 2 changes: front matter persona, Content access model section restructure, Disabling user accounts admin lead-in). Pre-existing content evaluated for context but not penalized against the writer.",
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-001",
+      "result": "pass",
+      "evidence": "Title: 'Registration and authentication' in front matter (line 2). Introduction: lines 17-23 provide conceptual context on registration and authentication. Body: lines 25-223 cover configuration, flows, management, content access model, architecture, and remarks. Next Steps: lines 225-231 link to 5 related articles. Result: line 44 ('Identity is now configured for the application. Continue by implementing your desired registration and authentication flows.') serves as in-body result confirmation. No dedicated '## Result' heading, but for a hybrid concept/how-to page this is structurally appropriate — an isolated Result section would be artificial given the multi-section body."
+    },
+    {
+      "invariantId": "INV-structure-002",
+      "result": "pass",
+      "evidence": "Introduction (lines 17-23) provides context about registration and authentication, explains real-world scenarios ('allow the web application to keep track of each user's account and provide them with personalized services and content'), describes value ('ensure that only authorized users can access designated parts of the web application'), and links to examples (secured pages, content items). Answers what/why/when effectively. Pre-existing content, preserved correctly."
+    },
+    {
+      "invariantId": "INV-structure-010",
+      "result": "pass",
+      "evidence": "Next steps section (lines 225-231) provides 5 bulleted links to related articles: forms authentication, external authentication (implement auth flows), member roles (configure), secure pages (configure), add fields to member objects (extend data), Members application (manage). All links use descriptive text via page_link Liquid tags. Writer correctly added member roles cross-reference in attempt 1, preserved in attempt 2."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All code elements in writer-modified content use backticks: `ContentAccessSettings` (line 100), `HasAccess` (line 100), `IContentItemFieldsSource` (line 100), `ApplicationRole` (line 35), `ApplicationRoleStore` (line 35), `IdentityRole<int>` (line 35), `MemberRoleInfo` (line 35), `IRoleStore<TRole>` (line 35), `RoleManager` (line 35), `ApplicationUser.Enabled` (line 154). No bare code element names found in any modified section."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Writer-modified content uses correct terminology throughout: 'member' for registered visitors (line 35: 'member roles', line 96: 'authenticated members', line 98: 'member roles', line 154: 'member account'). 'visitor' for anonymous users (line 94: 'visible to all visitors'). No confusion between contact/visitor/customer/user. Pre-existing content also follows these conventions (line 31: 'registered visitors are referred to as members in the system')."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Page targets developer and admin personas (front matter line 3: 'persona: developer, admin'). Developer terminology used appropriately: `IdentityRole<int>`, `IRoleStore<TRole>`, `ContentAccessSettings`, `HasAccess`, `SecurityStampValidatorOptions` (lines 35, 100, 158). Business/admin terms contextualized: Content access model section (lines 90-102) explains three tiers with admin-oriented UI instructions before programmatic approach. Disabling user accounts (line 154) leads with practical admin impact before developer configuration details. Two related easy steps combined appropriately in line 98 (open item + set level)."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code samples broken into logical sections via code_link with id markers: 'identity-setup' (line 29), 'middleware-setup' (line 42), 'member-retrieval' (line 114). Inline code in Remarks (lines 138-146, 160-165) is minimal and focused on specific configuration points. Appropriate detail level for a how-to/concept hybrid page. No code sample changes in attempt 2."
+    }
+  ],
+  "additionalInvariantChecks": [
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "All headings use sentence case correctly. Writer-added/modified: 'Content access model' (line 90), 'Next steps' (line 225). Proper nouns preserved: 'Xperience ASP.NET Identity architecture' (line 116), 'MVC authorization flows and preview mode' (line 213). No ALL CAPS or title case errors."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Verb-phrase headings use imperative mood: 'Configure registration and authentication' (line 25), 'Retrieve the currently authenticated member' (line 104). Noun-phrase headings are appropriate for non-action sections: 'Content access model' (line 90), 'Remarks' (line 130), 'Next steps' (line 225)."
+    },
+    {
+      "invariantId": "INV-style-003",
+      "result": "pass",
+      "evidence": "No headings use 'How to' prefix anywhere in the document."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Writer-modified content uses active voice consistently: 'Xperience uses a three-tier model' (line 92), 'open the item in the administration and set the desired level' (line 98), 'use the ContentAccessSettings class' (line 100), 'When you disable a member account' (line 154). No problematic passive constructions in modified content."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Present simple tense used consistently in writer-modified content: 'Xperience uses' (line 92), 'Changes to access settings take effect' (line 98), 'the account is not blocked immediately' (line 154), 'Disabled accounts can remain active' (line 154)."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent terminology in modified content: 'member roles' used consistently (not 'user roles' or 'membership roles'), 'content access' terminology consistent across sections. 'ApplicationRole'/'ApplicationRoleStore' always written in full, never abbreviated."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No instances of 'please' found in the entire document."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Writer-modified content is concise and leads with important information. Content access model (line 92): immediately states the three-tier model purpose. Line 98: leads with instruction. Line 154: leads with the operational impact (not blocked immediately, up to 30 minutes) before technical details."
+    },
+    {
+      "invariantId": "INV-style-024",
+      "result": "pass",
+      "evidence": "Instructions lead with conditions: 'To configure the access level for a content item, open the item...' (line 98), 'When using the Secured with roles level, assign the specific member roles...' (line 98), 'To immediately block access for disabled accounts, change the revalidation interval...' (line 158)."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "Page title 'Registration and authentication' does not end with -ing form (both are nouns). No writer-modified headings end with -ing form.",
+      "notes": "Pre-existing subheadings 'Disabling user accounts' (line 152) and 'Registration activity logging' (line 167) begin with gerunds but do not end with -ing form ('accounts', 'logging'). INV-style-026 concerns the ending word — both pass. The gerund-leading pattern is a pre-existing stylistic choice outside task scope."
+    },
+    {
+      "invariantId": "INV-style-027",
+      "result": "pass",
+      "evidence": "No instances of 'Click' found in the document. Writer-modified content uses appropriate verbs: 'open the item' (line 98), 'set the desired level' (line 98), 'assign the specific member roles' (line 98)."
+    },
+    {
+      "invariantId": "INV-style-033",
+      "result": "pass",
+      "evidence": "No instances of 'Click' found. 'Select' not used in writer-modified content but not needed — instructions use direct verbs ('open', 'set', 'assign', 'use', 'change')."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Content access model (lines 94-96): uses unordered list for three access tiers — order does not matter, correct choice. Next steps (lines 227-231): uses unordered list for related articles — order does not matter, correct choice. No step-by-step instructions added in attempt 2 that would require ordered lists."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Article is self-contained. Writer-modified sections include rich linking: page_link to member roles (lines 35, 84, 98, 102, 124, 228), secure pages (line 21, 229), forms/external auth (line 227). Content access model (lines 90-102) explains the concept fully without requiring the reader to visit another page first, then links to the member roles page for 'full details'."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "All list items use sentence case: 'Public', 'Secured', 'Secured with roles' (lines 94-96), 'Implement authentication flows', 'Configure member roles', 'Secure pages', 'Extend member data', 'Manage members' (lines 227-231). First letter capitalized in each item."
+    },
+    {
+      "invariantId": "INV-structure-016",
+      "result": "pass",
+      "evidence": "Content access model section uses a bulleted list (lines 94-96) to break up what could be a long paragraph describing three tiers. Next steps uses a bulleted list (lines 227-231) for related links. Configuration breakdown uses a bulleted list (lines 35-38) for component descriptions."
+    },
+    {
+      "invariantId": "INV-formatting-001",
+      "result": "pass",
+      "evidence": "UI elements use bold formatting in writer-modified content: **Secured with roles** (line 98), **Disable** (line 154), **Members** (line 154). Pre-existing content follows same pattern: **Program.cs** (line 27), **Disable/Enable** (line 134). Consistent throughout."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No direct pluralization of code elements. Writer uses correct noun phrases: '`MemberRoleInfo` objects' (line 35, 124), '`ApplicationUser` and `MemberInfo`' (line 118). No instances of backtick-name followed by bare 's'."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No bold or italic formatting applied to inline code. All backtick-wrapped code elements are plain: `ContentAccessSettings`, `HasAccess`, `IContentItemFieldsSource`, `ApplicationUser.Enabled` (lines 100, 154). No `**\u0060code\u0060**` or `*\u0060code\u0060*` patterns found."
+    },
+    {
+      "invariantId": "INV-formatting-012",
+      "result": "pass",
+      "evidence": "Oxford comma used correctly in lists: 'name, email address, and a chosen password' (line 19), 'save preferences and settings, and track their activity' (line 23). No missing serial commas in writer-modified content."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "evidence": "En-dash used correctly in content access model bullets: '**Public** – content visible' (line 94), '**Secured** – content visible' (line 95), '**Secured with roles** – content visible' (line 96). Consistent separator pattern. En-dash also used correctly in Disabling user accounts: 'urgent access revocation – developers can reduce' (line 154). No em-dash usage found."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "All admonitions use correct Liquid tags: {% info %}...{% endinfo %} (5 balanced pairs for card-style sections), {% tip %}...{% endtip %} (1 balanced pair for IVirtualContextDecorationArbiter). All opening tags have matching closing tags."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "All code blocks use the Liquid code tag with lang=csharp: lines 138-146, 160-165, 195-209, 217-223. All code_link directives include lang=\"csharp\": lines 29, 42, 114. Language value 'csharp' is from the supported list."
+    },
+    {
+      "invariantId": "INV-jekyll-009",
+      "result": "pass",
+      "evidence": "Front matter related_pages: ['BIsuCw', 'member_roles_xp'] (line 14). Both identifiers reference pages within the _documentation collection (same collection as the source page)."
+    },
+    {
+      "invariantId": "INV-jekyll-010",
+      "result": "pass",
+      "evidence": "Front matter TOC uses only supported inline parameters: minHeadingLevel: 1, maxHeadingLevel: 3 (lines 10-12). No unsupported parameters."
+    },
+    {
+      "invariantId": "INV-jekyll-014",
+      "result": "pass",
+      "evidence": "All code_link tags include required source and lang attributes: line 29 (source=\"Website/Program.cs\" lang=\"csharp\"), line 42 (source=\"Website/Program.cs\" lang=\"csharp\"), line 114 (source=\"CodeSamples/Membership/StandaloneSamples/MemberRetrievalExample.cs\" lang=\"csharp\"). Lang values are from the supported list."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "All link texts are descriptive: 'member roles' (lines 35, 98), 'Member roles' (lines 84, 102, 124, 228), 'forms authentication' (line 227), 'external authentication' (line 227), 'Secure pages' (line 229), 'Add fields to member objects' (line 230), 'Members' (line 231). No vague 'click here', 'this page', or 'here' link text."
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "evidence": "Info callouts in Management section include bold titles on separate lines: '**Add fields to member objects**' (line 68 via page_link), '**Manage members in the system**' (line 76 via page_link), '**Member roles**' (line 84 via page_link). Flow section callouts: '**Forms authentication**' (line 50), '**External authentication**' (line 58). Tip callout: '**IVirtualContextDecorationArbiter**' (line 191). All multi-content callouts have bold titles."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "evidence": "No callout contains its type name as text. No 'Info' text inside info boxes, no 'Tip' text inside tip boxes."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "evidence": "Callout severity matches content: {% info %} used for additional context (card-style feature descriptions in lines 48-88), {% tip %} used for bonus implementation guidance (IVirtualContextDecorationArbiter in lines 189-211). No misuse of severity levels."
+    },
+    {
+      "invariantId": "INV-codesamples-004",
+      "result": "pass",
+      "evidence": "Code comments in writer-preserved code samples use third person singular: 'Sets the validation interval' (line 161), 'the authentication cookie...is checked' (line 161), 'the client's authentication cookie...is cleared, forcing reauthentication' (line 163). Whitespace present after comment symbol '//'."
+    },
+    {
+      "invariantId": "INV-codesamples-006",
+      "result": "pass",
+      "evidence": "Incomplete code example in Remarks (line 142) uses ellipsis '...' correctly to indicate omitted configuration options inside the AddIdentity lambda."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Heading hierarchy verified: h2 (Configure, Flows, Management, Content access model, Retrieve, Architecture, Remarks, Next steps) → h3 (ApplicationUser.Enabled, Disabling user accounts, Registration activity logging, Page preview mode) → h4 (MVC authorization flows and preview mode). No skipped levels. All h3 headings are children of h2 Remarks. Single h4 is child of h3 Page preview mode."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags properly balanced: 5 {% info %}/{% endinfo %}, 1 {% tip %}/{% endtip %}, 4 {% code %}/{% endcode %}. page_link, external_link, inpage_link, code_link, image tags all use valid syntax with proper attribute quoting. No broken or unclosed Liquid tags."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "All required fields present: title ('Registration and authentication'), persona ('developer, admin'), identifier ('tYouCw'), order (500), license (1), redirect_from ('x/tYouCw'). Optional fields correctly used: toc (minHeadingLevel: 1, maxHeadingLevel: 3), related_pages (['BIsuCw', 'member_roles_xp']). Persona format 'developer, admin' matches project convention (verified against sibling files: content-types-mcp.md uses 'developer, admin, architect', limit-the-pages-users-can-create.md uses 'admin, developer')."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "All internal links use correct Liquid syntax: page_link for cross-page references (14 instances), inpage_link for same-page anchors (2 instances), external_link for URLs outside docs.kentico.com (6 instances). All external links include full URL scheme. All link texts are descriptive."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Consistent patterns throughout: (1) Content access model list uses **Bold** – description pattern across all 3 items. (2) Next steps uses **Bold action**: description pattern across all 5 items. (3) Configuration breakdown uses `Code` – description pattern across all 4 items. (4) En-dashes used consistently as separators. Patterns internally consistent within each section."
+    },
+    {
+      "category": "sentence-length",
+      "result": "pass",
+      "evidence": "Writer-modified sentences checked: Line 92 (16 words), Line 98 sentences (25, 19, 10 words), Line 100 sentences (13, 23 words), Line 102 (19 words), Line 154 sentences (20, 18, 21 words). Line 98 sentence 1 at 25 words is the longest, but combines two related admin actions ('open item' + 'set level') as permitted by INV-persona-003 for developer/admin audience. All within acceptable range."
+    },
+    {
+      "category": "pre-existing-issues",
+      "result": "info",
+      "evidence": "The following pre-existing issues exist outside the writer's TASK-003 scope and are noted for future improvement only: (1) Line 21: 'on the other hand' — INV-style-016 prefers simpler transitions. (2) Line 134: 'you **must** set' — INV-style-038/039 recommend 'you need to set' or passive restructuring. (3) Line 122: `CMS_MemberExternalLogin` in backticks — INV-formatting-005 prohibits backticks for database table names. (4) Lines 118, 120: Multiple consecutive spaces in prose text (whitespace artifacts). (5) Line 134: '–\\>' arrow notation uses en-dash — INV-style-046 specifies '->' for navigation paths. None are attributable to TASK-003 attempt 2 changes."
+    }
+  ],
+  "metaKnowledgeReview": {
+    "knowledgeBriefStatus": "cold-start — no patterns, antiPatterns, styleEvolutions, or taskRetroLessons available (totalIndexEntries: 0)",
+    "antiPatternsFileStatus": "not-found — .github/skills/docwriter-meta/references/anti-patterns.md does not exist, skipped per missing artifact handling policy",
+    "styleEvolutionsApplied": 0,
+    "antiPatternsChecked": 0,
+    "discards": []
+  },
+  "attempt2DeltaReview": {
+    "description": "Focused review of changes between attempt 1 and attempt 2, addressing persona reviewer's 3 rejection items.",
+    "changes": [
+      {
+        "change": "Front matter persona: 'developer' → 'developer, admin'",
+        "location": "line 3",
+        "styleCompliance": "pass",
+        "evidence": "Format matches project convention (comma-separated personas in YAML scalar). Verified against 20+ sibling files: 'admin, developer', 'developer, admin, architect', 'developer, architect' all use this pattern."
+      },
+      {
+        "change": "Content access model: added admin UI lead-in paragraph before programmatic approach",
+        "location": "line 98",
+        "styleCompliance": "pass",
+        "evidence": "Line 98 opens with admin-oriented instruction ('open the item in the administration and set the desired level in its content access options'), then line 100 provides developer-focused programmatic approach ('use the ContentAccessSettings class'). Clean layering. Active voice, present tense, imperative mood for instructions. UI elements bold (**Secured with roles**). Page_link used for member roles cross-reference. Sentence lengths within bounds (25, 19, 10 words)."
+      },
+      {
+        "change": "Disabling user accounts: added admin operational impact lead-in paragraph",
+        "location": "line 154",
+        "styleCompliance": "pass",
+        "evidence": "Line 154 leads with practical admin impact ('account is not blocked immediately. Disabled accounts can remain active for up to 30 minutes'). UI elements bold (**Disable**, **Members**). Transitions to developer detail ('developers can reduce this interval as described below'). Active voice, present tense. Sentence lengths within bounds (20, 18, 21 words). Follows INV-style-021 (leads with important info) and INV-style-024 (condition before instruction)."
+      }
+    ],
+    "newIssuesIntroduced": 0,
+    "previousIssuesPreserved": "All pre-existing issues from attempt 1 remain unchanged and outside task scope."
+  },
+  "summary": {
+    "taskInlinedInvariantsPassed": 7,
+    "taskInlinedInvariantsFailed": 0,
+    "additionalInvariantsPassed": 30,
+    "additionalInvariantsFailed": 0,
+    "additionalIssues": 0,
+    "preExistingIssuesNoted": 5,
+    "totalInvariantsChecked": 37
+  },
+  "verdictRationale": "All 7 task-inlined invariants pass. 30 additional style/structure/formatting/jekyll/codesamples/crossref invariants checked against writer-modified content — all pass. Attempt 2 changes (front matter persona update, Content access model admin restructure, Disabling user accounts admin lead-in) introduce zero new style issues. All Liquid syntax balanced, heading hierarchy correct, front matter complete, terminology consistent, link formatting valid, code blocks properly tagged. Knowledge brief is cold-start with no applicable meta-knowledge. Anti-patterns file does not exist. No critical or minor style findings in writer-modified content. Verdict: approved."
+}

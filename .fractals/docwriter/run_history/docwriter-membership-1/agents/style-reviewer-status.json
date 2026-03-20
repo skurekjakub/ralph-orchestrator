@@ -1,0 +1,10 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "status": "done",
+  "result": "approved-with-notes",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "invariantsPassed": 82,
+  "invariantsFailed": 0,
+  "notes": "All must-severity invariants pass. 2 should-level notes: (1) arrow notation uses codebase-standard '→' vs style-guide '->'; (2) no contractions used. All 4 INV-style-036 fixes from attempt 1 rejection verified."
+}

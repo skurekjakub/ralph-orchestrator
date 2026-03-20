@@ -1,0 +1,224 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-007",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/content-retrieval/retrieve-content-items.md",
+  "reviewScope": "Full page review with focus on lines 259-388 (Content item security section — modified by content-writer attempt 2) and lines 541-545 (new Next steps section). Regression check across all unmodified sections. Verifying fixes for INV-structure-001, INV-formatting-016, INV-codesamples-004 from attempt 1 rejection.",
+  "previousFailures": {
+    "attempt": 1,
+    "failedInvariants": ["INV-structure-001", "INV-formatting-016", "INV-codesamples-004"],
+    "allFixed": true
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-001",
+      "result": "pass",
+      "previousResult": "fail",
+      "evidence": "FIXED. '## Next steps' section added at lines 541-545 with three descriptive links: Member roles (member_roles_xp), Reference - ContentAccessSettings (reference_content_access_settings_xp), and Content item query API (WhT_Cw). Section is at h2 level, consistent with other top-level sections on the page. Note: a formal 'Result' section is absent on this page, but this is a pre-existing condition outside TASK-007 scope. Individual sections describe outcomes inline (e.g., lines 310-314 describe HasAccess return values, lines 328-351 show Razor view end result)."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "previousResult": "fail",
+      "evidence": "FIXED. All four em dashes (U+2014) from attempt 1 have been replaced with double hyphens ('--'). Verified: line 263 ('**Public** --'), line 264 ('**Authenticated only** --'), line 265 ('**Role-restricted** --'), line 357 ('signed in --'). Full-file grep for U+2014 returns zero matches. Double hyphens are consistent with existing page convention on lines 32-35, 166, 394-396, and the new Next steps lines 543-545. Pre-existing en dashes (U+2013) on lines 21-22 are outside modified scope."
+    },
+    {
+      "invariantId": "INV-codesamples-004",
+      "result": "pass",
+      "previousResult": "fail",
+      "evidence": "FIXED. Both imperative code comments changed to third person singular: line 382 now reads '// Projects the secured state of each content item' (was '// Project the secured state of each content item'), line 385 now reads '// Projects the required member role names for each content item' (was '// Project the required member role names for each content item'). Consistent with all other code comments on the page (e.g., 'Retrieves' line 48, 'Accesses' line 58, 'Returns' line 304, 'Contains' line 379). No final period on single-line comments. Whitespace after // on all comments."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Bullet points used for unordered items: three-tier access levels (lines 263-265), HasAccess behavior per tier (lines 311-314), Next steps links (lines 543-545). Ordered lists used for step-by-step instructions elsewhere (lines 406-407, 451-453, 493-496). No misuse detected."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members, methods, properties, and classes in prose are backticked: `HasAccess` (lines 289, 291, 310, 320, 326, 357), `IContentItemFieldsSource` (291), `ClaimsPrincipal` (291), `ContentItemIsSecured` (320, 371), `ContentItemRequiredMemberRoleNames` (363, 365, 386), `IReadOnlyCollection<string>` (363), `SystemFields.ContentItemIsSecured` (363), `IncludeSecuredItems` (269), `ContentAccessSettings` (267, 544), `ContentItemQueryBuilder` (545), `IContentQueryExecutor` (545), `User.Identity.IsAuthenticated` (357). No unformatted code references in prose."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code examples progress simple to complex: (1) Retrieve secured items — minimal setup (lines 271-287), (2) HasAccess check — single method call (lines 293-308), (3) Razor view — full three-branch template (lines 328-351), (4) Security projection — LINQ Select on collections (lines 377-388). How-to level detail with focused samples and minimal boilerplate."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "All headings use sentence case. Modified/added headings: 'Content item security' (259), 'Check content access with HasAccess' (289), 'Reflect content access in views' (324), 'Project security properties' (361), 'Next steps' (541). 'HasAccess' is a code name, correctly cased."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Verb-phrase headings use imperative mood: 'Check content access with HasAccess' (289), 'Reflect content access in views' (324), 'Project security properties' (361). Topic headings are noun phrases: 'Content item security' (259), 'Next steps' (541)."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Active voice dominant. Passive used only with valid exceptions: 'can be secured' (261) — actor not important (exception c); 'is indicated by' (363) — emphasizing receiver (exception b). Active examples: 'Use the HasAccess extension method' (291), 'HasAccess handles all three tiers' (310), 'The system only fetches role data' (371)."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Present simple tense throughout: 'falls into' (261), 'requires' (264-265), 'excludes' (269), 'handles' (310), 'returns' (312-314), 'evaluates' (320), 'contains' (363, 365), 'fetches' (371)."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "American English spelling used throughout. No British English variants detected."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent terminology: 'member roles' (not 'membership roles'), 'sign in' (not 'log in'), 'visitor' (for anonymous users), 'content item' (no synonyms), 'HasAccess' (consistent method reference)."
+    },
+    {
+      "invariantId": "INV-style-012",
+      "result": "pass",
+      "evidence": "Imperative mood for instructions ('Use the HasAccess extension method' line 291). Indicative mood for descriptions ('HasAccess handles all three tiers' line 310). No subjunctive mood."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No occurrence of 'please' anywhere on the page."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Content is direct and focused. Three-tier model introduced in one sentence, then listed concisely. HasAccess documented immediately with actionable code. No filler or unnecessary preamble."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Content is self-contained. Three-tier model explained inline (261-265). HasAccess fully documented without assuming prior reading. Cross-references provided to member roles (265), ContentAccessSettings (267), and signing in (264). Next steps section provides further navigation (541-545)."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "No headings end in -ing form. Page title: 'Retrieve content items'. Section headings: 'Content item security', 'Check content access with HasAccess', 'Reflect content access in views', 'Project security properties', 'Next steps'."
+    },
+    {
+      "invariantId": "INV-structure-002",
+      "result": "pass",
+      "evidence": "Security section opens with contextual introduction (line 261) explaining the three-tier access model and linking to the secure content items page."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Security section is self-contained with full inline explanation. Cross-references provided for deeper exploration but section works independently."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "All list items start with capitalized first letter: 'Public' (263), 'Authenticated only' (264), 'Role-restricted' (265), 'For public items' (312), 'For authenticated-only items' (313), 'For role-restricted items' (314), 'Member roles' (543), 'Reference' (544), 'Content item query API' (545)."
+    },
+    {
+      "invariantId": "INV-structure-020",
+      "result": "pass",
+      "evidence": "No lists exceed 3 levels deep. Maximum nesting is 2 levels (e.g., lines 106-127 sub-bullets with code blocks)."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No code elements pluralized directly. All use original names: `ContentItemRequiredMemberRoleNames`, `HasAccess`, `ContentAccessSettings`."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No bold or italic applied to inline code-highlighted text. Backticked elements are never wrapped in ** or *."
+    },
+    {
+      "invariantId": "INV-formatting-013",
+      "result": "pass",
+      "evidence": "Comma used after 'e.g.,' on lines 365 and 375. Correct punctuation."
+    },
+    {
+      "invariantId": "INV-formatting-015",
+      "result": "pass",
+      "evidence": "Compound modifiers correctly hyphenated: 'three-tier' (261, 310, 314, 357), 'role-restricted' (265, 314, 365), 'role-aware' (357), 'authenticated-only' (264, 313, 365), 'strongly-typed' (21, escaped as 'strongly\\-typed')."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "All callouts use valid Liquid admonition tags: {% tip icon=true %}/{% endtip %} pairs at lines 316/322, 353/359, 367/373. Additional tip callouts in unmodified sections also valid. All properly balanced."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "All code blocks use Liquid code tag with valid lang values: lang=csharp (lines 41, 77, 91, 108, 121, 135, 175, 208, 241, 271, 293, 377, 409, 455, 498, 531), lang=cshtml (line 328). No fenced code blocks (```) found anywhere on page."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "All page_link identifiers in modified/added sections reference existing identifiers from the task's docFacts and cross-reference sources: member_roles_xp, reference_content_access_settings_xp, WhT_Cw, content_items_xp, tYouCw, 8ASiCQ. Syntax is correct. No TODO placeholders needed."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "All link texts are descriptive: 'secured' (261), 'sign in' (264), 'member roles' (265, 363), 'Reference - ContentAccessSettings' (267), 'combined content selector' (375), 'Member roles' (543), 'Content item query API' (545). No vague 'click here' or 'this page'."
+    },
+    {
+      "invariantId": "INV-codesamples-006",
+      "result": "pass",
+      "evidence": "No incomplete code examples in modified sections use incorrect ellipsis. Line 379 comment uses prose ('retrieval code omitted for brevity') rather than code ellipsis, which is acceptable for inline comments."
+    },
+    {
+      "invariantId": "INV-codesamples-008",
+      "result": "pass",
+      "evidence": "Comments focus on what matters: Kentico-specific methods (HasAccess, ContentItemIsSecured, ContentItemRequiredMemberRoleNames) and context (what the code does). No over-commenting of obvious code."
+    },
+    {
+      "invariantId": "INV-codesamples-009",
+      "result": "pass",
+      "evidence": "Comments focus on Kentico-specific methods. Generic .NET concepts (LINQ Select, ClaimsPrincipal) are not redundantly explained in comments."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Full page heading hierarchy is clean: h2 (Retrieve content items) → h3 (Filter content items based on tags, Retrieve content items from smart folders, Content item security, Content item names, Date and time fields) → h4 (Smart folder content and language fallbacks, Cache data retrieved from smart folders, Check content access with HasAccess, Reflect content access in views, Project security properties). New h2 sections: Retrieve linked content items, Retrieve assets, Retrieve content items for preview, Next steps. No skipped levels."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags in modified/added sections valid and balanced: 4 {% code %}/{% endcode %} pairs in security section, 3 {% tip %}/{% endtip %} pairs, 6 {% page_link %} tags in security section, 3 {% page_link %} tags in Next steps. No broken includes or unclosed tags."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title ('Retrieve content items'), persona ('developer'), identifier ('OKrWCQ'), order (200), license (1), redirect_from, toc (minHeadingLevel: 1, maxHeadingLevel: 3), related_pages (4 identifiers). Valid YAML structure."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Modified and added sections follow the same formatting patterns as existing content: bullet lists use '- ' prefix, code blocks use {% code lang=X title=\"Y\" %} pattern, callouts use {% tip icon=true %}, double hyphens ('--') for dash separators. No inconsistencies introduced."
+    },
+    {
+      "category": "dash-consistency",
+      "result": "pass",
+      "previousResult": "fail",
+      "evidence": "FIXED. Modified sections now use double hyphens ('--') throughout (lines 263-265, 357, 543-545), consistent with existing page convention (lines 32-35, 166, 394-396). Pre-existing en dashes (U+2013) on lines 21-22 are outside modification scope and are not a regression."
+    },
+    {
+      "category": "regression-check",
+      "result": "pass",
+      "evidence": "No regressions detected in unmodified sections. Spot-checked: code blocks all have lang tags, no fenced code blocks, no tabs, no double sentence spacing, no 'please' or 'click' usage, heading hierarchy intact, list nesting within 3 levels. Writer's note confirms 'All content outside the targeted lines is preserved unchanged from attempt 1.'"
+    }
+  ],
+  "metaKnowledgeConsulted": {
+    "knowledgeBrief": "Present but styleEvolutions array is empty. No supplementary style criteria to apply.",
+    "antiPatternsFile": "Not found at .github/skills/docwriter-meta/references/anti-patterns.md. Skipped per missing artifact handling policy.",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 31,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 0,
+    "previousFailuresFixed": 3,
+    "regressions": 0
+  }
+}

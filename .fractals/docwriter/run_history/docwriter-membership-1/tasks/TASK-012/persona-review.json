@@ -1,0 +1,124 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["business", "admin"],
+      "evidence": "Front matter declares 'persona: business, admin'. The task spec targets 'business' only, but 'admin' is justified: the Security tab is used by both business users and admins. Consistent with sibling page 'Members' (BIsuCw) which also tags both personas. The doc-index pre-existing entry already had both. No change from attempt 1."
+    },
+    {
+      "check": "tone-business",
+      "result": "pass",
+      "evidence": "Friendly, outcome-oriented language throughout. The three-tier model is explained in plain terms ('Public', 'Signed-in members only', 'Specific member roles') — no code concepts leak through. Lead-in sentences are helpful and inviting: 'This three-level model lets you create a mix of public content, general members-only content, and exclusive content reserved for specific groups of members.' (line 25). The attempt 2 word substitution (choose→select) maintains the same friendly tone; 'select' is equally approachable for business users."
+    },
+    {
+      "check": "tone-admin",
+      "result": "pass",
+      "evidence": "Admin is a secondary persona. The content does not include admin-specific depth (no system configuration, CLI, or deployment details). The UI-level procedures work for admins who need the same steps. Appropriate — the page operates at the business-user depth level, which admins can follow without needing additional detail."
+    },
+    {
+      "check": "one-action-per-step",
+      "result": "pass",
+      "evidence": "Both procedures follow the one-action-per-step pattern required by INV-persona-001 and INV-structure-007. 'Configure page security' (lines 37-56): 5 steps, each with a single action. 'Restrict a page to specific member roles' (lines 69-74): 6 steps, each with a single action. Step 4 in the first procedure has sub-bullets, but these describe conditional options (if-then), not sequential actions — acceptable."
+    },
+    {
+      "check": "no-technical-jargon",
+      "result": "pass",
+      "evidence": "No code references, class names (ContentAccessSettings), factory methods (Public(), Secured(), SecuredWithRoles()), API surface, or SDK terminology appear anywhere. The code-level three-tier model from AREA-002 is fully translated into business language. 'Front end' appears once (line 29) in context of delegating to 'your development team', which is proper per INV-persona-002."
+    },
+    {
+      "check": "technical-delegation",
+      "result": "pass",
+      "evidence": "Line 29: 'Your development team must also reflect the settings on the front end so that access restrictions take effect on the live site.' Technical implementation is delegated to the team per INV-persona-002. The business user is only asked to perform UI-level actions (selecting checkboxes, selecting roles, publishing)."
+    },
+    {
+      "check": "screenshots-for-clarity",
+      "result": "pass",
+      "evidence": "Three image references: SecurityTab.png (line 40), secure_subpages_modal.png (line 55), image-2023-10-6_10-5-34.png (line 92). One screenshot placeholder for the updated Membership roles selector (line 45). Meets INV-persona-001 requirement for 'more screenshots for clarity'."
+    },
+    {
+      "check": "attempt-2-regression",
+      "result": "pass",
+      "evidence": "Attempt 2 changes were limited to 4 word substitutions: choose→select, chosen→selected (lines 43, 49, 73, 76) and 'membership roles'→'member roles' (line 49). Verified: 0 occurrences of 'choose'/'chosen' remain. These are pure word-level replacements that do not alter tone, depth, structure, or persona targeting. No persona regressions from attempt 1."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "The page is primarily procedural: two numbered step-by-step procedures ('Configure page security' and 'Restrict a page to specific member roles') with end-result confirmations. The 'Page access levels' section provides conceptual context as a lead-in to the procedures, which is standard for how-to pages. The page assumes existing knowledge of the admin UI (consistent with howto, not tutorial)."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "business, admin",
+      "note": "Valid persona values per INV-persona-001 (business) and INV-persona-003 (admin)."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "8oouCw"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1"
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": "['barWCQ', 'content_items_xp', 'BIsuCw', 'member_roles_xp']",
+      "note": "Writer correctly added BIsuCw (Members) and member_roles_xp (developer member roles) cross-references per task scope."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "The 'business-users/website-content/' cluster sibling pages mostly target 'business' only (create-pages, delete-pages). Two pages — 'Secure pages' and 'Members' — target 'business, admin', which makes sense because both involve administration interface tasks that overlap between personas. The persona scope of this page is consistent with the cluster pattern."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-001",
+      "result": "pass",
+      "evidence": "Friendly positive tone throughout. One action per step in both procedures. No technical jargon in procedural or conceptual content. Screenshots included for key UI states. The choose→select substitution in attempt 2 maintains the same approachable tone."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "pass",
+      "evidence": "Technical prerequisites delegated to 'your development team' (line 29). Business user is only asked to perform UI-level actions. No expectation of code changes, server configuration, or developer workflows."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is calibrated to business users: 'member roles' (not 'content access settings'), 'signed-in members' (not 'authenticated users'), 'the page requires authentication' (not 'IsSecured flag is set'). No cross-domain developer terminology in the business content."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Terminology usage: 'member' for registered visitor (lines 22, 23, 49, 67, 73, 76, 80), 'visitor' for anonymous website user (lines 21, 22), 'sign in'/'signed in' verb form used consistently (lines 21, 22, 23, 42, 49, 76). No 'log in' or 'sign up' terminology found.",
+      "note": "Cross-reviewer observation: line 76 says 'Visitors who are not signed in, or who are signed in but not assigned to any of the selected roles'. Per strict INV-content-030 definitions, a signed-in person is a 'member', not a 'visitor'. This is a terminology accuracy concern for the accuracy-reviewer, not a persona-targeting failure — the sentence is perfectly clear to a business user."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "suggestion",
+      "location": "line 22",
+      "description": "Latin abbreviation 'i.e.' used in 'i.e., registered members'. For maximum business-user friendliness, consider replacing with 'that is' or restructuring. Carried forward from attempt 1 — not addressed in attempt 2 (which focused on style fixes only).",
+      "invariantRef": "INV-persona-001",
+      "impact": "Very minor. Does not affect comprehension but could feel slightly formal for the target audience."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 8,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 4,
+    "invariantsFailed": 0,
+    "overallAssessment": "Attempt 2 changes (choose→select, chosen→selected, membership roles→member roles) are purely word-level substitutions that do not affect persona targeting. All 8 persona checks pass. All 4 persona invariants pass. Classification is correct (howto). Taxonomy is complete. No regressions from the attempt 1 approved-with-notes verdict. Upgrading to 'approved' — the attempt 1 'i.e.' suggestion was already non-blocking and does not warrant withholding approval on a targeted fix pass."
+  }
+}

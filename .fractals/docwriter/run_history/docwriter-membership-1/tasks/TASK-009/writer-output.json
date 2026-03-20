@@ -1,0 +1,45 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-009",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/api/content-item-api/reference-content-item-query.md",
+  "sectionsModified": [
+    "Access role names from query results"
+  ],
+  "sectionsAdded": [
+    "Query result container properties",
+    "ContentItemRequiredMemberRoleNames",
+    "Access role names from query results"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>",
+    "AREA-006: Default interface implementation returns empty collection via GetValue",
+    "AREA-006: ContentItemRolesResultProcessor populates property as post-processing step",
+    "AREA-006: Lazy loading — role data only fetched when ContentItemIsSecured=true for at least one result",
+    "AREA-006: Processor resolves role names for linked items (GetAllItemsIncludingLinkedItems)",
+    "AREA-006: ContentQueryDataContainerBase.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>",
+    "AREA-006: Developer access via container.ContentItemRequiredMemberRoleNames property"
+  ],
+  "invariantsApplied": [
+    "INV-structure-019",
+    "INV-formatting-004",
+    "INV-codesamples-010",
+    "INV-structure-011",
+    "INV-persona-003",
+    "INV-content-030",
+    "INV-style-002",
+    "INV-callout-002"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-001",
+    "REC-002",
+    "REC-005",
+    "REC-014"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2 rewrite addressing style reviewer feedback. Fix 1: Changed heading from gerund 'Accessing role names from query results' to imperative 'Access role names from query results' per INV-style-002. Fix 2: Added bold title '**Lazy loading of role data**' as first line inside the note callout per INV-callout-002. No other content changed. Accuracy and persona reviewers approved attempt 1 — no additional changes needed for those dimensions."
+}

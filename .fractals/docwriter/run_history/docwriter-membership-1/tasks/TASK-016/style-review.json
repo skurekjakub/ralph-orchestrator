@@ -1,0 +1,190 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-016",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/ci-cd/reference-ci-cd-object-types.md",
+  "reviewScope": "Attempt 2 rewrite: verified removal of cms.contentitemmemberrole binding table row. Remaining changes: General table row for cms.memberrole (lines 101-113). Binding section (lines 1189-1458) confirmed free of member role entries.",
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Page title is 'Reference - CI/CD object types' (front matter line 2), which follows the 'Reference - XYZ' naming pattern required for reference pages."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "Line 111: `cms.contentitemmemberrole` is correctly wrapped in backticks when mentioned inline within the Notes column prose. The CI/CD folder name column value (line 107: cms.memberrole) is NOT backticked, which matches the established convention across all 70+ folder-name cells on this page — these columns display the raw object type code name as data, not inline code references."
+    },
+    {
+      "invariantId": "INV-formatting-005",
+      "result": "pass",
+      "evidence": "No database table/column names are backticked. The value cms.memberrole in the CI/CD folder name column is displayed without backticks, consistent with the existing page pattern."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No code element names are pluralized directly. 'Member roles' in link text (line 103) refers to the page title, not a pluralized code element. The code element `cms.contentitemmemberrole` on line 111 is used in singular form."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No bold or italic formatting applied to backticked inline code in the new content."
+    },
+    {
+      "invariantId": "INV-formatting-010",
+      "result": "pass",
+      "evidence": "Line 111: Closing parenthesis after backticked `cms.contentitemmemberrole` is plain text. No punctuation inherits bold/italic."
+    },
+    {
+      "invariantId": "INV-formatting-011",
+      "result": "pass",
+      "evidence": "Single spaces between sentences on line 111. Indentation uses consistent 4-space base indentation for Liquid tags, matching all other rows."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "No new headings added. Existing h2 headings unchanged. Cell content on line 111 uses sentence case correctly ('Defines member roles...')."
+    },
+    {
+      "invariantId": "INV-style-006",
+      "result": "pass",
+      "evidence": "No Xperience feature names appear in the new content. 'Member roles' is used as a general term (lowercase), which is correct — it is not a capitalized product feature name like 'Page Builder' or 'Continuous Integration'."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Line 111: First sentence 'Defines member roles used to control content access for registered members.' uses active voice. Second sentence 'Member role assignments...are serialized as part of content item data.' uses passive voice, justified under exception (b) — emphasizing the receiver of the action."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Line 111: 'Defines' (present simple active), 'are serialized' (present simple passive). No other tenses used."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "No British English spellings detected in new content. 'serialized' uses American English 'z' spelling."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent use of 'member roles' (not 'membership roles', 'user roles', or other synonyms). After binding row removal, 'member role' appears only in the General section — no cross-section consistency conflict."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "evidence": "No pronoun 'it' used in the new content. Subjects are explicitly stated: 'Member role assignments' (line 111)."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "evidence": "Line 111 first sentence: 12 words. Line 111 second sentence: ~22 words (slightly over 20-word guideline, but this is 'should' severity and the sentence is in a compact reference table Notes cell where density is expected)."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "The General row is concise: brief definition sentence plus one note about serialization behavior. No extraneous information."
+    },
+    {
+      "invariantId": "INV-style-022",
+      "result": "pass",
+      "evidence": "Simple vocabulary: 'Defines', 'control', 'access', 'registered', 'serialized' — standard technical terms appropriate for a developer audience."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Line 103: Links to member roles page via page_link. Line 111: Links to content item section via inpage_link. No assumption that the reader has visited these pages first."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "The cms.memberrole entry is self-contained within the reference table context. The Notes cell explains what the object type does and how it relates to content items, with links for further reading."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "No new list items added. Table cell content on line 111 uses sentence case: 'Defines member roles...'."
+    },
+    {
+      "invariantId": "INV-structure-016",
+      "result": "pass",
+      "evidence": "New content uses the existing Liquid table structure, the correct format for this reference page."
+    },
+    {
+      "invariantId": "INV-jekyll-011",
+      "result": "pass",
+      "evidence": "General table row uses correct Liquid table markup: {% row %}, {% cell %}, {% endcell %}, {% endrow %} tags. No header/colspan/rowspan needed, matching existing data row pattern."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "Line 103: page_link identifier 'member_roles_xp' was verified against the target file in attempt 1 review. Not a guessed identifier."
+    },
+    {
+      "invariantId": "INV-crossref-003",
+      "result": "pass",
+      "evidence": "Line 111: inpage_link uses anchor 'cicd_contentitems'. This anchor is defined at line 336 of the same page: '{% anchor cicd_contentitems %}'. Verified to exist."
+    },
+    {
+      "invariantId": "INV-crossref-004",
+      "result": "pass",
+      "evidence": "Anchor 'cicd_contentitems' starts with a letter, contains no whitespace, and uses only ASCII letters, digits, and underscore."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "Link texts are descriptive: 'Member roles' (line 103), 'content item' (line 111). No vague 'click here' or 'this page' phrases."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "No new headings added. Existing page uses h2 sections only (## General, ## Content management, ## Digital marketing, ## Digital commerce, ## Binding object types). No skipped levels."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "General section row (lines 101-113) follows the exact 3-column pattern (Object type, CI/CD folder name, Notes) with page_link in first cell, matching peer rows like Channels (lines 59-72) and Languages (lines 88-99)."
+    },
+    {
+      "category": "alphabetical-ordering",
+      "result": "pass",
+      "evidence": "General section: 'Member roles' placed between 'Languages' and 'Modules' — alphabetically correct (L < M < M)."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags in new content properly opened and closed. {% row %}...{% endrow %}, {% cell %}...{% endcell %}, {% page_link %}, {% inpage_link %} — all valid. Binding table verified: 15 rows (1 header + 14 data), all tags balanced after row removal."
+    },
+    {
+      "category": "binding-row-removal-integrity",
+      "result": "pass",
+      "evidence": "Binding object types section (lines 1189-1458) contains zero references to 'member', 'memberrole', or 'contentitemmemberrole'. The row removal left no orphaned content, no broken tag nesting, and no gaps in the table structure. The General section note on line 111 still correctly references `cms.contentitemmemberrole` in backticks as an inline code mention explaining serialization behavior."
+    },
+    {
+      "category": "terminology-compliance",
+      "result": "pass",
+      "evidence": "Uses 'member roles' consistently per TASK-016 terminology guidance (not 'membership roles' or 'user roles'). Uses 'registered members' which aligns with the terminology glossary definition of 'member' as 'registered visitor without admin access'."
+    },
+    {
+      "category": "collection-parameter-convention",
+      "result": "pass",
+      "note": "The page_link tag on line 103 omits the collection parameter (INV-crossref-002). However, ALL 30+ existing page_link tags on this page also omit it. Both source and target pages are within _documentation, so default collection resolution applies. Pre-existing page-wide convention, not a defect introduced by the writer."
+    }
+  ],
+  "metaKnowledgeReview": {
+    "knowledgeBriefStatus": "cold-start — styleEvolutions=[], antiPatterns=[]",
+    "antiPatternsFileStatus": "not-found — .github/skills/docwriter-meta/references/anti-patterns.md does not exist",
+    "discards": [],
+    "supplementaryChecks": "None applicable — knowledge brief is empty (cold start pipeline run)"
+  },
+  "summary": {
+    "invariantsPassed": 26,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 1,
+    "totalChecks": 33
+  }
+}

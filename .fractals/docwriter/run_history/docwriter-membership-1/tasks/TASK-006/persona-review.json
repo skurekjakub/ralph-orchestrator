@@ -1,0 +1,123 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-006",
+  "verdict": "approved",
+  "issues": [],
+  "personaChecks": [
+    {
+      "check": "front-matter-persona-tag",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. The entire page — both existing and newly added content — targets developers working with ASP.NET Identity and the Xperience SDK. No other persona needs to be included: the content requires C# proficiency, familiarity with dependency injection, and understanding of ORM mapping patterns."
+    },
+    {
+      "check": "front-matter-persona-value-valid",
+      "result": "pass",
+      "evidence": "`developer` is a valid persona value per INV-frontmatter-006 (valid values: developer, admin, business, architect, all)."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "New content uses exact API type names throughout: `ApplicationRole`, `IdentityRole<int>`, `MemberRoleInfo`, `ApplicationRoleStore<TRole>`, `IRoleStore<TRole>`, `RoleManager`, `MapFromMemberRoleInfo`, `MapToMemberRoleInfo`. Code sample shows a complete Identity configuration chain with generic type parameters. Explanatory prose assumes familiarity with ASP.NET Identity's store/manager architecture and Xperience's ORM layer. No hand-holding or business-friendly simplifications are present."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "The new 'Remarks – ApplicationRole and MemberRoleInfo' section (lines 108-114) provides architectural context at exactly the right depth for a developer audience: it explains the bidirectional mapping pattern, names the specific methods (`MapFromMemberRoleInfo`, `MapToMemberRoleInfo`), identifies the store implementation (`ApplicationRoleStore<TRole>` implementing `IRoleStore<TRole>`), and links to the Member roles page for further reading. It is neither too shallow (it names the concrete types and methods) nor too deep (it doesn't dive into internal implementation details or source code of the store itself)."
+    },
+    {
+      "check": "terminology-alignment",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-oriented: 'CRUD operations', 'generic type parameter', 'role management pipeline', 'bidirectional mapping pattern'. No business-user terminology ('campaigns', 'customer journey', 'ROI') or admin-UI jargon is misplaced. Business/marketing terms are absent because none are needed in this context. Membership terminology follows REC-013: 'member' (not 'user') for registered visitors, 'sign in' (not 'log in')."
+    },
+    {
+      "check": "multi-persona-not-needed",
+      "result": "pass",
+      "evidence": "The page is correctly scoped to developer-only. While the existing 'Add the new fields to the MemberInfo object' section includes admin UI navigation steps (Modules → Membership → Classes), this is standard practice for developer docs that require initial configuration through the admin interface. An admin persona tag is not warranted because the audience is still developers performing setup, not administrators managing ongoing operations."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "The page is a goal-oriented procedure ('Add fields to member objects') with clear numbered steps, prerequisites assumed, and no guided-learning tutorial structure. The new Remarks section is explanatory but serves as supporting context for the how-to procedure — this is the standard pattern for how-to pages in this documentation set. Classification is correct."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer"
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "uoouCw"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1"
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "300"
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/uoouCw"
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": "['t4ouCw', 'uIouCw', 'map_custom_member_fields_to_contacts_xp', 'member_roles_xp']",
+      "notes": "Writer correctly added 'member_roles_xp' to related_pages to support the new ApplicationRole/MemberRoleInfo remarks section."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the registration-and-authentication cluster target `developer` persona exclusively: external-authentication.md (developer), forms-authentication.md (developer), member-roles.md (developer), and the parent registration-and-authentication.md (developer). This page's persona targeting is fully consistent with the topic cluster."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Front matter `persona: developer` uses a valid value from the allowed set (developer, admin, business, architect, all)."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "All required front matter fields present: title, identifier, order, redirect_from, persona, license."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content correctly applies developer/admin writing guidelines. Steps in existing sections combine related actions where appropriate (e.g., 'Override MapFromMemberInfo and MapToMemberInfo methods and: 1) Call the base implementation... 2) Get and set values...'). Developer terminology is used throughout without unnecessary simplification."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently adjusted for the developer audience. Technical terms like 'ORM framework', 'CRUD operations', 'generic type parameter', 'bidirectional mapping', 'store implementation' are used without explanation — appropriate for the developer persona. No business-user vocabulary is present."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "evidence": "Steps are structured appropriately for developers. The existing admin-UI steps are single-action (one action per step) which is fine for developers too. The new remarks section is non-procedural explanatory content, so step rules do not apply."
+    },
+    {
+      "invariantId": "INV-structure-018",
+      "result": "pass",
+      "evidence": "The new remarks section does not over-explain ASP.NET Identity fundamentals. It assumes the reader already understands Identity's manager/store pattern and focuses on the Xperience-specific mapping between ApplicationRole and MemberRoleInfo."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 6,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 6,
+    "invariantsFailed": 0,
+    "overallNotes": "The page correctly targets the developer persona. The front matter `persona: developer` tag is valid and matches the actual content's audience. The newly added 'Remarks – ApplicationRole and MemberRoleInfo' section maintains the same developer-appropriate tone as the existing 'Remarks – ApplicationUser and MemberInfo' section it mirrors: precise API type references, architectural context about the store/manager pattern, and no unnecessary simplification. The updated code sample in the Identity configuration block uses exact generic type syntax. All persona and taxonomy invariants pass. The page's developer-only persona targeting is fully consistent with all sibling pages in the registration-and-authentication cluster."
+  }
+}

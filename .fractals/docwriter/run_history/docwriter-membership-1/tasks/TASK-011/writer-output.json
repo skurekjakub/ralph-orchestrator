@@ -1,0 +1,37 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-011",
+  "attempt": 3,
+  "action": "update",
+  "targetFile": "business-users/members.md",
+  "sectionsModified": [
+    "Create a member role — step 5 corrected: replaced 'Enter a Code name' with optional expand instruction reflecting HasAutomaticCodeNameGenerationOption=True and IsCollapsed=True"
+  ],
+  "sectionsAdded": [],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-002: MemberRoleInfo and MemberRoleMemberInfo types support role creation and member-role assignment.",
+    "AREA-012: Admin resource strings updated. Member role admin UI pages (listing/create/edit) already present.",
+    "AREA-002: MemberRoleInfo CodeName field has HasAutomaticCodeNameGenerationOption=True, IsCollapsed=True — auto-generates from display name, starts collapsed"
+  ],
+  "invariantsApplied": [
+    "INV-structure-001",
+    "INV-structure-002",
+    "INV-structure-006",
+    "INV-persona-001",
+    "INV-persona-002",
+    "INV-style-031",
+    "INV-style-036"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-010",
+    "REC-011",
+    "REC-013"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [
+    "Screenshot images (MemberRolesList.png, MemberRoleCreate.png, MemberRoleAssignMembers.png) are placeholders — actual screenshots need to be captured from the admin UI."
+  ],
+  "notes": "Attempt 3 (FINAL) — single fix from accuracy reviewer feedback: Step 5 in 'Create a member role' replaced. Old: 'Enter a Code name that uniquely identifies the role in the system.' New: 'Optionally, expand the Code name section to customize the automatically generated identifier.' This reflects the source code reality that the CodeName field has HasAutomaticCodeNameGenerationOption=True (auto-generates from display name) and IsCollapsed=True (starts collapsed). The old step incorrectly implied manual entry was required. The 'Edit a member role' section (line 104) was intentionally left unchanged — it lists Code name as an editable field, which is correct for the edit scenario where the field is already visible."
+}

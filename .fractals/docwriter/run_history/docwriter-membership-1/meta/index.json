@@ -1,0 +1,596 @@
+{
+  "version": 1,
+  "lastSynthesized": "2026-03-14T16:06:35+00:00",
+  "totalEntries": 29,
+  "entriesByType": {
+    "patterns": 7,
+    "anti-patterns": 5,
+    "domain-insights": 11,
+    "style-evolutions": 6
+  },
+  "entries": [
+    {
+      "id": "PAT-001",
+      "type": "pattern",
+      "title": "Focused single-persona developer update pages achieve first-attempt acceptance",
+      "confidence": "low",
+      "domains": [
+        "how-to",
+        "xperience-platform",
+        "invariant-system"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-001.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "AGG-001"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "ANTI-001",
+      "type": "anti-pattern",
+      "title": "Create-action pages have higher rejection rates than updates",
+      "confidence": "low",
+      "domains": [
+        "page-creation",
+        "cross-references",
+        "invariant-system"
+      ],
+      "category": "anti-patterns",
+      "filepath": "meta/anti-patterns/ANTI-001.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "AGG-002"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "ANTI-002",
+      "type": "anti-pattern",
+      "title": "Style invariant INV-formatting-016 (em dash vs en dash) is the most frequent ...",
+      "confidence": "low",
+      "domains": [
+        "how-to",
+        "style-formatting",
+        "invariant-system"
+      ],
+      "category": "anti-patterns",
+      "filepath": "meta/anti-patterns/ANTI-002.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "AGG-003"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-002",
+      "type": "pattern",
+      "title": "High invariant count correlates with first-attempt success for update tasks",
+      "confidence": "low",
+      "domains": [
+        "invariant-system"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-002.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "AGG-004"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-001",
+      "type": "domain-insight",
+      "title": "Business-user pages face unique accuracy challenges around UI behavior",
+      "confidence": "low",
+      "domains": [
+        "admin-ui",
+        "xperience-platform",
+        "cross-references",
+        "risk-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-001.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "AGG-005"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-001",
+      "type": "style-evolution",
+      "title": "Em dash (\u2014) vs en dash (\u2013) enforcement triggered rejections in 3 tasks (TASK-007",
+      "confidence": "low",
+      "domains": [
+        "style-formatting",
+        "invariant-system"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-001.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-001"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-002",
+      "type": "style-evolution",
+      "title": "Callout bold title requirement (INV-callout-002) triggered rejections in 3 tasks",
+      "confidence": "low",
+      "domains": [
+        "style-formatting",
+        "invariant-system"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-002.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-002"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-003",
+      "type": "style-evolution",
+      "title": "Empty redirect_from frontmatter triggered rejections in 2 tasks (TASK-001, TASK-",
+      "confidence": "low",
+      "domains": [
+        "page-creation",
+        "style-formatting",
+        "invariant-system"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-003.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-003"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-004",
+      "type": "style-evolution",
+      "title": "Incorrect page_link identifiers triggered rejections in 2 tasks (TASK-002, TASK-",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "how-to",
+        "style-formatting",
+        "xperience-platform",
+        "cross-references",
+        "invariant-system",
+        "risk-analysis"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-004.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-004"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-005",
+      "type": "style-evolution",
+      "title": "Prohibited interaction verbs (choose/enable) enforced in 2 business-user tasks (",
+      "confidence": "low",
+      "domains": [
+        "how-to",
+        "admin-ui",
+        "style-formatting",
+        "xperience-platform"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-005.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-005"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "STYLE-006",
+      "type": "style-evolution",
+      "title": "Unicode arrow (\u2192) vs ASCII arrow (->) inconsistency noted in style reviews for 2",
+      "confidence": "low",
+      "domains": [
+        "style-formatting",
+        "invariant-system"
+      ],
+      "category": "style-evolutions",
+      "filepath": "meta/style-evolutions/STYLE-006.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "STYLE-EVO-007"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "ANTI-003",
+      "type": "anti-pattern",
+      "title": "Impact mapper misses sibling reference pages when a concept change only generate",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "how-to",
+        "xperience-platform",
+        "impact-analysis",
+        "content-security"
+      ],
+      "category": "anti-patterns",
+      "filepath": "meta/anti-patterns/ANTI-003.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXGAP-001"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-002",
+      "type": "domain-insight",
+      "title": "Hub/index pages require manual enumeration updates when new pages are created",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "page-creation",
+        "xperience-platform",
+        "cross-references",
+        "impact-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-002.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXGAP-002",
+        "CTXDOM-002"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "ANTI-004",
+      "type": "anti-pattern",
+      "title": "When acceptance criteria say 'document methods of interface X' without enumerati",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "xperience-platform",
+        "risk-analysis"
+      ],
+      "category": "anti-patterns",
+      "filepath": "meta/anti-patterns/ANTI-004.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXGAP-003"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-003",
+      "type": "domain-insight",
+      "title": "Xperience documentation spans two content collections: _documentation (reference",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "how-to",
+        "pipeline-process",
+        "xperience-platform",
+        "impact-analysis",
+        "authentication",
+        "content-security"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-003.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXGAP-004"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-003",
+      "type": "pattern",
+      "title": "Single-cycle gap convergence correlates with: (1) exhaustive change-area enumera",
+      "confidence": "low",
+      "domains": [
+        "pipeline-process",
+        "cross-references",
+        "impact-analysis"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-003.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXGAP-005"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-004",
+      "type": "domain-insight",
+      "title": "Xperience content security model is three-tiered (Public, Secured, SecuredWithRo",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "pipeline-process",
+        "xperience-platform",
+        "impact-analysis",
+        "authentication",
+        "content-security"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-004.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-001"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-005",
+      "type": "domain-insight",
+      "title": "[MERGED into DOM-002] Hub/index page enumeration",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "page-creation",
+        "pipeline-process",
+        "xperience-platform",
+        "cross-references",
+        "content-security"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-005.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-002"
+      ],
+      "deprecated": true,
+      "mergedInto": "DOM-002"
+    },
+    {
+      "id": "DOM-006",
+      "type": "domain-insight",
+      "title": "Xperience API reference pages follow a dual-page pattern: a conceptual how-to pa",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "how-to",
+        "pipeline-process",
+        "xperience-platform",
+        "impact-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-006.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-003"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-007",
+      "type": "domain-insight",
+      "title": "Xperience event handler documentation requires parallel updates to both a genera",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "xperience-platform",
+        "impact-analysis",
+        "event-system"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-007.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-004"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-008",
+      "type": "domain-insight",
+      "title": "Xperience business-user documentation requires domain-specific interaction verb ",
+      "confidence": "low",
+      "domains": [
+        "how-to",
+        "admin-ui",
+        "style-formatting",
+        "xperience-platform",
+        "invariant-system",
+        "risk-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-008.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-005"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-009",
+      "type": "domain-insight",
+      "title": "Xperience struct-to-class migrations (e.g., ContentAccessSettings) are breaking ",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "xperience-platform",
+        "content-security",
+        "risk-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-009.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-006"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-010",
+      "type": "domain-insight",
+      "title": "NoOpApplicationRole/NoOpApplicationRoleStore replacement with ApplicationRole/Ap",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "pipeline-process",
+        "xperience-platform",
+        "impact-analysis",
+        "authentication"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-010.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTXDOM-007"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "ANTI-005",
+      "type": "anti-pattern",
+      "title": "Risk analyzer's accuracy dimension underweights business-user page complexity. T",
+      "confidence": "low",
+      "domains": [
+        "admin-ui",
+        "xperience-platform",
+        "risk-analysis"
+      ],
+      "category": "anti-patterns",
+      "filepath": "meta/anti-patterns/ANTI-005.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-riskAnalysisEffectiveness"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "DOM-011",
+      "type": "domain-insight",
+      "title": "Impact mapper achieves 91% coverage (20/22 needed impacts). The 2 missed impacts",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "how-to",
+        "page-creation",
+        "impact-analysis"
+      ],
+      "category": "domain-insights",
+      "filepath": "meta/domain-insights/DOM-011.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-impactMappingAccuracy"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-004",
+      "type": "pattern",
+      "title": "Only 5.2% of invariants caused rejections. The invariant inventory is well-calib",
+      "confidence": "low",
+      "domains": [
+        "style-formatting",
+        "xperience-platform",
+        "invariant-system",
+        "risk-analysis"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-004.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-invariantEffectiveness"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-005",
+      "type": "pattern",
+      "title": "Zero broken cross-references across 477 links after content writing indicates hi",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "page-creation",
+        "pipeline-process",
+        "xperience-platform",
+        "cross-references",
+        "content-security",
+        "risk-analysis"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-005.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-verificationEffectiveness"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-006",
+      "type": "pattern",
+      "title": "First-cycle convergence in gap hunting is achievable when the discovery\u2192analysis",
+      "confidence": "low",
+      "domains": [
+        "pipeline-process",
+        "impact-analysis"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-006.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-pipelineConvergenceFactors"
+      ],
+      "deprecated": false
+    },
+    {
+      "id": "PAT-007",
+      "type": "pattern",
+      "title": "Large file-count change areas (AREA-003: 27 files, AREA-004: 41 files) had lower",
+      "confidence": "low",
+      "domains": [
+        "api-reference",
+        "impact-analysis"
+      ],
+      "category": "patterns",
+      "filepath": "meta/patterns/PAT-007.md",
+      "discoveredDate": "2026-03-14T16:06:35+00:00",
+      "lastReferencedDate": "2026-03-14T16:06:35+00:00",
+      "sourceSignals": [
+        "CTX-changeInventoryAnalysis"
+      ],
+      "deprecated": false
+    }
+  ],
+  "activeEntries": 28,
+  "mergesPerformed": 1
+}

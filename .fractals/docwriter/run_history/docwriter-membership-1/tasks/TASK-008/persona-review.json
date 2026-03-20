@@ -1,0 +1,143 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-008",
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/content-retrieval/retrieve-page-content.md",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. All content targets developers exclusively: C# code examples, API interface references (IContentRetriever, IContentItemFieldsSource), namespace usage (Kentico.Content.Web.Mvc), dependency injection patterns, Razor view syntax. No admin-UI procedures or business-outcome language present."
+    },
+    {
+      "check": "persona-completeness",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "The page includes cookie authentication configuration (LoginPath, AccessDeniedPath) in Program.cs, which could suggest an admin audience. However, this configuration is done exclusively through C# code, not admin-UI settings, making it developer work. All six sibling pages in the content-retrieval cluster also target only `developer`. No additional persona tag needed."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Content is code-first throughout. Uses exact API method names and types: `HasAccess()`, `IContentItemFieldsSource`, `ContentItemIsSecured`, `ContentItemRequiredMemberRoleNames`, `IReadOnlyCollection<string>`, `ClaimsPrincipal`, `RetrievePagesParameters.IncludeSecuredItems`. Assumes SDK familiarity — does not explain dependency injection, Razor views, or HttpContext.User. HTTP status codes (401, 403) used without explanation, appropriate for developer audience."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Depth is well-calibrated for developers. The three-tier access model is explained conceptually (public → secured → secured with roles) then immediately demonstrated with code. HasAccess() section progresses from API signature → usage example → return-value semantics → Razor integration — a natural developer learning curve. The `Additional security properties` callout exposes lower-level properties (ContentItemIsSecured, ContentItemRequiredMemberRoleNames) for advanced use without cluttering the main flow. Neither too shallow (all sections include working code) nor too deep (no internal implementation details exposed)."
+    },
+    {
+      "check": "vocabulary-appropriateness",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-oriented: 'extension method', 'dependency injection', 'namespace', 'Razor views', 'content type classes', 'strongly-typed objects', 'code name', 'GUID'. Cross-domain terms like 'member roles' and 'secured pages' are linked to their definitions (page_link member_roles_xp, page_link 8oouCw). No business-user jargon (no 'campaigns', 'conversion funnels', 'marketing workflows')."
+    },
+    {
+      "check": "progressive-disclosure",
+      "result": "pass",
+      "evidence": "The modified Page security configuration section follows an effective disclosure pattern for developers: 1) Three-tier model overview (conceptual anchor), 2) IncludeSecuredItems flag (simplest usage), 3) HasAccess() extension method (recommended programmatic check), 4) Razor view integration (application), 5) Additional security properties callout (advanced), 6) 401 vs 403 distinction (HTTP-level behavior), 7) Cookie auth configuration (ASP.NET setup). Each level builds on the previous without redundancy."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "concept",
+    "actual": "concept",
+    "result": "pass",
+    "evidence": "The doc-index classifies this page as 'concept' and the content matches: it explains what content retrieval is, how the three-tier access model works, and how various APIs behave — without a single linear step-by-step procedure. Code examples serve as illustrations of concepts, not as steps in a procedure. Note: the task-graph declares contentType 'howto', but the content writer correctly maintained the existing page classification rather than reclassifying during an update task. The actual content structure is conceptual with embedded examples, consistent with a 'concept' page."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Retrieve page content",
+      "invariantId": "INV-frontmatter-001"
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "invariantId": "INV-frontmatter-006"
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "4obWCQ",
+      "invariantId": "INV-frontmatter-001"
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "100",
+      "invariantId": "INV-frontmatter-003"
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/4obWCQ",
+      "invariantId": "INV-frontmatter-004"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "invariantId": "INV-frontmatter-005"
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All six sibling pages in the content-retrieval cluster (retrieve-content-items.md, retrieve-content-from-media-libraries.md, retrieve-headless-content.md, retrieve-page-urls.md, content-retrieval.md, and this page) target `developer` persona exclusively. This page's persona targeting is fully consistent with its topic cluster. The closely related ContentRetriever API and Reference pages (content_retriever_api_xp, reference_content_retriever_api_xp) additionally target `architect`, but those are API-level concept/reference pages in the API cluster — the difference is justified."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Developer terminology used throughout: 'extension method', 'IContentItemFieldsSource', 'ClaimsPrincipal', 'IReadOnlyCollection<string>', 'namespace'. Related easy steps are combined (e.g., setting IncludeSecuredItems and calling HasAccess in one code block). Business/marketing terms 'member roles' linked to definition page."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Vocabulary is exclusively developer-targeted. No business-user terminology present. Cross-domain term 'member roles' is explained via page_link to member_roles_xp. Cross-domain term 'secured pages' is explained via page_link to 8oouCw (secure-pages)."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All required front matter fields present: title ('Retrieve page content'), identifier ('4obWCQ'), order (100), redirect_from ('x/4obWCQ'), persona ('developer'), license (1)."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Front matter persona value 'developer' is in the valid set {developer, admin, business, architect, all}."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "redirect_from includes 'x/4obWCQ' matching the identifier as required."
+    },
+    {
+      "invariantId": "INV-frontmatter-005",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "License tier set to 1 (standard), appropriate for core documentation content."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Code examples in the updated security sections are broken into logical steps: IncludeSecuredItems usage → HasAccess() pattern → Razor view integration → cookie auth config. Each example is focused on a single concept, appropriately concise for a concept page (not over-detailed like a tutorial, not under-detailed like a bare reference)."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 6,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "taxonomyFieldsPassed": 6,
+    "taxonomyFieldsFailed": 0,
+    "invariantsPassed": 7,
+    "invariantsFailed": 0,
+    "consistencyPassed": true
+  }
+}

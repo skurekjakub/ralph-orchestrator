@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-14T15:44:04.998004+00:00",
+  "generatedBy": "docwriter-gap-hunter",
+  "cycleNumber": 1,
+  "totalGapsFound": 5,
+  "gaps": [
+    {
+      "id": "GAP-001",
+      "category": "stale-content",
+      "severity": "medium",
+      "description": "ContentRetriever API page describes IncludeSecuredItems as 'requiring authentication' without mentioning role-based access restrictions. The page has zero mentions of member roles, role-based access, or ContentAccessSettings. With the member roles feature, IncludeSecuredItems now returns both items requiring authentication AND items restricted to specific member roles. The description at line 60 ('Whether to include content items requiring authentication') is incomplete.",
+      "affectedFile": "developers-and-admins/api/content-item-api/content-retriever-api.md",
+      "taskId": null,
+      "evidence": "Line 60: 'Whether to include content items requiring authentication (IncludeSecuredItems).' \u2014 grep confirms 0 matches for 'member role', 'role-based', 'ContentAccessSettings', or 'three-tier' on this page. This page was not covered by any of the 17 tasks. The ContentRetriever wraps the content item query system (AREA-006) which now includes ContentItemRequiredMemberRoleNames. TASK-007 and TASK-008 updated the content-retrieval how-to pages but did not cover the ContentRetriever API reference-style pages.",
+      "suggestedFix": "Update the IncludeSecuredItems description at line 60 to: 'Whether to include content items that require authentication or specific member roles (IncludeSecuredItems).' Add a brief note or link to the member roles page and ContentAccessSettings reference page.",
+      "reEntryTarget": "pass4"
+    },
+    {
+      "id": "GAP-002",
+      "category": "missing-cross-ref",
+      "severity": "medium",
+      "description": "Content API overview page (content-item-api.md) does not list the new Reference - ContentAccessSettings page. This index page manually enumerates all sub-pages in the content-item-api/ directory (Content item query API, ContentRetriever API, Content item manager, Pages manager, Content item asset upload API, Content item database structure) but omits the newly created reference-content-access-settings.md. Developers browsing the Content API section will not discover the ContentAccessSettings reference from this index.",
+      "affectedFile": "developers-and-admins/api/content-item-api.md",
+      "taskId": null,
+      "evidence": "grep confirms 0 matches for 'ContentAccessSettings' or 'reference_content_access_settings' on content-item-api.md. All other .md files in the content-item-api/ directory are linked from the overview. The new file reference-content-access-settings.md (TASK-002) lives in the same directory but was not added to the index. Cross-ref-updater (Pass 5) added 3 new cross-references but did not add one to this index page.",
+      "suggestedFix": "Add a new {% info %} block to content-item-api.md linking to reference_content_access_settings_xp with a brief description: 'Defines the three-tier content access model (public, secured, secured with roles). See the API reference for factory methods, equality operators, and migration guidance from the struct-based API.'",
+      "reEntryTarget": "pass4"
+    },
+    {
+      "id": "GAP-003",
+      "category": "stale-content",
+      "severity": "low",
+      "description": "Reference ContentRetriever API page describes IncludeSecuredItems as 'Specifies whether content items requiring special permissions (e.g., secured sections) should be included in the results.' This description is not technically wrong ('special permissions' vaguely covers both authentication and role-based access), but lacks any mention of the new role-based access model. The link points only to the 'Page security configuration' anchor on the retrieve-page-content page, missing the new ContentAccessSettings reference.",
+      "affectedFile": "developers-and-admins/api/content-item-api/reference-content-retriever-api.md",
+      "taskId": null,
+      "evidence": "grep confirms 0 matches for 'member role', 'ContentAccessSettings', or 'role-based' on this page. The IncludeSecuredItems description appears at two locations in the reference table. Links to 4obWCQ anchor 'Page security configuration' only \u2014 no link to reference_content_access_settings_xp or member_roles_xp.",
+      "suggestedFix": "Update the IncludeSecuredItems table cell description to mention authentication and role-based access, and add a link to the ContentAccessSettings reference page. E.g., 'Specifies whether content items requiring authentication or specific member roles should be included in the results. See ContentAccessSettings for the three-tier access model.'",
+      "reEntryTarget": "pass4"
+    },
+    {
+      "id": "GAP-004",
+      "category": "acceptance-gap",
+      "severity": "low",
+      "description": "TASK-001 member-roles page documents IContentItemMemberRoleRetriever methods but omits GetMemberRoleDisplayNames(IEnumerable<int>, CancellationToken). The code sample shows 5 of 6 public methods: GetMemberRoleIds, GetMemberRoleCodeNames (single + batch), GetAccessSettings, GetAllMemberRoleCodeNames. The missing method returns display names grouped by content item ID.",
+      "affectedFile": "developers-and-admins/development/registration-and-authentication/member-roles.md",
+      "taskId": "TASK-001",
+      "evidence": "grep for 'GetMemberRoleDisplayNames' in member-roles.md returns 0 matches. Source code at IContentItemMemberRoleRetriever.cs:37 declares: Task<ILookup<int, string>> GetMemberRoleDisplayNames(IEnumerable<int> contentItemIds, CancellationToken). This is a public method on a documented interface. The change inventory AREA-002 lists it in the IContentItemMemberRoleRetriever symbols.",
+      "suggestedFix": "Add GetMemberRoleDisplayNames to the code sample in the 'Retrieve role information' section. Example: '// Gets display names for roles assigned to multiple content items\\nILookup<int, string> displayNames = await memberRoleRetriever.GetMemberRoleDisplayNames(contentItemIds);'",
+      "reEntryTarget": "pass4"
+    },
+    {
+      "id": "GAP-005",
+      "category": "stale-content",
+      "severity": "low",
+      "description": "OUT OF SCOPE \u2014 _guides collection (not in contentCollections for this pipeline run). Training guide 'implement-member-registration.md' (line 215) uses NoOpApplicationRole and NoOpApplicationRoleStore in code samples. Training guide 'require-authentication-for-certain-content.md' (lines 355, 380-381) describes a binary ContentItemIsSecured check without mentioning role-based access. These guides will confuse developers who follow them after the member roles feature ships.",
+      "affectedFile": "_guides/development/members/implement-member-registration.md, _guides/development/members/require-authentication-for-certain-content.md",
+      "taskId": null,
+      "evidence": "grep confirms NoOpApplicationRole at _guides/development/members/implement-member-registration.md:215 and NoOpApplicationRoleStore at :221. grep confirms ContentItemIsSecured binary check at require-authentication-for-certain-content.md:380-381 with no mention of roles. context.json contentCollections=['_documentation'] \u2014 _guides is not in scope.",
+      "suggestedFix": "Create a follow-up task (outside this pipeline) to update the _guides collection: (1) Replace NoOpApplicationRole/NoOpApplicationRoleStore with ApplicationRole/ApplicationRoleStore in implement-member-registration.md. (2) Update require-authentication-for-certain-content.md to mention role-based access and the HasAccess() extension method.",
+      "reEntryTarget": null
+    }
+  ],
+  "coverageAudit": {
+    "changeAreasTotal": 32,
+    "changeAreasCoveredByTasks": 17,
+    "changeAreasNoDocImpact": 15,
+    "changeAreasUndocumented": 0,
+    "impactsCoveredByTasks": 20,
+    "impactsNoDocImpact": 2,
+    "impactsUndocumented": 0,
+    "notes": "All 32 change areas are either covered by tasks (AREA-001 through AREA-017 via IMP-001 through IMP-020) or correctly classified as no-doc-impact (IMP-021: internal refactoring, IMP-022: tests/infrastructure including AREA-018 DancingGoat, AREA-019 templates, AREA-020 samples, AREA-021-032 various non-doc areas). The Icons.Campaign removal (AREA-010) and om_campaign localization cleanup (AREA-025) are correctly classified as unrelated to membership documentation."
+  },
+  "staleContentAudit": {
+    "pagesScanned": 15,
+    "staleIssuesFound": 2,
+    "notes": "Scanned all pages in topic clusters related to changed areas that were NOT in the 17-task target list. ContentRetriever API pages (content-retriever-api.md, reference-content-retriever-api.md) have incomplete IncludeSecuredItems descriptions. No stale NoOpApplicationRole references found in _documentation collection. No stale IsSecured-as-only-security-model references found in _documentation collection pages outside the task targets (only found in _guides, which is out of scope). Content item database structure page has no stale security references."
+  },
+  "invariantAudit": {
+    "pagesSpotChecked": 4,
+    "invariantsChecked": [
+      "INV-frontmatter-001 (required fields): PASS \u2014 both new pages (TASK-001, TASK-002) have title, identifier, order, persona, license",
+      "INV-frontmatter-002 (identifier format): PASS \u2014 member_roles_xp and reference_content_access_settings_xp both use _xp suffix",
+      "INV-frontmatter-004 (redirect_from): PASS \u2014 both include x/<identifier>",
+      "INV-frontmatter-006 (persona values): PASS \u2014 both use 'developer'",
+      "INV-structure-010 (next steps): PASS \u2014 both new pages have Next steps sections with page_link references",
+      "INV-structure-019 (reference title pattern): PASS \u2014 TASK-002 uses 'Reference - ContentAccessSettings'",
+      "INV-formatting-004 (backticks for API members): PASS \u2014 spot-checked TASK-001 and TASK-002, all type names, method names, and properties use backticks",
+      "INV-content-030 (user/member/visitor terminology): PASS \u2014 TASK-001 correctly uses 'member' for registered visitors, 'visitor' for anonymous users, no confusion with 'user' (admin)"
+    ],
+    "invariantViolationsFound": 0
+  },
+  "crossRefAudit": {
+    "passStatus": "Pass 5 verified 477 outbound links, 0 broken, 3 new links added",
+    "missingCrossRefs": 2,
+    "notes": "ContentRetriever API pages (GAP-001, GAP-003) lack cross-references to member roles or ContentAccessSettings pages. Content API index page (GAP-002) lacks link to new ContentAccessSettings reference page. All 17 task target pages have correct cross-references per Pass 5 verification."
+  },
+  "acceptanceCriteriaAudit": {
+    "tasksChecked": 17,
+    "acceptanceCriteriaMet": 16,
+    "acceptanceCriteriaPartial": 1,
+    "notes": "TASK-001 meets all listed acceptance criteria except complete coverage of IContentItemMemberRoleRetriever methods \u2014 GetMemberRoleDisplayNames is not documented (GAP-004). All other 16 tasks meet their full acceptance criteria as verified through content grep and spot-checks."
+  },
+  "convergenceAssessment": {
+    "converged": true,
+    "reason": "No critical or high severity gaps found. Two medium gaps (GAP-001, GAP-002) affect pages outside the 17-task scope \u2014 ContentRetriever API pages have incomplete IncludeSecuredItems descriptions and the Content API index page doesn't list the new ContentAccessSettings reference. These are real gaps but not blocking: the ContentRetriever description is technically not wrong ('requiring authentication' is still true for role-restricted items since they must authenticate first), and the new reference page is reachable via multiple other cross-references. Two low gaps (GAP-003, GAP-004) are minor completeness issues. One low gap (GAP-005) is out of scope. Recommended for pass4 cleanup but pipeline can converge.",
+    "criticalGaps": 0,
+    "highGaps": 0,
+    "mediumGaps": 2,
+    "lowGaps": 3,
+    "reEntryTargets": [
+      "pass4"
+    ]
+  },
+  "summary": "Cycle 1 gap hunting found 5 gaps (0 critical, 0 high, 2 medium, 3 low). All 32 change areas are either covered by the 17 tasks or correctly classified as no-doc-impact. The 17 completed tasks meet their acceptance criteria with one minor omission (GetMemberRoleDisplayNames method). The primary gaps are stale IncludeSecuredItems descriptions on the ContentRetriever API pages (which now should mention role-based access alongside authentication) and a missing index entry for the new ContentAccessSettings reference page on the Content API overview. No NoOpApplicationRole stale references remain in the _documentation collection. No invariant violations found in spot-checked pages. Pipeline converges \u2014 medium gaps can be addressed in an optional pass4 cleanup cycle."
+}

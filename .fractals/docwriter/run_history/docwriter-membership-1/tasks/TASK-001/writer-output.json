@@ -1,0 +1,54 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-001",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/member-roles.md",
+  "sectionsModified": [
+    "Front matter (redirect_from: [] → x/member_roles_xp)",
+    "Content access model (sealed class description replaces value-like type)",
+    "Manage roles programmatically — info callout (added bold title)",
+    "Update role bindings — MakePublic code comment and prose paragraph (accuracy fix)",
+    "ASP.NET Identity integration — info callout (added bold title)"
+  ],
+  "sectionsAdded": [
+    "Result"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-002: ContentAccessSettings struct with static factory methods Public(), Secured(), SecuredWithRoles(IEnumerable<int>). IEquatable<ContentAccessSettings> implementation. IsSecured and RequiredMemberRoleIDs properties.",
+    "AREA-002: ContentItemMemberRoleManager.UpdateBindings() only manages ContentItemMemberRoleInfo records (binding table). Does NOT update ContentItemIsSecured flag.",
+    "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>. ContentItemRolesResultProcessor post-processes query results. Lazy loading when ContentItemIsSecured=true.",
+    "AREA-009: ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — returns bool. Internal ContentAccessCheckResult enum: Allowed, NotAuthenticated, Forbidden."
+  ],
+  "invariantsApplied": [
+    "INV-structure-001",
+    "INV-structure-002",
+    "INV-structure-003",
+    "INV-structure-010",
+    "INV-structure-021",
+    "INV-frontmatter-001",
+    "INV-frontmatter-002",
+    "INV-frontmatter-003",
+    "INV-frontmatter-004",
+    "INV-frontmatter-006",
+    "INV-callout-002",
+    "INV-formatting-004",
+    "INV-persona-003",
+    "INV-codesamples-010",
+    "INV-content-030"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-001",
+    "REC-008",
+    "REC-009",
+    "REC-012",
+    "REC-013",
+    "REC-014",
+    "REC-015"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2 rewrite addressing all reviewer feedback from attempt 1. Changes: (1) STYLE/INV-frontmatter-004: redirect_from changed from empty [] to x/member_roles_xp matching sibling page pattern. (2) STYLE/INV-callout-002: Added bold titles to both info callouts — 'Internal namespace' for CMS.ContentEngine.Internal callout, 'Role assignment' for UserManager callout. (3) STYLE/INV-structure-001: Added '## Result' section before Next steps summarizing what the reader achieves. (4) ACCURACY: Fixed incorrect claim 'marks the item as public' — UpdateBindings() only manages the binding table, does NOT update ContentItemIsSecured flag. Changed prose to 'removes all member role bindings' and added note that fully reverting to public also requires setting IsSecured=false. Updated MakePublic() code comment accordingly. (5) PERSONA: Changed 'value-like type' to 'sealed class with static factory methods and value-like equality semantics' for precision about ContentAccessSettings being a sealed class."
+}

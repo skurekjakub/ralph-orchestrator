@@ -1,0 +1,200 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-005",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousVerdict": "rejected (attempt 1 — ACC-001: missing <ApplicationRole> generic param on ApplicationRoleStore)",
+  "fixVerification": {
+    "issue": "ACC-001",
+    "description": "Line 53 was `.AddRoleStore<ApplicationRoleStore>()` — missing mandatory generic type parameter",
+    "fixed": true,
+    "currentLine53": ".AddRoleStore<ApplicationRoleStore<ApplicationRole>>()",
+    "evidence": [
+      "ApplicationRoleStore.cs:16-17 — `public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new()`",
+      "DancingGoat/Program.cs:171 — `.AddRoleStore<ApplicationRoleStore<ApplicationRole>>()`",
+      "UITests/Program.cs:123 — `.AddRoleStore<ApplicationRoleStore<ApplicationRole>>()`",
+      "ApplicationRole.cs:29-31 — parameterless constructor exists, satisfying `new()` constraint"
+    ]
+  },
+  "claims": [
+    {
+      "claim": "AddIdentity<ApplicationUser, ApplicationRole> generic type parameters",
+      "location": "Section: Configure provider integration, code block 1, line 48",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:159 `services.AddIdentity<ApplicationUser, ApplicationRole>` — exact match. UITests/Program.cs:111 — exact match. ApplicationUser.cs:12 `public class ApplicationUser : IdentityUser<int>`. ApplicationRole.cs:12 `public class ApplicationRole : IdentityRole<int>`.",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore"
+    },
+    {
+      "claim": "options.SignIn.RequireConfirmedAccount = true",
+      "location": "Section: Configure provider integration, code block 1, line 50",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:168 uses identical option. UITests/Program.cs:120 uses identical option. Standard ASP.NET Identity IdentityOptions.SignIn property.",
+      "docFact": null
+    },
+    {
+      "claim": ".AddUserStore<ApplicationUserStore<ApplicationUser>>()",
+      "location": "Section: Configure provider integration, code block 1, line 52",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs:19-24 `public class ApplicationUserStore<TUser> : IUserPasswordStore<TUser>, ... where TUser : ApplicationUser, new()`. DancingGoat/Program.cs:170 — exact match. UITests/Program.cs:122 — exact match.",
+      "docFact": null
+    },
+    {
+      "claim": ".AddRoleStore<ApplicationRoleStore<ApplicationRole>>()",
+      "location": "Section: Configure provider integration, code block 1, line 53",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs:16-17 `public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new()`. ApplicationRole.cs:29-31 has parameterless constructor (satisfies `new()` constraint). DancingGoat/Program.cs:171 — exact match. UITests/Program.cs:123 — exact match.",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore"
+    },
+    {
+      "claim": ".AddUserManager<UserManager<ApplicationUser>>()",
+      "location": "Section: Configure provider integration, code block 1, line 54",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:172 — exact match. UITests/Program.cs:124 — exact match. Standard ASP.NET Identity UserManager<T>.",
+      "docFact": null
+    },
+    {
+      "claim": ".AddSignInManager<SignInManager<ApplicationUser>>()",
+      "location": "Section: Configure provider integration, code block 1, line 55",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:174 — exact match. UITests/Program.cs:125 — exact match. Standard ASP.NET Identity SignInManager<T>.",
+      "docFact": null
+    },
+    {
+      "claim": "Xperience by Kentico uses ASP.NET Identity to manage user accounts",
+      "location": "Section: intro paragraph, line 27",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:159 calls AddIdentity<>. ApplicationUser extends IdentityUser<int> (ApplicationUser.cs:12). ApplicationRole extends IdentityRole<int> (ApplicationRole.cs:12).",
+      "docFact": null
+    },
+    {
+      "claim": "builder.Services.AddAuthentication().AddGoogle() with ClientId and ClientSecret properties",
+      "location": "Section: Configure provider integration, code block 1, lines 58-63",
+      "result": "verified",
+      "evidence": "Standard Microsoft.AspNetCore.Authentication.Google API. GoogleOptions inherits OAuthOptions which has ClientId and ClientSecret string properties.",
+      "docFact": null
+    },
+    {
+      "claim": "ConfigureApplicationCookie with options.ExpireTimeSpan = TimeSpan.FromMinutes(60)",
+      "location": "Section: Use token expiration, code block, lines 168-171",
+      "result": "verified",
+      "evidence": "DancingGoat/Program.cs:176-178 uses identical API pattern: `services.ConfigureApplicationCookie(options => { options.ExpireTimeSpan = ... })`. Value differs (14 days vs 60 minutes) but API usage is correct.",
+      "docFact": null
+    },
+    {
+      "claim": "googleOptions.Scope.Add() to request additional claims",
+      "location": "Section: Authentication scopes and claims mapping, code block, line 123",
+      "result": "verified",
+      "evidence": "Standard OAuthOptions.Scope property (ICollection<string>). Google birthday scope URI format is correct per Google API documentation.",
+      "docFact": null
+    },
+    {
+      "claim": "loginInfo.Principal.FindFirstValue(ClaimTypes.GivenName) for claims mapping",
+      "location": "Section: Authentication scopes and claims mapping, code block, line 149",
+      "result": "verified",
+      "evidence": "FindFirstValue is a standard ClaimsPrincipal extension method. ClaimTypes.GivenName is from System.Security.Claims.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationUser has Enabled property that controls whether the account can sign in",
+      "location": "Section: Enabling created accounts info box, line 103",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs:15-18 `/// Indicates if the user is enabled. /// This represents the lockout notion in ASP.NET Identity. public bool Enabled { get; set; }`",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationUser has IsExternal property",
+      "location": "Section: Authentication scopes and claims mapping, code block, line 147",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs:21-24 `/// Indicates if the user uses external authentication. public bool IsExternal { get; set; }`",
+      "docFact": null
+    },
+    {
+      "claim": "MemberInfo object is the Xperience representation for claims mapping",
+      "location": "Section: Authentication scopes and claims mapping, line 109",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs:28-30 `/// Creates new user from MemberInfo.` Constructor takes MemberInfo. MapFromMemberInfo/MapToMemberInfo methods map between ApplicationUser and MemberInfo.",
+      "docFact": null
+    },
+    {
+      "claim": "dotnet user-secrets init and dotnet user-secrets set commands",
+      "location": "Section: Securely store application secrets, code block, lines 197-200",
+      "result": "verified",
+      "evidence": "Standard .NET CLI Secret Manager tool commands. Syntax is correct.",
+      "docFact": null
+    },
+    {
+      "claim": "builder.Configuration[\"Project:ExternalAuthProvider\"] reads stored secret",
+      "location": "Section: Securely store application secrets, code block, line 209",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Core configuration access pattern. Key matches the dotnet user-secrets set key.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Configure provider integration, code block 1 (lines 46-65)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "All six fluent API calls match source code. Generic type parameters correct: ApplicationUser (IdentityUser<int>), ApplicationRole (IdentityRole<int>), ApplicationUserStore<ApplicationUser> (constraint satisfied), ApplicationRoleStore<ApplicationRole> (constraint satisfied including new()). Matches DancingGoat/Program.cs:159-174 and UITests/Program.cs:111-125. The doc omits .AddRoleManager<RoleManager<ApplicationRole>>() present in DancingGoat but absent in UITests — legitimate simplification."
+    },
+    {
+      "location": "Section: Configure provider integration, code block 1 — Google auth portion (lines 57-63)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Standard AddAuthentication().AddGoogle() pattern. ClientId and ClientSecret are correct property names on GoogleOptions. Placeholder values used appropriately."
+    },
+    {
+      "location": "Section: Use token expiration, code block (lines 166-173)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "ConfigureApplicationCookie with ExpireTimeSpan matches DancingGoat/Program.cs:176-178 API pattern."
+    },
+    {
+      "location": "Section: Authentication scopes, code block (lines 115-126)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Scope.Add() is correct method on OAuthOptions.Scope collection. Google birthday scope URI is valid."
+    },
+    {
+      "location": "Section: Map claims to fields, code block (lines 141-152)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "ExtendedApplicationUser (custom subclass pattern), Enabled/Email/IsExternal properties verified in ApplicationUser.cs:18,24. FindFirstValue and ClaimTypes.GivenName are standard .NET APIs."
+    },
+    {
+      "location": "Section: Store a secret, code block (lines 192-202)",
+      "language": "powershell",
+      "result": "verified",
+      "notes": "Standard dotnet user-secrets CLI syntax."
+    },
+    {
+      "location": "Section: Read a stored secret, code block (lines 204-211)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Standard WebApplication.CreateBuilder pattern with Configuration indexer."
+    }
+  ],
+  "researchRecommendationCheck": {
+    "REC-016": {
+      "cited": true,
+      "followed": true,
+      "notes": "Page uses concrete step-by-step format consistent with REC-016 guidance to describe authentication as sequence of concrete steps. Links to ASP.NET Core external docs rather than re-explaining generic .NET concepts."
+    }
+  },
+  "preExistingObservations": [
+    {
+      "location": "Lines 40, 44",
+      "observation": "NuGet package referenced as 'Microsoft.AspNet.Authentication.*' — modern ASP.NET Core package is 'Microsoft.AspNetCore.Authentication.*' (missing 'Core'). Pre-existing content, not part of TASK-005 scope. Recommend separate issue to address.",
+      "severity": "informational"
+    }
+  ],
+  "summary": {
+    "totalClaims": 16,
+    "verified": 16,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 7,
+    "codeExamplesCorrect": 7
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "verdict": "rejected",
+  "claims": [
+    {
+      "claim": "Public – all visitors can view the page, including those who are not signed in. This is the default for new pages.",
+      "location": "Section: Page access levels, bullet 1 (line 20)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.Public() => new(false) means no auth required. CreateWebPageTests.cs line 212 confirms parameters.AccessSettings.IsSecured == false for new page creation.",
+      "docFact": "AREA-002: ContentAccessSettings supports three tiers: Public (no auth), Secured (any authenticated), SecuredWithRoles (specific roles)"
+    },
+    {
+      "claim": "Signed-in members only – only visitors who are signed in to the website (i.e., registered members) can view the page.",
+      "location": "Section: Page access levels, bullet 2 (line 21)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.Secured() => new(true) — requires authentication, no specific roles. ContentAccessSettings.cs line 39.",
+      "docFact": "AREA-002: Three-tier content access model: Secured (any authenticated user)"
+    },
+    {
+      "claim": "Specific member roles – only signed-in members who belong to one or more selected member roles can view the page. Members who are signed in but do not have the required role cannot access the content.",
+      "location": "Section: Page access levels, bullet 3 (lines 22-23)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs) at line 80 of ContentAccessSettings.cs. Requires at least one role ID (throws ArgumentException if empty).",
+      "docFact": "AREA-002: SecuredWithRoles (specific member roles)"
+    },
+    {
+      "claim": "Page security settings require Registration and authentication to be implemented on your site.",
+      "location": "Section: Page access levels, info box (line 29)",
+      "result": "unverifiable",
+      "evidence": "Architectural requirement — admin settings define the model but front-end implementation is required for enforcement. Cannot be directly verified from code alone.",
+      "docFact": null
+    },
+    {
+      "claim": "Your development team must also reflect the settings on the front end so that access restrictions take effect on the live site.",
+      "location": "Section: Page access levels, info box (line 29)",
+      "result": "unverifiable",
+      "evidence": "Same architectural principle — the ContentAccessSettings model is consumed by front-end code. This is a platform design constraint, not directly verifiable from a single source file.",
+      "docFact": null
+    },
+    {
+      "claim": "Properties → Security tab exists for web pages.",
+      "location": "Section: Configure page security, step 3 (line 39)",
+      "result": "verified",
+      "evidence": "WebPageSecurityModel.cs exists at UIPages/WebPages/WebPage/Properties/Security/WebPageSecurityModel.cs, confirming the Security sub-tab within Properties.",
+      "docFact": null
+    },
+    {
+      "claim": "To make the page accessible only to signed-in members, select 'Requires authentication'.",
+      "location": "Section: Configure page security, step 4, bullet 1 (line 42)",
+      "result": "verified",
+      "evidence": "KenticoAdminWebsitesResources.resx key 'websites.webpages.properties.security.issecured' = 'Requires authentication'. WebPageSecurityModel.cs line 19: CheckBoxComponent with this label. Setting IsSecured=true maps to ContentAccessSettings.Secured().",
+      "docFact": "AREA-012: Localization strings confirm 'Requires authentication' checkbox label"
+    },
+    {
+      "claim": "To restrict the page to specific member roles, select 'Requires authentication' and then select one or more roles in the 'Membership roles' selector that appears.",
+      "location": "Section: Configure page security, step 4, bullet 2 (line 43)",
+      "result": "verified",
+      "evidence": "Resource key 'websites.webpages.properties.security.requiredroles' = 'Membership roles'. WebPageSecurityModel.cs lines 26-33: ObjectIdSelectorComponent with MemberRoleInfo.OBJECT_TYPE and [VisibleIfTrue(nameof(IsSecured))] — selector only appears when checkbox is checked.",
+      "docFact": "Source: WebPageSecurityModel.cs — IsSecured checkbox + RequiredRoles ObjectIdSelectorComponent with VisibleIfTrue, MaximumItems=0 (unlimited)"
+    },
+    {
+      "claim": "If 'Requires authentication' is selected but no member roles are selected, the page is accessible to all signed-in members.",
+      "location": "Section: Configure page security, info box (line 49)",
+      "result": "verified",
+      "evidence": "Resource key 'websites.webpages.properties.security.requiredroles.tooltip' = 'Restricts access to members with the specified roles. If no roles are selected, the page is accessible to all authenticated members.' Also, WebPageSecurity.cs: IsSecured=true with no roles → ContentAccessSettings.Secured().",
+      "docFact": "Source: KenticoAdminWebsitesResources.resx — tooltip: 'If no roles are selected, the page is accessible to all authenticated members.'"
+    },
+    {
+      "claim": "When you select one or more roles, only members assigned to at least one of those roles can view the page.",
+      "location": "Section: Configure page security, info box (line 49)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.SecuredWithRoles() requires ≥1 role ID. The access model restricts to the specified roles. Same tooltip confirms: 'Restricts access to members with the specified roles.'",
+      "docFact": "AREA-002: SecuredWithRoles (specific roles)"
+    },
+    {
+      "claim": "Select 'Publish change' to save security settings.",
+      "location": "Section: Configure page security, step 5 (line 53); Section: Restrict a page, step 6 (line 74)",
+      "result": "verified",
+      "evidence": "WebPageSecurity.cs line 100: SubmitConfiguration.Label = PublishedVersionExists(webPageModel) ? 'Publish change' : 'Save change'. Resource key 'websites.webpages.properties.publishchange' = 'Publish change'. Note: label is conditional — shows 'Save change' for unpublished pages.",
+      "docFact": null,
+      "notes": "Conditionally correct. For already-published pages (the common scenario for security changes), the label is 'Publish change'. For never-published drafts, it would say 'Save change'. Previous review noted this as a minor point."
+    },
+    {
+      "claim": "If the page has subpages, a dialog appears asking whether to apply the settings to the current page only or to all pages located under it as well.",
+      "location": "Section: Configure page security, step 5 (line 54)",
+      "result": "verified",
+      "evidence": "WebPageSecuritySubmitModel.cs line 15: RadioGroupComponent with options CURRENT_PAGE_AND_CHILDREN and CURRENT_PAGE_ONLY. Resource strings: 'Apply to this item and all items located under it' / 'Apply to this item only'. Doc paraphrases 'item' as 'page' for business audience — acceptable since context is explicitly page security.",
+      "docFact": "Source: WebPageSecuritySubmitModel.cs — confirmation dialog options"
+    },
+    {
+      "claim": "A lock icon ({% icon xp-lock %}) appears next to the secured page in the content tree, confirming the page requires authentication.",
+      "location": "Section: Configure page security, result paragraph (line 57)",
+      "result": "incorrect",
+      "evidence": "BaseContentItemStatusRetriever.cs lines 285-299: AddSecuredIcon() method comment says 'Adds a diamond icon to the status when authentication is required' and uses IconName = Icons.Diamond. Icons.cs line 971: Diamond = 'xp-diamond'. Test assertions confirm: ContentItemStatusRetrieverTests.cs line 523 and WebPageStatusRetrieverTests.cs line 499 both assert: securedIcon.IconName == Icons.Diamond. The Lock icon (xp-lock, Icons.cs line 1727) exists but is NOT used for content tree security status.",
+      "correction": "The icon is a diamond icon ({% icon xp-diamond %}), not a lock icon. Change: 'A lock icon ({% icon xp-lock %})' → 'A diamond icon ({% icon xp-diamond %})'",
+      "docFact": null
+    },
+    {
+      "claim": "Newly created pages inherit access privileges from their parent page.",
+      "location": "Section: Configure page security, info box (line 62)",
+      "result": "verified",
+      "evidence": "InheritSecurityOptions.cs defines Inherit enum value: 'Inherit the security configuration from the new parent web page item.' CreateWebPageTests.cs test 'Create_ParentHasMemberRoles_MemberRolesAreCopiedToNewPage' confirms that parent page roles are copied to new child pages.",
+      "docFact": null
+    },
+    {
+      "claim": "In the 'Membership roles' selector, select one or more member roles (step-by-step for restricting a page).",
+      "location": "Section: Restrict a page to specific member roles, step 5 (line 73)",
+      "result": "verified",
+      "evidence": "Same UI element verified in claim 8. Resource key 'websites.webpages.properties.security.requiredroles' = 'Membership roles'. ObjectIdSelectorComponent with MaximumItems=0 (unlimited).",
+      "docFact": "Source: WebPageSecurityModel.cs — RequiredRoles ObjectIdSelectorComponent"
+    },
+    {
+      "claim": "Visitors who are not signed in, or who are signed in but not assigned to any of the selected roles, cannot view the page on the live site.",
+      "location": "Section: Restrict a page, result paragraph (line 76)",
+      "result": "verified",
+      "evidence": "Follows from the three-tier model. SecuredWithRoles requires both authentication AND membership in ≥1 of the specified roles. Non-authenticated visitors and authenticated members without the required roles are excluded.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "Open Members → List of membership roles to view, create, or edit roles.",
+      "location": "Section: Restrict a page, info box (line 80)",
+      "result": "verified",
+      "evidence": "KenticoAdminBaseResources.resx key 'base.memberroles.list.caption' = 'List of membership roles' and key 'base.memberroles.list.headline' = 'List of membership roles'. The UI label is literally 'List of membership roles'.",
+      "docFact": "AREA-012: Admin UI member role pages already present"
+    },
+    {
+      "claim": "When moving a page, a mismatch between access privileges of the moved page and its new parent may occur. Options: Inherit / Maintain current / Cancel.",
+      "location": "Section: Move pages with access privileges mismatch (lines 86-91)",
+      "result": "verified",
+      "evidence": "InheritSecurityOptions.cs defines: Inherit ('Inherit the security configuration from the new parent web page item') and KeepCurrent ('Maintain the current security configuration'). Cancel is a standard dialog dismiss action. MoveWebPageCommandArguments.cs confirms the property: 'Indicates whether the web page item should inherit security settings from the target web page parent or keep its current settings.'",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [],
+  "terminologyChangeVerification": {
+    "description": "Attempt 2 changed 4 instances of choose/chosen to select/selected and 1 instance of 'membership roles' to 'member roles' in prose text. Verified all substitutions.",
+    "changes": [
+      {
+        "line": 43,
+        "before": "and then choose one or more roles",
+        "after": "and then select one or more roles",
+        "accuracyImpact": "none — pure word substitution, no change in technical meaning"
+      },
+      {
+        "line": 49,
+        "before": "no membership roles are chosen",
+        "after": "no member roles are selected",
+        "accuracyImpact": "none — 'member roles' is the correct prose term per REC-013; UI label 'Membership roles' correctly remains in bold UI references"
+      },
+      {
+        "line": 73,
+        "before": "choose one or more member roles",
+        "after": "select one or more member roles",
+        "accuracyImpact": "none — pure word substitution"
+      },
+      {
+        "line": 76,
+        "before": "any of the chosen roles",
+        "after": "any of the selected roles",
+        "accuracyImpact": "none — pure word substitution"
+      }
+    ],
+    "verdict": "All terminology changes are accuracy-neutral. No technical meaning altered."
+  },
+  "researchRecommendationCompliance": {
+    "REC-010": "Cited and followed. Location-before-action pattern used. Procedures under 8 steps. Finalizing actions explicit.",
+    "REC-013": "Cited and followed. 'member' for registered visitor, 'sign in' (verb), 'member role' in prose. UI labels ('Membership roles', 'Requires authentication', 'List of membership roles') correctly preserved in bold references."
+  },
+  "summary": {
+    "totalClaims": 18,
+    "verified": 15,
+    "incorrect": 1,
+    "unverifiable": 2,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0
+  }
+}

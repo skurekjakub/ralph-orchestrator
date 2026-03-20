@@ -1,0 +1,43 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-010",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/api/content-item-api/content-item-query-api.md",
+  "sectionsModified": [],
+  "sectionsAdded": [
+    "Secured content in query results",
+    "Next steps"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-006: Query results include ContentItemRequiredMemberRoleNames when IncludeSecuredItems is true and items are role-restricted",
+    "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> \u2014 new property with default interface implementation",
+    "AREA-006: For unsecured items, returns an empty collection",
+    "AREA-006: Lazy loading \u2014 role data only fetched from DB when at least one item has ContentItemIsSecured = true",
+    "AREA-006: Developer access via container.ContentItemRequiredMemberRoleNames property",
+    "AREA-006: ContentItemRolesResultProcessor runs as post-processing step after query execution"
+  ],
+  "invariantsApplied": [
+    "INV-formatting-016",
+    "INV-persona-003",
+    "INV-codesamples-010",
+    "INV-structure-010",
+    "INV-jekyll-002",
+    "INV-codesamples-006",
+    "INV-formatting-004",
+    "INV-codesamples-004",
+    "INV-codesamples-008",
+    "INV-structure-011",
+    "INV-codesamples-009",
+    "INV-content-030",
+    "INV-style-002"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-014"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2: Fixed code ellipsis on line 308 from \"// ...\" to bare \"...\" per INV-codesamples-006. The pre-existing \"// ...\" on line 30 is outside this task scope (pre-existing content). Single-line fix addressing STY-001 from review feedback. Additional in-session hotfix: replaced em dash (U+2014) with en dash (U+2013) on line 346 per INV-formatting-016."
+}

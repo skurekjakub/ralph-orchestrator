@@ -1,0 +1,212 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-006",
+  "verdict": "approved-with-notes",
+  "invariantResults": [
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All code elements in the new/modified content use backtick formatting: `ApplicationRole`, `IdentityRole<int>`, `CMS.Membership.MemberRoleInfo`, `RoleManager`, `MapFromMemberRoleInfo`, `MapToMemberRoleInfo`, `ApplicationRoleStore<TRole>`, `IRoleStore<TRole>`, `ApplicationRoleStore<ApplicationRole>`. In the modified code block, `ExtendedApplicationUser`, `ApplicationRole`, `ApplicationUserStore`, `ApplicationRoleStore`, `UserManager`, `SignInManager` are all properly rendered inside the code Liquid tag. No unbackticked code elements found in writer-authored content."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "The modified code block (lines 61-72) shows the complete Identity configuration as a single logical unit (AddIdentity → AddUserStore → AddRoleStore → AddUserManager → AddSignInManager). For a how-to guide, this level of detail is appropriate — the invariant specifies 'How-tos need less' code detail. The code is not over-fragmented and the block structure is consistent with the parent registration-and-authentication page."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "The article remains self-contained. The new Remarks section references 'as shown in the code sample above' which is a same-page reference (acceptable). External dependency on Member roles page is properly linked via {% page_link member_roles_xp linkText=\"Member roles\" %} and the identifier `member_roles_xp` is verified to exist at member-roles.md. The identifier was also correctly added to the front matter `related_pages` array."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "New heading 'Remarks – ApplicationRole and MemberRoleInfo' (line 108) uses sentence case. ApplicationRole and MemberRoleInfo are proper code element names and correctly capitalized."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "All sentences in the new Remarks section (lines 108-114) use active voice: 'The same bidirectional mapping pattern applies...', 'ApplicationRole extends...and maps to...', 'Xperience converts between...', 'ApplicationRoleStore implements...and provides...', 'Registering...connects...'."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "All sentences in writer-authored content use present simple tense: 'applies', 'extends', 'maps', 'converts', 'implements', 'provides', 'connects'."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "No British English spellings found in the new content."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Terminology is consistent: 'member roles' used throughout (not 'membership roles' or 'user roles'). Type names consistently rendered with correct casing."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "evidence": "Most sentences in the new section stay within or near the 20-word guideline. Two sentences exceed it (24 and 23 words respectively at lines 110 and 112-113), but both contain multiple inline code elements that inflate word count. This is a SHOULD-level invariant and the sentences remain clear despite their length. Flagged as a minor note below."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "New Remarks section is concise — three focused paragraphs covering the mapping pattern, the store implementation, and a cross-reference. No filler or redundant content."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "The new section does not assume readers have read another page. The bidirectional mapping concept is explained in situ, and the Member roles page is linked as supplementary reading, not a prerequisite."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "New heading 'Remarks – ApplicationRole and MemberRoleInfo' does not end with -ing form."
+    },
+    {
+      "invariantId": "INV-style-051",
+      "result": "pass",
+      "evidence": "No references to 'this guide', 'in this guide', or 'this article' in the new content."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "No new step-by-step instructions were added. Pre-existing steps correctly use ordered lists. The new Remarks section is prose, which is appropriate for explanatory content."
+    },
+    {
+      "invariantId": "INV-structure-009",
+      "result": "pass",
+      "evidence": "The new section is informational (Remarks), not procedural, so no end-result statement is required. The modified code block section (lines 57-82) retains its pre-existing end-result statement on line 82: 'The Identity implementation now works with the extended member objects.'"
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "No new list items were added by the writer. Pre-existing list items use sentence case."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No code elements are directly pluralized. The writer correctly uses noun phrases: '`CMS.Membership.MemberRoleInfo` objects' (line 110), 'member roles' (lines 108, 112) is prose, not a code element."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No bold or italic formatting applied to inline code in the new content."
+    },
+    {
+      "invariantId": "INV-formatting-012",
+      "result": "pass",
+      "evidence": "Oxford comma correctly used on line 112: 'create, update, delete, and look up member roles'."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "evidence": "The new heading uses an en dash (–) in 'Remarks – ApplicationRole and MemberRoleInfo', consistent with the pre-existing heading pattern. No em dashes used."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "The page_link on line 114 uses identifier `member_roles_xp`, which was verified to exist in the front matter of member-roles.md. No guessed identifiers."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "Link text 'Member roles' (line 114) is descriptive and specific. No vague 'click here' or 'this page' link text."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "Modified code block uses {% code lang=csharp title=\"Program.cs - ASP.NET Identity configuration\" %} with supported lang value 'csharp'. Properly closed with {% endcode %}."
+    },
+    {
+      "invariantId": "INV-jekyll-009",
+      "result": "pass",
+      "evidence": "The added `member_roles_xp` in related_pages resolves to member-roles.md in the same _documentation collection. All four related_pages identifiers (t4ouCw, uIouCw, map_custom_member_fields_to_contacts_xp, member_roles_xp) verified to exist within _documentation."
+    },
+    {
+      "invariantId": "INV-jekyll-010",
+      "result": "pass",
+      "evidence": "TOC in front matter uses only minHeadingLevel and maxHeadingLevel parameters."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "The new heading '### Remarks – ApplicationRole and MemberRoleInfo' (line 108) is at h3 level, consistent with all other headings on the page (lines 30, 43, 57, 84, 100). Note: the page skips from h1 (title) to h3 with no h2 headings — this is the pre-existing structural pattern. The writer correctly followed the established pattern rather than introducing an inconsistency."
+    },
+    {
+      "category": "sentence-length",
+      "result": "note",
+      "evidence": "Line 110 has a 24-word sentence: 'When saving or retrieving role data through ASP.NET Identity's `RoleManager`, Xperience converts between `ApplicationRole` and `MemberRoleInfo` using the `MapFromMemberRoleInfo` and `MapToMemberRoleInfo` methods on `ApplicationRole`.' Line 112-113 has a 23-word sentence. Both exceed the 20-word SHOULD guideline (INV-style-018) but contain multiple inline code elements. The sentences remain clear and scannable.",
+      "suggestion": "Consider splitting line 110 into two sentences: 'When saving or retrieving role data, ASP.NET Identity's `RoleManager` delegates to Xperience. Xperience converts between `ApplicationRole` and `MemberRoleInfo` using the `MapFromMemberRoleInfo` and `MapToMemberRoleInfo` methods.' This is optional — the current form is acceptable."
+    },
+    {
+      "category": "content-consistency",
+      "result": "pass",
+      "evidence": "The new Remarks section (lines 108-114) correctly mirrors the structure and tone of the pre-existing Remarks section (lines 100-106): opens with the mapping concept, explains the bidirectional flow, describes the store mechanism, and closes with a cross-reference link."
+    },
+    {
+      "category": "code-block-formatting",
+      "result": "pass",
+      "evidence": "Modified code block (lines 61-72) uses correct Liquid {% code %} tag with lang=csharp and a descriptive title. Indentation uses 4-space alignment for method chaining. Code is syntactically complete and compile-ready."
+    },
+    {
+      "category": "front-matter-completeness",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title, persona, identifier, order, license, redirect_from, toc, related_pages. The writer correctly added 'member_roles_xp' to the related_pages array."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags in new/modified content use correct syntax: {% page_link member_roles_xp linkText=\"Member roles\" %}, {% code lang=csharp title=\"...\" %}, {% endcode %}. No broken includes or malformed tags."
+    },
+    {
+      "category": "terminology-compliance",
+      "result": "pass",
+      "evidence": "Writer-authored content uses 'member roles' consistently (REC-013). The term 'member' is used correctly to describe registered visitors. No instances of 'log in', 'sign up', 'membership role', or 'user role' in new content."
+    },
+    {
+      "category": "pre-existing-issue",
+      "result": "note",
+      "evidence": "Line 59 (pre-existing prose, not writer-modified): 'extendedclass(' contains a missing space — should be 'extended class ('. This typo exists in the original content. The writer's modifications to this section were limited to the code block, not the surrounding prose.",
+      "suggestion": "Fix the typo: change 'extendedclass(' to 'extended class (' on line 59. This is a pre-existing issue, not introduced by this task."
+    },
+    {
+      "category": "pre-existing-issue",
+      "result": "note",
+      "evidence": "Line 88 (pre-existing): Navigation path uses Unicode → character instead of ASCII -> per INV-style-046. Line 91 (pre-existing): 'choose from among the columns' uses 'choose' instead of 'select' per INV-style-036 (MUST). These are pre-existing issues outside the writer's scope.",
+      "suggestion": "In a future pass: Line 88: Replace '→' with '->' in navigation paths. Line 91: Replace 'choose' with 'select'."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "note",
+      "invariantId": "INV-style-018",
+      "location": "Line 110",
+      "description": "Sentence at 24 words slightly exceeds the 20-word SHOULD guideline. Acceptable given the density of inline code elements, but could be split for improved scannability.",
+      "blocking": false
+    },
+    {
+      "severity": "note",
+      "location": "Line 59",
+      "description": "Pre-existing typo: 'extendedclass(' should be 'extended class ('. Not introduced by this task but exists in the writer's modified section.",
+      "blocking": false
+    },
+    {
+      "severity": "note",
+      "location": "Lines 88, 91",
+      "description": "Pre-existing issues: Line 88 uses Unicode → instead of ASCII -> (INV-style-046). Line 91 uses 'choose' instead of 'select' (INV-style-036). Both outside writer's modification scope.",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "invariantsPassed": 25,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 3,
+    "preExistingIssues": 3,
+    "verdict": "approved-with-notes",
+    "narrativeSummary": "All 25 checked invariants PASS for the writer's new and modified content. The new 'Remarks – ApplicationRole and MemberRoleInfo' section is well-structured, mirrors the pre-existing Remarks pattern, uses correct backtick formatting for all code elements, maintains active voice and present tense throughout, and includes a properly verified cross-reference to the Member roles page. Code block modifications correctly replace NoOpApplicationRole/NoOpApplicationRoleStore with ApplicationRole/ApplicationRoleStore<ApplicationRole>. Three non-blocking notes: (1) two sentences in the new section slightly exceed the 20-word SHOULD guideline due to dense code references, (2) a pre-existing typo on line 59, and (3) pre-existing INV-style-036/046 issues on lines 88 and 91. None of these block acceptance."
+  }
+}

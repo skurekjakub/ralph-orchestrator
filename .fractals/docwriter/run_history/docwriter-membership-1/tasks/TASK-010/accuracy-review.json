@@ -1,0 +1,116 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-010",
+  "attempt": 2,
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "`IncludeSecuredItems` is a property on `ContentQueryExecutionOptions` that controls whether secured items are included in query results",
+      "location": "Section: Secured content in query results, paragraph 1 (line 302)",
+      "result": "verified",
+      "evidence": "ContentQueryExecutionOptions.cs line 17: `public bool IncludeSecuredItems { get; set; } = false;` with XML doc: 'Indicates whether the secured items should be included. The default value is false.'",
+      "docFact": "AREA-006: Query results include ContentItemRequiredMemberRoleNames when IncludeSecuredItems is true and items are role-restricted"
+    },
+    {
+      "claim": "When `IncludeSecuredItems` is `true`, the query executor retrieves both public and secured content items",
+      "location": "Section: Secured content in query results, paragraph 1 (line 302)",
+      "result": "verified",
+      "evidence": "ContentQueryExecutionOptions.cs line 14-17: XML doc states 'Indicates whether the secured items should be included.' Default is false. ContentQueryExecutor.cs line 127: `builder.Build(executionContext, executionOptions, cancellationToken)` passes options to query builder.",
+      "docFact": "AREA-006: Query results include ContentItemRequiredMemberRoleNames when IncludeSecuredItems is true and items are role-restricted"
+    },
+    {
+      "claim": "The system automatically populates the `ContentItemRequiredMemberRoleNames` property on each result's `IContentQueryDataContainer`",
+      "location": "Section: Secured content in query results, paragraph 1 (line 302)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 32-54: PostProcessQueryResult iterates all containers (including linked items) and calls SetRoleNames on each. ContentQueryExecutor.cs lines 158,164-173: PostProcessDataContainers calls all registered IContentQueryResultProcessor instances after query execution.",
+      "docFact": "AREA-006: ContentItemRolesResultProcessor runs as post-processing step after query execution"
+    },
+    {
+      "claim": "`ContentItemRequiredMemberRoleNames` contains the code names of the required roles",
+      "location": "Section: Secured content in query results, paragraph 1 (line 302)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 60: property type is `IReadOnlyCollection<string>`. ContentItemRolesResultProcessor.cs line 48: calls `contentItemMemberRoleRetriever.GetMemberRoleCodeNames(contentItemIds)` confirming code names.",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>"
+    },
+    {
+      "claim": "`ContentItemRequiredMemberRoleNames` is a property on `IContentQueryDataContainer`",
+      "location": "Section: Secured content in query results, code example comment (line 332)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 60: `IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames => GetValue<IReadOnlyCollection<string>>(nameof(ContentItemRequiredMemberRoleNames));` — defined as a default interface member.",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> — new property with default interface implementation"
+    },
+    {
+      "claim": "Returns an empty collection for public items",
+      "location": "Section: Secured content in query results, code example comment (line 331)",
+      "result": "verified",
+      "evidence": "ContentQueryDataContainer.cs lines 36-38: `get => (requiredMemberRoleNames ?? []).ToList().AsReadOnly();` — when null (default for unsecured items), returns empty collection. ContentItemRolesResultProcessor.cs lines 66-69: SetRoleNames only sets value when `roleNames.Any()`.",
+      "docFact": "AREA-006: For unsecured items, returns an empty collection"
+    },
+    {
+      "claim": "For items that are not secured, `ContentItemRequiredMemberRoleNames` returns an empty collection",
+      "location": "Section: Secured content in query results, paragraph after code (line 346)",
+      "result": "verified",
+      "evidence": "Same evidence: ContentQueryDataContainer.cs line 38 returns empty readonly list when internal field is null.",
+      "docFact": "AREA-006: For unsecured items, returns an empty collection"
+    },
+    {
+      "claim": "The system resolves role data using lazy loading — no additional database queries are executed unless at least one item in the result is secured",
+      "location": "Section: Secured content in query results, paragraph after code (line 346)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 36-40: `if (!allContainers.Any(c => c.ContentItemIsSecured)) { return; }` — returns immediately without DB call when no items are secured.",
+      "docFact": "AREA-006: Lazy loading — role data only fetched from DB when at least one item has ContentItemIsSecured = true"
+    },
+    {
+      "claim": "Linked item support exists for ContentItemRequiredMemberRoleNames",
+      "location": "Section: Secured content in query results, cross-reference (line 348)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 73-89: GetAllItemsIncludingLinkedItems uses BFS queue to enumerate all containers including linked items via LinkedItemsByField.",
+      "docFact": "AREA-006: Works recursively through linked items"
+    },
+    {
+      "claim": "`ContentQueryExecutionOptions` can be passed as third parameter to `GetResult`",
+      "location": "Section: Secured content in query results, code example (lines 324-334)",
+      "result": "verified",
+      "evidence": "IContentQueryExecutor.cs line 28: `GetResult<TModel>(ContentItemQueryBuilder builder, Func<IContentQueryDataContainer, TModel> resultSelector, ContentQueryExecutionOptions options = null, ...)`",
+      "docFact": null
+    },
+    {
+      "claim": "`mapper.Map<Article>(container)` maps data within `GetResult` callback",
+      "location": "Section: Secured content in query results, code example (line 329)",
+      "result": "verified",
+      "evidence": "ContentQueryExecutor.cs line 84-87 implements IContentQueryModelTypeMapper.Map<TModel>(IContentQueryDataContainer). Consistent with existing page examples at lines 212, 240.",
+      "docFact": null
+    },
+    {
+      "claim": "`container.ContentItemRequiredMemberRoleNames` accessed within GetResult callback returns role names",
+      "location": "Section: Secured content in query results, code example (line 332)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 60: property returns IReadOnlyCollection<string>. ContentQueryDataContainer.cs lines 80-85: TryGetValue intercepts this column name and returns RequiredMemberRoleNames directly.",
+      "docFact": "AREA-006: Developer access via container.ContentItemRequiredMemberRoleNames property"
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Secured content in query results, code block (lines 306-344)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Syntax valid. Uses correct import (using CMS.ContentEngine). ContentItemQueryBuilder().ForContentType() matches existing API. ContentQueryExecutionOptions { IncludeSecuredItems = true } matches source (line 17). GetResult(builder, container => ..., options) matches IContentQueryExecutor signature (line 28). mapper.Map<Article>(container) consistent with IContentQueryModelTypeMapper. container.ContentItemRequiredMemberRoleNames is a valid property. .Any() works on IReadOnlyCollection<string> via IEnumerable<T>. Anonymous type usage in GetResult callback is valid C#."
+    }
+  ],
+  "researchRecommendationCheck": {
+    "REC-014": {
+      "status": "followed",
+      "notes": "Code example starts simple (query setup), adds secured options, then accesses role names — logical progression. Introductory sentence precedes the code block. Expected output shown as code comments."
+    }
+  },
+  "invariantDiscards": [],
+  "summary": {
+    "totalClaims": 12,
+    "verified": 12,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 1,
+    "codeExamplesCorrect": 1
+  }
+}

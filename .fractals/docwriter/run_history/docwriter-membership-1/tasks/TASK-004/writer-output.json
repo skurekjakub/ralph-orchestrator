@@ -1,0 +1,39 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-004",
+  "attempt": 1,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/forms-authentication.md",
+  "sectionsModified": [
+    "Front matter (added member_roles_xp to related_pages)",
+    "Password policy code sample — AddIdentity generic parameter (line 122)",
+    "Password reset code sample — AddIdentity generic parameter, AddRoleStore generic parameter, services → builder.Services (lines 141-149)",
+    "Email confirmation code sample — AddIdentity generic parameter (line 199)"
+  ],
+  "sectionsAdded": [
+    "Prerequisites info callout — Member role services note (lines 27-33)"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration.",
+    "AREA-002: ApplicationRole is a real role class for member role management, not a no-op stub."
+  ],
+  "invariantsApplied": [
+    "INV-formatting-004",
+    "INV-codesamples-010",
+    "INV-structure-006"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-013",
+    "REC-016"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 1. Four code sample locations updated consistently: (1) Password policy AddIdentity<ApplicationUser, NoOpApplicationRole> → AddIdentity<ApplicationUser, ApplicationRole>. (2) Password reset AddIdentity<ApplicationUser, NoOpApplicationRole> → AddIdentity<ApplicationUser, ApplicationRole>, AddRoleStore<NoOpApplicationRoleStore> → AddRoleStore<ApplicationRoleStore<ApplicationRole>>, and services. → builder.Services. for consistency with other code samples on this page and the parent page (TASK-003). (3) Email confirmation AddIdentity<ApplicationUser, NoOpApplicationRole> → AddIdentity<ApplicationUser, ApplicationRole>. Added info callout in Prerequisites section explaining ApplicationRole and ApplicationRoleStore registration requirement, with cross-reference to member roles page (member_roles_xp). Added member_roles_xp to related_pages front matter. The AddRoleStore generic form uses ApplicationRoleStore<ApplicationRole> (not bare ApplicationRoleStore) to match the compile-ready pattern established on the member-roles page (TASK-001). REC-013 satisfied: uses 'member role' terminology, 'visitor' for anonymous users, 'sign in' verb form. REC-016 satisfied: note focuses on what the developer must configure, not abstract architecture.",
+  "consistencyChecks": {
+    "parentPage": "registration-and-authentication.md uses AddIdentity<ApplicationUser, ApplicationRole> — matches",
+    "memberRolesPage": "member-roles.md uses AddRoleStore<ApplicationRoleStore<ApplicationRole>> — matches",
+    "noRemainingNoOp": "grep confirms zero remaining NoOp references in target file"
+  }
+}

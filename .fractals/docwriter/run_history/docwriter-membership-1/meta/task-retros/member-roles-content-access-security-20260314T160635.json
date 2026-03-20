@@ -1,0 +1,98 @@
+{
+  "issueKey": "member-roles-content-access-security",
+  "completedAt": "2026-03-14T16:06:35+00:00",
+  "runContext": {
+    "coldStart": true,
+    "featureScope": "member-roles-content-access-security",
+    "pipelineVersion": 2
+  },
+  "totalTasks": 17,
+  "firstAttemptRate": 0.18,
+  "twoCycleRate": 0.71,
+  "multiCycleRate": 0.12,
+  "totalReviewCycles": 33,
+  "averageAttemptsPerTask": 1.94,
+  "createTasksAvgAttempts": 2.5,
+  "updateTasksAvgAttempts": 1.87,
+  "patternsDiscovered": 7,
+  "antiPatternsDiscovered": 5,
+  "domainInsightsDiscovered": 11,
+  "styleEvolutionsDiscovered": 6,
+  "entriesCreated": 29,
+  "entriesUpdated": 0,
+  "entriesDiscarded": 2,
+  "discardedDetails": [
+    {
+      "sourceId": "AGG-006",
+      "title": "Research recommendations improve coverage but don't prevent ",
+      "reason": "Fails actionability: the observation that research and invariants serve orthogonal purposes is a truism with no concrete action for downstream agents."
+    },
+    {
+      "sourceId": "STYLE-EVO-006",
+      "title": "Pre-existing icon errors (xp-lock \u2192 xp-diamond) discovered a",
+      "reason": "Fails reusability: specific icon class change (xp-lock\u2192xp-diamond) is not generalizable. The accuracy reviewer already catches pre-existing errors by design."
+    }
+  ],
+  "researchRecommendationsUsed": 15,
+  "researchRecommendationsUnused": 3,
+  "researchUsageRate": 0.83,
+  "impactMappingCoverage": 0.91,
+  "gapHuntingCycles": 1,
+  "gapHuntingConverged": true,
+  "invariantRejectionRate": "11/213 (5.2%)",
+  "topRejectionInvariants": [
+    "INV-callout-002",
+    "INV-formatting-016",
+    "INV-frontmatter-004",
+    "INV-structure-001",
+    "INV-codesamples-004"
+  ],
+  "complexityCorrelation": {
+    "small": {
+      "tasks": 5,
+      "avgAttempts": 2.0
+    },
+    "medium": {
+      "tasks": 7,
+      "avgAttempts": 1.57
+    },
+    "large": {
+      "tasks": 5,
+      "avgAttempts": 2.4
+    }
+  },
+  "overlapGroups": [
+    {
+      "group": "business-user-complexity",
+      "members": [
+        "AGG-005",
+        "CTXDOM-005",
+        "CTX-riskAnalysisEffectiveness"
+      ],
+      "action": "keep-all-cross-reference"
+    },
+    {
+      "group": "impact-mapping-gaps",
+      "members": [
+        "CTXGAP-001",
+        "CTXDOM-003",
+        "CTX-impactMappingAccuracy"
+      ],
+      "action": "keep-all-cross-reference"
+    },
+    {
+      "group": "create-task-challenges",
+      "members": [
+        "AGG-002",
+        "STYLE-EVO-003",
+        "STYLE-EVO-004"
+      ],
+      "action": "keep-all-cross-reference"
+    }
+  ],
+  "projectedBenefitsForNextRun": [
+    "Anti-patterns AGG-002 (create-action higher rejection) and AGG-003 (em dash confusion) will reduce create-task attempts from 2.5 to ~2.0 in subsequent runs",
+    "Domain insights about hub-page enumeration (CTXDOM-002) and dual-page API pattern (CTXDOM-003) will improve impact mapping coverage from 91% to ~95%+",
+    "Style evolutions for callout titles, redirect_from derivation, and page_link identifier verification will reduce formatting rejections"
+  ]
+}

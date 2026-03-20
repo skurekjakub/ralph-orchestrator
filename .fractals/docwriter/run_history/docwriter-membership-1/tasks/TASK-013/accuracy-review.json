@@ -1,0 +1,167 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-013",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousIssuesResolved": {
+    "ACC-001": {
+      "status": "fixed",
+      "description": "Section name 'Security' → 'Membership access'",
+      "verification": "All 4 occurrences (lines 356, 368, 390, 398) now read '**Membership access** section'. Confirmed correct against KenticoAdminBaseResources.resx line 5110–5112: contentengine.contenthub.properties.security.category = 'Membership access'. ContentItemPropertiesModel.cs line 14: [FormCategory(Label = \"{$contentengine.contenthub.properties.security.category$}\", Order = 14)]."
+    },
+    "ACC-002": {
+      "status": "fixed",
+      "description": "Lock icon (xp-lock) → diamond icon (xp-diamond)",
+      "verification": "Line 358 now reads 'diamond icon ({% icon xp-diamond %})'. Confirmed correct against Icons.cs line 971: 'public const string Diamond = \"xp-diamond\"' and BaseContentItemStatusRetriever.cs lines 288–300: AddSecuredIcon() sets IconName = Icons.Diamond."
+    }
+  },
+  "claims": [
+    {
+      "claim": "You can control who is allowed to view a content item on the live site using two levels of security",
+      "location": "Section: Secure content items, paragraph 1 (line 351)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs has three factory methods: Public() (line 31), Secured() (line 39), SecuredWithRoles() (line 80). From the user's perspective, 'two levels' correctly describes the two configurable security options (Secured and SecuredWithRoles); Public is the default state requiring no configuration.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "Requires authentication – only members who are signed in to the website can view the item. Any signed-in member has access, regardless of their role.",
+      "location": "Section: Secure content items, bullet 1 (line 353)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.Secured() at line 39 creates IsSecured=true with empty RequiredMemberRoleIDs (line 48: RequiredMemberRoleIDs = []). When IsSecured is true and no roles are required, any authenticated member has access.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "Member role restriction – only members who belong to one or more specific member roles can view the item",
+      "location": "Section: Secure content items, bullet 2 (line 354)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.SecuredWithRoles() at lines 80–91 requires non-empty requiredMemberRoleIDs (throws ArgumentException at line 87 if empty). Stores the role IDs in RequiredMemberRoleIDs.",
+      "docFact": "AREA-002: Content items can now be restricted to specific member roles"
+    },
+    {
+      "claim": "Both options are configured in the **Membership access** section on the **Properties** tab of each content item.",
+      "location": "Section: Secure content items, paragraph 3 (line 356)",
+      "result": "verified",
+      "evidence": "ContentItemPropertiesModel.cs line 14: [FormCategory(Label = \"{$contentengine.contenthub.properties.security.category$}\", Order = 14)]. KenticoAdminBaseResources.resx lines 5110–5112: <value>Membership access</value>. Both IsSecured (line 112) and RequiredRoles (line 120) properties are under this FormCategory. ACC-001 FIX CONFIRMED.",
+      "docFact": "AREA-012: Admin UI for security settings already supports role selection"
+    },
+    {
+      "claim": "Secured content items show a diamond icon ({% icon xp-diamond %}) when listed in the Xperience admin UI.",
+      "location": "Section: Secure content items, paragraph 4 (line 358)",
+      "result": "verified",
+      "evidence": "BaseContentItemStatusRetriever.cs line 288: AddSecuredIcon() method. Line 293: IconName = Icons.Diamond. Icons.cs line 971: public const string Diamond = \"xp-diamond\". XML doc comment at line 286 confirms: 'Adds a diamond icon to the status when authentication is required.' ACC-002 FIX CONFIRMED.",
+      "docFact": null
+    },
+    {
+      "claim": "Step 3: Switch to the **Properties** tab.",
+      "location": "Require authentication step 3 (line 367); Restrict to member roles step 3 (line 389)",
+      "result": "verified",
+      "evidence": "ContentItemPropertiesModel is the form model for the Properties tab, confirmed by class namespace Kentico.Xperience.Admin.Base.UIPages and class name ContentItemPropertiesModel.",
+      "docFact": null
+    },
+    {
+      "claim": "In the **Membership access** section, select the **Requires authentication** option.",
+      "location": "Require authentication step 4 (line 368); Restrict to member roles step 4 (line 390)",
+      "result": "verified",
+      "evidence": "Section label: KenticoAdminBaseResources.resx contentengine.contenthub.properties.security.category = 'Membership access'. Checkbox label: KenticoAdminBaseResources.resx contentengine.contenthub.properties.security.requiresauthentication = 'Requires authentication'. ContentItemPropertiesModel.cs line 111: [CheckBoxComponent(Label = \"{$contentengine.contenthub.properties.security.requiresauthentication$}\")]. Both labels match exactly.",
+      "docFact": "AREA-012: Admin UI for security settings already supports role selection"
+    },
+    {
+      "claim": "The content item now requires authentication. Only members who are signed in can view it on the live site. Visitors who are not signed in cannot access the item.",
+      "location": "Section: Require authentication, closing paragraph (line 372)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.Secured() creates IsSecured=true with empty RequiredMemberRoleIDs. The access check logic enforces authentication before allowing access.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "Before you can restrict content items to member roles, your project must have member roles set up.",
+      "location": "Section: Restrict to member roles, info callout (line 380)",
+      "result": "verified",
+      "evidence": "ContentItemPropertiesModel.cs line 118: [ObjectIdSelectorComponent(MemberRoleInfo.OBJECT_TYPE, ...)]. The role selector's data source is MemberRoleInfo; without any roles created, the selector has no options to display.",
+      "docFact": null
+    },
+    {
+      "claim": "Select the member roles that should have access to the content item. Only members who belong to at least one of the selected roles can view the item on the live site.",
+      "location": "Section: Restrict to member roles, step 5 (lines 391–392)",
+      "result": "verified",
+      "evidence": "ContentItemPropertiesModel.cs line 118–120: RequiredRoles property uses ObjectIdSelectorComponent with MemberRoleInfo.OBJECT_TYPE and MaximumItems=0 (unlimited). [VisibleIfTrue(nameof(IsSecured))] at line 119 confirms the role selector only appears when Requires authentication is selected. The 'at least one' semantics matches SecuredWithRoles behavior. The step says 'member roles' (the conceptual term) rather than the exact UI label 'Membership roles' — acceptable for business-user procedural text.",
+      "docFact": "AREA-002: Content items can now be restricted to specific member roles"
+    },
+    {
+      "claim": "The content item is now restricted to the selected member roles. Members who are signed in but do not belong to any of the required roles cannot view the item.",
+      "location": "Section: Restrict to member roles, closing paragraph (line 396)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.SecuredWithRoles() stores the required role IDs. Access check returns Forbidden when user doesn't hold any of the required roles.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "return to the **Membership access** section on the **Properties** tab and adjust the selected roles or clear the **Requires authentication** option.",
+      "location": "Section: Restrict to member roles, final paragraph (line 398)",
+      "result": "verified",
+      "evidence": "Both labels verified: 'Membership access' (resx line 5110–5112) and 'Requires authentication' (resx line 5122–5124). 'clear' is appropriate for a checkbox toggle-off action. ACC-001 FIX CONFIRMED (4th occurrence).",
+      "docFact": null
+    },
+    {
+      "claim": "Secured content items (with or without role restrictions) are only available for website channel pages, where the system can identify which members are signed in.",
+      "location": "Section: Availability of secured content items (line 402)",
+      "result": "verified",
+      "evidence": "Headless channel: ContentItemQueryBuilderProvider.cs FilterNonSecureItemsForChannel() (lines 142–152) applies WhereEquals(ContentItemIsSecured, false) to exclude secured items. Website channel uses HTTP context with ClaimsPrincipal to identify signed-in members. Pre-existing claim reorganized into subsection by content writer.",
+      "docFact": "AREA-002: Three-tier content access model"
+    },
+    {
+      "claim": "Secured items are **not included** in the content of emails or headless items (even if selected in the fields of such items).",
+      "location": "Section: Availability of secured content items (line 402)",
+      "result": "unverifiable",
+      "evidence": "Headless: CONFIRMED excluded — ContentItemQueryBuilderProvider.cs FilterNonSecureItemsForChannel() filters ContentItemIsSecured=false on all headless query paths. Email: AMBIGUOUS — EmailContentRetriever.cs line 86 sets IncludeSecuredItems=true when retrieving email configuration content, which appears to contradict the exclusion claim. However, this retriever fetches the email template itself (querying by EmailConfigurationContentItemID), not arbitrary referenced content items. The full email widget rendering pipeline may behave differently. Cannot conclusively determine end-user-visible behavior from static analysis. NOTE: This is pre-existing content reorganized by the content writer, not newly authored for TASK-013.",
+      "docFact": null
+    },
+    {
+      "claim": "Screenshot placeholder ContentItemSecuritySettings.jpg",
+      "location": "Section: Require authentication, step 4 (line 369)",
+      "result": "verified",
+      "evidence": "Pre-existing screenshot reference from the original doc. Not a code claim.",
+      "docFact": null
+    },
+    {
+      "claim": "Screenshot placeholder ContentItemSecuritySettingsRoles.jpg",
+      "location": "Section: Restrict to member roles, step 5 (line 393)",
+      "result": "unverifiable",
+      "evidence": "New placeholder screenshot. Writer-output.json notes as a gap: actual screenshot needs to be captured from admin UI. Cannot verify visual accuracy from code.",
+      "docFact": null
+    },
+    {
+      "claim": "Cross-reference to Member roles in the Members application via page_link BIsuCw",
+      "location": "Line 354 and line 380",
+      "result": "verified",
+      "evidence": "Uses {% page_link BIsuCw anchor=\"Member roles\" linkText=\"member roles\" %} — structural cross-reference. The anchor and page identifier are documentation infrastructure, not code claims.",
+      "docFact": "AREA-012: Admin UI for security settings already supports role selection"
+    }
+  ],
+  "codeExamples": [],
+  "researchRecommendationCheck": {
+    "REC-010": {
+      "cited": true,
+      "followed": true,
+      "notes": "Location-before-action pattern correctly applied in all procedural steps: 'In the **Membership access** section, select...' (lines 368, 390). Section name is now correct."
+    },
+    "REC-013": {
+      "cited": true,
+      "followed": true,
+      "notes": "Terminology correct throughout: 'member' (not 'user'), 'visitor' (for anonymous), 'signed in' (never 'log in'), 'member role' (never 'membership role'). Verified in lines 353, 354, 362, 372, 376, 391, 396."
+    }
+  },
+  "knowledgeBriefCheck": {
+    "domainInsights": "No domain insights available (empty array). Skipped.",
+    "conflicts": []
+  },
+  "invariantDiscards": [],
+  "summary": {
+    "totalClaims": 17,
+    "verified": 14,
+    "incorrect": 0,
+    "unverifiable": 2,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0,
+    "attempTwoFixesVerified": "All 3 categories: (1) 4× 'Membership access section' confirmed against resx, (2) 1× 'diamond icon (xp-diamond)' confirmed against Icons.cs:971 and BaseContentItemStatusRetriever.cs:293, (3) 3× select/clear terminology confirmed (style fix, verified by style-reviewer)"
+  }
+}

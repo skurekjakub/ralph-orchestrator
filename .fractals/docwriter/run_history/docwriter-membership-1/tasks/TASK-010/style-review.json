@@ -1,0 +1,131 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-010",
+  "attempt": 2,
+  "verdict": "rejected",
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-010",
+      "result": "pass",
+      "evidence": "Lines 350-353: '## Next steps' section present with two descriptive links to 'Reference - Content item query' and 'Member roles'."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members in prose are backtick-formatted: `IncludeSecuredItems`, `true`, `ContentQueryExecutionOptions`, `ContentItemRequiredMemberRoleNames`, `IContentQueryDataContainer` on line 302; `ContentItemRequiredMemberRoleNames` on lines 346 and 348. No unformatted code terms in prose."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Line 300: '### Secured content in query results' is a noun-phrase heading describing a concept subsection, consistent with the existing '### Query execution options' (line 287). Imperative mood applies to scenario-based/verb-phrase headings only. Line 350: '## Next steps' is a standard structural heading."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "New section is self-contained. External concepts ('member roles') are linked via page_link on line 302. Reference page linked on line 348 for detailed property docs. No dangling assumptions."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Correct terminology throughout. Uses 'member roles' (lines 302, 338, 340, 353) — not 'user roles' or 'membership roles'. No confusion between user types."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content targets developers appropriately. Uses developer terminology (dependency injection, lazy loading, lambda expressions). Code sample is at correct complexity level for a how-to page."
+    },
+    {
+      "invariantId": "INV-codesamples-004",
+      "result": "pass",
+      "evidence": "All code comments use third person singular and whitespace after '//'. Single-line comments have no final dot (lines 310, 317, 323, 330, 331, 339, 340). Lines 330-331 are two separate single-line comments (distinct concepts: role contents vs. public item behavior), not a continued multi-line comment."
+    },
+    {
+      "invariantId": "INV-codesamples-006",
+      "result": "pass",
+      "evidence": "Line 308: bare '...' (three dots, no comment markers). This is the fix from attempt 1. Confirmed correct via byte-level inspection: repr shows '...\\n'. Pre-existing '// ...' on line 30 is outside task scope."
+    },
+    {
+      "invariantId": "INV-codesamples-008",
+      "result": "pass",
+      "evidence": "Comments focus on Kentico-specific behavior: retrieval of secured items (line 317), member role code names (line 330), empty collection for public items (line 331), role access check pattern (line 339). No comments on obvious code like variable declarations."
+    },
+    {
+      "invariantId": "INV-codesamples-009",
+      "result": "pass",
+      "evidence": "Code comments explain Kentico-specific methods and properties (IncludeSecuredItems, ContentItemRequiredMemberRoleNames, mapper.Map). No comments on generic .NET patterns (LINQ .Any(), foreach, anonymous types)."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code example (lines 306-344) is logically structured: using statement > field declarations > query builder > execution options > GetResult with mapping logic > iteration over results. Appropriate detail level for a how-to page."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "Line 306: '{% code lang=csharp title=\"Access role information from query results\" %}' — 'csharp' is in the supported lang list. Properly closed with '{% endcode %}' on line 344."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "fail",
+      "evidence": "Line 346: 'The system resolves role data using lazy loading — no additional database queries are executed unless at least one item in the result is secured.' The character between 'loading' and 'no' is an em dash (U+2014). INV-formatting-016 states: 'Do not use em dash at all.' En dashes (U+2013) on lines 352-353 are correctly used for field descriptions.",
+      "suggestion": "Replace the em dash (U+2014 '—') on line 346 with either: (A) an en dash (U+2013 '–'): 'using lazy loading – no additional database queries...', or (B) split into two sentences: 'The system resolves role data using lazy loading. No additional database queries are executed unless at least one item in the result is secured.'"
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "New headings follow correct hierarchy: h3 '### Secured content in query results' (line 300) is under h2 '## Run queries and map the result' (line 79), consistent with sibling h3 headings (lines 90, 179, 287). h2 '## Next steps' (line 350) is a top-level section. No skipped levels."
+    },
+    {
+      "category": "sentence-case-headings",
+      "result": "pass",
+      "evidence": "INV-style-001: 'Secured content in query results' — sentence case correct. 'Next steps' — sentence case correct."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags well-formed: {% code %}/{% endcode %} pair (lines 306/344), {% page_link %} tags (lines 302, 348, 352, 353). No broken includes or mismatched tags."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "All internal links use {% page_link %} with descriptive linkText. No vague 'click here' or 'this page' link text (INV-crossref-006). Anchor reference on line 348 uses correct syntax."
+    },
+    {
+      "category": "active-voice",
+      "result": "pass",
+      "evidence": "INV-style-007: Active voice throughout new content. 'When you set' (line 302), 'the query executor retrieves' (line 302), 'the system automatically populates' (line 302), 'The system resolves' (line 346). No passive constructions."
+    },
+    {
+      "category": "present-tense",
+      "result": "pass",
+      "evidence": "INV-style-008: All new content uses present simple tense ('retrieves', 'populates', 'returns', 'resolves'). No future or past tense."
+    },
+    {
+      "category": "en-dash-usage",
+      "result": "pass",
+      "evidence": "Lines 352-353: en dashes (U+2013) correctly used as separators between link text and descriptions in the Next Steps list, per INV-formatting-016 allowance for field descriptions and emphasis."
+    },
+    {
+      "category": "code-block-consistency",
+      "result": "pass",
+      "evidence": "Code block (lines 306-344) follows the same conventions as existing code blocks on the page: lang=csharp, descriptive title, using statement at top, DI comment pattern, logical structure."
+    },
+    {
+      "category": "sentence-length",
+      "result": "pass",
+      "evidence": "INV-style-018 (should): Line 302 sentence is ~28 words, but heavily inflated by inline code formatting. Line 346 second sentence is ~22 words. Acceptable for technical content at developer audience level."
+    }
+  ],
+  "metaKnowledgeConsulted": {
+    "knowledgeBrief": "Present but cold-start (no patterns, anti-patterns, or style evolutions). No supplementary criteria to apply.",
+    "antiPatternsFile": "Not found at .github/skills/docwriter-meta/references/anti-patterns.md. Skipped per missing-artifact policy.",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 11,
+    "invariantsFailed": 1,
+    "additionalIssues": 0
+  }
+}

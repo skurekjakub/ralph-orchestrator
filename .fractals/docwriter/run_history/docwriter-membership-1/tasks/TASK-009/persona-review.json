@@ -1,0 +1,154 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-009",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "developers-and-admins/api/content-item-api/reference-content-item-query.md",
+  "declaredPersonas": [
+    "developer"
+  ],
+  "taskPersonas": [
+    "developer"
+  ],
+  "attemptDelta": "Attempt 2 changed only style-level details vs attempt 1: (1) heading 'Accessing role names from query results' → imperative 'Access role names from query results' per INV-style-002, (2) added bold title '**Lazy loading of role data**' inside note callout per INV-callout-002. Neither change affects persona targeting, tone, depth, classification, or taxonomy. All persona findings from attempt 1 carry forward unchanged.",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. The entire page is a developer API reference — method signatures, query builder parameterization, interface implementations, and C# code examples. No admin, business, or architect audiences are served. Consistent with all sibling pages in content-item-api cluster (content-item-query-api.md, content-item-database-structure.md, content-item-asset-upload-api.md all target `developer`). Tag is correct and sufficient."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Uses exact API terminology throughout: `ContentItemQueryBuilder`, `IContentQueryDataContainer`, `ContentItemRolesResultProcessor`, `ContentItemRequiredMemberRoleNames`, `IReadOnlyCollection<string>`. Assumes SDK familiarity — references subquery parameterization, model binding, and result selectors without introductory explanation. Developer terms like 'lazy loading', 'post-processing step', 'empty collection' are used naturally. Aligns with INV-persona-003."
+    },
+    {
+      "check": "tone-developer-new-section",
+      "result": "pass",
+      "evidence": "The TASK-009 content (lines 1024–1126, 'Query result container properties' and 'ContentItemRequiredMemberRoleNames') maintains developer-grade precision. Property table documents Type, Default value, and Defined in — standard API reference structure. Lazy loading note (line 1080–1083) uses precise language: 'Member role data is only fetched from the database when at least one content item in the query result has `ContentItemIsSecured` set to *true*.' Code example (lines 1094–1126) demonstrates full pattern: builder → executor options → result mapping lambda → post-query role inspection. Attempt 2 heading change ('Access role names from query results') uses imperative mood — still developer-appropriate and clearer as a task-oriented subheading."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Appropriate reference depth for developer audience. Not too shallow — documents type, default, populating mechanism, lazy loading behavior, linked item resolution, and provides a complete code example. Not too deep — does not explain C# generics, LINQ, or framework internals. The new section provides the lookup information developers need: what the property returns, when it's populated, performance characteristics (lazy loading), and how to use it in code."
+    },
+    {
+      "check": "no-persona-mismatch",
+      "result": "pass",
+      "evidence": "No content targets admin, business, or architect personas. No GUI procedures (admin), no benefit/outcome language (business), no architecture trade-off discussions (architect). Security content stays at the code level — how to access role names programmatically — not how to configure member roles in the admin UI."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "reference",
+    "actual": "reference",
+    "result": "pass",
+    "evidence": "Page is structured as API reference: organized by method/class with signatures, parameters, return types, behavioral notes, and code examples. Title follows 'Reference - Content item query' pattern per INV-structure-019. The new ContentItemRequiredMemberRoleNames section adds a property reference entry (type table, default, definition source, behavior) — pure reference content. No tutorial flow or goal-oriented procedures."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Reference - Content item query",
+      "evidence": "Follows 'Reference - XYZ' convention per INV-structure-019."
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Valid persona value per project persona definitions."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "YRT_Cw",
+      "evidence": "Identifier present and unchanged from existing page."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "200",
+      "evidence": "Order field present."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "License tier present, set to 1 (standard) — appropriate for _documentation collection."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/YRT_Cw",
+      "evidence": "Redirect from short-link present and matches identifier."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All content-item-api cluster pages target `developer` persona. Sibling reference page (reference-content-retriever-api.md) also targets developer+architect, but the architect addition there is justified by its system-level scope. This page's developer-only targeting is consistent with its narrower API reference focus."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user tone rules — page does not target business users."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user team assumptions — page does not target business users."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer terminology used throughout: lazy loading, query executor, model binding, result selector, post-processing. Related steps combined in code example (build query + set options + execute + inspect results). Matches rule: 'can combine 2 related easy steps. Use developer terminology appropriately.'"
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is strictly developer-oriented. 'Member roles' and 'secured items' are used in their API/code context with cross-references to ContentAccessSettings reference page for the broader model. No unexplained business/marketing terms."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "pass",
+      "evidence": "Reference page uses direct, precise tone appropriate for lookup material. Uses 'you' form in introductory sentences ('When you run a content item query...') maintaining approachable tone without sacrificing precision."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business user guide materials — page is a developer API reference."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Uses 'member' correctly throughout — refers to registered visitors with member roles, not admin users or generic visitors. 'Member role data', 'member roles required for access' — consistent with the defined user types."
+    },
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Title follows 'Reference - Content item query' pattern as required for reference pages."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members in TASK-009 section backtick-formatted: `ContentItemRequiredMemberRoleNames`, `IContentQueryDataContainer`, `ContentItemRolesResultProcessor`, `ContentItemIsSecured`, `IncludeSecuredItems`, `IReadOnlyCollection<string>`, `WithLinkedItems`."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code example in 'Access role names from query results' broken into logical sections with comments: query building, execution options, result mapping lambda, and post-query role checking loop."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "taxonomyChecksPassed": 6,
+    "taxonomyChecksFailed": 0,
+    "consistencyPassed": true,
+    "invariantsPassed": 7,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 3
+  }
+}

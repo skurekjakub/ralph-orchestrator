@@ -1,0 +1,124 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-016",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousAttemptIssues": {
+    "attempt1Rejection": "cms.contentitemmemberrole was incorrectly added to the Binding object types table. ContentItemMemberRoleInfo has ContinuousIntegrationSettings.Enabled = false — it does not have its own CI folder and is serialized into content item XML via ContentItemMemberRoleCustomProcessor.",
+    "attempt2Resolution": "The binding table row has been removed. The General section note at line 111 correctly documents the serialization behavior. Verified."
+  },
+  "claims": [
+    {
+      "claim": "cms.memberrole is a CI/CD-supported object type with its own CI folder",
+      "location": "General section, row at lines 101-113, CI/CD folder name cell (line 107)",
+      "result": "verified",
+      "evidence": "MemberRoleInfo.cs line 22: OBJECT_TYPE = \"cms.memberrole\"; lines 31-34: ContinuousIntegrationSettings = { Enabled = true }. CI folder name derives from OBJECT_TYPE, so folder is cms.memberrole.",
+      "sourceFile": "CMSSolution/Membership/Members/MemberRoleInfo.cs",
+      "docFact": "AREA-015: ContentItemMemberRoleCustomProcessor and CI filter already existed on master. No changes in this commit, but types are CI/CD supported."
+    },
+    {
+      "claim": "Member roles are used to control content access for registered members",
+      "location": "General section, Notes cell (line 111)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings (AREA-002) implements three-tier model: Public, Secured (any auth), SecuredWithRoles (specific member roles). MemberRoleInfo stores role definitions. ContentItemMemberRoleInfo binds roles to content items. Code-analysis AREA-002 confirms: 'Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)'.",
+      "sourceFile": "Multiple — ContentAccessSettings, MemberRoleInfo, ContentItemMemberRoleInfo",
+      "docFact": "AREA-015"
+    },
+    {
+      "claim": "Member role assignments to content items use the object type cms.contentitemmemberrole",
+      "location": "General section, Notes cell (line 111), inline code reference",
+      "result": "verified",
+      "evidence": "ContentItemMemberRoleInfo.cs line 23: OBJECT_TYPE = \"cms.contentitemmemberrole\". Line 35: IsBinding = true. DependsOn includes MemberRoleInfo.OBJECT_TYPE with ObjectDependencyEnum.Binding.",
+      "sourceFile": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentItemMemberRoleInfo.cs",
+      "docFact": "AREA-015"
+    },
+    {
+      "claim": "cms.contentitemmemberrole data is serialized as part of content item data (not its own CI folder)",
+      "location": "General section, Notes cell (line 111)",
+      "result": "verified",
+      "evidence": "ContentItemMemberRoleInfo.cs lines 36-40: ContinuousIntegrationSettings = { Enabled = false, UsesCustomFiltering = true }. ContentItemMemberRoleCustomProcessor.cs line 127-138: PostprocessSerializedObject() takes a ContentItemInfo, queries its member role bindings, and stores them into the content item's XML via StoreContentItemMemberRolesToXml(). Line 43: PostprocessDeserializedDocument() deserializes them back. This confirms member role bindings are embedded in content item CI files, not in their own folder.",
+      "sourceFile": "CMSSolution/ContentEngine/ContinuousIntegration/ContentItemMemberRoleCustomProcessor.cs",
+      "docFact": "AREA-015: ContentItemMemberRoleCustomProcessor and CI filter already existed on master."
+    },
+    {
+      "claim": "The inpage_link cicd_contentitems correctly points to the Content items row in the same page",
+      "location": "General section, Notes cell (line 111)",
+      "result": "verified",
+      "evidence": "Line 336 of the same file: {% anchor cicd_contentitems %}{% page_link barWCQ linkText=\"Content items\" %}. The anchor is defined in the Content items row of the General table.",
+      "sourceFile": "reference-ci-cd-object-types.md line 336",
+      "docFact": null
+    },
+    {
+      "claim": "The page_link member_roles_xp resolves to a valid Member roles page",
+      "location": "General section, Object type cell (line 103)",
+      "result": "verified",
+      "evidence": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/member-roles.md has front matter: identifier: member_roles_xp, with redirect_from: x/member_roles_xp.",
+      "sourceFile": "member-roles.md front matter",
+      "docFact": null
+    },
+    {
+      "claim": "cms.contentitemmemberrole is NOT listed in the Binding object types table",
+      "location": "Binding object types section (lines 1189-1459)",
+      "result": "verified",
+      "evidence": "Searched entire Binding section (lines 1189-1459). The only occurrence of 'contentitemmemberrole' in the file is at line 111 in the General section note. The Binding table contains: cms.allowedchildcontenttype, cms.applicationpermission, cms.workflowtransition, cms.contenttypechannel, emaillibrary.emailtemplatecontenttype, emaillibrary.sendconfigurationcontactgroup, cms.macrorulemacrorulecategory, commerce.orderstatusnotification, cms.userrole, cms.webpagescopecontenttype, cms.contentworkflowcontenttype, cms.contentworkflowrole, cms.contentworkflowsteprole, cms.workspacedatapermission. No member role bindings present. This is correct because ContentItemMemberRoleInfo has ContinuousIntegrationSettings.Enabled = false.",
+      "sourceFile": "reference-ci-cd-object-types.md lines 1189-1459",
+      "docFact": "AREA-015"
+    },
+    {
+      "claim": "cms.memberrolemember is correctly absent from all tables (not CI/CD supported as standalone)",
+      "location": "Entire file — absence verification",
+      "result": "verified",
+      "evidence": "MemberRoleMemberInfo.cs lines 35-38: ContinuousIntegrationSettings = { Enabled = false }. No UsesCustomFiltering is set. This type has no CI/CD support and no custom processor. Correctly excluded from all tables.",
+      "sourceFile": "CMSSolution/Membership/Members/MemberRoleMemberInfo.cs",
+      "docFact": "AREA-015"
+    }
+  ],
+  "codeExamples": [],
+  "crossPatternValidation": {
+    "description": "Verified that analogous embedded-binding types follow the same documentation pattern",
+    "analogousTypes": [
+      {
+        "type": "cms.contentitemtag (ContentItemTagInfo)",
+        "ciEnabled": false,
+        "inBindingTable": false,
+        "note": "Confirmed Enabled = false. Not in Binding table. Consistent."
+      },
+      {
+        "type": "cms.contentitemreference (ContentItemReferenceInfo)",
+        "ciEnabled": false,
+        "usesCustomFiltering": true,
+        "inBindingTable": false,
+        "note": "Confirmed Enabled = false, UsesCustomFiltering = true. Not in Binding table. Consistent."
+      },
+      {
+        "type": "cms.contentitemobjectreference (ContentItemObjectReferenceInfo)",
+        "ciEnabled": false,
+        "usesCustomFiltering": true,
+        "inBindingTable": false,
+        "note": "Confirmed Enabled = false, UsesCustomFiltering = true. Not in Binding table. Consistent."
+      }
+    ],
+    "verdict": "The cms.contentitemmemberrole treatment (absent from Binding table, documented via note in General section) is consistent with how all other embedded content item binding types are handled."
+  },
+  "researchRecommendationsCheck": {
+    "status": "skipped",
+    "reason": "writer-output.json reports researchRecommendationsCited = [] — no research recommendations were cited for this task."
+  },
+  "knowledgeBriefCheck": {
+    "status": "skipped",
+    "reason": "knowledge-brief.json is cold start with zero domain insights, patterns, or anti-patterns. No meta-knowledge to cross-reference."
+  },
+  "invariantComplianceNotes": {
+    "INV-formatting-004": "cms.contentitemmemberrole is correctly in backticks as inline code. Object type names cms.memberrole in the CI/CD folder cell follows the existing table convention (no backticks in folder name cells, consistent with all other rows).",
+    "INV-structure-019": "Page title 'Reference - CI/CD object types' matches required pattern. No structural changes made."
+  },
+  "summary": {
+    "totalClaims": 8,
+    "verified": 8,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0
+  }
+}

@@ -1,0 +1,665 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-risk-analyzer",
+  "generatedAt": "2026-03-14T13:06:35Z",
+  "totalTasks": 17,
+  "riskSummary": {
+    "highRiskTasks": [
+      "TASK-001",
+      "TASK-002",
+      "TASK-007",
+      "TASK-012"
+    ],
+    "criticalPath": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "topMitigations": [
+      "Capture ALL business-user screenshots (TASK-011, TASK-012, TASK-013) in a single coordinated session to ensure UI consistency and reduce effort estimation variance",
+      "Batch the NoOpApplicationRole\u2192ApplicationRole replacement tasks (TASK-004, TASK-005, TASK-006) after TASK-003 establishes the pattern \u2014 apply identically for consistency",
+      "Accuracy reviewer must verify every API method signature against actual source code, not just docFact summaries \u2014 especially for TASK-001, TASK-002, TASK-007, and TASK-009",
+      "Use consistent three-tier model terminology ('Public / Secured / SecuredWithRoles' for developers, 'public / signed-in only / specific member roles' for business users) across all 17 tasks",
+      "Prioritize TASK-001 and TASK-002 execution first \u2014 they are the critical path root nodes and cross-reference targets for 12 downstream tasks"
+    ]
+  },
+  "risks": [
+    {
+      "taskId": "TASK-001",
+      "taskTitle": "Create new page: Member roles developer guide",
+      "overallRisk": "high",
+      "overallScore": 3.4,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "Covers 6 distinct API surfaces (ContentAccessSettings, HasAccess(), ContentItemRequiredMemberRoleNames, IContentItemMemberRoleManager, IContentItemMemberRoleRetriever, ApplicationRole/ApplicationRoleStore). Writer must synthesize behavior from 3 high-significance code areas (AREA-002, AREA-006, AREA-009) and explain the three-tier access model with precise return value semantics (Allowed/NotAuthenticated/Forbidden). The lazy loading behavior of ContentItemRolesResultProcessor is a subtle implementation detail easy to get wrong."
+        },
+        "completeness": {
+          "score": 4,
+          "rationale": "8 entirely new sections on a brand-new page. Must comprehensively cover the full membership role system end-to-end \u2014 from conceptual overview through API reference to ASP.NET Identity integration. This page is the canonical cross-reference target for TASK-003 through TASK-013; any gap here will cascade to downstream tasks. Breadth spans authentication, content retrieval, content queries, and programmatic management."
+        },
+        "invariantViolation": {
+          "score": 4,
+          "rationale": "13 applicable invariants \u2014 the highest of any task. New page creation requires full front matter (INV-frontmatter-*), correct section structure with Introduction/Body/Result/Next Steps (INV-structure-001), persona-appropriate tone (INV-persona-*), and proper code sample formatting (INV-codesamples-*). Every structural decision is made from scratch with no existing template to follow."
+        },
+        "dependency": {
+          "score": 1,
+          "rationale": "No upstream dependencies. This task is a root node in the dependency graph. Can start immediately."
+        },
+        "effortEstimation": {
+          "score": 4,
+          "rationale": "Large complexity with 8 new sections and multiple code samples to write from scratch. No existing content to anchor effort estimates. The scope includes both conceptual explanation and detailed API reference content, making it the most ambiguous task to estimate. The writer must compose ~800-1200 words of original technical content."
+        }
+      },
+      "mitigations": [
+        "Accuracy reviewer must cross-check every API method signature against actual source files in AREA-002 (ContentAccessSettings), AREA-006 (query system), and AREA-009 (HasAccess extension)",
+        "Content writer should use the docFacts from IMP-013 as the primary source of truth for method signatures and return types \u2014 do not infer behavior from naming alone",
+        "Front matter must be validated against INV-frontmatter-001 through INV-frontmatter-008 before review cycle begins",
+        "Write the HasAccess() section first and validate its Allowed/NotAuthenticated/Forbidden return semantics against ContentItemFieldsSourceExtensions.cs before proceeding to other sections"
+      ],
+      "reviewFocus": [
+        "Verify three-tier model (Public/Secured/SecuredWithRoles) is described consistently with ContentAccessSettings factory method names",
+        "Check that ContentItemRequiredMemberRoleNames lazy loading behavior is accurately documented \u2014 only fetched when ContentItemIsSecured=true",
+        "Ensure all code samples compile conceptually \u2014 correct generic type parameters, correct extension method receiver types",
+        "Verify front matter matches INV-frontmatter requirements (identifier, order, persona fields)"
+      ]
+    },
+    {
+      "taskId": "TASK-002",
+      "taskTitle": "Create new page: Reference \u2014 ContentAccessSettings",
+      "overallRisk": "high",
+      "overallScore": 3.0,
+      "dimensions": {
+        "accuracy": {
+          "score": 5,
+          "rationale": "API reference page documenting a breaking change (struct-to-class migration) with 4 docFacts. Must precisely document: (1) static factory methods Public()/Secured()/SecuredWithRoles(IEnumerable<string>), (2) equality operator behavior (== and !=), (3) null validation on AccessSettings setters (ArgumentNullException), (4) value-type-to-reference-type migration implications. Any inaccuracy in the breaking change guidance could cause developers to write incorrect migration code. AREA-002 has significance=high with 3 public APIs and 1 breaking change."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "9 sections to create, but the scope is well-bounded by the API surface of a single class. Reference pages have formulaic structure. However, must cover all factory methods, operators, and the breaking change note \u2014 omitting any one creates a documentation gap. Research recommendations REC-001, REC-005, REC-012 all apply."
+        },
+        "invariantViolation": {
+          "score": 3,
+          "rationale": "7 applicable invariants. New page requires full front matter and section structure. Reference pages have specific formatting requirements (INV-codesamples-*, INV-formatting-*) but are more formulaic than how-to pages. REC-005 provides additional section ordering guidance that must align with invariants."
+        },
+        "dependency": {
+          "score": 1,
+          "rationale": "No upstream dependencies. Root node in the dependency graph. Can start immediately."
+        },
+        "effortEstimation": {
+          "score": 3,
+          "rationale": "Reference pages are more formulaic than how-to guides, reducing estimation uncertainty. However, the breaking change documentation requires careful crafting of migration advice and before/after examples, which adds effort beyond a standard reference page."
+        }
+      },
+      "mitigations": [
+        "Accuracy reviewer must verify every factory method signature against the actual ContentAccessSettings.cs source in AREA-002, including parameter types and return types",
+        "The struct-to-class breaking change note must explicitly mention: default(ContentAccessSettings) no longer works, stack allocation semantics change, and null is now a valid reference \u2014 cross-check against AREA-002 breaking changes list",
+        "Use REC-012 comparison table format for the three access modes, but verify it doesn't conflict with INV-formatting invariants",
+        "Validate that equality operator documentation matches the actual == and != operator implementations in source"
+      ],
+      "reviewFocus": [
+        "Breaking change section: verify that every migration scenario mentioned is accurate (default value behavior, null handling, equality semantics)",
+        "Null handling: confirm that setting AccessSettings to null throws ArgumentNullException and that ContentAccessSettings.Public() is the documented replacement",
+        "Factory method signatures: exact parameter types (IEnumerable<string> for SecuredWithRoles, not string[] or List<string>)",
+        "Ensure the page follows reference page structure conventions per REC-005 and INV-structure invariants"
+      ]
+    },
+    {
+      "taskId": "TASK-003",
+      "taskTitle": "Update registration and authentication page",
+      "overallRisk": "moderate",
+      "overallScore": 2.8,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "Critical-priority impact (IMP-001). Must replace NoOpApplicationRole\u2192ApplicationRole and NoOpApplicationRoleStore\u2192ApplicationRoleStore across multiple code samples with zero errors. Must add a new three-tier access model section and update the architecture section for role stores. The page is a foundational guide \u2014 errors here propagate to developer understanding. AREA-010 (Authentication and Identity Pipeline) has 1 public API and 1 breaking change."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "6 specific scope items across 4 modify + 2 add sections. Large page with many existing sections to navigate. Must update line-specific content (line 35, line 116) and add new conceptual section. Risk of missing a NoOpApplicationRole reference in a less-obvious location."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "7 invariants, but modifying an existing page whose structure is already established. Main risk is maintaining tone consistency between existing content and new three-tier model section. Lower risk than creating a new page."
+        },
+        "dependency": {
+          "score": 2,
+          "rationale": "Depends on TASK-001 only (for cross-reference to the new member roles page). TASK-001 has no upstream deps, so chain depth = 1. The cross-reference can use a placeholder path if TASK-001 is delayed."
+        },
+        "effortEstimation": {
+          "score": 3,
+          "rationale": "Large complexity (6 scope items), but most are well-defined find-and-replace operations plus one new section. The new three-tier model section is the main source of estimation uncertainty."
+        }
+      },
+      "mitigations": [
+        "Content writer must grep the entire existing page for ALL occurrences of 'NoOpApplicationRole' and 'NoOpApplicationRoleStore' \u2014 not just the lines mentioned in IMP-001 \u2014 to avoid leaving stale references",
+        "The new three-tier access model section should reuse terminology established in TASK-001 to ensure consistency across the documentation set",
+        "Accuracy reviewer should verify that the updated AddIdentity<ApplicationUser, ApplicationRole> code sample is syntactically correct and includes the AddRoleStore<ApplicationRoleStore> call"
+      ],
+      "reviewFocus": [
+        "Search for any remaining 'NoOp' references after the update \u2014 zero tolerance for stale type names",
+        "Verify the new three-tier model section uses consistent terminology with TASK-001 output",
+        "Check that the architecture section update accurately reflects the role store's position in the Identity pipeline"
+      ]
+    },
+    {
+      "taskId": "TASK-004",
+      "taskTitle": "Update forms authentication page",
+      "overallRisk": "moderate",
+      "overallScore": 2.4,
+      "dimensions": {
+        "accuracy": {
+          "score": 3,
+          "rationale": "Critical-priority impact (IMP-002). Code sample replacements (NoOpApplicationRole\u2192ApplicationRole, NoOpApplicationRoleStore\u2192ApplicationRoleStore) are straightforward but must be exact. Must also add a note about role store registration prerequisites. The forms auth page has multiple code samples that all need updating."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "3 well-defined scope items. Clear boundaries \u2014 replace type names in code samples and add a registration note. Low risk of missing anything."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "3 invariants on an existing page. Changes are localized to code samples and a small note addition. Low structural risk."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Depends on TASK-003, which depends on TASK-001. Chain depth = 2. If TASK-003's pattern for the NoOp\u2192ApplicationRole replacement is inconsistent, this task inherits the inconsistency."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Medium complexity, mostly mechanical replacements. The role store registration note is the only writing-intensive addition."
+        }
+      },
+      "mitigations": [
+        "After TASK-003 completes, verify the replacement pattern used there and apply identically here for consistency",
+        "Content writer should search the page for ALL AddIdentity<> calls, not just the ones listed in IMP-002, to catch any that the impact mapping may have missed"
+      ],
+      "reviewFocus": [
+        "Consistency of replacement pattern with TASK-003 output",
+        "Role store registration note accurately describes required service registration calls"
+      ]
+    },
+    {
+      "taskId": "TASK-005",
+      "taskTitle": "Update external authentication page",
+      "overallRisk": "low",
+      "overallScore": 1.6,
+      "dimensions": {
+        "accuracy": {
+          "score": 2,
+          "rationale": "Simple, identical code sample replacement pattern as TASK-004. Only 2 scope items (replace NoOpApplicationRole, replace NoOpApplicationRoleStore). Critical priority but minimal complexity."
+        },
+        "completeness": {
+          "score": 1,
+          "rationale": "2 scope items with razor-sharp boundaries. Only 2 sections to modify. Lowest scope breadth of any task."
+        },
+        "invariantViolation": {
+          "score": 1,
+          "rationale": "2 invariants on a small existing page update. Virtually no structural risk \u2014 changes are limited to code block content."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-005\u2192003\u2192001). Must wait for TASK-003 to establish the replacement pattern. If TASK-003 is delayed, this blocks despite being a tiny change."
+        },
+        "effortEstimation": {
+          "score": 1,
+          "rationale": "Small complexity, highly mechanical. Under 15 minutes of work once the pattern from TASK-003 is established."
+        }
+      },
+      "mitigations": [
+        "Batch this with TASK-004 and TASK-006 as a group once TASK-003 establishes the pattern \u2014 all three are mechanical replications of the same change"
+      ],
+      "reviewFocus": [
+        "Verify replacement is identical to the pattern established in TASK-003 and TASK-004"
+      ]
+    },
+    {
+      "taskId": "TASK-006",
+      "taskTitle": "Update add fields to member objects page",
+      "overallRisk": "moderate",
+      "overallScore": 2.4,
+      "dimensions": {
+        "accuracy": {
+          "score": 3,
+          "rationale": "Same NoOp\u2192ApplicationRole replacement pattern, but has an additional optional scope item: adding a remark about the ApplicationRole-to-MemberRoleInfo data flow. This mirrors the existing ApplicationUser-to-MemberInfo explanation, so the writer must understand the parallel data mapping pattern between Identity and Xperience layers."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "3 scope items. The 'consider adding a remark' phrasing in IMP-004 creates some ambiguity about whether this is required, but the boundaries are otherwise clear."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "3 invariants on existing page. Low structural risk."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-006\u2192003\u2192001). Same blocking risk as TASK-004 and TASK-005."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Medium complexity. The optional data flow remark adds some scope uncertainty, but worst case it's a short paragraph."
+        }
+      },
+      "mitigations": [
+        "If the ApplicationRole-to-MemberRoleInfo remark is included, the accuracy reviewer must verify the data flow description against the actual mapping in AREA-001 (Membership Core) and AREA-011 (Identity Stores)",
+        "Match the style and depth of the existing ApplicationUser-to-MemberInfo explanation when describing the role mapping"
+      ],
+      "reviewFocus": [
+        "If the data flow remark is added, verify it accurately parallels the existing ApplicationUser\u2192MemberInfo explanation",
+        "Verify all NoOp replacements are consistent with the pattern from TASK-003"
+      ]
+    },
+    {
+      "taskId": "TASK-007",
+      "taskTitle": "Update retrieve content items page",
+      "overallRisk": "high",
+      "overallScore": 3.2,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "Consolidated from 2 impacts (IMP-005 + IMP-015). Must accurately document: (1) three-tier access model transition from binary IsSecured, (2) ContentItemRequiredMemberRoleNames property and its lazy loading trigger, (3) HasAccess() extension method with correct return value semantics, (4) update existing IsAuthenticated code samples without breaking them. The interplay between IncludeSecuredItems, ContentItemIsSecured, and ContentItemRequiredMemberRoleNames is complex and easy to get wrong."
+        },
+        "completeness": {
+          "score": 4,
+          "rationale": "6 sections to modify/add across 2 consolidated impacts. The page is a heavily-used content retrieval guide that developers reference frequently. Must update existing prose that says 'allow access only for authenticated users' to cover the three-tier model \u2014 rephrasing existing content accurately while adding new content is harder than writing fresh. Must also add projection examples alongside existing ones."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "5 invariants on an existing page. Structural risk is low since the page already exists. Main risk is maintaining consistency between the new role-aware content and existing security content."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Depends on both TASK-001 and TASK-002 (two root dependencies). If either new page is delayed, cross-references to them will be broken or premature. However, both are root nodes with no upstream deps."
+        },
+        "effortEstimation": {
+          "score": 3,
+          "rationale": "Large complexity from consolidated scope. The mix of rephrasing existing content and adding new sections makes effort harder to estimate than pure additions. Code sample updates require careful integration with existing examples."
+        }
+      },
+      "mitigations": [
+        "Accuracy reviewer must verify that the HasAccess() code sample shows the correct extension method signature: HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) returning ContentAccessCheckResult",
+        "Writer should check that the existing IsAuthenticated code sample is preserved as a valid simple-case example with a note pointing to HasAccess() for role-aware scenarios \u2014 do not delete the simpler example",
+        "ContentItemRequiredMemberRoleNames documentation must note it returns IReadOnlyCollection<string> and only populates when ContentItemIsSecured=true \u2014 verify against AREA-006 docFact",
+        "Projection example should be placed immediately after the existing ContentItemIsSecured projection example for natural reading flow"
+      ],
+      "reviewFocus": [
+        "HasAccess() return value semantics: Allowed, NotAuthenticated, Forbidden \u2014 not true/false",
+        "Verify that existing IsAuthenticated examples are updated rather than removed",
+        "Check that lazy loading condition for role data is accurately described",
+        "Cross-references to TASK-001 and TASK-002 output pages are valid"
+      ]
+    },
+    {
+      "taskId": "TASK-008",
+      "taskTitle": "Update retrieve page content page",
+      "overallRisk": "moderate",
+      "overallScore": 2.8,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "Consolidated from 2 impacts (IMP-006 + IMP-016). Must accurately document the 401 vs 403 distinction (NotAuthenticated vs Forbidden) for role-restricted content. HasAccess() extension method behavior must be precise. The AccessDeniedPath handling of both unauthenticated and insufficient-role scenarios requires careful explanation. AREA-009 has significance=high."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "5 sections to modify/add. Consolidated scope but well-defined. The 401/403 distinction and AccessDeniedPath dual-purpose handling must both be covered \u2014 missing either creates a documentation gap for developers handling error responses."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "4 invariants on an existing page. Low structural risk with established page structure."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Depends on both TASK-001 and TASK-002. Same dual-dependency pattern as TASK-007."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Medium complexity. Despite consolidation from 2 impacts, the scope is well-defined and the page structure is already established."
+        }
+      },
+      "mitigations": [
+        "The 401 (NotAuthenticated) vs 403 (Forbidden) distinction must be verified against the actual HTTP status codes returned by the middleware in AREA-009 \u2014 do not assume standard HTTP semantics without checking",
+        "AccessDeniedPath documentation must explain that it now handles both scenarios (unauthenticated AND insufficient role) \u2014 verify this against the middleware configuration in AREA-009",
+        "Writer should cross-reference TASK-007's three-tier model description for consistent terminology"
+      ],
+      "reviewFocus": [
+        "401 vs 403 distinction: verify HTTP status code mapping against actual middleware behavior",
+        "AccessDeniedPath: confirm it handles both authentication and role-based denial",
+        "HasAccess() usage matches TASK-001 and TASK-007 descriptions exactly"
+      ]
+    },
+    {
+      "taskId": "TASK-009",
+      "taskTitle": "Update Reference \u2014 Content item query page",
+      "overallRisk": "moderate",
+      "overallScore": 2.4,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "API reference documentation requiring precise description of ContentItemRequiredMemberRoleNames property. Must accurately document: (1) the property type (IReadOnlyCollection<string>), (2) auto-population by ContentItemRolesResultProcessor, (3) lazy loading behavior \u2014 role data only fetched when at least one result has ContentItemIsSecured=true. AREA-006 (Content Query System) has significance=high. Reference pages demand zero tolerance for API inaccuracies."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "4 focused scope items: property documentation, processor documentation, lazy loading note, code example. Well-bounded by the single property being added."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "3 invariants. Modifying an existing reference page that already has established formatting conventions. Low risk."
+        },
+        "dependency": {
+          "score": 2,
+          "rationale": "Depends on TASK-002 only (for ContentAccessSettings cross-reference). Chain depth = 1. Low blocking risk."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Medium complexity but focused scope. The lazy loading behavior documentation is the main effort driver \u2014 otherwise this is straightforward reference page addition."
+        }
+      },
+      "mitigations": [
+        "Verify the ContentItemRequiredMemberRoleNames property type against IContentQueryDataContainer interface definition in AREA-006",
+        "The lazy loading trigger condition (ContentItemIsSecured=true on at least one result) must be verified against ContentItemRolesResultProcessor implementation, not just the docFact summary"
+      ],
+      "reviewFocus": [
+        "Property type precision: IReadOnlyCollection<string>, not List<string> or string[]",
+        "Lazy loading trigger: accurately states 'when at least one result has ContentItemIsSecured=true'",
+        "Code example demonstrates accessing the property from query results correctly"
+      ]
+    },
+    {
+      "taskId": "TASK-010",
+      "taskTitle": "Update content item query API page",
+      "overallRisk": "low",
+      "overallScore": 2.0,
+      "dimensions": {
+        "accuracy": {
+          "score": 3,
+          "rationale": "Must accurately describe the interaction between IncludeSecuredItems flag and ContentItemRequiredMemberRoleNames availability. Simpler than TASK-009 since this is a how-to page cross-referencing the reference page for details."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "3 scope items: add section, mention property availability, cross-reference. Small and well-bounded."
+        },
+        "invariantViolation": {
+          "score": 1,
+          "rationale": "2 invariants. Small addition to an existing page. Minimal structural risk."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-010\u2192009\u2192002). Must wait for TASK-009 to complete so the cross-reference target exists and terminology is consistent."
+        },
+        "effortEstimation": {
+          "score": 1,
+          "rationale": "Small complexity. A brief section addition plus a cross-reference. Under 30 minutes of work."
+        }
+      },
+      "mitigations": [
+        "Ensure the IncludeSecuredItems condition matches what TASK-009 documents \u2014 do not introduce inconsistent descriptions of when role names are populated",
+        "Cross-reference should point to the specific section in the reference page, not just the page itself"
+      ],
+      "reviewFocus": [
+        "IncludeSecuredItems condition consistency with TASK-009",
+        "Cross-reference link accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-011",
+      "taskTitle": "Update Members page (business users)",
+      "overallRisk": "moderate",
+      "overallScore": 2.8,
+      "dimensions": {
+        "accuracy": {
+          "score": 2,
+          "rationale": "Business-user page with less API precision required. However, must accurately describe UI workflows for creating roles, viewing roles, and assigning members to roles. The admin UI behavior (AREA-012) has significance=low, meaning the code analysis provides limited behavioral insight."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "5 scope items including a new major section on member roles. Must comprehensively cover create/view/assign workflows with enough detail for business users. Cross-references to Secure pages and Secure content items must be included. Missing any workflow step leaves business users unable to complete the task."
+        },
+        "invariantViolation": {
+          "score": 3,
+          "rationale": "5 invariants. Business persona requires specific tone and depth (INV-persona-*). Must use business-friendly language, avoid technical jargon, and follow admin UI documentation conventions (REC-010, REC-011). Adding a large new section increases the chance of tone drift."
+        },
+        "dependency": {
+          "score": 2,
+          "rationale": "Depends on TASK-001 only, for establishing the member roles concept that this page cross-references. Chain depth = 1."
+        },
+        "effortEstimation": {
+          "score": 4,
+          "rationale": "SCREENSHOTS REQUIRED for the role management interface in the Members application. Screenshot creation is unpredictable \u2014 requires access to a running Xperience instance with the feature enabled, correct demo data, and consistent UI state. Large complexity classification further increases estimation uncertainty."
+        }
+      },
+      "mitigations": [
+        "Screenshot requirements should be identified and catalogued before writing begins \u2014 list every screenshot needed with exact admin UI state",
+        "Writer must follow REC-010 (admin UI procedure conventions: tell location before action, max 8 steps per procedure) and REC-011 (arrow notation for navigation paths)",
+        "Use REC-013 terminology consistently: 'member' not 'user', 'sign in' not 'log in'",
+        "If screenshots are not available, write content with placeholder markers and flag for screenshot pass \u2014 do not block content writing on screenshot availability"
+      ],
+      "reviewFocus": [
+        "Business-user tone: no developer jargon, no API references, no code samples",
+        "Procedure steps follow REC-010 maximum 8-step convention",
+        "Navigation paths use REC-011 arrow notation",
+        "Screenshot placeholders are clearly marked if actual screenshots are unavailable"
+      ]
+    },
+    {
+      "taskId": "TASK-012",
+      "taskTitle": "Update Secure pages page (business users)",
+      "overallRisk": "high",
+      "overallScore": 3.0,
+      "dimensions": {
+        "accuracy": {
+          "score": 2,
+          "rationale": "Business-user page. UI descriptions are straightforward. The three-tier model must be explained in business terms (public/signed-in only/specific member roles) without technical accuracy demands beyond correct feature descriptions."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "Consolidated from 2 impacts (IMP-007 + IMP-020). 3 add + 3 modify sections. Must cover: updated Security tab UI, role selection, three-tier model in business terms, and cross-reference to Members application. The IMP-020 overlap note means some consolidation work is needed during writing."
+        },
+        "invariantViolation": {
+          "score": 3,
+          "rationale": "5 invariants. Business persona tone requirements. Must update step-by-step procedures to include new role-based options without disrupting the existing procedure flow. Adding role selection to an existing step sequence risks violating the INV-structure step conventions."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-012\u2192011\u2192001). Depends on TASK-011 which itself needs the Members page role section to be established before this page can cross-reference it. If TASK-011 is delayed by screenshot issues, this cascades."
+        },
+        "effortEstimation": {
+          "score": 4,
+          "rationale": "SCREENSHOTS REQUIRED for the new Security tab UI with role selection. Must capture the updated UI state showing role-based options. Combined with procedure step updates and consolidated impact scope, effort is hard to predict. Medium complexity classification may underestimate the work."
+        }
+      },
+      "mitigations": [
+        "Writer should consolidate IMP-007 and IMP-020 scope items into a single coherent edit plan before starting \u2014 the overlapping scope could cause duplicate or contradictory edits if applied separately",
+        "Screenshot of the Security tab with role selection should be captured in the same session as TASK-011 screenshots to ensure UI consistency",
+        "Three-tier model explanation in business terms should use the same phrasing across TASK-011, TASK-012, and TASK-013 for consistency"
+      ],
+      "reviewFocus": [
+        "Verify IMP-007 and IMP-020 are fully consolidated with no gaps or contradictions",
+        "Procedure step count after update \u2014 must stay under 8 per REC-010",
+        "Three-tier model phrasing matches TASK-011 and TASK-013",
+        "Screenshots show the correct updated Security tab UI"
+      ]
+    },
+    {
+      "taskId": "TASK-013",
+      "taskTitle": "Update Content items page (business users)",
+      "overallRisk": "moderate",
+      "overallScore": 2.8,
+      "dimensions": {
+        "accuracy": {
+          "score": 2,
+          "rationale": "Business-user page with straightforward feature descriptions. Must accurately update the 'Secure content items' section to describe role-based options, but this is UI-level documentation without deep technical complexity."
+        },
+        "completeness": {
+          "score": 3,
+          "rationale": "5 scope items. Must update existing description ('Secured content items require that the consumer is signed in') to also cover role-restricted scenarios, update screenshots, and add cross-reference. Risk of incompletely updating the existing prose while adding new role content."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "4 invariants. Existing page with established structure. Lower risk than TASK-011 or TASK-012."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-013\u2192011\u2192001). Same cascade risk as TASK-012 if TASK-011 is delayed."
+        },
+        "effortEstimation": {
+          "score": 4,
+          "rationale": "SCREENSHOTS REQUIRED for the expanded Security settings UI. Same unpredictability as TASK-011 and TASK-012. Medium complexity but screenshot requirements add estimation uncertainty."
+        }
+      },
+      "mitigations": [
+        "Capture screenshots in the same session as TASK-011 and TASK-012 for UI consistency",
+        "The existing description update ('Secured content items require that the consumer is signed in') must be rephrased to include role-restricted scenarios without losing the simpler authenticated-only case",
+        "Cross-reference to member roles management page must be consistent with TASK-011 and TASK-012 cross-references"
+      ],
+      "reviewFocus": [
+        "Updated description covers both authenticated-only AND role-restricted scenarios",
+        "Screenshots match the actual Security settings UI for content items (not web pages \u2014 different UI)",
+        "Cross-references consistent with TASK-011 and TASK-012"
+      ]
+    },
+    {
+      "taskId": "TASK-014",
+      "taskTitle": "Update Reference \u2014 Global system events page",
+      "overallRisk": "moderate",
+      "overallScore": 2.4,
+      "dimensions": {
+        "accuracy": {
+          "score": 4,
+          "rationale": "Must precisely document null validation changes on AccessSettings in event argument state objects. ContentItemEvents.UpdateMetadata and WebPageEvents.UpdateSecuritySettings both have specific behavioral changes. The three-tier ContentAccessSettings model must be described in the context of event handlers. AREA-003 and AREA-004 both have breaking changes related to null validation hardening."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "4 scope items across 2 event sections. Well-bounded by the event types affected. Reference page format provides clear structure."
+        },
+        "invariantViolation": {
+          "score": 2,
+          "rationale": "2 invariants. Modifying an existing reference page. Low structural risk."
+        },
+        "dependency": {
+          "score": 2,
+          "rationale": "Depends on TASK-002 only (for ContentAccessSettings reference cross-reference). Chain depth = 1."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Medium complexity but focused on specific event sections. The cross-cutting null validation concern (documented in code analysis) provides clear guidance for what needs documenting."
+        }
+      },
+      "mitigations": [
+        "Verify the exact events and properties affected by null validation hardening against AREA-003 (ContentItemEvents) and AREA-004 (WebPageEvents) breaking change lists",
+        "The ContentAccessSettings.Public() replacement guidance must be consistent with TASK-002's documentation of the Public() factory method",
+        "Document the ArgumentNullException behavior explicitly \u2014 developers passing null will get runtime exceptions, not silent failures"
+      ],
+      "reviewFocus": [
+        "Null validation: verify which specific event data state properties now throw on null",
+        "ContentAccessSettings.Public() guidance consistency with TASK-002",
+        "Three-tier model description in event context is accurate and concise"
+      ]
+    },
+    {
+      "taskId": "TASK-015",
+      "taskTitle": "Update Handle global events page",
+      "overallRisk": "low",
+      "overallScore": 2.0,
+      "dimensions": {
+        "accuracy": {
+          "score": 3,
+          "rationale": "Must correctly update event handler examples to use ContentAccessSettings.Public() instead of null. The null\u2192Public() replacement is straightforward but must be verified against the actual event handler patterns on the page. Medium impact priority (IMP-017)."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "3 scope items. Conditional scope ('if any examples modify AccessSettings') means the writer must first audit existing examples before determining what to change. Small addition + cross-reference."
+        },
+        "invariantViolation": {
+          "score": 1,
+          "rationale": "2 invariants. Small changes to an existing page. Minimal structural risk."
+        },
+        "dependency": {
+          "score": 3,
+          "rationale": "Chain depth = 2 (TASK-015\u2192014\u2192002). Must wait for TASK-014 to update the reference page before this how-to page can correctly cross-reference the null validation changes."
+        },
+        "effortEstimation": {
+          "score": 1,
+          "rationale": "Small complexity. Brief additions and a cross-reference. The conditional scope creates minimal estimation variance \u2014 either examples exist to update (small work) or they don't (even less work)."
+        }
+      },
+      "mitigations": [
+        "Writer should audit the existing page for any AccessSettings assignments in event handler examples before writing \u2014 if none exist, the scope reduces to just adding a note and cross-reference",
+        "Cross-reference to TASK-014's reference page section on null validation"
+      ],
+      "reviewFocus": [
+        "Verify all AccessSettings=null patterns are replaced with ContentAccessSettings.Public()",
+        "Cross-reference to events reference page is correctly targeted"
+      ]
+    },
+    {
+      "taskId": "TASK-016",
+      "taskTitle": "Update Reference \u2014 CI/CD object types page",
+      "overallRisk": "low",
+      "overallScore": 2.0,
+      "dimensions": {
+        "accuracy": {
+          "score": 3,
+          "rationale": "Conditional scope: must first verify whether MemberRoleInfo, MemberRoleMemberInfo, and ContentItemMemberRoleInfo are CI/CD-supported by examining source code. AREA-015 (CI Processing) has significance=none, suggesting limited changes, but the writer must still verify the object type registrations. If incorrectly listed as CI/CD-supported when they're not (or vice versa), developers will get CI/CD errors."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "1 section to modify. Very focused scope. The conditional nature means scope may be zero if the types aren't CI/CD-supported."
+        },
+        "invariantViolation": {
+          "score": 1,
+          "rationale": "2 invariants. Reference page addition following an existing table/list format. Minimal risk of violating conventions."
+        },
+        "dependency": {
+          "score": 1,
+          "rationale": "No upstream dependencies. Can start immediately and independently."
+        },
+        "effortEstimation": {
+          "score": 3,
+          "rationale": "The investigation step (checking whether types are CI/CD-supported) creates estimation uncertainty. If they are supported, the actual documentation is small. If not, the task may produce no changes. Either way, the investigation itself requires code reading time."
+        }
+      },
+      "mitigations": [
+        "Writer must check CDRepository configuration files or ObjectTypeManager registrations for MemberRoleInfo, MemberRoleMemberInfo, and ContentItemMemberRoleInfo before adding to the reference page \u2014 do not assume CI/CD support based on the object type existing",
+        "If types are not CI/CD-supported, document this finding in the task completion notes for future reference"
+      ],
+      "reviewFocus": [
+        "If object types are added, verify they are actually registered for CI/CD processing in the source code",
+        "Correct categorization: General object types vs Binding object types"
+      ]
+    },
+    {
+      "taskId": "TASK-017",
+      "taskTitle": "Update Content sync configuration page",
+      "overallRisk": "low",
+      "overallScore": 1.6,
+      "dimensions": {
+        "accuracy": {
+          "score": 2,
+          "rationale": "Straightforward documentation of content sync behavior for member role bindings. AREA-014 (Content Synchronization) has significance=none, suggesting minimal behavioral complexity. The main accuracy requirement is correctly stating that role assignments are included in sync payloads."
+        },
+        "completeness": {
+          "score": 2,
+          "rationale": "3 scope items: document sync behavior, add compatibility note, mention role settings in payloads. Well-bounded and focused."
+        },
+        "invariantViolation": {
+          "score": 1,
+          "rationale": "2 invariants. Small additions to an existing page. Minimal structural risk."
+        },
+        "dependency": {
+          "score": 1,
+          "rationale": "No upstream dependencies. Independent task."
+        },
+        "effortEstimation": {
+          "score": 2,
+          "rationale": "Small complexity. The compatibility requirements note requires some understanding of content sync internals, but the overall scope is small."
+        }
+      },
+      "mitigations": [
+        "Verify that content sync actually includes member role assignment data by checking AREA-014 or content sync processor registrations \u2014 do not document sync behavior based on assumption",
+        "The compatibility note should specify what happens when the target instance doesn't have a matching MemberRole"
+      ],
+      "reviewFocus": [
+        "Content sync behavior accurately described \u2014 role assignments are actually synchronized",
+        "Compatibility requirements are specific enough to be actionable"
+      ]
+    }
+  ]
+}

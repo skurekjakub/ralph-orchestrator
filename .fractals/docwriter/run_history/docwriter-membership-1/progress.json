@@ -1,0 +1,125 @@
+{
+  "version": 2,
+  "lastUpdated": "2026-03-14T16:27:07.060681+00:00",
+  "currentPass": 7,
+  "passStatus": {
+    "pass0_knowledgeCuration": "done",
+    "pass1_discovery": "done",
+    "pass2_analysis": "done",
+    "pass3_planning": "done",
+    "pass4_execution": "done",
+    "pass5_verification": "done",
+    "pass6_gapHunting": "done",
+    "pass65_knowledgeSynthesis": "done",
+    "pass7_delivery": "done"
+  },
+  "counts": {
+    "changesDiscovered": 32,
+    "docPagesIndexed": 1800,
+    "invariantsExtracted": 213,
+    "impactsMapped": 22,
+    "tasksPlanned": 17,
+    "tasksWritten": 17,
+    "tasksVerified": 17,
+    "tasksBlocked": 0,
+    "knowledgePatternsCurated": 28,
+    "researchRecommendationsApproved": 18,
+    "knowledgeEntriesNew": 28,
+    "skillFilesRegenerated": 6,
+    "totalReviewCycles": 33,
+    "averageAttemptsPerTask": 1.9
+  },
+  "gapHunting": {
+    "cyclesCompleted": 1,
+    "newItemsPerCycle": [
+      5
+    ],
+    "converged": true
+  },
+  "passDetails": {
+    "pass4_execution": {
+      "completedAt": "2026-03-14T15:17:23.759198+00:00",
+      "tasksCompleted": 17,
+      "tasksBlocked": 0,
+      "totalReviewCycles": 33,
+      "averageAttemptsPerTask": 1.9,
+      "level0": {
+        "tasks": [
+          "TASK-001",
+          "TASK-002",
+          "TASK-016",
+          "TASK-017"
+        ],
+        "allAccepted": true,
+        "maxAttempts": 3
+      },
+      "level1": {
+        "tasks": [
+          "TASK-003",
+          "TASK-007",
+          "TASK-008",
+          "TASK-009",
+          "TASK-011",
+          "TASK-014"
+        ],
+        "allAccepted": true,
+        "maxAttempts": 3
+      },
+      "level2": {
+        "tasks": [
+          "TASK-004",
+          "TASK-005",
+          "TASK-006",
+          "TASK-010",
+          "TASK-012",
+          "TASK-013",
+          "TASK-015"
+        ],
+        "allAccepted": true,
+        "maxAttempts": 2
+      }
+    },
+    "pass5_verification": {
+      "completedAt": "2026-03-14T15:45:08.626025+00:00",
+      "tasksVerified": 17,
+      "crossRefsChecked": 477,
+      "crossRefsFixed": 0,
+      "crossRefsAdded": 3,
+      "brokenLinks": 0,
+      "anchorRefsChecked": 112,
+      "inpageLinksChecked": 99
+    },
+    "pass6_gapHunting": {
+      "completedAt": "2026-03-14T15:45:08.626025+00:00",
+      "cycleNumber": 1,
+      "totalGapsFound": 5,
+      "criticalGaps": 0,
+      "highGaps": 0,
+      "mediumGaps": 2,
+      "lowGaps": 3,
+      "converged": true,
+      "convergenceReason": "No critical or high gaps found. 2 medium gaps affect out-of-scope pages. Pipeline can proceed to delivery."
+    },
+    "pass65_knowledgeSynthesis": {
+      "completedAt": "2026-03-14T16:06:35+00:00",
+      "entriesCreated": 29,
+      "entriesDiscarded": 2,
+      "patterns": 7,
+      "antiPatterns": 5,
+      "domainInsights": 11,
+      "styleEvolutions": 6,
+      "retrospectiveWritten": true,
+      "researchSourcesUpdated": true
+    },
+    "pass7_delivery": {
+      "completedAt": "2026-03-14T16:27:07.060681+00:00",
+      "frontMatterValid": true,
+      "filesValidated": 17,
+      "changelogWritten": true,
+      "prReady": true,
+      "branch": "docs/membership",
+      "commitSha": "b6406f4227b6d706b20215296c02ece94e6005db",
+      "filesInCommit": 17
+    }
+  }
+}

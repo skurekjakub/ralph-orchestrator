@@ -1,0 +1,124 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-005",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-persona",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. Unchanged from attempt 1. The page lives under `developers-and-admins/development/` and is entirely about ASP.NET Identity configuration with C# code samples. Developer-only targeting is correct."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Attempt 2 changed only line 53: `.AddRoleStore<ApplicationRoleStore>()` → `.AddRoleStore<ApplicationRoleStore<ApplicationRole>>()`. The addition of the `<ApplicationRole>` generic type parameter is entirely within a C# code block. This is a compile-correctness fix that makes the code sample MORE appropriate for the developer audience (developers expect compile-ready code). No prose was altered. Tone remains consistently technical: exact API names, NuGet package references, `Program.cs` configuration, OAuth/OIDC terminology."
+    },
+    {
+      "check": "depth-developer",
+      "result": "pass",
+      "evidence": "Depth unchanged from attempt 1. The code sample on lines 46–65 shows a complete, compile-ready ASP.NET Identity configuration block. Not too shallow (shows full configuration chain) and not too deep (no internal implementation details). The generic type parameter fix improves depth accuracy — developers can copy-paste without compilation errors."
+    },
+    {
+      "check": "no-admin-persona-needed",
+      "result": "pass",
+      "evidence": "No change from attempt 1. Page is exclusively code-level integration (Program.cs services, controllers, claims mapping). No admin UI steps or operational procedures. Admin-facing counterpart exists at `administration-external-authentication.md` (identifier oAL9Cg). Single-persona `developer` targeting remains correct."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "Unchanged from attempt 1. Page follows a goal-oriented structure: 'To configure social provider authentication for your application:' followed by numbered steps (1–4), code samples, then further implementation procedures. Correctly classified as howto."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Valid persona value per INV-frontmatter-006. Unchanged."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "uIouCw",
+      "evidence": "Present and unique. Unchanged."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "License tier 1 (standard) per INV-frontmatter-005. Unchanged."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/uIouCw",
+      "evidence": "Includes x/<identifier> per INV-frontmatter-004. Unchanged."
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": ["tYouCw", "uoouCw", "oAL9Cg"],
+      "evidence": "Links to Registration and authentication parent, Add fields to member objects, and Administration external authentication. Unchanged."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in `development/registration-and-authentication/` target the `developer` persona exclusively: registration-and-authentication.md, forms-authentication.md, add-fields-to-member-objects.md, external-authentication.md. Consistent."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer terminology used appropriately throughout (NuGet, extension methods, OAuth/OIDC, claims, Program.cs). The generic type parameter fix on line 53 is idiomatic C# — no persona impact."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-appropriate. Uses 'access token', 'authentication cookie', 'ClaimTypes', 'ID token', 'authentication scopes'. No cross-domain terminology misuse. Line 53 change adds `<ApplicationRole>` — a C# generic constraint, purely developer vocabulary."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona value `developer` is in the valid set."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code sample (lines 46–65) is appropriately scoped for a howto — complete Identity configuration in one logical block. The generic type parameter fix makes the code compile-ready, improving its value for the developer audience."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user persona rule — page targets developer only."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user team assumption — page targets developer only."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "evidence": "Guides tone rule — page is documentation (howto), not a guide."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business user guide materials — page targets developer only."
+    }
+  ],
+  "issues": [],
+  "summary": {
+    "personaChecksPassed": 4,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 4,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "changeImpactOnPersona": "none — attempt 2 is a single-line code fix (adding <ApplicationRole> generic type parameter on line 53). The change is entirely within a C# code block, does not alter any prose, and has zero persona implications. If anything, compile-correct code is more developer-appropriate."
+  }
+}

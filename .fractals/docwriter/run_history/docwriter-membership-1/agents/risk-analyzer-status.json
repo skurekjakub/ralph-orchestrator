@@ -1,0 +1,8 @@
+{
+  "agent": "docwriter-risk-analyzer",
+  "status": "done",
+  "result": "risk-register-ready",
+  "totalTasksAssessed": 17,
+  "highRiskTasks": 4,
+  "timestamp": "2026-03-14T13:07:12Z"
+}

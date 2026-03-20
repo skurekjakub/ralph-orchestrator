@@ -1,0 +1,15 @@
+{
+  "agent": "docwriter-changelog-writer",
+  "status": "done",
+  "result": "changelog-written",
+  "tasksDocumented": 17,
+  "outputFile": ".docwriter/changelog-entry.md",
+  "completedAt": "2026-03-14T16:25:00+00:00",
+  "details": {
+    "newPages": 2,
+    "updatedPages": 15,
+    "crossRefsNoted": 3,
+    "gapsDocumented": 5,
+    "sectionsWritten": ["summary", "new-documentation", "updated-documentation", "cross-reference-updates", "known-follow-up-items", "pipeline-metrics"]
+  }
+}

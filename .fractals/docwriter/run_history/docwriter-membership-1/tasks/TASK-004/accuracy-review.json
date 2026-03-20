@@ -1,0 +1,200 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-004",
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "AddIdentity<ApplicationUser, ApplicationRole> (Password policy code sample)",
+      "location": "Section: Password policy, code block (line 122)",
+      "result": "verified",
+      "evidence": "ApplicationRole is defined at CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationRole.cs line 12: 'public class ApplicationRole : IdentityRole<int>'. NoOpApplicationRole is marked [Obsolete] at NoOpApplicationRole.cs line 18 with message pointing to ApplicationRole as replacement. AddIdentity<TUser, TRole> is the standard ASP.NET Core Identity registration pattern.",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "AddIdentity<ApplicationUser, ApplicationRole> (Password reset code sample)",
+      "location": "Section: Password reset, code block (line 141)",
+      "result": "verified",
+      "evidence": "Same as above — ApplicationRole extends IdentityRole<int> in Kentico.Membership namespace. Consistent with parent page registration-and-authentication.md (line 140) and member-roles.md (line 219).",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "AddUserStore<ApplicationUserStore<ApplicationUser>>()",
+      "location": "Section: Password reset, code block (line 145)",
+      "result": "verified",
+      "evidence": "ApplicationUserStore<TUser> defined at CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationUserStore.cs lines 19-24: 'public class ApplicationUserStore<TUser> : IUserPasswordStore<TUser>, IUserEmailStore<TUser>, IUserLoginStore<TUser>, IUserSecurityStampStore<TUser>, IUserRoleStore<TUser> where TUser : ApplicationUser, new()'. Generic parameter TUser=ApplicationUser satisfies the constraint.",
+      "docFact": null
+    },
+    {
+      "claim": "AddRoleStore<ApplicationRoleStore<ApplicationRole>>()",
+      "location": "Section: Password reset, code block (line 146)",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore<TRole> defined at CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationRoleStore.cs lines 16-17: 'public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new()'. Generic parameter TRole=ApplicationRole satisfies the constraint. This pattern matches member-roles.md (line 224) and add-fields-to-member-objects.md (line 68). The [Obsolete] attribute on NoOpApplicationRoleStore (line 20) explicitly recommends 'ApplicationRoleStore<ApplicationRole>' as the replacement.",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "AddUserManager<UserManager<ApplicationUser>>()",
+      "location": "Section: Password reset, code block (line 147)",
+      "result": "verified",
+      "evidence": "UserManager<TUser> is the standard ASP.NET Core Identity manager. This exact pattern matches member-roles.md (line 225). ApplicationUser extends IdentityUser<int> (ApplicationUser.cs line 12), making it a valid TUser type.",
+      "docFact": null
+    },
+    {
+      "claim": "AddSignInManager<SignInManager<ApplicationUser>>()",
+      "location": "Section: Password reset, code block (line 148)",
+      "result": "verified",
+      "evidence": "SignInManager<TUser> is the standard ASP.NET Core Identity sign-in manager. This exact pattern matches member-roles.md (line 226). ApplicationUser is a valid TUser type.",
+      "docFact": null
+    },
+    {
+      "claim": "AddDefaultTokenProviders() for password reset token generation",
+      "location": "Section: Password reset, code block (line 149) and prose (line 137)",
+      "result": "verified",
+      "evidence": "AddDefaultTokenProviders() is a standard ASP.NET Core Identity extension method that registers default token providers including the password reset token provider. The prose correctly states it ensures 'the default Identity implementation of password reset generators'.",
+      "docFact": null
+    },
+    {
+      "claim": "AddIdentity<ApplicationUser, ApplicationRole> (Email confirmation code sample)",
+      "location": "Section: Email confirmation, code block (line 199)",
+      "result": "verified",
+      "evidence": "Same verification as Password policy/reset — ApplicationRole is the correct replacement for NoOpApplicationRole.",
+      "docFact": "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "options.SignIn.RequireConfirmedEmail = true enables email confirmation",
+      "location": "Section: Email confirmation, code block (line 202)",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Core Identity option. IdentityOptions.SignIn.RequireConfirmedEmail is the documented Microsoft property for requiring confirmed email before sign-in.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole is the role type and ApplicationRoleStore is the role store for member role management",
+      "location": "Section: Prerequisites, info callout (lines 29-31)",
+      "result": "verified",
+      "evidence": "ApplicationRole maps to MemberRoleInfo (ApplicationRole.cs lines 39-45, 53-63 — MapFromMemberRoleInfo/MapToMemberRoleInfo methods). ApplicationRoleStore persists roles through IInfoProvider<MemberRoleInfo> (ApplicationRoleStore.cs line 19). NoOpApplicationRole [Obsolete] message (line 18): 'For real implementation use ApplicationRole instead.' NoOpApplicationRoleStore [Obsolete] message (line 20): 'For real implementation use ApplicationRoleStore<ApplicationRole> instead.' AREA-002 docFact confirms: 'ApplicationRole is a real role class for member role management, not a no-op stub.'",
+      "docFact": "AREA-002: ApplicationRole is a real role class for member role management, not a no-op stub."
+    },
+    {
+      "claim": "member_roles_xp page link is valid (cross-reference)",
+      "location": "Section: Prerequisites, info callout (line 31) and front matter (line 14)",
+      "result": "verified",
+      "evidence": "member-roles.md has front matter 'identifier: member_roles_xp' at line 4. The page_link tag resolves correctly.",
+      "docFact": null
+    },
+    {
+      "claim": "Xperience by Kentico uses ASP.NET Identity to manage membership in web applications",
+      "location": "Introduction paragraph (line 21)",
+      "result": "verified",
+      "evidence": "All membership types (ApplicationUser, ApplicationRole, ApplicationUserStore, ApplicationRoleStore) are in the Kentico.Membership namespace and extend/implement ASP.NET Core Identity interfaces (IdentityUser<int>, IdentityRole<int>, IRoleStore<TRole>, IUserPasswordStore<TUser>, etc.).",
+      "docFact": null
+    },
+    {
+      "claim": "Types and API in the Kentico.Membership namespace",
+      "location": "Introduction paragraph (line 21)",
+      "result": "verified",
+      "evidence": "All verified source files use 'namespace Kentico.Membership' — ApplicationRole.cs line 7, ApplicationRoleStore.cs line 11, ApplicationUserStore.cs line 14, ApplicationUser.cs line 7.",
+      "docFact": null
+    },
+    {
+      "claim": "ASP.NET Identity default password policy: at least six characters, one non-alphanumeric, one digit, one lowercase and one uppercase character",
+      "location": "Section: Password policy, prose (lines 107-114)",
+      "result": "unverifiable",
+      "evidence": "This describes ASP.NET Core Identity default PasswordOptions, which is an external Microsoft library. Cannot be verified from Xperience source code, but these are well-documented Microsoft defaults.",
+      "docFact": null
+    },
+    {
+      "claim": "Password policy code sample options: RequireDigit, RequireNonAlphanumeric, RequiredLength, RequireUppercase, RequireLowercase",
+      "location": "Section: Password policy, code block and list (lines 111-129)",
+      "result": "unverifiable",
+      "evidence": "These are standard ASP.NET Core Identity PasswordOptions properties from Microsoft.AspNetCore.Identity. Cannot be verified from Xperience source, but these are documented Microsoft APIs.",
+      "docFact": null
+    },
+    {
+      "claim": "Registered users are stored as members in the CMS_Member database table",
+      "location": "Section: Registration, prose (line 53)",
+      "result": "unverifiable",
+      "evidence": "Database table name is not directly visible in the source code diff. This is existing documentation content that was not modified by TASK-004.",
+      "docFact": null
+    },
+    {
+      "claim": "Password reset link has single-use with 1-day expiration by default",
+      "location": "Section: Password reset, prose (line 180)",
+      "result": "unverifiable",
+      "evidence": "This is an ASP.NET Core Identity default behavior for DataProtectorTokenProvider. Cannot be verified from Xperience source. This is existing documentation content not modified by TASK-004.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Password policy, code block (lines 120-131)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => { ... }) — correct type parameters, valid C# syntax, valid PasswordOptions properties. Matches parent page pattern (registration-and-authentication.md line 140)."
+    },
+    {
+      "location": "Section: Password reset, code block (lines 139-151)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Full Identity registration chain with AddIdentity<ApplicationUser, ApplicationRole>, AddUserStore<ApplicationUserStore<ApplicationUser>>, AddRoleStore<ApplicationRoleStore<ApplicationRole>>, AddUserManager<UserManager<ApplicationUser>>, AddSignInManager<SignInManager<ApplicationUser>>, AddDefaultTokenProviders. All type names, generic parameters, and method chains verified against source. Pattern matches member-roles.md (lines 219-226) with the addition of AddDefaultTokenProviders() for token support."
+    },
+    {
+      "location": "Section: Email confirmation, code block (lines 197-206)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options => { options.SignIn.RequireConfirmedEmail = true; }).AddDefaultTokenProviders() — correct type parameters, valid IdentityOptions property, valid C# syntax."
+    }
+  ],
+  "crossReferenceChecks": [
+    {
+      "check": "Consistency with parent page (registration-and-authentication.md)",
+      "result": "consistent",
+      "details": "Parent page uses AddIdentity<ApplicationUser, ApplicationRole> at line 140. Forms-authentication.md uses the same pattern at lines 122, 141, 199."
+    },
+    {
+      "check": "Consistency with member-roles.md",
+      "result": "consistent",
+      "details": "member-roles.md uses AddRoleStore<ApplicationRoleStore<ApplicationRole>> at line 224. forms-authentication.md uses the same pattern at line 146."
+    },
+    {
+      "check": "Consistency with add-fields-to-member-objects.md",
+      "result": "consistent",
+      "details": "add-fields-to-member-objects.md uses AddRoleStore<ApplicationRoleStore<ApplicationRole>> at line 68. forms-authentication.md uses the same pattern."
+    },
+    {
+      "check": "No remaining NoOp references",
+      "result": "confirmed",
+      "details": "grep for 'NoOp' in forms-authentication.md returns zero matches."
+    },
+    {
+      "check": "member_roles_xp cross-reference validity",
+      "result": "valid",
+      "details": "member-roles.md front matter identifier: member_roles_xp (line 4). Page exists and is accessible."
+    }
+  ],
+  "researchRecommendationVerification": [
+    {
+      "recommendation": "REC-013",
+      "cited": true,
+      "followedCorrectly": true,
+      "notes": "Documentation uses 'member role' terminology (line 31), 'visitor' for anonymous users (lines 37, 53, 74), 'sign in'/'sign-in' forms (section headers and prose). No instances of 'log in' found."
+    },
+    {
+      "recommendation": "REC-016",
+      "cited": true,
+      "followedCorrectly": true,
+      "notes": "Info callout focuses on what the developer must configure ('must register', 'See the code samples'), not abstract architecture. This is scope-limited since TASK-004 only added the info callout and code sample updates, not rewriting the whole page."
+    }
+  ],
+  "issues": [],
+  "summary": {
+    "totalClaims": 17,
+    "verified": 13,
+    "incorrect": 0,
+    "unverifiable": 4,
+    "unsupported": 0,
+    "codeExamplesChecked": 3,
+    "codeExamplesCorrect": 3,
+    "crossReferencesChecked": 5,
+    "crossReferencesValid": 5,
+    "narrativeSummary": "All technical claims in the TASK-004 documentation updates are verified against source code. The four core changes — (1) AddIdentity<ApplicationUser, ApplicationRole> in three code samples, (2) AddRoleStore<ApplicationRoleStore<ApplicationRole>> in the password reset sample, (3) the new Prerequisites info callout about member role services, and (4) the member_roles_xp cross-reference — are all technically accurate. ApplicationRole is confirmed as a real role class extending IdentityRole<int> and mapping to MemberRoleInfo (not a no-op stub). ApplicationRoleStore<TRole> is a real IRoleStore<TRole> implementation with the correct generic constraint. The NoOp* classes are confirmed [Obsolete] with messages pointing to these exact replacements. All code examples use correct type names, generic parameters, and method signatures consistent with both the source code and sibling documentation pages. The 4 unverifiable claims are about ASP.NET Core Identity defaults and database table names — these are pre-existing content not modified by TASK-004."
+  }
+}

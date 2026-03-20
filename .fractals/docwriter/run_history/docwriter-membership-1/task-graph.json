@@ -1,0 +1,1651 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-task-planner",
+  "generatedAt": "2026-03-14T12:56:21Z",
+  "totalTasks": 17,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "name": "Create new page: Member roles developer guide",
+      "description": "Create a new developer-facing page documenting the member roles system \u2014 the three-tier content access model (Public/Secured/SecuredWithRoles), ContentAccessSettings API, HasAccess() extension method, ContentItemRequiredMemberRoleNames, programmatic role management via IContentItemMemberRoleManager and IContentItemMemberRoleRetriever, and integration with ASP.NET Identity (ApplicationRole, ApplicationRoleStore).",
+      "order": 1,
+      "action": "create",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/member-roles.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [],
+        "add": [
+          "Front matter (title, identifier, order, persona)",
+          "Introduction \u2014 three-tier content access model overview",
+          "Content access settings \u2014 Public(), Secured(), SecuredWithRoles()",
+          "Check content access \u2014 HasAccess() extension method",
+          "Query role requirements \u2014 ContentItemRequiredMemberRoleNames",
+          "Manage roles programmatically \u2014 IContentItemMemberRoleManager, IContentItemMemberRoleRetriever",
+          "ASP.NET Identity integration \u2014 ApplicationRole, ApplicationRoleStore",
+          "Next steps"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-002",
+          "fact": "ContentAccessSettings changed from struct to sealed class. Has static factory methods: Public(), Secured(), SecuredWithRoles(IEnumerable<string> roleCodeNames). Now has == and != operators."
+        },
+        {
+          "source": "AREA-006",
+          "fact": "IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> \u2014 new property. ContentItemRolesResultProcessor post-processes query results. Lazy loading: role data only fetched when at least one item has ContentItemIsSecured=true."
+        },
+        {
+          "source": "AREA-009",
+          "fact": "ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) \u2014 public extension method for three-tier access check. Returns are Allowed (200), NotAuthenticated (401), Forbidden (403)."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-013"
+      ],
+      "dependsOn": [],
+      "invariants": [
+        {
+          "id": "INV-structure-001",
+          "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Documentation page structure: Required elements."
+        },
+        {
+          "id": "INV-structure-002",
+          "rule": "Write an introduction at the beginning of each article providing context, real-world scenarios, and explaining value to the user.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Introduction section."
+        },
+        {
+          "id": "INV-structure-003",
+          "rule": "Introduction must answer: What is the primary use case? Why does it benefit me? When should I use it?",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Introduction: Requirements."
+        },
+        {
+          "id": "INV-structure-010",
+          "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide.md",
+          "context": "Next steps section."
+        },
+        {
+          "id": "INV-structure-021",
+          "rule": "Each guide must have a clear type label: Concept, Tutorial, or How-to (following Diataxis framework).",
+          "category": "structure",
+          "severity": "must",
+          "source": "guides-style-guide.md",
+          "context": "Guide Types."
+        },
+        {
+          "id": "INV-frontmatter-001",
+          "rule": "Every page must have YAML front matter between --- lines with required fields: title, identifier, order, redirect_from, persona, license (for _documentation and _guides collections).",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "markdown-syntax.md",
+          "context": "Front Matter."
+        },
+        {
+          "id": "INV-frontmatter-002",
+          "rule": "Identifier must be snake_case base + collection suffix (_xp for _documentation, _guides for _guides). Must be unique across the whole repo.",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "markdown-syntax.md",
+          "context": "Front Matter: Identifier."
+        },
+        {
+          "id": "INV-frontmatter-003",
+          "rule": "Order field: start at 100 for new sections; insert by midpoints (550 between 500 and 600).",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "markdown-syntax.md",
+          "context": "Front Matter: Order."
+        },
+        {
+          "id": "INV-frontmatter-006",
+          "rule": "Valid persona values: developer, admin, business, architect, all.",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "new-page-creation.md",
+          "context": "Frontmatter Schema."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-persona-003",
+          "rule": "Developers and admins: can combine 2 related easy steps. Use developer terminology appropriately. Explain business/marketing terms when needed.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Developers and admins."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-content-030",
+          "rule": "User types: user = admin account holder; member = registered visitor without admin access; visitor = anonymous website user; contact = Xperience entity for visitors. Do not confuse contact with visitor or customer.",
+          "category": "content",
+          "severity": "must",
+          "source": "word-list.md",
+          "context": "User types and entities."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Three-tier access model (Public/Secured/SecuredWithRoles) is clearly explained with code examples (INV-structure-002, INV-structure-003)",
+        "ContentAccessSettings factory methods documented with usage examples (REC-001, REC-012)",
+        "HasAccess() extension method documented with code sample (REC-014)",
+        "ContentItemRequiredMemberRoleNames property documented with query example",
+        "IContentItemMemberRoleManager and IContentItemMemberRoleRetriever interfaces documented (REC-001)",
+        "ApplicationRole/ApplicationRoleStore integration explained for ASP.NET Identity",
+        "Correct front matter: unique identifier, order, persona=developer (INV-frontmatter-001, INV-frontmatter-002)",
+        "Uses backtick formatting for all type names (INV-formatting-004, REC-015)",
+        "Uses established terminology: member, visitor, user, sign in (INV-content-030, REC-013)",
+        "Code examples progress from simple to complex (REC-014)",
+        "How-to focused \u2014 addresses user goals not API surface (REC-008, REC-009)",
+        "Next steps section links to related pages (INV-structure-010)"
+      ],
+      "estimatedComplexity": "large",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-001",
+        "REC-008",
+        "REC-009",
+        "REC-012",
+        "REC-013",
+        "REC-014",
+        "REC-015"
+      ]
+    },
+    {
+      "id": "TASK-002",
+      "name": "Create new page: Reference \u2014 ContentAccessSettings",
+      "description": "Create a new API reference page for the ContentAccessSettings sealed class \u2014 documenting the struct-to-class migration (breaking change), static factory methods Public()/Secured()/SecuredWithRoles(), equality operators, null handling, and usage examples.",
+      "order": 2,
+      "action": "create",
+      "contentType": "reference",
+      "targetFile": "developers-and-admins/api/content-item-api/reference-content-access-settings.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [],
+        "add": [
+          "Front matter (title, identifier, order, persona)",
+          "Introduction \u2014 ContentAccessSettings overview and purpose",
+          "Breaking change note \u2014 struct to sealed class migration",
+          "Static factory methods \u2014 Public(), Secured(), SecuredWithRoles()",
+          "Comparison table \u2014 three access modes side by side",
+          "Equality operators \u2014 ==, !=, Equals() behavior",
+          "Null handling \u2014 ArgumentNullException on null assignment, use Public() instead",
+          "Usage examples with event handlers and parameter classes",
+          "Next steps"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-002",
+          "fact": "ContentAccessSettings changed from struct to sealed class. New operators: ==(ContentAccessSettings, ContentAccessSettings), !=(ContentAccessSettings, ContentAccessSettings). Equality is now null-safe with operator overloads."
+        },
+        {
+          "source": "AREA-003",
+          "fact": "All 8 content engine event data state classes gain null validation (ArgumentNullException.ThrowIfNull) on AccessSettings property. Previously accepted null silently."
+        },
+        {
+          "source": "AREA-004",
+          "fact": "6 website event data state classes gain same null validation. WebPageMetadata and CreateWebPageParameters also validate non-null."
+        },
+        {
+          "source": "AREA-005",
+          "fact": "ContentItemMetadata.AccessSettings and CreateContentItemParameters.AccessSettings now validate non-null."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-014"
+      ],
+      "dependsOn": [],
+      "invariants": [
+        {
+          "id": "INV-structure-001",
+          "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Documentation page structure: Required elements."
+        },
+        {
+          "id": "INV-structure-019",
+          "rule": "Reference and example pages: title with Reference - XYZ or Example - XYZ. Prefer embedding on main page; separate pages only when original is too long or relates to multiple pages.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide-full.md",
+          "context": "References and examples section."
+        },
+        {
+          "id": "INV-frontmatter-001",
+          "rule": "Every page must have YAML front matter between --- lines with required fields: title, identifier, order, redirect_from, persona, license (for _documentation and _guides collections).",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "markdown-syntax.md",
+          "context": "Front Matter."
+        },
+        {
+          "id": "INV-frontmatter-002",
+          "rule": "Identifier must be snake_case base + collection suffix (_xp for _documentation, _guides for _guides). Must be unique across the whole repo.",
+          "category": "frontmatter",
+          "severity": "must",
+          "source": "markdown-syntax.md",
+          "context": "Front Matter: Identifier."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-content-030",
+          "rule": "User types: user = admin account holder; member = registered visitor without admin access; visitor = anonymous website user; contact = Xperience entity for visitors. Do not confuse contact with visitor or customer.",
+          "category": "content",
+          "severity": "must",
+          "source": "word-list.md",
+          "context": "User types and entities."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Title follows 'Reference - ContentAccessSettings' pattern (INV-structure-019)",
+        "Struct-to-class breaking change clearly documented with migration guidance (REC-004)",
+        "All three factory methods documented: Public(), Secured(), SecuredWithRoles() (REC-001, REC-002)",
+        "Comparison table showing three access modes (REC-012)",
+        "Equality operators (==, !=) and Equals() behavior documented",
+        "Null handling documented: ArgumentNullException when setting null, use Public() instead",
+        "Code examples for each factory method and event handler usage (REC-014)",
+        "Correct front matter with unique identifier (INV-frontmatter-001, INV-frontmatter-002)",
+        "Parameter descriptions follow verb-first pattern (REC-002, REC-003)",
+        "Backtick formatting for all code elements (INV-formatting-004, REC-015)",
+        "API reference sections in standard order (REC-005 adapted to Kentico structure)"
+      ],
+      "estimatedComplexity": "large",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-001",
+        "REC-002",
+        "REC-003",
+        "REC-004",
+        "REC-005",
+        "REC-012",
+        "REC-014",
+        "REC-015"
+      ]
+    },
+    {
+      "id": "TASK-003",
+      "name": "Update registration and authentication page",
+      "description": "Major update to the registration and authentication page: replace NoOpApplicationRole/NoOpApplicationRoleStore references with ApplicationRole/ApplicationRoleStore, update code samples, add three-tier content access model section, update architecture section for role stores, and add cross-references to new member roles page.",
+      "order": 3,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/registration-and-authentication.md",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "sections": {
+        "modify": [
+          "NoOpApplicationRole/NoOpApplicationRoleStore bullet point (rewrite)",
+          "AddIdentity<ApplicationUser, NoOpApplicationRole> code snippet",
+          "Xperience ASP.NET Identity architecture section",
+          "Configure registration and authentication section"
+        ],
+        "add": [
+          "Three-tier content access model subsection or callout",
+          "Cross-reference to member roles page"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-001",
+          "fact": "ClaimsPrincipalIdentityHelper (CMS.Membership.Internal) was deleted. Inline LINQ replaces it. No public API impact."
+        },
+        {
+          "source": "AREA-002",
+          "fact": "ApplicationRole and ApplicationRoleStore replace NoOpApplicationRole and NoOpApplicationRoleStore in identity registration."
+        },
+        {
+          "source": "AREA-009",
+          "fact": "Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403). Content access cookie auth configuration separates login path from access denied path."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-001"
+      ],
+      "dependsOn": [
+        "TASK-001"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-001",
+          "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Documentation page structure: Required elements."
+        },
+        {
+          "id": "INV-structure-002",
+          "rule": "Write an introduction at the beginning of each article providing context, real-world scenarios, and explaining value to the user.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Introduction section."
+        },
+        {
+          "id": "INV-structure-010",
+          "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide.md",
+          "context": "Next steps section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-content-030",
+          "rule": "User types: user = admin account holder; member = registered visitor without admin access; visitor = anonymous website user; contact = Xperience entity for visitors. Do not confuse contact with visitor or customer.",
+          "category": "content",
+          "severity": "must",
+          "source": "word-list.md",
+          "context": "User types and entities."
+        },
+        {
+          "id": "INV-persona-003",
+          "rule": "Developers and admins: can combine 2 related easy steps. Use developer terminology appropriately. Explain business/marketing terms when needed.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Developers and admins."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        }
+      ],
+      "acceptanceCriteria": [
+        "All NoOpApplicationRole references replaced with ApplicationRole",
+        "All NoOpApplicationRoleStore references replaced with ApplicationRoleStore",
+        "Code samples compile-ready with correct type names (INV-codesamples-010)",
+        "Three-tier access model mentioned with cross-reference to member roles page",
+        "Architecture section updated to mention role stores",
+        "Uses established terminology: member, visitor, user (INV-content-030, REC-013)",
+        "Authentication pipeline described as concrete steps (REC-016)",
+        "Next steps updated to include member roles page (INV-structure-010)"
+      ],
+      "estimatedComplexity": "large",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-013",
+        "REC-015",
+        "REC-016"
+      ]
+    },
+    {
+      "id": "TASK-004",
+      "name": "Update forms authentication page",
+      "description": "Replace all AddIdentity<ApplicationUser, NoOpApplicationRole> with ApplicationRole and AddRoleStore<NoOpApplicationRoleStore> with ApplicationRoleStore in code samples. Add note about role store registration.",
+      "order": 4,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/forms-authentication.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "AddIdentity code sample (line ~114)",
+          "AddRoleStore code sample (line ~133, ~138)",
+          "Configuration/prerequisites section (line ~191)"
+        ],
+        "add": [
+          "Note about role store registration"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-001",
+          "fact": "NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore in identity registration."
+        },
+        {
+          "source": "AREA-002",
+          "fact": "ApplicationRole is a real role class for member role management, not a no-op stub."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-002"
+      ],
+      "dependsOn": [
+        "TASK-003"
+      ],
+      "invariants": [
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        }
+      ],
+      "acceptanceCriteria": [
+        "All 3 code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole",
+        "All NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "Prerequisites/configuration section mentions role store registration",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Step instructions use ordered lists (INV-structure-006)",
+        "Authentication flow described as concrete steps (REC-016)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-013",
+        "REC-016"
+      ]
+    },
+    {
+      "id": "TASK-005",
+      "name": "Update external authentication page",
+      "description": "Replace AddIdentity<ApplicationUser, NoOpApplicationRole> with ApplicationRole and AddRoleStore<NoOpApplicationRoleStore> with ApplicationRoleStore in code samples.",
+      "order": 5,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/external-authentication.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "AddIdentity code sample (line ~48)",
+          "AddRoleStore code sample (line ~53)"
+        ],
+        "add": [],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-001",
+          "fact": "NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore."
+        },
+        {
+          "source": "AREA-002",
+          "fact": "ApplicationRole is a concrete role type used for member role management."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-003"
+      ],
+      "dependsOn": [
+        "TASK-003"
+      ],
+      "invariants": [
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Both code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole",
+        "NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Backtick formatting on type names (INV-formatting-004)"
+      ],
+      "estimatedComplexity": "small",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-016"
+      ]
+    },
+    {
+      "id": "TASK-006",
+      "name": "Update add fields to member objects page",
+      "description": "Replace NoOpApplicationRole/NoOpApplicationRoleStore with ApplicationRole/ApplicationRoleStore in code samples. Consider adding a remark about ApplicationRole-to-MemberRoleInfo data flow mirroring the ApplicationUser-to-MemberInfo explanation.",
+      "order": 6,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/add-fields-to-member-objects.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "AddIdentity code sample (line ~63)",
+          "AddRoleStore code sample (line ~68)",
+          "Remarks \u2014 ApplicationUser and MemberInfo section"
+        ],
+        "add": [
+          "Remark about ApplicationRole-to-MemberRoleInfo data flow"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-001",
+          "fact": "NoOpApplicationRole/NoOpApplicationRoleStore replaced."
+        },
+        {
+          "source": "AREA-002",
+          "fact": "ApplicationRole maps to MemberRoleInfo similarly to how ApplicationUser maps to MemberInfo."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-004"
+      ],
+      "dependsOn": [
+        "TASK-003"
+      ],
+      "invariants": [
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-structure-011",
+          "rule": "Articles should be independent of other pages. Exceptions must be properly linked and explained.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide-full.md",
+          "context": "Documentation page: should be independent of other pages."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Both code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole, NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "ApplicationRole-to-MemberRoleInfo data flow is explained, mirroring existing ApplicationUser-to-MemberInfo pattern",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Article remains self-contained with proper links (INV-structure-011)",
+        "Type names in backticks (INV-formatting-004, REC-015)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-013",
+        "REC-015"
+      ]
+    },
+    {
+      "id": "TASK-007",
+      "name": "Update retrieve content items page",
+      "description": "Consolidated update (IMP-005 + IMP-015): update the Content item security section from binary model to three-tier model, document ContentItemRequiredMemberRoleNames, add HasAccess() code sample, update existing IsAuthenticated check, add projection example, and fix stale content describing items as 'secured to allow access only for authenticated users'.",
+      "order": 7,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/content-retrieval/retrieve-content-items.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "Content item security section \u2014 rewrite for three-tier model",
+          "IsAuthenticated check example \u2014 note it only covers binary, point to HasAccess()",
+          "Razor view code sample (lines ~285-296) \u2014 show role-aware checking",
+          "Projection example (line ~306) \u2014 add ContentItemRequiredMemberRoleNames"
+        ],
+        "add": [
+          "HasAccess() extension method code sample",
+          "ContentItemRequiredMemberRoleNames projection example"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-006",
+          "fact": "IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>. Lazy loading: role data only fetched when at least one item has ContentItemIsSecured=true."
+        },
+        {
+          "source": "AREA-009",
+          "fact": "HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) \u2014 public extension method. Three-tier: Allowed/NotAuthenticated/Forbidden."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-005",
+        "IMP-015"
+      ],
+      "dependsOn": [
+        "TASK-001",
+        "TASK-002"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-001",
+          "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Documentation page structure: Required elements."
+        },
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-persona-003",
+          "rule": "Developers and admins: can combine 2 related easy steps. Use developer terminology appropriately. Explain business/marketing terms when needed.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Developers and admins."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Content item security section describes three-tier model: public, authenticated-only, role-restricted",
+        "Stale text 'allow access only for authenticated users' replaced with complete description",
+        "ContentItemRequiredMemberRoleNames property documented with projection example",
+        "HasAccess(User) code sample shown as recommended access check (REC-014)",
+        "Existing IsAuthenticated example updated to note it only covers binary check",
+        "Code examples progress simple \u2192 complex (REC-014)",
+        "Cross-references to member roles page and ContentAccessSettings reference",
+        "Developer terminology appropriate (INV-persona-003)"
+      ],
+      "estimatedComplexity": "large",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-001",
+        "REC-012",
+        "REC-014"
+      ]
+    },
+    {
+      "id": "TASK-008",
+      "name": "Update retrieve page content page",
+      "description": "Consolidated update (IMP-006 + IMP-016): update Page security configuration section for three-tier access model, document HasAccess() extension, update code sample for role-aware access checking, explain 401 vs 403 distinction, update AccessDeniedPath example, and fix stale content.",
+      "order": 8,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/development/content-retrieval/retrieve-page-content.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "Page security configuration section \u2014 rewrite for three-tier model",
+          "Code sample \u2014 show role-aware access checking with HasAccess()",
+          "403 Forbidden explanation \u2014 distinguish NotAuthenticated (401) vs Forbidden (403)",
+          "AccessDeniedPath example \u2014 note it handles both unauthenticated and insufficient-role scenarios"
+        ],
+        "add": [
+          "HasAccess() extension method usage example"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-006",
+          "fact": "ContentItemRequiredMemberRoleNames available on query result containers for role-aware page access checking."
+        },
+        {
+          "source": "AREA-009",
+          "fact": "Three-tier: Allowed (200), NotAuthenticated (401), Forbidden (403). Content access cookie auth configuration separates login path from access denied path."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-006",
+        "IMP-016"
+      ],
+      "dependsOn": [
+        "TASK-001",
+        "TASK-002"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        },
+        {
+          "id": "INV-persona-003",
+          "rule": "Developers and admins: can combine 2 related easy steps. Use developer terminology appropriately. Explain business/marketing terms when needed.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Developers and admins."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Page security configuration describes three-tier model",
+        "Stale text 'secured to allow access only to authenticated users' replaced",
+        "HasAccess() documented as recommended programmatic check (REC-014)",
+        "401 vs 403 distinction clearly explained",
+        "AccessDeniedPath covers both unauthenticated and insufficient-role scenarios",
+        "Code sample shows role-aware access checking",
+        "Cross-references to member roles page and ContentAccessSettings reference"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-012",
+        "REC-014"
+      ]
+    },
+    {
+      "id": "TASK-009",
+      "name": "Update Reference \u2014 Content item query page",
+      "description": "Add documentation for ContentItemRequiredMemberRoleNames property in the query result container section, document lazy loading behavior, and add code example.",
+      "order": 9,
+      "action": "update",
+      "contentType": "reference",
+      "targetFile": "developers-and-admins/api/content-item-api/reference-content-item-query.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "Query result container section \u2014 add ContentItemRequiredMemberRoleNames"
+        ],
+        "add": [
+          "ContentItemRequiredMemberRoleNames property documentation",
+          "Lazy loading behavior note",
+          "Code example accessing role names from query results"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-006",
+          "fact": "IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>. Default interface implementation returns empty collection. ContentItemRolesResultProcessor populates it. Lazy: only fetched when ContentItemIsSecured=true for at least one result."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-010"
+      ],
+      "dependsOn": [
+        "TASK-002"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-019",
+          "rule": "Reference and example pages: title with Reference - XYZ or Example - XYZ. Prefer embedding on main page; separate pages only when original is too long or relates to multiple pages.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide-full.md",
+          "context": "References and examples section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        },
+        {
+          "id": "INV-codesamples-010",
+          "rule": "Developer guides: break code examples into logical steps/sections. Tutorials need more detailed code; How-tos need less.",
+          "category": "codesamples",
+          "severity": "should",
+          "source": "guides-style-guide-full.md",
+          "context": "Material for developers."
+        }
+      ],
+      "acceptanceCriteria": [
+        "ContentItemRequiredMemberRoleNames property fully documented with type, default, and behavior",
+        "Lazy loading behavior explained (role data fetched only when secured items present)",
+        "ContentItemRolesResultProcessor mentioned as the populating mechanism",
+        "Code example shows accessing role names from query results (REC-014)",
+        "Reference style: title follows 'Reference - ' pattern (INV-structure-019)",
+        "All API members in backticks (INV-formatting-004)",
+        "API reference structure follows standard order (REC-005)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-001",
+        "REC-002",
+        "REC-005",
+        "REC-014"
+      ]
+    },
+    {
+      "id": "TASK-010",
+      "name": "Update content item query API page",
+      "description": "Add section about security-related query results, mention ContentItemRequiredMemberRoleNames availability when IncludeSecuredItems is true, cross-reference the reference page.",
+      "order": 10,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/api/content-item-api/content-item-query-api.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [],
+        "add": [
+          "Security-related query results section or subsection",
+          "Cross-reference to reference page"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-006",
+          "fact": "Query results include ContentItemRequiredMemberRoleNames when IncludeSecuredItems is true and items are role-restricted."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-011"
+      ],
+      "dependsOn": [
+        "TASK-009"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-010",
+          "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide.md",
+          "context": "Next steps section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Security-related query results section added or integrated",
+        "ContentItemRequiredMemberRoleNames mentioned with IncludeSecuredItems context",
+        "Cross-reference to Reference \u2014 Content item query page for details",
+        "Next steps link to role checking guidance (INV-structure-010)",
+        "Backtick formatting on all code elements (INV-formatting-004)"
+      ],
+      "estimatedComplexity": "small",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-014"
+      ]
+    },
+    {
+      "id": "TASK-011",
+      "name": "Update Members page (business users)",
+      "description": "Add member roles section covering creating, viewing, and assigning members to roles. Update introduction to mention role-based access control. Add cross-references and screenshots.",
+      "order": 11,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "business-users/members.md",
+      "targetPersonas": [
+        "business"
+      ],
+      "sections": {
+        "modify": [
+          "Introduction \u2014 mention role-based access capability",
+          "Member listing header sentence"
+        ],
+        "add": [
+          "Member roles section \u2014 creating roles, viewing roles, assigning members to roles",
+          "Cross-references to Secure pages and Secure content items",
+          "Screenshots of role management interface"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-002",
+          "fact": "MemberRoleInfo and MemberRoleMemberInfo types support role creation and member-role assignment."
+        },
+        {
+          "source": "AREA-012",
+          "fact": "Admin resource strings updated. Member role admin UI pages (listing/create/edit) already present."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-009"
+      ],
+      "dependsOn": [
+        "TASK-001"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-001",
+          "rule": "Every documentation article must contain: Title, Introduction, Body, Result, and Next Steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Documentation page structure: Required elements."
+        },
+        {
+          "id": "INV-structure-002",
+          "rule": "Write an introduction at the beginning of each article providing context, real-world scenarios, and explaining value to the user.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Introduction section."
+        },
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        },
+        {
+          "id": "INV-persona-001",
+          "rule": "Business users: friendly, positive tone. One action per step. No technical jargon. More screenshots for clarity.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        },
+        {
+          "id": "INV-persona-002",
+          "rule": "Business users: assume they work on a team that includes technical people who handle setup tasks.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Member roles section covers: creating roles, viewing roles, assigning members (REC-010)",
+        "Introduction updated to mention role-based access control",
+        "Business-user friendly tone: no technical jargon (INV-persona-001)",
+        "One action per step for business users (INV-persona-001, INV-structure-006)",
+        "Screenshots placeholder noted for role management interface",
+        "Arrow notation for navigation paths (REC-011)",
+        "Cross-references to Secure pages and Secure content items",
+        "Terminology: member, visitor (INV-content-030, REC-013)"
+      ],
+      "estimatedComplexity": "large",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-010",
+        "REC-011",
+        "REC-013"
+      ]
+    },
+    {
+      "id": "TASK-012",
+      "name": "Update Secure pages page (business users)",
+      "description": "Consolidated update (IMP-007 + IMP-020): update Security tab instructions for role-based options, document role selection UI, update screenshots, explain three-tier model in business terms, and fix stale 'Requires authentication' description.",
+      "order": 12,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "business-users/website-content/secure-pages.md",
+      "targetPersonas": [
+        "business"
+      ],
+      "sections": {
+        "modify": [
+          "Step 4 \u2014 configure page security settings (add role-based options)",
+          "'Requires authentication' description \u2014 expand for role-based restrictions",
+          "Screenshots \u2014 update Security tab UI with role selection"
+        ],
+        "add": [
+          "Three-tier model explanation in business terms: public / signed-in only / specific member roles",
+          "How to restrict a page to specific member roles via Security tab",
+          "Cross-reference to Members application for role management"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-002",
+          "fact": "ContentAccessSettings supports three tiers: Public (no auth), Secured (any authenticated), SecuredWithRoles (specific roles)."
+        },
+        {
+          "source": "AREA-012",
+          "fact": "Admin UI member role pages already present. Localization strings updated."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-007",
+        "IMP-020"
+      ],
+      "dependsOn": [
+        "TASK-011"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        },
+        {
+          "id": "INV-structure-007",
+          "rule": "Write one action per step for business users. For developer audience, you may merge two related easy steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Writing steps."
+        },
+        {
+          "id": "INV-structure-009",
+          "rule": "Describe the end result at the end of each section so readers can confirm they followed instructions correctly.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Result section."
+        },
+        {
+          "id": "INV-persona-001",
+          "rule": "Business users: friendly, positive tone. One action per step. No technical jargon. More screenshots for clarity.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        },
+        {
+          "id": "INV-persona-002",
+          "rule": "Business users: assume they work on a team that includes technical people who handle setup tasks.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Security settings step updated with role-based options alongside 'Requires authentication'",
+        "Stale text about only requiring authentication is corrected",
+        "Three-tier model explained in business terms (public / signed-in / specific roles)",
+        "Step-by-step for restricting page to specific member roles (INV-structure-006, INV-structure-007)",
+        "One action per step for business users (INV-persona-001)",
+        "End result described (INV-structure-009)",
+        "Screenshot placeholders noted for updated Security tab UI",
+        "Cross-reference to Members application (REC-010)",
+        "Arrow notation for admin navigation (REC-011)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-010",
+        "REC-013"
+      ]
+    },
+    {
+      "id": "TASK-013",
+      "name": "Update Content items page (business users)",
+      "description": "Update Secure content items section for role-based security options, document role restriction via Security settings, update screenshots, and add cross-reference to member roles management.",
+      "order": 13,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "business-users/content-hub/content-items.md",
+      "targetPersonas": [
+        "business"
+      ],
+      "sections": {
+        "modify": [
+          "Secure content items section \u2014 add role-based security alongside 'Requires authentication'",
+          "Description 'Secured content items require that the consumer is signed in' \u2014 expand for role restrictions",
+          "Screenshots \u2014 update Security settings UI"
+        ],
+        "add": [
+          "How to restrict content items to specific member roles",
+          "Cross-reference to member roles management page"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-002",
+          "fact": "Content items can now be restricted to specific member roles, not just any authenticated user."
+        },
+        {
+          "source": "AREA-012",
+          "fact": "Admin UI for security settings already supports role selection."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-008"
+      ],
+      "dependsOn": [
+        "TASK-011"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-006",
+          "rule": "Use ordered lists for step-by-step instructions. Use bullet points when order does not matter.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Body: General guidelines."
+        },
+        {
+          "id": "INV-structure-007",
+          "rule": "Write one action per step for business users. For developer audience, you may merge two related easy steps.",
+          "category": "structure",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Writing steps."
+        },
+        {
+          "id": "INV-persona-001",
+          "rule": "Business users: friendly, positive tone. One action per step. No technical jargon. More screenshots for clarity.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        },
+        {
+          "id": "INV-persona-002",
+          "rule": "Business users: assume they work on a team that includes technical people who handle setup tasks.",
+          "category": "persona",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Target audiences: Business users."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Secure content items section describes role-based security options (REC-010)",
+        "'Requires authentication' description expanded to cover role-restricted scenarios",
+        "Step-by-step for restricting content items to roles (INV-structure-006, INV-structure-007)",
+        "Business-user friendly: no developer jargon (INV-persona-001)",
+        "Screenshot placeholders for expanded Security settings UI",
+        "Cross-reference to member roles management",
+        "Terminology: member, visitor (INV-content-030, REC-013)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-010",
+        "REC-013"
+      ]
+    },
+    {
+      "id": "TASK-014",
+      "name": "Update Reference \u2014 Global system events page",
+      "description": "Update ContentItemEvents and WebPageEvents sections for AccessSettings null validation, document three-tier ContentAccessSettings model in event context, and add AccessSettings property documentation on event argument state objects.",
+      "order": 14,
+      "action": "update",
+      "contentType": "reference",
+      "targetFile": "developers-and-admins/customization/handle-global-events/reference-global-system-events.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "ContentItemEvents section \u2014 UpdateMetadata event: non-null AccessSettings requirement",
+          "WebPageEvents section \u2014 UpdateSecuritySettings event: non-null AccessSettings"
+        ],
+        "add": [
+          "Three-tier ContentAccessSettings model note (Public/Secured/SecuredWithRoles)",
+          "AccessSettings property documentation on event state objects"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-003",
+          "fact": "All 8 content engine event data states gain null validation (ArgumentNullException.ThrowIfNull) on AccessSettings. Previously accepted null silently."
+        },
+        {
+          "source": "AREA-004",
+          "fact": "6 website event data states gain same null validation. WebPageMetadata and CreateWebPageParameters also validate non-null."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-012"
+      ],
+      "dependsOn": [
+        "TASK-002"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-019",
+          "rule": "Reference and example pages: title with Reference - XYZ or Example - XYZ. Prefer embedding on main page; separate pages only when original is too long or relates to multiple pages.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide-full.md",
+          "context": "References and examples section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        }
+      ],
+      "acceptanceCriteria": [
+        "UpdateMetadata event: AccessSettings accepts non-null ContentAccessSettings, use Public() for unsecured (REC-004)",
+        "UpdateSecuritySettings event: same non-null constraint documented",
+        "Three-tier ContentAccessSettings model noted where events reference security settings (REC-012)",
+        "AccessSettings property documented on event argument state objects",
+        "Reference title pattern followed (INV-structure-019)",
+        "All code elements in backticks (INV-formatting-004)",
+        "Deprecation pattern for IsSecured properties documented (REC-004)"
+      ],
+      "estimatedComplexity": "medium",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": [
+        "REC-001",
+        "REC-004",
+        "REC-012"
+      ]
+    },
+    {
+      "id": "TASK-015",
+      "name": "Update Handle global events page",
+      "description": "Update event handler examples to use ContentAccessSettings.Public() instead of null, add cross-reference to events reference page, add note about non-nullable AccessSettings.",
+      "order": 15,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/customization/handle-global-events.md",
+      "targetPersonas": [
+        "developer"
+      ],
+      "sections": {
+        "modify": [
+          "Event handler examples using AccessSettings (if any set null)"
+        ],
+        "add": [
+          "Note about non-nullable AccessSettings on event data states",
+          "Cross-reference to Reference \u2014 Global system events for full constraints"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-003",
+          "fact": "Setting AccessSettings to null on event data states now throws ArgumentNullException. Use ContentAccessSettings.Public() for unsecured."
+        },
+        {
+          "source": "AREA-004",
+          "fact": "Same null validation on website event data states, WebPageMetadata, CreateWebPageParameters."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-017"
+      ],
+      "dependsOn": [
+        "TASK-014"
+      ],
+      "invariants": [
+        {
+          "id": "INV-structure-010",
+          "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide.md",
+          "context": "Next steps section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Any examples setting AccessSettings to null are updated to use ContentAccessSettings.Public()",
+        "Non-nullable AccessSettings constraint mentioned",
+        "Cross-reference to events reference page added (INV-structure-010)",
+        "Code elements in backticks (INV-formatting-004)"
+      ],
+      "estimatedComplexity": "small",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": []
+    },
+    {
+      "id": "TASK-016",
+      "name": "Update Reference \u2014 CI/CD object types page",
+      "description": "Add member role object types (cms.memberrole, cms.memberrolemember, cms.contentitemmemberrole) to CI/CD object types reference if these are CI/CD-supported.",
+      "order": 16,
+      "action": "update",
+      "contentType": "reference",
+      "targetFile": "developers-and-admins/ci-cd/reference-ci-cd-object-types.md",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "sections": {
+        "modify": [
+          "General or Binding object types section \u2014 add member role types"
+        ],
+        "add": [],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-015",
+          "fact": "ContentItemMemberRoleCustomProcessor and CI filter already existed on master. No changes in this commit, but types are CI/CD supported."
+        },
+        {
+          "source": "AREA-017",
+          "fact": "No actual file changes in this commit for CI/CD processing files."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-018"
+      ],
+      "dependsOn": [],
+      "invariants": [
+        {
+          "id": "INV-structure-019",
+          "rule": "Reference and example pages: title with Reference - XYZ or Example - XYZ. Prefer embedding on main page; separate pages only when original is too long or relates to multiple pages.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide-full.md",
+          "context": "References and examples section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Member role object types added if CI/CD-supported: cms.memberrole, cms.memberrolemember, cms.contentitemmemberrole",
+        "Placed in correct section (General or Binding object types)",
+        "Reference title pattern (INV-structure-019)",
+        "Object type names in backticks (INV-formatting-004)"
+      ],
+      "estimatedComplexity": "small",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": []
+    },
+    {
+      "id": "TASK-017",
+      "name": "Update Content sync configuration page",
+      "description": "Document that member role bindings and ContentAccessSettings are included in content sync, add MemberRole compatibility requirements note.",
+      "order": 17,
+      "action": "update",
+      "contentType": "howto",
+      "targetFile": "developers-and-admins/configuration/content-sync-configuration.md",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "sections": {
+        "modify": [
+          "Ensure compatibility between instances / Content sync internals section"
+        ],
+        "add": [
+          "Member role assignment synchronization note",
+          "MemberRole compatibility requirements between instances",
+          "Role-based access settings in sync payloads"
+        ],
+        "remove": []
+      },
+      "docFacts": [
+        {
+          "source": "AREA-014",
+          "fact": "MemberRoleCompatibilityEvaluator, ContentItemMemberRoleAdapter, and MemberRoleAdapter already existed on master. No diffs in this commit."
+        }
+      ],
+      "relatedImpacts": [
+        "IMP-019"
+      ],
+      "dependsOn": [],
+      "invariants": [
+        {
+          "id": "INV-structure-010",
+          "rule": "Provide next steps at the end of articles, linking to related articles or additional resources.",
+          "category": "structure",
+          "severity": "should",
+          "source": "docs-style-guide.md",
+          "context": "Next steps section."
+        },
+        {
+          "id": "INV-formatting-004",
+          "rule": "Use backticks for inline code: API members, configuration keys, methods, namespaces, classes, command line tools and arguments.",
+          "category": "formatting",
+          "severity": "must",
+          "source": "docs-style-guide.md",
+          "context": "Code highlighting."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Member role synchronization documented in compatibility or internals section",
+        "MemberRole compatibility requirements between source and target instances noted",
+        "Role-based access settings inclusion in sync payloads mentioned",
+        "Next steps link to member roles page (INV-structure-010)",
+        "Code elements in backticks (INV-formatting-004)"
+      ],
+      "estimatedComplexity": "small",
+      "status": "written",
+      "patternsApplied": [],
+      "antiPatternsAvoided": [],
+      "researchRecommendationsInlined": []
+    }
+  ],
+  "executionOrder": [
+    "TASK-001",
+    "TASK-002",
+    "TASK-003",
+    "TASK-004",
+    "TASK-005",
+    "TASK-006",
+    "TASK-007",
+    "TASK-008",
+    "TASK-009",
+    "TASK-010",
+    "TASK-011",
+    "TASK-012",
+    "TASK-013",
+    "TASK-014",
+    "TASK-015",
+    "TASK-016",
+    "TASK-017"
+  ],
+  "summary": {
+    "totalTasks": 17,
+    "byAction": {
+      "create": 2,
+      "update": 15
+    },
+    "byContentType": {
+      "howto": 13,
+      "reference": 4
+    },
+    "criticalPath": [
+      "TASK-001",
+      "TASK-002",
+      "TASK-003",
+      "TASK-007",
+      "TASK-008"
+    ]
+  },
+  "impactCoverage": {
+    "addressed": [
+      "IMP-001",
+      "IMP-002",
+      "IMP-003",
+      "IMP-004",
+      "IMP-005",
+      "IMP-006",
+      "IMP-007",
+      "IMP-008",
+      "IMP-009",
+      "IMP-010",
+      "IMP-011",
+      "IMP-012",
+      "IMP-013",
+      "IMP-014",
+      "IMP-015",
+      "IMP-016",
+      "IMP-017",
+      "IMP-018",
+      "IMP-019",
+      "IMP-020"
+    ],
+    "noDocImpact": [
+      "IMP-021",
+      "IMP-022"
+    ],
+    "mergedIntoOtherTasks": {
+      "IMP-015": "merged into TASK-007 (same page as IMP-005)",
+      "IMP-016": "merged into TASK-008 (same page as IMP-006)",
+      "IMP-020": "merged into TASK-012 (same page as IMP-007)"
+    }
+  },
+  "knowledgeBriefNotes": {
+    "coldStart": true,
+    "patternsApplied": 0,
+    "antiPatternsApplied": 0,
+    "note": "First pipeline run \u2014 no accumulated knowledge. All tasks use invariants and research recommendations only."
+  }
+}

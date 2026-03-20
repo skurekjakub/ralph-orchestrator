@@ -1,0 +1,114 @@
+{
+  "agent": "docwriter-execution-coordinator",
+  "status": "done",
+  "result": "execution-complete",
+  "tasksCompleted": 17,
+  "tasksBlocked": 0,
+  "totalReviewCycles": 33,
+  "averageAttemptsPerTask": 1.9,
+  "timestamp": "2026-03-14T15:17:09.270358Z",
+  "taskDetails": {
+    "TASK-001": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-002": {
+      "attempts": 3,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 9
+    },
+    "TASK-003": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-004": {
+      "attempts": 1,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 3
+    },
+    "TASK-005": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-006": {
+      "attempts": 1,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 3
+    },
+    "TASK-007": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-008": {
+      "attempts": 1,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 3
+    },
+    "TASK-009": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-010": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-011": {
+      "attempts": 3,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 9
+    },
+    "TASK-012": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-013": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-014": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-015": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-016": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    },
+    "TASK-017": {
+      "attempts": 2,
+      "finalVerdict": "written",
+      "reviewersPerCycle": 3,
+      "totalReviews": 6
+    }
+  }
+}

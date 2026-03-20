@@ -1,0 +1,339 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-003",
+  "attempt": 2,
+  "verdict": "approved",
+  "claims": [
+    {
+      "claim": "Xperience uses a customized implementation of ASP.NET Identity to manage registration and authentication",
+      "location": "Section: Configure registration and authentication, paragraph 1 (line 27)",
+      "result": "verified",
+      "evidence": "Kentico.Membership namespace contains ApplicationUser, ApplicationUserStore, ApplicationRole, ApplicationRoleStore — all custom implementations of ASP.NET Identity abstractions. ApplicationUserStore implements IUserPasswordStore, IUserEmailStore, IUserLoginStore, IUserSecurityStampStore, IUserRoleStore.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationUser is Xperience's implementation of the Identity user object, mapped to MemberInfo persisted in the Xperience database",
+      "location": "Section: Configure registration and authentication, paragraph 2 (line 31)",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs line 12: 'public class ApplicationUser : IdentityUser<int>'. Has MapToMemberInfo(MemberInfo target) at line 82 and MapFromMemberInfo(MemberInfo source) at line 57. MemberInfo extends AbstractInfo with database persistence.",
+      "docFact": null
+    },
+    {
+      "claim": "Registered visitors are referred to as members in the system",
+      "location": "Section: Configure registration and authentication, paragraph 2 (line 31)",
+      "result": "verified",
+      "evidence": "MemberInfo.cs is the database entity. MemberInfoProvider manages persistence. The type name 'Member' is used throughout the codebase (MemberRoleInfo, MemberExternalLoginInfo, MemberEnabled, etc.). Consistent with INV-content-030.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole extends IdentityRole<int> and maps to MemberRoleInfo objects stored in the Xperience database",
+      "location": "Section: Configure registration and authentication, bullet 1 (line 35)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs line 12: 'public class ApplicationRole : IdentityRole<int>'. Has MapFromMemberRoleInfo(MemberRoleInfo source) at lines 53-63 and MapToMemberRoleInfo(MemberRoleInfo target) at lines 71-78.",
+      "docFact": "AREA-002: ApplicationRole and ApplicationRoleStore replace NoOpApplicationRole and NoOpApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "ApplicationRoleStore implements IRoleStore<TRole> and provides CRUD operations for member roles through ASP.NET Identity's RoleManager",
+      "location": "Section: Configure registration and authentication, bullet 1 (line 35)",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs line 16: 'public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new()'. Implements CreateAsync (line 44), UpdateAsync (line 74), DeleteAsync (line 112), FindByIdAsync (line 260), FindByNameAsync (line 313). Uses IInfoProvider<MemberRoleInfo> for persistence.",
+      "docFact": "AREA-002: ApplicationRole and ApplicationRoleStore replace NoOpApplicationRole and NoOpApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "ApplicationUserStore is the Xperience-specific implementation of the Identity UserStore, persists data in the Xperience database and ensures conversion between ApplicationUser and MemberInfo",
+      "location": "Section: Configure registration and authentication, bullet 2 (line 36)",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs implements IUserPasswordStore<TUser>, IUserEmailStore<TUser>, IUserLoginStore<TUser>, IUserSecurityStampStore<TUser>, IUserRoleStore<TUser>. CreateInternal calls user.MapToMemberInfo(memberInfo) then memberInfoProvider.SetAsync(memberInfo). UpdateInternal does the reverse flow.",
+      "docFact": null
+    },
+    {
+      "claim": "The RequireConfirmedAccount option works together with the ApplicationUser.Enabled property to ensure that only enabled accounts can sign in",
+      "location": "Section: Configure registration and authentication, bullet 3 (line 37)",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.SetEmailConfirmedAsync (line 582-593): 'user.Enabled = confirmed;' — the Enabled property IS the confirmed-account flag in Xperience's Identity implementation. When RequireConfirmedAccount is true, Identity checks IsEmailConfirmedAsync, which reads Enabled.",
+      "docFact": null
+    },
+    {
+      "claim": "The RequireUniqueEmail option ensures members cannot register an additional account using an email already in the system, which is a requirement of Xperience's Identity implementation",
+      "location": "Section: Configure registration and authentication, bullet 4 (line 38)",
+      "result": "verified",
+      "evidence": "MemberInfoProvider.Validate() enforces email uniqueness at the database level: 'IsValueUnique(nameof(MemberInfo.MemberEmail), info.MemberEmail, info.MemberID)' returns InfoValidationResult with 'members.validation.alreadyExistingEmail' on duplicate. Code sample Program.cs line 38: 'options.User.RequireUniqueEmail = true'.",
+      "docFact": null
+    },
+    {
+      "claim": "UseAuthentication and UseAuthorization middleware must be called in the provided order",
+      "location": "Section: Configure registration and authentication, paragraph after bullets (line 40)",
+      "result": "verified",
+      "evidence": "Code sample Website/Program.cs lines 77-81: UseAuthentication() precedes UseAuthorization(). This is a standard ASP.NET Core requirement (authentication must populate HttpContext.User before authorization checks it).",
+      "docFact": null
+    },
+    {
+      "claim": "Three-tier content access model: Public (no auth), Secured (any authenticated member), Secured with roles (specific member roles)",
+      "location": "Section: Content access model, lines 92-96",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d2 is a sealed class with three factory methods: Public() — 'No authentication required'; Secured() — 'Requires authentication but no specific roles'; SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs). MemberAccessHelper.CheckAccess implements the three-branch logic.",
+      "docFact": "AREA-002: Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)"
+    },
+    {
+      "claim": "To configure the access level for a content item, open the item in the administration and set the desired level in its content access options",
+      "location": "Section: Content access model, line 98 (new admin lead-in paragraph in attempt 2)",
+      "result": "unverifiable",
+      "evidence": "Admin UI behavior — cannot verify UI workflow from source code. Consistent with the existence of ContentAccessSettings and the call chain ContentItemMetadataManager.UpdateMetadata() → contentItemMemberRoleManager.UpdateBindings().",
+      "docFact": null
+    },
+    {
+      "claim": "When using the Secured with roles level, assign the specific member roles that grant access",
+      "location": "Section: Content access model, line 98",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs) requires specific role IDs. MemberAccessHelper.UserIsInAnyRole() verifies the user has at least one of the specified roles.",
+      "docFact": "AREA-002: Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)"
+    },
+    {
+      "claim": "Changes to access settings take effect immediately for new requests",
+      "location": "Section: Content access model, line 98",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleManager.UpdateBindings() performs BulkDelete of removed roles + BulkInsert of new roles + TouchKeys cache invalidation (from code-analysis.json call chain). Cache invalidation ensures subsequent requests see the updated access settings.",
+      "docFact": null
+    },
+    {
+      "claim": "Use the ContentAccessSettings class to set access levels in code",
+      "location": "Section: Content access model, line 100 (programmatic paragraph)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d2 line 11: 'public sealed class ContentAccessSettings : IEquatable<ContentAccessSettings>'. Factory methods Public(), Secured(), SecuredWithRoles() enable programmatic access level configuration.",
+      "docFact": "AREA-002: Three-tier content access model: Public (no auth), Secured (any authenticated user), SecuredWithRoles (specific member roles)"
+    },
+    {
+      "claim": "The HasAccess extension method on IContentItemFieldsSource allows you to check whether a member has access to a content item in your front-end code",
+      "location": "Section: Content access model, line 100",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs: 'public static bool HasAccess(this IContentItemFieldsSource contentItem, ClaimsPrincipal user)'. Extension method on IContentItemFieldsSource, returns bool, checks via MemberAccessHelper.CheckAccess() == ContentAccessCheckResult.Allowed.",
+      "docFact": "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403)."
+    },
+    {
+      "claim": "ApplicationUser data is retrieved via the UserManager class; Identity requires the user's name to be populated (ensured by IUserValidator<TUser>)",
+      "location": "Section: Retrieve the currently authenticated member, lines 106-108",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Identity behavior. UserManager<TUser>.FindByNameAsync, FindByEmailAsync, FindByIdAsync are standard Identity methods. IUserValidator<TUser> is the standard Identity validation interface.",
+      "docFact": null
+    },
+    {
+      "claim": "The name of the user associated with the current request is stored in HttpContext.User.Identity.Name",
+      "location": "Section: Retrieve the currently authenticated member, line 108",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Core behavior. HttpContext.User is a ClaimsPrincipal populated by UseAuthentication middleware. Identity.Name resolves from ClaimTypes.Name claim.",
+      "docFact": null
+    },
+    {
+      "claim": "The member's ID is guaranteed to exist as it gets assigned by the system when the member account is created",
+      "location": "Section: Retrieve the currently authenticated member, line 112",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.CreateInternal: after memberInfoProvider.SetAsync(memberInfo), 'user.Id = memberInfo.MemberID' — the ID is assigned by the database/ORM on creation. The MemberRetrievalExample.cs code sample uses FindByIdAsync with the UserIdClaimType.",
+      "docFact": null
+    },
+    {
+      "claim": "Kentico.Membership.ApplicationUser type derived from IdentityUser to represent members",
+      "location": "Section: Xperience ASP.NET Identity architecture, line 118",
+      "result": "verified",
+      "evidence": "ApplicationUser.cs: namespace Kentico.Membership, 'public class ApplicationUser : IdentityUser<int>'. IdentityUser<int> is the generic form of the IdentityUser base. The doc omits the generic argument <int> but the reference is correct in context.",
+      "docFact": null
+    },
+    {
+      "claim": "When saving member data (CreateAsync or UpdateAsync on UserManager), Xperience maps data from ApplicationUser to CMS.Membership.MemberInfo objects via MapFromMemberInfo and MapToMemberInfo methods",
+      "location": "Section: Xperience ASP.NET Identity architecture, lines 118-120",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.CreateInternal: 'user.MapToMemberInfo(memberInfo)' followed by 'memberInfoProvider.SetAsync(memberInfo)'. UpdateInternal: same pattern. Retrieval: FindByIdAsync/FindByNameAsync use memberInfo then 'user.MapFromMemberInfo(memberInfo)'. Confirmed bidirectional mapping.",
+      "docFact": null
+    },
+    {
+      "claim": "Accounts from external authentication providers are stored using MemberExternalLoginInfo objects in the CMS_MemberExternalLogin database table",
+      "location": "Section: Xperience ASP.NET Identity architecture, line 122",
+      "result": "verified",
+      "evidence": "MemberExternalLoginInfo.cs: OBJECT_TYPE = 'cms.memberexternallogin', TYPEINFO references 'CMS.MemberExternalLogin' as the database table name. Confirmed by SQL migration file KX-6191_Add_CMS_MemberExternalLogin_Table.sql.",
+      "docFact": null
+    },
+    {
+      "claim": "Accounts that rely exclusively on authentication via an external provider have their MemberInfo.MemberIsExternal property set to 1",
+      "location": "Section: Xperience ASP.NET Identity architecture, line 122",
+      "result": "verified",
+      "evidence": "MemberInfo.cs lines 157-171: 'public virtual bool MemberIsExternal { get; set; }' with GetValue/SetValue using 'MemberIsExternal'. ApplicationUser.cs line 69: 'IsExternal = source.MemberIsExternal' and line 93: 'target.MemberIsExternal = IsExternal'. Value '1' is the database representation of true for boolean properties using ValidationHelper.GetBoolean.",
+      "docFact": null
+    },
+    {
+      "claim": "Identity roles are managed through ApplicationRole and ApplicationRoleStore, following the same bidirectional mapping pattern as ApplicationUser and MemberInfo",
+      "location": "Section: Xperience ASP.NET Identity architecture, line 124",
+      "result": "verified",
+      "evidence": "ApplicationRole has MapFromMemberRoleInfo/MapToMemberRoleInfo matching ApplicationUser's MapFromMemberInfo/MapToMemberInfo pattern. ApplicationRoleStore uses IInfoProvider<MemberRoleInfo> for persistence, matching ApplicationUserStore's use of IInfoProvider<MemberInfo>.",
+      "docFact": "AREA-002: ApplicationRole and ApplicationRoleStore replace NoOpApplicationRole and NoOpApplicationRoleStore in identity registration."
+    },
+    {
+      "claim": "You must set ApplicationUser.Enabled property when creating member accounts",
+      "location": "Section: Remarks - ApplicationUser.Enabled, line 134",
+      "result": "verified",
+      "evidence": "MemberInfo.cs line 240: 'MemberEnabled = false' in the constructor — new members default to disabled. ApplicationUserStore.CreateInternal only calls HandleMemberRegistration when memberInfo.MemberEnabled is true. Without explicitly setting Enabled=true, account will not be active.",
+      "docFact": null
+    },
+    {
+      "claim": "The enabled status is controlled via the Members application Disable/Enable action",
+      "location": "Section: Remarks - ApplicationUser.Enabled, line 134",
+      "result": "unverifiable",
+      "evidence": "Admin UI behavior — cannot verify UI actions from source code. Consistent with the MemberEnabled database field and MemberInfo.MemberEnabled property.",
+      "docFact": null
+    },
+    {
+      "claim": "The check preventing disabled accounts from signing in is combined with IdentityOptions.SignInOptions.RequireConfirmedAccount",
+      "location": "Section: Remarks - ApplicationUser.Enabled, line 136",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.SetEmailConfirmedAsync: 'user.Enabled = confirmed;' — Xperience maps the Identity 'email confirmed' concept to its Enabled property. When RequireConfirmedAccount=true, Identity calls IsEmailConfirmedAsync before allowing sign-in, which reads the Enabled state.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationUserStore sets the Enabled property to true when email verification is successful (SetEmailConfirmedAsync called as part of UserManager.ConfirmEmailAsync)",
+      "location": "Section: Remarks - ApplicationUser.Enabled, line 150",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.cs SetEmailConfirmedAsync (lines 582-593): 'user.Enabled = confirmed;' followed by 'SetSecurityStampInternal(user, Guid.NewGuid().ToString())'. The confirmed parameter is true when called from ConfirmEmailAsync.",
+      "docFact": null
+    },
+    {
+      "claim": "When you disable a member account, the account is not blocked immediately. Disabled accounts can remain active for up to 30 minutes",
+      "location": "Section: Remarks - Disabling user accounts, line 154 (restructured admin lead-in in attempt 2)",
+      "result": "verified",
+      "evidence": "MemberInfoProvider.Set() regenerates SecurityStamp when MemberEnabled changes. The SecurityStampValidator in ASP.NET Identity checks at a configurable interval (default 30 minutes per Microsoft.AspNetCore.Identity.SecurityStampValidatorOptions). Between checks, the old cookie remains valid. The Xperience codebase does not override this default for member-facing authentication.",
+      "docFact": null
+    },
+    {
+      "claim": "Every time the ApplicationUser.Enabled property changes, the system generates a new value for the account's SecurityStamp",
+      "location": "Section: Remarks - Disabling user accounts, line 156",
+      "result": "verified",
+      "evidence": "MemberInfoProvider.cs line 27-29: 'if (info.ItemChanged(\"MemberEnabled\") && (info.MemberID > 0 || string.IsNullOrEmpty(info.MemberSecurityStamp))) { info.MemberSecurityStamp = GenerateSecurityStamp(); }'. For existing members (MemberID > 0), the stamp is always regenerated on Enabled change.",
+      "docFact": null
+    },
+    {
+      "claim": "The security stamp value is stored in the client's authentication cookie and compared against the server value; mismatches force re-authentication",
+      "location": "Section: Remarks - Disabling user accounts, line 156",
+      "result": "verified",
+      "evidence": "Standard ASP.NET Identity SecurityStamp behavior. The SecurityStampValidator middleware compares the cookie's stamp claim against the database value. MemberInfo.cs line 179 XML doc confirms: 'Changing this field's value will invalidate authentication cookies.'",
+      "docFact": null
+    },
+    {
+      "claim": "ISecurityStampValidator performs comparison at a set interval, 30 minutes by default",
+      "location": "Section: Remarks - Disabling user accounts, line 158",
+      "result": "verified",
+      "evidence": "ASP.NET Identity framework default: SecurityStampValidatorOptions.ValidationInterval defaults to TimeSpan.FromMinutes(30). The Xperience codebase does not override this default for member-facing auth. AdminSecurityStampValidatorOptions exists for admin auth but does not affect member auth.",
+      "docFact": null
+    },
+    {
+      "claim": "Change the revalidation interval via SecurityStampValidatorOptions to immediately block access",
+      "location": "Section: Remarks - Disabling user accounts, line 158",
+      "result": "verified",
+      "evidence": "UITests/Program.cs contains: 'services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);' — confirming this is a valid and used configuration pattern in the Xperience ecosystem.",
+      "docFact": null
+    },
+    {
+      "claim": "The system automatically logs the Member registration activity whenever a member becomes active (enabled)",
+      "location": "Section: Remarks - Registration activity logging, line 169",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.CreateInternal: 'if (memberInfo.MemberEnabled) { await memberManagementService.HandleMemberRegistration(...); }'. MemberManagementService.HandleMemberRegistration calls memberActivityLogger.LogMemberRegistration(). The activity is only logged when the member is enabled.",
+      "docFact": null
+    },
+    {
+      "claim": "Activity logging occurs when a new member is added via UserManager.CreateAsync with Enabled set to true",
+      "location": "Section: Remarks - Registration activity logging, line 171",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.CreateInternal lines 218-222: 'if (memberInfo.MemberEnabled) { await memberManagementService.HandleMemberRegistration(memberInfo.MemberID, cancellationToken); }' — confirmed for CreateAsync path.",
+      "docFact": null
+    },
+    {
+      "claim": "Activity logging occurs whenever a member is updated to become active (e.g., via ConfirmEmailAsync or UpdateAsync)",
+      "location": "Section: Remarks - Registration activity logging, line 172",
+      "result": "verified",
+      "evidence": "ApplicationUserStore.UpdateInternal: 'var isNewRegistration = user.Enabled && !memberInfo.MemberEnabled;' then 'if (isNewRegistration) { await memberManagementService.HandleMemberRegistration(...); }' — fires on transition from disabled to enabled via any UpdateAsync path.",
+      "docFact": null
+    },
+    {
+      "claim": "Reactivation processes only fire when performed via the ASP.NET Identity API (UserManager), not via the administration UI",
+      "location": "Section: Remarks - Registration activity logging, line 174",
+      "result": "verified",
+      "evidence": "HandleMemberRegistration is only called from ApplicationUserStore.CreateInternal and UpdateInternal (lines 221 and 266). The admin UI would use MemberInfoProvider.Set() directly, which does not invoke HandleMemberRegistration. No other call sites exist for HandleMemberRegistration in the codebase.",
+      "docFact": null
+    },
+    {
+      "claim": "IVirtualContextDecorationArbiter interface with PathRequiresDecoration(string path) method",
+      "location": "Section: Remarks - Page preview mode, lines 191-209",
+      "result": "verified",
+      "evidence": "IVirtualContextDecorationArbiter.cs in Kentico.Content.Web.Mvc: 'public interface IVirtualContextDecorationArbiter { bool PathRequiresDecoration(string path); }'. Method signature matches exactly.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "code_link: Website/Program.cs, identity-setup block (lines 31-50 of source file)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Code sample uses AddIdentity<ApplicationUser, ApplicationRole> matching source types at commit 65412d2. AddUserStore<ApplicationUserStore<ApplicationUser>> and AddRoleStore<ApplicationRoleStore<ApplicationRole>> match actual generic constraints. RequireConfirmedAccount=true and RequireUniqueEmail=true are valid IdentityOptions properties. Password options are valid."
+    },
+    {
+      "location": "code_link: Website/Program.cs, middleware-setup block (lines 72-82 of source file)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Middleware ordering: UseStaticFiles → UseCookiePolicy → UseAuthentication → UseKentico → UseAuthorization. Follows ASP.NET Core conventions. UseAuthentication before UseAuthorization is mandatory."
+    },
+    {
+      "location": "code_link: CodeSamples/Membership/StandaloneSamples/MemberRetrievalExample.cs, member-retrieval block",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Uses UserManager<ApplicationUser>.FindByIdAsync with httpContextAccessor.HttpContext.User.FindFirstValue(userManager.Options.ClaimsIdentity.UserIdClaimType). Imports correct (System.Security.Claims, Microsoft.AspNetCore.Identity, Kentico.Membership). Null-safety handled with ?? string.Empty."
+    },
+    {
+      "location": "Inline code: Remarks - Identity configuration (lines 138-146)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "AddIdentity<ApplicationUser, ApplicationRole> with RequireConfirmedAccount=true. Matches actual code sample and source types."
+    },
+    {
+      "location": "Inline code: Remarks - SecurityStampValidatorOptions (lines 160-165)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero). Valid configuration pattern — confirmed identical usage in UITests/Program.cs. Comment accurately describes behavior: cookie checked on every request, mismatch clears cookie."
+    },
+    {
+      "location": "Inline code: Remarks - IVirtualContextDecorationArbiter example (lines 196-209)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "RegisterImplementation assembly attribute pattern is widely used in the codebase. Interface implementation is correct — IVirtualContextDecorationArbiter.PathRequiresDecoration(string path) returns bool. Code is syntactically valid C#."
+    },
+    {
+      "location": "Inline code: MVC authorization - not previewable (lines 217-223)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "[Authorize(\"SomeAuthenticationScheme\")] is valid ASP.NET Core authorization attribute syntax. The scenario (scheme-specific auth blocking preview) is a standard ASP.NET Core behavior."
+    }
+  ],
+  "researchRecommendationCompliance": [
+    {
+      "recommendationId": "REC-013",
+      "status": "compliant",
+      "notes": "Terminology is consistent throughout: 'member' for registered visitors (lines 31, 35, 38, 92-100, 154), 'visitor' for anonymous users (lines 60, 94), 'sign in' verb form (lines 37, 134, 136). No instances of 'log in' or 'sign up'."
+    },
+    {
+      "recommendationId": "REC-015",
+      "status": "compliant",
+      "notes": "All type names use backtick formatting: ApplicationRole, ApplicationRoleStore, IRoleStore<TRole>, IdentityRole<int>, MemberRoleInfo, ContentAccessSettings, HasAccess, IContentItemFieldsSource, SecurityStampValidatorOptions, etc. Plurals use 'X objects' pattern: 'MemberRoleInfo objects' (line 35), 'MemberInfo objects' (line 118)."
+    },
+    {
+      "recommendationId": "REC-016",
+      "status": "compliant",
+      "notes": "Authentication configuration section leads with concrete steps: 'Identity can be added to the application and configured as part of the startup pipeline in Program.cs' (line 27). Links to ASP.NET Core external docs for generic concepts (IdentityUser, IUserValidator, SecurityStamp) rather than re-explaining."
+    }
+  ],
+  "domainInsightCompliance": [],
+  "invariantDiscards": [],
+  "summary": {
+    "totalClaims": 37,
+    "verified": 35,
+    "incorrect": 0,
+    "unverifiable": 2,
+    "unsupported": 0,
+    "codeExamplesChecked": 7,
+    "codeExamplesCorrect": 7
+  }
+}

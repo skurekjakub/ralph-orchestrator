@@ -1,0 +1,52 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-008",
+  "attempt": 1,
+  "action": "update",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/content-retrieval/retrieve-page-content.md",
+  "sectionsModified": [
+    "Page security configuration — rewritten intro paragraph for three-tier content access model",
+    "Code sample 'Include secured pages' — updated code comment for consistency",
+    "Razor view code sample — replaced manual IsAuthenticated check with HasAccess() extension method",
+    "403 Forbidden explanation — replaced single-status description with 401 vs 403 distinction",
+    "AccessDeniedPath example — split into LoginPath + AccessDeniedPath with separate comments"
+  ],
+  "sectionsAdded": [
+    "Check access with HasAccess — new h4 subsection documenting the HasAccess extension method with code example",
+    "Additional security properties — info callout documenting ContentItemIsSecured and ContentItemRequiredMemberRoleNames",
+    "Authentication and authorization responses — new h4 subsection explaining 401 vs 403 scenarios",
+    "Backward-compatible path handling — info callout explaining LoginPath fallback from AccessDeniedPath"
+  ],
+  "sectionsRemoved": [
+    "Paragraph about blurred teaser image overlay (removed — opinionated UI suggestion, not API documentation)"
+  ],
+  "docFactsUsed": [
+    "AREA-009: ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — public extension method returning bool",
+    "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403) via internal ContentAccessCheckResult enum",
+    "AREA-009: Content access cookie auth configuration separates login path from access denied path; auto-fallback when LoginPath not set",
+    "AREA-009: MemberAccessHelper.CheckAccess logic: !isSecured→Allowed, !authenticated→NotAuthenticated, no required roles→Allowed, user in any role→Allowed, else→Forbidden",
+    "AREA-006: ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string> available on query result containers",
+    "AREA-006: For unsecured items, ContentItemRequiredMemberRoleNames returns empty collection"
+  ],
+  "invariantsApplied": [
+    "INV-style-001",
+    "INV-structure-006",
+    "INV-formatting-004",
+    "INV-codesamples-004",
+    "INV-codesamples-006",
+    "INV-codesamples-008",
+    "INV-codesamples-009",
+    "INV-codesamples-010",
+    "INV-persona-003",
+    "INV-callout-002",
+    "INV-jekyll-002"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-012",
+    "REC-014"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Consolidated IMP-006 and IMP-016 into a single update. The three-tier model (public/secured/secured-with-roles) replaces the previous binary secured/unsecured description. HasAccess() extension documented as the recommended programmatic check per REC-014 progression (simple→complex). The backward-compatible path handling callout reflects the actual ContentAccessCookieAuthenticationConfiguration behavior from source code: when LoginPath is not set but AccessDeniedPath is, LoginPath falls back to AccessDeniedPath. Cross-references added to member_roles_xp (TASK-001) and reference_content_access_settings_xp (TASK-002)."
+}

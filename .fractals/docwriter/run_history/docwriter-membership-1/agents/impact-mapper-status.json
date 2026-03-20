@@ -1,0 +1,12 @@
+{
+  "agent": "docwriter-impact-mapper",
+  "status": "done",
+  "result": "impact-matrix-ready",
+  "totalImpacts": 22,
+  "pagesAffected": 15,
+  "newPagesNeeded": 2,
+  "criticalImpacts": 4,
+  "highImpacts": 11,
+  "mediumImpacts": 5,
+  "lowImpacts": 2
+}

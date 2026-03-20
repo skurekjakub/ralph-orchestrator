@@ -1,0 +1,87 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-014",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousRejection": {
+    "attempt": 1,
+    "failedInvariant": "INV-formatting-016",
+    "issue": "8 em dashes (U+2014) found on lines 502, 557–559, 861, 938–940"
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "evidence": "Binary scan confirms 0 em dashes (U+2014) and 14 en dashes (U+2013) in the file. All 8 previously-flagged em dashes on lines 502, 557, 558, 559, 861, 938, 939, 940 are now en dashes. Remaining 6 en dashes on lines 28, 29, 1244, 1245, 1246, 1663 were pre-existing and correct."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members in modified sections are backticked: `AccessSettings`, `ContentAccessSettings`, `ContentAccessSettings.Public()`, `ContentAccessSettings.Secured()`, `ContentAccessSettings.SecuredWithRoles(IEnumerable<int>)`, `ArgumentNullException`, `ContentItemData`, `null`. Code terms inside Liquid linkText attributes correctly use plain text (link labels, not inline code)."
+    },
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Front matter title is 'Reference - Global system events', matching the required 'Reference - XYZ' pattern."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Modified sections properly link to the dependent TASK-002 output via page_link to reference_content_access_settings_xp on lines 502, 563, 861, and 944. The page remains self-contained; linked content supplements rather than duplicates."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "User type terminology is correct in modified sections: 'member' used on lines 558-559, 939-940 to mean registered visitor without admin access. No confusion with visitor, contact, or customer."
+    }
+  ],
+  "skippedInvariants": [
+    {
+      "invariantId": "INV-persona-003",
+      "reason": "Persona-domain invariant — deferred to persona-reviewer per scope separation."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "15 headings across the page follow h2 → h3 progression with no skipped levels. Modified sections sit under h2 ContentItemEvents and h2 WebPageEvents."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "All required fields present: title, persona (developer), identifier (2AOiCQ), order (300). Optional fields toc.minHeadingLevel, toc.maxHeadingLevel, redirect_from also present."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "No broken Liquid tags. All {% %} pairs balanced. page_link references in modified sections use correct syntax with linkText parameter."
+    },
+    {
+      "category": "list-formatting",
+      "result": "pass",
+      "evidence": "Bullet lists on lines 557-559 and 938-940 follow consistent pattern: backticked ClassName.Method() followed by en dash and description. Consistent across both ContentItemEvents and WebPageEvents sections."
+    },
+    {
+      "category": "code-blocks",
+      "result": "pass",
+      "evidence": "No fenced code blocks in modified sections. Inline code uses single backticks consistently."
+    },
+    {
+      "category": "cross-references",
+      "result": "pass",
+      "evidence": "4 cross-references to reference_content_access_settings_xp (TASK-002 output) added across both ContentItemEvents and WebPageEvents sections. All use page_link with linkText syntax."
+    }
+  ],
+  "metaKnowledgeConsulted": {
+    "knowledgeBrief": "Present but empty — styleEvolutions: [], antiPatterns: []. No supplementary style criteria to apply.",
+    "antiPatternsReference": "File .github/skills/docwriter-meta/references/anti-patterns.md does not exist. Skipped per missing-artifact policy."
+  },
+  "summary": {
+    "invariantsPassed": 5,
+    "invariantsFailed": 0,
+    "invariantsSkipped": 1,
+    "additionalIssues": 0,
+    "regressionFromAttempt1": "none — INV-formatting-016 fully remediated"
+  }
+}

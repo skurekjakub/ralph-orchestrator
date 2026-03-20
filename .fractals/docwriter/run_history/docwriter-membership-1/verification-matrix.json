@@ -1,0 +1,2626 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-14T15:30:51.512738+00:00",
+  "generatedBy": "docwriter-cross-ref-updater",
+  "tasksVerified": 17,
+  "crossRefsChecked": 477,
+  "crossRefsFixed": 0,
+  "crossRefsAdded": 3,
+  "missingInboundLinks": 0,
+  "outboundLinksValid": 477,
+  "outboundLinksBroken": 0,
+  "inpageLinksChecked": 99,
+  "inpageLinksBroken": 0,
+  "anchorRefsChecked": 112,
+  "anchorRefsBroken": 0,
+  "summary": {
+    "allOutboundLinksValid": true,
+    "allInpageLinksValid": true,
+    "allAnchorRefsValid": true,
+    "newCrossRefsAdded": 3,
+    "description": "All 474 outbound page_link references resolve to valid identifiers. All 112 anchor references point to existing headings/anchors on target pages. All 99 inpage_link references point to valid same-page anchors. 3 new cross-references were added to link ContentAccessSettings mentions to the new Reference - ContentAccessSettings page (reference_content_access_settings_xp)."
+  },
+  "fixes": [
+    {
+      "file": "developers-and-admins/development/registration-and-authentication/member-roles.md",
+      "taskId": "TASK-001",
+      "type": "new-link-added",
+      "description": "Added page_link to reference_content_access_settings_xp in the Content access model section where ContentAccessSettings class is first described",
+      "linkAdded": "{% page_link reference_content_access_settings_xp linkText=\"Reference - ContentAccessSettings\" %}",
+      "applied": true
+    },
+    {
+      "file": "developers-and-admins/development/registration-and-authentication.md",
+      "taskId": "TASK-003",
+      "type": "new-link-added",
+      "description": "Converted plain-text ContentAccessSettings class mention to a page_link pointing to reference_content_access_settings_xp in the Content access model section",
+      "linkAdded": "{% page_link reference_content_access_settings_xp linkText=\"ContentAccessSettings\" %}",
+      "applied": true
+    },
+    {
+      "file": "developers-and-admins/customization/handle-global-events.md",
+      "taskId": "TASK-015",
+      "type": "new-link-added",
+      "description": "Converted plain-text ContentAccessSettings type mention to a page_link pointing to reference_content_access_settings_xp in the non-nullable AccessSettings note",
+      "linkAdded": "{% page_link reference_content_access_settings_xp linkText=\"ContentAccessSettings\" %}",
+      "applied": true
+    }
+  ],
+  "results": [
+    {
+      "taskId": "TASK-001",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/member-roles.md",
+      "identifier": "member_roles_xp",
+      "isNewPage": true,
+      "outboundLinks": [
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4obWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": true,
+          "fixDescription": "Added link to Reference - ContentAccessSettings in Content access model section"
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "fixed"
+    },
+    {
+      "taskId": "TASK-002",
+      "targetFile": "developers-and-admins/api/content-item-api/reference-content-access-settings.md",
+      "identifier": "reference_content_access_settings_xp",
+      "isNewPage": true,
+      "outboundLinks": [
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-003",
+      "targetFile": "developers-and-admins/development/registration-and-authentication.md",
+      "identifier": "tYouCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uIouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uIouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "oYPWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "automation_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QWiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "GYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "shareable_preview_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "GYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "shareable_preview_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uIouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [
+        {
+          "fromFile": "self",
+          "linkTarget": "reference_content_access_settings_xp",
+          "added": true,
+          "reason": "Line 100 mentions ContentAccessSettings class without linking to the dedicated API reference page"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "taskId": "TASK-004",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/forms-authentication.md",
+      "identifier": "t4ouCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "5gKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-005",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/external-authentication.md",
+      "identifier": "uIouCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uoouCw",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-006",
+      "targetFile": "developers-and-admins/development/registration-and-authentication/add-fields-to-member-objects.md",
+      "identifier": "uoouCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "uIouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "AKDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "V6rWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "t4ouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "uIouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4gSiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "1oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "V6rWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-007",
+      "targetFile": "developers-and-admins/development/content-retrieval/retrieve-content-items.md",
+      "identifier": "OKrWCQ",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ASiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ASiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "barWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QWiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "7gWiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ASiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "w4LWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xYLWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ASiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RofWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-008",
+      "targetFile": "developers-and-admins/development/content-retrieval/retrieve-page-content.md",
+      "identifier": "4obWCQ",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "MAKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "DQKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_retriever_api_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OKrWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "retrieve_page_urls_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QKiCQ",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-009",
+      "targetFile": "developers-and-admins/api/content-item-api/reference-content-item-query.md",
+      "identifier": "YRT_Cw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "XBT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "retrieve_page_urls_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4obWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4obWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "retrieve_page_urls_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "retrieve_page_urls_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "XBT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "XBT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ASiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "retrieve_page_urls_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4obWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-010",
+      "targetFile": "developers-and-admins/api/content-item-api/content-item-query-api.md",
+      "identifier": "WhT_Cw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YRT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "kAQcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YRT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YRT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YRT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-011",
+      "targetFile": "business-users/members.md",
+      "identifier": "BIsuCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-012",
+      "targetFile": "business-users/website-content/secure-pages.md",
+      "identifier": "8oouCw",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "permissions_pagelevel_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "tYouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "4obWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-013",
+      "targetFile": "business-users/content-hub/content-items.md",
+      "identifier": "content_items_xp",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "barWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "f4HWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_item_assets_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "permissions_pagelevel_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "notifications_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "V6rWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IaDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xIWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8IfWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "develop_email_builder_components_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "aira_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BRX_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "aira_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "BIsuCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IaDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xIWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "page_versioning_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "versioning_configuration_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_recycle_bin_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_recycle_bin_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_sync_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_item_assets_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-014",
+      "targetFile": "developers-and-admins/customization/handle-global-events/reference-global-system-events.md",
+      "identifier": "2AOiCQ",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "sIt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "sIt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "sIt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "sIt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "MAKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "MAKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xIWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "barWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xIWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6oVwCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "custom_workflow_notifications_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "zIB1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "zoB1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "0IB1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "-oLWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "-oLWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WAKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "sYt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "delete_inactive_contacts_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "oYPWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "oYPWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WhT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "Q4XWCQ",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-015",
+      "targetFile": "developers-and-admins/customization/handle-global-events.md",
+      "identifier": "r4t1CQ",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "sIt1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "2AOiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "reference_content_access_settings_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "2AOiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "Q4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "Q4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "QoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "decoupled_systems_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [
+        {
+          "fromFile": "self",
+          "linkTarget": "reference_content_access_settings_xp",
+          "added": true,
+          "reason": "Line 53 mentions ContentAccessSettings type without linking to the dedicated API reference page"
+        }
+      ],
+      "status": "fixed"
+    },
+    {
+      "taskId": "TASK-016",
+      "targetFile": "developers-and-admins/ci-cd/reference-ci-cd-object-types.md",
+      "identifier": "YgaiCQ",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "FAKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YgaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "FAKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YgaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "AKDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "AKDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "zoB1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "AKDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "AKDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "V6rWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "notifications_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "notifications_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "7IVwCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "scheduled_tasks_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "7YjFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "14bWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8ILWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "barWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "barWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "cicd_config_v2_migration",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_sync_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "RIXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "nYWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "xIWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "cicd_config_v2_migration",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "bwKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "cicd_config_v2_migration",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "permissions_pagelevel_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "I4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "I4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "I4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "I4XWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "cicd_config_v2_migration",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "iInWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "D4_OD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "taxonomies_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "limit_the_pages_users_can_create_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "dY3WCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "automation_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "o4PWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "customer_journeys_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "customer_journeys_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "eBT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IaDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "cicd_config_v2_migration",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "zgL9Cg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IaDWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WAKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YwaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "o4PWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "automation_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "o4PWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "automation_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "email_builder_templates_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "yQL9Cg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "yQL9Cg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "do3WCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "do3WCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "commerce_order_statuses_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "payment_methods_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "payment_methods_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "commerce_promotions_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "commerce_coupon_codes_xp",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    },
+    {
+      "taskId": "TASK-017",
+      "targetFile": "developers-and-admins/configuration/content-sync-configuration.md",
+      "identifier": "content_sync_configuration_xp",
+      "isNewPage": false,
+      "outboundLinks": [
+        {
+          "target": "content_sync_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "SI3WCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "wovWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5IfWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5YfWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_overview_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_configuration_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5AKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_overview_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IgKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_service_plans_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "pISyCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IgKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ygAcCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "1YjWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_sync_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "saas_configuration_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "5AKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "7IVwCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "permissions_pagelevel_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "7IVwCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ooguCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IYXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_hub_folders_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ooguCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "34HFC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "eBT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "nYWOD",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "limit_the_pages_users_can_create_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workspaces_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "gYHWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "OxT_Cw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IgKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YgaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "JwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WAKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IgKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YgaiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "HoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6QWiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "YIbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ZYbWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "content_items_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "track_page_usages_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "WgKiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "scheduled_tasks_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8wWiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "ui_component_reference_extractors_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "scheduled_tasks_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "6oVwCg",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "r4t1CQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "2AOiCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "workflows_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "8oouCw",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "member_roles_xp",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "-oLWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "-oLWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "SoXWCQ",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "IwKQC",
+          "valid": true,
+          "fixed": false
+        },
+        {
+          "target": "-oLWCQ",
+          "valid": true,
+          "fixed": false
+        }
+      ],
+      "inboundLinksNeeded": [],
+      "status": "verified"
+    }
+  ]
+}

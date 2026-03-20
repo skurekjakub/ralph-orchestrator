@@ -1,0 +1,164 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-016",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer", "architect"],
+      "taskDeclaredPersonas": ["developer", "admin"],
+      "evidence": "Front matter declares 'persona: developer, architect'. Both are valid values per INV-frontmatter-006. The task spec targets 'developer, admin', but the content writer correctly did not modify pre-existing front matter — the task scope was adding/correcting table entries, not re-targeting the page. The existing 'developer, architect' tagging is appropriate: developers need CI/CD object type lookups for configuration, and architects need the reference for understanding which objects are version-controlled in CI/CD workflows. The page lives under 'developers-and-admins/' which implicitly covers admin readers via the navigation hierarchy. No front matter change required for this task."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "The added Member roles entry (lines 101–113) uses precise technical terminology throughout: exact object type code name in backticks (`cms.memberrole`), a cross-reference to the Member roles documentation via {% page_link member_roles_xp %}, and the note explicitly names the related type (`cms.contentitemmemberrole`) in backticks while cross-referencing the content items section via {% inpage_link cicd_contentitems %}. The note's phrasing — 'serialized as part of content item data' — correctly communicates the CI/CD serialization model to developers who need to understand the dependency. This is the right register and depth for a developer audience."
+    },
+    {
+      "check": "tone-architect",
+      "result": "pass",
+      "evidence": "The entry provides the architectural insight architects need: cms.memberrole is a standalone CI/CD object, but its content item bindings (cms.contentitemmemberrole) are NOT independent CI/CD objects — they are embedded in content item serialization via a custom processor. This dependency information is critical for architects designing CI/CD transfer workflows or evaluating what gets synchronized. The entry communicates this clearly without requiring the reader to inspect source code."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "The cms.memberrole entry matches the depth pattern of surrounding General table entries. Comparable entries: 'Consents' (line 84) includes a note about CI/CD exclusions; 'Modules' (line 125) includes a note about supported child objects; 'Content items' has an anchor and explanatory notes. The Member roles note explains the serialization relationship in one sentence — neither over-explained nor under-explained. The Attempt 2 removal of the incorrect Binding table entry also improves depth calibration: the Binding table should only contain types with actual CI/CD folders, and cms.contentitemmemberrole does not have one."
+    },
+    {
+      "check": "terminology-consistency",
+      "result": "pass",
+      "evidence": "Content uses 'member roles' (matching the linked documentation page title and product terminology), 'registered members' (correct — not 'users' which in Xperience by Kentico context means admin account holders), and 'content items' (correct product term). Object type code names use the exact system identifiers: cms.memberrole, cms.contentitemmemberrole. All terminology is appropriate for the developer/architect audience and consistent with surrounding entries."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "reference",
+    "actual": "reference",
+    "result": "pass",
+    "evidence": "Page is a structured lookup table of CI/CD-supported object types organized into five sections: General, Content management, Digital marketing, Digital commerce, and Binding object types. Each entry provides the object display name, CI/CD folder code name, and brief notes. Contains no procedural steps, no conceptual deep-dives, and no tutorial narrative. The title follows the 'Reference - XYZ' pattern per INV-structure-019. Pure reference content."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer, architect",
+      "validValues": true,
+      "notes": "Both 'developer' and 'architect' are valid per INV-frontmatter-006 (valid set: developer, admin, business, architect, all)."
+    },
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Reference - CI/CD object types",
+      "notes": "Follows 'Reference - XYZ' pattern per INV-structure-019."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "xQCiCQ"
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "10000"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "notes": "Standard tier per INV-frontmatter-005."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/xQCiCQ",
+      "notes": "Includes x/<identifier> as required by INV-frontmatter-004."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "The CI/CD topic cluster pages consistently target the developer persona. Pages with architectural scope add 'architect': 'Configure CI/CD repositories' (developer, architect), 'Repository configuration templates' (developer, architect). Procedure-focused pages use 'developer' only: 'Continuous Integration' (developer), 'Continuous Deployment' (developer), 'CI/CD repository structure' (developer), 'CI/CD database migration scripts' (developer). This reference page's 'developer, architect' targeting is consistent with the cluster pattern — reference and configuration pages include architect, procedural pages do not. The added Member roles entry follows the identical tabular format, tone, and depth as all other entries in the General table."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user tone rules do not apply — this page does not target the business persona."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user assumption rules do not apply — this page does not target the business persona."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content uses developer terminology appropriately: exact object type code names (cms.memberrole, cms.contentitemmemberrole), CI/CD folder names, serialization behavior. No business/marketing terms are used without explanation. The reference table format does not involve procedural steps, so the 'combine 2 related easy steps' rule is not testable, but the overall developer register is correct."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is specifically adjusted for the developer/architect audience: object type code names, CI/CD serialization concepts, custom processor references. 'Registered members' is used correctly (not 'users'). No cross-domain business terminology is introduced without context."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "evidence": "Guides tone rules do not apply — this page is in the _documentation collection, not _guides."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business user guide materials rules do not apply — this is a developer/architect reference page in _documentation."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title ('Reference - CI/CD object types'), identifier ('xQCiCQ'), order (10000), redirect_from ('x/xQCiCQ'), persona ('developer, architect'), license (1)."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "evidence": "redirect_from includes 'x/xQCiCQ' matching the x/<identifier> pattern."
+    },
+    {
+      "invariantId": "INV-frontmatter-005",
+      "result": "pass",
+      "evidence": "License value is 1 (standard tier) — valid per the tier definitions."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona values 'developer' and 'architect' are both in the valid set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-structure-018",
+      "result": "pass",
+      "evidence": "Content does not over-explain CI/CD concepts or object types. Assumes the reader understands what CI/CD is, what object types are, and why a reference table of supported types is useful. The Member roles note explains only the serialization dependency (critical for understanding which types have CI/CD folders) without re-explaining CI/CD fundamentals."
+    },
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Title follows 'Reference - CI/CD object types' pattern as required for reference pages."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "Object type code names are in backticks: `cms.memberrole` (line 107 cell), `cms.contentitemmemberrole` (line 111 note). Consistent with all other entries in the reference table."
+    }
+  ],
+  "attempt2Delta": {
+    "changeFromAttempt1": "Removed cms.contentitemmemberrole row from Binding object types table per accuracy reviewer rejection.",
+    "personaImpact": "Positive. The removal eliminates a misleading entry that could confuse both developers and architects — it implied cms.contentitemmemberrole has its own CI/CD folder, which contradicts the General section note (line 111) explaining it is serialized as part of content item data. The remaining content is persona-accurate."
+  },
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "personaChecksNoted": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 9,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "notes": "Attempt 2 is cleaner than Attempt 1 from a persona perspective. The Binding table removal eliminates a potential source of confusion for both developers (who might look for a cms.contentitemmemberrole CI/CD folder that doesn't exist) and architects (who might incorrectly model this as an independent CI/CD object). The front matter persona mismatch with the task spec (developer+architect vs. developer+admin) is a pre-existing condition outside the writer's task scope, and both taggings are defensible for this page. Upgrading from approved-with-notes (Attempt 1) to approved (Attempt 2)."
+  }
+}

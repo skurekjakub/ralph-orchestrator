@@ -1,0 +1,16 @@
+{
+  "agent": "docwriter-task-signal-analyzer",
+  "status": "done",
+  "result": "task-signals-ready",
+  "timestamp": "2026-03-14T15:52:13.554787+00:00",
+  "tasksAnalyzed": 17,
+  "firstAttemptTasks": 3,
+  "twoCycleTasks": 12,
+  "multiCycleTasks": 2,
+  "candidatePatterns": 5,
+  "candidateAntiPatterns": 4,
+  "styleEvolutions": 7,
+  "aggregateSignals": 6,
+  "topRejectionInvariant": "INV-formatting-016 (3 tasks)",
+  "topRejectionCategory": "accuracy"
+}

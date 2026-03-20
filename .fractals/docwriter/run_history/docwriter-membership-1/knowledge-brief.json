@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "generatedAt": "2025-07-24T12:00:00Z",
+  "taskProfile": {
+    "domains": [
+      "membership",
+      "roles",
+      "authentication",
+      "content-access-security",
+      "identity",
+      "web-pages"
+    ],
+    "docTypes": [
+      "reference",
+      "how-to",
+      "conceptual"
+    ],
+    "changeScope": "feature-addition",
+    "historicalSimilarity": "none — cold start, no prior pipeline runs to compare"
+  },
+  "patterns": [],
+  "antiPatterns": [],
+  "domainInsights": [],
+  "styleEvolutions": [],
+  "taskRetroLessons": [],
+  "staleEntries": [],
+  "conflicts": [],
+  "summary": {
+    "patternsIncluded": 0,
+    "antiPatternsIncluded": 0,
+    "domainInsightsIncluded": 0,
+    "styleEvolutionsIncluded": 0,
+    "taskRetroLessonsIncluded": 0,
+    "staleEntriesFlagged": 0,
+    "conflictsDetected": 0,
+    "totalIndexEntries": 0,
+    "relevanceThreshold": 0.4,
+    "truncated": false,
+    "coldStart": true
+  }
+}

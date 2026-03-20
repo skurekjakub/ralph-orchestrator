@@ -1,0 +1,7 @@
+{
+  "agent": "docwriter-diff-analyzer",
+  "status": "done",
+  "result": "change-inventory-ready",
+  "areasFound": 32,
+  "totalFiles": 350
+}

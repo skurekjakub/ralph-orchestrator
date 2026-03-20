@@ -1,0 +1,229 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-014",
+  "attempt": 2,
+  "verdict": "approved",
+  "sourceCommit": "65412d25da302785ccbca5bf81993079f8819f18",
+  "regressionCheck": {
+    "previousAttemptVerdict": "approved",
+    "changeScope": "em dash (U+2014) → en dash (U+2013) on 8 lines: 502, 557, 558, 559, 861, 938, 939, 940",
+    "dashAudit": {
+      "emDashesInFile": 0,
+      "enDashesInFile": 14,
+      "modifiedLinesUseEnDash": true,
+      "consistentWithPageConvention": true,
+      "notes": "All 8 modified lines now use en dashes (U+2013). Zero em dashes remain in the entire file. Existing non-modified lines (28, 29, 1244, 1245, 1246, 1663) already used en dashes — page convention is uniform."
+    },
+    "contentIntegrity": "All technical text surrounding the dash characters is byte-identical to Attempt 1 except for the single-character dash replacement. No accidental deletions, insertions, or rewordings."
+  },
+  "claims": [
+    {
+      "claim": "UpdateMetadata event: Occurs when an item's metadata is updated (e.g., security settings)",
+      "location": "ContentItemEvents table — UpdateMetadata Description cell, line 500",
+      "result": "verified",
+      "evidence": "ContentItemEvents.cs at commit 65412d2: AdvancedContentItemEventHandler<UpdateContentItemMetadataEventArgs> UpdateMetadata. ContentItemMetadataManager.UpdateMetadata() updates AccessSettings as part of metadata.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "The event data state exposes an `AccessSettings` property of type `ContentAccessSettings` (ContentItemEvents — UpdateMetadata)",
+      "location": "ContentItemEvents table — UpdateMetadata Description cell, line 502",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/ContentEngine/Events/UpdateMetadata/UpdateContentItemMetadataEventDataState.cs — property: `public ContentAccessSettings AccessSettings { get => accessSettings; internal set { ArgumentNullException.ThrowIfNull(value); accessSettings = value; } }`",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "AccessSettings requires a non-null value — setting it to `null` throws an `ArgumentNullException` (ContentItemEvents — UpdateMetadata)",
+      "location": "ContentItemEvents table — UpdateMetadata Description cell, line 502",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/ContentEngine/Events/UpdateMetadata/UpdateContentItemMetadataEventDataState.cs — internal setter contains `ArgumentNullException.ThrowIfNull(value)`. ContentAccessSettings is a sealed class at this commit (not a struct), so null is a valid argument and the guard is meaningful.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "Use `ContentAccessSettings.Public()` for unsecured content (ContentItemEvents — UpdateMetadata)",
+      "location": "ContentItemEvents table — UpdateMetadata Description cell, line 502",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/ContentEngine/ContentItemMemberRole/ContentAccessSettings.cs line 31: `public static ContentAccessSettings Public() => new(false);` — creates instance with IsSecured=false.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "All `ContentItemEvents` event data states expose an `AccessSettings` property (type `ContentAccessSettings`)",
+      "location": "ContentItemEvents note block, line 555",
+      "result": "verified",
+      "evidence": "Enumerated all 8 content engine event data states at commit 65412d2 via git ls-tree. Each has ThrowIfNull=1: CreateContentItemEventDataState, CreateLanguageVariantEventDataState, DeleteContentItemEventDataState, PublishContentItemEventDataState, UnpublishContentItemEventDataState, UpdateDraftEventDataState, UpdateContentItemLanguageMetadataEventDataState, UpdateContentItemMetadataEventDataState.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "`ContentAccessSettings.Public()` — no authentication required (default)",
+      "location": "ContentItemEvents note block, line 557",
+      "result": "verified",
+      "evidence": "git show 65412d2:ContentAccessSettings.cs — `Public() => new(false)` sets IsSecured=false. All 8 event data states field initializer: `private ContentAccessSettings accessSettings = ContentAccessSettings.Public();`",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "`ContentAccessSettings.Secured()` — any authenticated member can access the item",
+      "location": "ContentItemEvents note block, line 558",
+      "result": "verified",
+      "evidence": "git show 65412d2:ContentAccessSettings.cs — `Secured() => new(true)` sets IsSecured=true with empty RequiredMemberRoleIDs. XML doc: 'secured content accessible by all authenticated users'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "`ContentAccessSettings.SecuredWithRoles(IEnumerable<int>)` — only members with specific member roles can access the item",
+      "location": "ContentItemEvents note block, line 559",
+      "result": "verified",
+      "evidence": "git show 65412d2:ContentAccessSettings.cs line 80: `public static ContentAccessSettings SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs)` — validates non-null, non-empty, creates instance with IsSecured=true and provided role IDs.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Setting `AccessSettings` to `null` on any ContentItemEvents event data state throws an `ArgumentNullException`",
+      "location": "ContentItemEvents note block, line 561",
+      "result": "verified",
+      "evidence": "All 8 content engine event data states at commit 65412d2 contain `ArgumentNullException.ThrowIfNull(value)` in internal setter (confirmed via grep: ThrowIfNull=1 each). ContentAccessSettings is a sealed class at this commit, so null is assignable and the guard fires.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "UpdateSecuritySettings event: Occurs when page security settings are updated",
+      "location": "WebPageEvents table — UpdateSecuritySettings Description cell, line 859",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/Websites/Handlers/WebPageEvents.cs line 73: `public static AdvancedContentItemEventHandler<UpdateWebPageSecuritySettingsEventsArgs> UpdateSecuritySettings`.",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "The event data state exposes an `AccessSettings` property of type `ContentAccessSettings` (WebPageEvents — UpdateSecuritySettings)",
+      "location": "WebPageEvents table — UpdateSecuritySettings Description cell, line 861",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/Websites/Events/UpdateSecuritySettings/UpdateWebPageSecuritySettingsEventDataState.cs — property: `public ContentAccessSettings AccessSettings { get => accessSettings; internal set { ArgumentNullException.ThrowIfNull(value); accessSettings = value; } }`",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "AccessSettings requires a non-null value — setting it to `null` throws an `ArgumentNullException` (WebPageEvents — UpdateSecuritySettings)",
+      "location": "WebPageEvents table — UpdateSecuritySettings Description cell, line 861",
+      "result": "verified",
+      "evidence": "Same file as above — internal setter has `ArgumentNullException.ThrowIfNull(value)`. Confirmed at diff commit.",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "Use `ContentAccessSettings.Public()` for unsecured content (WebPageEvents — UpdateSecuritySettings)",
+      "location": "WebPageEvents table — UpdateSecuritySettings Description cell, line 861",
+      "result": "verified",
+      "evidence": "Same factory method: Public() => new(false), IsSecured=false.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "All `WebPageEvents` event data states expose an `AccessSettings` property (type `ContentAccessSettings`)",
+      "location": "WebPageEvents note block, line 936",
+      "result": "verified",
+      "evidence": "Enumerated all 13 WebPage event data states at commit 65412d2 via git ls-tree. 6 have direct AccessSettings with ThrowIfNull (Delete, Move, Publish, Unpublish, UpdateSecuritySettings, UpdateTreePathSlug). 7 delegate to content engine states (e.g., CreateWebPageEventDataState.AccessSettings delegates to contentItemState.AccessSettings which has ThrowIfNull).",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "`ContentAccessSettings.Public()` — no authentication required (default) (in WebPageEvents section)",
+      "location": "WebPageEvents note block, line 938",
+      "result": "verified",
+      "evidence": "Same factory method. All 6 direct WebPage event data states also default field initializer to ContentAccessSettings.Public().",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "`ContentAccessSettings.Secured()` — any authenticated member can access the page",
+      "location": "WebPageEvents note block, line 939",
+      "result": "verified",
+      "evidence": "Same factory method: Secured() => new(true) with empty RequiredMemberRoleIDs.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "`ContentAccessSettings.SecuredWithRoles(IEnumerable<int>)` — only members with specific member roles can access the page",
+      "location": "WebPageEvents note block, line 940",
+      "result": "verified",
+      "evidence": "Same factory method signature confirmed: `SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs)` at line 80.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Setting `AccessSettings` to `null` on any WebPageEvents event data state throws an `ArgumentNullException`",
+      "location": "WebPageEvents note block, line 942",
+      "result": "verified",
+      "evidence": "6 direct WebPage states have ThrowIfNull in own setter. 7 delegating states route through content engine states which all have ThrowIfNull (e.g., CreateWebPageEventDataState.AccessSettings delegates to contentItemState.AccessSettings).",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "ContentItemEvents namespace is CMS.ContentEngine",
+      "location": "ContentItemEvents section header, line 311",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/ContentEngine/Handlers/ContentItemEvents.cs line 1: `namespace CMS.ContentEngine`",
+      "docFact": null
+    },
+    {
+      "claim": "WebPageEvents namespace is CMS.Websites",
+      "location": "WebPageEvents section header, line 569",
+      "result": "verified",
+      "evidence": "git show 65412d2:CMSSolution/Websites/Handlers/WebPageEvents.cs line 3: `namespace CMS.Websites`",
+      "docFact": null
+    },
+    {
+      "claim": "UpdateMetadata (ContentItemEvents) uses Advanced handler with Before/After/Failure event types",
+      "location": "ContentItemEvents table — UpdateMetadata row, lines 480–504",
+      "result": "verified",
+      "evidence": "ContentItemEvents.cs: `AdvancedContentItemEventHandler<UpdateContentItemMetadataEventArgs> UpdateMetadata`. AdvancedContentItemEventHandler provides Before/After/Failure.",
+      "docFact": null
+    },
+    {
+      "claim": "UpdateMetadata (ContentItemEvents) handler parameters type is `UpdateContentItemMetadataEventArgs`",
+      "location": "ContentItemEvents table — UpdateMetadata row, line 496",
+      "result": "verified",
+      "evidence": "ContentItemEvents.cs at 65412d2: `AdvancedContentItemEventHandler<UpdateContentItemMetadataEventArgs> UpdateMetadata`",
+      "docFact": null
+    },
+    {
+      "claim": "UpdateSecuritySettings (WebPageEvents) uses Advanced handler with Before/After/Failure event types",
+      "location": "WebPageEvents table — UpdateSecuritySettings row, lines 839–863",
+      "result": "verified",
+      "evidence": "WebPageEvents.cs at 65412d2: `AdvancedContentItemEventHandler<UpdateWebPageSecuritySettingsEventsArgs> UpdateSecuritySettings`.",
+      "docFact": null
+    },
+    {
+      "claim": "UpdateSecuritySettings (WebPageEvents) handler parameters type is `UpdateWebPageSecuritySettingsEventsArgs`",
+      "location": "WebPageEvents table — UpdateSecuritySettings row, line 855",
+      "result": "verified",
+      "evidence": "WebPageEvents.cs at 65412d2 line 73: `AdvancedContentItemEventHandler<UpdateWebPageSecuritySettingsEventsArgs> UpdateSecuritySettings`. Class confirmed at CMSSolution/Websites/Events/UpdateSecuritySettings/ with 's' in EventsArgs.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [],
+  "researchRecommendationCheck": [
+    {
+      "recommendation": "REC-001",
+      "cited": true,
+      "followed": true,
+      "notes": "Concise first sentences in event table cells. No change from Attempt 1."
+    },
+    {
+      "recommendation": "REC-004",
+      "cited": true,
+      "followed": true,
+      "notes": "Correctly scoped — IsSecured deprecation not applicable to this page. No change from Attempt 1."
+    },
+    {
+      "recommendation": "REC-012",
+      "cited": true,
+      "followed": true,
+      "notes": "Three-tier model presented via bullet lists. Factory method names, signatures, and descriptions technically accurate. No change from Attempt 1."
+    }
+  ],
+  "knowledgeBriefCheck": {
+    "domainInsightsReviewed": false,
+    "notes": "knowledge-brief.json has no domainInsights entries. Skipped per missing artifact handling."
+  },
+  "preExistingIssuesObserved": [
+    {
+      "location": "WebPageEvents table — Create row, line 612",
+      "observation": "Handler parameters listed as `CreateWebPageLanguageVariantEventArgs` but source code at 65412d2 shows `AdvancedContentItemEventHandler<CreateWebPageEventArgs>`. Pre-existing error NOT introduced by TASK-014 (Create row not in sectionsModified). Not counted."
+    }
+  ],
+  "summary": {
+    "totalClaims": 24,
+    "verified": 24,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 0,
+    "codeExamplesCorrect": 0
+  }
+}

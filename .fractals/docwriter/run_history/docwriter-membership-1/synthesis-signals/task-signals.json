@@ -1,0 +1,960 @@
+{
+  "version": 1,
+  "timestamp": "2026-03-14T15:52:13.554787+00:00",
+  "runStats": {
+    "totalTasks": 17,
+    "firstAttemptAcceptance": 3,
+    "twoCycleAcceptance": 12,
+    "multiCycleAcceptance": 2,
+    "blocked": 0,
+    "totalReviewCycles": 33,
+    "averageAttemptsPerTask": 1.94,
+    "createTasksAvgAttempts": 2.5,
+    "updateTasksAvgAttempts": 1.87
+  },
+  "aggregateSignals": [
+    {
+      "id": "AGG-001",
+      "type": "candidate-pattern",
+      "strength": "medium",
+      "title": "Focused single-persona developer update pages achieve first-attempt acceptance",
+      "evidence": "3/3 first-attempt successes (TASK-004, TASK-006, TASK-008) share: action=update, contentType=howto, targetPersonas=[developer], estimatedComplexity=medium, sectionsModify\u22652, sectionsAdd\u22641. Average invariants applied: 5.7.",
+      "recommendation": "When planning update tasks for single-persona developer howto pages with medium complexity, expect high first-attempt success. Prioritize these tasks early to build pipeline momentum."
+    },
+    {
+      "id": "AGG-002",
+      "type": "candidate-anti-pattern",
+      "strength": "medium",
+      "title": "Create-action pages have higher rejection rates than updates",
+      "evidence": "Create tasks (TASK-001, TASK-002) averaged 2.5 attempts vs update tasks averaged 1.9 attempts. Create tasks triggered frontmatter (INV-frontmatter-004), cross-ref (INV-crossref-001), and structural (INV-structure-001) rejections that don't apply to updates.",
+      "recommendation": "Create-action tasks need explicit writer briefing on: redirect_from derivation from identifier, required page sections (Title/Intro/Body/Result/Next Steps), and page_link identifier verification."
+    },
+    {
+      "id": "AGG-003",
+      "type": "candidate-anti-pattern",
+      "strength": "medium",
+      "title": "Style invariant INV-formatting-016 (em dash vs en dash) is the most frequent single rejection cause",
+      "evidence": "INV-formatting-016 triggered rejections in 3 tasks (TASK-007, TASK-010, TASK-014). Writers consistently produce em dashes (\u2014) when the style guide requires en dashes (\u2013).",
+      "recommendation": "Add explicit em-dash/en-dash guidance to the content writer's pre-writing checklist. Consider a post-write automated check before human review."
+    },
+    {
+      "id": "AGG-004",
+      "type": "candidate-pattern",
+      "strength": "medium",
+      "title": "High invariant count correlates with first-attempt success for update tasks",
+      "evidence": "First-attempt tasks applied more invariants on average (5.7 invariants) vs two-cycle update tasks. TASK-008 applied 11 invariants and succeeded first try. TASK-010 applied 13 invariants and needed only standard 2 cycles.",
+      "recommendation": "Encourage writers to explicitly apply more invariants upfront rather than relying on reviewer feedback."
+    },
+    {
+      "id": "AGG-005",
+      "type": "observation",
+      "strength": "low",
+      "title": "Business-user pages face unique accuracy challenges around UI behavior",
+      "evidence": "TASK-011 required 3 cycles because the writer described a UI field interaction incorrectly (manual code name entry vs auto-generated field). TASK-012 and TASK-013 both had pre-existing icon errors and terminology corrections. Business-user content accuracy depends on UI verification.",
+      "recommendation": "Business-user task briefings should include explicit UI form field metadata (auto-generated fields, collapsed sections, field labels from resource files)."
+    },
+    {
+      "id": "AGG-006",
+      "type": "observation",
+      "strength": "low",
+      "title": "Research recommendations improve coverage but don't prevent style rejections",
+      "evidence": "Tasks citing more research recommendations (TASK-001: 7, TASK-002: 8, TASK-009: 4) still required multiple cycles due to style invariant violations. Research recommendations improve content completeness but don't address formatting and structural invariants.",
+      "recommendation": "Research recommendations and style invariants serve orthogonal purposes. Both must be addressed independently."
+    }
+  ],
+  "tasks": [
+    {
+      "taskId": "TASK-001",
+      "name": "Create new page: Member roles developer guide",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "create",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "large",
+      "structuralApproach": "new-howto-page-section-scaffolding",
+      "invariantsApplied": [
+        "INV-structure-001",
+        "INV-structure-002",
+        "INV-structure-003",
+        "INV-structure-010",
+        "INV-structure-021",
+        "INV-frontmatter-001",
+        "INV-frontmatter-002",
+        "INV-frontmatter-003",
+        "INV-frontmatter-004",
+        "INV-frontmatter-006",
+        "INV-callout-002",
+        "INV-formatting-004",
+        "INV-persona-003",
+        "INV-codesamples-010",
+        "INV-content-030"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-001",
+        "REC-008",
+        "REC-009",
+        "REC-012",
+        "REC-013",
+        "REC-014",
+        "REC-015"
+      ],
+      "acceptanceCriteria": [
+        "Three-tier access model (Public/Secured/SecuredWithRoles) is clearly explained with code examples (INV-structure-002, INV-structure-003)",
+        "ContentAccessSettings factory methods documented with usage examples (REC-001, REC-012)",
+        "HasAccess() extension method documented with code sample (REC-014)",
+        "ContentItemRequiredMemberRoleNames property documented with query example",
+        "IContentItemMemberRoleManager and IContentItemMemberRoleRetriever interfaces documented (REC-001)",
+        "ApplicationRole/ApplicationRoleStore integration explained for ASP.NET Identity",
+        "Correct front matter: unique identifier, order, persona=developer (INV-frontmatter-001, INV-frontmatter-002)",
+        "Uses backtick formatting for all type names (INV-formatting-004, REC-015)",
+        "Uses established terminology: member, visitor, user, sign in (INV-content-030, REC-013)",
+        "Code examples progress from simple to complex (REC-014)",
+        "How-to focused \u2014 addresses user goals not API surface (REC-008, REC-009)",
+        "Next steps section links to related pages (INV-structure-010)"
+      ],
+      "docFactsUsed": 4,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Empty redirect_from frontmatter."
+      },
+      "rejectionInvariants": [
+        "INV-frontmatter-004",
+        "INV-callout-002",
+        "INV-structure-001"
+      ],
+      "rejectionCategories": [
+        "style",
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-002",
+      "name": "Create new page: Reference \u2014 ContentAccessSettings",
+      "result": "multi-cycle",
+      "attempts": 3,
+      "action": "create",
+      "contentType": "reference",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "large",
+      "structuralApproach": "new-reference-page-full-api-layout",
+      "invariantsApplied": [
+        "INV-structure-001",
+        "INV-structure-019",
+        "INV-frontmatter-001",
+        "INV-frontmatter-002",
+        "INV-frontmatter-004",
+        "INV-formatting-004",
+        "INV-codesamples-004",
+        "INV-codesamples-005",
+        "INV-codesamples-006",
+        "INV-codesamples-010",
+        "INV-crossref-001",
+        "INV-content-030"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-001",
+        "REC-002",
+        "REC-003",
+        "REC-004",
+        "REC-005",
+        "REC-012",
+        "REC-014",
+        "REC-015"
+      ],
+      "acceptanceCriteria": [
+        "Title follows 'Reference - ContentAccessSettings' pattern (INV-structure-019)",
+        "Struct-to-class breaking change clearly documented with migration guidance (REC-004)",
+        "All three factory methods documented: Public(), Secured(), SecuredWithRoles() (REC-001, REC-002)",
+        "Comparison table showing three access modes (REC-012)",
+        "Equality operators (==, !=) and Equals() behavior documented",
+        "Null handling documented: ArgumentNullException when setting null, use Public() instead",
+        "Code examples for each factory method and event handler usage (REC-014)",
+        "Correct front matter with unique identifier (INV-frontmatter-001, INV-frontmatter-002)",
+        "Parameter descriptions follow verb-first pattern (REC-002, REC-003)",
+        "Backtick formatting for all code elements (INV-formatting-004, REC-015)",
+        "API reference sections in standard order (REC-005 adapted to Kentico structure)"
+      ],
+      "docFactsUsed": 4,
+      "signal": {
+        "type": "candidate-anti-pattern",
+        "strength": "medium",
+        "description": "New reference page (create action, large complexity) required 3 cycles. Root causes: empty redirect_from, positional constructor args (INV-codesamples-005), incorrect page_link identifier (INV-crossref-001). Create actions on reference pages have higher rejection risk from frontmatter and cross-ref invariants."
+      },
+      "rejectionInvariants": [
+        "INV-frontmatter-004",
+        "INV-codesamples-004",
+        "INV-codesamples-005",
+        "INV-crossref-001",
+        "INV-codesamples-006"
+      ],
+      "rejectionCategories": [
+        "style"
+      ]
+    },
+    {
+      "taskId": "TASK-003",
+      "name": "Update registration and authentication page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "estimatedComplexity": "large",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-structure-001",
+        "INV-structure-002",
+        "INV-structure-010",
+        "INV-formatting-004",
+        "INV-content-030",
+        "INV-persona-003",
+        "INV-codesamples-010"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-013",
+        "REC-015",
+        "REC-016"
+      ],
+      "acceptanceCriteria": [
+        "All NoOpApplicationRole references replaced with ApplicationRole",
+        "All NoOpApplicationRoleStore references replaced with ApplicationRoleStore",
+        "Code samples compile-ready with correct type names (INV-codesamples-010)",
+        "Three-tier access model mentioned with cross-reference to member roles page",
+        "Architecture section updated to mention role stores",
+        "Uses established terminology: member, visitor, user (INV-content-030, REC-013)",
+        "Authentication pipeline described as concrete steps (REC-016)",
+        "Next steps updated to include member roles page (INV-structure-010)"
+      ],
+      "docFactsUsed": 3,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Incorrect persona targeting or missing dual-persona content."
+      },
+      "rejectionInvariants": [],
+      "rejectionCategories": [
+        "persona"
+      ]
+    },
+    {
+      "taskId": "TASK-004",
+      "name": "Update forms authentication page",
+      "result": "first-attempt",
+      "attempts": 1,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-004",
+        "INV-codesamples-010",
+        "INV-structure-006"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-013",
+        "REC-016"
+      ],
+      "acceptanceCriteria": [
+        "All 3 code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole",
+        "All NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "Prerequisites/configuration section mentions role store registration",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Step instructions use ordered lists (INV-structure-006)",
+        "Authentication flow described as concrete steps (REC-016)"
+      ],
+      "docFactsUsed": 2,
+      "signal": {
+        "type": "candidate-pattern",
+        "strength": "medium",
+        "description": "Medium-complexity single-persona developer update (howto) achieved first-attempt acceptance. Focused scope (3 modified, 1 added sections) with 3 invariants."
+      }
+    },
+    {
+      "taskId": "TASK-005",
+      "name": "Update external authentication page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "small",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-004",
+        "INV-codesamples-010"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-016"
+      ],
+      "acceptanceCriteria": [
+        "Both code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole",
+        "NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Backtick formatting on type names (INV-formatting-004)"
+      ],
+      "docFactsUsed": 2,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Accuracy issue in code or API claim."
+      },
+      "rejectionInvariants": [],
+      "rejectionCategories": [
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-006",
+      "name": "Update add fields to member objects page",
+      "result": "first-attempt",
+      "attempts": 1,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-004",
+        "INV-codesamples-010",
+        "INV-structure-011"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-013",
+        "REC-015"
+      ],
+      "acceptanceCriteria": [
+        "Both code sample locations updated: NoOpApplicationRole \u2192 ApplicationRole, NoOpApplicationRoleStore \u2192 ApplicationRoleStore",
+        "ApplicationRole-to-MemberRoleInfo data flow is explained, mirroring existing ApplicationUser-to-MemberInfo pattern",
+        "Code samples are compile-ready (INV-codesamples-010)",
+        "Article remains self-contained with proper links (INV-structure-011)",
+        "Type names in backticks (INV-formatting-004, REC-015)"
+      ],
+      "docFactsUsed": 2,
+      "signal": {
+        "type": "candidate-pattern",
+        "strength": "medium",
+        "description": "Medium-complexity single-persona developer update (howto) achieved first-attempt acceptance. Focused scope (3 modified, 1 added sections) with 3 invariants."
+      }
+    },
+    {
+      "taskId": "TASK-007",
+      "name": "Update retrieve content items page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "large",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-structure-001",
+        "INV-structure-006",
+        "INV-formatting-004",
+        "INV-formatting-016",
+        "INV-codesamples-004",
+        "INV-codesamples-010",
+        "INV-persona-003"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-001",
+        "REC-012",
+        "REC-014"
+      ],
+      "acceptanceCriteria": [
+        "Content item security section describes three-tier model: public, authenticated-only, role-restricted",
+        "Stale text 'allow access only for authenticated users' replaced with complete description",
+        "ContentItemRequiredMemberRoleNames property documented with projection example",
+        "HasAccess(User) code sample shown as recommended access check (REC-014)",
+        "Existing IsAuthenticated example updated to note it only covers binary check",
+        "Code examples progress simple \u2192 complex (REC-014)",
+        "Cross-references to member roles page and ContentAccessSettings reference",
+        "Developer terminology appropriate (INV-persona-003)"
+      ],
+      "docFactsUsed": 4,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Em dash (\u2014) instead of en dash (\u2013)."
+      },
+      "rejectionInvariants": [
+        "INV-codesamples-004",
+        "INV-structure-001",
+        "INV-formatting-016"
+      ],
+      "rejectionCategories": [
+        "style"
+      ]
+    },
+    {
+      "taskId": "TASK-008",
+      "name": "Update retrieve page content page",
+      "result": "first-attempt",
+      "attempts": 1,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-style-001",
+        "INV-structure-006",
+        "INV-formatting-004",
+        "INV-codesamples-004",
+        "INV-codesamples-006",
+        "INV-codesamples-008",
+        "INV-codesamples-009",
+        "INV-codesamples-010",
+        "INV-persona-003",
+        "INV-callout-002",
+        "INV-jekyll-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-012",
+        "REC-014"
+      ],
+      "acceptanceCriteria": [
+        "Page security configuration describes three-tier model",
+        "Stale text 'secured to allow access only to authenticated users' replaced",
+        "HasAccess() documented as recommended programmatic check (REC-014)",
+        "401 vs 403 distinction clearly explained",
+        "AccessDeniedPath covers both unauthenticated and insufficient-role scenarios",
+        "Code sample shows role-aware access checking",
+        "Cross-references to member roles page and ContentAccessSettings reference"
+      ],
+      "docFactsUsed": 6,
+      "signal": {
+        "type": "candidate-pattern",
+        "strength": "medium",
+        "description": "Medium-complexity single-persona developer update (howto) achieved first-attempt acceptance. Focused scope (4 modified, 1 added sections) with 11 invariants."
+      }
+    },
+    {
+      "taskId": "TASK-009",
+      "name": "Update Reference \u2014 Content item query page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "reference",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-reference-additive-sections",
+      "invariantsApplied": [
+        "INV-structure-019",
+        "INV-formatting-004",
+        "INV-codesamples-010",
+        "INV-structure-011",
+        "INV-persona-003",
+        "INV-content-030",
+        "INV-style-002",
+        "INV-callout-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-001",
+        "REC-002",
+        "REC-005",
+        "REC-014"
+      ],
+      "acceptanceCriteria": [
+        "ContentItemRequiredMemberRoleNames property fully documented with type, default, and behavior",
+        "Lazy loading behavior explained (role data fetched only when secured items present)",
+        "ContentItemRolesResultProcessor mentioned as the populating mechanism",
+        "Code example shows accessing role names from query results (REC-014)",
+        "Reference style: title follows 'Reference - ' pattern (INV-structure-019)",
+        "All API members in backticks (INV-formatting-004)",
+        "API reference structure follows standard order (REC-005)"
+      ],
+      "docFactsUsed": 7,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Callout missing bold title."
+      },
+      "rejectionInvariants": [
+        "INV-callout-002",
+        "INV-style-002"
+      ],
+      "rejectionCategories": [
+        "style"
+      ]
+    },
+    {
+      "taskId": "TASK-010",
+      "name": "Update content item query API page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "small",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-016",
+        "INV-persona-003",
+        "INV-codesamples-010",
+        "INV-structure-010",
+        "INV-jekyll-002",
+        "INV-codesamples-006",
+        "INV-formatting-004",
+        "INV-codesamples-004",
+        "INV-codesamples-008",
+        "INV-structure-011",
+        "INV-codesamples-009",
+        "INV-content-030",
+        "INV-style-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-014"
+      ],
+      "acceptanceCriteria": [
+        "Security-related query results section added or integrated",
+        "ContentItemRequiredMemberRoleNames mentioned with IncludeSecuredItems context",
+        "Cross-reference to Reference \u2014 Content item query page for details",
+        "Next steps link to role checking guidance (INV-structure-010)",
+        "Backtick formatting on all code elements (INV-formatting-004)"
+      ],
+      "docFactsUsed": 6,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Em dash (\u2014) instead of en dash (\u2013)."
+      },
+      "rejectionInvariants": [
+        "INV-formatting-016",
+        "INV-codesamples-006"
+      ],
+      "rejectionCategories": [
+        "style",
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-011",
+      "name": "Update Members page (business users)",
+      "result": "multi-cycle",
+      "attempts": 3,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "business"
+      ],
+      "estimatedComplexity": "large",
+      "structuralApproach": "update-business-howto-step-procedures",
+      "invariantsApplied": [
+        "INV-structure-001",
+        "INV-structure-002",
+        "INV-structure-006",
+        "INV-persona-001",
+        "INV-persona-002",
+        "INV-style-031",
+        "INV-style-036"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-010",
+        "REC-011",
+        "REC-013"
+      ],
+      "acceptanceCriteria": [
+        "Member roles section covers: creating roles, viewing roles, assigning members (REC-010)",
+        "Introduction updated to mention role-based access control",
+        "Business-user friendly tone: no technical jargon (INV-persona-001)",
+        "One action per step for business users (INV-persona-001, INV-structure-006)",
+        "Screenshots placeholder noted for role management interface",
+        "Arrow notation for navigation paths (REC-011)",
+        "Cross-references to Secure pages and Secure content items",
+        "Terminology: member, visitor (INV-content-030, REC-013)"
+      ],
+      "docFactsUsed": 3,
+      "signal": {
+        "type": "candidate-anti-pattern",
+        "strength": "low",
+        "description": "Business-user page (large complexity) required 3 cycles. Root cause: accuracy \u2014 writer described a UI field step incorrectly (manual code name entry vs auto-generated). Business-user content requires UI behavior verification against actual form definitions."
+      },
+      "rejectionInvariants": [],
+      "rejectionCategories": [
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-012",
+      "name": "Update Secure pages page (business users)",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "business"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-business-howto-step-procedures",
+      "invariantsApplied": [
+        "INV-structure-006",
+        "INV-structure-007",
+        "INV-structure-009",
+        "INV-persona-001",
+        "INV-persona-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-010: Location-before-action pattern used throughout; procedures kept under 8 steps; finalizing action (Publish change, Save) as explicit step",
+        "REC-013: Consistent terminology \u2014 'member' for registered visitor, 'visitor' for anonymous user, 'sign in' (verb), 'member role' (not 'membership role' or 'user role')"
+      ],
+      "acceptanceCriteria": [
+        "Security settings step updated with role-based options alongside 'Requires authentication'",
+        "Stale text about only requiring authentication is corrected",
+        "Three-tier model explained in business terms (public / signed-in / specific roles)",
+        "Step-by-step for restricting page to specific member roles (INV-structure-006, INV-structure-007)",
+        "One action per step for business users (INV-persona-001)",
+        "End result described (INV-structure-009)",
+        "Screenshot placeholders noted for updated Security tab UI",
+        "Cross-reference to Members application (REC-010)",
+        "Arrow notation for admin navigation (REC-011)"
+      ],
+      "docFactsUsed": 7,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Prohibited interaction verb (choose/enable instead of select/clear)."
+      },
+      "rejectionInvariants": [
+        "INV-style-036"
+      ],
+      "rejectionCategories": [
+        "style",
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-013",
+      "name": "Update Content items page (business users)",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "business"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-business-howto-step-procedures",
+      "invariantsApplied": [
+        "INV-structure-006",
+        "INV-structure-007",
+        "INV-persona-001",
+        "INV-persona-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-010",
+        "REC-013"
+      ],
+      "acceptanceCriteria": [
+        "Secure content items section describes role-based security options (REC-010)",
+        "'Requires authentication' description expanded to cover role-restricted scenarios",
+        "Step-by-step for restricting content items to roles (INV-structure-006, INV-structure-007)",
+        "Business-user friendly: no developer jargon (INV-persona-001)",
+        "Screenshot placeholders for expanded Security settings UI",
+        "Cross-reference to member roles management",
+        "Terminology: member, visitor (INV-content-030, REC-013)"
+      ],
+      "docFactsUsed": 3,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Prohibited interaction verb (choose/enable instead of select/clear)."
+      },
+      "rejectionInvariants": [
+        "INV-style-034"
+      ],
+      "rejectionCategories": [
+        "style",
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-014",
+      "name": "Update Reference \u2014 Global system events page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "reference",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "medium",
+      "structuralApproach": "update-reference-additive-sections",
+      "invariantsApplied": [
+        "INV-structure-019",
+        "INV-formatting-004",
+        "INV-formatting-016",
+        "INV-structure-011",
+        "INV-content-030",
+        "INV-persona-003"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [
+        "REC-001",
+        "REC-004",
+        "REC-012"
+      ],
+      "acceptanceCriteria": [
+        "UpdateMetadata event: AccessSettings accepts non-null ContentAccessSettings, use Public() for unsecured (REC-004)",
+        "UpdateSecuritySettings event: same non-null constraint documented",
+        "Three-tier ContentAccessSettings model noted where events reference security settings (REC-012)",
+        "AccessSettings property documented on event argument state objects",
+        "Reference title pattern followed (INV-structure-019)",
+        "All code elements in backticks (INV-formatting-004)",
+        "Deprecation pattern for IsSecured properties documented (REC-004)"
+      ],
+      "docFactsUsed": 3,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Em dash (\u2014) instead of en dash (\u2013)."
+      },
+      "rejectionInvariants": [
+        "INV-formatting-016"
+      ],
+      "rejectionCategories": [
+        "style"
+      ]
+    },
+    {
+      "taskId": "TASK-015",
+      "name": "Update Handle global events page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer"
+      ],
+      "estimatedComplexity": "small",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-004",
+        "INV-structure-010",
+        "INV-callout-002"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [],
+      "acceptanceCriteria": [
+        "Any examples setting AccessSettings to null are updated to use ContentAccessSettings.Public()",
+        "Non-nullable AccessSettings constraint mentioned",
+        "Cross-reference to events reference page added (INV-structure-010)",
+        "Code elements in backticks (INV-formatting-004)"
+      ],
+      "docFactsUsed": 2,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Callout missing bold title."
+      },
+      "rejectionInvariants": [
+        "INV-callout-002"
+      ],
+      "rejectionCategories": [
+        "style",
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-016",
+      "name": "Update Reference \u2014 CI/CD object types page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "reference",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "estimatedComplexity": "small",
+      "structuralApproach": "update-reference-additive-sections",
+      "invariantsApplied": [
+        "INV-structure-019",
+        "INV-formatting-004"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [],
+      "acceptanceCriteria": [
+        "Member role object types added if CI/CD-supported: cms.memberrole, cms.memberrolemember, cms.contentitemmemberrole",
+        "Placed in correct section (General or Binding object types)",
+        "Reference title pattern (INV-structure-019)",
+        "Object type names in backticks (INV-formatting-004)"
+      ],
+      "docFactsUsed": 2,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Incorrect persona targeting or missing dual-persona content."
+      },
+      "rejectionInvariants": [],
+      "rejectionCategories": [
+        "accuracy"
+      ]
+    },
+    {
+      "taskId": "TASK-017",
+      "name": "Update Content sync configuration page",
+      "result": "two-cycle",
+      "attempts": 2,
+      "action": "update",
+      "contentType": "howto",
+      "targetPersonas": [
+        "developer",
+        "admin"
+      ],
+      "estimatedComplexity": "small",
+      "structuralApproach": "update-developer-howto-targeted-sections",
+      "invariantsApplied": [
+        "INV-formatting-004",
+        "INV-structure-010",
+        "INV-crossref-001"
+      ],
+      "metaPatternsUsed": [],
+      "researchRecommendationsUsed": [],
+      "acceptanceCriteria": [
+        "Member role synchronization documented in compatibility or internals section",
+        "MemberRole compatibility requirements between source and target instances noted",
+        "Role-based access settings inclusion in sync payloads mentioned",
+        "Next steps link to member roles page (INV-structure-010)",
+        "Code elements in backticks (INV-formatting-004)"
+      ],
+      "docFactsUsed": 1,
+      "signal": {
+        "type": "observation",
+        "strength": "low",
+        "description": "Two-cycle task. Root cause: Incorrect page_link identifier."
+      },
+      "rejectionInvariants": [
+        "INV-crossref-001"
+      ],
+      "rejectionCategories": [
+        "style"
+      ]
+    }
+  ],
+  "styleEvolutions": [
+    {
+      "observation": "Em dash (\u2014) vs en dash (\u2013) enforcement triggered rejections in 3 tasks (TASK-007, TASK-010, TASK-014)",
+      "occurrences": 3,
+      "strength": "medium",
+      "involvedInvariant": "INV-formatting-016",
+      "description": "Writers consistently produce em dashes when en dashes are required. INV-formatting-016 is well-defined but writers need stronger pre-writing guidance on dash types."
+    },
+    {
+      "observation": "Callout bold title requirement (INV-callout-002) triggered rejections in 3 tasks (TASK-001, TASK-009, TASK-015)",
+      "occurrences": 3,
+      "strength": "medium",
+      "involvedInvariant": "INV-callout-002",
+      "description": "Multi-sentence callouts must have a bold title on the first line. Writers omit this consistently \u2014 suggests the invariant needs more prominent placement in writer briefings."
+    },
+    {
+      "observation": "Empty redirect_from frontmatter triggered rejections in 2 tasks (TASK-001, TASK-002)",
+      "occurrences": 2,
+      "strength": "medium",
+      "involvedInvariant": "INV-frontmatter-004",
+      "description": "Create-action pages consistently get empty redirect_from arrays. Writers need explicit guidance to derive redirect_from from identifier pattern (x/<identifier>)."
+    },
+    {
+      "observation": "Incorrect page_link identifiers triggered rejections in 2 tasks (TASK-002, TASK-017)",
+      "occurrences": 2,
+      "strength": "medium",
+      "involvedInvariant": "INV-crossref-001",
+      "description": "Writers fabricate page_link identifiers (e.g., 'member_roles_developer_guide_xp' instead of 'member_roles_xp'). Cross-reference accuracy requires the writer to verify identifiers against actual front matter."
+    },
+    {
+      "observation": "Prohibited interaction verbs (choose/enable) enforced in 2 business-user tasks (TASK-012, TASK-013)",
+      "occurrences": 2,
+      "strength": "low",
+      "involvedInvariant": "INV-style-034, INV-style-036",
+      "description": "Business-user pages consistently use 'choose' and 'enable/disable' instead of the required 'select' and 'clear'. Xperience style guide mandates select/clear for checkbox interactions."
+    },
+    {
+      "observation": "Pre-existing icon errors (xp-lock \u2192 xp-diamond) discovered and fixed in 2 tasks (TASK-012, TASK-013)",
+      "occurrences": 2,
+      "strength": "low",
+      "involvedInvariant": "N/A (accuracy)",
+      "description": "Accuracy reviewer discovered stale lock icons in pre-existing content within modified scope. The icon changed from lock to diamond for secured content status. Accuracy reviewers catch pre-existing errors well."
+    },
+    {
+      "observation": "Unicode arrow (\u2192) vs ASCII arrow (->) inconsistency noted in style reviews for 2+ tasks (TASK-006, TASK-012)",
+      "occurrences": 2,
+      "strength": "low",
+      "involvedInvariant": "INV-style-046",
+      "description": "INV-style-046 requires ASCII '->' but existing codebase predominantly uses Unicode '\u2192'. Style reviewers note this as acceptable deviation. Candidate for invariant revision."
+    }
+  ],
+  "rejectionFrequencyByInvariant": {
+    "INV-callout-002": 3,
+    "INV-formatting-016": 3,
+    "INV-frontmatter-004": 2,
+    "INV-structure-001": 2,
+    "INV-codesamples-004": 2,
+    "INV-codesamples-006": 2,
+    "INV-crossref-001": 2,
+    "INV-codesamples-005": 1,
+    "INV-style-002": 1,
+    "INV-style-036": 1,
+    "INV-style-034": 1
+  },
+  "rejectionFrequencyByCategory": {
+    "accuracy": 4,
+    "callout-formatting": 3,
+    "code-samples": 3,
+    "formatting": 3,
+    "style-convention": 3,
+    "frontmatter": 2,
+    "structural": 2,
+    "cross-references": 2,
+    "accuracy-icon": 2
+  },
+  "complexityCorrelation": {
+    "small": {
+      "tasks": 5,
+      "avgAttempts": 2.0
+    },
+    "medium": {
+      "tasks": 7,
+      "avgAttempts": 1.57
+    },
+    "large": {
+      "tasks": 5,
+      "avgAttempts": 2.4
+    }
+  }
+}

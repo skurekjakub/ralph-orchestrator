@@ -1,0 +1,383 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-001",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousAttemptFix": {
+    "issue": "Attempt 1 rejected: claim 'marks the item as public' for UpdateBindings(ContentAccessSettings.Public()) was incorrect",
+    "fixed": true,
+    "verification": "Line 168 now correctly states: 'UpdateBindings only manages the binding table — it does not change the content item's ContentItemIsSecured flag.' Code comment on MakePublic (line 160-161) says 'Removes all member role bindings' and adds note about setting IsSecured=false separately. Verified against ContentItemMemberRoleManager.UpdateBindings() at commit 65412d25 — method only does BulkDelete/BulkInsert on ContentItemMemberRoleInfo records, zero references to ContentItemIsSecured."
+  },
+  "claims": [
+    {
+      "claim": "ContentAccessSettings is a sealed class with static factory methods and value-like equality semantics",
+      "location": "Section: Content access model, paragraph 2 (line 38)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25 line 11: 'public sealed class ContentAccessSettings : IEquatable<ContentAccessSettings>'. Has == and != operator overloads, Equals/GetHashCode implementations with order-independent RequiredMemberRoleIDs comparison.",
+      "docFact": "AREA-002: ContentAccessSettings struct with static factory methods"
+    },
+    {
+      "claim": "Public() factory method sets IsSecured=false, RequiredMemberRoleIDs=empty",
+      "location": "Section: Content access model, table row 1 (line 34)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25: 'public static ContentAccessSettings Public() => new(false)'. Private constructor(bool isSecured) sets 'IsSecured = isSecured; RequiredMemberRoleIDs = [];'. So Public() → IsSecured=false, RequiredMemberRoleIDs=[].",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Secured() factory method sets IsSecured=true, RequiredMemberRoleIDs=empty",
+      "location": "Section: Content access model, table row 2 (line 35)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25: 'public static ContentAccessSettings Secured() => new(true)'. Same constructor → IsSecured=true, RequiredMemberRoleIDs=[].",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "SecuredWithRoles(roleIDs) sets IsSecured=true and RequiredMemberRoleIDs to specified IDs",
+      "location": "Section: Content access model, table row 3 (line 36)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25: 'public static ContentAccessSettings SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs)' calls 'return new(true, roleIds)'. Internal constructor sets IsSecured=true and populates RequiredMemberRoleIDs from the distinct role IDs.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "SecuredWithRoles accepts IEnumerable<int> of member role IDs",
+      "location": "Section: Content access model, paragraph 3 (line 53)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25: 'public static ContentAccessSettings SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs)'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Passing an empty collection to SecuredWithRoles throws ArgumentException",
+      "location": "Section: Content access model, paragraph 3 (line 53)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25: 'if (roleIds.Count == 0) { throw new ArgumentException(\"At least one role ID must be specified.\", nameof(requiredMemberRoleIDs)); }'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "ContentAccessSettings implements IEquatable<ContentAccessSettings>",
+      "location": "Section: Content access model, paragraph 4 (line 55)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs at commit 65412d25 line 11: ': IEquatable<ContentAccessSettings>'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Equality checks consider both IsSecured flag and RequiredMemberRoleIDs (order-independent)",
+      "location": "Section: Content access model, paragraph 4 (line 55)",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs Equals() method: 'IsSecured == other.IsSecured && RequiredMemberRoleIDs.Count == other.RequiredMemberRoleIDs.Count && RequiredMemberRoleIDs.OrderBy(id => id).SequenceEqual(other.RequiredMemberRoleIDs.OrderBy(id => id))'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "HasAccess is an extension method on IContentItemFieldsSource accepting ClaimsPrincipal",
+      "location": "Section: Check content access, paragraph 1 (line 59)",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs at commit 65412d25: 'public static bool HasAccess(this IContentItemFieldsSource contentItem, ClaimsPrincipal user)'. Namespace: Kentico.Content.Web.Mvc.",
+      "docFact": "AREA-009: ContentItemFieldsSourceExtensions.HasAccess(this IContentItemFieldsSource, ClaimsPrincipal)"
+    },
+    {
+      "claim": "HasAccess returns true when member is allowed to view content",
+      "location": "Section: Check content access, paragraph 2 (line 78)",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs: 'return MemberAccessHelper.CheckAccess(...) == ContentAccessCheckResult.Allowed;'. Returns bool — true only when result is Allowed.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Three outcomes: Allowed, Not authenticated (HTTP 401), Forbidden (HTTP 403)",
+      "location": "Section: Check content access, bullet list (lines 80-82)",
+      "result": "verified",
+      "evidence": "ContentAccessCheckResult.cs at commit 65412d25: enum values Allowed, NotAuthenticated (seealso HttpStatusCode.Unauthorized = 401), Forbidden (seealso HttpStatusCode.Forbidden = 403).",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Allowed: content is public, or member meets auth and role requirements",
+      "location": "Section: Check content access, bullet 1 (line 80)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess() at commit 65412d25: if !isSecured → Allowed; if authenticated and no requiredRoles → Allowed; if UserIsInAnyRole → Allowed.",
+      "docFact": null
+    },
+    {
+      "claim": "Not authenticated: content is secured and visitor is not signed in",
+      "location": "Section: Check content access, bullet 2 (line 81)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess(): if user is null → NotAuthenticated; if !IsUserAuthenticated(user) → NotAuthenticated.",
+      "docFact": null
+    },
+    {
+      "claim": "Forbidden: member signed in but does not belong to any required roles",
+      "location": "Section: Check content access, bullet 3 (line 82)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess(): 'return UserIsInAnyRole(user, requiredRoles) ? ContentAccessCheckResult.Allowed : ContentAccessCheckResult.Forbidden'. UserIsInAnyRole uses 'roles.Any(role => user.IsInRole(role))'.",
+      "docFact": null
+    },
+    {
+      "claim": "HasAccess requires SystemFields to be populated (ContentItemIsSecured, ContentItemRequiredMemberRoleNames)",
+      "location": "Section: Check content access, paragraph 3 (line 84)",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.HasAccess(): 'ArgumentNullException.ThrowIfNull(contentItem.SystemFields)' then accesses 'systemFields.ContentItemIsSecured' and 'systemFields.ContentItemRequiredMemberRoleNames'.",
+      "docFact": null
+    },
+    {
+      "claim": "Fields are set automatically for content retrieved through standard content query pipeline",
+      "location": "Section: Check content access, paragraph 3 (line 84)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor is registered as IContentQueryResultProcessor and runs PostProcessQueryResult() on all query results, populating ContentItemRequiredMemberRoleNames for secured items.",
+      "docFact": "AREA-006: ContentItemRolesResultProcessor post-processes query results"
+    },
+    {
+      "claim": "ContentItemRequiredMemberRoleNames is IReadOnlyCollection<string>",
+      "location": "Section: Query role requirements, paragraph 2 (line 112)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs at commit 65412d25: 'IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames'. ContentItemFields.cs confirms same type.",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>"
+    },
+    {
+      "claim": "Public content items → empty collection",
+      "location": "Section: Query role requirements, bullet 1 (line 114)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.PostProcessQueryResult() only fetches and sets role names for items where ContentItemIsSecured=true. Unsecured items keep the default empty/null value.",
+      "docFact": "AREA-006"
+    },
+    {
+      "claim": "Secured items without roles → empty collection",
+      "location": "Section: Query role requirements, bullet 2 (line 115)",
+      "result": "verified",
+      "evidence": "For secured items with no role bindings in the database, GetMemberRoleCodeNames returns no entries for that contentItemId. SetRoleNames checks 'roleNames.Any()' — if no role names, it doesn't set RequiredMemberRoleNames, leaving the default empty collection.",
+      "docFact": "AREA-006"
+    },
+    {
+      "claim": "Role data loaded only when at least one item has ContentItemIsSecured=true",
+      "location": "Section: Query role requirements, paragraph 3 (line 118)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs at commit 65412d25: 'if (!allContainers.Any(c => c.ContentItemIsSecured)) { return; }'. Early return avoids DB query entirely.",
+      "docFact": "AREA-006: Lazy loading when ContentItemIsSecured=true"
+    },
+    {
+      "claim": "IContentItemMemberRoleManager and IContentItemMemberRoleRetriever are in CMS.ContentEngine.Internal namespace",
+      "location": "Section: Manage roles programmatically, info callout (lines 126-130)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleManager.cs: 'namespace CMS.ContentEngine.Internal'. IContentItemMemberRoleRetriever.cs: 'namespace CMS.ContentEngine.Internal'.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "UpdateBindings replaces all existing role bindings with roles from the ContentAccessSettings instance",
+      "location": "Section: Update role bindings, paragraph 2 (line 168)",
+      "result": "verified",
+      "evidence": "ContentItemMemberRoleManager.UpdateBindings() at commit 65412d25: computes diff between new and existing role IDs, BulkDeletes removed IDs, BulkInserts added IDs. Net effect is full replacement.",
+      "docFact": "AREA-002: ContentItemMemberRoleManager.UpdateBindings() only manages ContentItemMemberRoleInfo records"
+    },
+    {
+      "claim": "Passing ContentAccessSettings.Public() removes all member role bindings",
+      "location": "Section: Update role bindings, paragraph 2 (line 168)",
+      "result": "verified",
+      "evidence": "Public() returns ContentAccessSettings with RequiredMemberRoleIDs=[]. In UpdateBindings: newRoleIds=empty, existingRoleIds=whatever was bound. roleIdsToRemove=all existing → BulkDelete removes all. roleIdsToAdd=empty → no inserts.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "UpdateBindings only manages the binding table — does NOT change ContentItemIsSecured flag",
+      "location": "Section: Update role bindings, paragraph 2 (line 168)",
+      "result": "verified",
+      "evidence": "ContentItemMemberRoleManager.UpdateBindings() at commit 65412d25: entire method body only touches ContentItemMemberRoleInfo records via BulkDelete/BulkInsert and CacheHelper.TouchKeys. Zero references to ContentItemIsSecured, IsSecured, or any content item metadata update.",
+      "docFact": "AREA-002: Does NOT update ContentItemIsSecured flag"
+    },
+    {
+      "claim": "To fully revert to public, must also set IsSecured to false through content item management API",
+      "location": "Section: Update role bindings, paragraph 2 (line 168)",
+      "result": "verified",
+      "evidence": "Since UpdateBindings doesn't touch ContentItemIsSecured (verified above), separately setting IsSecured=false is indeed required for full public revert. This is consistent with the two-part model: bindings table (managed by UpdateBindings) + IsSecured flag (managed separately).",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "IContentItemMemberRoleRetriever.GetMemberRoleIds returns IEnumerable<int>",
+      "location": "Section: Retrieve role information, code block (line 179)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleRetriever.cs: 'Task<IEnumerable<int>> GetMemberRoleIds(int contentItemId, CancellationToken cancellationToken = default)'.",
+      "docFact": null
+    },
+    {
+      "claim": "GetMemberRoleCodeNames(int) returns IEnumerable<string>",
+      "location": "Section: Retrieve role information, code block (line 182)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleRetriever.cs: 'Task<IEnumerable<string>> GetMemberRoleCodeNames(int contentItemId, CancellationToken cancellationToken = default)'.",
+      "docFact": null
+    },
+    {
+      "claim": "GetMemberRoleCodeNames(IEnumerable<int>) returns ILookup<int, string>",
+      "location": "Section: Retrieve role information, code block (line 185)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleRetriever.cs: 'Task<ILookup<int, string>> GetMemberRoleCodeNames(IEnumerable<int> contentItemIds, CancellationToken cancellationToken = default)'.",
+      "docFact": null
+    },
+    {
+      "claim": "GetAccessSettings(int, bool) returns ContentAccessSettings",
+      "location": "Section: Retrieve role information, code block (line 188)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleRetriever.cs: 'Task<ContentAccessSettings> GetAccessSettings(int contentItemId, bool isSecured, CancellationToken cancellationToken = default)'.",
+      "docFact": null
+    },
+    {
+      "claim": "GetAllMemberRoleCodeNames() returns IEnumerable<string>",
+      "location": "Section: Retrieve role information, code block (line 191)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleRetriever.cs: 'Task<IEnumerable<string>> GetAllMemberRoleCodeNames(CancellationToken cancellationToken = default)'.",
+      "docFact": null
+    },
+    {
+      "claim": "Batch GetMemberRoleCodeNames queries the database once rather than per-item",
+      "location": "Section: Retrieve role information, paragraph 2 (line 195)",
+      "result": "verified",
+      "evidence": "The IEnumerable<int> overload accepts multiple content item IDs in one call and returns ILookup. ContentItemRolesResultProcessor uses this overload with batched contentItemIds. Single DB query vs N calls is the design intent.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole extends IdentityRole<int>",
+      "location": "Section: ApplicationRole, paragraph 1 (line 203)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs at commit 65412d25: 'public class ApplicationRole : IdentityRole<int>'.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole maps to MemberRoleInfo objects",
+      "location": "Section: ApplicationRole, paragraph 1 (line 203)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: has MapFromMemberRoleInfo(MemberRoleInfo source) and MapToMemberRoleInfo(MemberRoleInfo target) methods.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole has DisplayName property",
+      "location": "Section: ApplicationRole, bullet 1 (line 205)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: 'public string DisplayName { get; set; }'.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole has Description property",
+      "location": "Section: ApplicationRole, bullet 2 (line 206)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: 'public string Description { get; set; }'.",
+      "docFact": null
+    },
+    {
+      "claim": "MapFromMemberRoleInfo(MemberRoleInfo source) populates ApplicationRole from MemberRoleInfo",
+      "location": "Section: ApplicationRole, bullet 3 (line 210)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: 'public virtual void MapFromMemberRoleInfo(MemberRoleInfo source)' — maps Id, Name, DisplayName, Description from source.",
+      "docFact": null
+    },
+    {
+      "claim": "MapToMemberRoleInfo(MemberRoleInfo target) writes ApplicationRole data to MemberRoleInfo",
+      "location": "Section: ApplicationRole, bullet 4 (line 211)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: 'public virtual void MapToMemberRoleInfo(MemberRoleInfo target)' — maps Name, DisplayName, Description to target.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRoleStore<TRole> implements IRoleStore<TRole> where TRole inherits from ApplicationRole",
+      "location": "Section: ApplicationRoleStore, paragraph 1 (line 215)",
+      "result": "verified",
+      "evidence": "ApplicationRoleStore.cs at commit 65412d25: 'public class ApplicationRoleStore<TRole> : IRoleStore<TRole> where TRole : ApplicationRole, new()'.",
+      "docFact": null
+    },
+    {
+      "claim": "ApplicationRole and ApplicationRoleStore are in Kentico.Membership namespace",
+      "location": "Section: ASP.NET Identity integration, paragraph 1 (line 199)",
+      "result": "verified",
+      "evidence": "ApplicationRole.cs: 'namespace Kentico.Membership'. ApplicationRoleStore.cs: 'namespace Kentico.Membership'.",
+      "docFact": null
+    },
+    {
+      "claim": "Secured with roles: accessible only to members who belong to at least one of the specified roles",
+      "location": "Section: Content access model, table row 3 (line 36)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess() at commit 65412d25: calls UserIsInAnyRole() which returns 'roles.Any(role => user.IsInRole(role))'. Any-match semantics confirmed.",
+      "docFact": null
+    },
+    {
+      "claim": "Public content visible to all visitors, no authentication required",
+      "location": "Section: Content access model, table row 1 (line 34)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess(): 'if (!isSecured) { return ContentAccessCheckResult.Allowed; }'. No auth check for public content.",
+      "docFact": null
+    },
+    {
+      "claim": "Secured content visible to any authenticated member regardless of roles",
+      "location": "Section: Content access model, table row 2 (line 35)",
+      "result": "verified",
+      "evidence": "MemberAccessHelper.CheckAccess(): after verifying isSecured and authenticated, 'if (!requiredRoles.Any()) { return ContentAccessCheckResult.Allowed; }'. No role check when no roles specified.",
+      "docFact": null
+    },
+    {
+      "claim": "HasAccess using directive is Kentico.Content.Web.Mvc",
+      "location": "Section: Check content access, code block (line 63)",
+      "result": "verified",
+      "evidence": "ContentItemFieldsSourceExtensions.cs: 'namespace Kentico.Content.Web.Mvc'. The using directive in the code example matches.",
+      "docFact": null
+    },
+    {
+      "claim": "IContentItemMemberRoleManager using directive is CMS.ContentEngine.Internal",
+      "location": "Section: Update role bindings, code block (line 139)",
+      "result": "verified",
+      "evidence": "IContentItemMemberRoleManager.cs: 'namespace CMS.ContentEngine.Internal'. Code example correctly uses 'using CMS.ContentEngine.Internal'.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Content access model, code block 'Create content access settings' (lines 40-51)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "ContentAccessSettings.Public(), .Secured(), .SecuredWithRoles(new[] { premiumRoleId, subscriberRoleId }) — all factory methods exist with correct signatures. new[] { int, int } produces int[] which is IEnumerable<int> matching the parameter type."
+    },
+    {
+      "location": "Section: Check content access, code block 'Check member access to a content item' (lines 61-76)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "using Kentico.Content.Web.Mvc matches namespace. contentItem.HasAccess(User) matches extension method signature. Returns bool. The Forbid() pattern is standard ASP.NET Core MVC."
+    },
+    {
+      "location": "Section: Query role requirements, code block 'Read required member roles from query results' (lines 90-110)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "item.SystemFields.ContentItemRequiredMemberRoleNames — IContentItemFieldsSource.SystemFields returns ContentItemFields which has ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>. Property access chain is correct."
+    },
+    {
+      "location": "Section: Update role bindings, code block 'Set content access settings for a content item' (lines 136-166)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "using CMS.ContentEngine.Internal matches namespace. IContentItemMemberRoleManager injected via DI. UpdateBindings(contentItemId, accessSettings) matches signature (CancellationToken has default). MakePublic() correctly calls UpdateBindings with ContentAccessSettings.Public(). Code comment 'Removes all member role bindings' is accurate. Note about IsSecured flag is accurate."
+    },
+    {
+      "location": "Section: Retrieve role information, code block 'Retrieve member roles for content items' (lines 174-193)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "All 5 method calls match IContentItemMemberRoleRetriever interface signatures: GetMemberRoleIds(int)→IEnumerable<int>, GetMemberRoleCodeNames(int)→IEnumerable<string>, GetMemberRoleCodeNames(IEnumerable<int>)→ILookup<int,string>, GetAccessSettings(int,bool)→ContentAccessSettings, GetAllMemberRoleCodeNames()→IEnumerable<string>. using CMS.ContentEngine.Internal matches namespace."
+    },
+    {
+      "location": "Section: ASP.NET Identity integration, code block 'Register member role services' (lines 217-228)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Standard ASP.NET Identity registration pattern. AddIdentity<ApplicationUser, ApplicationRole>, AddRoleStore<ApplicationRoleStore<ApplicationRole>>. Types and generic constraints match source code."
+    },
+    {
+      "location": "Section: ASP.NET Identity integration, code block 'Manage member roles using RoleManager' (lines 234-261)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "RoleManager<ApplicationRole> injected via DI. ApplicationRole properties Name, DisplayName, Description match source. CreateAsync and FindByNameAsync are standard Identity RoleManager methods backed by ApplicationRoleStore."
+    }
+  ],
+  "researchRecommendationCheck": {
+    "checked": true,
+    "notes": "7 research recommendations cited (REC-001, REC-008, REC-009, REC-012, REC-013, REC-014, REC-015). All have invariant gate 'approved'. No conflicts with invariants detected. No accuracy issues arising from following recommendations — all factual content independently verified against source code.",
+    "discards": []
+  },
+  "domainInsightCheck": {
+    "checked": true,
+    "notes": "knowledge-brief.json is cold start (zero entries). No domain insights to cross-reference. Skipped per missing-artifact handling rules."
+  },
+  "summary": {
+    "totalClaims": 43,
+    "verified": 43,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 7,
+    "codeExamplesCorrect": 7
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-004",
+  "verdict": "approved-with-notes",
+  "invariantResults": [
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All inline code references in writer-added content are properly backticked. Lines 31: `ApplicationRole`, `ApplicationRoleStore`, `AddIdentity`, `AddRoleStore` — all correct."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code examples are broken into logical sections (Password policy, Password reset, Email confirmation), each with its own code block and contextual prose. Writer maintained this structure when updating type parameters."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Writer-added content (info callout) does not contain step-by-step instructions. No ordered/unordered list misuse introduced."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "No headings were added or modified by the writer. All existing headings use sentence case correctly."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Writer-added callout uses active voice throughout: 'The Identity configuration...must register', 'These services enable', 'See the code samples'."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Writer-added content uses present simple tense: 'must register', 'enable', 'See'."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "No British English spellings in writer-added content."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Writer uses consistent terminology: 'member role' (matching REC-013), 'ApplicationRole'/'ApplicationRoleStore' throughout all modified code samples."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "evidence": "Writer-added callout avoids the pronoun 'it'. Uses 'These services' with clear antecedent."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No use of 'please' in writer-added content."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Callout is concise and direct — three sentences covering the requirement, its purpose, and where to find examples."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Callout links to member-roles page ({% page_link member_roles_xp %}) providing context for readers who land on this page first."
+    },
+    {
+      "invariantId": "INV-style-038",
+      "result": "pass",
+      "evidence": "Line 31: 'The Identity configuration in your application must register' — 'must' is used for the configuration (not addressing the user directly), which is acceptable per INV-style-039."
+    },
+    {
+      "invariantId": "INV-style-052",
+      "result": "pass",
+      "evidence": "No jargon or complex expressions in writer-added content."
+    },
+    {
+      "invariantId": "INV-callout-001",
+      "result": "pass",
+      "evidence": "Info callout used correctly for additional context about member role service registration requirements."
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "evidence": "Callout has bold title '**Member role services**' on a separate line (line 29)."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "evidence": "Callout title is 'Member role services', not 'Info' or 'Information'."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "evidence": "Info callout severity matches content — additional context about service registration, not a warning or critical note."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "page_link identifier 'member_roles_xp' verified in member-roles.md front matter. Not hallucinated."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "Link text 'member role' is descriptive and contextual, not vague."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "Writer-added callout uses correct Liquid admonition syntax: {% info %} / {% endinfo %}."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "All modified code blocks use {% code %} Liquid tag with lang=csharp (lines 120, 139, 197). Valid lang value."
+    },
+    {
+      "invariantId": "INV-jekyll-009",
+      "result": "pass",
+      "evidence": "Added 'member_roles_xp' to related_pages — member-roles.md is in the same _documentation collection."
+    },
+    {
+      "invariantId": "INV-formatting-001",
+      "result": "pass",
+      "evidence": "No UI element names were added by the writer. Pre-existing bold formatting of 'Program.cs' as code title is appropriate."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "Writer does not pluralize code elements. Uses proper noun phrases: '`AddIdentity` and `AddRoleStore` calls'."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Writer-added callout links to member-roles page with context, maintaining page independence. The note explains the requirement without assuming prior reading."
+    },
+    {
+      "invariantId": "INV-codesamples-006",
+      "result": "pass",
+      "note": "Writer did not introduce the ellipsis patterns. Line 143 `// ...` (pre-existing) and line 201 bare `...` (pre-existing) show inconsistency. See additionalFindings."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Headings follow h2 → h3 progression correctly: ## Prerequisites, ## Implement forms authentication → ### Registration, ### Sign in and sign out, ### Password policy, ### Password reset, ## Email confirmation → ### Implement email confirmation. No skipped levels."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "Front matter contains required fields: title, persona, identifier, order, license, redirect_from, toc, related_pages. Writer correctly added 'member_roles_xp' to related_pages array."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags in writer-added content are syntactically valid: {% info %}, {% endinfo %}, {% page_link member_roles_xp linkText=\"member role\" %}."
+    },
+    {
+      "category": "code-block-consistency",
+      "result": "note",
+      "evidence": "Pre-existing inconsistency in modified code blocks: Line 143 uses `// ...` (ellipsis inside comment), while line 201 uses bare `...`. Per INV-codesamples-006, bare ellipsis is correct. The writer did not introduce this inconsistency but modified the surrounding code block. Consider harmonizing to bare `...` on line 143.",
+      "suggestion": "In the password reset code sample (line 143), change `     // ...` to `    ...` to match the pattern on line 201 and comply with INV-codesamples-006."
+    },
+    {
+      "category": "code-block-indentation",
+      "result": "note",
+      "evidence": "Pre-existing indentation inconsistency in modified code blocks: Line 143 uses 5-space indent (should be 4 for C#). Line 201 uses a tab character while line 202 uses 4 spaces. Writer did not introduce these but they exist in modified sections.",
+      "suggestion": "Normalize indentation in both code blocks to 4 spaces for consistency."
+    },
+    {
+      "category": "terminology-preexisting",
+      "result": "note",
+      "evidence": "Line 17 (pre-existing, not modified by writer): 'on a login page' — per REC-013, should use 'sign-in page' instead of 'login page'. Outside task scope but worth noting for future cleanup.",
+      "suggestion": "Change 'login page' to 'sign-in page' on line 17 to align with REC-013 terminology."
+    },
+    {
+      "category": "interaction-verbs-preexisting",
+      "result": "note",
+      "evidence": "Lines 176 and 222 (pre-existing, not modified by writer): use 'click a link' and 'click the confirmation link'. INV-style-033 prohibits 'click' in favor of 'select'. However, 'click a link' is specifically about hyperlinks in email messages — 'select' may not be the natural replacement in this context. Outside task scope.",
+      "suggestion": "Consider rephrasing to 'follow the link' or 'open the link' on lines 176 and 222 to avoid 'click' while remaining natural."
+    },
+    {
+      "category": "page-structure-preexisting",
+      "result": "note",
+      "evidence": "Page lacks a 'Next Steps' section at the end. INV-structure-001 requires Title, Introduction, Body, Result, and Next Steps. INV-structure-010 recommends next steps linking to related articles. Pre-existing structural gap — not in task scope.",
+      "suggestion": "Consider adding a '## Next steps' section at the end of the page linking to related authentication topics."
+    },
+    {
+      "category": "typo-preexisting",
+      "result": "note",
+      "evidence": "Line 137 (pre-existing, not modified by writer): 'implemetnation' — typo for 'implementation'. Outside task scope but adjacent to modified code block.",
+      "suggestion": "Fix typo: change 'implemetnation' to 'implementation' on line 137."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "minor",
+      "location": "Line 143 (password reset code block)",
+      "description": "Pre-existing INV-codesamples-006 inconsistency: `// ...` uses ellipsis inside a comment. Line 201 correctly uses bare `...`. The writer modified this code block but did not introduce the issue.",
+      "suggestion": "Change `     // ...` to `    ...` on line 143."
+    },
+    {
+      "severity": "minor",
+      "location": "Line 143, Line 201",
+      "description": "Pre-existing indentation inconsistency in modified code blocks: 5 spaces (line 143), tab character (line 201) — should be 4 spaces.",
+      "suggestion": "Normalize to 4-space indentation in both code blocks."
+    },
+    {
+      "severity": "info",
+      "location": "Line 17",
+      "description": "Pre-existing: 'login page' should be 'sign-in page' per REC-013 terminology. Not in task scope.",
+      "suggestion": "Change 'login page' to 'sign-in page'."
+    },
+    {
+      "severity": "info",
+      "location": "Line 137",
+      "description": "Pre-existing typo: 'implemetnation' should be 'implementation'. Not in task scope but adjacent to modified content.",
+      "suggestion": "Fix the typo."
+    },
+    {
+      "severity": "info",
+      "location": "End of page",
+      "description": "Pre-existing: Page lacks a 'Next Steps' section required by INV-structure-001. Not in task scope.",
+      "suggestion": "Add a '## Next steps' section linking to related authentication topics."
+    }
+  ],
+  "summary": {
+    "invariantsPassed": 27,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 5,
+    "preExistingIssuesNoted": 5,
+    "briefSummary": "All task-inlined invariants (INV-formatting-004, INV-codesamples-010, INV-structure-006) and all applicable style/structure/formatting/jekyll/codesamples/crossref invariants PASS on the writer's modifications and additions. The writer-added info callout is well-structured with proper Liquid syntax, correct cross-reference identifier, descriptive link text, appropriate callout type, and compliant formatting. All four code sample updates are consistent (NoOpApplicationRole → ApplicationRole, NoOpApplicationRoleStore → ApplicationRoleStore<ApplicationRole>). Five pre-existing issues noted for future cleanup (ellipsis in comment, indentation inconsistency, 'login' terminology, typo, missing Next Steps) — none introduced by the writer and all outside the task scope."
+  },
+  "metaKnowledge": {
+    "knowledgeBriefConsulted": true,
+    "styleEvolutionsApplied": 0,
+    "antiPatternsChecked": 0,
+    "coldStart": true,
+    "note": "Knowledge brief is cold start with no prior pipeline runs. No style evolutions or anti-patterns to apply. Anti-patterns.md not found — skipped per missing artifact handling."
+  }
+}

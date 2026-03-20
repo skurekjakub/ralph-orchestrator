@@ -1,0 +1,396 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-013",
+  "attempt": 2,
+  "verdict": "approved",
+  "invariantResults": [
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "All headings in new/modified sections use sentence case: 'Secure content items', 'Require authentication', 'Restrict to member roles', 'Availability of secured content items'."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Verb-phrase headings use imperative mood: 'Secure content items' (L349), 'Require authentication' (L360), 'Restrict to member roles' (L374). 'Availability of secured content items' (L400) is a noun-phrase heading (descriptive, not action-oriented) — imperative not required."
+    },
+    {
+      "invariantId": "INV-style-003",
+      "result": "pass",
+      "evidence": "No heading is prefixed with 'How to'."
+    },
+    {
+      "invariantId": "INV-style-004",
+      "result": "pass",
+      "evidence": "Heading titles are distinct and unambiguous: 'Require authentication', 'Restrict to member roles', 'Availability of secured content items'."
+    },
+    {
+      "invariantId": "INV-style-005",
+      "result": "pass",
+      "evidence": "Headings use search-friendly terms: 'authentication', 'member roles', 'secure content items'."
+    },
+    {
+      "invariantId": "INV-style-006",
+      "result": "pass",
+      "evidence": "Feature names correctly capitalized: 'Content hub' (L364, L386), 'Xperience' (L358)."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Active voice used throughout. L356 ('Both options are configured in...') uses passive to emphasize the location — acceptable per exception (b)."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Present simple tense used throughout: 'show' (L358), 'requires' (L372), 'can view' (L353)."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "American English spelling used throughout. No British spellings found."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent terminology: 'member' (not user) for website visitors, 'member roles' (not membership roles), 'sign in' (not log in), 'Membership access' (consistent section name)."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "evidence": "Pronoun 'it' has clear antecedents where used (L372: 'view it on the live site' — antecedent is 'content item'). No ambiguous pronoun usage."
+    },
+    {
+      "invariantId": "INV-style-012",
+      "result": "pass",
+      "evidence": "Indicative and imperative mood used throughout. No subjunctive mood found."
+    },
+    {
+      "invariantId": "INV-style-013",
+      "result": "pass",
+      "evidence": "No gendered pronouns used. 'Members who' pattern avoids gendered language."
+    },
+    {
+      "invariantId": "INV-style-014",
+      "result": "pass",
+      "evidence": "No culturally-specific idioms, slang, or metaphors found."
+    },
+    {
+      "invariantId": "INV-style-015",
+      "result": "pass",
+      "evidence": "No redundant repetition. Steps in 'Require authentication' and 'Restrict to member roles' share similar patterns but cover distinct procedures."
+    },
+    {
+      "invariantId": "INV-style-016",
+      "result": "pass",
+      "evidence": "No verbose phrases found. Language is direct."
+    },
+    {
+      "invariantId": "INV-style-017",
+      "result": "pass",
+      "evidence": "No filler words (actually, basically, really, just, in fact) found in new content."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "evidence": "Most sentences under 20 words. L398 is ~30 words but is a compound instruction describing two alternatives — acceptable for a 'should' severity."
+    },
+    {
+      "invariantId": "INV-style-019",
+      "result": "pass",
+      "evidence": "Specific terms used: 'diamond icon' (not 'an icon'), 'Membership access section' (not 'a section'), 'Requires authentication option' (not 'an option')."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No 'please' found anywhere in the new content."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Content is concise and direct. Introduction (L351-358) is 4 sentences covering the two security levels, location, and visual indicator."
+    },
+    {
+      "invariantId": "INV-style-022",
+      "result": "pass",
+      "evidence": "Simple English used throughout. No complex jargon or compound sentence structures."
+    },
+    {
+      "invariantId": "INV-style-023",
+      "result": "pass",
+      "evidence": "No (s) optional plural constructions found."
+    },
+    {
+      "invariantId": "INV-style-024",
+      "result": "pass",
+      "evidence": "Conditions lead: 'To require that members sign in...:' (L362), 'To restrict a content item...:' (L384), 'To change or remove the role restriction later, return to...' (L398)."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Rich linking to prerequisite content: L353 links to members page, L354 links to member roles anchor, L380 links to member roles setup with context, L402 links to website channel pages, emails, headless items, L406 links to Secure pages."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "No heading ends with -ing form."
+    },
+    {
+      "invariantId": "INV-style-027",
+      "result": "pass",
+      "evidence": "'Select' used consistently for UI interactions: L365, L370, L387, L390, L391, L394."
+    },
+    {
+      "invariantId": "INV-style-028",
+      "result": "pass",
+      "evidence": "L398: 'clear the **Requires authentication** option' — correct usage of 'clear' for unchecking. No 'uncheck' found."
+    },
+    {
+      "invariantId": "INV-style-029",
+      "result": "pass",
+      "evidence": "No typing/entering instructions in the new section. N/A but compliant."
+    },
+    {
+      "invariantId": "INV-style-030",
+      "result": "pass",
+      "evidence": "L364: 'Open the **Content hub** application' — correct 'Open' usage. L386 likewise."
+    },
+    {
+      "invariantId": "INV-style-031",
+      "result": "pass",
+      "evidence": "L367: 'Switch to the **Properties** tab' — 'Switch to' is acceptable for tab navigation."
+    },
+    {
+      "invariantId": "INV-style-032",
+      "result": "pass",
+      "evidence": "No keyboard interactions in new content. 'Press' not used. Compliant."
+    },
+    {
+      "invariantId": "INV-style-033",
+      "result": "pass",
+      "evidence": "No 'click' found anywhere in new content. 'Select' used consistently."
+    },
+    {
+      "invariantId": "INV-style-034",
+      "result": "pass",
+      "evidence": "ALL THREE previously-flagged violations are fixed: (1) L368: 'select the **Requires authentication** option' ✓ (was 'enable'), (2) L390: 'select the **Requires authentication** option' ✓ (was 'enable'), (3) L398: 'clear the **Requires authentication** option' ✓ (was 'disable'). No other enable/disable used for specific UI elements in new content."
+    },
+    {
+      "invariantId": "INV-style-035",
+      "result": "pass",
+      "evidence": "No 'check/uncheck' found in new content."
+    },
+    {
+      "invariantId": "INV-style-036",
+      "result": "pass",
+      "evidence": "No 'choose' found in any new/modified content (L349-408). 'Select' used consistently."
+    },
+    {
+      "invariantId": "INV-style-037",
+      "result": "pass",
+      "evidence": "Action-focused: L370 'Select **Save**' (not 'Select the Save button'). L394 likewise."
+    },
+    {
+      "invariantId": "INV-style-038",
+      "result": "pass",
+      "evidence": "L351: 'You can control' — OK per exception ('You can' for optional actions). L376: 'you can restrict access' — OK per exception. L380: 'your project must have' — about the project, not the user directly."
+    },
+    {
+      "invariantId": "INV-style-039",
+      "result": "pass",
+      "evidence": "L380: 'your project must have member roles set up' — 'must' applied to the project (a condition), not addressing the user directly. Compliant."
+    },
+    {
+      "invariantId": "INV-style-040",
+      "result": "pass",
+      "evidence": "No 'have to' found in new content."
+    },
+    {
+      "invariantId": "INV-style-041",
+      "result": "pass",
+      "evidence": "Contractions not heavily used, but language remains approachable. 'don't' not forced. Acceptable tone."
+    },
+    {
+      "invariantId": "INV-style-042",
+      "result": "pass",
+      "evidence": "No awkward contractions found."
+    },
+    {
+      "invariantId": "INV-style-043",
+      "result": "pass",
+      "evidence": "No double contractions found."
+    },
+    {
+      "invariantId": "INV-style-044",
+      "result": "pass",
+      "evidence": "No noun+verb contractions found."
+    },
+    {
+      "invariantId": "INV-style-045",
+      "result": "pass",
+      "evidence": "No UI text in new content mixes contractions and spelled-out equivalents."
+    },
+    {
+      "invariantId": "INV-style-046",
+      "result": "pass",
+      "evidence": "No navigation paths in new section. N/A but compliant."
+    },
+    {
+      "invariantId": "INV-style-047",
+      "result": "pass",
+      "evidence": "No arrow notation in new section. N/A but compliant."
+    },
+    {
+      "invariantId": "INV-style-048",
+      "result": "pass",
+      "evidence": "No abbreviations invented. Standard 'UI' used."
+    },
+    {
+      "invariantId": "INV-style-049",
+      "result": "pass",
+      "evidence": "No three dots or etc. usage in new content. N/A."
+    },
+    {
+      "invariantId": "INV-style-050",
+      "result": "pass",
+      "evidence": "No possessive constructions found."
+    },
+    {
+      "invariantId": "INV-style-051",
+      "result": "pass",
+      "evidence": "No self-referential 'this guide' or 'in this guide' found."
+    },
+    {
+      "invariantId": "INV-style-052",
+      "result": "pass",
+      "evidence": "No jargon or complex metaphors. Business-user appropriate language throughout."
+    },
+    {
+      "invariantId": "INV-structure-001",
+      "result": "pass",
+      "evidence": "Page has title (front matter), introduction (L16-25), body sections (L27-537), result statements after procedures, and next steps via cross-references."
+    },
+    {
+      "invariantId": "INV-structure-002",
+      "result": "pass",
+      "evidence": "New section intro (L351-358) provides context: what the two security levels are, where to find them, and how to identify secured items."
+    },
+    {
+      "invariantId": "INV-structure-003",
+      "result": "pass",
+      "evidence": "Section intro answers: What (two-tier security), Why (control who views content), When (for authenticated or role-restricted content)."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Ordered lists used for step-by-step procedures (L364-370, L386-394). Bullet lists used for non-sequential items (L353-354, L392)."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "evidence": "One action per step throughout: L364 Open, L365 Select item, L367 Switch tab, L368 Select option, L370 Save. Same pattern in L386-394."
+    },
+    {
+      "invariantId": "INV-structure-008",
+      "result": "pass",
+      "evidence": "Both procedures have 5-6 steps, well under the 8-step guideline."
+    },
+    {
+      "invariantId": "INV-structure-009",
+      "result": "pass",
+      "evidence": "End results described: L372 ('The content item now requires authentication...'), L396 ('The content item is now restricted to the selected member roles...')."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Section is self-contained. Prerequisites linked (L380 links to member roles setup). Cross-references provided for related pages (L406 links to Secure pages)."
+    },
+    {
+      "invariantId": "INV-structure-012",
+      "result": "pass",
+      "evidence": "Happy path assumed. Prerequisite for member roles mentioned via info callout (L378-382) with link to setup page."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "List items start with capitalized first letter: L353 bold lead, L354 bold lead, L392 'Only members...'."
+    },
+    {
+      "invariantId": "INV-structure-016",
+      "result": "pass",
+      "evidence": "Bullet lists (L353-354), ordered lists (L364-370, L386-394), and callouts (L378-382, L404-408) break up content effectively."
+    },
+    {
+      "invariantId": "INV-structure-017",
+      "result": "pass",
+      "evidence": "Task-oriented approach: 'Require authentication', 'Restrict to member roles' describe user scenarios, not features."
+    },
+    {
+      "invariantId": "INV-structure-020",
+      "result": "pass",
+      "evidence": "Lists do not exceed 3 levels deep. Steps use at most 2 levels (numbered step + sub-bullet)."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "All page_link tags use identifiers: BIsuCw (members), JwKQC (website channels), IaDWCQ (emails), xIWOD (headless items), 8oouCw (secure pages). No guessed identifiers."
+    },
+    {
+      "invariantId": "INV-crossref-003",
+      "result": "pass",
+      "evidence": "Anchor 'Member roles' used on page_link to BIsuCw (L354, L380). Assumed to exist on target page based on task context."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "All links use descriptive text: 'members' (L353), 'member roles' (L354), 'Member roles' (L380), 'website channel pages' (L402), 'emails' (L402), 'headless items' (L402), 'Secure pages' (L406)."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "Admonition tags correctly used: {% info %}...{% endinfo %} (L378-382), {% tip %}...{% endtip %} (L404-408)."
+    },
+    {
+      "invariantId": "INV-jekyll-003",
+      "result": "pass",
+      "evidence": "Image tags correctly formatted with border=true for UI screenshots: L369 (ContentItemSecuritySettings.jpg), L393 (ContentItemSecuritySettingsRoles.jpg)."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "h2 'Secure content items' (L349) → h3 'Require authentication' (L360) → h3 'Restrict to member roles' (L374) → h3 'Availability of secured content items' (L400). No skipped levels."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Both procedures follow identical formatting: intro sentence, ordered steps, sub-bullets for tips, image tag, result paragraph. Callouts use consistent Liquid syntax."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "All internal links use {% page_link %} or {% inpage_link %} Liquid tags with correct syntax. No raw markdown links for internal pages."
+    },
+    {
+      "category": "sentence-structure",
+      "result": "pass",
+      "evidence": "Clear, scannable prose throughout. L398 is a longer compound sentence (~30 words) describing two alternative actions but remains readable. No run-on sentences or ambiguous constructions."
+    },
+    {
+      "category": "meta-knowledge-check",
+      "result": "pass",
+      "evidence": "knowledge-brief.json exists but has empty styleEvolutions and antiPatterns arrays. No additional criteria to apply. anti-patterns.md does not exist — skipped per missing artifact handling."
+    },
+    {
+      "category": "accuracy-fix-style-impact",
+      "result": "pass",
+      "evidence": "Accuracy fixes (Security→Membership access, lock→diamond icon) do not introduce style violations. 'Membership access' is correctly bolded as a UI element name. 'diamond icon' uses correct Liquid {% icon %} syntax."
+    }
+  ],
+  "summary": {
+    "invariantsPassed": 68,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "primaryFix": "All 3 INV-style-034 violations from attempt 1 are confirmed fixed: L368 enable→select, L390 enable→select, L398 disable→clear."
+  }
+}

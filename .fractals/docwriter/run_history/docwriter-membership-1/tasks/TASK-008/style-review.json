@@ -1,0 +1,307 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-008",
+  "verdict": "approved-with-notes",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/content-retrieval/retrieve-page-content.md",
+  "reviewScope": "Lines 149-253 (Page security configuration section and all new/modified subsections)",
+  "invariantResults": [
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "All headings use sentence case. New headings: 'Check access with HasAccess' (h4), 'Authentication and authorization responses' (h4). Callout titles: 'Additional security properties', 'Backward-compatible path handling'. All correctly sentence-cased with proper nouns and code names preserved."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Verb-phrase headings use imperative mood: 'Check access with HasAccess'. Noun-phrase heading 'Authentication and authorization responses' appropriately describes the section content without requiring imperative form."
+    },
+    {
+      "invariantId": "INV-style-003",
+      "result": "pass",
+      "evidence": "No headings or titles prefixed with 'How to'."
+    },
+    {
+      "invariantId": "INV-style-006",
+      "result": "pass",
+      "evidence": "Feature names correctly capitalized: 'ASP.NET Identity' (line 232). Product-specific terms use existing capitalization conventions."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "New content predominantly uses active voice. 'The system determines' (line 152), 'HasAccess returns true' (line 196), 'The system issues a challenge' (line 229), 'The system redirects' (line 230). One passive construction 'Pages can be secured' (line 151) is acceptable per exception (b): emphasizing the receiver of the action."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "All new content uses present simple tense: 'determines' (line 152), 'returns' (line 196), 'evaluates' (line 174), 'requests' (line 228), 'distinguishes' (line 228)."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "American English spelling used throughout. 'authorization' (line 225), 'behavior' (line 159)."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent terminology: 'visitor' for website visitors, 'member' for authenticated members, 'member roles' for role assignments. No unnecessary synonyms."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "evidence": "No ambiguous 'it' pronoun usage in new content. Subjects are restated clearly throughout."
+    },
+    {
+      "invariantId": "INV-style-012",
+      "result": "pass",
+      "evidence": "Indicative and imperative mood used throughout. No subjunctive mood detected."
+    },
+    {
+      "invariantId": "INV-style-013",
+      "result": "pass",
+      "evidence": "No gendered pronouns. Line 228: 'they are not allowed' uses gender-neutral 'they'."
+    },
+    {
+      "invariantId": "INV-style-014",
+      "result": "pass",
+      "evidence": "No culturally specific idioms, slang, or sports metaphors."
+    },
+    {
+      "invariantId": "INV-style-015",
+      "result": "pass",
+      "evidence": "No redundant information in new sections. Each subsection covers distinct content (HasAccess method, HTTP status codes, cookie configuration)."
+    },
+    {
+      "invariantId": "INV-style-017",
+      "result": "pass",
+      "evidence": "No filler words (actually, basically, really, just, in fact) found in new content."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "evidence": "Most sentences are under 20 words. Two sentences slightly exceed the guideline: 'The HasAccess extension method on IContentItemFieldsSource is the recommended way to check whether a visitor has access to a retrieved content item.' (22 words, line 173) and its follow-up (21 words, line 174). Acceptable given severity 'should' and the technical nature requiring full API path references."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No use of 'please' in new content."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Content is concise and focused. Each subsection gets to the point quickly: intro sentence, code sample, brief explanation."
+    },
+    {
+      "invariantId": "INV-style-024",
+      "result": "pass",
+      "evidence": "Instructions lead with conditions: 'By default, the IContentRetriever does not include secured pages... You can change this behavior by setting...' (line 159). 'When a visitor requests a secured page...' (line 228)."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Cross-references provided for dependent concepts: linked to 'secured' page (8oouCw), 'authenticated member' (tYouCw), 'member roles' (member_roles_xp), 'Reference - ContentAccessSettings' (reference_content_access_settings_xp). Section is self-contained with inline explanations."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "Section headings do not end with -ing form: 'Check access with HasAccess', 'Authentication and authorization responses'. Note: callout title 'Backward-compatible path handling' (line 249) ends with -ing gerund-as-noun. Existing page content follows the same pattern ('Automatic URL resolving', line 315). Not counting as fail since this is a callout label, not a section heading or page title."
+    },
+    {
+      "invariantId": "INV-style-042",
+      "result": "pass",
+      "evidence": "No awkward contractions (there'd, it'll, they'd) in new content."
+    },
+    {
+      "invariantId": "INV-style-052",
+      "result": "pass",
+      "evidence": "No jargon or complex expressions. Technical terms are standard .NET/ASP.NET terminology appropriate for developer audience."
+    },
+    {
+      "invariantId": "INV-structure-002",
+      "result": "pass",
+      "evidence": "'Page security configuration' section opens with context about the three-tier model. 'Check access with HasAccess' opens with what the method does and why to use it. 'Authentication and authorization responses' opens with the scenario it addresses."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Bullet points used correctly for unordered items: three-tier model list (lines 153-155, order doesn't matter), HasAccess conditions (lines 198-201, order doesn't matter), HTTP status scenarios (lines 229-231, order doesn't matter). No step-by-step instructions that should use ordered lists."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "New sections link to external references (member_roles_xp, reference_content_access_settings_xp, 8oouCw, tYouCw) and provide sufficient inline explanation for standalone comprehension."
+    },
+    {
+      "invariantId": "INV-structure-012",
+      "result": "pass",
+      "evidence": "Content assumes happy path: readers have a working project with content retrieval in place. Prerequisites (secured pages, member authentication) are linked, not over-explained."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "All list items use sentence case: 'The page is not secured (public).' (line 198), 'The page is secured and the visitor is authenticated...' (line 199). Bullet items starting with bold terms use sentence case after the bold: '**Public** – the page is accessible...' (line 153)."
+    },
+    {
+      "invariantId": "INV-structure-016",
+      "result": "pass",
+      "evidence": "Content uses bullet lists (three-tier model, HasAccess conditions, HTTP status scenarios) and code blocks to break up prose. No long unbroken paragraphs."
+    },
+    {
+      "invariantId": "INV-structure-020",
+      "result": "pass",
+      "evidence": "No lists exceed 1 level of nesting. All lists are flat."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members backticked: `HasAccess` (line 173), `IContentItemFieldsSource` (line 173), `IContentRetriever` (line 159), `IncludeSecuredItems` (line 159), `RetrievePagesParameters` (line 159), `true` (line 159, 196), `page.SystemFields.ContentItemIsSecured` (line 221), `page.SystemFields.ContentItemRequiredMemberRoleNames` (line 221), `IReadOnlyCollection<string>` (line 221), `LoginPath` (line 232), `AccessDeniedPath` (line 232, 251)."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No code elements pluralized directly. Properties and methods referenced by their exact names."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No bold or italics applied to backticked inline code."
+    },
+    {
+      "invariantId": "INV-formatting-009",
+      "result": "pass",
+      "evidence": "No ALL CAPS used outside the prescribed scope. Note: Line 201 uses bold **and** for emphasis instead of ALL CAPS AND. INV-formatting-009 restricts WHEN ALL CAPS may be used but does not mandate ALL CAPS as the only emphasis technique. See additional findings for a minor suggestion."
+    },
+    {
+      "invariantId": "INV-formatting-011",
+      "result": "pass",
+      "evidence": "Single space between sentences throughout. Code block indentation uses 4 spaces consistently."
+    },
+    {
+      "invariantId": "INV-formatting-012",
+      "result": "pass",
+      "evidence": "Oxford comma used: 'the page's security state, the visitor's authentication status, and the visitor's member role assignments' (line 174)."
+    },
+    {
+      "invariantId": "INV-formatting-015",
+      "result": "pass",
+      "evidence": "Compound modifiers hyphenated correctly: 'three-tier' (line 151), 'role-aware' (writer-output), 'Backward-compatible' (line 249), 'insufficient-role' (line 232)."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "evidence": "En dashes used correctly for list item separators: '**Public** – the page...' (line 153), '**Not authenticated (HTTP 401)** – the visitor...' (line 229). No em dashes present."
+    },
+    {
+      "invariantId": "INV-callout-001",
+      "result": "pass",
+      "evidence": "Both new callouts use 'info' type appropriately. 'Additional security properties' provides supplementary API context. 'Backward-compatible path handling' provides additional behavioral context. Both are informational, not warnings or tips."
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "evidence": "Both callouts include bold titles on separate lines: '**Additional security properties**' (line 219) and '**Backward-compatible path handling**' (line 249). Both contain multi-sentence content, so titles are required per the invariant."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "evidence": "Neither callout contains the word 'Info' or the callout type name inside the callout body."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "evidence": "Both callouts correctly use 'info' severity. Content is additional context, not warnings or critical notes."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "All link text is descriptive: 'secured' (line 151), 'authenticated member' (line 154), 'member roles' (line 155), 'Reference - ContentAccessSettings' (line 157). No vague 'click here' or 'this page' text."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "Liquid admonition tags used correctly: {% info %}...{% endinfo %} for both new callouts (lines 217-223, 247-253)."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "All code blocks use {% code %} Liquid tag with supported lang values: lang=csharp (lines 161, 175, 234), lang=cshtml (line 204). All closed with {% endcode %}."
+    },
+    {
+      "invariantId": "INV-codesamples-004",
+      "result": "pass",
+      "evidence": "Code comments use third person singular, omit subject when clear, no final dot on single-line comments: 'Includes secured pages in the results' (line 166), 'Retrieves secured pages' (line 181), 'Checks if the current visitor has access to the page' (line 191), 'Redirects unauthenticated visitors to the sign-in page' (line 239), 'Redirects authenticated visitors without the required role to the access denied page' (line 242)."
+    },
+    {
+      "invariantId": "INV-codesamples-006",
+      "result": "pass",
+      "evidence": "Ellipsis used correctly for incomplete code at line 179: '...' (three manually written dots). Ellipsis is outside comments, on its own line between using directive and code body."
+    },
+    {
+      "invariantId": "INV-codesamples-008",
+      "result": "pass",
+      "evidence": "Comments focus on Kentico-specific behavior. No over-commenting of obvious code. Generic .NET patterns (foreach, bool assignment) left uncommented. Kentico-specific methods (HasAccess, IncludeSecuredItems, LoginPath/AccessDeniedPath purpose) are commented."
+    },
+    {
+      "invariantId": "INV-codesamples-009",
+      "result": "pass",
+      "evidence": "Comments explain Kentico-specific methods and configuration options: HasAccess, IncludeSecuredItems, LoginPath/AccessDeniedPath. Generic .NET (foreach, ConfigureApplicationCookie) not over-explained in comments."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code examples broken into logical sections: (1) Include secured pages — single focused example (lines 162-169), (2) HasAccess check — progressive: retrieve → iterate → check (lines 176-194), (3) Razor view — focused conditional display (lines 205-215), (4) Cookie auth — focused configuration (lines 235-244). Appropriate brevity for how-to content type."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-code-formatting",
+      "result": "note",
+      "evidence": "Line 171: '#### Check access with HasAccess' — 'HasAccess' is a method name but not backticked in the heading. INV-formatting-004 requires backticks for methods. However, code formatting in headings can interfere with heading rendering and TOC generation. Existing headings on this page avoid code in headings entirely. Consider whether backticking in headings is desired per project convention.",
+      "suggestion": "If the project supports backticks in headings, change to '#### Check access with `HasAccess`'. Otherwise, leave as-is for consistency with existing heading style."
+    },
+    {
+      "category": "emphasis-technique",
+      "result": "note",
+      "evidence": "Line 201: 'the visitor is authenticated **and** belongs to at least one of the required roles' uses bold for the logical connector 'and'. INV-formatting-009 prescribes ALL CAPS (AND) as the emphasis technique for logical connectors. While the invariant primarily restricts when ALL CAPS may be used rather than mandating it, using AND would align with the documented convention.",
+      "suggestion": "Consider changing '**and**' to 'AND' on line 201 to match the ALL CAPS convention for emphasized logical connectors: 'the visitor is authenticated AND belongs to at least one of the required roles.'"
+    },
+    {
+      "category": "callout-title-ing-form",
+      "result": "note",
+      "evidence": "Line 249: Callout title 'Backward-compatible path handling' ends with '-ing' form (handling). INV-style-026 states 'Title must not end with -ing form.' However, this appears to target page titles and section headings, not callout labels. The existing page already uses the same pattern at line 315 ('Automatic URL resolving'). Not counted as invariant failure.",
+      "suggestion": "If strict compliance is desired, consider rewording to 'Backward-compatible path fallback' or 'Backward-compatible path behavior'."
+    },
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "New headings follow correct h3 → h4 progression: '### Page security configuration' (h3) → '#### Check access with HasAccess' (h4) → '#### Authentication and authorization responses' (h4). No skipped levels."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Lists, code blocks, and callouts follow consistent formatting patterns throughout the new content. Code blocks all use {% code %} with lang and title. Callouts all use {% info %} with bold titles. Bullet lists all use consistent dash-space formatting."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags properly opened and closed: {% code %}...{% endcode %} (3 pairs), {% info %}...{% endinfo %} (2 pairs), {% page_link %} (4 instances). No broken includes or unclosed tags."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title, persona, identifier, order, license, redirect_from, toc, related_pages. No modifications to front matter by this task (existing values preserved)."
+    }
+  ],
+  "metaKnowledgeCheck": {
+    "knowledgeBriefStatus": "cold-start",
+    "styleEvolutions": "none (empty array in knowledge-brief.json)",
+    "antiPatterns": "anti-patterns.md not found; skipped per missing artifact handling policy",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 47,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 3,
+    "domainsChecked": ["style", "structure", "formatting", "callout", "crossref", "jekyll", "codesamples"]
+  }
+}

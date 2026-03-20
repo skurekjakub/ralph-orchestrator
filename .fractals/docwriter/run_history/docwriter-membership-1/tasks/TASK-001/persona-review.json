@@ -1,0 +1,143 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-001",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/member-roles.md",
+  "personaChecks": [
+    {
+      "check": "front-matter-persona",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. Valid per INV-frontmatter-006 (allowed: developer, admin, business, architect, all). The content is exclusively developer-focused: C# code samples with DI patterns, ASP.NET Identity integration, content query pipeline references. Consistent with all four sibling pages in the registration-and-authentication cluster (forms-authentication, external-authentication, add-fields-to-member-objects, parent index), which all declare `persona: developer` or `personas: [developer]`. No secondary persona needed — admin UI procedures are correctly delegated to the 'Secure pages' link in Next steps."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "The page is code-first with 7 C# code examples spanning all major sections. Exact API terminology used throughout: `ContentAccessSettings.SecuredWithRoles()`, `IContentItemMemberRoleManager`, `IContentItemMemberRoleRetriever`, `HasAccess()`, `ContentItemRequiredMemberRoleNames`, `ApplicationRole`, `ApplicationRoleStore`. The introduction immediately frames the page around developer tasks ('Restrict pages or content items', 'Check a member\\'s access level', 'Query content', 'Manage role assignments programmatically'). No marketing language, no admin-UI walkthroughs. The prerequisite pointer to ASP.NET Identity configuration is appropriately brief — trusts the developer to follow the link."
+    },
+    {
+      "check": "depth-developer",
+      "result": "pass",
+      "evidence": "Depth is well calibrated for developers. Each section follows a consistent pattern: purpose statement → code example → behavioral detail. Examples: (1) Content access model includes a comparison table developers can scan as quick-reference, plus factory method usage. (2) The 'Update role bindings' section documents the critical behavioral nuance that `UpdateBindings` only manages the binding table and does NOT change `ContentItemIsSecured` — essential implementation detail for a developer to avoid bugs. (3) The ASP.NET Identity section shows both Program.cs registration and a full service class. Not too shallow (every API is demonstrated with working code) and not too deep (no source-code-level implementation internals)."
+    },
+    {
+      "check": "INV-persona-003-combined-steps",
+      "result": "pass",
+      "evidence": "Per INV-persona-003, developer/admin content may combine 2 related easy steps. The page combines injection + usage in single code blocks (e.g., lines 141-164 show constructor injection and two methods in one service class), and combines query + iteration in the role requirements example (lines 93-109). These combinations pair closely related operations. The 'Retrieve role information' code block (lines 179-192) shows 5 retriever method calls — but these are independent one-liner examples, not a multi-step procedure, so this is appropriate reference-style illustration."
+    },
+    {
+      "check": "cross-domain-terminology",
+      "result": "pass",
+      "evidence": "Per INV-persona-003 and INV-persona-004, business/marketing terms should be explained when used in developer content. The page avoids business terminology entirely. The cross-reference on line 278 ('Business users can configure page-level security through the Secure pages interface') correctly identifies the audience for that linked feature without shifting tone. The only domain-bridging term is 'three-tier content access model', which is immediately defined with a comparison table — good practice for developer content."
+    },
+    {
+      "check": "INV-content-030-user-types",
+      "result": "pass",
+      "evidence": "Terminology is correct per INV-content-030. 'member' used consistently (~30 occurrences) for registered visitors without admin access. 'visitor' used correctly on line 31 ('Content visible to all visitors') and line 80 ('the visitor is not signed in') for anonymous website users. 'Business users' on line 278 correctly refers to the persona/audience label in a Next steps cross-reference. `User` in code blocks (line 67: `contentItem.HasAccess(User)`) refers to ASP.NET's `HttpContext.User` ClaimsPrincipal — API nomenclature, not a terminology violation. 'sign-in' used correctly as adjective (line 71: 'the sign-in page'). No 'log in', 'login', 'sign up' violations."
+    },
+    {
+      "check": "attempt-2-delta-review",
+      "result": "pass",
+      "evidence": "Attempt 1 was approved-with-notes with two minor suggestions. The key persona-relevant suggestion — changing 'value-like type' to a more precise description — was implemented. Line 38 now reads: 'ContentAccessSettings is a sealed class with static factory methods and value-like equality semantics.' This is technically precise for the developer audience and resolves the potential confusion about the struct-to-class change. The second suggestion (mentioning the breaking change in the introduction) was not implemented, which is a reasonable editorial decision since this is a feature documentation page, not a migration guide. No persona regression from the rewrite."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto-with-reference-elements",
+    "result": "pass",
+    "evidence": "Task declares contentType 'howto' (INV-structure-021). The page is predominantly goal-oriented: each section answers a specific developer question — how to set access levels, how to check access, how to query roles, how to manage bindings programmatically, how to integrate with ASP.NET Identity. The 'Content access model' section and its comparison table lean toward reference/concept territory, but this serves as essential context for the how-to tasks that follow. Per the Diataxis framework, how-to content assumes existing knowledge and focuses on goals — this page matches that pattern. The classification is correct."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Valid value per INV-frontmatter-006. Matches content's target audience and task specification."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "member_roles_xp",
+      "evidence": "Snake_case with _xp suffix per INV-frontmatter-002 and INV-frontmatter-007. Unique — not duplicated in doc-index."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "Standard license tier per INV-frontmatter-005. Consistent with sibling pages in the cluster."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "400",
+      "evidence": "Siblings use 100 (forms-authentication), 200 (external-authentication), 300 (add-fields-to-member-objects). Order 400 places this page after existing siblings per INV-frontmatter-003."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/member_roles_xp",
+      "evidence": "Includes x/<identifier> per INV-frontmatter-004. Fixed from empty [] in attempt 1."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All four sibling pages in the development/registration-and-authentication cluster target developer persona exclusively: forms-authentication (developer, concept), external-authentication (developer, howto), add-fields-to-member-objects (developer, howto), and the parent index (developer, concept). This page's developer persona and howto classification are fully consistent with the cluster. Tone, depth, and code-density match the established pattern of surrounding pages."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Front matter `persona: developer` is a valid value from the allowed set (developer, admin, business, architect, all)."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer terminology used appropriately throughout: 'sealed class', 'factory methods', 'equality semantics', 'dependency injection', 'extension method', 'ClaimsPrincipal'. Related easy steps combined within code blocks (max 2 operations per example). No unexplained business/marketing terms."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is adjusted specifically to the developer audience. No business-user terminology in prose. Cross-domain term 'three-tier content access model' is defined immediately with a comparison table. The cross-reference to 'Secure pages' in Next steps correctly labels it as a business user activity."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "'member' = registered visitor without admin access (used consistently, ~30 occurrences). 'visitor' = anonymous website user (lines 31, 80). 'user' appears only in code blocks (ASP.NET ClaimsPrincipal) and once as 'Business users' (persona label). No confusion between contact/visitor/customer/member."
+    },
+    {
+      "invariantId": "INV-structure-021",
+      "result": "pass",
+      "evidence": "Content type is howto per task specification. Page follows goal-oriented, task-focused structure per Diataxis how-to pattern. Note: INV-structure-021 references _guides collection specifically, but the howto classification is tracked in the task graph for this _documentation page."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title ('Member roles'), identifier ('member_roles_xp'), order (400), redirect_from ('x/member_roles_xp'), persona ('developer'), license (1)."
+    },
+    {
+      "invariantId": "INV-frontmatter-002",
+      "result": "pass",
+      "evidence": "Identifier 'member_roles_xp' follows snake_case with _xp collection suffix for _documentation pages."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "evidence": "redirect_from includes 'x/member_roles_xp' (x/<identifier>). Fixed from empty array in attempt 1."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code examples are broken into logical sections aligned with developer goals. As howto content (not tutorial), examples are appropriately concise — showing the essential usage pattern without excessive scaffolding. Each code block focuses on one API operation or one service class."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 7,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 9,
+    "invariantsFailed": 0,
+    "overallAssessment": "The page is precisely targeted for the developer persona. All 7 persona checks pass. Tone is technical and code-first throughout with 7 C# code examples. All API terminology is properly formatted. User-type terminology (member/visitor/user) is used correctly per INV-content-030 with no violations. The howto structure addresses concrete developer goals in each section. The attempt 2 rewrite successfully addressed the key persona note from attempt 1 (ContentAccessSettings type description is now precisely 'sealed class with static factory methods and value-like equality semantics'). The redirect_from taxonomy fix also resolves the INV-frontmatter-004 compliance gap. No persona issues remain — verdict upgraded from approved-with-notes to approved."
+  }
+}

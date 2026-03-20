@@ -1,0 +1,119 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-015",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer", "architect"],
+      "evidence": "Front matter declares 'persona: developer, architect'. Both are valid values per INV-frontmatter-006. The page content justifies both: the core event handler registration and the AccessSettings note target developers, while the 'Use events to create integrations' section discusses tightly-coupled vs decoupled architectural patterns, serving the architect audience. The task spec lists target persona as 'developer' only, but the pre-existing 'architect' tag is correctly retained — the writer's changes are developer-targeted and the existing architect-relevant section was not affected."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "The note block (lines 49–57) uses exact API type names (`AccessSettings`, `ContentAccessSettings`, `ArgumentNullException`, `ContentAccessSettings.Public()`), states the behavioral consequence directly ('setting it to `null` throws an `ArgumentNullException`'), and provides the correct replacement value. The newly added bold title '**Non-nullable AccessSettings**' uses precise developer vocabulary — 'non-nullable' is a standard C#/.NET term and 'AccessSettings' is the exact property name. No unnecessary preamble or conceptual hand-holding."
+    },
+    {
+      "check": "tone-architect",
+      "result": "pass",
+      "evidence": "The 'Use events to create integrations' section (pre-existing, not modified) discusses tightly-coupled vs decoupled architectural patterns and links to 'Integrate with decoupled systems'. This is system-level, integration-focused content appropriate for the architect persona. The attempt 2 change (adding a bold title to the note callout) does not affect the architect-targeted section."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "The note block is concise (bold title + 2 short paragraphs) and appropriately deep for developers: names the affected property, the exact exception type, the recommended replacement value, and cross-references the Reference page for the full event list. It does not over-explain what ArgumentNullException is (developers know), nor under-explain by omitting the replacement value."
+    },
+    {
+      "check": "no-business-user-language",
+      "result": "pass",
+      "evidence": "No business-user terminology in the new or modified content. 'Non-nullable AccessSettings', 'event data states', 'non-null value', 'publicly accessible content' are standard developer vocabulary. Per INV-persona-004, vocabulary is correctly adjusted to the developer audience."
+    },
+    {
+      "check": "attempt-2-delta",
+      "result": "pass",
+      "evidence": "Attempt 2 only added the bold title line '**Non-nullable AccessSettings**' after the {% note %} tag (line 51). This is a formatting-only change to satisfy INV-callout-002 from the style review. The title text uses developer-appropriate technical terminology matching the note body. No persona-affecting content was added, removed, or modified."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "concept",
+    "taskSpecClassification": "howto",
+    "actual": "concept-with-howto-elements",
+    "result": "pass",
+    "evidence": "The doc-index classifies this page as 'concept'. The page explains what global events are and how event handler assignment works (conceptual framing). The 'Example' section contains procedural steps embedded in the concept page. The writer's addition (a note callout with bold title) is informational, not procedural, and fits the concept classification. No classification mismatch was introduced by either attempt."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer, architect",
+      "evidence": "Both values are in the INV-frontmatter-006 allowed set: developer, admin, business, architect, all."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "r4t1CQ",
+      "evidence": "Unique identifier present. redirect_from includes 'x/r4t1CQ' per INV-frontmatter-004."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "License tier 1 (standard) is set per INV-frontmatter-005."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "300",
+      "evidence": "Order field present per INV-frontmatter-003."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the customization/handle-global-events cluster target 'developer': Handle form events, Handle object events, Reference - Global system events, Set up custom workflow notifications. This parent page adds 'architect' as a secondary persona, justified by the integration patterns section. This is consistent with other parent/overview pages in the Customization cluster (e.g., Extend the administration interface: developer+architect, Object types: developer+architect, Scheduled tasks: developer+architect). The attempt 2 change does not alter this consistency."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona values 'developer, architect' are both in the valid set {developer, admin, business, architect, all}."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "All required front matter fields present: title, identifier, order, redirect_from, persona, license."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer terminology used appropriately. The note uses exact API member names (AccessSettings, ContentAccessSettings, ArgumentNullException, ContentAccessSettings.Public()). The new bold title 'Non-nullable AccessSettings' uses standard .NET developer terminology ('non-nullable') without simplification."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-targeted throughout. No business-user terminology. The phrase 'publicly accessible content' is domain-appropriate for developers working with content access APIs."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user rules do not apply — this page does not target business users."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user assumption rules do not apply — this page does not target business users."
+    }
+  ],
+  "issues": [],
+  "summary": "APPROVED. All persona checks pass on attempt 2. The only change from attempt 1 was adding the bold title '**Non-nullable AccessSettings**' to the note callout — a formatting fix for INV-callout-002 that is persona-neutral. The title uses precise developer vocabulary ('non-nullable' is standard C#/.NET terminology, 'AccessSettings' is the exact property name). The page correctly targets 'developer' (primary) and 'architect' (secondary) personas with appropriate tone and depth for each. Front matter persona tags are valid. Classification and taxonomy are consistent. All persona-domain invariants satisfied. No regressions from attempt 1.",
+  "summary_counts": {
+    "personaChecksPassed": 6,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 4,
+    "invariantsNotApplicable": 2,
+    "invariantsFailed": 0
+  }
+}

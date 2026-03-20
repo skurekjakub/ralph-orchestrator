@@ -1,0 +1,9 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "status": "done",
+  "result": "approved",
+  "taskId": "TASK-012",
+  "attempt": 2,
+  "personaChecksPassed": 8,
+  "personaChecksFailed": 0
+}

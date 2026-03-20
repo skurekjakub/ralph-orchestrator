@@ -1,0 +1,28 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-015",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "developers-and-admins/customization/handle-global-events.md",
+  "sectionsModified": [],
+  "sectionsAdded": [
+    "Note about non-nullable AccessSettings on event data states (callout block in 'Assign handlers to events' section)"
+  ],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-003: Setting AccessSettings to null on event data states now throws ArgumentNullException. Use ContentAccessSettings.Public() for unsecured.",
+    "AREA-004: Same null validation on website event data states, WebPageMetadata, CreateWebPageParameters."
+  ],
+  "invariantsApplied": [
+    "INV-formatting-004",
+    "INV-structure-010",
+    "INV-callout-002"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [],
+  "recommendationsSkipped": [],
+  "gaps": [
+    "No existing code examples on this page set AccessSettings to null, so acceptance criterion #1 (update examples) is satisfied vacuously \u2014 there was nothing to update."
+  ],
+  "notes": "Attempt 2: Added bold title \"**Non-nullable AccessSettings**\" on its own line after {% note %} tag per INV-callout-002. The note block spans multiple paragraphs so a bold title is mandatory. Addresses STY-001 from review feedback."
+}

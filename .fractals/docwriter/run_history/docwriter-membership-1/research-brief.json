@@ -1,0 +1,413 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-research-scout",
+  "generatedAt": "2026-03-14T12:30:07Z",
+  "topicAreas": ["membership", "authentication", "access-control", "admin-ui", "api-reference", "tutorials", "how-to"],
+  "queriesExecuted": [
+    "API reference code comment structure and patterns for classes, methods, parameters (Google)",
+    "Tutorial pedagogy principles and structure (Diátaxis framework)",
+    "How-to guide structure, goal-orientation, and user perspective (Diátaxis framework)",
+    "Reference documentation structure — austere description, standard patterns (Diátaxis framework)",
+    "Step-by-step instruction formatting for complex procedures (Microsoft)",
+    "Reference documentation article structure for .NET APIs (Microsoft)",
+    "Code sample formatting, introductions, and omission patterns (Google)",
+    "Code example planning and writing guidelines for developer docs (Microsoft)"
+  ],
+  "sourcesConsulted": [
+    {
+      "url": "https://developers.google.com/style/api-reference-comments",
+      "title": "API reference code comments — Google developer documentation style guide",
+      "sourceId": "SRC-001",
+      "retrievedAt": "2026-03-14T12:28:00Z",
+      "useful": true,
+      "notes": "Comprehensive guidance on documenting classes, methods, parameters, return values, deprecations. Directly applicable to the new MemberRoleInfo, ContentAccessSettings, and interface documentation."
+    },
+    {
+      "url": "https://diataxis.fr/tutorials/",
+      "title": "Tutorials — Diátaxis documentation framework",
+      "sourceId": "SRC-002a",
+      "retrievedAt": "2026-03-14T12:28:00Z",
+      "useful": true,
+      "notes": "Pedagogical principles for learning-oriented content. Key insights: minimize explanation, deliver visible results early, maintain narrative of expected outcomes. Directly applicable to DancingGoat membership tutorial."
+    },
+    {
+      "url": "https://diataxis.fr/how-to-guides/",
+      "title": "How-to guides — Diátaxis documentation framework",
+      "sourceId": "SRC-002b",
+      "retrievedAt": "2026-03-14T12:28:00Z",
+      "useful": true,
+      "notes": "Goal-oriented guide structure. Key insights: write from user perspective not machinery, provide executable solutions, address real-world complexity. Directly applicable to membership role assignment and content security how-tos."
+    },
+    {
+      "url": "https://diataxis.fr/reference/",
+      "title": "Reference guides — Diátaxis documentation framework",
+      "sourceId": "SRC-002c",
+      "retrievedAt": "2026-03-14T12:28:00Z",
+      "useful": true,
+      "notes": "Reference material principles: austere, neutral description, standard patterns, mirror product structure. Applicable to API reference pages for new membership types."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/style-guide/procedures-instructions/writing-step-by-step-instructions",
+      "title": "Writing step-by-step instructions — Microsoft Writing Style Guide",
+      "sourceId": "SRC-003a",
+      "retrievedAt": "2026-03-14T12:28:00Z",
+      "useful": true,
+      "notes": "Procedure formatting, step limits, location-before-action pattern. Applicable to admin UI instructions for member/role management."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/style-guide/developer-content/reference-documentation",
+      "title": "Reference documentation — Microsoft Writing Style Guide",
+      "sourceId": "SRC-003b",
+      "retrievedAt": "2026-03-14T12:28:30Z",
+      "useful": true,
+      "notes": "Standard reference article structure: title, declaration/syntax, parameters, return value, remarks, example, see also. Directly applicable to ContentAccessSettings, IContentItemMemberRoleRetriever documentation."
+    },
+    {
+      "url": "https://developers.google.com/style/code-samples",
+      "title": "Code samples — Google developer documentation style guide",
+      "sourceId": "SRC-001b",
+      "retrievedAt": "2026-03-14T12:29:00Z",
+      "useful": true,
+      "notes": "Code formatting guidelines, introductory statements, omission patterns. Applicable to membership code examples."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/style-guide/developer-content/code-examples",
+      "title": "Code examples — Microsoft Writing Style Guide",
+      "sourceId": "SRC-003c",
+      "retrievedAt": "2026-03-14T12:29:00Z",
+      "useful": true,
+      "notes": "Code example planning: start simple, build complexity, prioritize frequently used elements, show expected output. Applicable to membership API code examples."
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "REC-001",
+      "topic": "api-reference",
+      "recommendation": "For each new public class and interface (MemberRoleInfo, ContentAccessSettings, IContentItemMemberRoleRetriever, IContentItemMemberRoleManager), provide a concise first sentence describing the element's purpose without repeating the class name and without saying 'this class does...'. Follow with usage context and a 5-20 line code sample at the top of each reference page.",
+      "rationale": "Google's API reference guidelines emphasize that the first sentence is extracted for class listings and must be unique and descriptive. A code sample immediately shows how the type is used in practice, helping developers assess the API quickly.",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-001", "INV-structure-002", "INV-structure-003", "INV-formatting-004", "INV-formatting-006", "INV-style-008", "INV-codesamples-008"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Aligns with required article structure (title, introduction, body). Using backticks for API member names per INV-formatting-004. Does not pluralize class names per INV-formatting-006. Uses present tense per INV-style-008."
+      }
+    },
+    {
+      "id": "REC-002",
+      "topic": "api-reference",
+      "recommendation": "Document each method using present tense, verb-first descriptions following the pattern: getter returning boolean starts with 'Checks whether...'; getter returning other types starts with 'Gets the...'; void operations start with 'Sets the...', 'Updates the...', 'Deletes the...', or 'Registers...'; factory methods start with 'Creates a...'.",
+      "rationale": "Google's API reference style provides specific verb patterns for different method types. This creates consistency across all method documentation and matches natural developer expectations when scanning API docs.",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-007", "INV-style-008", "INV-style-012", "INV-style-021"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Verb-first active voice matches INV-style-007 (prefer active voice). Present tense matches INV-style-008. Imperative/indicative mood matches INV-style-012. Concise descriptions match INV-style-021."
+      }
+    },
+    {
+      "id": "REC-003",
+      "topic": "api-reference",
+      "recommendation": "For parameters of new API methods (e.g., IContentItemMemberRoleManager.UpdateBindings parameters), capitalize the first word of each description and end with a period. Describe non-boolean parameters starting with 'The' or 'A'. For boolean parameters, use the pattern 'If true, [action]. If false, [action].' or 'True if [condition]; false otherwise.' Always state the default value using 'Default: [value].' format.",
+      "rationale": "Google and Microsoft reference documentation guidelines both emphasize structured parameter descriptions that go beyond restating the parameter name. Boolean parameter patterns reduce ambiguity for developers implementing role checks and access control logic.",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-formatting-004", "INV-style-019", "INV-style-021", "INV-structure-015"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Uses backticks for code elements per INV-formatting-004. Specific descriptions per INV-style-019. Concise per INV-style-021. Sentence case for list items per INV-structure-015."
+      }
+    },
+    {
+      "id": "REC-004",
+      "topic": "api-reference",
+      "recommendation": "For deprecated members (IsSecured properties marked [Obsolete] across ContentItemEventArgsBase, WebPageEventArgsBase, ContentItemMetadata, and all event args classes), document the deprecation by stating: (a) the property is deprecated since version 31.3, (b) what replacement to use (AccessSettings with ContentAccessSettings), and (c) a migration code snippet showing the old pattern and the new equivalent.",
+      "rationale": "Google's API reference guidelines state that deprecation notices must tell the user what to use as a replacement and mention the version. Given the scale of this deprecation (20+ classes), a consistent pattern prevents confusion during migration.",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-010", "INV-style-019", "INV-callout-001", "INV-callout-004", "INV-codesamples-010"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Consistent deprecation pattern across all affected classes per INV-style-010. Specific replacement info per INV-style-019. Use warning callout for deprecation notices per INV-callout-001/004. Code snippets broken into before/after per INV-codesamples-010."
+      }
+    },
+    {
+      "id": "REC-005",
+      "topic": "api-reference",
+      "recommendation": "Structure each API reference article with these standard sections in order: (1) Title with element name and type, (2) Description/introduction, (3) Declaration/syntax, (4) Parameters with type, required/optional status, and description, (5) Return value, (6) Remarks for non-obvious behavior, (7) Code example, (8) See also links. Mirror the product's namespace structure in the documentation hierarchy.",
+      "rationale": "Microsoft's reference documentation guide and Diátaxis both emphasize that reference material must use standard patterns and mirror the product structure. Developers consult reference docs by scanning predictable sections. Consistency across all new membership types accelerates developer adoption.",
+      "applicability": "high",
+      "source": "https://learn.microsoft.com/en-us/style-guide/developer-content/reference-documentation",
+      "sourceId": "SRC-003b",
+      "invariantCheck": {
+        "status": "adapted",
+        "compatible": ["INV-structure-001", "INV-structure-002", "INV-structure-009", "INV-structure-010", "INV-structure-019"],
+        "conflicting": [],
+        "noConflict": true,
+        "adaptation": "The Kentico article structure requires Title, Introduction, Body, Result, and Next Steps (INV-structure-001). The Microsoft reference sections map to this: Title remains, Declaration/Parameters/Remarks fold into Body, code example serves as Result illustration, See Also maps to Next Steps. The Kentico structure wraps the standard reference pattern rather than conflicting with it."
+      }
+    },
+    {
+      "id": "REC-006",
+      "topic": "tutorials",
+      "recommendation": "For the DancingGoat membership integration tutorial, show the completed outcome at the very beginning (e.g., a screenshot of the members-only page with role-restricted content). Deliver visible results at each step — after registering a member, show the confirmation; after assigning a role, show the updated member profile; after restricting content, show the access-denied state.",
+      "rationale": "Diátaxis tutorial principles state that learners need to see where they are going from the start, and each step must produce a comprehensible result. For a multi-step membership tutorial, this means the learner validates their progress at every stage — registration, role assignment, content restriction, and sign-in verification.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/tutorials/",
+      "sourceId": "SRC-002a",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-009", "INV-structure-022", "INV-structure-023", "INV-content-042", "INV-content-054"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Showing outcome upfront matches guide intro requirements (INV-structure-022: show screenshot/GIF of expected output). Visible results at each step matches INV-structure-009 (describe end result). Short focused A-to-Z per INV-structure-023. Alt text required per INV-content-042."
+      }
+    },
+    {
+      "id": "REC-007",
+      "topic": "tutorials",
+      "recommendation": "In tutorial content covering membership setup, ruthlessly minimize explanation of underlying concepts (e.g., how ClaimsPrincipal works, what RBAC means). Instead, provide only what the learner needs to complete the current step. Link to conceptual pages for deeper understanding (e.g., link to a conceptual page about the membership architecture rather than explaining it inline).",
+      "rationale": "Diátaxis identifies explanation as the hardest temptation for tutorial authors to resist. Explanation breaks the learner's focus on doing. The membership system involves complex concepts (claims-based identity, role hierarchies, content security) that are better covered in separate conceptual pages.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/tutorials/",
+      "sourceId": "SRC-002a",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-015", "INV-style-021", "INV-structure-011", "INV-structure-018", "INV-crossref-006"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Eliminating redundancy per INV-style-015. Getting to the point per INV-style-021. Independent articles linked properly per INV-structure-011. Avoiding over-explanation per INV-structure-018. Descriptive link text to conceptual pages per INV-crossref-006."
+      }
+    },
+    {
+      "id": "REC-008",
+      "topic": "how-to",
+      "recommendation": "Write membership how-to guides from the user's perspective, addressing real problems: 'Restrict a page to specific member roles' rather than 'Use ContentAccessSettings to set IsSecured.' Each how-to title should state exactly what the guide helps accomplish using imperative mood. Focus on the user's goal (restricting content, managing member roles) with the API as incidental means.",
+      "rationale": "Diátaxis how-to guides emphasize that guides must be written from the user's perspective, not the machinery's. The title must say exactly what the guide shows. For membership, this means orienting around business outcomes (restricting content, managing access) rather than API surface area.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/how-to-guides/",
+      "sourceId": "SRC-002b",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-002", "INV-style-005", "INV-style-026", "INV-structure-017", "INV-structure-014"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Imperative mood titles per INV-style-002. Titles optimized for search per INV-style-005. No -ing title endings per INV-style-026. Task-oriented not feature-oriented per INV-structure-017. General terms in headings per INV-structure-014."
+      }
+    },
+    {
+      "id": "REC-009",
+      "topic": "how-to",
+      "recommendation": "For how-to guides addressing membership scenarios (role assignment, content restriction, member authentication), keep each guide focused on a single goal and resist covering every option. A guide on restricting pages to member roles should not also explain how to create custom authentication schemes. Link to related how-tos rather than embedding all related content.",
+      "rationale": "Diátaxis states that how-to guides must maintain focus on a single practical goal, and anything that dilutes the guide's useful power should be linked rather than included. The membership feature has many interrelated aspects (roles, content access, authentication, admin UI) that should be separate how-tos, each linking to the others.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/how-to-guides/",
+      "sourceId": "SRC-002b",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-015", "INV-style-021", "INV-structure-011", "INV-style-025", "INV-crossref-006"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Eliminating redundancy per INV-style-015. Concise and focused per INV-style-021. Independent pages with proper links per INV-structure-011. Rich linking since any page could be the first page per INV-style-025. Descriptive link text per INV-crossref-006."
+      }
+    },
+    {
+      "id": "REC-010",
+      "topic": "admin-ui",
+      "recommendation": "For admin UI procedures (creating member roles, assigning members to roles, configuring content security), tell the user where the action takes place before describing the action. Use the pattern: 'In the [location], [action].' Limit each procedure to 8 steps maximum. If a workflow exceeds 8 steps, split into subsections with distinct headings. Include the finalizing action (e.g., Save) as an explicit step.",
+      "rationale": "Microsoft's step-by-step instruction guidelines emphasize location-before-action and 7-step limits to keep procedures scannable. The Kentico style guide parallels this with its 8-step guideline. Admin UI procedures for membership will involve multi-step workflows (navigating to Members application, creating roles, assigning members) that benefit from this structure.",
+      "applicability": "high",
+      "source": "https://learn.microsoft.com/en-us/style-guide/procedures-instructions/writing-step-by-step-instructions",
+      "sourceId": "SRC-003a",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-style-024", "INV-structure-006", "INV-structure-007", "INV-structure-008", "INV-style-027", "INV-style-029", "INV-formatting-001"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Lead with conditions then instructions per INV-style-024. Ordered lists for steps per INV-structure-006. One action per step for business users per INV-structure-007. ~8 steps per section per INV-structure-008. 'Select' for buttons per INV-style-027. 'Enter' for values per INV-style-029. Bold UI elements per INV-formatting-001."
+      }
+    },
+    {
+      "id": "REC-011",
+      "topic": "admin-ui",
+      "recommendation": "Use the Kentico-specific arrow notation (e.g., **Members** -> **Roles**) for navigation paths through the admin UI. When referring to admin applications, always use the pattern 'Open the [Application name] application' with application name in bold.",
+      "rationale": "Microsoft's style guide suggests right angle brackets (>) for navigation abbreviation, but the Kentico invariant inventory mandates arrow characters (->) for navigation paths. This recommendation adapts the Microsoft practice to Kentico's established convention, ensuring consistency with existing documentation.",
+      "applicability": "high",
+      "source": "https://learn.microsoft.com/en-us/style-guide/procedures-instructions/writing-step-by-step-instructions",
+      "sourceId": "SRC-003a",
+      "invariantCheck": {
+        "status": "adapted",
+        "compatible": ["INV-style-046", "INV-style-047", "INV-content-002", "INV-content-039", "INV-formatting-001"],
+        "conflicting": [],
+        "noConflict": true,
+        "adaptation": "Microsoft recommends > (right angle bracket) for navigation paths, but INV-style-046 mandates -> (arrow). The recommendation is adapted to use -> instead. INV-style-047 prohibits mixing UI element types in arrow notation. INV-content-002 requires 'Open the XXX application' pattern. INV-content-039 defines admin terminology."
+      }
+    },
+    {
+      "id": "REC-012",
+      "topic": "access-control",
+      "recommendation": "For reference documentation of the ContentAccessSettings model and its static factory methods (Public(), Secured(), SecuredWithRoles()), describe each as a neutral, authoritative statement of what the method returns and when to use each variant. Use a comparison table showing the three access modes side by side (columns: method name, IsSecured value, RequiredMemberRoleIDs value, use case).",
+      "rationale": "Diátaxis reference principles demand austere, neutral description with standard patterns. ContentAccessSettings is the central model of the new access control system with three distinct factory methods — a comparison table immediately clarifies the relationship between variants, which is the kind of structural information developers look up in reference material.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/reference/",
+      "sourceId": "SRC-002c",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-016", "INV-formatting-004", "INV-style-008", "INV-style-019", "INV-jekyll-011"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Tables to break up content per INV-structure-016. Backticks for code per INV-formatting-004. Present tense per INV-style-008. Specific descriptions per INV-style-019. Liquid table tags per INV-jekyll-011."
+      }
+    },
+    {
+      "id": "REC-013",
+      "topic": "membership",
+      "recommendation": "Consistently use the established Kentico terminology throughout all membership documentation: 'member' for a registered visitor without admin access, 'visitor' for an anonymous website user, 'user' for an admin account holder. Use 'sign in' (verb) and 'sign-in' (adjective/noun) — never 'log in'. Use 'register' rather than 'sign up' for account creation.",
+      "rationale": "The Kentico word list defines precise terminology for user types that differs from generic industry usage. Membership documentation is especially prone to terminology confusion because external resources use 'user' and 'login' interchangeably. Consistent usage across all membership pages prevents confusion between member (registered visitor) and user (admin).",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-content-030", "INV-content-031", "INV-content-003", "INV-content-050", "INV-style-010"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "User type definitions per INV-content-030. Visitor over customer per INV-content-031. Sign in not log in per INV-content-003. Register over sign up per INV-content-050. Consistent terminology per INV-style-010."
+      }
+    },
+    {
+      "id": "REC-014",
+      "topic": "api-reference",
+      "recommendation": "For code examples demonstrating the new membership API, start with the simplest scenario (checking if content is public) and build to complex scenarios (restricting content to specific roles, querying role membership). Each code sample should be preceded by an introductory sentence ending with a colon when immediately preceding the sample. Show expected output as a code comment within the sample.",
+      "rationale": "Microsoft's code example guidelines emphasize starting simple and building complexity, and prioritizing frequently used elements. Google's guidelines require introductory statements. For membership, the progression from public → secured → secured-with-roles mirrors the ContentAccessSettings factory methods and the natural learning curve.",
+      "applicability": "high",
+      "source": "https://learn.microsoft.com/en-us/style-guide/developer-content/code-examples",
+      "sourceId": "SRC-003c",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-codesamples-004", "INV-codesamples-006", "INV-codesamples-008", "INV-codesamples-009", "INV-codesamples-010", "INV-jekyll-002"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Code comments in third person per INV-codesamples-004. Ellipsis for omissions per INV-codesamples-006. Comment only what is important per INV-codesamples-008. Focus on Kentico-specific methods per INV-codesamples-009. Break into logical steps per INV-codesamples-010. Use Liquid code tag with lang=csharp per INV-jekyll-002."
+      }
+    },
+    {
+      "id": "REC-015",
+      "topic": "membership",
+      "recommendation": "When mentioning MemberRoleInfo, ContentAccessSettings, or other new types in prose, always use backtick formatting for the type name and never pluralize the code element directly. Write 'MemberRoleInfo objects' or 'ContentAccessSettings instances' — not 'MemberRoleInfos' or 'ContentAccessSettingss'.",
+      "rationale": "Google's API reference guidelines explicitly warn against pluralizing class names. Instead of 'MemberRoleInfos', use 'MemberRoleInfo objects'. This is particularly important for the membership feature where multiple new types are introduced and developers will encounter these names frequently in documentation.",
+      "applicability": "high",
+      "source": "https://developers.google.com/style/api-reference-comments",
+      "sourceId": "SRC-001",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-formatting-004", "INV-formatting-006", "INV-formatting-007"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Backticks for API members per INV-formatting-004. Never pluralize code elements directly per INV-formatting-006. No bold/italic on inline code per INV-formatting-007."
+      }
+    },
+    {
+      "id": "REC-016",
+      "topic": "authentication",
+      "recommendation": "For authentication flow documentation (sign-in, sign-out, ClaimsPrincipal-based identity), describe the authentication pipeline as a sequence of concrete steps the developer configures, not as an abstract architecture explanation. Lead with what the developer needs to do ('Configure the authentication middleware...', 'Register the authentication scheme...') and link to ASP.NET Core external documentation for generic .NET concepts rather than re-explaining them.",
+      "rationale": "Diátaxis how-to principles emphasize executable solutions over architectural explanation. Microsoft's code example guidelines warn against illustrating obvious points. For authentication, developers already know ASP.NET Core identity fundamentals — the documentation should focus on Xperience-specific configuration (the AdminScheme, ClaimsPrincipalExtensions) rather than re-teaching generic .NET concepts.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/how-to-guides/",
+      "sourceId": "SRC-002b",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-017", "INV-structure-018", "INV-content-043", "INV-content-025", "INV-codesamples-009", "INV-crossref-005"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Task-oriented approach per INV-structure-017. Avoid over-explaining common concepts per INV-structure-018. No generic prerequisites per INV-content-043. Use .NET not .NET Core per INV-content-025. Focus on Kentico-specific methods per INV-codesamples-009. External links with _blank target per INV-crossref-005."
+      }
+    },
+    {
+      "id": "REC-017",
+      "topic": "how-to",
+      "recommendation": "In each how-to guide for membership features, assume the reader has proper permissions and a working Xperience project (happy path). Mention Xperience-specific prerequisites only when necessary (e.g., 'You need an existing website channel' or 'The Members application must be visible in your admin UI'). Do not list generic prerequisites like ASP.NET Core knowledge or dependency injection understanding.",
+      "rationale": "Microsoft's reference documentation guidelines and the Kentico style guide both emphasize assuming a happy path and avoiding generic prerequisites. For membership how-tos, the reader is a competent developer who needs Xperience-specific guidance, not a .NET tutorial.",
+      "applicability": "medium",
+      "source": "https://learn.microsoft.com/en-us/style-guide/developer-content/code-examples",
+      "sourceId": "SRC-003c",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-012", "INV-content-043", "INV-persona-003"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Happy path per INV-structure-012. No generic .NET/MVC prerequisites per INV-content-043. Developer audience can combine related steps per INV-persona-003."
+      }
+    },
+    {
+      "id": "REC-018",
+      "topic": "tutorials",
+      "recommendation": "For the DancingGoat membership tutorial, guide the learner along a single concrete path — do not present options or alternatives. For example, create one specific member role ('Premium') with one specific content restriction, rather than explaining all possible role configurations. Mention that other configurations exist and link to the how-to guides for alternatives.",
+      "rationale": "Diátaxis tutorial principles explicitly state to 'ignore options and alternatives' and guide to a single successful conclusion. The membership system offers many configuration options (multiple roles, different access settings, various authentication schemes), but a tutorial should follow one well-defined path to build learner confidence.",
+      "applicability": "high",
+      "source": "https://diataxis.fr/tutorials/",
+      "sourceId": "SRC-002a",
+      "invariantCheck": {
+        "status": "approved",
+        "compatible": ["INV-structure-023", "INV-structure-026", "INV-content-045", "INV-persona-006", "INV-crossref-006"],
+        "conflicting": [],
+        "noConflict": true,
+        "notes": "Short, focused A-to-Z completion per INV-structure-023. Self-contained sections per INV-structure-026. Realistic business examples per INV-content-045. Reference DancingGoat demo per INV-persona-006. Descriptive links to alternatives per INV-crossref-006."
+      }
+    }
+  ],
+  "blockedRecommendations": [
+    {
+      "id": "REC-BLOCKED-001",
+      "topic": "how-to",
+      "recommendation": "Title how-to guides with the 'How to...' prefix pattern (e.g., 'How to restrict page access by member role').",
+      "source": "https://diataxis.fr/how-to-guides/",
+      "sourceId": "SRC-002b",
+      "status": "blocked",
+      "blockedBy": "INV-style-003",
+      "conflict": "Diátaxis recommends 'How to...' title prefixes for how-to guides, but INV-style-003 explicitly states: 'Do not prefix titles with How to.' The imperative mood title pattern (INV-style-002) achieves the same clarity: 'Restrict page access by member role' instead of 'How to restrict page access by member role.'"
+    },
+    {
+      "id": "REC-BLOCKED-002",
+      "topic": "admin-ui",
+      "recommendation": "Abbreviate navigation sequences using right angle brackets: Select Accounts > Other accounts > Add an account.",
+      "source": "https://learn.microsoft.com/en-us/style-guide/procedures-instructions/writing-step-by-step-instructions",
+      "sourceId": "SRC-003a",
+      "status": "blocked",
+      "blockedBy": "INV-style-046",
+      "conflict": "Microsoft recommends right angle brackets (>) for navigation abbreviation, but INV-style-046 requires arrow characters (->) for navigation paths. See REC-011 for the adapted version using Kentico's arrow notation."
+    },
+    {
+      "id": "REC-BLOCKED-003",
+      "topic": "tutorials",
+      "recommendation": "Title tutorial introduction with 'In this tutorial you will learn...' framing.",
+      "source": "https://diataxis.fr/tutorials/",
+      "sourceId": "SRC-002a",
+      "status": "blocked",
+      "blockedBy": "INV-style-051",
+      "conflict": "Diátaxis itself warns against 'In this tutorial you will learn...' framing and instead recommends describing the outcome. INV-style-051 reinforces this: 'Avoid referring to the material as this guide or In this guide.' The approved pattern (REC-006) uses outcome-first framing instead."
+    }
+  ],
+  "summary": {
+    "approved": 15,
+    "blocked": 3,
+    "adapted": 2,
+    "totalRecommendations": 18,
+    "sourcesConsulted": 8,
+    "queriesExecuted": 8,
+    "overallAssessment": "The research produced 18 recommendations across 7 topic areas, with 15 fully approved, 2 adapted to conform with Kentico conventions, and 3 blocked by existing invariants. The blocked recommendations highlight areas where Kentico's established style (imperative titles without 'How to', arrow notation for navigation, no self-referential guide framing) deliberately diverges from external best practices — these are intentional design decisions that should be respected. The approved recommendations provide strong, actionable guidance for: (1) structuring API reference docs for the 10+ new public types, (2) documenting the IsSecured → AccessSettings deprecation consistently across 20+ classes, (3) writing goal-oriented how-to guides for membership scenarios, (4) building a focused DancingGoat tutorial, (5) maintaining consistent user-type terminology (member vs user vs visitor), and (6) formatting admin UI procedures with location-before-action patterns. All recommendations reinforce the existing invariant structure rather than introducing new conventions."
+  }
+}

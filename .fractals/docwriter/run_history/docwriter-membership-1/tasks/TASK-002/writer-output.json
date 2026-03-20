@@ -1,0 +1,48 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-002",
+  "attempt": 3,
+  "action": "create",
+  "targetFile": "developers-and-admins/api/content-item-api/reference-content-access-settings.md",
+  "sectionsModified": [
+    "Front matter (redirect_from fix)",
+    "Usage examples — content item creation (named parameter syntax fix)",
+    "Next steps (cross-reference identifier fix)"
+  ],
+  "sectionsAdded": [],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-002: ContentAccessSettings changed from struct to sealed class. New operators ==, !=. Equality is now null-safe with operator overloads.",
+    "AREA-003: All 8 content engine event data state classes gain null validation (ArgumentNullException.ThrowIfNull) on AccessSettings property.",
+    "AREA-004: 6 website event data state classes gain same null validation. WebPageMetadata and CreateWebPageParameters also validate non-null.",
+    "AREA-005: ContentItemMetadata.AccessSettings and CreateContentItemParameters.AccessSettings now validate non-null."
+  ],
+  "invariantsApplied": [
+    "INV-structure-001",
+    "INV-structure-019",
+    "INV-frontmatter-001",
+    "INV-frontmatter-002",
+    "INV-frontmatter-004",
+    "INV-formatting-004",
+    "INV-codesamples-004",
+    "INV-codesamples-005",
+    "INV-codesamples-006",
+    "INV-codesamples-010",
+    "INV-crossref-001",
+    "INV-content-030"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-001",
+    "REC-002",
+    "REC-003",
+    "REC-004",
+    "REC-005",
+    "REC-012",
+    "REC-014",
+    "REC-015"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 3 (FINAL) — addressed all 3 style reviewer rejections from attempt 2: (1) INV-frontmatter-004: Changed redirect_from from empty array [] to 'x/reference_content_access_settings_xp' matching sibling page pattern. (2) INV-codesamples-005: Rewrote 4-param CreateContentItemParameters constructor call from positional args to named parameter syntax (contentTypeName:, name:, displayName:, languageName:). (3) INV-crossref-001: Fixed invalid page_link identifier from 'member_roles_developer_guide_xp' (does not exist) to 'member_roles_xp' with explicit linkText='Member roles'."
+}

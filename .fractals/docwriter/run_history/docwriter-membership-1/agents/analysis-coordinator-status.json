@@ -1,0 +1,61 @@
+{
+  "agent": "docwriter-analysis-coordinator",
+  "status": "done",
+  "result": "pass3-complete",
+  "passExecuted": "pass3",
+  "timestamp": "2026-03-14T13:08:05.801800+00:00",
+  "details": {
+    "taskPlannerResult": "done",
+    "riskAnalyzerResult": "done",
+    "totalTasks": 17,
+    "newPages": 2,
+    "updates": 15,
+    "highRiskTasks": 4,
+    "moderateRiskTasks": 8,
+    "lowRiskTasks": 5,
+    "criticalPathRoots": [
+      "TASK-001",
+      "TASK-002"
+    ],
+    "executionLevels": [
+      {
+        "level": 0,
+        "tasks": [
+          "TASK-001",
+          "TASK-002",
+          "TASK-016",
+          "TASK-017"
+        ],
+        "description": "No dependencies \u2014 new pages + independent updates"
+      },
+      {
+        "level": 1,
+        "tasks": [
+          "TASK-003",
+          "TASK-007",
+          "TASK-008",
+          "TASK-009",
+          "TASK-011",
+          "TASK-014"
+        ],
+        "description": "Depend on new pages \u2014 core updates"
+      },
+      {
+        "level": 2,
+        "tasks": [
+          "TASK-004",
+          "TASK-005",
+          "TASK-006",
+          "TASK-010",
+          "TASK-012",
+          "TASK-013",
+          "TASK-015"
+        ],
+        "description": "Depend on level-1 updates \u2014 leaf tasks"
+      }
+    ],
+    "impactsAddressed": 20,
+    "impactsNoDocImpact": 2,
+    "mergedImpacts": 3
+  }
+}

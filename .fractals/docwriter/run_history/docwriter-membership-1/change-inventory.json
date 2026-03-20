@@ -1,0 +1,3673 @@
+{
+  "version": 1,
+  "generatedBy": "docwriter-diff-analyzer",
+  "diffRef": "65412d25da302785ccbca5bf81993079f8819f18",
+  "baseBranch": "master",
+  "totalFilesChanged": 350,
+  "areas": [
+    {
+      "id": "AREA-001",
+      "name": "Membership Core",
+      "description": "New MemberRoleInfo and MemberRoleMemberInfo data classes, authentication refactoring to ClaimsPrincipal, and MembershipContext updates",
+      "files": [
+        {
+          "path": "CMSSolution/Membership/Authentication/AuthenticationHelper.cs",
+          "changeType": "modified",
+          "summary": "Refactored to use ClaimsPrincipal instead of legacy RequestContext for authentication checks",
+          "symbols": [
+            "AuthenticationHelper",
+            "IsAuthenticated()",
+            "GetAdminUserName()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Membership/Authentication/ClaimsPrincipalExtensions.cs",
+          "changeType": "added",
+          "summary": "New extension methods for ClaimsPrincipal to extract admin identity by authentication scheme",
+          "symbols": [
+            "ClaimsPrincipalExtensions",
+            "GetAdminIdentity()",
+            "AuthenticationSchemeConstants.APPLICATION_SCHEME"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Membership/Members/MemberRoleInfo.cs",
+          "changeType": "added",
+          "summary": "New data class representing a member role with ID, GUID, name, display name, and description properties",
+          "symbols": [
+            "MemberRoleInfo",
+            "OBJECT_TYPE='cms.memberrole'",
+            "MemberRoleID",
+            "MemberRoleName",
+            "MemberRoleDisplayName",
+            "MemberRoleGUID"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Membership/Members/MemberRoleMemberInfo.cs",
+          "changeType": "added",
+          "summary": "New binding table class for many-to-many relationship between members and member roles",
+          "symbols": [
+            "MemberRoleMemberInfo",
+            "OBJECT_TYPE='cms.memberrolemember'",
+            "MemberRoleMemberMemberID",
+            "MemberRoleMemberMemberRoleID"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Membership/Module/MembershipContext.cs",
+          "changeType": "modified",
+          "summary": "AuthenticatedUser property now uses ClaimsPrincipal; IsAdministrationUser changed to accept ClaimsPrincipal",
+          "symbols": [
+            "MembershipContext",
+            "AuthenticatedUser",
+            "IsAdministrationUser(ClaimsPrincipal)"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-002",
+      "name": "Content Item Member Role System",
+      "description": "New ContentAccessSettings model, ContentItemMemberRole binding infrastructure, and role management/retrieval services",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentAccessSettings.cs",
+          "changeType": "added",
+          "summary": "New immutable model for content access control with IsSecured flag and RequiredMemberRoleIDs collection; replaces bool IsSecured throughout",
+          "symbols": [
+            "ContentAccessSettings",
+            "IsSecured",
+            "RequiredMemberRoleIDs",
+            "Public()",
+            "Secured()",
+            "SecuredWithRoles()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentItemMemberRoleInfo.cs",
+          "changeType": "added",
+          "summary": "New data class for content item-to-member-role binding with CI serialization support",
+          "symbols": [
+            "ContentItemMemberRoleInfo",
+            "OBJECT_TYPE='cms.contentitemmemberrole'",
+            "ContentItemMemberRoleContentItemID",
+            "ContentItemMemberRoleMemberRoleID"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentItemMemberRoleManager.cs",
+          "changeType": "added",
+          "summary": "Manages CRUD operations for content item-role bindings; syncs role assignments via bulk insert/delete",
+          "symbols": [
+            "ContentItemMemberRoleManager",
+            "UpdateBindings()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentItemMemberRoleRetriever.cs",
+          "changeType": "added",
+          "summary": "Retrieves member role data for content items with 60-minute progressive caching and cache dependency management",
+          "symbols": [
+            "ContentItemMemberRoleRetriever",
+            "GetMemberRoleIds()",
+            "GetMemberRoleCodeNames()",
+            "GetAccessSettings()",
+            "GetAllMemberRoleCodeNames()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/IContentItemMemberRoleManager.cs",
+          "changeType": "added",
+          "summary": "Public interface for managing content item member role bindings",
+          "symbols": [
+            "IContentItemMemberRoleManager",
+            "UpdateBindings(int, ContentAccessSettings, CancellationToken)"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemMemberRole/IContentItemMemberRoleRetriever.cs",
+          "changeType": "added",
+          "summary": "Public interface for querying member role information for content items with multiple retrieval methods",
+          "symbols": [
+            "IContentItemMemberRoleRetriever",
+            "GetMemberRoleIds()",
+            "GetMemberRoleCodeNames()",
+            "GetMemberRoleDisplayNames()",
+            "GetAccessSettings()",
+            "GetAllMemberRoleCodeNames()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Module/ContentItemMemberRoleHandlers.cs",
+          "changeType": "added",
+          "summary": "Event handlers ensuring content items are stored in CI when role bindings change via insert/update/delete events",
+          "symbols": [
+            "ContentItemMemberRoleHandlers",
+            "Initialize()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-003",
+      "name": "Content Engine Events and Handler Arguments",
+      "description": "Replacement of bool IsSecured with ContentAccessSettings across all content item event data and handler argument classes; IsSecured deprecated with ObsoleteSince(31,3)",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/Events/Create/CreateContentItemEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "CreateContentItemEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Create/CreateContentItemEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings backed by ContentAccessSettings.Public() default",
+          "symbols": [
+            "CreateContentItemEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/CreateLanguageVariant/CreateLanguageVariantEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "CreateLanguageVariantEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/CreateLanguageVariant/CreateLanguageVariantEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "CreateLanguageVariantEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Delete/DeleteContentItemEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "DeleteContentItemEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Delete/DeleteContentItemEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "DeleteContentItemEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Publish/PublishContentItemEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "PublishContentItemEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Publish/PublishContentItemEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "PublishContentItemEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Unpublish/UnpublishContentItemEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "UnpublishContentItemEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/Unpublish/UnpublishContentItemEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UnpublishContentItemEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateDraft/UpdateDraftEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "UpdateDraftEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateDraft/UpdateDraftEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateDraftEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateLanguageMetadata/UpdateContentItemLanguageMetadataEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "UpdateContentItemLanguageMetadataEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateLanguageMetadata/UpdateContentItemLanguageMetadataEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateContentItemLanguageMetadataEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateMetadata/UpdateContentItemMetadataEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured property replaced with ContentAccessSettings AccessSettings property",
+          "symbols": [
+            "UpdateContentItemMetadataEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Events/UpdateMetadata/UpdateContentItemMetadataEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateContentItemMetadataEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/Base/ContentItemEventArgsBase.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; IsSecured marked [Obsolete] with ObsoleteSince(31,3) and backward-compatible bridge",
+          "symbols": [
+            "ContentItemEventArgsBase",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/Base/IContentItemEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Interface updated: IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "IContentItemEventArgs",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/Create/CreateContentItemEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "CreateContentItemEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/CreateLanguageVariant/CreateContentItemLanguageVariantEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "CreateContentItemLanguageVariantEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/DeleteContentItemEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "DeleteContentItemEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/PublishContentItemEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "PublishContentItemEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/UnpublishContentItemEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "UnpublishContentItemEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/UpdateContentItemLanguageMetadataEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "UpdateContentItemLanguageMetadataEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/UpdateContentItemMetadataEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "UpdateContentItemMetadataEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Handlers/Arguments/UpdateDraft/UpdateContentItemDraftEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "UpdateContentItemDraftEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/ContentEngine/Handlers/GetContentItemAssetService.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "GetContentItemAssetService"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-004",
+      "name": "Website Events and Handler Arguments",
+      "description": "Replacement of bool IsSecured with ContentAccessSettings across all web page event data and handler argument classes; IsSecured deprecated with ObsoleteSince(31,3)",
+      "files": [
+        {
+          "path": "CMSSolution/Websites/Events/Create/CreateWebPageEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "CreateWebPageEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Create/CreateWebPageEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "CreateWebPageEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateFolder/CreateFolderEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "CreateFolderEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateFolder/CreateFolderEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "CreateFolderEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateFolderLanguageVariant/CreateFolderLanguageVariantEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "CreateFolderLanguageVariantEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateFolderLanguageVariant/CreateFolderLanguageVariantEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "CreateFolderLanguageVariantEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateLanguageVariant/CreateWebPageLanguageVariantEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "CreateWebPageLanguageVariantEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/CreateLanguageVariant/CreateWebPageLanguageVariantEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "CreateWebPageLanguageVariantEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Delete/DeleteWebPageEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "DeleteWebPageEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Delete/DeleteWebPageEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "DeleteWebPageEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Move/MoveWebPageEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "MoveWebPageEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Move/MoveWebPageEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "MoveWebPageEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Publish/PublishWebPageEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "PublishWebPageEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Publish/PublishWebPageEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "PublishWebPageEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Unpublish/UnpublishWebPageEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "UnpublishWebPageEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/Unpublish/UnpublishWebPageEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UnpublishWebPageEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateDraft/UpdateWebPageDraftEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "UpdateWebPageDraftEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateDraft/UpdateWebPageDraftEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateWebPageDraftEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateLanguageMetadata/UpdateWebPageLanguageMetadataEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "UpdateWebPageLanguageMetadataEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateLanguageMetadata/UpdateWebPageLanguageMetadataEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateWebPageLanguageMetadataEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateMetadata/UpdateWebPageMetadataEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "UpdateWebPageMetadataEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateMetadata/UpdateWebPageMetadataEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateWebPageMetadataEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateSecuritySettings/UpdateWebPageSecuritySettingsEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings for security settings events",
+          "symbols": [
+            "UpdateWebPageSecuritySettingsEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateSecuritySettings/UpdateWebPageSecuritySettingsEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateWebPageSecuritySettingsEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateTreePathSlug/UpdateWebPageTreePathSlugEventData.cs",
+          "changeType": "modified",
+          "summary": "IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "UpdateWebPageTreePathSlugEventData",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Events/UpdateTreePathSlug/UpdateWebPageTreePathSlugEventDataState.cs",
+          "changeType": "modified",
+          "summary": "Internal state: IsSecured replaced with AccessSettings",
+          "symbols": [
+            "UpdateWebPageTreePathSlugEventDataState",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/Base/IWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Interface updated: IsSecured replaced with ContentAccessSettings AccessSettings",
+          "symbols": [
+            "IWebPageEventArgs",
+            "AccessSettings"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/Base/WebPageEventArgsBase.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings property; IsSecured marked [Obsolete] with ObsoleteSince(31,3) and backward-compatible bridge",
+          "symbols": [
+            "WebPageEventArgsBase",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/Create/CreateWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "CreateWebPageEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/CreateFolder/CreateFolderEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured with backward-compatible getter/setter",
+          "symbols": [
+            "CreateFolderEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/CreateFolderLanguageVariant/CreateFolderLanguageVariantEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "CreateFolderLanguageVariantEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/CreateLanguageVariant/CreateWebPageLanguageVariantEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "CreateWebPageLanguageVariantEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/DeleteWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "DeleteWebPageEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/MoveWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "MoveWebPageEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/PublishWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "PublishWebPageEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UnpublishWebPageEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UnpublishWebPageEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UpdateDraft/UpdateWebPageDraftEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UpdateWebPageDraftEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UpdateWebPageLanguageMetadataEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UpdateWebPageLanguageMetadataEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UpdateWebPageMetadataEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UpdateWebPageMetadataEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UpdateWebPageSecuritySettingsEventsArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UpdateWebPageSecuritySettingsEventsArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/Handlers/Arguments/UpdateWebPageTreePathSlugEventArgs.cs",
+          "changeType": "modified",
+          "summary": "Added AccessSettings; deprecated IsSecured",
+          "symbols": [
+            "UpdateWebPageTreePathSlugEventArgs",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-005",
+      "name": "Content Item Management",
+      "description": "ContentItemMetadata, CreateContentItemParameters, and content item CRUD managers updated with ContentAccessSettings support and IContentItemMemberRoleRetriever dependency injection",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItem/ContentItemMetadata.cs",
+          "changeType": "modified",
+          "summary": "IsSecured marked [Obsolete] with ObsoleteSince(31,3); new AccessSettings property with ContentAccessSettings.Public() default",
+          "symbols": [
+            "ContentItemMetadata",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/ContentItemContainerManager.cs",
+          "changeType": "modified",
+          "summary": "Create method signature updated to pass ContentAccessSettings instead of bool",
+          "symbols": [
+            "ContentItemContainerManager",
+            "Create()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/Create/ContentItemCreateManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor takes IContentItemMemberRoleManager and IContentItemMemberRoleRetriever; create flow passes AccessSettings",
+          "symbols": [
+            "ContentItemCreateManager",
+            "IContentItemMemberRoleManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/CreateContentItemParameters.cs",
+          "changeType": "modified",
+          "summary": "Internal parameters: IsSecured replaced with AccessSettings backed by ContentAccessSettings",
+          "symbols": [
+            "CreateContentItemParameters (internal)",
+            "AccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/Delete/ContentItemDeleteManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor now takes IContentItemMemberRoleRetriever dependency for role data in delete events",
+          "symbols": [
+            "ContentItemDeleteManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/Draft/ContentItemDraftManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor now takes IContentItemMemberRoleRetriever dependency for role data in draft events",
+          "symbols": [
+            "ContentItemDraftManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/Metadata/ContentItemMetadataManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor takes IContentItemMemberRoleManager and IContentItemMemberRoleRetriever for metadata updates",
+          "symbols": [
+            "ContentItemMetadataManager",
+            "IContentItemMemberRoleManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/Core/Publish/ContentItemPublishManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor takes IContentItemMemberRoleRetriever for role data in publish events",
+          "symbols": [
+            "ContentItemPublishManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/CreateContentItemParameters.cs",
+          "changeType": "modified",
+          "summary": "Public parameters: IsSecured deprecated; AccessSettings property added with backward-compatible bridge",
+          "symbols": [
+            "CreateContentItemParameters (public)",
+            "AccessSettings",
+            "IsSecured [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItem/ContentItemManagement/ReusableContentItemCreateManager.cs",
+          "changeType": "modified",
+          "summary": "Updated to pass ContentAccessSettings through create flow",
+          "symbols": [
+            "ReusableContentItemCreateManager"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemAssets/ContentItemAssetMetadataItem.cs",
+          "changeType": "modified",
+          "summary": "Added RequiredMemberRoleNames property to asset metadata for role-based access checks",
+          "symbols": [
+            "ContentItemAssetMetadataItem",
+            "RequiredMemberRoleNames"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContentItemAssets/ContentItemAssetMetadataItemProvider.cs",
+          "changeType": "modified",
+          "summary": "Injects IContentItemMemberRoleRetriever; populates role code names for secured assets",
+          "symbols": [
+            "ContentItemAssetMetadataItemProvider",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-006",
+      "name": "Content Query System",
+      "description": "Content query data containers and mappers extended with ContentItemRequiredMemberRoleNames system field; new ContentItemRolesResultProcessor post-processes query results",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/Query/ContentQueryDataContainer.cs",
+          "changeType": "modified",
+          "summary": "Added RequiredMemberRoleNames property; TryGetValue handles ContentItemRequiredMemberRoleNames mapping",
+          "symbols": [
+            "ContentQueryDataContainer",
+            "RequiredMemberRoleNames",
+            "TryGetValue()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Query/ContentQueryDataContainerBase.cs",
+          "changeType": "modified",
+          "summary": "New ContentItemRequiredMemberRoleNames read-only collection property in base class",
+          "symbols": [
+            "ContentQueryDataContainerBase",
+            "ContentItemRequiredMemberRoleNames"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Query/Executor/ContentItemRolesResultProcessor.cs",
+          "changeType": "added",
+          "summary": "New result processor that populates member role names on query results for secured content items",
+          "symbols": [
+            "ContentItemRolesResultProcessor",
+            "IContentQueryResultProcessor",
+            "PostProcessQueryResult()",
+            "GetAllItemsIncludingLinkedItems()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Query/IContentQueryDataContainer.cs",
+          "changeType": "modified",
+          "summary": "Interface extended with ContentItemRequiredMemberRoleNames property",
+          "symbols": [
+            "IContentQueryDataContainer",
+            "ContentItemRequiredMemberRoleNames"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/ContentEngine/Query/Mapper/ContentItemFields.cs",
+          "changeType": "modified",
+          "summary": "Added ContentItemRequiredMemberRoleNames property to content item fields mapper",
+          "symbols": [
+            "ContentItemFields",
+            "ContentItemRequiredMemberRoleNames"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-007",
+      "name": "Content Engine Module Registration",
+      "description": "ContentEngineModule updated to register new member role services and initialize ContentItemMemberRoleHandlers",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/Module/ContentEngineModule.cs",
+          "changeType": "modified",
+          "summary": "Module startup registers new member role services and initializes ContentItemMemberRoleHandlers",
+          "symbols": [
+            "ContentEngineModule",
+            "ContentItemMemberRoleHandlers.Initialize()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-008",
+      "name": "Website Page Management",
+      "description": "WebPageManager, WebPageMetadata, and web page CRUD parameters updated from IsSecured bool to ContentAccessSettings; IWebPageManager API extended with new overload",
+      "files": [
+        {
+          "path": "CMSSolution/Websites/RecycleBin/Restore/WebPageItemRestorer.cs",
+          "changeType": "modified",
+          "summary": "Recycle bin restoration updated to build ContentAccessSettings from member role IDs",
+          "symbols": [
+            "WebPageItemRestorer",
+            "GetMemberRoleIDs()",
+            "BuildAccessSettings()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/Routing/WebPageRedirectValidator.cs",
+          "changeType": "modified",
+          "summary": "Constructor updated to accept IContentItemMemberRoleRetriever dependency",
+          "symbols": [
+            "WebPageRedirectValidator",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/WebPage/WebPageItem/WebPageMetadata.cs",
+          "changeType": "modified",
+          "summary": "IsSecured deprecated; new AccessSettings property; InitFromContainer overload accepts requiredMemberRoleIDs",
+          "symbols": [
+            "WebPageMetadata",
+            "AccessSettings",
+            "IsSecured [Obsolete]",
+            "InitFromContainer()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/Delete/WebPageDeleteManager.cs",
+          "changeType": "modified",
+          "summary": "Constructor takes IContentItemMemberRoleRetriever for role data in delete events",
+          "symbols": [
+            "WebPageDeleteManager",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/Factory/WebPageManagerFactory.cs",
+          "changeType": "modified",
+          "summary": "Factory updated to inject IContentItemMemberRoleRetriever into created managers",
+          "symbols": [
+            "WebPageManagerFactory",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/IWebPageManager.cs",
+          "changeType": "modified",
+          "summary": "New UpdateSecuritySettings overload accepting ContentAccessSettings; old bool overload deprecated",
+          "symbols": [
+            "IWebPageManager",
+            "UpdateSecuritySettings(int, ContentAccessSettings)",
+            "UpdateSecuritySettings(int, bool) [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/Parameters/CreateFolderParameters.cs",
+          "changeType": "modified",
+          "summary": "RequiresAuthentication deprecated; new AccessSettings property with backward-compatible bridge",
+          "symbols": [
+            "CreateFolderParameters",
+            "AccessSettings",
+            "RequiresAuthentication [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/Parameters/CreateWebPageParameters.cs",
+          "changeType": "modified",
+          "summary": "RequiresAuthentication deprecated; new AccessSettings property with backward-compatible bridge",
+          "symbols": [
+            "CreateWebPageParameters",
+            "AccessSettings",
+            "RequiresAuthentication [Obsolete]"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/WebPageDataRetriever.cs",
+          "changeType": "modified",
+          "summary": "Injects IContentItemMemberRoleRetriever; populates metadata with role IDs from retriever",
+          "symbols": [
+            "WebPageDataRetriever",
+            "IContentItemMemberRoleRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Websites/WebPageManager/WebPageManager.cs",
+          "changeType": "modified",
+          "summary": "New UpdateSecuritySettings and SetSecurityFlagForDescendants methods using ContentAccessSettings",
+          "symbols": [
+            "WebPageManager",
+            "UpdateSecuritySettings()",
+            "UpdateSecuritySettingsInternal()",
+            "SetSecurityFlagForDescendants()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-009",
+      "name": "MVC Content Security and Access Control",
+      "description": "New content access validation pipeline distinguishing 401 (NotAuthenticated) from 403 (Forbidden); HasAccess() extension for content items; web page routing refactored for role-based access",
+      "files": [
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Security/ContentAccessCheckResult.cs",
+          "changeType": "added",
+          "summary": "New enum with Allowed, NotAuthenticated, and Forbidden values for content access checks",
+          "symbols": [
+            "ContentAccessCheckResult",
+            "Allowed",
+            "NotAuthenticated",
+            "Forbidden"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Security/ContentAccessCookieAuthenticationConfiguration.cs",
+          "changeType": "added",
+          "summary": "Post-configures cookie auth to handle 401/403 splitting with backward-compatible LoginPath fallback from AccessDeniedPath",
+          "symbols": [
+            "ContentAccessCookieAuthenticationConfiguration",
+            "IPostConfigureOptions<CookieAuthenticationOptions>"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Security/ContentItemFieldsSourceExtensions.cs",
+          "changeType": "added",
+          "summary": "New public extension method HasAccess() on IContentItemFieldsSource for checking member role-based access",
+          "symbols": [
+            "ContentItemFieldsSourceExtensions",
+            "HasAccess(IContentItemFieldsSource, ClaimsPrincipal)"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Security/MemberAccessHelper.cs",
+          "changeType": "added",
+          "summary": "Core access validation logic: CheckAccess, IsUserAuthenticated, UserIsInAnyRole static methods",
+          "symbols": [
+            "MemberAccessHelper",
+            "CheckAccess()",
+            "IsUserAuthenticated()",
+            "UserIsInAnyRole()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Security/SecuredContentAccessValidator.cs",
+          "changeType": "added",
+          "summary": "Validates user access to content items and assets using role-based checks against member role requirements",
+          "symbols": [
+            "SecuredContentAccessValidator",
+            "ISecuredContentAccessValidator",
+            "CheckAccess()",
+            "CheckAssetAccess()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Websites/Routing/Controller/KenticoHttpResponseWebPageController.cs",
+          "changeType": "modified",
+          "summary": "Added NotAuthorized() action returning Challenge() for HTTP 401 unauthorized responses",
+          "symbols": [
+            "KenticoHttpResponseWebPageController",
+            "NotAuthorized()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Websites/Routing/Routes/ISecuredContentAccessValidator.cs",
+          "changeType": "added",
+          "summary": "New internal interface for checking content access with CheckAccess and CheckAssetAccess methods",
+          "symbols": [
+            "ISecuredContentAccessValidator",
+            "CheckAccess()",
+            "CheckAssetAccess()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Websites/Routing/Routes/IWebPageRouterDataContextManager.cs",
+          "changeType": "modified",
+          "summary": "Set method signature changed from void to async Task with CancellationToken",
+          "symbols": [
+            "IWebPageRouterDataContextManager",
+            "Set() -> Task Set()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Websites/Routing/Routes/WebPageRouterDataContextManager.cs",
+          "changeType": "modified",
+          "summary": "Refactored to distinguish 401 (NotAuthenticated) vs 403 (Forbidden) using SecuredContentAccessValidator; SetForbiddenResult replaced with SetAccessDeniedResult",
+          "symbols": [
+            "WebPageRouterDataContextManager",
+            "SetAccessDeniedResult()",
+            "ISecuredContentAccessValidator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Websites/Routing/Routes/WebPageUrlPathMatchingService.cs",
+          "changeType": "modified",
+          "summary": "Updated to pass through the async Set method signature change",
+          "symbols": [
+            "WebPageUrlPathMatchingService"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-010",
+      "name": "Authentication and Identity Pipeline",
+      "description": "Refactored from policy-based to middleware-based authentication; new preview/crawler identity services; AuthenticationSchemes consolidation; admin scheme authentication service",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Authentication/AdminSchemeAuthenticationService.cs",
+          "changeType": "added",
+          "summary": "New service implementing IAdminSchemeAuthenticationService with AuthenticateAndReplace and AuthenticateAndAdd methods",
+          "symbols": [
+            "AdminSchemeAuthenticationService",
+            "AuthenticateAndReplace()",
+            "AuthenticateAndAdd()",
+            "HasAdminIdentity()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Authorization/AuthorizationConfigureOptions.cs",
+          "changeType": "modified",
+          "summary": "Removed registration of DefaultAdminAuthenticationPolicy",
+          "symbols": [
+            "AuthorizationConfigureOptions"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Authorization/DefaultAdminAuthenticationPolicy.cs",
+          "changeType": "deleted",
+          "summary": "Deleted: old authorization policy replaced by middleware-based authentication approach",
+          "symbols": [
+            "DefaultAdminAuthenticationPolicy [DELETED]"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Module/DefaultAdminSchemeAuthenticationMiddleware.cs",
+          "changeType": "added",
+          "summary": "New middleware authenticating requests early in pipeline before endpoint selection using IAdminSchemeAuthenticationService",
+          "symbols": [
+            "DefaultAdminSchemeAuthenticationMiddleware",
+            "InvokeAsync()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Module/ModuleStartup.cs",
+          "changeType": "modified",
+          "summary": "Registers AdminSchemeAuthenticationService as scoped implementation of IAdminSchemeAuthenticationService",
+          "symbols": [
+            "ModuleStartup",
+            "IAdminSchemeAuthenticationService"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Module/ModuleStartup.cs",
+          "changeType": "modified",
+          "summary": "Registers SecuredContentAccessValidator and VirtualContextIdentityService in DI container",
+          "symbols": [
+            "ModuleStartup (Content.Web.Mvc)",
+            "SecuredContentAccessValidator",
+            "VirtualContextIdentityService"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Preview/AuthenticationConstants.cs",
+          "changeType": "deleted",
+          "summary": "Deleted: constants moved to centralized AuthenticationSchemes class in Kentico.Web.Mvc",
+          "symbols": [
+            "AuthenticationConstants [DELETED]"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Preview/VirtualContextIdentityService.cs",
+          "changeType": "added",
+          "summary": "New service providing preview/crawler identity with member roles as claims on HttpContext.User",
+          "symbols": [
+            "VirtualContextIdentityService",
+            "IVirtualContextIdentityService",
+            "AddVirtualContextIdentity()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/Preview/VirtualContextModeDetector.cs",
+          "changeType": "added",
+          "summary": "New static utility detecting preview or crawler mode from request context",
+          "symbols": [
+            "VirtualContextModeDetector",
+            "IsPreviewMode()",
+            "IsCrawlerMode()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Content.Web.Mvc/VirtualContextProcessing/VirtualContextUrlRewriter.cs",
+          "changeType": "modified",
+          "summary": "Updated to use new VirtualContextIdentityService for adding identity to context",
+          "symbols": [
+            "VirtualContextUrlRewriter"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Managers/AdminUserManager.cs",
+          "changeType": "modified",
+          "summary": "Added GetUserId and GetUserName overrides extracting admin claims from ClaimsPrincipal",
+          "symbols": [
+            "AdminUserManager",
+            "GetUserId(ClaimsPrincipal)",
+            "GetUserName(ClaimsPrincipal)"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/ApplicationSetup/DefaultAdminSchemeAuthenticationMiddleware.cs",
+          "changeType": "deleted",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DefaultAdminSchemeAuthenticationMiddleware"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/ApplicationSetup/LiveSiteAdminSchemeAuthenticationMiddleware.cs",
+          "changeType": "added",
+          "summary": "New middleware adding admin identity to existing user principal in live-site pipeline for preview mode",
+          "symbols": [
+            "LiveSiteAdminSchemeAuthenticationMiddleware",
+            "InvokeAsync()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/ApplicationSetup/StartupExtensions.cs",
+          "changeType": "modified",
+          "summary": "Updated middleware pipeline registration for new authentication middleware chain",
+          "symbols": [
+            "StartupExtensions"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Authentication/AuthenticationSchemes.cs",
+          "changeType": "added",
+          "summary": "New centralized constants class: PREVIEW and CRAWLER authentication scheme names moved from deleted AuthenticationConstants",
+          "symbols": [
+            "AuthenticationSchemes",
+            "PREVIEW='Xperience.Preview'",
+            "CRAWLER='Xperience.Crawler'"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Authentication/AuthorizationPolicyNames.cs",
+          "changeType": "deleted",
+          "summary": "Deleted: no longer needed after moving from policy-based to middleware-based auth",
+          "symbols": [
+            "AuthorizationPolicyNames [DELETED]"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Authentication/IAdminSchemeAuthenticationService.cs",
+          "changeType": "added",
+          "summary": "New public interface with AuthenticateAndReplace and AuthenticateAndAdd methods",
+          "symbols": [
+            "IAdminSchemeAuthenticationService",
+            "AuthenticateAndReplace()",
+            "AuthenticateAndAdd()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Authentication/NoOpAdminSchemeAuthenticationService.cs",
+          "changeType": "added",
+          "summary": "No-op implementation for deployments without administration module",
+          "symbols": [
+            "NoOpAdminSchemeAuthenticationService"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Module/ModuleStartup.cs",
+          "changeType": "modified",
+          "summary": "Registers NoOpAdminSchemeAuthenticationService as default; registers ContentAccessCookieAuthenticationConfiguration",
+          "symbols": [
+            "ModuleStartup (Web.Mvc)"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Web.Mvc/Preview/IVirtualContextIdentityService.cs",
+          "changeType": "added",
+          "summary": "New interface with AddVirtualContextIdentity method for preview/crawler identity injection",
+          "symbols": [
+            "IVirtualContextIdentityService",
+            "AddVirtualContextIdentity()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-011",
+      "name": "Membership Identity Stores",
+      "description": "ApplicationRole and ApplicationRoleStore implementations replacing NoOp stubs; ASP.NET Identity role management enabled with IRoleStore and IUserRoleStore operations",
+      "files": [
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationRole.cs",
+          "changeType": "added",
+          "summary": "New concrete ApplicationRole class for ASP.NET Identity role management replacing NoOp stub",
+          "symbols": [
+            "ApplicationRole"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationRoleStore.cs",
+          "changeType": "added",
+          "summary": "New ApplicationRoleStore implementation providing role CRUD operations backed by MemberRoleInfo",
+          "symbols": [
+            "ApplicationRoleStore",
+            "IRoleStore<TRole>",
+            "CreateAsync()",
+            "UpdateAsync()",
+            "DeleteAsync()",
+            "FindByIdAsync()",
+            "FindByNameAsync()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Stores/Channels/ApplicationUserStore.cs",
+          "changeType": "modified",
+          "summary": "Updated to support role operations: GetRolesAsync, IsInRoleAsync, AddToRoleAsync, RemoveFromRoleAsync",
+          "symbols": [
+            "ApplicationUserStore",
+            "GetRolesAsync()",
+            "IsInRoleAsync()",
+            "AddToRoleAsync()",
+            "RemoveFromRoleAsync()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Stores/Channels/NoOpApplicationRole.cs",
+          "changeType": "modified",
+          "summary": "Updated to work alongside new real ApplicationRole; may retain as fallback",
+          "symbols": [
+            "NoOpApplicationRole"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Kentico.Membership/Stores/Channels/NoOpApplicationRoleStore.cs",
+          "changeType": "modified",
+          "summary": "Updated to maintain compatibility; used when role management is not configured",
+          "symbols": [
+            "NoOpApplicationRoleStore"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-012",
+      "name": "Admin UI - Member Role Management",
+      "description": "New admin UI pages for CRUD of member roles; member edit form with role assignment ObjectIdSelector; member list with role column; content hub and item properties updated",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Components/Status/ContentItemStatusRetriever/BaseContentItemStatusRetriever.cs",
+          "changeType": "modified",
+          "summary": "Status retriever updated to reflect new security model in content item status display",
+          "symbols": [
+            "BaseContentItemStatusRetriever"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/ContentEngine/ContentFolders/Services/ContentListingCommandManager.cs",
+          "changeType": "modified",
+          "summary": "Updated content listing commands to work with new access settings model",
+          "symbols": [
+            "ContentListingCommandManager"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/Resx/KenticoAdminBaseResources.resx",
+          "changeType": "modified",
+          "summary": "New localized strings for member role UI labels, descriptions, and validation messages",
+          "symbols": [
+            "KenticoAdminBaseResources"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/TemplatePages/Edit/ModelEditPage_1.cs",
+          "changeType": "modified",
+          "summary": "Template edit page base class updated for form validation flow changes",
+          "symbols": [
+            "ModelEditPage"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/ContentHub/ContentHubList.cs",
+          "changeType": "modified",
+          "summary": "Content hub listing updated with security status indicators reflecting role-based access",
+          "symbols": [
+            "ContentHubList"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/ContentHub/ContentItem/ContentItemProperties.cs",
+          "changeType": "modified",
+          "summary": "Content item properties page updated for ContentAccessSettings integration",
+          "symbols": [
+            "ContentItemProperties"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/ContentHub/ContentItem/Models/ContentItemPropertiesModel.cs",
+          "changeType": "modified",
+          "summary": "Properties model updated with role-related fields or access settings properties",
+          "symbols": [
+            "ContentItemPropertiesModel"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/Member/MemberEdit.cs",
+          "changeType": "modified",
+          "summary": "Enhanced with role assignment: ObjectIdSelectorComponent for roles, GetAssignedRoles(), UpdateMemberRoles()",
+          "symbols": [
+            "MemberEdit",
+            "GetAssignedRoles()",
+            "UpdateMemberRoles()",
+            "MemberRoleMemberInfo"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MemberList.cs",
+          "changeType": "modified",
+          "summary": "Added roles column with AddMemberRolesColumn() and LoadMemberRoleLookup() for comma-separated role display",
+          "symbols": [
+            "MemberList",
+            "AddMemberRolesColumn()",
+            "LoadMemberRoleLookup()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MemberRoleList.cs",
+          "changeType": "added",
+          "summary": "New listing page for member roles under the Members application",
+          "symbols": [
+            "MemberRoleList"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MemberRoles/MemberRoleCreate.cs",
+          "changeType": "added",
+          "summary": "New create form page for member roles",
+          "symbols": [
+            "MemberRoleCreate"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MemberRoles/MemberRoleEdit.cs",
+          "changeType": "added",
+          "summary": "New edit form page for member roles",
+          "symbols": [
+            "MemberRoleEdit"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MemberRoles/MemberRoleEditSection.cs",
+          "changeType": "added",
+          "summary": "New section layout page for member role editing UI",
+          "symbols": [
+            "MemberRoleEditSection"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Base/UIPages/Members/MembersApplication.cs",
+          "changeType": "modified",
+          "summary": "Updated with CREATE permission and navigation to member roles section",
+          "symbols": [
+            "MembersApplication"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-013",
+      "name": "Admin UI - Website Security Settings",
+      "description": "Web page security page refactored for role-based access control; role selection UI in security model; ContentAccessSettings propagation to descendants",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/Components/WebPagePanel/WebPagePanelItemProvider.cs",
+          "changeType": "modified",
+          "summary": "Web page panel items updated to display security status with role information",
+          "symbols": [
+            "WebPagePanelItemProvider"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/Resx/KenticoAdminWebsitesResources.resx",
+          "changeType": "modified",
+          "summary": "New localized strings for web page security role selection UI",
+          "symbols": [
+            "KenticoAdminWebsitesResources"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/UIPages/WebPages/WebPage/Create/WebPage/CreateWebPage.cs",
+          "changeType": "modified",
+          "summary": "Injects IContentItemMemberRoleRetriever; creates pages with ContentAccessSettings instead of bool",
+          "symbols": [
+            "CreateWebPage",
+            "IContentItemMemberRoleRetriever",
+            "GetAccessSettings()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/UIPages/WebPages/WebPage/Properties/Information/WebPageInformation.cs",
+          "changeType": "modified",
+          "summary": "Form data refresh uses validated form items for tree path update",
+          "symbols": [
+            "WebPageInformation",
+            "GetValidatedFormItems()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/UIPages/WebPages/WebPage/Properties/Security/WebPageSecurity.cs",
+          "changeType": "modified",
+          "summary": "Major refactoring: role selection UI, BuildAccessSettings(), propagation logic using ContentAccessSettings for descendants",
+          "symbols": [
+            "WebPageSecurity",
+            "GetRequiredRoles()",
+            "BuildAccessSettings()",
+            "UpdateSecuritySettings(ContentAccessSettings)",
+            "Change()"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/UIPages/WebPages/WebPage/Properties/Security/WebPageSecurityModel.cs",
+          "changeType": "modified",
+          "summary": "Model extended with RequiredRoles property for role selection in security settings form",
+          "symbols": [
+            "WebPageSecurityModel",
+            "RequiredRoles"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Kentico.Xperience.Admin.Websites/UIPages/WebPages/WebPagesApplication.cs",
+          "changeType": "modified",
+          "summary": "Application page updated for member role integration in web pages context",
+          "symbols": [
+            "WebPagesApplication"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-014",
+      "name": "Content Synchronization",
+      "description": "New member role compatibility evaluator, dependency adapters, access settings evaluation during content sync restoration; restore actions updated for ContentAccessSettings",
+      "files": [
+        {
+          "path": "CMSSolution/ContentSynchronization/Compatibility/Evaluators/MemberRoleCompatibilityEvaluator.cs",
+          "changeType": "added",
+          "summary": "New evaluator validating member role existence during content sync operations",
+          "symbols": [
+            "MemberRoleCompatibilityEvaluator",
+            "CompatibilityEvaluator<MemberRoleReport[]>"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/DependencyDiscovery/Adapters/ContentItemMemberRoleAdapter.cs",
+          "changeType": "added",
+          "summary": "New dependency adapter declaring role dependencies for content item sync",
+          "symbols": [
+            "ContentItemMemberRoleAdapter",
+            "IDependencyAdapter<ContentItemInfo>"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/DependencyDiscovery/Adapters/MemberRoleAdapter.cs",
+          "changeType": "added",
+          "summary": "New dependency adapter for member role dependency tracking",
+          "symbols": [
+            "MemberRoleAdapter",
+            "IDependencyAdapter<ContentItemMemberRoleInfo>"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/Helpers/ContentAccessSettingsEvaluator.cs",
+          "changeType": "added",
+          "summary": "New evaluator resolving and comparing ContentAccessSettings during restoration",
+          "symbols": [
+            "ContentAccessSettingsEvaluator",
+            "ResolveContentAccessSettings()",
+            "AreContentAccessSettingsUnchanged()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/Helpers/IContentAccessSettingsEvaluator.cs",
+          "changeType": "added",
+          "summary": "Interface for content access settings evaluation during sync restoration",
+          "symbols": [
+            "IContentAccessSettingsEvaluator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/Helpers/IWebPageDraftDataCreator.cs",
+          "changeType": "added",
+          "summary": "New interface extracted from WebPageDraftDataHelper for testability",
+          "symbols": [
+            "IWebPageDraftDataCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/Helpers/WebPageDraftDataCreator.cs",
+          "changeType": "renamed",
+          "summary": "Renamed from WebPageDraftDataHelper; creates draft data structures with ContentAccessSettings support",
+          "symbols": [
+            "WebPageDraftDataCreator",
+            "IWebPageDraftDataCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/CreateContentItemRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Updated to use ContentAccessSettings in content item restoration",
+          "symbols": [
+            "CreateContentItemRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/CreateWebPageFolderRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Updated to use ContentAccessSettings in folder restoration",
+          "symbols": [
+            "CreateWebPageFolderRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/CreateWebPageItemVersionRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Updated to use ContentAccessSettings in version restoration",
+          "symbols": [
+            "CreateWebPageItemVersionRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/CreateWebPageLanguageVariantRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Updated to use ContentAccessSettings in language variant restoration",
+          "symbols": [
+            "CreateWebPageLanguageVariantRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/CreateWebPageRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Updated to use ContentAccessSettings in web page restoration",
+          "symbols": [
+            "CreateWebPageRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/UpdateContentItemMetadataRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Handles AccessSettings instead of IsSecured during metadata restoration",
+          "symbols": [
+            "UpdateContentItemMetadataRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentSynchronization/Restoration/RestoreActions/UpdateWebPageItemUpdateSecuritySettingsRestoreAction.cs",
+          "changeType": "modified",
+          "summary": "Refactored to use ContentAccessSettings for security settings restoration",
+          "symbols": [
+            "UpdateWebPageItemUpdateSecuritySettingsRestoreAction",
+            "ContentAccessSettings"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-015",
+      "name": "Continuous Integration Processing",
+      "description": "New ContentItemMemberRoleCustomProcessor for CI XML serialization of role bindings; CI filter and schema files reorganized into subdirectories",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ContentItemContinuousIntegrationHandlers.cs",
+          "changeType": "modified",
+          "summary": "Registered ContentItemMemberRoleCustomProcessor for CI processing",
+          "symbols": [
+            "ContentItemContinuousIntegrationHandlers",
+            "CustomProcessorFactory.RegisterProcessor()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ContentItemMemberRoleCustomProcessor.cs",
+          "changeType": "added",
+          "summary": "New CI processor handling XML serialization/deserialization of member role bindings for content items",
+          "symbols": [
+            "ContentItemMemberRoleCustomProcessor",
+            "MEMBER_ROLES_WRAPPING_ELEMENT_NAME",
+            "StoreContentItemMemberRolesToXml()",
+            "PostprocessSerializedObject()",
+            "PreprocessDeserializedDocument()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/ContentItemCommonDataContinuousIntegrationFilter.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "ContentItemCommonDataContinuousIntegrationFilter"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/ContentItemContinuousIntegrationFilter.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "ContentItemContinuousIntegrationFilter"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/ContentItemCustomCIFilteringHelper.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "ContentItemCustomCIFilteringHelper"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/ContentItemDataContinuousIntegrationFilter.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "ContentItemDataContinuousIntegrationFilter"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/ContentItemLanguageMetadataContinuousIntegrationFilter.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "ContentItemLanguageMetadataContinuousIntegrationFilter"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/Filters/IContentItemCustomCIFilteringHelper.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to Filters subdirectory (no code changes)",
+          "symbols": [
+            "IContentItemCustomCIFilteringHelper"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ReusableFieldSchema/DataClassReusableFieldSchemaInsertJob.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to ReusableFieldSchema subdirectory (no code changes)",
+          "symbols": [
+            "DataClassReusableFieldSchemaInsertJob"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ReusableFieldSchema/DataClassReusableFieldSchemaUpsertJob.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to ReusableFieldSchema subdirectory (no code changes)",
+          "symbols": [
+            "DataClassReusableFieldSchemaUpsertJob"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ReusableFieldSchema/ReusableFieldSchemasContinuousIntegrationHandlers.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to ReusableFieldSchema subdirectory (no code changes)",
+          "symbols": [
+            "ReusableFieldSchemasContinuousIntegrationHandlers"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ReusableFieldSchema/ReusableFieldSchemasHelper.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to ReusableFieldSchema subdirectory (no code changes)",
+          "symbols": [
+            "ReusableFieldSchemasHelper"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/ContinuousIntegration/ReusableFieldSchema/SchemaMatchResult.cs",
+          "changeType": "renamed",
+          "summary": "Renamed: moved from ContinuousIntegration root to ReusableFieldSchema subdirectory (no code changes)",
+          "symbols": [
+            "SchemaMatchResult"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-016",
+      "name": "Content Engine Recycle Bin",
+      "description": "Recycle bin serialization/restoration updated to include and restore member role bindings for content items",
+      "files": [
+        {
+          "path": "CMSSolution/ContentEngine/RecycleBin/RecycleBinContentItemCreator.cs",
+          "changeType": "modified",
+          "summary": "Serialization now includes member role bindings; new GetContentItemMemberRoles() method",
+          "symbols": [
+            "RecycleBinContentItemCreator",
+            "GetContentItemMemberRoles()",
+            "ContentItemMemberRoleInfo"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/RecycleBin/Restore/ReusableContentItemRestorer.cs",
+          "changeType": "modified",
+          "summary": "Restoration extracts member role IDs from serialized data via GetMemberRoleIDs() helper",
+          "symbols": [
+            "ReusableContentItemRestorer",
+            "GetMemberRoleIDs()"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/ContentEngine/RecycleBin/Serialization/RecycleBinContentItemDeserializationResultBase.cs",
+          "changeType": "modified",
+          "summary": "Added ContentItemMemberRoles property to deserialization result for restored items",
+          "symbols": [
+            "RecycleBinContentItemDeserializationResultBase",
+            "ContentItemMemberRoles"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-017",
+      "name": "Database Schema and Migrations",
+      "description": "New CMS_MemberRole, CMS_MemberRoleMember, CMS_ContentItemMemberRole tables; CI repository definitions; alternative forms; migration scripts for v31.3.0",
+      "files": [
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.alternativeform/cms.systemtable_cms.member/edit.xml",
+          "changeType": "modified",
+          "summary": "Member edit form: added General and Membership_roles categories; new ObjectIdSelector for role assignment",
+          "symbols": [
+            "MemberRole ObjectIdSelector",
+            "Membership_roles category"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.alternativeform/cms.systemtable_cms.memberrole/create.xml",
+          "changeType": "added",
+          "summary": "New CI definition for member role create form with DisplayName, CodeName, Description fields",
+          "symbols": [
+            "MemberRole create form",
+            "MemberRoleDisplayName",
+            "MemberRoleName"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.alternativeform/cms.systemtable_cms.memberrole/edit.xml",
+          "changeType": "added",
+          "summary": "New CI definition for member role edit form matching create form structure",
+          "symbols": [
+            "MemberRole edit form"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.applicationpermission/dancinggoat.digitalchannelmanager@6a91a5d4a4/kentico.xperience...ion.members_create@9d964833dd.xml",
+          "changeType": "added",
+          "summary": "New permission granting CREATE access for members to DancingGoat.DigitalChannelManager role",
+          "symbols": [
+            "Members_Create permission",
+            "DancingGoat.DigitalChannelManager"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.class/cms.contentitemmemberrole.xml",
+          "changeType": "added",
+          "summary": "CI class definition for CMS.ContentItemMemberRole object type",
+          "symbols": [
+            "cms.contentitemmemberrole class definition"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.class/cms.memberrolemember.xml",
+          "changeType": "added",
+          "summary": "CI class definition for CMS.MemberRoleMember binding object type",
+          "symbols": [
+            "cms.memberrolemember class definition"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@global/cms.systemtable/cms.memberrole.xml",
+          "changeType": "added",
+          "summary": "CI system table definition for CMS.MemberRole with field schema and form layout",
+          "symbols": [
+            "cms.memberrole system table"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@migrations/KX-21833_Add_CMS_MemberRole_Table.sql",
+          "changeType": "added",
+          "summary": "CI migration script for MemberRole table creation",
+          "symbols": [
+            "KX-21833 migration"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@migrations/KX-21847_Add_FKs_And_IXs_CMS_MemberRoleMember.sql",
+          "changeType": "added",
+          "summary": "CI migration script for MemberRoleMember foreign keys and indexes",
+          "symbols": [
+            "KX-21847 migration"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/@migrations/KX-21855_Add_CMS_ContentItemMemberRole_Table.sql",
+          "changeType": "added",
+          "summary": "CI migration script for ContentItemMemberRole table creation",
+          "symbols": [
+            "KX-21855 migration"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/CMS/App_Data/CIRepository/After.txt",
+          "changeType": "modified",
+          "summary": "Migration order manifest updated with new member role migrations",
+          "symbols": [
+            "After.txt"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Data/defaultDBObjects.txt",
+          "changeType": "modified",
+          "summary": "Added CMS_MemberRole, CMS_MemberRoleMember, CMS_ContentItemMemberRole to default DB objects list",
+          "symbols": [
+            "defaultDBObjects.txt"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Migrations/31.3.0/KX-21833_Add_CMS_MemberRole_Table.sql",
+          "changeType": "added",
+          "summary": "Creates CMS_MemberRole table with ID, GUID, Name (unique), DisplayName, Description columns and registers CMS.MemberRole class",
+          "symbols": [
+            "CMS_MemberRole",
+            "MemberRoleID",
+            "MemberRoleName",
+            "MemberRoleGUID"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Migrations/31.3.0/KX-21838_Add_MemberRole_Alternative_Forms.sql",
+          "changeType": "added",
+          "summary": "Creates alternative form definitions for member role create and edit forms",
+          "symbols": [
+            "cms.alternativeform",
+            "MemberRoleCreate",
+            "MemberRoleEdit"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Migrations/31.3.0/KX-21847_Add_CMS_MemberRoleMember_Table.sql",
+          "changeType": "added",
+          "summary": "Creates CMS_MemberRoleMember binding table with FKs to CMS_Member and CMS_MemberRole; unique constraint prevents duplicates",
+          "symbols": [
+            "CMS_MemberRoleMember",
+            "MemberRoleMemberMemberID",
+            "MemberRoleMemberMemberRoleID"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Migrations/31.3.0/KX-21855_Add_CMS_ContentItemMemberRole_Table.sql",
+          "changeType": "added",
+          "summary": "Creates CMS_ContentItemMemberRole binding table with FKs to content items and member roles; registers CMS.ContentItemMemberRole class",
+          "symbols": [
+            "CMS_ContentItemMemberRole",
+            "ContentItemMemberRoleContentItemID",
+            "ContentItemMemberRoleMemberRoleID"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/DbDataManager/Migrations/31.3.0/Migrations.txt",
+          "changeType": "modified",
+          "summary": "Migration manifest updated with new member role migration entries",
+          "symbols": [
+            "Migrations.txt"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-018",
+      "name": "DancingGoat Sample Project",
+      "description": "Role management enabled with ApplicationRole/ApplicationRoleStore; 403 Access Denied page and controller added; authentication cookie redirects updated",
+      "files": [
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/$CDRepository/repository.config",
+          "changeType": "modified",
+          "summary": "Added cms.memberrole to continuous deployment repository object types",
+          "symbols": [
+            "repository.config",
+            "cms.memberrole"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/Controllers/HttpErrorsController.cs",
+          "changeType": "modified",
+          "summary": "Added 403 Access Denied error handler returning AccessDenied view",
+          "symbols": [
+            "HttpErrorsController",
+            "Error(403)"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/Program.cs",
+          "changeType": "modified",
+          "summary": "Switched from NoOpApplicationRole to ApplicationRole with RoleManager; AccessDeniedPath changed to /error/403; OnRedirectToLogin replaces OnRedirectToAccessDenied",
+          "symbols": [
+            "Program.cs",
+            "ApplicationRole",
+            "ApplicationRoleStore<ApplicationRole>",
+            "RoleManager<ApplicationRole>",
+            "AccessDeniedPath=/error/403"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/Views/HttpErrors/AccessDenied.cshtml",
+          "changeType": "added",
+          "summary": "New Razor view for 403 Access Denied error page with localized messaging",
+          "symbols": [
+            "AccessDenied.cshtml"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/wwwroot/Content/Styles/Site.css",
+          "changeType": "modified",
+          "summary": "Added .access-denied-content CSS class for 403 page styling",
+          "symbols": [
+            ".access-denied-content"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.DancingGoat/wwwroot/Content/Styles/Site.less",
+          "changeType": "modified",
+          "summary": "Added LESS source for .access-denied-content styling",
+          "symbols": [
+            ".access-denied-content"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-019",
+      "name": "Project Templates and UI Test App",
+      "description": "Boilerplate CI config includes cms.memberrole; UITests Program.cs switched to real ApplicationRole/ApplicationRoleStore",
+      "files": [
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.Boilerplate/$CDRepository/repository.config",
+          "changeType": "modified",
+          "summary": "Added cms.memberrole to continuous deployment repository object types",
+          "symbols": [
+            "repository.config",
+            "cms.memberrole"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Mvc/Projects/Kentico.Xperience.UITests/Program.cs",
+          "changeType": "modified",
+          "summary": "Switched from NoOpApplicationRole to ApplicationRole and ApplicationRoleStore",
+          "symbols": [
+            "Program.cs",
+            "ApplicationRole",
+            "ApplicationRoleStore"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-020",
+      "name": "API Examples and Samples",
+      "description": "API example code updated to use ContentAccessSettings.Secured() instead of boolean IsSecured parameter",
+      "files": [
+        {
+          "path": "CMSSolution/Samples/APIExamples/Content management_HQqiCQ/Pages.cs",
+          "changeType": "modified",
+          "summary": "PageSecure example updated: IsSecured boolean replaced with ContentAccessSettings.Secured()",
+          "symbols": [
+            "Pages.cs",
+            "ContentAccessSettings.Secured()",
+            "webPageManager.UpdateSecuritySettings()"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-021",
+      "name": "Headless Item Management",
+      "description": "HeadlessItemCreateManager updated from IsSecured=false to AccessSettings=ContentAccessSettings.Public()",
+      "files": [
+        {
+          "path": "CMSSolution/Headless/HeadlessItemManager/Create/HeadlessItemCreateManager.cs",
+          "changeType": "modified",
+          "summary": "Content item creation updated from IsSecured=false to AccessSettings=ContentAccessSettings.Public()",
+          "symbols": [
+            "HeadlessItemCreateManager",
+            "ContentAccessSettings.Public()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-022",
+      "name": "Email Marketing",
+      "description": "EmailConfigurationManager updated from IsSecured=false to AccessSettings=ContentAccessSettings.Public()",
+      "files": [
+        {
+          "path": "CMSSolution/EmailMarketing/EmailLibrary/EmailConfigurations/EmailConfigurationManager.cs",
+          "changeType": "modified",
+          "summary": "Email configuration creation updated from IsSecured=false to AccessSettings=ContentAccessSettings.Public()",
+          "symbols": [
+            "EmailConfigurationManager",
+            "ContentAccessSettings.Public()"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-023",
+      "name": "Content Sync Scripts",
+      "description": "PowerShell scripts now dynamically resolve database backup version from build-vars.yaml",
+      "files": [
+        {
+          "path": "Scripts/ContentSync/RestoreSourceOnTarget.ps1",
+          "changeType": "modified",
+          "summary": "DatabaseBackupVersion parameter now dynamically resolved from build-vars.yaml instead of hardcoded default",
+          "symbols": [
+            "RestoreSourceOnTarget.ps1",
+            "$DatabaseBackupVersion"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "Scripts/ContentSync/SetupContentSync.ps1",
+          "changeType": "modified",
+          "summary": "DatabaseBackupVersion parameter now dynamically resolved from build-vars.yaml instead of hardcoded default",
+          "symbols": [
+            "SetupContentSync.ps1",
+            "$DatabaseBackupVersion"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-024",
+      "name": "Admin Client Frontend",
+      "description": "ESLint fixes; security icon changed from lock to diamond; 'Membership' label renamed to 'Membership access'",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Client/eslint-suppressions.json",
+          "changeType": "modified",
+          "summary": "Removed 2 react/jsx-no-leaked-render ESLint suppressions after fix",
+          "symbols": [
+            "eslint-suppressions.json"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Client/packages/kentico-xperience-admin-components/src/components/BaseTile/ImagePreview/ImagePreview.tsx",
+          "changeType": "modified",
+          "summary": "Changed JSX conditional rendering from && to ternary operator with explicit null",
+          "symbols": [
+            "ImagePreview.tsx"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Client/packages/kentico-xperience-admin-ui-tests/src/TestCafe/pages/content-hub/ContentHubListPage.ts",
+          "changeType": "modified",
+          "summary": "Security icon selector changed from xp-lock to xp-diamond reflecting new role-based security",
+          "symbols": [
+            "ContentHubListPage.ts",
+            "xp-diamond"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Client/packages/kentico-xperience-admin-ui-tests/src/TestCafe/pages/pages/PagesPropertiesPage.ts",
+          "changeType": "modified",
+          "summary": "Label changed from 'Membership' to 'Membership access' for security settings tab",
+          "symbols": [
+            "PagesPropertiesPage.ts",
+            "Membership access"
+          ],
+          "userFacing": true
+        },
+        {
+          "path": "CMSSolution/Admin/Client/packages/kentico-xperience-admin-ui-tests/src/TestCafe/pages/web-pages/WebPagesPropertiesPage.ts",
+          "changeType": "modified",
+          "summary": "Label changed from 'Membership' to 'Membership access' for security settings tab",
+          "symbols": [
+            "WebPagesPropertiesPage.ts",
+            "Membership access"
+          ],
+          "userFacing": true
+        }
+      ]
+    },
+    {
+      "id": "AREA-025",
+      "name": "Globalization and Localization Resources",
+      "description": "New resource strings for member role object types and content synchronization compatibility messages",
+      "files": [
+        {
+          "path": "CMSSolution/Globalization/Resx/BaseResources.resx",
+          "changeType": "modified",
+          "summary": "Added resource strings for cms_contentitemmemberrole, cms_memberrole, and cms_memberrolemember object types",
+          "symbols": [
+            "BaseResources.resx",
+            "objecttype.cms_memberrole",
+            "objecttype.cms_memberrolemember",
+            "objecttype.cms_contentitemmemberrole"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Globalization/Resx/ContentSynchronizationResources.resx",
+          "changeType": "modified",
+          "summary": "Added resource strings for member role compatibility warnings during content synchronization",
+          "symbols": [
+            "ContentSynchronizationResources.resx"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-026",
+      "name": "Build Infrastructure and API Resolutions",
+      "description": "API change resolution files for member role additions; test guidelines updated; infrastructure config changes",
+      "files": [
+        {
+          "path": ".ai/rules/tests/BackendTests.md",
+          "changeType": "modified",
+          "summary": "Updated test base class guidance: recommends no base class when IoC/faking/database not needed",
+          "symbols": [
+            "BackendTests.md"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "Build/ApiChanges/Resolutions/KX-21849_Assigning_roles_to_members.json",
+          "changeType": "added",
+          "summary": "API change resolution ignoring constructor signature changes in MemberList and MemberEdit",
+          "symbols": [
+            "KX-21849 resolution"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "Build/ApiChanges/Resolutions/KX-21857_Role_names_in_content_item_system_fields.json",
+          "changeType": "added",
+          "summary": "API change resolution ignoring interface default implementation for ContentItemRequiredMemberRoleNames",
+          "symbols": [
+            "KX-21857 resolution"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-027",
+      "name": "Tests - Membership and Member Role Core",
+      "description": "Unit tests for MemberRoleInfo, ClaimsPrincipalExtensions, ApplicationRoleStore, and membership authentication",
+      "files": [
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Membership.Tests/Tests/Stores/Channels/ApplicationRoleStoreTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ApplicationRoleStoreTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Membership.Tests/Tests/Stores/Channels/ApplicationUserStoreTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ApplicationUserStoreTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/BasicCreators.Base.Tests/Fakes/ContentManagement/ContentEngine/ContentItemMemberRoleCreator.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "ContentItemMemberRoleCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/BasicCreators.Base.Tests/Fakes/Platform/Membership/MemberCreator.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "MemberCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/BasicCreators.Base.Tests/Fakes/Platform/Membership/MemberRoleCreator.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "MemberRoleCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/BasicCreators.Base.Tests/Fakes/Platform/Membership/MemberRoleMemberCreator.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "MemberRoleMemberCreator"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/CMSTests/Builders/MemberRoleInfoBuilder.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "MemberRoleInfoBuilder"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemMemberRole/ContentAccessSettingsTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentAccessSettingsTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemMemberRole/ContentItemMemberRoleManagerTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMemberRoleManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemMemberRole/ContentItemMemberRoleRetrieverTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMemberRoleRetrieverTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContinuousIntegration/ContentItemMemberRoleCustomProcessorTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMemberRoleCustomProcessorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Handlers/ContentItemMemberRoleHandlersTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMemberRoleHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Compatibility/Evaluators/MemberRoleCompatibilityEvaluatorTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "MemberRoleCompatibilityEvaluatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/DependencyDiscovery/Adapters/ContentItemMemberRoleAdapterTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMemberRoleAdapterTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/DependencyDiscovery/Adapters/MemberRoleAdapterTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "MemberRoleAdapterTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Membership.Tests/Tests/Authentication/ClaimsPrincipalExtensionsTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ClaimsPrincipalExtensionsTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-028",
+      "name": "Tests - Content Engine",
+      "description": "Unit tests for content item management, events, handlers, queries, recycle bin, assets, and member role processing",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/ContentEngine/ContentItemStatus/ContentItemStatusRetrieverTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemStatusRetrieverTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Handlers/GetContentItemAssetServiceTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "GetContentItemAssetServiceTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Base.Tests/Tests/Base/ContentStructureFactory.cs",
+          "changeType": "modified",
+          "summary": "Test factory updated with member role support",
+          "symbols": [
+            "ContentStructureFactory"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Fakes/FakeContentFactory.cs",
+          "changeType": "modified",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "FakeContentFactory"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemAssets/ContentItemAssetMetadataItemProviderTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemAssetMetadataItemProviderTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/ContentItemContainerManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemContainerManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/ContentItemManagerCoreBaseTests.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "ContentItemManagerCoreBaseTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/Create/ContentItemCreateManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemCreateManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/Delete/ContentItemDeleteManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemDeleteManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/Draft/ContentItemDraftManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemDraftManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/Metadata/ContentItemMetadataManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemMetadataManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/Core/Publish/ContentItemPublishManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemPublishManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemManagement/ReusableContentItemDraftManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ReusableContentItemDraftManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/ContentItemsReferenceTreeProvider/ContentItemsNestedReferencesProviderBaseTests.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "ContentItemsNestedReferencesProviderBaseTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/ContentItemEventTestBase.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "ContentItemEventTestBase"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/Create/CreateContentItemEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateContentItemEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/CreateLanguageVariant/CreateContentItemLanguageVariantEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateContentItemLanguageVariantEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/Delete/DeleteContentItemEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DeleteContentItemEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/Publish/PublishContentItemEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "PublishContentItemEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/Unpublish/UnpublishContentItemEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UnpublishContentItemEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/UpdateDraft/UpdateContentItemDraftEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateContentItemDraftEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/UpdateLanguageMetadata/UpdateContentItemLanguageMetadataEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateContentItemLanguageMetadataEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Events/UpdateMetadata/UpdateContentItemMetadataEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateContentItemMetadataEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Handlers/ContentItemHandlerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemHandlerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Query/ContentQueryDataContainerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentQueryDataContainerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Query/Executor/ContentItemRolesResultProcessorTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemRolesResultProcessorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/Query/Mapper/ContentMapperBaseTests.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "ContentMapperBaseTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/RecycleBin/RecycleBinContentItemCreatorTests.cs",
+          "changeType": "modified",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "RecycleBinContentItemCreatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentEngine.Tests/Tests/RecycleBin/Restore/ReusableContentItemRestorerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ReusableContentItemRestorerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/RecycleBin/WebPageItemRestorerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageItemRestorerTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-029",
+      "name": "Tests - Websites",
+      "description": "Unit tests for web page events, handlers, management, routing, recycle bin, and security settings changes",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Websites/Tests/UIPages/WebPages/WebPage/CreateWebPageTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Websites/Tests/UIPages/WebPages/WebPagesApplicationTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPagesApplicationTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Websites/Tests/WebPages/WebPageStatus/WebPageStatusRetrieverTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageStatusRetrieverTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Websites/Routing/Routes/WebPageRouterDataContextManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageRouterDataContextManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/UITestData/Websites/WebPage.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPage"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Base.Tests/WebsiteStructureFactory/WebsiteStructureFactory.cs",
+          "changeType": "modified",
+          "summary": "Test factory updated with member role support",
+          "symbols": [
+            "WebsiteStructureFactory"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/CreateFolder/CreateFolderEventTestBase.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "CreateFolderEventTestBase"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/CreateFolder/CreateFolderEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateFolderEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/CreateLanguageVariant/CreateWebPageLanguageVariantEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageLanguageVariantEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/CreateWebPage/CreateWebPageEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/Delete/DeleteWebPageEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DeleteWebPageEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/Move/MoveWebPageEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "MoveWebPageEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/Publish/PublishWebPageEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "PublishWebPageEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/Unpublish/UnpublishWebPageEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UnpublishWebPageEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/UpdateDraft/UpdateWebPageDraftEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateWebPageDraftEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/UpdateLanguageMetadata/UpdateWebPageLanguageMetadataEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateWebPageLanguageMetadataEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/UpdateMetadata/UpdateWebPageMetadataEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateWebPageMetadataEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/UpdateSecuritySettings/UpdateSecuritySettingsEventTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateSecuritySettingsEventTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Events/WebPageEventTestBase.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "WebPageEventTestBase"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/CreateFolderHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateFolderHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/CreateFolderLanguageVariantHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateFolderLanguageVariantHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/CreateLanguageVariantHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateLanguageVariantHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/CreateWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/DeleteWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DeleteWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/MoveWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "MoveWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/PublishWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "PublishWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UnpublishWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UnpublishWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UpdateDraftWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateDraftWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UpdateLanguageMetadataWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateLanguageMetadataWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UpdateMetadataWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateMetadataWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UpdateSecuritySettingsWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateSecuritySettingsWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Handlers/UpdateTreePathSlugWebPageHandlersTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateTreePathSlugWebPageHandlersTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Routing/WebPageActions/WebPageUrlPathContentLanguageNameChangerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageUrlPathContentLanguageNameChangerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Routing/WebPageActions/WebPageUrlPathLanguageNameChangerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageUrlPathLanguageNameChangerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Routing/WebPageActions/WebPageUrlPathPrimaryLanguageChangerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageUrlPathPrimaryLanguageChangerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/Routing/WebPageRedirectValidatorTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageRedirectValidatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/WebPageManager/Delete/WebPageDeleteManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageDeleteManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/WebPageManager/WebPageDataRetrieverTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageDataRetrieverTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Websites.Tests/Tests/WebPageManager/WebPageManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "WebPageManagerTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-030",
+      "name": "Tests - Content Synchronization",
+      "description": "Unit tests for member role compatibility, dependency adapters, access settings evaluation, and restore actions",
+      "files": [
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Base.Tests/Utils/IntegrationTestUtils.cs",
+          "changeType": "modified",
+          "summary": "Test utilities updated for member role integration",
+          "symbols": [
+            "IntegrationTestUtils"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/Helpers/ContentAccessSettingsEvaluatorTests.cs",
+          "changeType": "added",
+          "summary": "Test helper updated for authentication changes",
+          "symbols": [
+            "ContentAccessSettingsEvaluatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/Helpers/WebPageDraftDataCreatorTests.cs",
+          "changeType": "added",
+          "summary": "Test helper/fake updated for member role support",
+          "symbols": [
+            "WebPageDraftDataCreatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/ContentItemBaseTests.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "ContentItemBaseTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/CreateContentItemRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateContentItemRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/CreateWebPageFolderItemRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageFolderItemRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/CreateWebPageItemVersionRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageItemVersionRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/CreateWebPageLanguageVariantRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageLanguageVariantRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/CreateWebPageRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CreateWebPageRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/UpdateContentItemMetadataRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateContentItemMetadataRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/UpdateWebPageItemUpdateSecuritySettingsRestoreActionTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "UpdateWebPageItemUpdateSecuritySettingsRestoreActionTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/ContentSynchronization.Tests/Restoration/RestoreActions/WebPageBaseTests.cs",
+          "changeType": "modified",
+          "summary": "Test base class updated for ContentAccessSettings model",
+          "symbols": [
+            "WebPageBaseTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-031",
+      "name": "Tests - Admin and MVC",
+      "description": "Unit tests for admin authentication middleware, UI pages, MVC security validation, preview identity, and routing",
+      "files": [
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/Authentication/AdminSchemeAuthenticationServiceTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "AdminSchemeAuthenticationServiceTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/Authentication/AdminUserManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "AdminUserManagerTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/Authorization/DefaultAdminAuthenticationPolicy.cs",
+          "changeType": "deleted",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DefaultAdminAuthenticationPolicy"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/Module/DefaultAdminSchemeAuthenticationMiddlewareTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DefaultAdminSchemeAuthenticationMiddlewareTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/UIFramework/TemplatePages/ModelEditPageTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ModelEditPageTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Base/Tests/UIPages/ContentHub/ContentHubListTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentHubListTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Admin/Tests/Kentico.Xperience.Admin.Tests/Helpers/TestAuthenticationHandler.cs",
+          "changeType": "modified",
+          "summary": "Test helper updated for authentication changes",
+          "symbols": [
+            "TestAuthenticationHandler"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Preview/VirtualContextIdentityServiceTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "VirtualContextIdentityServiceTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Preview/VirtualContextModeDetectorTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "VirtualContextModeDetectorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Security/ContentAccessCookieAuthenticationConfigurationTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentAccessCookieAuthenticationConfigurationTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Security/ContentItemFieldsSourceExtensionsTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "ContentItemFieldsSourceExtensionsTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Security/MemberAccessHelperTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "MemberAccessHelperTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Content.Web.Mvc.Tests/Security/SecuredContentAccessValidatorTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "SecuredContentAccessValidatorTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Web.Mvc.Tests/Tests/Middleware/DefaultAdminSchemeAuthenticationMiddlewareTests.cs",
+          "changeType": "deleted",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "DefaultAdminSchemeAuthenticationMiddlewareTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Mvc/Tests/Kentico.Web.Mvc.Tests/Tests/Middleware/LiveSiteAdminSchemeAuthenticationMiddlewareTests.cs",
+          "changeType": "added",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "LiveSiteAdminSchemeAuthenticationMiddlewareTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    },
+    {
+      "id": "AREA-032",
+      "name": "Tests - Data Engine and Full App",
+      "description": "Integration tests for LINQ queries, email field data types, TypeInfo events, and UI test data",
+      "files": [
+        {
+          "path": "CMSSolution/Tests/DataEngine.Tests/Integration/LINQ/CMSQueryProviderTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "CMSQueryProviderTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/FullApp.Tests/Tests/EmailFieldDataTypesTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "EmailFieldDataTypesTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/FullApp.Tests/Tests/TypeInfoEventsTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "TypeInfoEventsTests"
+          ],
+          "userFacing": false
+        },
+        {
+          "path": "CMSSolution/Tests/Headless.Tests/Tests/HeadlessItemManager/HeadlessItemManagerTests.cs",
+          "changeType": "modified",
+          "summary": "Unit tests updated or added for member role / ContentAccessSettings changes",
+          "symbols": [
+            "HeadlessItemManagerTests"
+          ],
+          "userFacing": false
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "areasAffected": 32,
+    "userFacingChanges": 88,
+    "internalChanges": 262,
+    "addedFiles": 82,
+    "modifiedFiles": 250,
+    "deletedFiles": 6,
+    "renamedFiles": 12
+  }
+}

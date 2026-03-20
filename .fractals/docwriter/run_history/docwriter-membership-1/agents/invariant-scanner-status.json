@@ -1,0 +1,8 @@
+{
+  "agent": "docwriter-invariant-scanner",
+  "status": "done",
+  "result": "invariant-inventory-ready",
+  "totalInvariants": 213,
+  "sourceFiles": 12,
+  "timestamp": "2026-03-14T12:25:14.059696+00:00"
+}

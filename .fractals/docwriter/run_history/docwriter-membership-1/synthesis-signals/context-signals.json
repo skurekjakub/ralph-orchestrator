@@ -1,0 +1,393 @@
+{
+  "version": 1,
+  "timestamp": "2026-03-14T15:58:00.000000+00:00",
+  "generatedBy": "docwriter-context-signal-analyzer",
+  "runContext": {
+    "tasksCompleted": 17,
+    "averageAttempts": 1.94,
+    "gapHuntingCycles": 1,
+    "criticalGaps": 0,
+    "highGaps": 0,
+    "coldStart": true,
+    "featureScope": "member-roles-content-access-security"
+  },
+
+  "gapSignals": [
+    {
+      "id": "CTXGAP-001",
+      "gapType": "stale-content",
+      "gapIds": ["GAP-001", "GAP-003"],
+      "predictable": true,
+      "predictableReason": "Risk register flagged TASK-007 and TASK-008 accuracy risk (score 4) for IncludeSecuredItems semantics, but only scoped updates to those task target pages. Adjacent API reference pages (ContentRetriever API) sharing the same IncludeSecuredItems concept were outside the 17-task scope. Impact mapper correctly identified IMP-005/IMP-006 for the how-to pages but did not create impacts for the API reference pages in the same directory.",
+      "reEntryTarget": "pass4",
+      "signal": {
+        "type": "candidate-anti-pattern",
+        "strength": "low",
+        "description": "Impact mapper misses sibling reference pages when a concept change only generates impacts for how-to pages. The IncludeSecuredItems behavioral change was documented on retrieve-content-items.md and retrieve-page-content.md but not propagated to content-retriever-api.md and reference-content-retriever-api.md in the same product area. Sibling pages sharing API surface concepts need co-impact analysis.",
+        "category": "impact-mapping-blind-spot"
+      }
+    },
+    {
+      "id": "CTXGAP-002",
+      "gapType": "missing-cross-ref",
+      "gapIds": ["GAP-002"],
+      "predictable": false,
+      "predictableReason": "The content-item-api.md index page was not in any task's scope, and the cross-ref-updater (Pass 5) only checked pages that were task targets. Index/hub pages that manually enumerate sub-pages are a novel gap category — they require manual enumeration updates when new pages are added to a directory.",
+      "reEntryTarget": "pass4",
+      "signal": {
+        "type": "candidate-domain-insight",
+        "strength": "low",
+        "description": "Xperience documentation uses manual hub/index pages (e.g., content-item-api.md) that enumerate sub-pages in prose. When new pages are created in a directory, the parent index page must be updated manually. The cross-ref-updater only verifies existing page_link references — it does not detect missing enumeration entries on hub pages. Future runs creating new pages should auto-generate an impact for the parent directory's index page.",
+        "category": "xbk-doc-structure"
+      }
+    },
+    {
+      "id": "CTXGAP-003",
+      "gapType": "acceptance-gap",
+      "gapIds": ["GAP-004"],
+      "predictable": true,
+      "predictableReason": "Risk register scored TASK-001 accuracy at 4/5 (highest for non-reference tasks) and noted '6 distinct API surfaces'. The task planner's acceptance criteria listed 'Document IContentItemMemberRoleRetriever methods' but did not enumerate them. GetMemberRoleDisplayNames was present in code-analysis entries for AREA-002 but not prominently surfaced in the docFacts. One method out of 6 was missed.",
+      "reEntryTarget": "pass4",
+      "signal": {
+        "type": "candidate-anti-pattern",
+        "strength": "low",
+        "description": "When acceptance criteria say 'document methods of interface X' without enumerating them, writers can miss less-prominent methods. Code analysis identified 6 public methods on IContentItemMemberRoleRetriever but the task planner did not convert this into an exhaustive checklist. High-accuracy-risk tasks should have method-level acceptance criteria.",
+        "category": "task-planning-granularity"
+      }
+    },
+    {
+      "id": "CTXGAP-004",
+      "gapType": "stale-content",
+      "gapIds": ["GAP-005"],
+      "predictable": false,
+      "predictableReason": "The _guides collection was explicitly out of scope (context.json contentCollections=['_documentation']). Gap hunter correctly flagged this as out-of-scope but it reveals that feature changes spanning multiple content collections create deferred documentation debt.",
+      "reEntryTarget": null,
+      "signal": {
+        "type": "candidate-domain-insight",
+        "strength": "low",
+        "description": "Xperience documentation spans two content collections: _documentation (reference/how-to) and _guides (tutorials/training). Feature changes affecting authentication and content security will always have impact in both collections. When pipeline scope is limited to _documentation, the gap hunter should produce a deferred-work manifest for _guides.",
+        "category": "xbk-content-collections"
+      }
+    },
+    {
+      "id": "CTXGAP-005",
+      "gapType": "convergence-signal",
+      "gapIds": [],
+      "predictable": true,
+      "predictableReason": "Pipeline converged in cycle 1 with 0 critical/high gaps. This is a strong positive signal for a cold-start run with 17 tasks. The combination of thorough code analysis (32 change areas), conservative impact mapping (22 impacts, 20 with doc impact), and comprehensive task planning (17 tasks covering all 20 doc-impacting areas) produced high first-pass coverage.",
+      "reEntryTarget": null,
+      "signal": {
+        "type": "candidate-pattern",
+        "strength": "medium",
+        "description": "Single-cycle gap convergence correlates with: (1) exhaustive change-area enumeration in diff analysis, (2) impact mapper covering all doc-impacting areas, (3) task planner creating tasks for every impact, (4) cross-ref-updater running before gap hunter. When these four conditions are met, gap hunting finds only edge-case gaps (sibling pages, index pages, out-of-scope collections) rather than missed coverage.",
+        "category": "pipeline-effectiveness"
+      }
+    }
+  ],
+
+  "domainInsights": [
+    {
+      "id": "CTXDOM-001",
+      "observation": "Xperience content security model is three-tiered (Public, Secured, SecuredWithRoles) and this maps to a documentation pattern where every page mentioning 'secured content' or 'IncludeSecuredItems' must now describe all three tiers",
+      "source": "code-analysis + gap-analysis",
+      "evidence": "ContentAccessSettings changed from struct to sealed class with three factory methods (Public, RequiresAuthentication, RequiresMemberRole). GAP-001 and GAP-003 found pages that only described the binary model. 5 of 22 impacts (IMP-005, IMP-006, IMP-007, IMP-008, IMP-015) involved upgrading binary security descriptions to three-tier descriptions. This is a recurring documentation pattern for this feature.",
+      "strength": "low",
+      "category": "xbk-security-model"
+    },
+    {
+      "id": "CTXDOM-002",
+      "observation": "Xperience uses manual hub/index pages that enumerate sub-pages in prose rather than auto-generated navigation. New page creation requires updating the parent hub page.",
+      "source": "gap-analysis + verification-matrix",
+      "evidence": "GAP-002 found content-item-api.md (hub page) did not list the new reference-content-access-settings.md. Cross-ref-updater added 3 new page_links but did not detect the missing hub enumeration. The verification matrix shows 477 outbound links verified but this is link-validation, not completeness-checking of hub page inventories.",
+      "strength": "low",
+      "category": "xbk-doc-structure"
+    },
+    {
+      "id": "CTXDOM-003",
+      "observation": "Xperience API reference pages follow a dual-page pattern: a conceptual how-to page and a companion reference table page for the same API surface. Changes to API behavior must update both pages.",
+      "source": "code-analysis + impact-matrix",
+      "evidence": "Content item query API has both content-item-query-api.md (how-to, IMP-011/TASK-010) and reference-content-item-query.md (reference, IMP-010/TASK-009). ContentRetriever has both content-retriever-api.md (conceptual) and reference-content-retriever-api.md (reference table). Impact mapper captured both pairs for the query API but missed both pages for ContentRetriever (GAP-001, GAP-003). This dual-page pattern is a structural convention.",
+      "strength": "low",
+      "category": "xbk-api-doc-pattern"
+    },
+    {
+      "id": "CTXDOM-004",
+      "observation": "Xperience event handler documentation requires parallel updates to both a general events page (handle-global-events.md) and a reference events table (reference-global-system-events.md) when new event arguments are added",
+      "source": "impact-matrix + code-analysis",
+      "evidence": "AREA-003 (ContentEngine events: 27 files) and AREA-004 (Website events: 41 files) were the two largest change areas by file count. Both generated impacts for the general events page (IMP-017/TASK-015) and the reference page (IMP-012/TASK-014). Code analysis identified null validation hardening as a cross-cutting concern across all event data state classes. This parallel-update pattern is reliably captured by the impact mapper.",
+      "strength": "low",
+      "category": "xbk-event-system"
+    },
+    {
+      "id": "CTXDOM-005",
+      "observation": "Xperience business-user documentation requires domain-specific interaction verb vocabulary (select not choose, clear not disable/enable) and icon-class knowledge (xp-diamond not xp-lock for security status)",
+      "source": "task-signals + gap-analysis",
+      "evidence": "Style evolutions show INV-style-034 and INV-style-036 triggered rejections in TASK-012 and TASK-013 (business-user pages). AGG-005 notes business-user pages face unique accuracy challenges around UI behavior. TASK-012 had accuracy rejection for stale lock icon (xp-lock should be xp-diamond). These are Xperience-specific conventions not derivable from general style guides.",
+      "strength": "low",
+      "category": "xbk-admin-ui"
+    },
+    {
+      "id": "CTXDOM-006",
+      "observation": "Xperience struct-to-class migrations (e.g., ContentAccessSettings) are breaking changes requiring migration guidance with specific API surface documentation: old patterns, new patterns, equality operators, null handling",
+      "source": "code-analysis",
+      "evidence": "AREA-002 identified ContentAccessSettings struct-to-class as a breaking change. Code analysis flagged new == and != operators, null-safe comparisons, and three static factory methods. TASK-002 (Reference - ContentAccessSettings) was rated high risk (accuracy=5, the highest of any task) and required 3 attempts. The structural change from value-type to reference-type semantics required documenting default value behavior changes.",
+      "strength": "low",
+      "category": "xbk-breaking-changes"
+    },
+    {
+      "id": "CTXDOM-007",
+      "observation": "NoOpApplicationRole/NoOpApplicationRoleStore replacement with ApplicationRole/ApplicationRoleStore is a cross-cutting code sample update pattern affecting multiple authentication pages",
+      "source": "impact-matrix + change-inventory",
+      "evidence": "IMP-001 (registration-and-authentication.md), IMP-002 (forms-authentication.md), IMP-003 (external-authentication.md), and IMP-004 (add-fields.md) all required the same NoOp→real class replacement in code samples. AREA-001 (Membership Core, 5 files) and AREA-010 (Authentication Pipeline, 20 files) drove these impacts. This is a template-like update pattern where the same code sample change applies to multiple pages.",
+      "strength": "low",
+      "category": "xbk-auth-patterns"
+    }
+  ],
+
+  "researchEffectiveness": {
+    "sourcesEvaluated": 8,
+    "totalRecommendations": 18,
+    "recommendationsUsed": 15,
+    "recommendationsUnused": 3,
+    "usageRate": 0.83,
+    "sources": {
+      "SRC-001": {
+        "name": "Google Developer Documentation Style Guide — API reference",
+        "recommendationsOriginated": 5,
+        "recommendationsUsed": 5,
+        "usedByTasks": ["TASK-001", "TASK-002", "TASK-007", "TASK-009", "TASK-014"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Highly effective. All 5 recommendations (REC-001 through REC-004, REC-015) were cited across 5 tasks. REC-001 (concise first sentence for API classes) was the most widely cited recommendation (5 tasks). REC-013 (terminology consistency) was cited in 8 tasks. REC-015 (backtick formatting) in 5 tasks. Google's API reference style guide is the most impactful source for this documentation domain."
+      },
+      "SRC-002a": {
+        "name": "Diátaxis — Tutorials",
+        "recommendationsOriginated": 3,
+        "recommendationsUsed": 1,
+        "usedByTasks": ["TASK-011"],
+        "effectivenessRatio": 0.33,
+        "assessment": "Low effectiveness for this run. REC-006 and REC-018 (DancingGoat tutorial guidance) were unused — no DancingGoat tutorial tasks in this pipeline run. REC-007 (minimize concept explanation in tutorials) was not directly cited. Only REC-018 had marginal applicability. Tutorial-focused sources are less relevant when the pipeline is updating reference and how-to pages."
+      },
+      "SRC-002b": {
+        "name": "Diátaxis — How-to guides",
+        "recommendationsOriginated": 3,
+        "recommendationsUsed": 3,
+        "usedByTasks": ["TASK-001", "TASK-003", "TASK-004", "TASK-005", "TASK-008"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Highly effective. REC-008 (user-perspective problem framing), REC-009 (assume-able context), REC-016 (authentication flow documentation) all used. REC-016 was particularly valuable — cited in 4 tasks (TASK-003 through TASK-005, plus TASK-008) covering authentication page updates."
+      },
+      "SRC-002c": {
+        "name": "Diátaxis — Reference guides",
+        "recommendationsOriginated": 1,
+        "recommendationsUsed": 1,
+        "usedByTasks": ["TASK-001", "TASK-002", "TASK-007", "TASK-008", "TASK-014"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Effective. REC-012 (ContentAccessSettings reference structure) was cited in 5 tasks dealing with the three-tier access model."
+      },
+      "SRC-003a": {
+        "name": "Microsoft Writing Style Guide — Step-by-step instructions",
+        "recommendationsOriginated": 2,
+        "recommendationsUsed": 2,
+        "usedByTasks": ["TASK-011", "TASK-012", "TASK-013"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Effective for business-user tasks. REC-010 (location-before-action for UI procedures) and REC-011 (arrow notation for nav paths) were essential for the 3 business-user page updates."
+      },
+      "SRC-003b": {
+        "name": "Microsoft Writing Style Guide — Reference documentation",
+        "recommendationsOriginated": 1,
+        "recommendationsUsed": 1,
+        "usedByTasks": ["TASK-002", "TASK-009"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Effective. REC-005 (standard API reference section order) was adapted to fit Kentico invariants and used in 2 reference page tasks."
+      },
+      "SRC-003c": {
+        "name": "Microsoft Writing Style Guide — Code examples",
+        "recommendationsOriginated": 2,
+        "recommendationsUsed": 2,
+        "usedByTasks": ["TASK-001", "TASK-002", "TASK-007", "TASK-008", "TASK-009", "TASK-010", "TASK-014"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Highly effective. REC-014 (simplest scenario first for code examples) was the second most widely cited recommendation (7 tasks). REC-017 (assume working environment in how-tos) was useful for establishing baseline context."
+      },
+      "SRC-001b": {
+        "name": "Google Developer Documentation Style Guide — Code samples",
+        "recommendationsOriginated": 1,
+        "recommendationsUsed": 1,
+        "usedByTasks": ["TASK-001", "TASK-002", "TASK-007", "TASK-009", "TASK-014"],
+        "effectivenessRatio": 1.0,
+        "assessment": "Effective. Reinforced REC-014 code sample patterns."
+      }
+    },
+    "topRecommendationsByUsage": [
+      {"id": "REC-013", "topic": "membership", "tasksUsedIn": 8, "source": "SRC-001", "description": "Consistent Kentico terminology (member/visitor/sign in/member role)"},
+      {"id": "REC-014", "topic": "api-reference", "tasksUsedIn": 7, "source": "SRC-003c", "description": "Simplest scenario first for code examples"},
+      {"id": "REC-015", "topic": "membership", "tasksUsedIn": 5, "source": "SRC-001", "description": "Backtick formatting for type/method names in prose"},
+      {"id": "REC-001", "topic": "api-reference", "tasksUsedIn": 5, "source": "SRC-001", "description": "Concise first sentence for API class/interface descriptions"},
+      {"id": "REC-012", "topic": "access-control", "tasksUsedIn": 5, "source": "SRC-002c", "description": "ContentAccessSettings reference documentation pattern"},
+      {"id": "REC-016", "topic": "authentication", "tasksUsedIn": 4, "source": "SRC-002b", "description": "Authentication flow documentation patterns"},
+      {"id": "REC-010", "topic": "admin-ui", "tasksUsedIn": 3, "source": "SRC-003a", "description": "Location-before-action UI procedure pattern"}
+    ],
+    "unusedRecommendations": [
+      {"id": "REC-006", "topic": "tutorials", "reason": "No DancingGoat tutorial tasks in scope. Tutorial-focused recommendations are only applicable when _guides collection is included."},
+      {"id": "REC-007", "topic": "tutorials", "reason": "Same as REC-006 — tutorial-scope recommendation with no matching tasks."},
+      {"id": "REC-018", "topic": "tutorials", "reason": "DancingGoat membership tutorial guidance — no tutorial tasks in scope."}
+    ],
+    "newSourceCandidates": [
+      {
+        "rationale": "Business-user pages (TASK-011, TASK-012, TASK-013) faced unique challenges around UI interaction vocabulary and icon accuracy that weren't covered by any research source. A Kentico-specific admin UI style reference would help.",
+        "domain": "admin-ui",
+        "description": "Kentico Xperience admin UI component reference — icon classes, interaction verbs, field behaviors"
+      }
+    ]
+  },
+
+  "riskAnalysisEffectiveness": {
+    "totalRisks": 17,
+    "risksRealized": {
+      "fullyRealized": 2,
+      "partiallyRealized": 5,
+      "notRealized": 10
+    },
+    "analysis": {
+      "highRiskTasks": {
+        "predicted": ["TASK-001", "TASK-002", "TASK-007", "TASK-012"],
+        "actualMultiCycle": ["TASK-002", "TASK-011"],
+        "overlap": ["TASK-002"],
+        "assessment": "Risk register correctly identified TASK-002 as high risk (accuracy=5) and it did require 3 attempts — the maximum for any task. TASK-001 was rated high risk but only needed 2 attempts. TASK-007 and TASK-012 were rated high risk but resolved in standard 2 cycles. TASK-011 was rated moderate but required 3 attempts (UI field behavior error), making it a risk-register miss."
+      },
+      "accuracyDimensionEffectiveness": "Accuracy scores correlated moderately with actual attempts. TASK-002 (accuracy=5) needed 3 attempts. TASK-001 (accuracy=4) needed 2. But TASK-011 (accuracy=2) needed 3 attempts — the low accuracy score failed to predict the UI behavior complexity for business-user pages.",
+      "keyFindings": [
+        "Risk register over-predicted risk for TASK-007 (high→2 cycles) and TASK-012 (high→2 cycles) — the code analysis and docFacts provided sufficient information for these updates.",
+        "Risk register under-predicted risk for TASK-011 (moderate→3 cycles) — business-user UI behavior documentation has hidden complexity not captured by API-surface-based accuracy scoring.",
+        "The accuracy dimension is the strongest predictor of multi-cycle tasks, but only for developer-persona pages. Business-user pages need a separate 'UI behavior complexity' dimension.",
+        "The 5-dimension model (accuracy, completeness, invariantViolation, dependency, effortEstimation) is well-structured but missing a 'UI/admin behavior' dimension for business-user tasks."
+      ]
+    },
+    "signal": {
+      "type": "candidate-anti-pattern",
+      "strength": "low",
+      "description": "Risk analyzer's accuracy dimension underweights business-user page complexity. TASK-011 (Members page for business users) was scored accuracy=2 but required 3 cycles because the writer described a UI field interaction incorrectly. Admin UI behavior is harder to verify from source code alone — it requires running the application or detailed UI specifications.",
+      "category": "risk-analysis-gap"
+    }
+  },
+
+  "impactMappingAccuracy": {
+    "totalImpacts": 22,
+    "impactsWithDocImpact": 20,
+    "impactsCorrectlyClassified": 20,
+    "noDocImpactCorrect": 2,
+    "impactsMissed": 2,
+    "impactsMissedDetails": [
+      "content-retriever-api.md — IncludeSecuredItems description needs three-tier update (sibling of IMP-005 target page)",
+      "reference-content-retriever-api.md — IncludeSecuredItems reference table needs three-tier update (sibling of IMP-010 target page)"
+    ],
+    "newPageImpacts": {
+      "total": 2,
+      "correct": 2,
+      "details": "IMP-013 (member-roles.md) and IMP-014 (reference-content-access-settings.md) both correctly identified as new pages. Both required cross-ref additions by Pass 5."
+    },
+    "staleFixImpacts": {
+      "total": 3,
+      "correct": 3,
+      "details": "IMP-015, IMP-016, IMP-020 correctly identified stale binary-security descriptions. All three were addressed by their corresponding tasks."
+    },
+    "coverageRate": 0.91,
+    "signal": {
+      "type": "candidate-domain-insight",
+      "strength": "low",
+      "description": "Impact mapper achieves 91% coverage (20/22 needed impacts). The 2 missed impacts are sibling reference pages in the same directory as covered pages. When a concept change affects a how-to page, the impact mapper should automatically check for companion reference pages in the same directory and create paired impacts.",
+      "category": "impact-mapping-improvement"
+    }
+  },
+
+  "verificationEffectiveness": {
+    "crossRefsChecked": 477,
+    "crossRefsBroken": 0,
+    "crossRefsAdded": 3,
+    "inpageLinksChecked": 99,
+    "anchorRefsChecked": 112,
+    "allValid": true,
+    "signal": {
+      "type": "candidate-pattern",
+      "strength": "medium",
+      "description": "Zero broken cross-references across 477 links after content writing indicates high cross-ref accuracy in the content-writer→reviewer pipeline. The 3 cross-refs added by the updater were all for the new ContentAccessSettings reference page — writers of existing pages didn't know about the new page's identifier. New-page creation should auto-inject cross-ref awareness into downstream tasks.",
+      "category": "verification-effectiveness"
+    }
+  },
+
+  "invariantEffectiveness": {
+    "totalInvariants": 213,
+    "invariantsCausingRejections": 11,
+    "rejectionRate": "11/213 (5.2%)",
+    "topRejectionCauses": [
+      {"invariant": "INV-callout-002", "rejections": 3, "category": "formatting", "description": "Bold title required on multi-sentence callouts"},
+      {"invariant": "INV-formatting-016", "rejections": 3, "category": "formatting", "description": "En dash vs em dash"},
+      {"invariant": "INV-frontmatter-004", "rejections": 2, "category": "frontmatter", "description": "redirect_from must include x/<identifier>"},
+      {"invariant": "INV-structure-001", "rejections": 2, "category": "structure", "description": "Required section structure"},
+      {"invariant": "INV-codesamples-004", "rejections": 2, "category": "codesamples", "description": "Code sample formatting"},
+      {"invariant": "INV-codesamples-006", "rejections": 2, "category": "codesamples", "description": "Code sample completeness"},
+      {"invariant": "INV-crossref-001", "rejections": 2, "category": "crossref", "description": "Valid page_link identifiers"}
+    ],
+    "signal": {
+      "type": "candidate-pattern",
+      "strength": "medium",
+      "description": "Only 5.2% of invariants caused rejections. The invariant inventory is well-calibrated — most rules are internalized by the content writer on first attempt. The top rejection causes are all formatting/structural rules (callout titles, dash types, frontmatter patterns) rather than content/accuracy rules. This suggests formatting invariants need stronger pre-writing prompting while content invariants are effective as-is.",
+      "category": "invariant-effectiveness"
+    }
+  },
+
+  "metaKnowledgeEffectiveness": {
+    "patternsFromBrief": 0,
+    "patternsActuallyUsed": 0,
+    "antiPatternsFromBrief": 0,
+    "antiPatternsViolated": 0,
+    "overIncluded": 0,
+    "overIncludedEntries": [],
+    "coldStartAssessment": "This was a cold-start run — the knowledge brief contained zero entries (no prior pipeline runs). All 17 tasks operated without meta-knowledge guidance. Despite this, 3 tasks achieved first-attempt acceptance and the average was 1.94 attempts. The signals extracted from this run (6 aggregate signals, 7 style evolutions, 5 gap signals, 7 domain insights) will seed the knowledge base for subsequent runs.",
+    "projectedBenefits": [
+      "Anti-patterns AGG-002 (create-action higher rejection) and AGG-003 (em dash confusion) will reduce create-task attempts from 2.5 to ~2.0 in subsequent runs",
+      "Domain insights about hub-page enumeration (CTXDOM-002) and dual-page API pattern (CTXDOM-003) will improve impact mapping coverage from 91% to ~95%+",
+      "Style evolutions for callout titles, redirect_from derivation, and page_link identifier verification will reduce formatting rejections"
+    ]
+  },
+
+  "changeInventoryAnalysis": {
+    "totalChangeAreas": 32,
+    "userFacingChanges": 88,
+    "internalChanges": 262,
+    "changeToDocRatio": "32 areas → 17 tasks (53% conversion rate)",
+    "largestChangeAreas": [
+      {"id": "AREA-004", "name": "Website Events and Handler Arguments", "files": 41, "docImpact": "IMP-012 (reference events page)"},
+      {"id": "AREA-003", "name": "Content Engine Events and Handler Arguments", "files": 27, "docImpact": "IMP-012, IMP-017 (events pages)"},
+      {"id": "AREA-010", "name": "Authentication and Identity Pipeline", "files": 20, "docImpact": "IMP-001 through IMP-004 (auth pages)"}
+    ],
+    "crossCuttingConcerns": [
+      {"concern": "nullValidationHardening", "impact": "Low doc impact — internal quality improvement, no user-facing behavioral change"},
+      {"concern": "contentAccessSettingsStructToClass", "impact": "High doc impact — breaking change requiring migration guidance across 5+ pages"},
+      {"concern": "claimsPrincipalIdentityHelperRemoval", "impact": "No doc impact — internal class in CMS.Membership.Internal namespace"},
+      {"concern": "campaignCleanup", "impact": "No doc impact — unrelated to membership feature, correctly filtered out"}
+    ],
+    "signal": {
+      "type": "candidate-pattern",
+      "strength": "low",
+      "description": "Large file-count change areas (AREA-003: 27 files, AREA-004: 41 files) had lower per-file doc impact than small areas (AREA-002: 7 files with high significance). File count is a poor predictor of documentation impact — behavioral significance of the API surface change is the better predictor. Code analyzer's significance rating was more useful than raw file counts.",
+      "category": "change-analysis-insight"
+    }
+  },
+
+  "pipelineConvergenceFactors": {
+    "convergenceCycle": 1,
+    "contributingFactors": [
+      "Exhaustive diff analysis: 32 change areas from 350 changed files, 0 areas missed",
+      "Conservative impact mapping: 22 impacts generated, 20 with doc impact (91% hit rate)",
+      "Task coverage: 17 tasks covered all 20 doc-impacting areas with no gaps in task-to-impact mapping",
+      "Cross-ref updater ran before gap hunter: 3 new cross-refs added, reducing what gap hunter would have found",
+      "Invariant spot-checking by gap hunter found 0 violations across 4 pages sampled"
+    ],
+    "bottleneckAnalysis": "The pipeline bottleneck was Pass 4 execution (content writing + triple review). 33 review cycles for 17 tasks (avg 1.94 cycles/task). Create tasks averaged 2.5 cycles vs update tasks 1.87. The verification (Pass 5) and gap hunting (Pass 6) phases completed in single cycles with no re-entry needed.",
+    "signal": {
+      "type": "candidate-pattern",
+      "strength": "medium",
+      "description": "First-cycle convergence in gap hunting is achievable when the discovery→analysis→planning pipeline is thorough. The key predictor is the impact mapping coverage rate: at 91% (20/22), only edge-case gaps remain. Runs with <80% impact coverage rate would likely need multiple gap-hunting cycles.",
+      "category": "pipeline-convergence"
+    }
+  }
+}

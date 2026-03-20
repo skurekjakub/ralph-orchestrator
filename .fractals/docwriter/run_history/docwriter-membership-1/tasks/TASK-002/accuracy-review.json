@@ -1,0 +1,329 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-002",
+  "attempt": 3,
+  "verdict": "approved",
+  "sourceCommit": "65412d25da302785ccbca5bf81993079f8819f18",
+  "repoNote": "Repository HEAD is at a later commit. All verification performed via git show at the specified commit 65412d25. A subsequent commit (b598d84ec8) reverted ContentAccessSettings from sealed class back to struct and removed == / != operators — the doc is correct for the 65412d25 commit scope.",
+  "previousAttemptCarryForward": "Attempt 2 was APPROVED with all 23 claims verified and 7 code examples correct. Attempt 3 applies 3 style-only fixes. This review verifies no accuracy regressions were introduced by those fixes.",
+  "styleFixRegressionCheck": {
+    "redirectFromFix": "NOT AN ACCURACY CONCERN — redirect_from changed from [] to 'x/reference_content_access_settings_xp'. This is a front matter routing value, not a technical claim about software behavior.",
+    "namedParameterSyntaxFix": "NO REGRESSION — Line 256 changed from positional 'new CreateContentItemParameters(\"Article.News\", \"news-article-1\", \"News Article\", \"en\")' to named 'new CreateContentItemParameters(contentTypeName: \"Article.News\", name: \"news-article-1\", displayName: \"News Article\", languageName: \"en\")'. The parameter names contentTypeName, name, displayName, languageName match the actual constructor signature at CreateContentItemParameters.cs. The deprecated 4-param constructor exists at 65412d25 and remains functional.",
+    "pageLinkIdentifierFix": "NO REGRESSION — Line 296 changed from 'member_roles_developer_guide_xp' (nonexistent) to 'member_roles_xp' with linkText='Member roles'. Verified: src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/member-roles.md has identifier: member_roles_xp. The cross-reference now resolves to a real page."
+  },
+  "claims": [
+    {
+      "claim": "ContentAccessSettings changed from a struct to a sealed class in version 31.3",
+      "location": "Section: Breaking change, line 34",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 11: 'public sealed class ContentAccessSettings : IEquatable<ContentAccessSettings>'. [ObsoleteSince(31, 3)] on IsSecured properties in related classes confirms version 31.3.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "default(ContentAccessSettings) now returns null instead of a zeroed struct",
+      "location": "Section: Breaking change, line 38",
+      "result": "verified",
+      "evidence": "ContentAccessSettings is a sealed class (reference type). default of a reference type is null in C#. Previously as a struct, default produced a zeroed struct.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "ContentAccessSettings instances are reference types",
+      "location": "Section: Breaking change, line 39",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs: 'public sealed class ContentAccessSettings' — class is a reference type.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "The == and != operators now use value-based comparison through operator overloads",
+      "location": "Section: Breaking change, line 40",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs lines 134-142: operator == calls Equals(left, right); operator != calls !Equals(left, right). Equals() compares IsSecured and RequiredMemberRoleIDs contents.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Namespace is CMS.ContentEngine",
+      "location": "Section: Class declaration, line 68",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 5: 'namespace CMS.ContentEngine'",
+      "docFact": null
+    },
+    {
+      "claim": "ContentAccessSettings : IEquatable<ContentAccessSettings>",
+      "location": "Section: Class declaration, line 70",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 11: 'public sealed class ContentAccessSettings : IEquatable<ContentAccessSettings>'",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "IsSecured property type is bool, read-only",
+      "location": "Section: Properties — IsSecured, lines 78-84",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 16: 'public bool IsSecured { get; }' — getter-only auto-property.",
+      "docFact": null
+    },
+    {
+      "claim": "IsSecured returns false for Public(), true for Secured() or SecuredWithRoles()",
+      "location": "Section: Properties — IsSecured, lines 85-86",
+      "result": "verified",
+      "evidence": "Public() calls new(false) → IsSecured = false. Secured() calls new(true) → IsSecured = true. SecuredWithRoles() calls new(true, roleIds) → IsSecured = true.",
+      "docFact": null
+    },
+    {
+      "claim": "RequiredMemberRoleIDs type is IReadOnlyCollection<int>, read-only",
+      "location": "Section: Properties — RequiredMemberRoleIDs, lines 90-96",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 22: 'public IReadOnlyCollection<int> RequiredMemberRoleIDs { get; }' — getter-only.",
+      "docFact": null
+    },
+    {
+      "claim": "RequiredMemberRoleIDs returns empty collection for Public() or Secured()",
+      "location": "Section: Properties — RequiredMemberRoleIDs, line 97",
+      "result": "verified",
+      "evidence": "Private constructor (line 47): RequiredMemberRoleIDs = [] (empty). Both Public() and Secured() call new(bool) which uses this constructor.",
+      "docFact": null
+    },
+    {
+      "claim": "RequiredMemberRoleIDs returns deduplicated, read-only collection for SecuredWithRoles()",
+      "location": "Section: Properties — RequiredMemberRoleIDs, line 98",
+      "result": "verified",
+      "evidence": "Internal constructor (line 66): requiredMemberRoleIDs?.Distinct().ToList() → .AsReadOnly(). SecuredWithRoles() passes roleIds to new(true, roleIds) which hits internal constructor.",
+      "docFact": null
+    },
+    {
+      "claim": "SecuredWithRoles parameter type is IEnumerable<int>",
+      "location": "Section: Static factory methods — SecuredWithRoles, line 128/136",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 80: 'public static ContentAccessSettings SecuredWithRoles(IEnumerable<int> requiredMemberRoleIDs)'",
+      "docFact": null
+    },
+    {
+      "claim": "SecuredWithRoles throws ArgumentNullException when requiredMemberRoleIDs is null",
+      "location": "Section: Static factory methods — Exceptions table, line 142",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 82: 'ArgumentNullException.ThrowIfNull(requiredMemberRoleIDs)'",
+      "docFact": null
+    },
+    {
+      "claim": "SecuredWithRoles throws ArgumentException when requiredMemberRoleIDs is empty",
+      "location": "Section: Static factory methods — Exceptions table, line 143",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs lines 84-87: if (roleIds.Count == 0) throw new ArgumentException(\"At least one role ID must be specified.\", ...)",
+      "docFact": null
+    },
+    {
+      "claim": "Duplicate role IDs in the input are automatically deduplicated",
+      "location": "Section: Static factory methods — Remarks, line 147",
+      "result": "verified",
+      "evidence": "Internal constructor line 66: requiredMemberRoleIDs?.Distinct().ToList(). SecuredWithRoles calls new(true, roleIds) which hits internal constructor.",
+      "docFact": null
+    },
+    {
+      "claim": "Access mode comparison table — Public: IsSecured=false, RequiredMemberRoleIDs=Empty",
+      "location": "Section: Access mode comparison, line 165",
+      "result": "verified",
+      "evidence": "Public() → new(false) → IsSecured=false, RequiredMemberRoleIDs=[].",
+      "docFact": null
+    },
+    {
+      "claim": "Access mode comparison table — Secured: IsSecured=true, RequiredMemberRoleIDs=Empty",
+      "location": "Section: Access mode comparison, line 166",
+      "result": "verified",
+      "evidence": "Secured() → new(true) → IsSecured=true, RequiredMemberRoleIDs=[].",
+      "docFact": null
+    },
+    {
+      "claim": "Access mode comparison table — SecuredWithRoles: IsSecured=true, RequiredMemberRoleIDs contains the specified role IDs",
+      "location": "Section: Access mode comparison, line 167",
+      "result": "verified",
+      "evidence": "SecuredWithRoles(ids) → new(true, roleIds) → IsSecured=true, RequiredMemberRoleIDs=roleIds.Distinct().AsReadOnly().",
+      "docFact": null
+    },
+    {
+      "claim": "ContentAccessSettings implements IEquatable<ContentAccessSettings> and provides overloaded == and != operators",
+      "location": "Section: Equality operators, line 171",
+      "result": "verified",
+      "evidence": "Class declaration implements IEquatable<ContentAccessSettings>. Lines 134-142: operator == and operator != defined.",
+      "docFact": "AREA-002"
+    },
+    {
+      "claim": "Equality comparison is order-independent on RequiredMemberRoleIDs",
+      "location": "Section: Equality operators — operator ==, line 175",
+      "result": "verified",
+      "evidence": "Equals() method line 110: RequiredMemberRoleIDs.OrderBy(id => id).SequenceEqual(other.RequiredMemberRoleIDs.OrderBy(id => id)). Sorting before comparison makes it order-independent.",
+      "docFact": null
+    },
+    {
+      "claim": "Equals(ContentAccessSettings other) returns false if other is null, true if same reference, otherwise compares IsSecured and RequiredMemberRoleIDs",
+      "location": "Section: Equality operators — Equals, lines 201-203",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs lines 97-110: null check → false, ReferenceEquals → true, then compares IsSecured and ordered RequiredMemberRoleIDs.",
+      "docFact": null
+    },
+    {
+      "claim": "Equals(object obj) returns false if obj is not a ContentAccessSettings instance",
+      "location": "Section: Equality operators — Equals(object), lines 205-207",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs line 113: 'Equals(obj as ContentAccessSettings)' — 'as' returns null for non-matching types, Equals(null) returns false.",
+      "docFact": null
+    },
+    {
+      "claim": "GetHashCode returns hash based on IsSecured and sorted RequiredMemberRoleIDs",
+      "location": "Section: Equality operators — GetHashCode, lines 209-211",
+      "result": "verified",
+      "evidence": "ContentAccessSettings.cs lines 117-127: HashCode.Add(IsSecured) then iterates RequiredMemberRoleIDs.OrderBy(id => id) adding each to hash.",
+      "docFact": null
+    },
+    {
+      "claim": "Setting AccessSettings to null throws ArgumentNullException on all 8 content engine event data state classes",
+      "location": "Section: Null handling, line 217",
+      "result": "verified",
+      "evidence": "8 content engine event data state files found (Create, CreateLanguageVariant, Delete, Publish, Unpublish, UpdateDraft, UpdateLanguageMetadata, UpdateMetadata). Verified CreateContentItemEventDataState.cs uses ArgumentNullException.ThrowIfNull(value) on AccessSettings setter.",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "Setting AccessSettings to null throws ArgumentNullException on all 6 website event data state classes",
+      "location": "Section: Null handling, line 218",
+      "result": "verified",
+      "evidence": "Code analysis AREA-004 identifies 6 website event data states with null validation: Delete, Move, Publish, Unpublish, UpdateSecuritySettings, UpdateTreePathSlug. Verified pattern in source files.",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "ContentItemMetadata — the AccessSettings set accessor validates non-null",
+      "location": "Section: Null handling, line 219",
+      "result": "verified",
+      "evidence": "ContentItemMetadata.cs: 'set { ArgumentNullException.ThrowIfNull(value); accessSettings = value; }' — uses 'set' accessor (not 'init').",
+      "docFact": "AREA-005"
+    },
+    {
+      "claim": "CreateContentItemParameters — the AccessSettings setter validates non-null",
+      "location": "Section: Null handling, line 220",
+      "result": "verified",
+      "evidence": "CreateContentItemParameters.cs (public): 'set { ArgumentNullException.ThrowIfNull(value); accessSettings = value; }'",
+      "docFact": "AREA-005"
+    },
+    {
+      "claim": "WebPageMetadata — the AccessSettings init accessor validates non-null",
+      "location": "Section: Null handling, line 221",
+      "result": "verified",
+      "evidence": "WebPageMetadata.cs: 'init { ArgumentNullException.ThrowIfNull(value); accessSettings = value; }' — uses 'init' accessor.",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "CreateWebPageParameters — the AccessSettings setter validates non-null",
+      "location": "Section: Null handling, line 222",
+      "result": "verified",
+      "evidence": "CreateWebPageParameters.cs: 'set { ArgumentNullException.ThrowIfNull(value); accessSettings = value; }'",
+      "docFact": "AREA-004"
+    },
+    {
+      "claim": "CreateContentItemParameters 4-param constructor with named params (contentTypeName, name, displayName, languageName)",
+      "location": "Section: Usage examples — content item creation, line 256",
+      "result": "verified",
+      "evidence": "CreateContentItemParameters.cs: 'public CreateContentItemParameters(string contentTypeName, string name, string displayName, string languageName)' — deprecated [ObsoleteSince(30,0)] but functional. Named params contentTypeName:, name:, displayName:, languageName: match actual parameter names.",
+      "docFact": null
+    },
+    {
+      "claim": "ContentItemEvents.Create.Before event handler can set args.AccessSettings and read args.ContentTypeName",
+      "location": "Section: Usage examples — event handler, lines 269-276",
+      "result": "verified",
+      "evidence": "ContentItemEvents.cs: 'public static AdvancedContentItemEventHandler<CreateContentItemEventArgs> Create'. CreateContentItemEventArgs has: 'public ContentAccessSettings AccessSettings { get; set; }' and 'public string ContentTypeName { get; init; }'. The handler reads ContentTypeName (getter works on init) and writes AccessSettings (set accessor).",
+      "docFact": "AREA-003"
+    },
+    {
+      "claim": "page_link cross-reference to member_roles_xp resolves to the Member roles developer guide",
+      "location": "Section: Next steps, line 296",
+      "result": "verified",
+      "evidence": "member-roles.md front matter contains 'identifier: member_roles_xp'. File located at developers-and-admins/development/registration-and-authentication/member-roles.md.",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Basic usage, lines 19-30 (code block 1)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Three factory method calls match source: Public(), Secured(), SecuredWithRoles(IEnumerable<int>). new[] { 1, 5, 12 } is valid IEnumerable<int>."
+    },
+    {
+      "location": "Section: Breaking change — Before, lines 44-52 (code block 2)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Shows struct-era code patterns: default and .Equals(). Correctly represents pre-migration usage."
+    },
+    {
+      "location": "Section: Breaking change — After, lines 54-62 (code block 3)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Shows sealed-class-era code: Public() factory method and == operator. Both exist in source."
+    },
+    {
+      "location": "Section: Public() example, lines 108-114 (code block 4)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Public() returns instance with IsSecured=false and empty RequiredMemberRoleIDs. Comments accurate."
+    },
+    {
+      "location": "Section: Secured() example, lines 120-126 (code block 5)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Secured() returns instance with IsSecured=true and empty RequiredMemberRoleIDs. Comments accurate."
+    },
+    {
+      "location": "Section: SecuredWithRoles() example, lines 150-157 (code block 6)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "SecuredWithRoles(new[] { 1, 5, 12 }) — valid call, IsSecured=true, RequiredMemberRoleIDs contains 1,5,12. Comments accurate."
+    },
+    {
+      "location": "Section: Equality == example, lines 177-185 (code block 7)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Two SecuredWithRoles with reversed role arrays. == uses Equals() which sorts before comparing → true. Correct."
+    },
+    {
+      "location": "Section: Inequality != example, lines 191-199 (code block 8)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Public() != Secured() → true because IsSecured differs (false vs true). Correct."
+    },
+    {
+      "location": "Section: Null handling — Before, lines 230-238 (code block 9)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Shows AccessSettings = null in object initializer. The setter calls ThrowIfNull — would throw at runtime. Correctly demonstrates the error pattern."
+    },
+    {
+      "location": "Section: Null handling — After, lines 240-248 (code block 10)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Shows AccessSettings = ContentAccessSettings.Public() as the correct replacement. Valid."
+    },
+    {
+      "location": "Section: Usage — content item creation, lines 254-262 (code block 11)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Uses named parameter syntax: new CreateContentItemParameters(contentTypeName: ..., name: ..., displayName: ..., languageName: ...). Parameter names match source constructor signature exactly. AccessSettings set via object initializer with SecuredWithRoles — valid."
+    },
+    {
+      "location": "Section: Usage — event handler, lines 266-278 (code block 12)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "ContentItemEvents.Create.Before += handler pattern. args.ContentTypeName is readable (init accessor supports get). args.AccessSettings is writable (set accessor). ContentAccessSettings.Secured() is a valid factory method."
+    },
+    {
+      "location": "Section: Usage — comparison, lines 282-292 (code block 13)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Uses != operator to compare ContentAccessSettings instances. operator != exists in source. Pattern is valid."
+    }
+  ],
+  "summary": {
+    "totalClaims": 32,
+    "verified": 32,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 13,
+    "codeExamplesCorrect": 13
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-010",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "src/_documentation/_documentation/developers-and-admins/api/content-item-api/content-item-query-api.md",
+  "deltaFromPreviousAttempt": "Attempt 2 changed only line 308: code ellipsis from '// ...' to bare '...'. This is a code formatting change with no persona, tone, or classification impact. All persona checks from attempt 1 remain valid.",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares 'persona: developer'. The new section ('Secured content in query results') is entirely API-focused with C# code examples, SDK patterns (DI, GetResult, mappers), and exact API member references. This correctly targets developers exclusively."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Content uses exact API terminology throughout: 'ContentItemRequiredMemberRoleNames', 'IContentQueryDataContainer', 'IncludeSecuredItems', 'ContentQueryExecutionOptions', 'GetResult'. Code example demonstrates a realistic developer workflow — building a query, configuring options, using a mapper lambda, and iterating results. Assumes familiarity with dependency injection, async/await patterns, and the existing content query API. No over-explanation of C# fundamentals."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Content strikes the right depth for developers: explains what the property provides (role code names), when it's populated (IncludeSecuredItems=true + role-restricted items), what unsecured items return (empty collection), and the performance characteristic (lazy loading). Provides a complete working code example. Delegates exhaustive property documentation to the Reference page via cross-reference. Neither too shallow (has actionable code) nor too deep (doesn't expose internal implementation like ContentItemRolesResultProcessor)."
+    },
+    {
+      "check": "no-persona-mismatch",
+      "result": "pass",
+      "evidence": "No business-user language ('easy to use', 'simply click'), no admin-operations language ('navigate to Settings', 'configure in the admin UI'). Content stays firmly in the developer domain with code-first exposition."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "concept",
+    "taskMetadata": "howto",
+    "actual": "concept",
+    "result": "pass",
+    "evidence": "The doc-index classifies this page as 'concept' and the existing page explains what content item queries are and how they work, using code examples as illustration rather than step-by-step procedures. The new section follows this pattern — it explains what ContentItemRequiredMemberRoleNames provides and illustrates with a code example, rather than prescribing a procedural how-to. The task metadata says 'howto' but the actual page and front matter are conceptual. This is a task-metadata discrepancy, not a content issue; the new content fits the existing page's classification correctly."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "notes": "Valid persona value matching content's actual audience."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "WhT_Cw",
+      "notes": "Stable identifier present for cross-referencing."
+    },
+    {
+      "field": "collection",
+      "result": "pass",
+      "value": "documentation",
+      "notes": "Correct collection assignment per doc-index."
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": ["YRT_Cw", "XBT_Cw"],
+      "notes": "Related pages include the Reference page (YRT_Cw) that the new section cross-references."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the Content Item API cluster (content-item-asset-upload-api, content-item-database-structure, reference-content-item-query, content-item-api parent) target the 'developer' persona. This page's developer-only targeting is consistent with its neighbors."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Developer terminology used appropriately throughout: 'IContentQueryDataContainer', 'ContentItemRequiredMemberRoleNames', 'GetResult', dependency injection, lambda mapper patterns. The cross-domain term 'member roles' is linked to its own documentation page via page_link rather than left unexplained."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is specifically adjusted to the developer audience. No business-user terminology present. Cross-domain term 'member roles' is linked for context."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Correct user-type terminology: uses 'member roles' (not 'user roles' or 'membership roles'). Line 302 and 353: 'member roles'. Correctly refers to registered visitors without admin access per the invariant definition."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business-user invariant. Page targets developers only."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business-user invariant. Page targets developers only."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "evidence": "Guide-format invariant. This page is documentation (concept), not a guide."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business-user guide invariant. Page targets developers only."
+    }
+  ],
+  "issues": [],
+  "summary": {
+    "personaChecksPassed": 4,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "consistencyPassed": true,
+    "invariantsPassed": 3,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "overallNotes": "Attempt 2 changed only line 308 (code ellipsis format). No persona-affecting changes. The 'Secured content in query results' section and 'Next steps' section remain well-targeted for the developer persona with precise API terminology, complete working code examples, appropriate SDK familiarity assumptions, and correct cross-domain term handling (member roles linked, not jargon-dropped). Consistent with all sibling pages in the Content Item API cluster."
+  }
+}

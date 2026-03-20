@@ -1,0 +1,188 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-011",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "business-users/members.md",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["admin", "business"],
+      "evidence": "Front matter declares 'admin, business'. Both are valid values per INV-frontmatter-006 (valid set: developer, admin, business, architect, all). The task's targetPersonas lists only 'business', but the content writer correctly preserved the pre-existing 'admin' persona from the original page. This is justified — member account management (creating roles, enabling/disabling accounts) is inherently admin-adjacent. The neighboring 'Secure pages' page (8oouCw) also targets ['business', 'admin'], confirming this dual-persona pattern is consistent within the access-control topic cluster. All content on this page serves both personas: business users manage members and roles through the UI, admins perform the same tasks as part of system administration."
+    },
+    {
+      "check": "tone-business",
+      "result": "pass",
+      "evidence": "The page consistently uses friendly, accessible language appropriate for business users throughout. Key evidence: (1) Introduction (line 13) explains members vs. users in plain terms with concrete scenarios: 'browse pages, access member-only sections of the website, or be assigned to member roles that control which content they can view.' (2) Member roles introduction (line 61) uses real-world framing: 'For example, you might create roles such as Subscribers or Premium members.' (3) The tiered-content explanation (lines 63–64) uses business language: 'free articles available to all visitors, general members-only content for anyone who signs in, and exclusive content reserved for members in a specific role.' (4) Result statements use encouraging, positive phrasing: 'The new member role is now available and can be assigned to members or used in security settings' (line 96). No developer-level jargon appears anywhere in the procedural body."
+    },
+    {
+      "check": "tone-admin",
+      "result": "pass",
+      "evidence": "For the admin persona, the content provides operational procedures with configuration emphasis. All six procedural sections are step-by-step (view details, disable, delete, view roles, create roles, edit roles, assign members) — exactly what an admin needs to complete tasks. No code-level details that would be inappropriate, but sufficient operational depth. The 'Code name' field (lines 90, 105) is contextually appropriate for admins who manage system configuration identifiers."
+    },
+    {
+      "check": "one-action-per-step",
+      "result": "pass",
+      "evidence": "All procedural sections strictly follow one-action-per-step as required by INV-persona-001 for business users. Verified each section: (1) 'View member roles' — 2 steps (lines 75–76), each single action. (2) 'Create a member role' — 7 steps (lines 86–92), each single action. (3) 'Edit a member role' — 5 steps (lines 102–106), each single action. (4) 'Assign members to roles' (REWRITTEN in Attempt 2) — 4 steps (lines 114–117), each single action. (5) 'Disable' — 2 steps (lines 45–46). (6) 'Delete' — 2 steps (lines 54–55). Step 4 in 'Edit a member role' ('Update the role's Membership role name, Code name, or Description as needed') describes one action (update fields) with optional targets — this is a single edit action, not multiple combined actions."
+    },
+    {
+      "check": "no-technical-jargon",
+      "result": "pass",
+      "evidence": "No developer jargon, API names, class names, or implementation details appear in the procedural content. Specifically verified: (1) docFacts reference MemberRoleInfo and MemberRoleMemberInfo class types — these are correctly OMITTED from the page content. (2) 'Code name' (lines 90, 105) is a UI field label visible in the admin interface, not developer terminology — business users see this label when creating/editing roles. (3) The phrase 'uniquely identifies the role in the system' (line 90) is mildly technical but contextually necessary to explain why the field exists. (4) The info box (lines 65–69) correctly frames the developer requirement in business-user terms: 'Your development team must also implement the access checks on the front end for the restrictions to take effect on the live site' — this is appropriate per INV-persona-002."
+    },
+    {
+      "check": "screenshot-coverage",
+      "result": "pass",
+      "evidence": "Five screenshots are included: MembersList.png (line 17), MemberDetail.png (line 33), MemberRolesList.png (line 80), MemberRoleCreate.png (line 94), MemberRoleAssignMembers.png (line 119). This provides visual anchoring for every major UI state — member listing, member detail view, roles listing, role creation form, and member role assignment. Meets INV-persona-001 requirement for 'more screenshots for clarity' in business-user content. Note: The writer-output.json notes these are placeholders pending actual screenshots from the admin UI."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Content depth is well-calibrated for business users. (1) Introduction provides conceptual context (what members are, what roles do, tiered content example) without going into implementation architecture. (2) Procedures give step-by-step UI instructions without explaining underlying data models — MemberRoleInfo and MemberRoleMemberInfo (from docFacts) are correctly omitted. (3) The info box (line 65) correctly signals where developer involvement is needed without over-explaining the technical details. (4) The Attempt 2 rewritten 'Assign members to roles' section (lines 112–123) is now a clean 4-step procedure — simpler and more accessible than the old 7-step version. (5) Next steps (lines 127–129) link to related business-user pages and developer docs separately, maintaining appropriate layering."
+    },
+    {
+      "check": "team-delegation-pattern",
+      "result": "pass",
+      "evidence": "The page correctly follows INV-persona-002's assumption that business users work alongside technical team members. (1) Info box (lines 65–69): 'Your development team must also implement the access checks on the front end for the restrictions to take effect on the live site.' (2) Next Steps (line 129): 'For technical details on how member roles work in code, see Member roles in the developer documentation.' Both instances properly delegate technical responsibility without burdening the business reader with implementation details."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "The page is primarily procedural — the bulk of content consists of goal-oriented procedures (view member details, disable/delete accounts, view roles, create roles, edit roles, assign members to roles). The introductory paragraphs (lines 13–15, 61–64) provide contextual framing rather than deep conceptual explanation, which is appropriate for a howto page. The content assumes the reader has an existing goal (manage members and their roles) rather than teaching from scratch (tutorial) or providing structured lookup data (reference). No front matter 'classification' field is present, but the content type is consistent with the task definition (contentType: howto) and the page's position in the business-users collection."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Members"
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "admin, business",
+      "notes": "Both values are valid per INV-frontmatter-006. Dual persona is justified by content scope — member/role management is an admin-adjacent activity. Matches the dual-persona pattern used by the related 'Secure pages' page."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "BIsuCw",
+      "notes": "Pre-existing identifier preserved from the original page. This is an update task, not new-page creation, so INV-frontmatter-002 snake_case naming convention does not require changes to the legacy identifier."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "900"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "notes": "Standard tier (1) per INV-frontmatter-005."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/BIsuCw",
+      "notes": "Includes x/<identifier> as required by INV-frontmatter-004."
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": "['8oouCw', 'content_items_xp', 'member_roles_xp']",
+      "notes": "Includes cross-references to Secure pages (8oouCw), Content items (content_items_xp), and the developer Member roles page (member_roles_xp). All are contextually relevant to the member management domain."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "Consistent with neighboring pages in the access-control topic domain. 'Secure pages' (8oouCw) targets ['business', 'admin'] with 'howto' classification — the Members page shares the same dual-persona pattern and classification. 'Content items' (content_items_xp) targets ['business'] only, which is appropriate for its Content Hub domain (different topic cluster). Other business-users pages (aira.md, content-hub-folders.md) target ['business'] only, which is appropriate for their purely business-focused domains. The dual persona on Members is justified by its admin-adjacent subject matter (account management, role configuration) and matches the security-cluster pattern established by Secure pages."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Business-user requirements fully met across all four sub-requirements: (1) Friendly, positive tone — intro uses real-world scenarios ('Subscribers', 'Premium members'), procedures end with encouraging result statements ('The new member role is now available and can be assigned to members or used in security settings'). (2) One action per step — verified in all 6 procedural sections (see 'one-action-per-step' check above). (3) No technical jargon — MemberRoleInfo/MemberRoleMemberInfo class names from docFacts are correctly omitted; 'Code name' is a UI field label. (4) Screenshots for clarity — 5 screenshots cover all major UI states."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Page correctly assumes the business user works alongside technical team members. Info box (lines 65–69) states: 'Your development team must also implement the access checks on the front end for the restrictions to take effect on the live site.' Next Steps (line 129) directs to developer documentation: 'For technical details on how member roles work in code, see Member roles in the developer documentation.' Technical responsibilities are properly delegated without burdening the business reader."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Not the primary persona for this page, but the admin persona is secondarily served. The page does NOT combine steps (which would be permissible for admins per this invariant) — it maintains one-action-per-step throughout, which is the stricter standard required for the co-targeted business persona. This is correct: when both business and admin personas are targeted, the stricter business-user rules govern."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Vocabulary is adjusted for the business/admin audience. No developer terminology (API names, class names, code constructs) appears in the procedural content. UI field labels ('Membership role name', 'Code name', 'Enabled') are used as they appear in the admin interface. The info box bridges to developer terminology by referencing 'the developer documentation' rather than introducing developer-specific terms inline."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "INV-persona-005 applies to _guides collection tone ('conversational, friendly, encouraging. Use you for personal tone, we/lets for teamwork'). This page is in the _documentation collection (business-users/members.md), not _guides. The invariant does not govern this content type. Noted for completeness — no violation."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "severity": "should",
+      "evidence": "INV-persona-006 applies to business user guide materials ('provide real-world marketing scenarios. Reference KBank/Dancing Goat demos when possible'). This is a _documentation howto page, not a guide. The page does include real-world examples ('Subscribers', 'Premium members') which satisfies the spirit of this invariant, but strict compliance is not required for this collection. Noted for completeness — no violation."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Front matter 'persona: admin, business' uses only valid values from the approved set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All required front matter fields present: title ('Members'), identifier ('BIsuCw'), order (900), redirect_from ('x/BIsuCw'), persona ('admin, business'), license (1). [Note: Full front matter validation is the frontmatter-validator's domain — light check for persona-relevant fields only.]"
+    }
+  ],
+  "attempt2DeltaAnalysis": {
+    "description": "Assessment of Attempt 2 changes from the persona-targeting perspective.",
+    "changesReviewed": [
+      {
+        "section": "View member roles / Create a member role / Edit a member role",
+        "change": "Tab label changed from 'Member roles tab' to 'List of membership roles'; 'Switch to' replaced with 'Go to'; button/field labels corrected to match actual UI.",
+        "personaImpact": "Neutral to positive. Corrected UI labels improve the business user's ability to follow along in the actual interface. 'Go to' is more natural navigation language than 'Switch to' for the target audience."
+      },
+      {
+        "section": "Assign members to roles (COMPLETE REWRITE)",
+        "change": "Replaced incorrect role-detail-based workflow (7 steps) with correct member-detail-based workflow (4 steps). Old flow navigated to a role and added members; new flow opens a member and uses the 'Membership roles' multi-select.",
+        "personaImpact": "Positive. The new 4-step procedure is simpler and more accessible for business users than the old 7-step version. The workflow — open a member, select roles, save — is intuitive and follows a natural user mental model. Each step remains a single action. The screenshot placeholder is retained for visual guidance. The removal procedure is presented as a clean inline instruction rather than a separate numbered procedure, which is appropriate for a simple reversal action."
+      }
+    ],
+    "overallAssessment": "All Attempt 2 changes either maintain or improve persona targeting. No regressions introduced."
+  },
+  "minorSuggestions": [
+    {
+      "location": "Line 90",
+      "text": "Enter a **Code name** that uniquely identifies the role in the system.",
+      "suggestion": "Consider adding a brief business-friendly context: 'Enter a **Code name** — a short internal identifier for the role (e.g., *premium_members*). Your development team uses this name when setting up access checks in code.' This would better serve INV-persona-002's team-collaboration assumption while keeping the explanation accessible.",
+      "severity": "optional",
+      "personaImpact": "Minimal — current wording is adequate; the UI field is self-explanatory. Suggestion would marginally improve clarity for non-technical readers who may wonder about the field's purpose."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 8,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 6,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 2,
+    "minorSuggestions": 1,
+    "attempt2Regressions": 0
+  }
+}

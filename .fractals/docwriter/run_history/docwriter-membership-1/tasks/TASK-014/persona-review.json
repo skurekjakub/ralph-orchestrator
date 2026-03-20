@@ -1,0 +1,154 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-014",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "developers-and-admins/customization/handle-global-events/reference-global-system-events.md",
+  "personaChecks": [
+    {
+      "check": "front-matter-persona-value",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. The value is valid per INV-frontmatter-006 (valid set: developer, admin, business, architect, all). A global system events API reference page is squarely developer territory."
+    },
+    {
+      "check": "front-matter-persona-completeness",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Page is correctly scoped to 'developer' only. Every modified or added passage addresses C# API behavior: event args class names (`UpdateContentItemMetadataEventArgs`, `UpdateWebPageSecuritySettingsEventsArgs`), property types (`ContentAccessSettings`), exception semantics (`ArgumentNullException`), and factory methods (`Public()`, `Secured()`, `SecuredWithRoles(IEnumerable<int>)`). No admin configuration procedures, business outcome language, or architecture-level trade-off discussion is present. Adding 'admin' or 'architect' would over-tag the page. The parent page handle-global-events.md carries 'developer, architect' for its broader overview role, but this child reference is pure API lookup — 'developer' alone is correct."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Content uses precise API terminology throughout. Examples from modified sections: 'The event data state exposes an `AccessSettings` property of type `ContentAccessSettings`. This property requires a non-null value – setting it to `null` throws an `ArgumentNullException`.' (line 502) and the bullet list 'ContentAccessSettings.Public() – no authentication required (default)' (line 557). The writing assumes SDK familiarity — it does not explain what events, handlers, or exceptions are. Developer terminology per INV-persona-003: C# types, method signatures, exception names. No dumbing-down, no unnecessary business context."
+    },
+    {
+      "check": "depth-calibration-developer",
+      "result": "pass",
+      "evidence": "Depth is well-calibrated for a developer reference. Each modified section provides: (1) exact property name and type, (2) behavioral constraint (non-null, exception on violation), (3) recommended pattern for the common case (`Public()` for unsecured), and (4) cross-reference link to the full ContentAccessSettings reference page. The note blocks (lines 551–565, 932–946) expand with all three factory methods and their semantics. This gives developers enough to use the API correctly without excessive implementation detail. Not too shallow (it doesn't just say 'set access settings'), not too deep (it doesn't trace internal validation code paths)."
+    },
+    {
+      "check": "no-persona-mismatch",
+      "result": "pass",
+      "evidence": "No content uses business vocabulary ('configure in the UI', benefit-focused language, screenshots) or admin procedural steps ('Go to Settings > …'). The phrase 'security settings' appears in its API context — as the name of an event (`UpdateSecuritySettings`) and a property behavior — not as an admin-facing concept. Vocabulary is consistently developer-oriented per INV-persona-004: 'event data state', 'property', 'factory methods', 'throws an ArgumentNullException'."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "reference",
+    "actual": "reference",
+    "result": "pass",
+    "evidence": "Page is structured as a reference lookup: tables organized by event category (class) with columns for event name, event types, handler type, handler parameters, and description. The added note blocks document property details in bullet-list lookup format. No step-by-step tutorials, no guided learning, no goal-oriented procedures. Title 'Reference - Global system events' follows INV-structure-019 pattern. Classification is correct."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Reference - Global system events",
+      "evidence": "Follows 'Reference - XYZ' pattern per INV-structure-019."
+    },
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Valid persona value per INV-frontmatter-006."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "2AOiCQ",
+      "evidence": "Identifier present. Legacy format (not snake_case + suffix per INV-frontmatter-002/007), but this is an existing page update — identifier must not change."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "300",
+      "evidence": "Order field present per INV-frontmatter-003."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "Standard tier per INV-frontmatter-005."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/2AOiCQ",
+      "evidence": "Includes x/<identifier> per INV-frontmatter-004."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the handle-global-events cluster target 'developer': handle-object-events.md (developer), handle-form-events.md (developer), set-up-custom-workflow-notifications.md (developer). Parent page handle-global-events.md targets 'developer, architect' but carries broader conceptual scope. This reference page is consistent with the cluster's developer-only child pattern. Tone and depth are also consistent with how other event reference/concept pages are written in this section."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "Front matter present between --- lines with all required fields: title, identifier, order, redirect_from, persona, license."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "evidence": "redirect_from includes 'x/2AOiCQ' matching the identifier."
+    },
+    {
+      "invariantId": "INV-frontmatter-005",
+      "result": "pass",
+      "evidence": "License set to 1 (standard tier)."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "Persona value 'developer' is in the valid set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content uses developer terminology appropriately: C# class names, property types, exception types, factory method signatures. No unnecessary simplification. Developers are expected to understand event args, null validation, and factory patterns."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is consistently developer-targeted. No business-user terminology used. 'Security settings' and 'access model' appear only as API-level concepts (event names, property names, class names), not in a business or admin context."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "evidence": "Business user tone rules. Page targets developer persona only."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "evidence": "Business user team assumption rules. Page targets developer persona only."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "evidence": "Guides collection conversational tone. This page is in _documentation collection."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "evidence": "Business user guide materials with demo scenarios. Not applicable to developer reference."
+    },
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Title follows 'Reference - XYZ' pattern: 'Reference - Global system events'."
+    }
+  ],
+  "attemptDelta": "Attempt 2 changes (em dash → en dash formatting fix) have zero persona impact. All persona checks that passed in Attempt 1 remain valid. No content or tone changes between attempts.",
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "taxonomyFieldsPassed": 6,
+    "taxonomyFieldsFailed": 0,
+    "invariantsPassed": 7,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "consistencyPassed": true
+  }
+}

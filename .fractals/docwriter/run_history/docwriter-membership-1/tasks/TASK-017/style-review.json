@@ -1,0 +1,284 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-017",
+  "attempt": 2,
+  "verdict": "approved-with-notes",
+  "reviewScope": "UPDATE — reviewed the 3 changed/added sections identified in writer-output.json (lines 188, 190, 236) against all applicable invariants. Verified critical fix from attempt 1 rejection (INV-crossref-001).",
+  "diff": {
+    "line188": "Added bullet: Member roles compatibility requirement in 'Ensure compatibility between instances' list — uses {% page_link member_roles_xp linkText=\"Member roles\" %}",
+    "line190": "Modified sentence: added 'or member role' to existing example sentence",
+    "line236": "Added bullet: Content access settings synchronization behavior in 'Content sync internals' list — uses {% page_link 8oouCw linkText=\"secured\" %} and {% page_link member_roles_xp linkText=\"member role\" %}"
+  },
+  "criticalFixVerification": {
+    "previousFailure": "INV-crossref-001: Both page_link tags used invalid identifier 'member_roles_developer_guide_xp'",
+    "fix": "Both occurrences replaced with 'member_roles_xp'",
+    "verification": "Confirmed 'member_roles_xp' exists in front matter of src/_documentation/_documentation/developers-and-admins/development/registration-and-authentication/member-roles.md (line 4: identifier: member_roles_xp). Also confirmed '8oouCw' exists in front matter of src/_documentation/_documentation/business-users/website-content/secure-pages.md. Fix is valid.",
+    "result": "pass"
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 188: {% page_link member_roles_xp linkText=\"Member roles\" %} — identifier verified against member-roles.md front matter. Line 236: {% page_link member_roles_xp linkText=\"member role\" %} — same identifier, verified. Line 236 also uses {% page_link 8oouCw linkText=\"secured\" %} — identifier verified against secure-pages.md front matter. All identifiers sourced from actual file front matter. CRITICAL FIX FROM ATTEMPT 1 CONFIRMED."
+    },
+    {
+      "invariantId": "INV-crossref-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All new page_link tags omit the collection parameter. Source file is in _documentation collection. Targets (member-roles.md, secure-pages.md) are also in _documentation. Default resolution is correct."
+    },
+    {
+      "invariantId": "INV-crossref-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No anchor parameters used in the 3 new page_link tags (lines 188, 236 x2). No invented anchors."
+    },
+    {
+      "invariantId": "INV-crossref-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "N/A — no anchors introduced in new content."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Link text is contextually descriptive in all cases: 'Member roles' (line 188), 'secured' (line 236), 'member role' (line 236). No vague phrases like 'click here' or 'this page'."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Changed lines use conceptual terms ('member roles', 'content access settings', 'GUID', 'code name', 'security configuration', 'role assignments') not API members, methods, or classes. No code elements appear without backtick formatting. Consistent with existing page conventions — e.g., line 192 uses 'GUID identifiers' without backticks, and line 180 uses 'content synchronization' without backticks."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No code elements are pluralized directly. 'member roles' and 'role assignments' are conceptual terms used without code formatting, which is correct."
+    },
+    {
+      "invariantId": "INV-formatting-010",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No bold/italic/code formatting at sentence boundaries in changed lines where punctuation would follow."
+    },
+    {
+      "invariantId": "INV-formatting-011",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Single spaces between words and sentences throughout the changed lines. No tab characters or irregular indentation detected."
+    },
+    {
+      "invariantId": "INV-formatting-015",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 236: 'role-based' correctly hyphenated as a compound modifier before 'access restrictions'."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 188 uses ' -- ' (double hyphen with spaces) as a separator between the link and the explanatory text. This is consistent with the existing page convention established at lines 173, 174, 175, and 176, and renders as an en dash in the Jekyll build."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No new headings introduced. Existing heading structure unchanged."
+    },
+    {
+      "invariantId": "INV-style-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Feature name 'Member roles' at line 188 correctly capitalized as a proper feature name via the page_link linkText. 'Content access settings' at line 236 used as a conceptual description, not a defined feature name — lowercase treatment is correct."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 188: 'The system matches member roles between instances' — active voice. Line 236: 'are synchronized', 'are restored' — passive voice under exception (b): emphasizing the receiver. This matches the established pattern of the 'Content sync internals' section (cf. line 230: 'Permissions are not evaluated', line 235: 'Workflow events are not triggered')."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All new content uses present simple tense: 'must exist' (line 188), 'matches' (line 188), 'are synchronized' (line 236), 'are restored' (line 236)."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "American English spelling throughout changed lines. No British variants (e.g., no 'synchronised', 'organised')."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Consistent use of 'member roles' (not 'membership roles' or 'user roles') and 'content access settings' throughout. Matches the terminology table in the task spec (INV-content-030)."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "No use of the pronoun 'it' in the changed lines. Subjects are restated clearly ('The system', 'a content item', 'the same security configuration')."
+    },
+    {
+      "invariantId": "INV-style-014",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No culturally specific idioms, slang, or metaphors in the changed content."
+    },
+    {
+      "invariantId": "INV-style-015",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "No redundancy. Line 188 covers compatibility requirements (source-target matching). Line 236 covers synchronization behavior (what happens during sync). Distinct concerns, no overlap."
+    },
+    {
+      "invariantId": "INV-style-017",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "No filler words ('actually', 'basically', 'really', 'just', 'in fact') in the changed content."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Line 188 sentence 1: ~17 words. Line 188 sentence 2: ~14 words. Line 236 sentence 1: ~10 words. Line 236 sentence 2: ~28 words (see additionalFindings note). Three of four sentences are well under 20 words."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No use of 'please' in the changed lines."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Content is direct and concise. Each bullet conveys its point without unnecessary preamble. Line 188 gets to the requirement immediately after the link. Line 236 leads with what is synchronized, then explains the conditional behavior."
+    },
+    {
+      "invariantId": "INV-style-022",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Simple, clear English. No jargon or complex phrasing that would impede non-native speakers."
+    },
+    {
+      "invariantId": "INV-style-024",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Line 236 correctly leads with condition: 'If a content item is secured with member role restrictions..., the same security configuration... are restored.' Line 188 leads with the requirement: 'member role definitions must exist on all connected instances if content items use role-based access restrictions.' Both follow the condition-then-instruction pattern."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "New content includes page_link cross-references to member roles (2 occurrences) and secure pages (1 occurrence), providing context for readers encountering the page without prior reading."
+    },
+    {
+      "invariantId": "INV-style-038",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 190 uses 'You need to ensure' which is the correct form per this invariant. No 'You must' or 'You should' in the changed content."
+    },
+    {
+      "invariantId": "INV-style-052",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No jargon or metaphors in the changed lines. No 'spin up', 'leverage', or similar."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "New content added as unordered list items (bullets) where order does not matter — correct per invariant."
+    },
+    {
+      "invariantId": "INV-structure-010",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "The page lacks a dedicated 'Next steps' section, but this predates the current changes. The writer added inline cross-references to member roles and secure pages within the body content, satisfying the spirit of this invariant for an incremental update. Line 29 already links to the content sync usage page as a next step."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "New content is self-contained with inline links. Line 188 explains what member roles compatibility means without requiring the reader to visit the linked page. Line 236 explains the sync behavior independently."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Line 188: starts with page_link 'Member roles' (proper feature name, correctly capitalized). Line 236: starts with 'Content access settings' (sentence case). Both correct."
+    },
+    {
+      "invariantId": "INV-structure-020",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "New list items are at a single nesting level. No deep nesting introduced."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No new admonition tags introduced in the changes."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "No new code blocks introduced in the changes."
+    },
+    {
+      "invariantId": "INV-jekyll-009",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "related_pages front matter not modified by the changes. Existing values unchanged."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "No new headings added. Existing heading hierarchy is unchanged by the modifications."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "New bullet points follow the same formatting pattern as existing bullets in their respective sections: line 188 matches the link-dash-explanation pattern of lines 173-176; line 236 matches the declarative statement pattern of lines 230-235."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All 3 new page_link Liquid tags are syntactically well-formed: {% page_link member_roles_xp linkText=\"Member roles\" %}, {% page_link 8oouCw linkText=\"secured\" %}, {% page_link member_roles_xp linkText=\"member role\" %}. Correct parameter syntax with double-quoted linkText values."
+    },
+    {
+      "category": "sentence-length",
+      "result": "note",
+      "evidence": "Line 236 second sentence: 'If a content item is secured with member role restrictions on the source instance, the same security configuration and role assignments are restored on the target instance.' — approximately 28 words, exceeding the INV-style-018 'should' guideline of ~20 words. However, the conditional 'If... then...' structure naturally requires more words, and the sentence remains clear and scannable. This is a 'should'-level guideline and the sentence is not egregiously long. Does not block approval.",
+      "suggestion": "Consider splitting: 'Content access settings are synchronized for content items and pages. If a content item is secured with member role restrictions, the target instance receives the same security configuration and role assignments.' This reduces the second sentence to ~20 words by removing 'on the source instance'."
+    },
+    {
+      "category": "front-matter",
+      "result": "note",
+      "evidence": "Pre-existing observation (not introduced by changes): The related_pages front matter field (line 14) does not include 'member_roles_xp' despite the update adding significant cross-references to member roles. This is outside the scope of the current changes.",
+      "suggestion": "Consider adding 'member_roles_xp' to the related_pages array in a follow-up: related_pages: ['content_sync_xp', 'content_items_xp', 'JwKQC', 'member_roles_xp']. Verify INV-jekyll-009 compliance (same collection) before adding — member-roles.md is in _documentation, same as this page, so it would be valid."
+    }
+  ],
+  "metaKnowledgeConsulted": {
+    "knowledgeBrief": "Consulted .docwriter/knowledge-brief.json. Cold start — no styleEvolutions, antiPatterns, or patterns available (all arrays empty, coldStart: true). No meta-knowledge-informed checks applied.",
+    "antiPatternsFile": "Not available — .github/skills/docwriter-meta/references/anti-patterns.md does not exist. Skipped per missing-artifact handling rules.",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 37,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "additionalNotes": 2,
+    "previousRejectionResolved": true,
+    "previousRejectionDetail": "INV-crossref-001: 'member_roles_developer_guide_xp' → 'member_roles_xp' fix verified on both lines 188 and 236. Identifier confirmed against source file front matter."
+  }
+}

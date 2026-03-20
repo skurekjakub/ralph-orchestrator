@@ -1,0 +1,227 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-001",
+  "attempt": 2,
+  "verdict": "approved",
+  "previouslyFailedInvariants": {
+    "summary": "All 3 previously-failed invariants from Attempt 1 are now fixed.",
+    "INV-frontmatter-004": "FIXED — redirect_from changed from empty [] to x/member_roles_xp, matching sibling page pattern and x/<identifier> convention.",
+    "INV-callout-002": "FIXED — Both info callouts now have bold titles on separate lines: **Internal namespace** (line 126) and **Role assignment** (line 265).",
+    "INV-structure-001": "FIXED — Result section added (line 271: ## Result) before Next steps. Article now contains all required elements: Title, Introduction, Body, Result, Next Steps."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All five required elements present: Title ('Member roles' in front matter), Introduction (lines 17–26: context, use cases, value proposition), Body (lines 28–269: six h2 sections with subsections), Result (lines 271–273: summary of what was achieved), Next Steps (lines 275–281: five linked next steps). Previously FAILED in Attempt 1 — now fixed."
+    },
+    {
+      "invariantId": "INV-structure-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Introduction (lines 17–26) provides context ('Member roles let you control which content…'), real-world scenarios ('such as Subscribers or Premium members'), and explains value through a bullet list of four use cases."
+    },
+    {
+      "invariantId": "INV-structure-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Introduction answers all three questions: Primary use case — 'control which content on your website is accessible to specific groups of registered members' (line 17). Benefit — four bullet points showing capabilities (restrict, check, query, manage) (lines 21–24). When to use — 'Use member roles when you need to:' (line 19)."
+    },
+    {
+      "invariantId": "INV-structure-010",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Next steps section (lines 275–281) provides five linked items: Configure registration, Secure pages, Members app, Add fields, Content retrieval — all using page_link tags with descriptive text."
+    },
+    {
+      "invariantId": "INV-structure-021",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "This invariant originates from guides-style-guide.md and targets the _guides collection. This page is in _documentation. However, the page clearly follows how-to structure: goal-oriented title, imperative-mood section headings ('Check content access', 'Manage roles programmatically'), task-focused code examples. The task metadata declares content type as 'howto'."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "YAML front matter between --- lines contains all required fields: title ('Member roles'), identifier ('member_roles_xp'), order (400), redirect_from ('x/member_roles_xp'), persona ('developer'), license (1). Also includes optional toc and related_pages."
+    },
+    {
+      "invariantId": "INV-frontmatter-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Identifier 'member_roles_xp' uses snake_case with _xp suffix for _documentation collection. Uniqueness verified — identifier appears only in the target file itself plus generated buildcache/pagetree files."
+    },
+    {
+      "invariantId": "INV-frontmatter-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Order is 400. Sibling pages use order 100 (forms-authentication), 200 (external-authentication), 300 (add-fields-to-member-objects). Order 400 is the next sequential position, following the midpoint/incremental convention."
+    },
+    {
+      "invariantId": "INV-frontmatter-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "redirect_from is 'x/member_roles_xp', matching the required pattern x/<identifier>. Sibling pages confirm convention: forms-authentication has 'x/t4ouCw', external-authentication has 'x/uIouCw', add-fields has 'x/uoouCw'. Previously FAILED in Attempt 1 — now fixed."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "persona is 'developer', which is in the allowed set {developer, admin, business, architect, all}."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All API members, classes, methods, namespaces, and properties are backtick-formatted in prose. Automated scan of 34 code element names found zero bare occurrences outside code blocks and headings. Examples: `ContentAccessSettings`, `HasAccess`, `IContentItemMemberRoleManager`, `UpdateBindings`, `ContentItemRequiredMemberRoleNames`, `ApplicationRole`, `Kentico.Membership`."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Developer terminology used appropriately throughout: dependency injection, extension methods, ClaimsPrincipal, IEnumerable<int>, sealed class. Related easy steps combined (e.g., DI registration of both UserStore and RoleStore in one code block). No business/marketing terms requiring explanation."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Seven code examples are broken into logical sections: (1) create access settings, (2) check member access, (3) read required roles from queries, (4) set access settings via manager, (5) retrieve role information, (6) Identity service registration, (7) manage roles via RoleManager. Each block focuses on one concept with appropriate level of detail for a how-to."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Terminology is consistent throughout: 'member' for registered visitor (lines 17, 35, 36, 59, 82, 267), 'visitor' for anonymous user (lines 33, 71, 80, 273), 'sign-in page' not 'login page' (line 71), 'signed in' not 'logged in' (line 82). No occurrences of 'log in', 'login', 'sign up', 'user role', 'membership role', 'customer', or 'contact' misuse."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All headings use sentence case: 'Content access model', 'Check content access', 'Query role requirements', 'Manage roles programmatically', 'Update role bindings', 'Retrieve role information', 'ASP.NET Identity integration' (proper noun capitalized correctly), 'Result', 'Next steps'."
+    },
+    {
+      "invariantId": "INV-callout-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Both callouts use {% info %} type, appropriate for 'additional context' about namespace location and role assignment approach. No mismatched severity."
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Callout 1 (line 124): bold title '**Internal namespace**' on separate line followed by prose. Callout 2 (line 263): bold title '**Role assignment**' on separate line followed by prose. Both callouts contain 2+ sentences and correctly include titles. Previously FAILED in Attempt 1 — now fixed."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Neither callout contains the word 'Info' as its title. Titles are 'Internal namespace' and 'Role assignment' — descriptive, not echoing the callout type."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Both callouts provide supplementary context (namespace location, role assignment method) — 'info' severity is appropriate. Neither contains warnings, tips, or critical notes that would require a different callout type."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All five page_link identifiers verified against actual files: tYouCw → registration-and-authentication.md, 8oouCw → secure-pages.md, BIsuCw → members.md, uoouCw → add-fields-to-member-objects.md, 4obWCQ → retrieve-page-content.md. All exist in the repository."
+    },
+    {
+      "invariantId": "INV-crossref-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All page_link targets are in the _documentation collection (same as source page). No collection parameter needed or used. Two targets (8oouCw, BIsuCw) are in business-users subtree but same _documentation collection — no cross-collection parameter required."
+    },
+    {
+      "invariantId": "INV-crossref-005",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "One external link on line 199: {% external_link \"https://learn.microsoft.com/...\" linkText=\"ASP.NET Identity\" %} — uses full URL with https:// scheme. Default _blank target applies."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All links use descriptive text: 'registration and authentication', 'Secure pages', 'Members', 'Add fields to member objects', 'content retrieval', 'ASP.NET Identity', 'Configure registration and authentication'. No vague phrases like 'click here' or 'this page'."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Both admonitions use {% info %} / {% endinfo %} — valid Liquid admonition tag from the supported set {tip, info, note, warning, key}."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "All seven code blocks use {% code lang=csharp %} / {% endcode %} with 'csharp' from the supported lang list. All include descriptive title= attributes. Tag balance verified: 7 {% code %} and 7 {% endcode %}."
+    },
+    {
+      "invariantId": "INV-jekyll-009",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "related_pages: ['tYouCw', '8oouCw', 'content_items_xp', 'BIsuCw'] — all four identifiers resolve to pages in the _documentation collection (same collection as source page)."
+    },
+    {
+      "invariantId": "INV-jekyll-010",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Front matter toc block uses only supported inline parameters: minHeadingLevel: 1, maxHeadingLevel: 3."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Heading progression is clean: h2 (Content access model) → h2 (Check content access) → h2 (Query role requirements) → h2 (Manage roles programmatically) → h3 (Update role bindings) → h3 (Retrieve role information) → h2 (ASP.NET Identity integration) → h3 (ApplicationRole) → h3 (ApplicationRoleStore) → h2 (Result) → h2 (Next steps). No skipped levels."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Lists use consistent markdown bullet/dash formatting. Code blocks all use Liquid {% code %} tag with lang and title. Callouts use consistent {% info %} format with bold titles. Tables use standard markdown pipe syntax."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "Internal links consistently use {% page_link %} with linkText parameter. External link uses {% external_link %} with full URL. No raw markdown links or broken syntax."
+    },
+    {
+      "category": "code-blocks",
+      "result": "pass",
+      "evidence": "All 7 code blocks have language tags (csharp), descriptive titles, consistent indentation (4-space C# standard), and contain complete logical examples without unnecessary truncation."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags properly balanced: 7 code/endcode pairs, 2 info/endinfo pairs, 5 page_link tags, 1 external_link tag. No broken includes or unclosed tags."
+    },
+    {
+      "category": "sentence-structure",
+      "result": "pass",
+      "evidence": "Prose is predominantly active voice, clear, and scannable. Sentences are concise — most under 30 words. Technical explanations follow the pattern: brief statement → code example → elaboration."
+    },
+    {
+      "category": "terminology-consistency",
+      "result": "pass",
+      "evidence": "Zero occurrences of prohibited terms: 'log in', 'login', 'sign up', 'user role', 'membership role'. Consistent use of 'member', 'visitor', 'sign in/sign-in', 'member role' throughout."
+    }
+  ],
+  "metaKnowledgeCheck": {
+    "knowledgeBriefFound": true,
+    "styleEvolutions": "Empty array — no supplementary style criteria to apply.",
+    "antiPatterns": "Empty array — no known anti-patterns to check against.",
+    "antiPatternsFileFound": false,
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 27,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "previouslyFailedNowFixed": 3,
+    "newIssuesIntroduced": 0
+  }
+}

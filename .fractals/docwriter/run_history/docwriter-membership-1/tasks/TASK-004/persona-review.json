@@ -1,0 +1,126 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-004",
+  "verdict": "approved-with-notes",
+  "personaChecks": [
+    {
+      "check": "front-matter-persona-tag",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter declares `persona: developer`. The page covers ASP.NET Identity configuration, controller action implementation, code samples, and view model setup — all squarely developer-targeted. No admin, business, or architect audience is served by this content. Single-persona tag is correct.",
+      "invariantId": "INV-frontmatter-006"
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Writer's changes use exact API type names in backticks (`ApplicationRole`, `ApplicationRoleStore`, `AddIdentity`, `AddRoleStore`), reference code samples on the page, and assume familiarity with ASP.NET Identity and the service registration pipeline in `Program.cs`. The added info callout (lines 27-33) directs the developer to configure specific services — concrete action, not abstract architecture.",
+      "invariantId": "INV-persona-003"
+    },
+    {
+      "check": "vocabulary-audience-alignment",
+      "result": "pass",
+      "evidence": "Writer's added callout uses developer vocabulary throughout: 'Identity configuration', 'register ApplicationRole as the role type', 'AddIdentity and AddRoleStore calls'. No business-user or marketing terminology leaks into the developer-targeted content. The term 'member role' is used correctly per REC-013 terminology guidelines.",
+      "invariantId": "INV-persona-004"
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "The writer's changes are at the right depth for a developer how-to: code samples show the exact generic type parameters needed (`AddIdentity<ApplicationUser, ApplicationRole>`, `AddRoleStore<ApplicationRoleStore<ApplicationRole>>`), the info callout explains WHY these registrations are needed ('enable member role management through ASP.NET Identity'), and cross-references the member roles page for deeper context. Not too shallow (shows exact API calls), not too deep (doesn't explain internal implementation)."
+    },
+    {
+      "check": "terminology-member-role",
+      "result": "pass",
+      "evidence": "Writer uses 'member role' (line 31) — correct per REC-013 which mandates 'member role' over 'membership role' or 'user role'. The callout heading is 'Member role services' which is accurate and correctly scoped.",
+      "invariantId": "INV-content-030"
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "Page is a goal-oriented procedure for implementing forms authentication. Each major section (Registration, Sign in/out, Password policy, Password reset, Email confirmation) provides a task-specific procedure with code samples. Assumes existing knowledge of ASP.NET and Xperience. This matches the 'howto' classification."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "invariantId": "INV-frontmatter-006"
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "invariantId": "INV-frontmatter-005"
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "t4ouCw",
+      "invariantId": "INV-frontmatter-001"
+    },
+    {
+      "field": "related_pages",
+      "result": "pass",
+      "value": "['tYouCw', 'uoouCw', '9YLWCQ', 'member_roles_xp']",
+      "note": "Writer correctly added 'member_roles_xp' to related_pages to reflect the new cross-reference to the member roles page."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the registration-and-authentication cluster use `persona: developer`: add-fields-to-member-objects.md (developer), external-authentication.md (developer), member-roles.md (developer). This page is consistent with its topic cluster."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "evidence": "`persona: developer` is a valid persona value (valid set: developer, admin, business, architect, all)."
+    },
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "evidence": "Content uses developer terminology appropriately. The added info callout names specific API types and directs to code samples — appropriate for the developer audience."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Writer's changes use vocabulary specific to the developer audience. No business-user terminology introduced. 'Member role' follows the established Kentico terminology."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Writer's added content correctly uses 'member role' for the role concept. Pre-existing content has some 'user' vs 'member' inconsistencies (lines 17, 82, 95, 135, 180) but these were not introduced or modified by TASK-004."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "evidence": "Front matter contains all required fields: title, identifier, order, redirect_from, persona, license."
+    }
+  ],
+  "issues": [
+    {
+      "severity": "note",
+      "type": "pre-existing-terminology",
+      "location": "line 17",
+      "description": "The introductory paragraph uses 'login page' twice. Per REC-013, this should be 'sign-in page'. This is pre-existing content not modified by TASK-004 and falls outside the task scope, but could be addressed in a future terminology cleanup pass.",
+      "suggestion": "Consider a follow-up task to align the intro paragraph with REC-013: 'login page' → 'sign-in page'."
+    },
+    {
+      "severity": "note",
+      "type": "pre-existing-terminology",
+      "location": "lines 82, 95, 111, 135",
+      "description": "Several pre-existing paragraphs use 'user' where INV-content-030 would prefer 'member' (for registered visitors) or 'visitor' (for anonymous users). For example, line 82 says 'registered users' which per the terminology guidelines should be 'members'. These were not modified by TASK-004.",
+      "suggestion": "Consider a follow-up terminology cleanup task covering the entire page to align 'user'/'member'/'visitor' usage with INV-content-030."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 5,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 5,
+    "invariantsFailed": 0,
+    "verdict": "approved-with-notes",
+    "narrativeSummary": "All persona checks pass. The writer's changes (code sample updates and added member-role-services info callout) are correctly targeted at the developer persona with appropriate technical depth, exact API terminology in backticks, and action-oriented guidance. Front matter persona tag 'developer' is valid and consistent with all sibling pages in the registration-and-authentication cluster. Classification as 'howto' matches the actual content structure. Two pre-existing terminology issues noted (use of 'login' and inconsistent 'user'/'member' usage in untouched paragraphs) — these are outside TASK-004 scope but recommended for a future cleanup pass."
+  }
+}

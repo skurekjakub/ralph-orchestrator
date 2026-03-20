@@ -1,0 +1,177 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-007",
+  "attempt": 2,
+  "verdict": "approved",
+  "targetFile": "developers-and-admins/development/content-retrieval/retrieve-content-items.md",
+  "reviewedAt": "2025-07-23T17:45:12Z",
+  "previousVerdict": "approved-with-notes",
+  "previousNoteResolution": "Previous depth-calibration note suggested optional architect-persona callout for lazy-loading performance. Not required for approval and not addressed in Attempt 2, which focused on style/accuracy fixes. The note remains valid but is a future-improvement suggestion, not a blocking concern.",
+  "personaChecks": [
+    {
+      "check": "front-matter-personas",
+      "result": "pass",
+      "declaredPersonas": ["developer"],
+      "evidence": "Front matter line 3 declares `persona: developer`. Valid value per INV-frontmatter-006. The entire page is code-first C# with SDK types (`IContentRetriever`, `ContentItemQueryBuilder`, `RetrieveContentParameters`, `IContentItemFieldsSource`), DI patterns, LINQ projections, and Razor view integration. No admin-oriented configuration or business-oriented outcome framing warrants additional persona tags. All sibling pages in the content-retrieval cluster are also developer-only."
+    },
+    {
+      "check": "tone-developer",
+      "result": "pass",
+      "evidence": "Precise API terminology throughout: `IContentRetriever`, `RetrieveContentParameters`, `IncludeSecuredItems`, `HasAccess`, `ClaimsPrincipal`, `IContentItemFieldsSource`, `ContentItemRequiredMemberRoleNames`, `SystemFields.ContentItemIsSecured`. DI assumed without explanation (line 44: 'Services obtained via dependency injection'). LINQ used without preamble (line 384: `clinics.Select(x => x.SystemFields.ContentItemIsSecured)`). Razor `@model` syntax (line 333) presented without framework introduction. All correctly calibrated for developers with SDK familiarity."
+    },
+    {
+      "check": "tone-developer-security-section",
+      "result": "pass",
+      "evidence": "Three-tier security model (lines 260–388) uses developer-appropriate framing: leads with concise conceptual setup (3 bullets, lines 263–265), immediately provides code for `IncludeSecuredItems`, then layers complexity: HasAccess extension method → Razor view three-tier conditional → projection patterns. Simple-to-complex progression matches how-to developer content expectations. The `HasAccess` tip (lines 314–318) explicitly positions it as 'the recommended approach' with clear rationale — actionable developer guidance, not hand-waving."
+    },
+    {
+      "check": "tone-no-business-leakage",
+      "result": "pass",
+      "evidence": "No business/marketing vocabulary detected. The page does not frame content security in terms of 'digital experience strategy', 'content governance ROI', or similar business concepts. Uses 'visitor' consistently (not 'customer' or 'user' in a business context). Security tiers described in implementation terms (authentication state, role membership), not business outcomes."
+    },
+    {
+      "check": "tone-no-admin-leakage",
+      "result": "pass",
+      "evidence": "Admin-side procedures correctly delegated via cross-references: line 261 links to content_items_xp for 'Secure content items' admin UI workflow; line 265 links to member_roles_xp for role creation/management; line 268 links to ContentAccessSettings reference. The page never describes admin UI steps (no 'navigate to Settings > ...', no screenshots of admin panels). Clean separation maintained."
+    },
+    {
+      "check": "depth-calibration",
+      "result": "pass",
+      "evidence": "Code samples show complete, runnable patterns: full method signatures with return types, service resolution via DI, cache settings configuration. HasAccess section (lines 290–312) provides the method signature, a foreach usage pattern, then enumerates three-tier behavior — sufficient without over-explaining. Lazy-loading tip (lines 369–373) is a performance detail developers need. Projection example (lines 377–388) demonstrates advanced LINQ appropriate for the audience. New 'Next steps' section (lines 541–545) provides navigational depth without padding."
+    },
+    {
+      "check": "attempt2-changes-persona-impact",
+      "result": "pass",
+      "evidence": "Attempt 2 changes have neutral-to-positive persona impact: (1) Em dash → double hyphen replacements (lines 263–265, 357) are formatting-only, no persona effect. (2) Code comment tone change ('// Project' → '// Projects', lines 382/385) aligns with third-person documentation voice — slightly more natural for a developer scanning code samples. (3) 'empty or null' clarification (line 365) adds precision that developers specifically need (they must handle both cases in code). (4) Next steps section (lines 541–545) links to member_roles_xp, ContentAccessSettings reference, and content item query API — all developer-targeted resources appropriate for the page's persona."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "concept",
+    "actual": "hybrid-howto",
+    "result": "pass",
+    "evidence": "Doc-index classifies this page as 'concept'; task-graph classifies contentType as 'howto'. The page is functionally a hybrid: primarily goal-oriented procedures with code samples (how-to pattern) plus conceptual explanations (e.g., three-tier model introduction, ContentRetriever API design overview lines 17–24). No front matter `classification` field exists — this is index-level metadata only. The content structure is appropriate for a developer audience regardless of index classification. No persona concern."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "developer",
+      "evidence": "Line 3: `persona: developer`. Valid value per INV-frontmatter-006 (developer, admin, business, architect, all)."
+    },
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Retrieve content items",
+      "evidence": "Line 2. Present and descriptive."
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "OKrWCQ",
+      "evidence": "Line 4. Present and unique within doc-index."
+    },
+    {
+      "field": "order",
+      "result": "pass",
+      "value": "200",
+      "evidence": "Line 5. Valid numeric value per INV-frontmatter-003."
+    },
+    {
+      "field": "license",
+      "result": "pass",
+      "value": "1",
+      "evidence": "Line 6. Standard license tier per INV-frontmatter-005."
+    },
+    {
+      "field": "redirect_from",
+      "result": "pass",
+      "value": "x/OKrWCQ",
+      "evidence": "Line 8. Follows x/<identifier> pattern per INV-frontmatter-004."
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in the content-retrieval cluster target developer persona exclusively: 'Content retrieval' index (developer), 'Retrieve content from media libraries' (developer), 'Retrieve headless content' (developer), 'Retrieve page content' (developer), 'Retrieve page URLs' (developer). This page's developer-only targeting is consistent with the cluster. No anomaly."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-003",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Developer terminology used appropriately: `IContentRetriever`, `ContentItemQueryBuilder`, `ClaimsPrincipal`, `IContentItemFieldsSource`, `IReadOnlyCollection<string>`, LINQ projections, DI patterns. Related easy steps combined where appropriate (e.g., line 421: 'Retrieve the object... Retrieve linked content items by accessing...'). No business/marketing terms appear without explanation."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Vocabulary precisely targeted to developers. 'dependency injection' (line 44), 'extension method' (line 291), 'ClaimsPrincipal' (line 291), 'strongly typed objects' (line 22), 'LINQ' projections (line 384) used without explanation — correct for developer audience. No business-user terminology ('digital experience', 'content strategy', etc.) present."
+    },
+    {
+      "invariantId": "INV-frontmatter-001",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "YAML front matter present between --- lines (lines 1–15). Required fields present: title, identifier, order, redirect_from, persona, license."
+    },
+    {
+      "invariantId": "INV-frontmatter-006",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Persona value 'developer' is a valid value from the defined set: developer, admin, business, architect, all."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "severity": "must",
+      "evidence": "Developer audience allows merging two related easy steps. Steps throughout the page follow this pattern appropriately. No business-user single-action-per-step constraint applies."
+    },
+    {
+      "invariantId": "INV-structure-018",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Avoids over-explaining common developer concepts: DI, LINQ, Razor views, async/await all used without tutorials. Basic SDK familiarity assumed. Appropriate for target audience."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "severity": "should",
+      "evidence": "Security section code examples progress in logical steps: 1) IncludeSecuredItems basic retrieval, 2) HasAccess extension method, 3) Razor view three-tier conditional, 4) projection of security properties. How-to level detail (less than tutorial) correctly applied."
+    },
+    {
+      "invariantId": "INV-persona-001",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "Business user invariant. Page targets developers only."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "Business user invariant. Page targets developers only."
+    },
+    {
+      "invariantId": "INV-persona-005",
+      "result": "not-applicable",
+      "severity": "must",
+      "evidence": "Guides collection invariant. Page is in _documentation collection."
+    },
+    {
+      "invariantId": "INV-persona-006",
+      "result": "not-applicable",
+      "severity": "should",
+      "evidence": "Business user guide materials invariant. Not applicable."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 7,
+    "personaChecksFailed": 0,
+    "personaChecksNoted": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "taxonomyFieldsChecked": 6,
+    "invariantsPassed": 7,
+    "invariantsFailed": 0,
+    "invariantsNotApplicable": 4,
+    "consistencyWithCluster": "pass",
+    "attemptDelta": "Previous approved-with-notes → approved. Attempt 2 changes (formatting, code comments, accuracy clarification, Next steps) have no negative persona impact. The optional architect callout note from Attempt 1 remains a valid future suggestion but was never blocking."
+  }
+}

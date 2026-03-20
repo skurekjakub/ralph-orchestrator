@@ -1,0 +1,263 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-007",
+  "attempt": 2,
+  "verdict": "approved",
+  "deltaFromAttempt1": {
+    "previousVerdict": "approved-with-notes",
+    "changesReviewed": [
+      "Line 365: 'the collection is empty' → 'the collection is empty or null' (accuracy clarification)",
+      "Lines 263-265: em dash → double hyphen (formatting only, no accuracy impact)",
+      "Line 357: em dash → double hyphen (formatting only, no accuracy impact)",
+      "Lines 382, 385: code comments changed from imperative to third-person (no accuracy impact)",
+      "Lines 541-545: ## Next steps section added (new content)"
+    ],
+    "previousClaimsUnchanged": "25 verified + 0 incorrect claims from attempt 1 are unchanged in content. The single 'unsupported' claim (line 365) was the only item modified for accuracy."
+  },
+  "claims": [
+    {
+      "claim": "For public and authenticated-only items, the collection is empty or null",
+      "location": "Section: Project security properties, paragraph 2 (line 365)",
+      "result": "verified",
+      "evidence": "Two access paths yield different results, both covered by 'empty or null': (1) Via IContentQueryDataContainer / ContentQueryDataContainerBase — ContentQueryDataContainer.RequiredMemberRoleNames getter at line 38: (requiredMemberRoleNames ?? []).ToList().AsReadOnly(). The ?? [] null-coalescing ensures this ALWAYS returns an empty ReadOnlyCollection<string>, never null. TryGetValue (line 81-84) intercepts the column name and returns this property. So via query container access, the value is EMPTY. (2) Via ContentItemFields.SystemFields.ContentItemRequiredMemberRoleNames — plain { get; set; } auto-property with no initializer (ContentItemFields.cs line 50), defaults to null. HasAccess at ContentItemFieldsSourceExtensions.cs line 29 uses ?? [] defensively, confirming NULL is a genuine possibility via this path. The XML doc remark (ContentItemFields.cs lines 46-48) states 'Required member roles are set only for secured content items', which aligns with null for non-secured items via SystemFields. Conclusion: 'empty or null' correctly covers both access paths. This is an improvement from attempt 1's 'empty' which was incomplete for the SystemFields path.",
+      "docFact": "AREA-006: For unsecured items, ContentItemRequiredMemberRoleNames returns empty collection.",
+      "previousStatus": "unsupported",
+      "promotionReason": "Deep trace through ContentQueryDataContainer.RequiredMemberRoleNames getter (null-coalescing ?? []) and ContentItemFields.SystemFields path (plain auto-property) confirms 'empty or null' accurately describes both access paths. The original attempt 1 note that the value was 'likely null rather than empty' was based on incomplete analysis that missed the ?? [] in the RequiredMemberRoleNames getter."
+    },
+    {
+      "claim": "Public -- accessible to all visitors without restriction",
+      "location": "Section: Content item security, bullet 1 (line 263)",
+      "result": "verified",
+      "evidence": "Content unchanged from attempt 1 (formatting-only: em dash → double hyphen). MemberAccessHelper.cs line 21-23: if (!isSecured) return ContentAccessCheckResult.Allowed. Verified in attempt 1, no regression.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Authenticated only -- requires the visitor to sign in before the content is displayed",
+      "location": "Section: Content item security, bullet 2 (line 264)",
+      "result": "verified",
+      "evidence": "Content unchanged from attempt 1 (formatting-only: em dash → double hyphen). MemberAccessHelper.cs lines 35-44: if secured + not authenticated → NotAuthenticated; if authenticated + no required roles → Allowed. Verified in attempt 1, no regression.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Role-restricted -- requires the visitor to sign in and belong to one or more designated member roles",
+      "location": "Section: Content item security, bullet 3 (line 265)",
+      "result": "verified",
+      "evidence": "Content unchanged from attempt 1 (formatting-only: em dash → double hyphen). MemberAccessHelper.cs lines 41-48: checks UserIsInAnyRole(user, requiredRoles). Verified in attempt 1, no regression.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Checking User.Identity.IsAuthenticated alone only tells you whether the visitor is signed in -- it does not account for role-restricted content",
+      "location": "Tip: IsAuthenticated only covers binary checks (line 357)",
+      "result": "verified",
+      "evidence": "Content unchanged from attempt 1 (formatting-only: em dash → double hyphen). IsAuthenticated is a standard .NET bool for auth status only. MemberAccessHelper.CheckAccess shows role checking (lines 41-48) is a separate step. Verified in attempt 1, no regression.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Content items can be secured using a three-tier access model",
+      "location": "Section: Content item security, paragraph 1 (line 261)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentAccessCheckResult enum defines Allowed, NotAuthenticated, Forbidden. MemberAccessHelper.CheckAccess implements three-tier logic.",
+      "docFact": "AREA-009: Three-tier access check: Allowed (200), NotAuthenticated (401), Forbidden (403)."
+    },
+    {
+      "claim": "Reference to ContentAccessSettings class and its factory methods",
+      "location": "Section: Content item security, paragraph after bullets (line 267)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. AREA-002 confirms ContentAccessSettings with factory methods Public(), Secured(), SecuredWithRoles().",
+      "docFact": "AREA-002, AREA-005"
+    },
+    {
+      "claim": "By default, IContentRetriever excludes secured content items from query results",
+      "location": "Section: Content item security, paragraph 3 (line 269)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. RetrieveParametersBase.cs line 43: public bool IncludeSecuredItems { get; init; } = false;",
+      "docFact": null
+    },
+    {
+      "claim": "Set the IncludeSecuredItems property of the RetrieveContentParameters object to true to include secured items",
+      "location": "Section: Content item security, paragraph 3 (line 269)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. RetrieveParametersBase.cs line 43: IncludeSecuredItems is bool init-only property defaulting to false.",
+      "docFact": null
+    },
+    {
+      "claim": "HasAccess is an extension method on IContentItemFieldsSource that accepts a ClaimsPrincipal parameter",
+      "location": "Section: Check content access with HasAccess, paragraph 1 (line 291)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFieldsSourceExtensions.cs line 19: public static bool HasAccess(this IContentItemFieldsSource contentItem, ClaimsPrincipal user).",
+      "docFact": "AREA-009: HasAccess(this IContentItemFieldsSource, ClaimsPrincipal) — public extension method."
+    },
+    {
+      "claim": "HasAccess evaluates the item's security settings against the visitor's authentication state and role membership",
+      "location": "Section: Check content access with HasAccess, paragraph 1 (line 291)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFieldsSourceExtensions.cs lines 24-29 delegates to MemberAccessHelper.CheckAccess which checks isSecured, IsAuthenticated, and role membership.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "HasAccess returns true (bool) indicating whether the visitor is allowed to view the content",
+      "location": "Section: Check content access with HasAccess, code comment (line 304)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFieldsSourceExtensions.cs line 19: return type is bool. Line 29: returns ... == ContentAccessCheckResult.Allowed.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "For public items, HasAccess always returns true",
+      "location": "Section: Check content access with HasAccess, bullet 1 (line 312)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. MemberAccessHelper.cs lines 21-23: if (!isSecured) return Allowed → HasAccess returns true.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "For authenticated-only items, HasAccess returns true if the visitor is signed in",
+      "location": "Section: Check content access with HasAccess, bullet 2 (line 313)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. MemberAccessHelper.cs: secured + authenticated + no required roles → Allowed.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "For role-restricted items, HasAccess returns true if the visitor is signed in and belongs to at least one of the required member roles",
+      "location": "Section: Check content access with HasAccess, bullet 3 (line 314)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. MemberAccessHelper.cs lines 46-48: UserIsInAnyRole checks roles.Any(role => user.IsInRole(role)).",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "HasAccess evaluates both authentication and role membership in a single call, replacing the need to check ContentItemIsSecured and User.Identity.IsAuthenticated separately",
+      "location": "Tip: HasAccess is the recommended approach (lines 320-321)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFieldsSourceExtensions.cs lines 24-29 and MemberAccessHelper.cs lines 19-48 confirm single-call behavior.",
+      "docFact": "AREA-009"
+    },
+    {
+      "claim": "Kentico.Content.Web.Mvc namespace provides HasAccess",
+      "location": "Section: Reflect content access in views, Razor @using (line 330)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFieldsSourceExtensions.cs line 6: namespace Kentico.Content.Web.Mvc.",
+      "docFact": null
+    },
+    {
+      "claim": "SystemFields.ContentItemIsSecured property indicates the secured state of a retrieved content item",
+      "location": "Section: Project security properties, paragraph 1 (line 363)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFields.cs line 40: public bool ContentItemIsSecured { get; set; }.",
+      "docFact": null
+    },
+    {
+      "claim": "ContentItemRequiredMemberRoleNames property contains the code names of member roles required for access",
+      "location": "Section: Project security properties, paragraph 1 (line 363)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemFields.cs line 50: IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames. ContentItemRolesResultProcessor.cs line 48 populates via GetMemberRoleCodeNames().",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>."
+    },
+    {
+      "claim": "ContentItemRequiredMemberRoleNames is available on all content query result containers and returns IReadOnlyCollection<string>",
+      "location": "Section: Project security properties, paragraph 1 (line 363)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. IContentQueryDataContainer.cs line 60, ContentQueryDataContainerBase.cs line 59, ContentItemFields.cs line 50 — all declare IReadOnlyCollection<string>.",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>."
+    },
+    {
+      "claim": "For role-restricted items, ContentItemRequiredMemberRoleNames contains the code names of the required roles (e.g., [\"Subscriber\", \"Premium_Member\"])",
+      "location": "Section: Project security properties, paragraph 2 (line 365)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemRolesResultProcessor.cs lines 42-53 and SetRoleNames (line 66-69) populate from GetMemberRoleCodeNames().",
+      "docFact": "AREA-006"
+    },
+    {
+      "claim": "The system only fetches role data from the database when at least one item in the query results has ContentItemIsSecured set to true",
+      "location": "Tip: Lazy loading of role data (lines 370-372)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. ContentItemRolesResultProcessor.cs lines 37-40: guard clause returns early if no items have ContentItemIsSecured=true.",
+      "docFact": "AREA-006: Lazy loading: role data only fetched when at least one item has ContentItemIsSecured=true."
+    },
+    {
+      "claim": "For queries that return only public items, no additional database calls are made",
+      "location": "Tip: Lazy loading of role data (lines 370-372)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. Direct consequence of guard clause at ContentItemRolesResultProcessor.cs line 37.",
+      "docFact": "AREA-006"
+    },
+    {
+      "claim": "Both pages and content items use the same properties to determine their security configuration",
+      "location": "Section: Project security properties, paragraph 3 (line 375)",
+      "result": "verified",
+      "evidence": "Unchanged from attempt 1. IContentQueryDataContainer defines both properties. Both web page and content item results implement this interface.",
+      "docFact": "AREA-006"
+    },
+    {
+      "claim": "Projection via x.SystemFields.ContentItemIsSecured is valid",
+      "location": "Section: Project security properties, code block (line 383)",
+      "result": "verified",
+      "evidence": "Unchanged code from attempt 1. ContentItemFields.cs line 40: public bool ContentItemIsSecured { get; set; }. Comment changed to third-person but code is identical.",
+      "docFact": null
+    },
+    {
+      "claim": "Projection via x.SystemFields.ContentItemRequiredMemberRoleNames is valid",
+      "location": "Section: Project security properties, code block (line 386)",
+      "result": "verified",
+      "evidence": "Unchanged code from attempt 1. ContentItemFields.cs line 50: IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames. Comment changed to third-person but code is identical.",
+      "docFact": "AREA-006"
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Content item security, code block — Retrieve secured content items (lines 271-287)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Unchanged from attempt 1. RetrieveContentParameters with IncludeSecuredItems = true. Property confirmed at RetrieveParametersBase.cs line 43."
+    },
+    {
+      "location": "Section: Check content access with HasAccess, code block (lines 293-308)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Unchanged from attempt 1. item.HasAccess(User) matches extension method signature. Return type bool confirmed."
+    },
+    {
+      "location": "Section: Reflect content access in views, Razor code block (lines 328-351)",
+      "language": "cshtml",
+      "result": "verified",
+      "notes": "Unchanged from attempt 1. @using Kentico.Content.Web.Mvc provides HasAccess. Three-branch logic correctly maps to three-tier model."
+    },
+    {
+      "location": "Section: Project security properties, code block — projection (lines 377-388)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "Code unchanged from attempt 1. Comments modified: '// Projects the secured state' (line 382) and '// Projects the required member role names' (line 385) — third-person voice, factually correct LINQ Select projection. clinics.Select(x => x.SystemFields.ContentItemIsSecured) → valid bool projection. clinics.Select(x => x.SystemFields.ContentItemRequiredMemberRoleNames) → valid IReadOnlyCollection<string> projection. No accuracy regression from comment voice change."
+    }
+  ],
+  "researchRecommendationChecks": [
+    {
+      "recId": "REC-001",
+      "cited": true,
+      "assessment": "No change from attempt 1. Concise first-sentence descriptions for HasAccess and ContentItemRequiredMemberRoleNames present. Appropriately applied for how-to content type."
+    },
+    {
+      "recId": "REC-012",
+      "cited": true,
+      "assessment": "No change from attempt 1. Cross-reference to Reference - ContentAccessSettings page rather than inlining a table. Appropriate for how-to page."
+    },
+    {
+      "recId": "REC-014",
+      "cited": true,
+      "assessment": "No change from attempt 1. Code examples progress simple → complex: retrieve secured items → HasAccess check → Razor view three-branch → projection. Correctly implemented."
+    }
+  ],
+  "knowledgeBriefChecks": {
+    "coldStart": true,
+    "domainInsightsReviewed": 0,
+    "conflictsFound": 0,
+    "notes": "Knowledge brief has zero domain insights (cold start). No cross-referencing needed."
+  },
+  "invariantDiscards": [],
+  "summary": {
+    "totalClaims": 26,
+    "verified": 26,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 4,
+    "codeExamplesCorrect": 4,
+    "notes": "Attempt 2 promotes the previously 'unsupported' claim from attempt 1 to 'verified'. The 'empty or null' clarification on line 365 is technically correct: (1) Via IContentQueryDataContainer, ContentQueryDataContainer.RequiredMemberRoleNames getter uses (requiredMemberRoleNames ?? []).ToList().AsReadOnly(), guaranteeing an empty collection, never null. (2) Via ContentItemFields.SystemFields.ContentItemRequiredMemberRoleNames, the plain auto-property { get; set; } has no initializer and defaults to null, which is why HasAccess at ContentItemFieldsSourceExtensions.cs line 29 defensively uses ?? []. Both 'empty' and 'null' are genuine possibilities depending on the access path, so 'empty or null' is accurate. The 3 style fixes (em dash → double hyphen on lines 263-265/357, code comment voice on lines 382/385, Next steps section on lines 541-545) introduce no accuracy regressions — formatting and comment voice changes do not alter technical claims, and the Next steps section contains only cross-reference links with no verifiable technical claims. Note: The attempt 1 reviewer note that the value was 'likely null rather than empty' was based on incomplete analysis of ContentItemRolesResultProcessor.SetRoleNames() that missed the null-coalescing ?? [] in the ContentQueryDataContainer.RequiredMemberRoleNames getter."
+  }
+}

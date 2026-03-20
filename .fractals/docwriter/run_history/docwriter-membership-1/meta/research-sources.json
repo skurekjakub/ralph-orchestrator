@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "SRC-001",
+      "name": "Google Developer Documentation Style Guide",
+      "url": "https://developers.google.com/style",
+      "domains": [
+        "style",
+        "api-reference",
+        "general"
+      ],
+      "addedBy": "bootstrap",
+      "addedDate": null,
+      "usageCount": 6,
+      "lastUsed": "2026-03-14T16:06:35+00:00",
+      "effectiveness": 1.0,
+      "deprecated": false,
+      "assessmentDetail": "Highly effective. All 5 recommendations (REC-001 through REC-004, REC-015) were cited across 5 tasks. REC-001 (concise first sentence for API classes) was the most widely cited recommendation (5 tasks). REC-013 (terminology consistency) was cited in 8 tasks. REC-015 (backtick formatting) in 5 tasks. Google's API reference style guide is the most impactful source for this documentation domain. Effective. Reinforced REC-014 code sample patterns."
+    },
+    {
+      "id": "SRC-002",
+      "name": "Di\u00e1taxis Documentation Framework",
+      "url": "https://diataxis.fr/",
+      "domains": [
+        "structure",
+        "conceptual",
+        "tutorial",
+        "howto",
+        "reference"
+      ],
+      "addedBy": "bootstrap",
+      "addedDate": null,
+      "usageCount": 5,
+      "lastUsed": "2026-03-14T16:06:35+00:00",
+      "effectiveness": 0.71,
+      "deprecated": false,
+      "assessmentDetail": "Tutorials: Low effectiveness for this run. REC-006 and REC-018 (DancingGoat tutorial guidance) were unused \u2014 no DancingGoat tutorial tasks in this pipeline run. REC-007 (minimize concept explanation in tutorials) was not directly cited. Only REC-018 had marginal applicability. Tutorial-focused sources are less relevant when the pipeline is updating reference and how-to pages.; How-to: Highly effective. REC-008 (user-perspective problem framing), REC-009 (assume-able context), REC-016 (authentication flow documentation) all used. REC-016 was particularly valuable \u2014 cited in 4 tasks (TASK-003 through TASK-005, plus TASK-008) covering authentication page updates.; Reference: Effective. REC-012 (ContentAccessSettings reference structure) was cited in 5 tasks dealing with the three-tier access model.",
+      "subSourceBreakdown": {
+        "tutorials": {
+          "effectiveness": 0.33,
+          "used": 1,
+          "total": 3
+        },
+        "howTo": {
+          "effectiveness": 1.0,
+          "used": 3,
+          "total": 3
+        },
+        "reference": {
+          "effectiveness": 1.0,
+          "used": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "id": "SRC-003",
+      "name": "Microsoft Writing Style Guide",
+      "url": "https://learn.microsoft.com/en-us/style-guide/welcome/",
+      "domains": [
+        "style",
+        "accessibility",
+        "general"
+      ],
+      "addedBy": "bootstrap",
+      "addedDate": null,
+      "usageCount": 5,
+      "lastUsed": "2026-03-14T16:06:35+00:00",
+      "effectiveness": 1.0,
+      "deprecated": false,
+      "assessmentDetail": "Step-by-step: Effective for business-user tasks. REC-010 (location-before-action for UI procedures) and REC-011 (arrow notation for nav paths) were essential for the 3 business-user page updates.; Reference: Effective. REC-005 (standard API reference section order) was adapted to fit Kentico invariants and used in 2 reference page tasks.; Code: Highly effective. REC-014 (simplest scenario first for code examples) was the second most widely cited recommendation (7 tasks). REC-017 (assume working environment in how-tos) was useful for establishing baseline context.",
+      "subSourceBreakdown": {
+        "stepByStep": {
+          "effectiveness": 1.0,
+          "used": 2,
+          "total": 2
+        },
+        "reference": {
+          "effectiveness": 1.0,
+          "used": 1,
+          "total": 1
+        },
+        "codeExamples": {
+          "effectiveness": 1.0,
+          "used": 2,
+          "total": 2
+        }
+      }
+    },
+    {
+      "id": "SRC-004",
+      "name": "Write the Docs \u2014 Documentation Guide",
+      "url": "https://www.writethedocs.org/guide/",
+      "domains": [
+        "general",
+        "structure",
+        "style"
+      ],
+      "addedBy": "bootstrap",
+      "addedDate": null,
+      "usageCount": 0,
+      "lastUsed": null,
+      "effectiveness": null,
+      "deprecated": false
+    },
+    {
+      "id": "SRC-005",
+      "name": "Kentico Xperience admin UI component reference \u2014 icon classes, interaction verbs, field behaviors",
+      "url": null,
+      "domains": [
+        "admin-ui"
+      ],
+      "addedBy": "knowledge-integrator",
+      "addedDate": "2026-03-14T16:06:35+00:00",
+      "usageCount": 0,
+      "lastUsed": null,
+      "effectiveness": null,
+      "deprecated": false,
+      "status": "pending-review",
+      "rationale": "Business-user pages (TASK-011, TASK-012, TASK-013) faced unique challenges around UI interaction vocabulary and icon accuracy that weren't covered by any research source. A Kentico-specific admin UI style reference would help."
+    }
+  ],
+  "lastUpdated": "2026-03-14T16:06:35+00:00",
+  "lastRunUsageRate": 0.83
+}

@@ -1,0 +1,10 @@
+{
+  "agent": "docwriter-pr-preparer",
+  "status": "done",
+  "result": "pr-ready",
+  "branch": "docs/membership",
+  "commitCreated": true,
+  "commitSha": "b6406f4227b6d706b20215296c02ece94e6005db",
+  "filesInCommit": 17,
+  "prDescriptionWritten": true
+}

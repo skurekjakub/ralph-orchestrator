@@ -1,0 +1,156 @@
+{
+  "agent": "docwriter-accuracy-reviewer",
+  "taskId": "TASK-009",
+  "attempt": 2,
+  "verdict": "approved",
+  "previousAttemptVerdict": "approved (attempt 1)",
+  "regressionCheck": "No regressions. Attempt 2 changes were style-only (heading gerund→imperative, bold title added to note callout). All 15 factual claims remain unchanged from attempt 1.",
+  "claims": [
+    {
+      "claim": "The system returns results through `IContentQueryDataContainer` objects",
+      "location": "Section: Query result container properties, paragraph 1 (line 1026)",
+      "result": "verified",
+      "evidence": "IContentQueryExecutor.cs line 28: GetResult<TModel>(ContentItemQueryBuilder builder, Func<IContentQueryDataContainer, TModel> resultSelector, ...) — result selector receives IContentQueryDataContainer",
+      "docFact": null
+    },
+    {
+      "claim": "System fields include `ContentItemID`",
+      "location": "Section: Query result container properties, paragraph 1 (line 1026)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 27: int ContentItemID { get; }",
+      "docFact": null
+    },
+    {
+      "claim": "ContentItemRequiredMemberRoleNames gets the code names of member roles required to access the content item",
+      "location": "Section: ContentItemRequiredMemberRoleNames, description (line 1030)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs lines 52-53: XML doc 'Gets the member role names that are required to access the content item'. ContentItemRolesResultProcessor.cs line 48: calls GetMemberRoleCodeNames() confirming these are code names.",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>"
+    },
+    {
+      "claim": "Type is `IReadOnlyCollection<string>`",
+      "location": "Section: ContentItemRequiredMemberRoleNames, detail table row 1 (line 1049)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 60: IReadOnlyCollection<string> ContentItemRequiredMemberRoleNames => GetValue<IReadOnlyCollection<string>>(nameof(ContentItemRequiredMemberRoleNames))",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>"
+    },
+    {
+      "claim": "Default value is empty collection",
+      "location": "Section: ContentItemRequiredMemberRoleNames, detail table row 2 (line 1059)",
+      "result": "verified",
+      "evidence": "ContentQueryDataContainer.cs lines 36-38: RequiredMemberRoleNames getter returns (requiredMemberRoleNames ?? []).ToList().AsReadOnly() — null coalesces to empty collection",
+      "docFact": "AREA-006: Default interface implementation returns empty collection via GetValue"
+    },
+    {
+      "claim": "Defined in `IContentQueryDataContainer`",
+      "location": "Section: ContentItemRequiredMemberRoleNames, detail table row 3 (line 1069)",
+      "result": "verified",
+      "evidence": "IContentQueryDataContainer.cs line 60: property declared in the IContentQueryDataContainer interface with default implementation",
+      "docFact": "AREA-006: IContentQueryDataContainer.ContentItemRequiredMemberRoleNames: IReadOnlyCollection<string>"
+    },
+    {
+      "claim": "For secured content items, the property returns the code names of all member roles required for access",
+      "location": "Section: ContentItemRequiredMemberRoleNames, paragraph after table (line 1074)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 42-53: filters for ContentItemIsSecured, calls GetMemberRoleCodeNames(contentItemIds), then SetRoleNames on each container",
+      "docFact": "AREA-006: ContentItemRolesResultProcessor populates property as post-processing step"
+    },
+    {
+      "claim": "For items that are not secured, the property returns an empty collection",
+      "location": "Section: ContentItemRequiredMemberRoleNames, paragraph after table (line 1074)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 36-40: early return if no items secured. SetRoleNames (line 66-68) only sets when roleNames.Any(). Default getter returns empty collection.",
+      "docFact": "AREA-006: Default interface implementation returns empty collection via GetValue"
+    },
+    {
+      "claim": "The system populates this property automatically through the `ContentItemRolesResultProcessor`",
+      "location": "Section: ContentItemRequiredMemberRoleNames, second paragraph (line 1076)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs line 10: [assembly: RegisterImplementation(typeof(IContentQueryResultProcessor), typeof(ContentItemRolesResultProcessor), Priority = RegistrationPriority.Default)] — auto-registered",
+      "docFact": "AREA-006: ContentItemRolesResultProcessor populates property as post-processing step"
+    },
+    {
+      "claim": "`ContentItemRolesResultProcessor` runs as a post-processing step after query execution",
+      "location": "Section: ContentItemRequiredMemberRoleNames, second paragraph (line 1076)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs line 17: implements IContentQueryResultProcessor. Line 32: PostProcessQueryResult(IEnumerable<IContentQueryDataContainer> containers)",
+      "docFact": "AREA-006: ContentItemRolesResultProcessor populates property as post-processing step"
+    },
+    {
+      "claim": "The processor works transparently — no additional code or configuration is required",
+      "location": "Section: ContentItemRequiredMemberRoleNames, second paragraph (line 1076)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs line 10: assembly-level RegisterImplementation auto-registers at RegistrationPriority.Default. No developer opt-in needed.",
+      "docFact": null
+    },
+    {
+      "claim": "`ContentItemRolesResultProcessor` uses lazy loading — member role data is only fetched from the database when at least one content item has `ContentItemIsSecured` set to true",
+      "location": "Section: ContentItemRequiredMemberRoleNames, note block (line 1082)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 36-40: if (!allContainers.Any(c => c.ContentItemIsSecured)) { return; } — early return before any DB call",
+      "docFact": "AREA-006: Lazy loading — role data only fetched when ContentItemIsSecured=true for at least one result"
+    },
+    {
+      "claim": "If no items in the result are secured, no additional database queries are executed",
+      "location": "Section: ContentItemRequiredMemberRoleNames, note block (line 1082)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs lines 36-40: early return before GetMemberRoleCodeNames call when no items are secured",
+      "docFact": "AREA-006: Lazy loading — role data only fetched when ContentItemIsSecured=true for at least one result"
+    },
+    {
+      "claim": "The processor also resolves role names for linked items included through WithLinkedItems",
+      "location": "Section: ContentItemRequiredMemberRoleNames, paragraph after note (line 1086)",
+      "result": "verified",
+      "evidence": "ContentItemRolesResultProcessor.cs line 34: GetAllItemsIncludingLinkedItems(containers). Lines 73-89: BFS traversal through LinkedItemsByField on each ContentQueryDataContainer",
+      "docFact": "AREA-006: Processor resolves role names for linked items (GetAllItemsIncludingLinkedItems)"
+    },
+    {
+      "claim": "To include secured items in query results, set `IncludeSecuredItems` to true in the query executor configuration",
+      "location": "Section: ContentItemRequiredMemberRoleNames, final paragraph (line 1088)",
+      "result": "verified",
+      "evidence": "ContentQueryExecutionOptions.cs lines 16-17: public bool IncludeSecuredItems { get; set; } = false;",
+      "docFact": null
+    }
+  ],
+  "codeExamples": [
+    {
+      "location": "Section: Access role names from query results, code block (lines 1094-1126)",
+      "language": "csharp",
+      "result": "verified",
+      "notes": "All API usage re-verified: (1) new ContentItemQueryBuilder().ForContentType(\"Article\") — valid. (2) ContentQueryExecutionOptions { IncludeSecuredItems = true } — matches source at ContentQueryExecutionOptions.cs line 17. (3) executor.GetResult(builder, container => {...}, options) — matches IContentQueryExecutor.cs line 28 signature. (4) container.GetValue<string>(\"ArticleTitle\") — valid per IContentQueryDataContainer.GetValue<TValue>(string) line 105. (5) container.ContentItemIsSecured — IContentQueryDataContainer.cs line 48: bool. (6) container.ContentItemRequiredMemberRoleNames — IContentQueryDataContainer.cs line 60: IReadOnlyCollection<string>. (7) .Any() on IReadOnlyCollection<string> — valid LINQ. (8) Return type IEnumerable<ArticleDto> matches await pattern."
+    }
+  ],
+  "researchRecommendationVerification": [
+    {
+      "id": "REC-001",
+      "status": "followed",
+      "notes": "Concise first sentence. Code sample provided within guidelines."
+    },
+    {
+      "id": "REC-002",
+      "status": "followed",
+      "notes": "'Gets the...' verb-first pattern for getter property description."
+    },
+    {
+      "id": "REC-005",
+      "status": "followed",
+      "notes": "Adapted — Kentico structure (title/body/example) preserved."
+    },
+    {
+      "id": "REC-014",
+      "status": "followed",
+      "notes": "Code example preceded by introductory sentence. Expected output shown in comments."
+    }
+  ],
+  "knowledgeBriefNotes": "Cold start — no domain-insight conflicts detected.",
+  "invariantDiscards": [],
+  "summary": {
+    "totalClaims": 15,
+    "verified": 15,
+    "incorrect": 0,
+    "unverifiable": 0,
+    "unsupported": 0,
+    "codeExamplesChecked": 1,
+    "codeExamplesCorrect": 1
+  }
+}

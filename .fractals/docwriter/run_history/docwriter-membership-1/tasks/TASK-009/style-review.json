@@ -1,0 +1,242 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-009",
+  "verdict": "approved",
+  "reviewedFile": "src/_documentation/_documentation/developers-and-admins/api/content-item-api/reference-content-item-query.md",
+  "reviewedLines": "1024-1126 (new content added by content-writer)",
+  "attempt": 2,
+  "previousRejections": [
+    {
+      "attempt": 1,
+      "failedInvariants": ["INV-style-002", "INV-callout-002"]
+    }
+  ],
+  "fixVerification": [
+    {
+      "invariantId": "INV-style-002",
+      "previousIssue": "Heading used gerund 'Accessing role names from query results'",
+      "fix": "Changed to imperative 'Access role names from query results' (line 1090)",
+      "verified": true
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "previousIssue": "Multi-sentence note callout lacked bold title",
+      "fix": "Added '**Lazy loading of role data**' as bold title on separate line inside note (line 1080)",
+      "verified": true
+    }
+  ],
+  "invariantResults": [
+    {
+      "invariantId": "INV-structure-019",
+      "result": "pass",
+      "evidence": "Front matter title 'Reference - Content item query' follows 'Reference - XYZ' pattern."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "All API members in backticks: `IContentQueryDataContainer`, `ContentItemID`, `ContentItemRequiredMemberRoleNames`, `IReadOnlyCollection<string>`, `ContentItemRolesResultProcessor`, `ContentItemIsSecured`, `IncludeSecuredItems`, `GetValue<string>`. No bare code elements in prose."
+    },
+    {
+      "invariantId": "INV-codesamples-010",
+      "result": "pass",
+      "evidence": "Code example (lines 1094-1126) broken into logical steps with comments: building query, configuring options, executing with selector, checking access requirements."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "New headings use sentence case: 'Query result container properties' (line 1024), 'Access role names from query results' (line 1090). 'ContentItemRequiredMemberRoleNames' (line 1028) is a code element, exempt."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Line 1090: heading '#### Access role names from query results' uses imperative mood. FIX VERIFIED — was 'Accessing' (gerund) in attempt 1."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "Active voice throughout: 'Gets the code names' (line 1030), 'the property returns' (line 1074), 'The system populates this property' (line 1076), 'The processor also resolves' (line 1086)."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Present simple tense used consistently: 'Gets', 'returns', 'populates', 'runs', 'resolves', 'uses', 'is only fetched'."
+    },
+    {
+      "invariantId": "INV-style-009",
+      "result": "pass",
+      "evidence": "No British English spellings in new content."
+    },
+    {
+      "invariantId": "INV-style-010",
+      "result": "pass",
+      "evidence": "Consistent terminology: 'member roles' throughout (not 'membership roles' or 'user roles'), 'content item' (not 'content element'), 'query result' consistent with existing page."
+    },
+    {
+      "invariantId": "INV-style-011",
+      "result": "pass",
+      "evidence": "No unclear pronoun 'it' usage. Subjects restated explicitly throughout."
+    },
+    {
+      "invariantId": "INV-style-015",
+      "result": "pass",
+      "evidence": "No redundant information. Lazy loading explained once in note callout. ContentItemRolesResultProcessor mentioned once in body, once in note — each adds distinct context."
+    },
+    {
+      "invariantId": "INV-style-017",
+      "result": "pass",
+      "evidence": "No filler words ('actually', 'basically', 'really', 'just', 'in fact') found in new content."
+    },
+    {
+      "invariantId": "INV-style-018",
+      "result": "pass",
+      "evidence": "Most sentences under 20 words. Longest (~25 words, line 1082) acceptable for a conditional-behavior explanation."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "No 'please' found in new content."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "Leads with property purpose, follows with behavior, then code example. Gets to the point directly."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "Links to related pages: member_roles_xp, reference_content_access_settings_xp, and inpage links to WithLinkedItems and query executor config. Does not assume prior reading."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "Front matter title 'Reference - Content item query' does not end with -ing form."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "New section is self-contained with full property documentation (type, default, behavior) and links to dependent concepts."
+    },
+    {
+      "invariantId": "INV-structure-016",
+      "result": "pass",
+      "evidence": "Property details in structured Liquid table (lines 1032-1072) with Detail/Value columns, improving readability over prose."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No pluralized code elements. Uses noun phrases: 'member roles' not '`MemberRole`s'."
+    },
+    {
+      "invariantId": "INV-formatting-011",
+      "result": "pass",
+      "evidence": "Single space between sentences. Table indentation uses consistent 4-space increments."
+    },
+    {
+      "invariantId": "INV-formatting-012",
+      "result": "pass",
+      "evidence": "Oxford comma not applicable — no 3+ item inline lists in prose."
+    },
+    {
+      "invariantId": "INV-callout-001",
+      "result": "pass",
+      "evidence": "Note callout (lines 1078-1084) used for important behavioral detail about lazy loading. Note severity is appropriate."
+    },
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "evidence": "Lines 1078-1084: Note callout has bold title '**Lazy loading of role data**' on separate line (line 1080), followed by blank line, then 3-sentence body. FIX VERIFIED — title was missing in attempt 1."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "evidence": "Callout body does not contain the word 'Note' as text."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "evidence": "Note severity matches content — lazy loading is an important behavioral point."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "Valid Liquid admonition: {% note %} / {% endnote %}."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "Code block uses valid Liquid tag: {% code lang=csharp title=\"Access ContentItemRequiredMemberRoleNames from query results\" %}."
+    },
+    {
+      "invariantId": "INV-jekyll-011",
+      "result": "pass",
+      "evidence": "Property details table uses correct Liquid table/row/cell markup with header=true (lines 1032-1072)."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "All page_link identifiers present in target file front matter: member_roles_xp, reference_content_access_settings_xp. No hallucinated identifiers."
+    },
+    {
+      "invariantId": "INV-crossref-004",
+      "result": "pass",
+      "evidence": "Anchor 'ReferenceContentitemquery-ResultContainerProperties' (line 1024) uses only ASCII letters and hyphens, starts with letter."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "All link text is descriptive: 'member roles', 'Reference - ContentAccessSettings', 'WithLinkedItems', 'query executor configuration'. No vague 'click here'."
+    },
+    {
+      "invariantId": "INV-codesamples-004",
+      "result": "pass",
+      "evidence": "Code comments use third person singular: 'Builds a query', 'Executes the query', 'Checks access requirements', 'Populated automatically'. No final dots on single-line comments."
+    },
+    {
+      "invariantId": "INV-codesamples-008",
+      "result": "pass",
+      "evidence": "Comments focus on Kentico-specific behavior (secured items, role population, custom selector). Generic .NET patterns (foreach, LINQ .Any()) left uncommented."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Headings follow correct hierarchy: ## (line 1024) → ### (line 1028) → #### (line 1090). No skipped levels."
+    },
+    {
+      "category": "consistent-formatting",
+      "result": "pass",
+      "evidence": "Liquid table follows same pattern as existing IContentQueryExecutor config table (lines 985-1021). Code block uses lang=csharp with title, consistent with page conventions."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "Not modified by this task. All required fields present: title, persona, identifier, order, license, redirect_from, toc."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags valid: {% table %}, {% row %}, {% cell %}, {% endtable %}, {% note %}, {% endnote %}, {% code %}, {% endcode %}, {% page_link %}, {% inpage_link %}, {% anchor %}."
+    },
+    {
+      "category": "code-block-consistency",
+      "result": "pass",
+      "evidence": "Language tag present (lang=csharp), title attribute, consistent 4-space indentation."
+    },
+    {
+      "category": "regression-check",
+      "result": "pass",
+      "evidence": "Compared attempt 2 content against attempt 1 review. Only lines 1080 (bold title added) and 1090 (heading verb form changed) differ. No other content modified — no regression risk."
+    }
+  ],
+  "metaKnowledgeNotes": {
+    "knowledgeBriefStatus": "cold start — no patterns, anti-patterns, style evolutions, or task retro lessons available",
+    "skillReferencesStatus": "anti-patterns.md not found — skill references skipped",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 34,
+    "invariantsFailed": 0,
+    "additionalIssues": 0
+  }
+}

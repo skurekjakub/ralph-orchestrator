@@ -1,0 +1,128 @@
+{
+  "agent": "docwriter-persona-reviewer",
+  "taskId": "TASK-013",
+  "attempt": 2,
+  "verdict": "approved",
+  "personaChecks": [
+    {
+      "check": "front-matter-persona",
+      "result": "pass",
+      "declaredPersonas": ["business"],
+      "evidence": "Front matter declares 'persona: business'. The entire page lives under business-users/content-hub/ and exclusively describes admin UI procedures for content managers — no developer, admin-server, or architect content present. Single-persona tag is correct."
+    },
+    {
+      "check": "tone-business",
+      "result": "pass",
+      "evidence": "Security sections use outcome-focused, friendly language throughout. Examples: 'You can control who is allowed to view a content item on the live site using two levels of security' (line 351), 'This allows you to reserve content for particular groups, such as *Premium members* or *Subscribers*' (line 354), 'If you need finer control over who can view a content item' (line 376). No technical jargon — zero mentions of classes, APIs, SDKs, code, or configuration files."
+    },
+    {
+      "check": "tone-business-no-jargon",
+      "result": "pass",
+      "evidence": "Scanned all lines 349–409 (entire security section) for developer terminology: no backtick code spans, no code blocks, no class/method/namespace/interface references, no API terms. The three-tier access model from code analysis (Public/Secured/SecuredWithRoles) is correctly translated to business language: 'Requires authentication' and 'Member role restriction'."
+    },
+    {
+      "check": "tone-business-attempt2-select-clear",
+      "result": "pass",
+      "evidence": "Attempt 2 replaced 'enable the **Requires authentication** option' with 'select the **Requires authentication** option' (lines 368, 390) and 'disable **Requires authentication**' with 'clear the **Requires authentication** option' (line 398). These changes IMPROVE business-user clarity — 'select' and 'clear' are concrete UI actions that map directly to what the user sees (a checkbox), while 'enable/disable' was more abstract."
+    },
+    {
+      "check": "tone-business-attempt2-membership-access",
+      "result": "pass",
+      "evidence": "Attempt 2 replaced 'the **Security** section' with 'the **Membership access** section' (lines 356, 368, 390, 398). This change is persona-neutral to positive — 'Membership access' is the actual label in the admin UI, so it matches what business users will see on screen. No persona regression."
+    },
+    {
+      "check": "tone-business-attempt2-diamond-icon",
+      "result": "pass",
+      "evidence": "Attempt 2 replaced 'lock icon ({% icon xp-lock %})' with 'diamond icon ({% icon xp-diamond %})' (line 358). This is an accuracy fix with no persona impact — both are equally accessible descriptions for business users."
+    },
+    {
+      "check": "one-action-per-step",
+      "result": "pass",
+      "evidence": "Both procedures ('Require authentication' lines 364–370, 'Restrict to member roles' lines 386–394) follow one-action-per-step pattern. Step 4 in 'Restrict' (line 390) is 'select the Requires authentication option' — single action. Step 5 (line 391) is 'Select the member roles' — single action. No merged steps."
+    },
+    {
+      "check": "location-before-action",
+      "result": "pass",
+      "evidence": "Steps follow 'In the [location], [action]' pattern per REC-010: 'In the **Membership access** section, select the **Requires authentication** option' (lines 368, 390). Procedures are ≤6 steps (under 8-step max)."
+    },
+    {
+      "check": "terminology-member-visitor",
+      "result": "pass",
+      "evidence": "Correct terminology throughout security sections per INV-content-030 and REC-013: 'members' for registered visitors (lines 353, 362, 372, 391, 396, 402), 'Visitors' for anonymous users (line 372), 'signed in' / 'signed-in' as verb/adjective (lines 353, 362, 372, 396, 402). Zero instances of 'log in', 'login', 'sign up', 'signup', 'membership role', or 'user role'."
+    },
+    {
+      "check": "screenshot-placeholders",
+      "result": "pass",
+      "evidence": "Two image references included (ContentItemSecuritySettings.jpg line 369, ContentItemSecuritySettingsRoles.jpg line 393) per INV-persona-001 'more screenshots for clarity'. Screenshot for role selection is a placeholder per writer notes — acceptable for review, needs actual capture before publish."
+    },
+    {
+      "check": "assumes-technical-team",
+      "result": "pass",
+      "evidence": "The prerequisite callout 'Before you can restrict content items to member roles, your project must have member roles set up' (lines 378–382) correctly delegates setup to technical colleagues per INV-persona-002, cross-referencing the Members page without explaining how to create roles in developer/admin detail."
+    }
+  ],
+  "classificationCheck": {
+    "declared": "howto",
+    "actual": "howto",
+    "result": "pass",
+    "evidence": "Page contains goal-oriented procedures for specific tasks (create, edit, move, secure, publish, translate, delete content items). The 'Secure content items' section provides step-by-step procedures assuming existing knowledge of the Content hub. This is a howto, not a tutorial (no learning journey) or concept (not purely explanatory)."
+  },
+  "taxonomyChecks": [
+    {
+      "field": "persona",
+      "result": "pass",
+      "value": "business"
+    },
+    {
+      "field": "identifier",
+      "result": "pass",
+      "value": "content_items_xp"
+    },
+    {
+      "field": "title",
+      "result": "pass",
+      "value": "Content items"
+    }
+  ],
+  "consistencyCheck": {
+    "result": "pass",
+    "notes": "All sibling pages in business-users/content-hub/ (content-hub-folders.md, content-item-assets.md, content-hub.md) target the business persona with the same howto structure — procedural content with admin UI screenshots, one-action-per-step. This page is fully consistent with the cluster. No audience mismatch."
+  },
+  "invariantResults": [
+    {
+      "invariantId": "INV-persona-001",
+      "result": "pass",
+      "evidence": "Business-friendly tone throughout. One action per step in both security procedures. No technical jargon. Screenshot placeholders included for both security setting states."
+    },
+    {
+      "invariantId": "INV-persona-002",
+      "result": "pass",
+      "evidence": "Prerequisites callout (lines 378–382) assumes technical team handles member role setup. Cross-references to Members page for role creation rather than explaining admin/developer setup inline."
+    },
+    {
+      "invariantId": "INV-persona-004",
+      "result": "pass",
+      "evidence": "Vocabulary is adjusted to business audience. Uses 'content item', 'member roles', 'signed in', 'Membership access section' — all UI-facing terms. No developer terms like class names, method signatures, or configuration keys."
+    },
+    {
+      "invariantId": "INV-structure-007",
+      "result": "pass",
+      "evidence": "All steps in both procedures contain exactly one action each, as required for business users."
+    },
+    {
+      "invariantId": "INV-content-030",
+      "result": "pass",
+      "evidence": "Correct user-type terminology: 'member' for registered visitors, 'Visitors' for anonymous users. No confusion between member/visitor/user/contact."
+    }
+  ],
+  "summary": {
+    "personaChecksPassed": 11,
+    "personaChecksFailed": 0,
+    "classificationCorrect": true,
+    "taxonomyComplete": true,
+    "invariantsPassed": 5,
+    "invariantsFailed": 0,
+    "attempt2Regression": false,
+    "attempt2Notes": "All three fix categories (select/clear, Membership access, diamond icon) are persona-neutral to positive. No regressions introduced."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "agent": "docwriter-research-scout",
+  "status": "done",
+  "result": "research-brief-ready",
+  "timestamp": "2026-03-14T12:30:07Z",
+  "recommendationsApproved": 15,
+  "recommendationsBlocked": 3,
+  "recommendationsAdapted": 2,
+  "sourcesConsulted": 8,
+  "queriesExecuted": 8,
+  "topicsCovered": ["membership", "authentication", "access-control", "admin-ui", "api-reference", "tutorials", "how-to"],
+  "sourceEffectiveness": {
+    "SRC-001": {"useful": true, "relevance": "high", "notes": "Google API reference guide — core source for method/parameter/deprecation documentation patterns. Directly applicable to the 10+ new public API types."},
+    "SRC-002": {"useful": true, "relevance": "high", "notes": "Diátaxis framework — essential for tutorial/how-to/reference structural distinctions. One title recommendation (How to prefix) blocked by INV-style-003, but core principles align well with Kentico invariants."},
+    "SRC-003": {"useful": true, "relevance": "high", "notes": "Microsoft Writing Style Guide — step-by-step and reference documentation patterns. Navigation notation blocked (> vs ->) by INV-style-046, but procedure structure and code example guidance fully compatible."},
+    "SRC-004": {"useful": false, "relevance": "low", "notes": "Write the Docs guide not fetched — curated higher-priority sources (Google, Diátaxis, Microsoft) covered all needed topics within the 8-fetch budget."}
+  }
+}

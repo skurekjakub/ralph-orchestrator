@@ -1,0 +1,212 @@
+{
+  "agent": "docwriter-style-reviewer",
+  "taskId": "TASK-015",
+  "attempt": 2,
+  "verdict": "approved",
+  "invariantResults": [
+    {
+      "invariantId": "INV-callout-002",
+      "result": "pass",
+      "evidence": "Lines 49-57: The multi-paragraph note callout now has bold title '**Non-nullable AccessSettings**' on its own line (line 51) after the opening {% note %} tag (line 49), with a blank line separator. Two body paragraphs follow. This was the rejected invariant from attempt 1 and is now correctly fixed."
+    },
+    {
+      "invariantId": "INV-callout-001",
+      "result": "pass",
+      "evidence": "Three callouts used: note (line 17, important info about alternative approach), info (line 43, additional reference context), note (line 49, important behavioral constraint). Severity levels match content appropriately."
+    },
+    {
+      "invariantId": "INV-callout-003",
+      "result": "pass",
+      "evidence": "No callout contains its type name as text. Bold titles are descriptive ('Object event handlers', 'Non-nullable AccessSettings'), not 'Note' or 'Info'."
+    },
+    {
+      "invariantId": "INV-callout-004",
+      "result": "pass",
+      "evidence": "Note callout (lines 49-57) documents a non-null enforcement that throws ArgumentNullException — an important behavioral constraint warranting 'note' severity. Info callout (lines 43-47) provides supplementary reference link — appropriate for 'info'."
+    },
+    {
+      "invariantId": "INV-formatting-004",
+      "result": "pass",
+      "evidence": "New content (lines 53-55): All code elements properly backticked — `AccessSettings`, `ContentAccessSettings`, `null`, `ArgumentNullException`, `ContentAccessSettings.Public()`. Pre-existing code elements also properly formatted throughout."
+    },
+    {
+      "invariantId": "INV-formatting-006",
+      "result": "pass",
+      "evidence": "No code elements are pluralized directly. The phrase 'event data states' on line 53 is a natural language description, not a code element name."
+    },
+    {
+      "invariantId": "INV-formatting-007",
+      "result": "pass",
+      "evidence": "No inline code spans are wrapped in bold or italics anywhere in the document."
+    },
+    {
+      "invariantId": "INV-formatting-010",
+      "result": "pass",
+      "evidence": "Punctuation following formatted text is not formatted. E.g., line 53: '`ArgumentNullException`.' — period outside backticks. Lines 29-31: en dashes after bold terms are outside bold markers."
+    },
+    {
+      "invariantId": "INV-formatting-011",
+      "result": "pass",
+      "evidence": "Single spaces between sentences throughout. Line 68 indentation is 4 spaces. No tabs in markdown body."
+    },
+    {
+      "invariantId": "INV-formatting-016",
+      "result": "pass",
+      "evidence": "Line 53 uses U+2013 EN DASH correctly for emphasis/explanation. Lines 29-31 use the same en dash for field descriptions. No em dashes present."
+    },
+    {
+      "invariantId": "INV-structure-006",
+      "result": "pass",
+      "evidence": "Step-by-step instructions in Example section (lines 65-68) use ordered list. Unordered list for non-sequential items (lines 29-31)."
+    },
+    {
+      "invariantId": "INV-structure-010",
+      "result": "pass",
+      "evidence": "'Use events to create integrations' section (lines 110-114) at end of article provides next steps with link to 'Integrate with decoupled systems'. New note adds cross-reference to Reference page (line 55)."
+    },
+    {
+      "invariantId": "INV-structure-011",
+      "result": "pass",
+      "evidence": "Page is self-contained with inline links for all referenced topics: object event handlers (line 22), events reference (lines 45, 55), startup code (line 59), custom code integration (line 68), decoupled systems (line 114)."
+    },
+    {
+      "invariantId": "INV-structure-015",
+      "result": "pass",
+      "evidence": "All list items begin with sentence case. Lines 29-31: bold terms start with uppercase."
+    },
+    {
+      "invariantId": "INV-structure-020",
+      "result": "pass",
+      "evidence": "Maximum list nesting is 2 levels (line 68). Does not exceed 3."
+    },
+    {
+      "invariantId": "INV-style-001",
+      "result": "pass",
+      "evidence": "All headings use sentence case: 'Handle global events', 'Assign handlers to events', 'Example', 'Use events to create integrations'."
+    },
+    {
+      "invariantId": "INV-style-002",
+      "result": "pass",
+      "evidence": "Verb-phrase headings use imperative mood: 'Handle', 'Assign', 'Use'."
+    },
+    {
+      "invariantId": "INV-style-003",
+      "result": "pass",
+      "evidence": "No heading starts with 'How to'."
+    },
+    {
+      "invariantId": "INV-style-007",
+      "result": "pass",
+      "evidence": "New content uses active voice: 'expose an AccessSettings property' (line 53), 'This property requires' (line 53), 'throws an ArgumentNullException' (line 53), 'Use ContentAccessSettings.Public()' (line 53)."
+    },
+    {
+      "invariantId": "INV-style-008",
+      "result": "pass",
+      "evidence": "Present simple tense used throughout new content: 'expose', 'requires', 'throws', 'Use', 'See'."
+    },
+    {
+      "invariantId": "INV-style-020",
+      "result": "pass",
+      "evidence": "'please' does not appear anywhere in the document."
+    },
+    {
+      "invariantId": "INV-style-021",
+      "result": "pass",
+      "evidence": "New note content is concise — 3 sentences covering the constraint, consequence, and fix, plus one reference sentence."
+    },
+    {
+      "invariantId": "INV-style-025",
+      "result": "pass",
+      "evidence": "No assumption of prior reading. All referenced topics include cross-reference links."
+    },
+    {
+      "invariantId": "INV-style-026",
+      "result": "pass",
+      "evidence": "Title 'Handle global events' does not end with -ing form."
+    },
+    {
+      "invariantId": "INV-style-038",
+      "result": "pass",
+      "evidence": "Line 59: 'You need to register event handlers' — correctly uses 'You need to' not 'You must'."
+    },
+    {
+      "invariantId": "INV-jekyll-001",
+      "result": "pass",
+      "evidence": "All callouts use valid Liquid admonition tags: note, info."
+    },
+    {
+      "invariantId": "INV-jekyll-002",
+      "result": "pass",
+      "evidence": "Code blocks use {% code lang=csharp %} with valid lang value (lines 35, 70)."
+    },
+    {
+      "invariantId": "INV-crossref-001",
+      "result": "pass",
+      "evidence": "New cross-reference (line 55) uses identifier '2AOiCQ', consistent with the same identifier in the pre-existing info callout (line 45) for the same target page."
+    },
+    {
+      "invariantId": "INV-crossref-006",
+      "result": "pass",
+      "evidence": "New link (line 55) uses descriptive linkText='Reference - Global system events'. No vague link text anywhere."
+    },
+    {
+      "invariantId": "INV-content-001",
+      "result": "pass",
+      "evidence": "Line 20 uses 'Xperience API' (subsequent mention, short form). No incorrect standalone 'Kentico' for product."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "category": "heading-hierarchy",
+      "result": "pass",
+      "evidence": "Headings follow consistent h2 level: '## Assign handlers to events', '## Example', '## Use events to create integrations'. No skipped levels."
+    },
+    {
+      "category": "callout-consistency",
+      "result": "pass",
+      "evidence": "New note callout (lines 49-57) follows multi-paragraph pattern with bold title matching the first note (lines 17-23). Minor whitespace difference (blank line after {% note %} in new vs. none in first) but both render correctly."
+    },
+    {
+      "category": "code-block-formatting",
+      "result": "pass",
+      "evidence": "Both code blocks have language tags, consistent indentation, and complete content."
+    },
+    {
+      "category": "link-formatting",
+      "result": "pass",
+      "evidence": "All internal links use {% page_link %} Liquid syntax. New link includes escaped hyphen in linkText per conventions."
+    },
+    {
+      "category": "front-matter",
+      "result": "pass",
+      "evidence": "Front matter contains required fields: title, persona, identifier, order, license, redirect_from."
+    },
+    {
+      "category": "liquid-syntax",
+      "result": "pass",
+      "evidence": "All Liquid tags properly opened and closed: note/endnote, info/endinfo, code/endcode, page_link."
+    },
+    {
+      "category": "sentence-structure",
+      "result": "pass",
+      "evidence": "New content sentences are clear, concise, and scannable. Longest new sentence (~22 words on line 55) is within acceptable range."
+    },
+    {
+      "category": "pre-existing-note",
+      "result": "info",
+      "evidence": "INV-formatting-012 (should): Oxford comma missing in pre-existing text — line 20 'created, updated or deleted' and line 45 'event types and handler parameters'. Not introduced by this task; minor improvement opportunity for a future pass."
+    }
+  ],
+  "metaKnowledgeApplied": {
+    "knowledgeBriefStatus": "cold-start — no styleEvolutions, antiPatterns, or patterns available",
+    "skillReferencesStatus": "not-found — .github/skills/docwriter-meta/references/ directory does not exist",
+    "discards": []
+  },
+  "summary": {
+    "invariantsPassed": 30,
+    "invariantsFailed": 0,
+    "additionalIssues": 0,
+    "preExistingNotes": 1,
+    "attemptComparison": "Attempt 1 was rejected for INV-callout-002 (missing bold title in multi-paragraph note). Attempt 2 correctly adds '**Non-nullable AccessSettings**' as bold title on its own line. No new violations introduced."
+  }
+}

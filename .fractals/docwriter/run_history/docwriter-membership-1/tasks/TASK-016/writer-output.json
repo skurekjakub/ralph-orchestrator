@@ -1,0 +1,34 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-016",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "developers-and-admins/ci-cd/reference-ci-cd-object-types.md",
+  "sectionsModified": [
+    "Binding object types"
+  ],
+  "sectionsAdded": [],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-015: ContentItemMemberRoleCustomProcessor and CI filter already existed on master. No changes in this commit, but types are CI/CD supported.",
+    "AREA-017: No actual file changes in this commit for CI/CD processing files."
+  ],
+  "codeVerification": {
+    "cms.contentitemmemberrole": {
+      "source": "CMSSolution/ContentEngine/ContentItemMemberRole/ContentItemMemberRoleInfo.cs",
+      "cicdEnabled": false,
+      "usesCustomFiltering": true,
+      "customProcessor": "ContentItemMemberRoleCustomProcessor",
+      "notes": "ContinuousIntegrationSettings.Enabled = false. Serialized as part of content item data via custom processor. Does NOT have its own CI folder. Correctly documented in the General section note (line 111). REMOVED from Binding table in attempt 2."
+    }
+  },
+  "invariantsApplied": [
+    "INV-structure-019",
+    "INV-formatting-004"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2: Addressed accuracy reviewer rejection. Removed cms.contentitemmemberrole row from the Binding object types table. This type has ContinuousIntegrationSettings.Enabled = false with UsesCustomFiltering = true — it is embedded into content item XML via ContentItemMemberRoleCustomProcessor and does NOT have its own CI folder. The General section note (line 111) already correctly documents this behavior. The Binding table entry contradicted the source code and the General section note. Analogous types (cms.contentitemtag, cms.contentitemreference, cms.contentitemobjectreference) also have Enabled = false and are correctly absent from the Binding table."
+}

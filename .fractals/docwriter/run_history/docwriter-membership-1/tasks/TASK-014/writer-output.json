@@ -1,0 +1,39 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-014",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "developers-and-admins/customization/handle-global-events/reference-global-system-events.md",
+  "sectionsModified": [
+    "ContentItemEvents – UpdateMetadata event description cell",
+    "WebPageEvents – UpdateSecuritySettings event description cell",
+    "ContentItemEvents – Content access settings note block bullet list",
+    "WebPageEvents – Content access settings note block bullet list"
+  ],
+  "sectionsAdded": [],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-002: ContentAccessSettings sealed class with three-tier model – Public(), Secured(), SecuredWithRoles(). Factory methods remain the same.",
+    "AREA-003: All 8 content engine event data state classes gain null validation (ArgumentNullException.ThrowIfNull) on AccessSettings. Default remains ContentAccessSettings.Public().",
+    "AREA-004: 6 website event data state classes gain same null validation. UpdateWebPageSecuritySettingsEventDataState.AccessSettings enforces non-null."
+  ],
+  "invariantsApplied": [
+    "INV-structure-019",
+    "INV-formatting-004",
+    "INV-formatting-016",
+    "INV-structure-011",
+    "INV-content-030",
+    "INV-persona-003"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-001",
+    "REC-004",
+    "REC-012"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [
+    "HeadlessItemEvents section has the same AccessSettings pattern (from AREA-003) but TASK-014 scope only covers ContentItemEvents and WebPageEvents. HeadlessItemEvents may need a separate task for consistency."
+  ],
+  "notes": "Attempt 2: Fixed INV-formatting-016 violation from attempt 1. Replaced all 8 em dashes (U+2014) with en dashes (U+2013) across lines 502, 557-559, 861, 938-940 to match the existing page convention. No other content changes were needed — accuracy and persona reviewers approved attempt 1. All other notes from attempt 1 remain applicable: REC-012 (three-tier model) applied via bullet lists; REC-004 (deprecation) not applicable on this page; REC-001 (concise first sentence) applied in event description cells; linked to TASK-002 output page per INV-structure-011."
+}

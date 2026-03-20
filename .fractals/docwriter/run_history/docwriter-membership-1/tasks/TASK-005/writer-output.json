@@ -1,0 +1,27 @@
+{
+  "agent": "docwriter-content-writer",
+  "taskId": "TASK-005",
+  "attempt": 2,
+  "action": "update",
+  "targetFile": "_documentation/developers-and-admins/development/registration-and-authentication/external-authentication.md",
+  "sectionsModified": [
+    "Configure provider integration (code sample)"
+  ],
+  "sectionsAdded": [],
+  "sectionsRemoved": [],
+  "docFactsUsed": [
+    "AREA-001: NoOpApplicationRole/NoOpApplicationRoleStore replaced with ApplicationRole/ApplicationRoleStore",
+    "AREA-002: ApplicationRole is a concrete role type used for member role management"
+  ],
+  "invariantsApplied": [
+    "INV-formatting-004",
+    "INV-codesamples-010"
+  ],
+  "patternsUsed": [],
+  "researchRecommendationsCited": [
+    "REC-016"
+  ],
+  "recommendationsSkipped": [],
+  "gaps": [],
+  "notes": "Attempt 2: Fixed ApplicationRoleStore to include generic type parameter <ApplicationRole>. The line 53 now reads AddRoleStore<ApplicationRoleStore<ApplicationRole>>() matching DancingGoat/Program.cs and UITests/Program.cs reference implementations. Single-line fix addressing ACC-001 from review feedback."
+}
