@@ -1,0 +1,9 @@
+{
+  "bookId": "test-book-019",
+  "currentChapter": 1,
+  "existingArtifacts": [
+    "plot/chapter-outlines/001.json",
+    "style/style-guide.json",
+    "craft-profile.json"
+  ]
+}

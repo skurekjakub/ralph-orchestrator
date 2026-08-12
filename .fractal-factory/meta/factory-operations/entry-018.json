@@ -1,0 +1,26 @@
+{
+  "id": "MK-018",
+  "category": "factory-operations",
+  "subcategory": "agent-performance-pattern",
+  "content": "Discovery pass agents (domain-scanner, invariant-extractor, exemplar-analyzer, asset-auditor) all completed on first iteration with no retries. The entire discovery pass finished in ~17 minutes. This suggests the discovery prompts are well-calibrated for domain-brief-to-model extraction and exemplar analysis tasks.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/agents/fractal-factory-discovery-coordinator/status.json",
+  "sourceEvidence": "discovery-coordinator iteration=1, result=complete. All 4 child agents succeeded: scanner=scanned, extractor=extracted, auditor=audited, analyzer=analyzed.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

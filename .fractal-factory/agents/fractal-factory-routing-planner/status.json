@@ -1,0 +1,40 @@
+{
+  "agent": "fractal-factory-routing-planner",
+  "task_id": "pass3/routing-design",
+  "status": "completed",
+  "result": "planned",
+  "summary": "Re-entry cycle 2: Fixed 2 critical routing gaps (RC-001, RC-002). Added blocked handlers for craft-tracker and continuity-tracker in orchestrator routing table. Full audit confirmed all 12 orchestrator children, 8 loop configs (auditor passed/failed/blocked), and all 20 coordinator routing tables have complete result-code coverage. Total routes: 26 orchestrator + 134 coordinator = 160. No unhandled result codes remain.",
+  "artifacts": ["routing.json", "agents/fractal-factory-routing-planner/output.md"],
+  "next_hint": "fractal-factory-test-planner",
+  "iteration": 2,
+  "gapsAddressed": [
+    {
+      "id": "RC-001",
+      "severity": "critical",
+      "description": "Orchestrator had no handler for craft-tracker result 'blocked'",
+      "fix": "Added route: read=agents/craft-tracker/status.json, condition='result == blocked', action='write own status: failed'"
+    },
+    {
+      "id": "RC-002",
+      "severity": "critical",
+      "description": "Orchestrator had no handler for continuity-tracker result 'blocked'",
+      "fix": "Added route: read=agents/continuity-tracker/status.json, condition='result == blocked', action='write own status: failed'"
+    },
+    {
+      "id": "IE-001",
+      "severity": "critical",
+      "description": "Audited all routing tables for blocked-handler completeness per INV-030 (No Silent Failures)",
+      "fix": "Confirmed all 65 agents that define 'blocked' have corresponding handler routes in their parent's routing table. No additional changes needed."
+    }
+  ],
+  "gapsNotRequiringRoutingChanges": [
+    {
+      "id": "AC-002",
+      "note": "craft-profile.json single-writer change is an architecture/roster concern. Routing already dispatches craft-profile-selector only from concept-coordinator — no routing change needed."
+    },
+    {
+      "id": "IE-002",
+      "note": "T25 thematic argument scaffolding enforcement is a prompt-level concern for auditor agents, not a routing concern. No routing change needed."
+    }
+  ]
+}

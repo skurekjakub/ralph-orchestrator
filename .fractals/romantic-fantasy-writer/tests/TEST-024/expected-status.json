@@ -1,0 +1,37 @@
+{
+  "characterCoordinator": {
+    "agent": "romantic-fantasy-writer-character-coordinator",
+    "result": "complete",
+    "iterationCount": 2
+  },
+  "auditReport": {
+    "path": "audit-reports/character/gate.json",
+    "entriesExpected": 2,
+    "entryResults": ["failed", "passed"]
+  },
+  "expectations": {
+    "resetOnRetryAgents": [
+      "romantic-fantasy-writer-core-characters-coordinator",
+      "romantic-fantasy-writer-ensemble-coordinator",
+      "romantic-fantasy-writer-protagonist-profiler",
+      "romantic-fantasy-writer-romance-arc-designer",
+      "romantic-fantasy-writer-supporting-cast-developer",
+      "romantic-fantasy-writer-character-voice-designer",
+      "romantic-fantasy-writer-character-auditor"
+    ],
+    "feedbackPassedToWriters": true,
+    "voiceParametersDistinct": true,
+    "romanceArcHasEmotionalSpine": true,
+    "noStaleStatuses": true,
+    "agentsExercised": [
+      "romantic-fantasy-writer-character-coordinator",
+      "romantic-fantasy-writer-core-characters-coordinator",
+      "romantic-fantasy-writer-ensemble-coordinator",
+      "romantic-fantasy-writer-character-auditor",
+      "romantic-fantasy-writer-protagonist-profiler",
+      "romantic-fantasy-writer-romance-arc-designer",
+      "romantic-fantasy-writer-supporting-cast-developer",
+      "romantic-fantasy-writer-character-voice-designer"
+    ]
+  }
+}

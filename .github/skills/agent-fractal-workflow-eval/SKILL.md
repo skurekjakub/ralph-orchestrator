@@ -70,6 +70,8 @@ Run the checklist from `references/checklist.md` systematically. For each check:
 
 Work through the checklist categories in order. Each category is designed to catch a specific class of defect, and later categories build on earlier ones.
 
+**Categories 11–13** (specialist scope, pipeline schema, agent count accuracy) were added from audit experience. They catch structural debt that accumulates as pipelines evolve — agents get overloaded, schemas drift from routing tables, and documentation counts go stale. Don't skip them.
+
 ### Phase 3: Report
 
 Present findings ordered by severity (Critical → High → Medium → Low), then by category. Each finding must include:

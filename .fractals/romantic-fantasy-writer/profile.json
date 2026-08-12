@@ -1,0 +1,489 @@
+{
+  "name": "romantic-fantasy-writer",
+  "version": "1.0.0",
+  "description": "Autonomous multi-agent system for writing romantic fantasy fiction \u2014 67 agents across 3 hierarchy levels covering concept through delivery.",
+  "domain": "romantic-fantasy",
+  "entryPoint": "romantic-fantasy-writer-guide",
+  "orchestrator": "romantic-fantasy-writer",
+  "agentCount": 67,
+  "hierarchy": {
+    "guide": 1,
+    "orchestrator": 1,
+    "coordinators": 9,
+    "subCoordinators": 10,
+    "specialists": 46
+  },
+  "convergenceBounds": {
+    "maxAuditorRetries": 3,
+    "maxRevisionBetaCycles": 2,
+    "maxChaptersBeforeCheckpoint": 5
+  },
+  "phases": [
+    "concept",
+    "worldbuilding",
+    "character",
+    "plotting",
+    "style",
+    "drafting",
+    "revision",
+    "beta-reading",
+    "polish"
+  ],
+  "crossCuttingAgents": [
+    "romantic-fantasy-writer-continuity-tracker",
+    "romantic-fantasy-writer-series-kb-manager",
+    "romantic-fantasy-writer-craft-tracker"
+  ],
+  "artifactDirectory": ".romantic-fantasy-writer",
+  "agents": [
+    {
+      "name": "romantic-fantasy-writer-guide",
+      "level": "guide",
+      "parent": "user",
+      "promptFile": "agents/romantic-fantasy-writer-guide.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer",
+      "level": "orchestrator",
+      "parent": "romantic-fantasy-writer-guide",
+      "promptFile": "agents/romantic-fantasy-writer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-concept-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-concept-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-worldbuilding-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-character-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-character-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-plotting-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-plotting-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-style-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-style-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-drafting-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-drafting-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-revision-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-revision-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-beta-reading-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-beta-reading-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-polish-coordinator",
+      "level": "coordinator",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-polish-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-physical-world-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-physical-world-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-systems-world-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-systems-world-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-core-characters-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-core-characters-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-ensemble-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-ensemble-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-structural-design-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-structural-design-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-chapter-design-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-chapter-design-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-creative-writing-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-creative-writing-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-quality-integration-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-quality-integration-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-genre-lens-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-genre-lens-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-craft-lens-coordinator",
+      "level": "sub-coordinator",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-craft-lens-coordinator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-concept-developer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-concept-developer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-craft-profile-selector",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-craft-profile-selector.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-concept-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-concept-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-concept-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-geography-builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-geography-builder.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-culture-builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-culture-builder.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-history-builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-physical-world-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-history-builder.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-magic-system-designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-systems-world-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-magic-system-designer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-political-structure-builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-systems-world-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-political-structure-builder.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-worldbuilding-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-worldbuilding-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-worldbuilding-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-protagonist-profiler",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-core-characters-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-protagonist-profiler.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-romance-arc-designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-core-characters-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-romance-arc-designer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-supporting-cast-developer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-ensemble-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-supporting-cast-developer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-character-voice-designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-ensemble-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-character-voice-designer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-character-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-character-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-character-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-structure-selector",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-structure-selector.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-dual-arc-builder",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-dual-arc-builder.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-tension-mapper",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-structural-design-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-tension-mapper.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-chapter-outliner",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-chapter-design-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-chapter-outliner.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-scene-beat-designer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-chapter-design-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-scene-beat-designer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-plotting-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-plotting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-plotting-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-style-analyzer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-style-analyzer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-style-guide-writer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-style-guide-writer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-style-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-style-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-style-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-chapter-drafter",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-creative-writing-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-chapter-drafter.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-pov-voice-maintainer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-creative-writing-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-pov-voice-maintainer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-continuity-integrator",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-quality-integration-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-continuity-integrator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-craft-enforcer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-quality-integration-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-craft-enforcer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-drafting-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-drafting-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-drafting-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-developmental-editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-developmental-editor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-line-editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-line-editor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-copy-editor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-copy-editor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-chapter-reviser",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-chapter-reviser.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-revision-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-revision-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-revision-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-romance-beta-reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-genre-lens-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-romance-beta-reader.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-fantasy-beta-reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-genre-lens-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-fantasy-beta-reader.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-craft-beta-reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-craft-beta-reader.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-sensitivity-beta-reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-sensitivity-beta-reader.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-originality-beta-reader",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-craft-lens-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-originality-beta-reader.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-beta-synthesizer",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-beta-synthesizer.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-beta-reading-auditor",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-beta-reading-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-beta-reading-auditor.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-polisher",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-polisher.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-summary-generator",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-summary-generator.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-delivery-assembler",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer-polish-coordinator",
+      "promptFile": "agents/romantic-fantasy-writer-delivery-assembler.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-continuity-tracker",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-continuity-tracker.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-series-kb-manager",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-series-kb-manager.agent.md"
+    },
+    {
+      "name": "romantic-fantasy-writer-craft-tracker",
+      "level": "specialist",
+      "parent": "romantic-fantasy-writer",
+      "promptFile": "agents/romantic-fantasy-writer-craft-tracker.agent.md"
+    }
+  ],
+  "skills": [
+    {
+      "name": "agent-as-function-contract",
+      "path": "skills/agent-as-function-contract/SKILL.md",
+      "description": "Agent-as-function contract rules, status codes, retry patterns, and artifact path conventions for the romantic-fantasy-writer system"
+    },
+    {
+      "name": "dockerfile-pattern",
+      "path": "skills/dockerfile-pattern/SKILL.md",
+      "description": "Container deployment patterns \u2014 agent grouping, volume mounts, environment variables, and resource allocation for the 67-agent system"
+    },
+    {
+      "name": "fractal-coordinator-patterns",
+      "path": "skills/fractal-coordinator-patterns/SKILL.md",
+      "description": "Writer\u2192auditor loop, depth-2/depth-3 coordinator routing, cascade reset on retry, per-chapter iteration, and parallel fan-out patterns"
+    },
+    {
+      "name": "fractal-orchestrator-architecture",
+      "path": "skills/fractal-orchestrator-architecture/SKILL.md",
+      "description": "Orchestrator phase sequence, revision\u2194beta loop, result codes (delivered/blocked/delivered-with-gaps), progress management, and sequel handling"
+    },
+    {
+      "name": "mcp-sidecar",
+      "path": "skills/mcp-sidecar/SKILL.md",
+      "description": "MCP server configuration for filesystem tools, writing analytics, and search tools \u2014 sidecar architecture and security constraints"
+    },
+    {
+      "name": "profile-config",
+      "path": "skills/profile-config/SKILL.md",
+      "description": "Profile.json structure documentation \u2014 agent entries, hierarchy, convergence bounds, skill references, and how to add new agents"
+    },
+    {
+      "name": "prompt-security",
+      "path": "skills/prompt-security/SKILL.md",
+      "description": "Prompt security patterns \u2014 user input injection mitigation, path validation, output containment, auditor isolation, and invariant override protection"
+    },
+    {
+      "name": "rules",
+      "path": "skills/rules/SKILL.md",
+      "description": "Ten operational rules for all agents \u2014 no fabrication, verify before completion, write protocols, artifact ownership, convergence bounds, creative invariants"
+    },
+    {
+      "name": "web-fetch",
+      "path": "skills/web-fetch/SKILL.md",
+      "description": "Web fetch policy \u2014 disabled by default, pre-pipeline style sample retrieval only, reference text usage constraints per INV-023/025/028"
+    }
+  ]
+}

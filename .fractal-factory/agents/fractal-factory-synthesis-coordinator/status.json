@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-synthesis-coordinator",
+  "task_id": "synthesis/coordination",
+  "status": "completed",
+  "result": "synthesized",
+  "summary": "Synthesis pass complete. Factory signals: signals-extracted (15 signals, 7 high / 8 medium). Context signals: signals-extracted (14 signals, 10 high / 4 medium). Integration: integrated (29 new entries at confidence=low, cold start). All 3 children succeeded on first dispatch — no degraded mode needed.",
+  "artifacts": ["agents/fractal-factory-synthesis-coordinator/status.json"],
+  "next_hint": null,
+  "iteration": 1
+}

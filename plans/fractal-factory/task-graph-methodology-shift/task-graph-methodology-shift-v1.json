@@ -1,0 +1,554 @@
+{
+  "$schema": "task-graph-v1",
+  "name": "fractal-factory-task-graph-methodology-shift",
+  "version": 1,
+  "versionNote": "Initial plan. Phase 0 implemented; phases 1–5 planned.",
+  "description": "Migrate Fractal Factory from pass-state + roster-lifecycle execution to production-graph-driven execution. Extract invariants from domain-model.json into classified separate files.",
+  "implementationStatus": "partial",
+  "implementedAt": "2026-03-16",
+  "summary": {
+    "totalTasks": 28,
+    "totalPhases": 6,
+    "newFiles": 4,
+    "modifiedFiles": 17
+  },
+  "designDecisions": [
+    "Invariants extracted from domain-model.json into .fractal-factory/invariants/ with one file per classification (behavioral, structural, quality, workflow).",
+    "production-graph.json becomes the sole runtime-state artifact; roster.json, architecture.json, test-plan.json, domain-model.json become stateless constraints.",
+    "Tasks reference constraint artifacts by ID, not by copying content — factory prompt-writers read constraints directly.",
+    "Gap hunting mutates the production graph (add/annotate tasks) instead of resetting passes.",
+    "Per-task verification hooks replace the monolithic package-level verification pass."
+  ],
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Invariant Storage Restructuring",
+      "description": "Extract invariants from domain-model.json into .fractal-factory/invariants/ directory with per-classification files. Update all reading and writing agents."
+    },
+    {
+      "id": "P1",
+      "name": "Production Graph Schema & Planner",
+      "description": "Define production-graph.json schema. Create the production-graph-planner agent. Update planning coordinator dispatch."
+    },
+    {
+      "id": "P2",
+      "name": "Execution Rewrite",
+      "description": "Rewrite execution-coordinator from batch-loop to dependency-gated task selection. Update prompt-writer and prompt-reviewer for single-task mode."
+    },
+    {
+      "id": "P3",
+      "name": "Verification Shift",
+      "description": "Move verification from package-level to per-task hooks in the production graph. Demote checklist-validator and audit-oracle."
+    },
+    {
+      "id": "P4",
+      "name": "Gap-Hunting Graph Mutation",
+      "description": "Rewrite gap hunters to add/annotate production graph nodes. Remove pass-reset logic from the session orchestrator."
+    },
+    {
+      "id": "P5",
+      "name": "Roster Cleanup",
+      "description": "Remove status lifecycle field from roster.json. Update progress.json for graph-level tracking."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "TGM-001",
+      "phase": "P0",
+      "title": "Update invariant-extractor to write per-classification files",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-invariant-extractor.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Invariant-extractor writes to .fractal-factory/invariants/{classification}.json instead of domain-model.json.invariants",
+        "Each classification file has envelope: { classification, lastUpdated, entries: [] }",
+        "On re-entry, extractor reads existing entries from all 4 files, preserving entries from other agents",
+        "ID assignment continues from highest existing ID across all classification files"
+      ]
+    },
+    {
+      "id": "TGM-002",
+      "phase": "P0",
+      "title": "Update domain-scanner to initialize invariants directory",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-domain-scanner.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Domain-scanner no longer initializes an empty invariants array in domain-model.json",
+        "Domain-scanner notes that invariants are stored separately in .fractal-factory/invariants/"
+      ]
+    },
+    {
+      "id": "TGM-003",
+      "phase": "P0",
+      "title": "Update coverage-hunter to read from invariants directory",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-coverage-hunter.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Coverage-hunter reads .fractal-factory/invariants/*.json instead of domain-model.json.invariants",
+        "Methodology description references the invariants directory, not the domain-model invariants array"
+      ]
+    },
+    {
+      "id": "TGM-004",
+      "phase": "P0",
+      "title": "Update domain-model.schema.md to remove invariants section",
+      "targets": [".fractals/fractal-factory/schemas/domain-model.schema.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Schema no longer contains invariants array definition",
+        "Schema references .fractal-factory/invariants/ for invariant storage",
+        "Invariant classification and confidence tables moved to a note or stub"
+      ]
+    },
+    {
+      "id": "TGM-005",
+      "phase": "P0",
+      "title": "Update prompt-writer to reference invariants directory",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Prompt-writer reads invariants from .fractal-factory/invariants/*.json, not domain-model.json"
+      ]
+    },
+    {
+      "id": "TGM-006",
+      "phase": "P0",
+      "title": "Update test-planner to reference invariants directory",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-test-planner.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Test-planner reads invariants from .fractal-factory/invariants/*.json",
+        "Invariant-driven test scenarios reference invariants by ID from the classified files"
+      ]
+    },
+    {
+      "id": "TGM-007",
+      "phase": "P0",
+      "title": "Update checklist-validator to reference invariants directory",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-checklist-validator.agent.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Checklist-validator reads invariants from .fractal-factory/invariants/*.json",
+        "Invariant-enforceable check references the new location"
+      ]
+    },
+    {
+      "id": "TGM-008",
+      "phase": "P0",
+      "title": "Update README artifact directory and references",
+      "targets": [".fractals/fractal-factory/README.md"],
+      "prerequisites": ["TGM-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Artifact directory listing shows invariants/ directory instead of invariants in domain-model.json",
+        "Input requirements table still references invariants.md as user input",
+        "Discovery coordinator flow mentions invariants directory"
+      ]
+    },
+    {
+      "id": "TGM-009",
+      "phase": "P0",
+      "title": "Consistency pass across all Phase 0 changes",
+      "targets": [
+        ".fractals/fractal-factory/agents/fractal-factory-invariant-extractor.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-domain-scanner.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-coverage-hunter.agent.md",
+        ".fractals/fractal-factory/schemas/domain-model.schema.md",
+        ".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-test-planner.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-checklist-validator.agent.md",
+        ".fractals/fractal-factory/README.md"
+      ],
+      "prerequisites": ["TGM-001", "TGM-002", "TGM-003", "TGM-004", "TGM-005", "TGM-006", "TGM-007", "TGM-008"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "No agent references domain-model.json.invariants for reading or writing",
+        "All invariant references point to .fractal-factory/invariants/ directory",
+        "Consistent terminology across all modified files"
+      ]
+    },
+    {
+      "id": "TGM-010",
+      "phase": "P1",
+      "title": "Create production-graph.schema.md",
+      "targets": [".fractals/fractal-factory/schemas/production-graph.schema.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Schema defines task node structure: id, name, description, category, rosterAgentIds, dependsOn, status, priority, scope (with constraintRefs), acceptanceCriteria, verificationHooks, retryHistory, addedBy, addedInCycle, gapAnnotations",
+        "Task status lifecycle: planned → in-progress → implemented → verified | blocked | failed-review",
+        "Category enum: orchestrator-prompt, coordinator-prompt, specialist-prompt, guide-prompt, skill, schema, bootstrap, documentation, test-fixture",
+        "ConstraintRefs structure: rosterEntry, architecturePass, testScenarios, invariants (by ID)",
+        "Summary section with counts by status and category"
+      ]
+    },
+    {
+      "id": "TGM-011",
+      "phase": "P1",
+      "title": "Create fractal-factory-production-graph-planner agent",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-production-graph-planner.agent.md"],
+      "prerequisites": ["TGM-010"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Agent reads roster.json, architecture.json, test-plan.json, domain-model.json, and invariants/*.json",
+        "Decomposes into discrete tasks: one per agent prompt, one per skill, one per schema, one bootstrap, documentation, test-fixture groups",
+        "Generates explicit dependsOn edges following hierarchy: specialist → coordinator → orchestrator → docs → bootstrap",
+        "Each task carries constraintRefs pointing to source artifact entries by ID",
+        "Each task has per-task acceptanceCriteria and verificationHooks",
+        "Status contract with result code: planned"
+      ]
+    },
+    {
+      "id": "TGM-012",
+      "phase": "P1",
+      "title": "Update planning-coordinator to dispatch production-graph-planner",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-planning-coordinator.agent.md"],
+      "prerequisites": ["TGM-011"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Routing table dispatches production-graph-planner after test-planner",
+        "Planning coordinator reports complete only after all 4 children finish: roster-planner → routing-planner → test-planner → production-graph-planner"
+      ]
+    },
+    {
+      "id": "TGM-013",
+      "phase": "P1",
+      "title": "Update session orchestrator roster and README",
+      "targets": [
+        ".fractals/fractal-factory/agents/fractal-factory.agent.md",
+        ".fractals/fractal-factory/README.md"
+      ],
+      "prerequisites": ["TGM-011"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Agent roster in README includes production-graph-planner under planning-coordinator",
+        "Total agent count updated to 36"
+      ]
+    },
+    {
+      "id": "TGM-014",
+      "phase": "P2",
+      "title": "Rewrite execution-coordinator for dependency-gated task selection",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-execution-coordinator.agent.md"],
+      "prerequisites": ["TGM-012"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Reads production-graph.json to find next eligible task (status=planned, all dependsOn=verified)",
+        "Dispatches category-appropriate writer for single task",
+        "Dispatches reviewer with per-task acceptanceCriteria",
+        "Retry loop per-task (not per-batch)",
+        "Sets task status: planned → in-progress → implemented → verified | blocked",
+        "No longer uses roster.json status field for work selection",
+        "No longer uses batch sizing logic"
+      ]
+    },
+    {
+      "id": "TGM-015",
+      "phase": "P2",
+      "title": "Update prompt-writer for single-task mode",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md"],
+      "prerequisites": ["TGM-014"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Receives a single task ID, not a batch",
+        "Reads task.scope.constraintRefs to find relevant roster entry, architecture pass, invariants",
+        "Writes one prompt file per invocation",
+        "Updates production-graph.json task status to implemented on success",
+        "No longer reads roster.json status for batch selection"
+      ]
+    },
+    {
+      "id": "TGM-016",
+      "phase": "P2",
+      "title": "Update prompt-reviewer for per-task acceptance",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md"],
+      "prerequisites": ["TGM-014"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Receives a single task ID",
+        "Validates against per-task acceptanceCriteria from production-graph.json",
+        "Runs verificationHooks declared by the task",
+        "Returns approved/rejected for that one task",
+        "No longer batch-reviews"
+      ]
+    },
+    {
+      "id": "TGM-017",
+      "phase": "P3",
+      "title": "Define verification hook types in production-graph schema",
+      "targets": [".fractals/fractal-factory/schemas/production-graph.schema.md"],
+      "prerequisites": ["TGM-010"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "verificationHooks enum: structural-checklist, routing-audit, contract-check, anti-laziness, content-check, format-validation, purity-check, test-coverage, trigger-accuracy",
+        "Each hook type has a description of what it validates",
+        "Hook-to-category mapping documented (which hooks apply to which task categories)"
+      ]
+    },
+    {
+      "id": "TGM-018",
+      "phase": "P3",
+      "title": "Update verification-coordinator for task-level hooks",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-verification-coordinator.agent.md"],
+      "prerequisites": ["TGM-017"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Verification runs per-task during execution, not as a separate pass",
+        "Checklist-validator becomes a final cross-reference sanity check",
+        "Audit-oracle becomes a final cross-reference sanity check",
+        "Both still run after all tasks are verified, as a safety net"
+      ]
+    },
+    {
+      "id": "TGM-019",
+      "phase": "P3",
+      "title": "Demote checklist-validator to cross-reference check",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-checklist-validator.agent.md"],
+      "prerequisites": ["TGM-018"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Primary verification is per-task hooks (run inline during execution)",
+        "Checklist-validator runs post-completion as final cross-reference sanity check",
+        "Still reports pass/fail, but findings at this stage should be rare"
+      ]
+    },
+    {
+      "id": "TGM-020",
+      "phase": "P3",
+      "title": "Demote audit-oracle to cross-reference check",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-audit-oracle.agent.md"],
+      "prerequisites": ["TGM-018"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Same shift as checklist-validator",
+        "Audit oracle runs post-completion rather than as primary verification"
+      ]
+    },
+    {
+      "id": "TGM-021",
+      "phase": "P4",
+      "title": "Update coverage-hunter for graph mutation",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-coverage-hunter.agent.md"],
+      "prerequisites": ["TGM-014"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Writes new task nodes to production-graph.json for missing coverage",
+        "Annotates existing tasks with gapAnnotations for enforcement gaps",
+        "No longer writes standalone gap entries to gap-report.json",
+        "Sets addedBy: coverage-hunter and addedInCycle on new tasks"
+      ]
+    },
+    {
+      "id": "TGM-022",
+      "phase": "P4",
+      "title": "Update artifact-hunter for graph mutation",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-artifact-hunter.agent.md"],
+      "prerequisites": ["TGM-014"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Same pattern as coverage-hunter: writes to production-graph.json",
+        "New task nodes for missing artifacts, annotations for existing tasks"
+      ]
+    },
+    {
+      "id": "TGM-023",
+      "phase": "P4",
+      "title": "Update infrastructure-hunter for graph mutation",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-infrastructure-hunter.agent.md"],
+      "prerequisites": ["TGM-014"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Same pattern: writes to production-graph.json",
+        "New task nodes for missing infrastructure, annotations for existing tasks"
+      ]
+    },
+    {
+      "id": "TGM-024",
+      "phase": "P4",
+      "title": "Update gap-hunting-coordinator for graph aggregation",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-gap-hunting-coordinator.agent.md"],
+      "prerequisites": ["TGM-021", "TGM-022", "TGM-023"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Reads production-graph.json for new/annotated tasks instead of aggregating gap-report.json",
+        "Reports converged if no new tasks or annotations were added",
+        "Reports gaps-found if graph was mutated",
+        "No longer writes gap-report.json"
+      ]
+    },
+    {
+      "id": "TGM-025",
+      "phase": "P4",
+      "title": "Remove pass-reset logic from session orchestrator",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory.agent.md"],
+      "prerequisites": ["TGM-024"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Orchestrator no longer resets passes on gap-hunting dirty result",
+        "Orchestrator no longer deletes status.json files for pass resets",
+        "Gap-hunting dirty result causes execution-coordinator to pick up new/re-planned tasks naturally",
+        "Orchestrator checks graph-level completion: all tasks verified or blocked",
+        "Cycle limit still enforced (maxGapCycles)"
+      ]
+    },
+    {
+      "id": "TGM-026",
+      "phase": "P5",
+      "title": "Remove status lifecycle from roster.json",
+      "targets": [
+        ".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+        ".fractals/fractal-factory/schemas/domain-model.schema.md"
+      ],
+      "prerequisites": ["TGM-025"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Roster-planner no longer emits status field on agent entries",
+        "roster.json becomes a pure design artifact: names, hierarchy, result codes, reads/writes, routing tables",
+        "No lifecycle status transitions (designed→written→reviewed→verified→blocked) in roster"
+      ]
+    },
+    {
+      "id": "TGM-027",
+      "phase": "P5",
+      "title": "Update progress.json for graph-level tracking",
+      "targets": [
+        ".fractals/fractal-factory/schemas/progress.schema.md",
+        ".fractals/fractal-factory/agents/fractal-factory.agent.md"
+      ],
+      "prerequisites": ["TGM-025"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Progress.json tracks graph-level completion: tasks by status (planned, in-progress, implemented, verified, blocked)",
+        "No longer tracks roster lifecycle counts (designed, written, reviewed, verified)",
+        "Pass status transitions remain for discovery, analysis, planning (pre-graph passes)",
+        "Execution, verification, gap-hunting pass status derived from graph state"
+      ]
+    },
+    {
+      "id": "TGM-028",
+      "phase": "P5",
+      "title": "Final consistency pass",
+      "targets": [
+        ".fractals/fractal-factory/agents/*.agent.md",
+        ".fractals/fractal-factory/schemas/*.schema.md",
+        ".fractals/fractal-factory/README.md",
+        ".fractals/fractal-factory/ROUTING-ARCHITECTURE.md"
+      ],
+      "prerequisites": ["TGM-026", "TGM-027"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "No agent references roster.json status field for work selection",
+        "No agent references domain-model.json invariants array",
+        "All execution-phase agents reference production-graph.json",
+        "README accurately reflects the new execution model",
+        "ROUTING-ARCHITECTURE.md updated for graph-driven execution"
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "tasks": ["TGM-001", "TGM-002", "TGM-003", "TGM-004", "TGM-005", "TGM-006", "TGM-007"],
+        "parallel": true,
+        "note": "Phase 0: all invariant extraction changes are independent of each other"
+      },
+      {
+        "step": 2,
+        "tasks": ["TGM-008"],
+        "parallel": false,
+        "note": "Phase 0: README update after all agent changes"
+      },
+      {
+        "step": 3,
+        "tasks": ["TGM-009"],
+        "parallel": false,
+        "note": "Phase 0: consistency pass after all changes"
+      },
+      {
+        "step": 4,
+        "tasks": ["TGM-010"],
+        "parallel": false,
+        "note": "Phase 1: schema first"
+      },
+      {
+        "step": 5,
+        "tasks": ["TGM-011"],
+        "parallel": false,
+        "note": "Phase 1: planner agent needs schema"
+      },
+      {
+        "step": 6,
+        "tasks": ["TGM-012", "TGM-013"],
+        "parallel": true,
+        "note": "Phase 1: coordinator update and roster/README can happen together"
+      },
+      {
+        "step": 7,
+        "tasks": ["TGM-014"],
+        "parallel": false,
+        "note": "Phase 2: execution coordinator first"
+      },
+      {
+        "step": 8,
+        "tasks": ["TGM-015", "TGM-016"],
+        "parallel": true,
+        "note": "Phase 2: writer and reviewer updates are independent"
+      },
+      {
+        "step": 9,
+        "tasks": ["TGM-017"],
+        "parallel": false,
+        "note": "Phase 3: hook types in schema"
+      },
+      {
+        "step": 10,
+        "tasks": ["TGM-018"],
+        "parallel": false,
+        "note": "Phase 3: coordinator update"
+      },
+      {
+        "step": 11,
+        "tasks": ["TGM-019", "TGM-020"],
+        "parallel": true,
+        "note": "Phase 3: both demotions are independent"
+      },
+      {
+        "step": 12,
+        "tasks": ["TGM-021", "TGM-022", "TGM-023"],
+        "parallel": true,
+        "note": "Phase 4: all three hunters are independent"
+      },
+      {
+        "step": 13,
+        "tasks": ["TGM-024"],
+        "parallel": false,
+        "note": "Phase 4: coordinator aggregation after all hunters"
+      },
+      {
+        "step": 14,
+        "tasks": ["TGM-025"],
+        "parallel": false,
+        "note": "Phase 4: orchestrator pass-reset removal"
+      },
+      {
+        "step": 15,
+        "tasks": ["TGM-026", "TGM-027"],
+        "parallel": true,
+        "note": "Phase 5: roster cleanup and progress update are independent"
+      },
+      {
+        "step": 16,
+        "tasks": ["TGM-028"],
+        "parallel": false,
+        "note": "Phase 5: final consistency pass"
+      }
+    ]
+  }
+}

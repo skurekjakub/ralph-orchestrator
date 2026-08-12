@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "analyzer": "fractal-factory-factory-signal-analyzer",
+  "lastUpdated": "2026-03-16T21:19:47Z",
+  "signals": [
+    {
+      "type": "craft/hierarchy-design",
+      "content": "For creative-production pipelines with 9+ sequential phases, a mixed depth-2/depth-3 hierarchy is optimal. Phases with few specialists (≤3) work well at depth-2, while phases with many distinct sub-areas (5+ groups like worldbuilding's geography/magic/politics/culture/history, or beta-reading's 5 reader lenses) benefit from depth-3 sub-coordinators. This run used depth-2 for concept, style, revision, polish (3-4 specialists each) and depth-3 for worldbuilding, character, plotting, drafting, beta-reading (5-7 specialists each), producing 67 agents within the 80-agent budget at 85% utilization.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/architecture.json",
+      "sourceEvidence": "Depth decisions: concept-coordinator depth=2 (3 specialists, 1 group), worldbuilding-coordinator depth=3 (6 specialists, 5 groups), character-coordinator depth=3 (5 specialists, 3 groups, 4 cross-cutting), beta-reading-coordinator depth=3 (7 specialists, 5 groups). Budget: 68 of 80 used (85%).",
+      "strengthens": null
+    },
+    {
+      "type": "craft/cross-cutting-agents",
+      "content": "Cross-cutting concerns in creative-production domains (consistency tracking, series knowledge, craft enforcement) should be implemented as orchestrator-level shared specialists rather than separate coordinator subtrees. This avoids duplicating agents across phases while ensuring every phase can invoke cross-cutting services. This run attached continuity-tracker, series-kb-manager, and craft-tracker directly to the orchestrator as shared specialists accessible by all phase coordinators, which proved cleaner than embedding cross-cutting logic inside each phase.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/architecture.json",
+      "sourceEvidence": "crossCuttingAgents.note: 'Cross-cutting subdomains (adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems) are NOT separate coordinators. They are implemented as: (1) adversarial auditors embedded per-phase, (2) shared specialists at orchestrator level.' roster.json confirms continuity-tracker, series-kb-manager, craft-tracker all have parent=romantic-fantasy-writer (orchestrator).",
+      "strengthens": null
+    },
+    {
+      "type": "craft/adversarial-pattern",
+      "content": "The adversarial auditor-per-phase pattern (one auditor specialist embedded in each coordinator) is highly effective for creative domains with many invariants. With 81 invariants distributed across 8 phase auditors, each auditor enforces only the invariants relevant to its phase's output. The distribution was well-shaped: most invariants had 3-5 agent references, with only 8 single-reference invariants (each correctly scoped). The universal invariant (INV-030) was referenced by all 67 agents. This distribution pattern ensures no single agent is overburdened while no invariant falls through the cracks.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "Category 2 (Invariant Enforcement): 81 invariants checked, 0 gaps. Distribution: 8 invariants with 1 ref, 8 with 2, 11 with 3, 13 with 4, 16 with 5, 10 with 6, 4 with 7, 4 with 8... All 8 single-reference invariants confirmed correctly scoped. Clean since cycle 1.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/two-tier-quality",
+      "content": "A two-tier quality system — non-negotiable invariants (always enforced) plus a selectable craft toolbox (chosen per-story during concept/plotting, then binding) — is an effective pattern for creative domains. It separates universal quality floors from story-specific technique decisions. This run had 34 invariants (I1-I34) as the always-on tier and 26 craft tools (T1-T26) as the selectable tier. The craft-profile-selector agent picks 5-8 tools per story, and adversarial auditors verify against the selected set rather than the entire toolbox. This avoids over-constraining stories while maintaining quality floors.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/invariants.md",
+      "sourceEvidence": "Part 1: 'Invariants — Non-negotiable rules that MUST hold for every story'. Part 2: 'Craft Toolbox — Proven storytelling techniques... During Concept and Plotting, the system selects which tools fit the story... Once selected for a story, a tool becomes binding.' The system selected 5-8 tools per story with auditors verifying against selected toolset only.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/convergence-trajectory",
+      "content": "For a domain with 81 invariants, 14 subdomains, and 67 agents, the gap-hunting convergence trajectory was 22→6→2→0 over 4 cycles, matching the architecture's prediction of '2-4 cycles'. The heaviest gap categories in cycle 1 were artifact coverage and cross-reference integrity (which had 4 gaps resolved by cycle 3). Subdomain coverage, invariant enforcement, and routing completeness were clean from cycle 1 — indicating the roster planner and routing planner produced high-quality initial designs. Gap-hunting effort concentrates on cross-reference and artifact protocol issues introduced during prompt writing, not on structural design.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "convergenceTrajectory: [22, 6, 2, 0]. Categories 1-3 (Subdomain Coverage, Invariant Enforcement, Routing Completeness) clean since cycle 1. Category 4 (Artifact Coverage) resolved AC-004, AC-005 by cycle 3. Category 6 (Cross-Reference Integrity) resolved CR-004, CR-005. Categories 7-9 clean since cycle 1.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/write-protocol-pitfall",
+      "content": "Multi-writer artifacts with 'create-once' write protocols are a recurring source of semantic gaps in creative-production systems. When multiple specialist agents write to the same artifact (e.g., characters/index.json written by protagonist-profiler and supporting-cast-developer), the protocol must be 'read-modify-write' with additive semantics, not 'create-once'. This was flagged as warnings AF-ARTIFACT-04a/04b/04c in the audit — 3 artifacts had create-once protocols despite having 2-3 writers. Future runs should default multi-writer artifacts to read-modify-write and require explicit justification for create-once.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/audit-report.json",
+      "sourceEvidence": "AF-ARTIFACT-04a: 'characters/index.json is declared writeProtocol=create-once but has 2 writers... If protagonist-profiler writes first, supporting-cast-developer would see the file exists and incorrectly think it is in a retry.' AF-ARTIFACT-04b: 'characters/{CHAR-NNN}.json... has 3 writers... character-voice-designer needs to add voice fingerprints to existing character files — this is semantically a read-modify-write operation.'",
+      "strengthens": null
+    },
+    {
+      "type": "craft/artifact-granularity",
+      "content": "For creative-production domains with deep worldbuilding, splitting artifacts into subcategory files (world-bible/geography.json, world-bible/magic-system.json, world-bible/politics.json, world-bible/culture.json, world-bible/history.json) rather than monolithic files is critical. This enables targeted loading — a chapter-drafter referencing magic rules doesn't ingest geography data. The run produced 42 artifacts across 18 schema files, with per-chapter artifacts (chapters/{N}/draft.md, chapters/{N}/revised.md, chapters/{N}/final.md) and per-lens beta feedback (beta-feedback/{N}/romance-lens.json, fantasy-lens.json, etc.). This granularity aligned naturally with the sub-coordinator structure.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/architecture.json",
+      "sourceEvidence": "architecture.json domainSpecific artifacts: world-bible/geography.json, world-bible/magic-system.json, world-bible/politics.json, world-bible/culture.json, world-bible/history.json (each with single specialist writer). chapters/{N}/draft.md, beta-feedback/{N}/romance-lens.json, etc. Domain-brief I28: 'content MUST be decomposed into subcategory files within typed directories — not stored as monolithic files.'",
+      "strengthens": null
+    },
+    {
+      "type": "craft/sequential-creative-pipeline",
+      "content": "A 9-phase sequential creative pipeline (concept → worldbuilding → character → plotting → style → drafting → revision → beta-reading → polish) with cross-cutting continuity tracking mirrors the professional author/editorial workflow and produces a natural coordinator hierarchy. Each phase's output becomes the next phase's input, creating clear artifact dependencies. The dual-arc (fantasy+romance) structure requires plotting to happen after both worldbuilding and character development, and drafting's revision↔beta loop needs explicit convergence bounds (maxRevisionBetaCycles=2 with graceful degradation).",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/roster.json",
+      "sourceEvidence": "9 coordinators mapping to 9 phases: concept-coordinator, worldbuilding-coordinator, character-coordinator, plotting-coordinator, style-coordinator, drafting-coordinator, revision-coordinator, beta-reading-coordinator, polish-coordinator. Plus 3 cross-cutting specialists at orchestrator level. Routing: 163 routes across 20 routing agents with explicit convergence bounds.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/beta-reader-lens-pattern",
+      "content": "Simulating multiple reader perspectives through specialized beta-reader agents (romance-lens, fantasy-lens, craft-lens, sensitivity-lens, originality-lens) produces comprehensive feedback coverage for creative outputs. Each lens applies a distinct evaluation framework, and a synthesizer agent aggregates findings. This pattern is generalizable: any domain where output quality must be assessed from multiple stakeholder perspectives benefits from lens-based evaluation agents coordinated by a synthesizer. The 5-lens + synthesizer structure fit naturally under a depth-3 beta-reading coordinator with genre-lens and craft-lens sub-coordinators.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/roster.json",
+      "sourceEvidence": "beta-reading-coordinator [coordinator] -> genre-lens-coordinator (romance-beta-reader, fantasy-beta-reader) + craft-lens-coordinator (craft-beta-reader, sensitivity-beta-reader, originality-beta-reader) + beta-synthesizer + beta-reading-auditor. 5 independent reader lenses feeding into a single synthesizer.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/cross-reference-ghost-agents",
+      "content": "Cross-reference integrity gaps (ghost agent references in artifact reader/writer lists) are a predictable failure mode when roster agents are renamed or restructured during gap-hunting. In this run, gaps CR-004 and CR-005 involved a 'plot-architect' reference in foreshadowing-ledger.json and mystery-box-inventory.json readers — an agent name that existed in an earlier roster draft but was restructured. Future runs should include an automated cross-reference sweep after any roster modification to catch stale references immediately rather than waiting for the gap-hunting cycle.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "Category 6 (Cross-Reference Integrity) resolved: CR-004: 'foreshadowing-ledger.json readers no longer contains plot-architect. Now: [tension-mapper, adversarial-auditor, craft-beta-reader, continuity-tracker].' CR-005: 'mystery-box-inventory.json readers no longer contains plot-architect. Now: [tension-mapper, chapter-drafter, adversarial-auditor].'",
+      "strengthens": null
+    },
+    {
+      "type": "craft/invariant-scale",
+      "content": "A domain with 81 invariants (34 non-negotiable + 26 craft-tool conditional + 21 process/structural) is manageable for a 67-agent system when invariants are distributed across phase auditors. The invariant-per-agent reference count followed a bell-curve distribution (median ~5 references per invariant). However, conditional invariants (craft-tool 'when selected' rules) require special routing logic: the craft-profile-selector agent's output must be readable by all downstream auditors so they know which tools to enforce. This was a key architectural decision that worked well but required 4 gap-hunting cycles to fully validate all enforcement paths.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/domain-model.json",
+      "sourceEvidence": "81 invariants in domain-model.json. architecture.json convergence.expectedCycles: 'Fourth cycle is insurance for the craft-tool conditional invariants (26 When selected invariants requiring craft-profile-aware routing).' gap-report Category 2: all 81 invariants verified with distribution from 1-67 references.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/guide-ask-questions-tension",
+      "content": "The guide agent in a creative-production system has an inherent tension: it MUST gather user input (story idea, preferences, constraints) to function, but the factory's ask_questions prohibition (designed for autonomous agents) conflicts with this. The audit oracle flagged this as FW-GUIDE-01: the guide prompt contains a blanket 'never use ask_questions' prohibition while its role requires interactive input gathering. Future creative-domain runs should explicitly carve out the guide agent from the ask_questions prohibition since the guide is by definition the user-facing entry point.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/audit-report.json",
+      "sourceEvidence": "FW-GUIDE-01: 'Guide prompt contains the blanket prohibition \"You must never use ask_questions or request human input\" — but the guide's role is to gather user input.' Severity: info. The guide is user-invocable=true and parent=user in the roster.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/depth-decision-criteria",
+      "content": "Three criteria reliably predict when a phase coordinator needs depth-3 (sub-coordinators): (1) more than 3 distinct sub-area groups requiring different specialists, (2) more than 3 cross-cutting concerns affecting the phase, (3) more than 7 total specialists. Drafting was the strongest depth-3 case (4 cross-cutting + 5 specialists + creative/quality split). The 8-specialist threshold and 3-group threshold from exemplar patterns proved effective — no depth-3 coordinator was over-complex and no depth-2 coordinator was under-structured.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/architecture.json",
+      "sourceEvidence": "Depth decisions: concept-coordinator depth=2 '3 specialists is well under the 8-specialist threshold'; worldbuilding-coordinator depth=3 '5 distinct world-bible sub-areas exceed the 3-group threshold'; drafting-coordinator depth=3 'STRONGEST depth-3 case. 4 cross-cutting concerns'.",
+      "strengthens": null
+    },
+    {
+      "type": "craft/result-code-vocabulary",
+      "content": "A differentiated result-code vocabulary — specialists report 'completed', auditors report 'passed'/'rejected', coordinators report 'complete'/'blocked'/'revision-loop' — enables precise routing decisions in creative pipelines. The 6 distinct result values ('complete', 'completed', 'passed', 'blocked', 'failed', 'revision-loop') mapped unambiguously to routing actions across 163 routes. This vocabulary worked cleanly because each agent type uses a disjoint result-code set, preventing ambiguity in routing conditions.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "Category 3 (Routing Completeness): '163 routes across 20 routing agents. Result code vocabulary is intentionally differentiated: specialists report \"completed\", auditors report \"passed\"/\"rejected\", coordinators report \"complete\"/\"blocked\"/\"revision-loop\". All paths terminate. All convergence bounds present and documented.'",
+      "strengthens": null
+    },
+    {
+      "type": "craft/subdomain-decomposition",
+      "content": "Decomposing a creative-production domain into 10 sequential phases plus 4 cross-cutting concerns (14 total subdomains) produces a natural 1:1 mapping between subdomains and coordinators for the sequential phases, while cross-cutting concerns map to shared infrastructure. This decomposition was stable — subdomain coverage was clean from cycle 1 with no gaps discovered across 4 gap-hunting cycles, suggesting the initial domain scan correctly identified all subdomains. The 14-subdomain count is likely a good target for similar creative-pipeline domains.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/domain-model.json",
+      "sourceEvidence": "14 subdomains: 10 sequential (user-guide-and-input, concept-development, worldbuilding, character-development, plotting-and-outlining, prose-style-calibration, chapter-drafting, revision-and-editing, beta-reading-simulation, polish-and-delivery) + 4 cross-cutting (adversarial-consistency, series-knowledge-management, continuity-tracking, craft-knowledge-systems). gap-report Category 1: 'All 14 subdomains covered. Clean since cycle 1.'",
+      "strengthens": null
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "bookId": "test-book-025",
+  "seriesId": "series-001",
+  "sequelOf": "test-book-001",
+  "targetChapters": 1,
+  "scenario": "Sequel production with series KB influence",
+  "description": "A sequel book that must read and extend the existing series knowledge base. Concept must reference predecessor and unresolved threads. World artifacts must not contradict series KB. Characters must include returning characters with consistent voice parameters. Series KB must be appended (never overwritten) on completion.",
+  "preconditions": [
+    "Previous book (test-book-001) completed and series KB populated",
+    "Series KB contains: world-facts.json, character-facts.json, timeline.json, unresolved-threads.json (3 open threads)"
+  ]
+}

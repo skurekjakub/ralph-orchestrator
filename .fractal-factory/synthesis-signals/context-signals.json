@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "analyzer": "fractal-factory-context-signal-analyzer",
+  "lastUpdated": "2026-03-16T21:26:13Z",
+  "signals": [
+    {
+      "type": "pipeline bottleneck pattern",
+      "content": "Initial execution pass (cycle 1) was the single largest time block at ~269 minutes. The prompt-writer produced 67 agent prompts but was rejected by the prompt-reviewer on first submission, requiring a full rewrite cycle. Writing 67 agents in one pass is the dominant bottleneck — the writer-reviewer loop's first-attempt rejection multiplied the cost of the largest pass.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/manifest.json",
+      "sourceEvidence": "prompt-reviewer cycle 1 at 02:15 returned 'rejected'; prompt-writer cycle 2 completed at 06:20 (4h05m gap). execution-coordinator cycle 1 completed at 06:44.",
+      "strengthens": null
+    },
+    {
+      "type": "pipeline bottleneck pattern",
+      "content": "Planning pass re-entry (planning-2) consumed ~561 minutes wall-clock, far exceeding any other phase. The gap between gap-cycle-1 completion (07:35) and test-planner completion (17:04) suggests the test-planner re-entry was the primary stall point within planning-2, likely due to generating 5 new test scenarios with full context directories.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/manifest.json",
+      "sourceEvidence": "roster-planner iter 2 at 07:46, routing-planner iter 2 at 08:15, but test-planner iter 2 at 17:04 — a 9-hour gap between routing completion and test completion.",
+      "strengthens": null
+    },
+    {
+      "type": "agent performance pattern",
+      "content": "Discovery pass agents (domain-scanner, invariant-extractor, exemplar-analyzer, asset-auditor) all completed on first iteration with no retries. The entire discovery pass finished in ~17 minutes. This suggests the discovery prompts are well-calibrated for domain-brief-to-model extraction and exemplar analysis tasks.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-discovery-coordinator/status.json",
+      "sourceEvidence": "discovery-coordinator iteration=1, result=complete. All 4 child agents succeeded: scanner=scanned, extractor=extracted, auditor=audited, analyzer=analyzed.",
+      "strengthens": null
+    },
+    {
+      "type": "agent performance pattern",
+      "content": "Analysis pass agents (pipeline-architect, artifact-designer, depth-analyzer) all completed on first iteration within ~38 minutes. Like discovery, the analysis pass shows zero retries. These single-shot passes suggest the prompt-to-artifact contract is tight for early pipeline agents that operate on well-structured inputs (domain-model.json, invariants).",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-analysis-coordinator/status.json",
+      "sourceEvidence": "analysis-coordinator iteration=1, result=complete. artifact-designer: 42 artifacts designed. depth-analyzer: 4 depth-2 + 5 depth-3 decisions.",
+      "strengthens": null
+    },
+    {
+      "type": "agent performance pattern",
+      "content": "The prompt-reviewer rejected the initial 67-agent prompt-writer output (cycle 1) but approved all subsequent submissions (cycles 2, 3) on first attempt. This 'reject-once-then-approve' pattern suggests the first-pass writing of a large agent family has predictable quality issues that are corrected on rewrite, while incremental fix passes (re-entry cycles) are reliably approvable.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/manifest.json",
+      "sourceEvidence": "prompt-reviewer cycle 1: 'rejected' (02:15). cycle 2: 'approved' (06:30). cycle 3 re-entry: 'approved' (17:26). cycle 3 re-entry 2: 'approved' (19:03). cycle 3 re-entry 3: 'approved' (21:19).",
+      "strengthens": null
+    },
+    {
+      "type": "gap hunting convergence pattern",
+      "content": "Gap convergence followed a clean exponential decay: 22→6→2→0 across 4 cycles, well within the maxGapCycles=10 budget. The 73% reduction per cycle (22→6=73%, 6→2=67%, 2→0=100%) demonstrates that the fix-verify-hunt loop is efficient. Only 4 of 10 allowed cycles were needed, suggesting the maxGapCycles=10 setting is generous for 67-agent systems.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "convergenceTrajectory: [22, 6, 2, 0]. converged: true. currentCycle: 4. maxCycles: 10.",
+      "strengthens": null
+    },
+    {
+      "type": "gap hunting convergence pattern",
+      "content": "Coverage categories (subdomain, invariant, routing, test) were clean from cycle 1 onward — they never had gaps after initial verification. Infrastructure categories (bootstrap, docs, meta-knowledge) were clean from cycle 2. Only artifact coverage and cross-reference integrity required 3 cycles. The persistent gaps were all caused by a single root issue: ghost references to the dissolved agent 'plot-architect'.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/gap-report.json",
+      "sourceEvidence": "Category 1 notes: 'Clean since cycle 1'. Category 4 notes: 'Clean since cycle 3'. Category 6 resolvedFromPreviousCycles: CR-004 verified-fixed, CR-005 verified-fixed — both plot-architect ghost refs.",
+      "strengthens": null
+    },
+    {
+      "type": "invariant violation pattern",
+      "content": "The most persistent cross-reference issue (CR-004/CR-005) stemmed from a dissolved agent ('plot-architect') whose responsibilities were split across multiple specialists during roster planning, but whose name lingered in 2 architecture.json reader arrays. This 'ghost agent' pattern — where agent dissolution leaves orphaned references in non-prompt artifacts — is a systematic risk when agents are split or merged during planning.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-prompt-writer/status.json",
+      "sourceEvidence": "iteration 3 gapsAddressed: ['CR-004', 'CR-005']. summary: 'Removed dissolved agent plot-architect from 2 reader arrays in architecture.json (foreshadowing-ledger.json, mystery-box-inventory.json)'.",
+      "strengthens": null
+    },
+    {
+      "type": "invariant violation pattern",
+      "content": "The audit-oracle found 8 semantic-level issues that the structural checklist-validator (1299/1299, 100%) could not detect: create-once/multi-writer protocol contradictions, hierarchy dispatch exceptions, anti-laziness clause inconsistency, and sequel data flow gaps. This confirms that structural validation is necessary but insufficient — the oracle's semantic analysis layer catches a distinct class of issues.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/audit-report.json",
+      "sourceEvidence": "summary.comparisonWithChecklistValidator: 'The checklist-validator found 0 failures across 1299 checks... This audit adds a semantic and architectural layer: protocol-writer count compatibility, hierarchy dispatch constraints, data flow traceability.'",
+      "strengthens": null
+    },
+    {
+      "type": "iteration pattern",
+      "content": "Planning required 2 iterations because gap-cycle-1 found 22 gaps spanning all 3 hunter categories, and 16 of those 22 mapped to planning-phase artifacts (roster, routing, test plan). The planning coordinator successfully addressed all 16 in a single re-entry cycle, showing that planning re-entry is efficient when gaps are clearly attributed to planning outputs.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-planning-coordinator/status.json",
+      "sourceEvidence": "iteration: 2. summary: '16 of 22 gap-report items addressed in planning pass.' childResults: roster-planner=planned, routing-planner=planned, test-planner=planned.",
+      "strengthens": null
+    },
+    {
+      "type": "iteration pattern",
+      "content": "Execution required 3 iterations: cycle 1 (initial 67-agent write + reviewer rejection + rewrite), cycle 2 (6 infrastructure gap fixes from gap-cycle-2), cycle 3 (2 cross-reference fixes from gap-cycle-3). Each re-entry cycle was progressively lighter — cycle 2 fixed 6 items across 6 files, cycle 3 fixed 2 reader arrays in 1 file. The diminishing fix scope per cycle confirms healthy convergence.",
+      "strength": "high",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-execution-coordinator/status.json",
+      "sourceEvidence": "iteration: 3. cycleDetails.gapsAddressed: ['CR-004', 'CR-005']. cycleDetails.writerReviewerIterations: 1. Previous cycles: cycle 2 addressed AC-004/AC-005/CR-002/CR-003/DC-W05/MK-W03.",
+      "strengthens": null
+    },
+    {
+      "type": "convergence pattern",
+      "content": "The checklist-validator achieved 100% pass rate on all 3 of its iterations (1331/1331, 1326/1326, 1299/1299 — minor count variations due to check structure evolution). Structural validation was never the bottleneck; the system's structural integrity was solid from cycle 1. All convergence effort was spent on semantic and cross-reference issues that only the audit-oracle and gap hunters could detect.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-checklist-validator/status.json",
+      "sourceEvidence": "iteration: 3, result: pass. verification-report.json summary.comparisonToCycle1: 'cycle1Score: 1331/1331 (100.0%), cycle2Score: 1326/1326 (100.0%)'.",
+      "strengthens": null
+    },
+    {
+      "type": "pipeline bottleneck pattern",
+      "content": "Gap hunting cycles 3 and 4 were notably fast (5 min and 15 min respectively) compared to cycles 1-2 (~19-31 min). When the gap count drops below 5, the hunters complete rapidly because their grep-based methodology scales with issue count, not system size. This suggests the factory could skip sequential hunter dispatch and run all 3 hunters in parallel for late-stage cycles.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/manifest.json",
+      "sourceEvidence": "Gap-cycle-3 timestamps: coverage-hunter 19:50 to gap-coordinator 19:55 = 5 min. Gap-cycle-4: coverage-hunter 20:58 to gap-coordinator 21:13 = 15 min. Vs gap-cycle-1: 07:16 to 07:35 = 19 min.",
+      "strengthens": null
+    },
+    {
+      "type": "agent performance pattern",
+      "content": "The infrastructure-writer (infra-writer) completed all 3 iterations with no-op or minimal changes in cycles 2 and 3. Its cycle 3 summary was 'architecture.json reader-array changes have zero infrastructure impact — no modifications needed.' This suggests the infra-writer could be conditionally skipped during re-entry cycles that only modify architecture.json metadata (readers/writers) without changing agent prompts or schemas.",
+      "strength": "medium",
+      "sourceArtifact": ".fractal-factory/agents/fractal-factory-infra-writer/status.json",
+      "sourceEvidence": "iteration: 3. summary: 'Cycle 3 verification: architecture.json reader-array changes... have zero infrastructure impact. All files verified clean — no modifications needed.'",
+      "strengthens": null
+    }
+  ]
+}

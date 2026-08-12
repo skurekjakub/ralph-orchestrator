@@ -65,12 +65,24 @@ For each pass, plan the leaf specialists:
 - Map subdomains from `domain-model.json` to agents
 - Name pattern: `{namingPrefix}-{subdomain}-scanner` or `{namingPrefix}-{subdomain}-mapper`
 
-**Analysis specialists** (based on invariant types and complexity):
-- Behavioral analyzer, dependency mapper, risk assessor
+**Analysis specialists** (mandatory when Pass 2 is included):
+
+When `architecture.json.pipeline.passes` includes analysis, plan at minimum:
+
+1. **Domain analysis specialist(s)** — at least one specialist that extracts behavioral properties from discovered items into `analysis-matrix.json`. For complex domains with multiple subdomains, plan one analysis specialist per subdomain cluster. Name pattern: `{namingPrefix}-{domain-qualifier}-analyzer` (e.g., `migration-semantics-analyzer`, `security-threat-modeler`, `test-gen-behavior-extractor`).
+
+2. **Dependency analyzer** — exactly one specialist that builds the dependency graph from the analysis matrix and source material into `dependency-graph.json`. Name pattern: `{namingPrefix}-dependency-analyzer`.
+
+Both must have `antiLaziness: true` for the invariant extraction component — zero invariants for a discovered item is suspicious.
+
+**Analysis specialists** (optional enrichment):
+- Risk assessor, complexity scorer, cross-cutting concern detector
+- Include when the domain model has high invariant counts (>15) or many cross-cutting subdomains
 - Name pattern: `{namingPrefix}-{analysis-type}-analyzer`
 
 **Planning specialists** (task decomposition and ordering):
-- Decomposer, dependency analyzer, risk analyzer, test planner
+- Task-graph planner (REQUIRED for Pass 3) — decomposes analysis outputs into `task-graph.json` via progressive disclosure workflow (5 phases: enumerate → dependencies → invariants → criteria → validate). Reads: domain inventory, analysis matrix, dependency graph. Writes: `task-graph.json`. On gap-hunting re-dispatch, reads gap report and mutates existing graph.
+- Risk analyzer — per-task risk assessment
 - Name pattern: `{namingPrefix}-{role}`
 
 **Execution specialists** (coder→reviewer loop):
@@ -78,7 +90,7 @@ For each pass, plan the leaf specialists:
 - Name pattern: `{namingPrefix}-{role}`
 
 **Verification specialists** (oracle validators):
-- One per verification approach + gap-hunter
+- One per verification approach + specialist hunters for gap hunting
 - Name pattern: `{namingPrefix}-{role}`
 
 **Delivery specialists** (packaging and documentation):
@@ -132,7 +144,6 @@ Write to `.fractal-factory/roster.json`:
       "reads": ["progress.json", "agents/*/status.json"],
       "writes": ["progress.json"],
       "antiLaziness": false,
-      "status": "designed",
       "routingTable": null
     },
     {
@@ -147,19 +158,16 @@ Write to `.fractal-factory/roster.json`:
       "reads": [],
       "writes": ["context.json"],
       "antiLaziness": false,
-      "status": "designed",
       "routingTable": null
     }
   ]
 }
 ```
 
-**Agent status lifecycle**: `designed` → `written` → `reviewed` → `verified` → `blocked`
-
 **Rules**:
 - Assign IDs sequentially: `A-001`, `A-002`, etc.
 - `routingTable` is null at this stage — filled by the routing-planner
-- `antiLaziness` is true for reviewers, gap-hunters, risk analyzers, validators
+- `antiLaziness` is true for reviewers, gap-hunting specialists, risk analyzers, validators
 
 ## Status Contract
 

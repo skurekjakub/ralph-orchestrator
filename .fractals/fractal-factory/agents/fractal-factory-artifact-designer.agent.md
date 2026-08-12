@@ -43,6 +43,27 @@ Then identify domain-specific artifacts based on the pipeline:
 - **Execution outputs**: the actual work products
 - **Verification outputs**: parity matrices, compliance reports
 
+### Step 1.5: Ensure Analysis Artifacts (when Pass 2 is included)
+
+If `architecture.json.pipeline.passes` includes a pass with `name: "analysis"`, the following domain-specific artifacts are MANDATORY:
+
+| Artifact | Purpose | Written By | Read By |
+|---|---|---|---|
+| `analysis-matrix.json` | Per-item behavioral property extraction with domain-specific categories + invariants | Analysis specialist(s) | Planning specialists, execution specialists, verification specialists |
+| `dependency-graph.json` | Directed dependency graph between discovered items with typed edges and clusters | Dependency analyzer | Planning specialists (for task ordering), gap hunter (for coverage checking) |
+
+The analysis-matrix schema must include:
+- A per-item entry keyed by the inventory's item ID scheme
+- Domain-specific extraction categories (defined from the pipeline pass purpose — e.g., state transitions for migration, attack vectors for security)
+- An `invariants` array per item (mandatory regardless of domain)
+- An `analysisNotes` free-text field per item
+- `analyzedBy` and `analyzedAt` provenance fields per item
+
+The dependency-graph schema must include:
+- Nodes referencing inventory item IDs
+- Typed directed edges (edge types are domain-specific — e.g., `depends-on`, `uses`, `shares-data` for migration; `enables-exploit`, `mitigates` for security)
+- Clusters grouping tightly-coupled items
+
 ### Step 2: Design Each Artifact Schema
 
 For each artifact, define:

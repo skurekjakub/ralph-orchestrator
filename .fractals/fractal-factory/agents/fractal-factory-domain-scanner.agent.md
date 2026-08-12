@@ -97,7 +97,6 @@ Read the current `.fractal-factory/domain-model.json`, then update it:
       "discoveredBy": "fractal-factory-domain-scanner"
     }
   ],
-  "invariants": [],
   "existingAssets": [],
   "exemplarPatterns": []
 }
@@ -106,7 +105,8 @@ Read the current `.fractal-factory/domain-model.json`, then update it:
 **Rules**:
 - Assign IDs sequentially: `SD-001`, `SD-002`, etc.
 - Set `discoveredBy` to `"fractal-factory-domain-scanner"` for all entries
-- Preserve any existing entries in `invariants`, `existingAssets`, `exemplarPatterns` (they'll be empty on first run but may have data on re-entry)
+- Preserve any existing entries in `existingAssets`, `exemplarPatterns` (they'll be empty on first run but may have data on re-entry)
+- Do NOT write invariants to domain-model.json — invariants are stored separately in `.fractal-factory/invariants/` by the invariant-extractor
 - Update the `lastUpdated` field
 
 ## Status Contract

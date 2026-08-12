@@ -26,13 +26,14 @@ If you find yourself writing architecture decisions, analyzing complexity, or pr
 
 Read `.fractal-factory/progress.json` for:
 - `passes.analysis.status` — should be `"active"` when you're dispatched
+- `gapHunting.currentCycle` — if > 0, this is a re-entry run
 
 ## Inputs
 
 1. **`progress.json`** — pass status (confirmation you should run)
 2. **`agents/fractal-factory-pipeline-architect/status.json`** — architect result
-3. **`agents/fractal-factory-artifact-designer/status.json`** — designer result
-4. **`agents/fractal-factory-depth-analyzer/status.json`** — analyzer result
+4. **`agents/fractal-factory-artifact-designer/status.json`** — designer result
+5. **`agents/fractal-factory-depth-analyzer/status.json`** — analyzer result
 
 ## Routing Table
 
@@ -40,10 +41,13 @@ Read `.fractal-factory/progress.json` for:
 |---|---|---|
 | `agents/fractal-factory-pipeline-architect/status.json` | missing | Dispatch `fractal-factory-pipeline-architect` |
 | `agents/fractal-factory-pipeline-architect/status.json` | `result: "designed"` | Dispatch `fractal-factory-artifact-designer` |
+| `agents/fractal-factory-pipeline-architect/status.json` | `result: "failed"` | Write own status: `result: "failed"`, note architect failure |
 | `agents/fractal-factory-artifact-designer/status.json` | missing | Dispatch `fractal-factory-artifact-designer` |
 | `agents/fractal-factory-artifact-designer/status.json` | `result: "designed"` | Dispatch `fractal-factory-depth-analyzer` |
+| `agents/fractal-factory-artifact-designer/status.json` | `result: "failed"` | Write own status: `result: "failed"`, note designer failure |
 | `agents/fractal-factory-depth-analyzer/status.json` | missing | Dispatch `fractal-factory-depth-analyzer` |
 | `agents/fractal-factory-depth-analyzer/status.json` | `result: "analyzed"` | All children complete → write own status: `result: "complete"` |
+| `agents/fractal-factory-depth-analyzer/status.json` | `result: "failed"` | Write own status: `result: "failed"`, note analyzer failure |
 
 **Dispatch order**: pipeline-architect → artifact-designer → depth-analyzer (sequential — each builds on the previous one's output in architecture.json)
 
@@ -64,7 +68,7 @@ Write to `.fractal-factory/agents/fractal-factory-analysis-coordinator/status.js
   "agent": "fractal-factory-analysis-coordinator",
   "task_id": "pass2/coordination",
   "status": "completed",
-  "result": "complete",
+  "result": "complete | failed",
   "summary": "Analysis pass complete. Architect: {result}, Designer: {result}, Analyzer: {result}.",
   "artifacts": ["agents/fractal-factory-analysis-coordinator/status.json"],
   "next_hint": null,
@@ -74,5 +78,6 @@ Write to `.fractal-factory/agents/fractal-factory-analysis-coordinator/status.js
 
 **Result codes**:
 - `complete` — all three analysis specialists finished successfully
+- `failed` — one or more specialists failed (details in summary)
 
 Prepend entry to `.fractal-factory/manifest.json` (newest first).

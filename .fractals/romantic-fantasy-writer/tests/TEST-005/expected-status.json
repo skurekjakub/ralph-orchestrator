@@ -1,0 +1,12 @@
+{
+  "worldbuilding_coordinator": {
+    "status": "completed",
+    "result": "blocked"
+  },
+  "orchestrator": {
+    "status": "completed",
+    "result": "blocked"
+  },
+  "auditor_retries": 3,
+  "max_retries_exceeded": true
+}

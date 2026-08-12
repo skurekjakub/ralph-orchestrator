@@ -1,0 +1,26 @@
+{
+  "id": "MK-025",
+  "category": "factory-operations",
+  "subcategory": "iteration-pattern",
+  "content": "Planning required 2 iterations because gap-cycle-1 found 22 gaps spanning all 3 hunter categories, and 16 of those 22 mapped to planning-phase artifacts (roster, routing, test plan). The planning coordinator successfully addressed all 16 in a single re-entry cycle, showing that planning re-entry is efficient when gaps are clearly attributed to planning outputs.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/agents/fractal-factory-planning-coordinator/status.json",
+  "sourceEvidence": "iteration: 2. summary: '16 of 22 gap-report items addressed in planning pass.' childResults: roster-planner=planned, routing-planner=planned, test-planner=planned.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

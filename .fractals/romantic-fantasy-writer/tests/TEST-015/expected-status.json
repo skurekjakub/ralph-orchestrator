@@ -1,0 +1,9 @@
+{
+  "drafting_coordinator": {
+    "status": "completed",
+    "result": "blocked"
+  },
+  "chapters_drafted": 1,
+  "blocked_at_chapter": 2,
+  "blocked_reason": "missing chapter outline"
+}

@@ -1,0 +1,9 @@
+{
+  "bookId": "test-book-011",
+  "targetChapters": 3,
+  "existingArtifacts": [
+    "chapters/001/draft.md",
+    "chapters/002/draft.md",
+    "chapters/003/draft.md"
+  ]
+}

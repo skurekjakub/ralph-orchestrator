@@ -1,0 +1,291 @@
+{
+  "$schema": "Always-on analysis pass for produced agent systems — makes Pass 2 default-on in the fractal factory",
+  "version": 1,
+  "family": "always-on-analysis",
+  "generatedAt": "2026-03-17T00:00:00Z",
+  "description": "Updates the fractal factory pipeline-design skill, pipeline-architect, artifact-designer, roster-planner, routing-planner, produced-agent schema, and produced-agent template to make the Analysis pass (Pass 2) default-on for every produced agent system. Adds analysis specialist type guidance, mandatory analysis artifacts, and canonical analysis+planning coordinator patterns.",
+  "summary": {
+    "totalTasks": 10,
+    "phases": 4,
+    "newFiles": 0,
+    "modifiedFiles": 7
+  },
+  "assumptions": [
+    "The fractal factory's existing 7-pass pipeline structure is unchanged",
+    "The pipeline-architect remains the sole decision-maker for pass inclusion",
+    "All four domain mapping examples in pipeline-design.md already include Analysis rows",
+    "The produced-agent schema and template are the authoritative references for prompt-writer and prompt-reviewer"
+  ],
+  "designDecisions": [
+    {
+      "decision": "Default-on rather than mandatory",
+      "rationale": "A true greenfield generator with zero source material genuinely doesn't need analysis. But the architect must document why it's skipped — flipping the burden of proof."
+    },
+    {
+      "decision": "analysisSkipJustification field in architecture.json",
+      "rationale": "Forces the pipeline-architect to explicitly reason about why analysis is unnecessary rather than silently omitting it. Reviewable by gap hunters and prompt reviewers."
+    },
+    {
+      "decision": "Analysis specialist is a subtype of Specialist, not a new agent type",
+      "rationale": "Keeps the type system simple (specialist/coordinator/orchestrator/guide). Analysis specialist is guidance within the specialist type, not a separate category."
+    },
+    {
+      "decision": "Domain-specific extraction categories + universal invariants",
+      "rationale": "The extraction categories vary by domain (state transitions, attack vectors, behavior specs) but the invariants requirement is universal. This balances flexibility with rigor."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "A-001",
+      "phase": 1,
+      "ref": "phase-1-pipeline-foundation-v1.md § 1.1",
+      "title": "Update pipeline-design.md pass inclusion tiers",
+      "description": "Change the 'Deciding Which Passes to Include' section to introduce a 'Default-on' tier for Pass 2 (Analysis), requiring explicit justification to skip. Add reinforcement note after domain examples.",
+      "type": "modify",
+      "target": ".github/skills/agent-fractal-orchestrator-architecture/references/pipeline-design.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".github/skills/agent-fractal-orchestrator-architecture/references/pipeline-design.md"]
+      },
+      "acceptanceCriteria": [
+        "'Always include' tier unchanged (Passes 1, 4, 7)",
+        "New 'Default-on' tier lists Pass 2 with skip conditions and justification requirement",
+        "analysisSkipJustification field documented as required when skipping",
+        "Reinforcement note after domain examples present"
+      ]
+    },
+    {
+      "id": "A-002",
+      "phase": 1,
+      "ref": "phase-1-pipeline-foundation-v1.md § 1.2",
+      "title": "Update pipeline-architect Pass 2 selection + add Step 2.5",
+      "description": "Change the Pass 2 row in the selection table to 'Default-on'. Add Step 2.5 requiring justification when skipping. Add analysisSkipJustification to architecture.json schema.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md",
+      "prerequisites": ["A-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Pass 2 row says 'Default-on' with explicit skip conditions",
+        "Step 2.5 exists with justification requirements",
+        "analysisSkipJustification field in architecture.json write rules",
+        "All other pass selection criteria unchanged"
+      ]
+    },
+    {
+      "id": "A-003",
+      "phase": 1,
+      "ref": "phase-1-pipeline-foundation-v1.md § 1.3",
+      "title": "Update pipeline-architect analysis depth assessment",
+      "description": "Reframe the analysis depth bullet in Step 1 from 'whether to include' to 'what kind of analysis', with domain-specific extraction category examples.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Analysis depth bullet reframed as 'what kind' not 'whether'",
+        "Domain-specific extraction category examples included",
+        "Other assessment bullets unchanged"
+      ]
+    },
+    {
+      "id": "A-004",
+      "phase": 2,
+      "ref": "phase-2-factory-agents-v1.md § 2.1",
+      "title": "Update artifact-designer: mandatory analysis artifacts",
+      "description": "Add Step 1.5 enforcing mandatory analysis-matrix.json and dependency-graph.json artifacts when Pass 2 is included. Define schema requirements including universal invariants array.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-artifact-designer.agent.md",
+      "prerequisites": ["A-002"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-artifact-designer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 1.5 exists, conditioned on Pass 2 in pipeline",
+        "analysis-matrix.json schema requirements include mandatory invariants array",
+        "dependency-graph.json schema requirements include typed edges and clusters",
+        "Existing steps unchanged"
+      ]
+    },
+    {
+      "id": "A-005",
+      "phase": 2,
+      "ref": "phase-2-factory-agents-v1.md § 2.2",
+      "title": "Update roster-planner: mandatory analysis agents",
+      "description": "Replace generic analysis specialists guidance with mandatory minimum (1 domain analysis specialist + 1 dependency analyzer) when Pass 2 is present. Add antiLaziness requirement.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+      "prerequisites": ["A-004"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Mandatory minimum: 1 domain analysis specialist + 1 dependency analyzer when Pass 2 present",
+        "antiLaziness: true required for analysis specialists",
+        "Optional enrichment analysts listed separately",
+        "Name pattern examples tied to real domains"
+      ]
+    },
+    {
+      "id": "A-006",
+      "phase": 2,
+      "ref": "phase-2-factory-agents-v1.md § 2.3",
+      "title": "Update routing-planner: analysis coordinator mode detection example",
+      "description": "Add canonical analysis+planning dual-mode coordinator example with mode boundary defined by analysis artifact existence.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md",
+      "prerequisites": ["A-004"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Canonical analysis+planning mode detection example added",
+        "Mode boundary defined by analysis artifact existence",
+        "Uses actual artifact names from artifact-designer's mandatory list",
+        "Existing routing patterns unchanged"
+      ]
+    },
+    {
+      "id": "A-007",
+      "phase": 3,
+      "ref": "phase-3-produced-schema-v1.md § 3.1",
+      "title": "Add analysis specialist type guidance to produced-agent schema",
+      "description": "Add 'Analysis Specialist' subsection under Specialist type with mandatory invariant extraction, domain-specific categories, anti-laziness, canonical 4-phase workflow, and inventory status progression.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": ["A-005"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/schemas/produced-agent.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Analysis Specialist subsection exists under Specialist type",
+        "Mandatory invariant extraction documented as universal",
+        "Canonical 4-phase workflow for analysis specialists and dependency analyzer",
+        "Inventory status progression (discovered → analyzed) documented",
+        "Anti-laziness requirement stated"
+      ]
+    },
+    {
+      "id": "A-008",
+      "phase": 3,
+      "ref": "phase-3-produced-schema-v1.md § 3.2",
+      "title": "Add analysis specialist variant to produced-agent-template.md",
+      "description": "Add analysis specialist to the Type Variants list with distinguishing features: mandatory invariant output, anti-laziness, dual write target.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/templates/produced-agent-template.md",
+      "prerequisites": ["A-007"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/templates/produced-agent-template.md"]
+      },
+      "acceptanceCriteria": [
+        "Analysis specialist listed in Type Variants",
+        "Distinguishing features noted: mandatory invariant output, anti-laziness, dual write target",
+        "Not a separate template — variant guidance within existing template"
+      ]
+    },
+    {
+      "id": "A-009",
+      "phase": 3,
+      "ref": "phase-3-produced-schema-v1.md § 3.3",
+      "title": "Add analysis+planning coordinator pattern to produced-agent schema",
+      "description": "Add canonical dual-mode coordinator pattern under Coordinator type showing mode detection based on analysis artifact existence.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/schemas/produced-agent.schema.md",
+      "prerequisites": ["A-007"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": [".fractals/fractal-factory/schemas/produced-agent.schema.md"]
+      },
+      "acceptanceCriteria": [
+        "Analysis+Planning coordinator pattern documented under Coordinator type",
+        "Mode detection based on artifact existence, not pass numbers",
+        "Pattern framed as 'common' not 'mandatory'"
+      ]
+    },
+    {
+      "id": "A-010",
+      "phase": 4,
+      "ref": "phase-4-verification-v1.md § 4.1–4.3",
+      "title": "Cross-reference consistency sweep",
+      "description": "Verify all domain examples include Analysis, artifact-designer mandatory artifacts align with roster-planner mandatory agents, and produced-agent schema phases produce output compatible with artifact schemas.",
+      "type": "verification",
+      "target": "plans/fractal-factory/always-on-analysis/",
+      "prerequisites": ["A-001", "A-004", "A-005", "A-007"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": []
+      },
+      "acceptanceCriteria": [
+        "All four domain mapping examples include an Analysis row",
+        "analysis-matrix.json has a corresponding writer agent in roster-planner",
+        "dependency-graph.json has a corresponding writer agent in roster-planner",
+        "Workflow phase outputs align with artifact schema fields",
+        "No orphan artifacts or orphan agents"
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "phase": 1,
+        "tasks": ["A-001", "A-003"],
+        "parallelSafe": true,
+        "note": "Pipeline-design.md update and pipeline-architect assessment update are independent"
+      },
+      {
+        "step": 2,
+        "phase": 1,
+        "tasks": ["A-002"],
+        "parallelSafe": false,
+        "note": "Pipeline-architect pass selection + Step 2.5 depends on A-001 for consistent terminology"
+      },
+      {
+        "step": 3,
+        "phase": 2,
+        "tasks": ["A-004"],
+        "parallelSafe": false,
+        "note": "Artifact-designer defines the analysis artifact schemas that roster-planner and routing-planner reference"
+      },
+      {
+        "step": 4,
+        "phase": 2,
+        "tasks": ["A-005", "A-006"],
+        "parallelSafe": true,
+        "note": "Roster-planner and routing-planner both reference artifact-designer output but are independent of each other"
+      },
+      {
+        "step": 5,
+        "phase": 3,
+        "tasks": ["A-007"],
+        "parallelSafe": false,
+        "note": "Schema analysis specialist guidance must land before template variant and coordinator pattern"
+      },
+      {
+        "step": 6,
+        "phase": 3,
+        "tasks": ["A-008", "A-009"],
+        "parallelSafe": true,
+        "note": "Template variant and coordinator pattern both reference A-007 but are independent of each other"
+      },
+      {
+        "step": 7,
+        "phase": 4,
+        "tasks": ["A-010"],
+        "parallelSafe": false,
+        "note": "Consistency sweep after all changes are in place"
+      }
+    ]
+  }
+}

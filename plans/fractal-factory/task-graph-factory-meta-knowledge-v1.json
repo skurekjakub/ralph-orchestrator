@@ -1,0 +1,645 @@
+{
+  "$schema": "Fractal Factory modification — makes meta-knowledge gathering a mandatory universal feature of every produced agent system",
+  "version": 1,
+  "family": "fractal-factory",
+  "generatedAt": "2026-03-15T22:00:00Z",
+  "description": "Modifies the fractal factory itself so that every agent system it produces automatically includes a cross-run meta-knowledge gathering subsystem. This encodes the docwriter's proven knowledge-curator → signal-analyzer → knowledge-integrator pattern as a universal factory concern — like progress.json and manifest.json, every produced system gets meta/ infrastructure, Pass 0 (curation), a post-verification synthesis pass, and 5-7 meta-knowledge agents in its roster. The factory's domain-scanner, pipeline-architect, artifact-designer, roster-planner, routing-planner, prompt-writer, infra-writer, gap-hunter, and packager all learn the pattern.",
+  "summary": {
+    "totalTasks": 24,
+    "phases": 6,
+    "newFactoryFiles": 2,
+    "modifiedFactoryAgents": 12,
+    "factoryAgentTotal": {
+      "before": 28,
+      "after": 28,
+      "note": "Factory agent count stays the same — no new factory agents, only modifications to existing ones plus 2 reference documents"
+    },
+    "impactOnProducedSystems": {
+      "additionalAgentsPerSystem": "5-7 (1 curator + 1 synthesis coordinator + 2 signal analyzers + 1 integrator + 0-2 domain-specific analyzers)",
+      "additionalPasses": 2,
+      "additionalArtifacts": "meta/index.json, knowledge-brief.json, synthesis-signals/*.json, meta/run-retrospectives/*.json"
+    }
+  },
+  "assumptions": [
+    "The fractal factory's 28 agents and 7-pass pipeline exist as documented in .fractals/fractal-factory/agents/",
+    "The docwriter's meta-knowledge system (7 agents, Pass 0 + Pass 6.5) is the fully proven reference implementation",
+    "Factory agents read context.json, domain-model.json, architecture.json, roster.json — all existing artifact flow is stable",
+    "The factory already handles universal artifacts (progress.json, manifest.json, status.json) separately from domain-specific artifacts — meta-knowledge follows the universal pattern",
+    "Produced systems already have gap-hunting re-entry and convergence bounds — synthesis ties into this existing lifecycle"
+  ],
+  "designDecisions": [
+    {
+      "decision": "Modify existing factory agents rather than adding new factory agents",
+      "rationale": "Meta-knowledge is a cross-cutting concern that touches discovery, analysis, planning, execution, verification, and delivery. Adding a single 'meta-knowledge injector' agent would create an awkward bolt-on. Instead, each factory agent learns the pattern in its own domain — domain-scanner learns to add the meta-knowledge subdomain, pipeline-architect learns to add the passes, roster-planner learns to add the agents, etc. This keeps the factory's pure-phase architecture intact."
+    },
+    {
+      "decision": "Create a meta-knowledge reference architecture document (.fractal-factory/meta-knowledge-reference.md) that all factory agents reference",
+      "rationale": "Rather than embedding the full meta-knowledge specification in each of 12 factory agents, create a single reference document. Factory agents reference it with 'See meta-knowledge-reference.md § X'. This follows the factory's existing pattern of reading context.json and architecture.json — adding one more reference is natural."
+    },
+    {
+      "decision": "Meta-knowledge agents in produced systems are domain-adaptive, not domain-agnostic",
+      "rationale": "The signal analyzers and knowledge categories must be tailored to the domain. A doc-writer's signal analyzer extracts doc-writing patterns; a fiction-writer's extracts prose patterns. The factory's prompt-writer already customizes prompts by domain — it just needs to know the meta-knowledge role templates to fill in domain-specific content."
+    },
+    {
+      "decision": "Synthesis pass is positioned as a 'post-verification pre-delivery' pass in every produced system, not as a sub-step of verification",
+      "rationale": "Signal extraction depends on verification outcomes (what passed, what failed, what needed multiple cycles). It must run after all writer→reviewer loops have completed. Making it a separate pass ensures clean lifecycle rather than complicating the existing verification coordinator."
+    },
+    {
+      "decision": "The domain-scanner injects a mandatory SD entry for meta-knowledge with 'factory-injected: true' flag",
+      "rationale": "This distinguishes factory-mandated subdomains from user-described ones. The roster-planner can then treat factory-injected subdomains differently (always include, never merge away during budget trimming)."
+    },
+    {
+      "decision": "Knowledge categories are derived from the domain during analysis, not hardcoded",
+      "rationale": "Doc-writing, fiction-writing, code migration, and infrastructure planning all have different knowledge categories. The artifact-designer infers appropriate categories from the domain model — e.g., a code-migration domain would have 'migration-patterns', 'failure-modes', 'dependency-insights'. The reference document provides the universal skeleton; the artifact-designer fills in domain-specific categories."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "MK-001",
+      "phase": 1,
+      "ref": "phase-1-reference-architecture",
+      "title": "Create meta-knowledge reference architecture document",
+      "description": "Create .fractal-factory/meta-knowledge-reference.md — a comprehensive specification of the meta-knowledge subsystem that every produced system must include. Sections: § Universal Meta-Knowledge Architecture (Pass 0 lifecycle, synthesis pass lifecycle), § Agent Roles (curator, signal analyzers, integrator, synthesis coordinator), § Confidence Ladder (low→medium→high rules), § Quality Gate (reusability + actionability + non-redundancy), § Meta Directory Structure (meta/, knowledge-brief.json, synthesis-signals/), § Knowledge Category Derivation (how the factory infers domain-specific categories from domain-model.json), § Separation of Concerns (meta-knowledge vs. domain data). This document is READ by factory agents at Pass 2-4, not by produced agents.",
+      "type": "create",
+      "target": ".fractal-factory/meta-knowledge-reference.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "creates": [".fractal-factory/meta-knowledge-reference.md"]
+      },
+      "acceptanceCriteria": [
+        "Document covers all 7 sections listed in the description",
+        "§ Agent Roles defines the 5 universal meta-knowledge roles: knowledge-curator, craft-signal-analyzer (domain-specific name), context-signal-analyzer (domain-specific name), knowledge-integrator, synthesis-coordinator",
+        "§ Confidence Ladder specifies exact rules: new=low, 2-run confirm=medium, 3+ runs >80% acceptance=high, never skip levels",
+        "§ Quality Gate specifies the 3 mandatory criteria with pass/fail definitions",
+        "§ Knowledge Category Derivation describes how to infer 3-6 domain categories from domain-model.json subdomains and invariants",
+        "§ Meta Directory Structure defines: meta/index.json schema, meta/{category}/ entry format, synthesis-signals/ file format, meta/run-retrospectives/ schema",
+        "Document is self-contained — a factory agent can read it and know exactly what to produce without referencing external files"
+      ]
+    },
+    {
+      "id": "MK-002",
+      "phase": 1,
+      "ref": "phase-1-prompt-templates",
+      "title": "Create meta-knowledge agent prompt templates",
+      "description": "Create .fractal-factory/meta-knowledge-templates.md — prompt template skeletons for all 5 meta-knowledge agent roles. These are NOT Liquid templates — they're structural guides that the factory's prompt-writer uses when writing the actual .agent.md files for the produced system. Each template defines: the agent's standard sections, required clauses (confidence ladder, quality gate, cold-start handling), artifact contracts, and status contract. The prompt-writer fills in domain-specific content.",
+      "type": "create",
+      "target": ".fractal-factory/meta-knowledge-templates.md",
+      "prerequisites": [],
+      "status": "not-started",
+      "artifacts": {
+        "creates": [".fractal-factory/meta-knowledge-templates.md"]
+      },
+      "acceptanceCriteria": [
+        "Contains 5 template skeletons: knowledge-curator, domain-signal-analyzer, context-signal-analyzer, knowledge-integrator, synthesis-coordinator",
+        "Knowledge-curator template includes: 4-factor relevance scoring section, cold-start handling section, knowledge-brief.json output contract",
+        "Signal analyzer templates include: signal type extraction patterns with {DOMAIN_PLACEHOLDER} markers, signal strength rating section",
+        "Knowledge-integrator template includes: confidence ladder enforcement section (exact rules), quality gate section, meta/ write rules, run retrospective output",
+        "Synthesis-coordinator template includes: sequential dispatch pattern, degraded mode handling",
+        "Each template marks domain-specific sections with clear {DOMAIN_SPECIFIC: ...} placeholders the prompt-writer fills per domain"
+      ]
+    },
+    {
+      "id": "MK-003",
+      "phase": 2,
+      "ref": "phase-2-domain-scanner-modification",
+      "title": "Modify domain-scanner — inject mandatory meta-knowledge subdomain",
+      "description": "Update fractal-factory-domain-scanner.agent.md to always add a meta-knowledge subdomain to domain-model.json after scanning the domain brief. The entry has 'factoryInjected: true' and describes the cross-run learning subsystem. Also add a mandatory PATTERN entry for the meta-knowledge lifecycle pattern. This ensures meta-knowledge appears in the domain model regardless of what the user's domain brief says.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-domain-scanner.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-domain-scanner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 3 (Identify Subdomains) has a new sub-step: 'Always inject the meta-knowledge subdomain'",
+        "Injected subdomain has: id assigned last (after all domain-derived subdomains), name 'meta-knowledge', complexity 'medium', estimatedAgentCount 5-7, factoryInjected: true",
+        "Also injects PATTERN entry: 'meta-knowledge-lifecycle' referencing meta-knowledge-reference.md",
+        "The factoryInjected flag is documented as 'cannot be merged away during budget trimming'",
+        "Step 4 (Validate Completeness) adds a check: 'meta-knowledge subdomain is present'"
+      ]
+    },
+    {
+      "id": "MK-004",
+      "phase": 2,
+      "ref": "phase-2-invariant-extractor-modification",
+      "title": "Modify invariant-extractor — add mandatory meta-knowledge invariants",
+      "description": "Update fractal-factory-invariant-extractor.agent.md to always extract 3 mandatory invariants related to meta-knowledge: (1) only the knowledge-integrator writes to meta/, (2) confidence ladder is strictly enforced, (3) quality gate is mandatory. These are injected with factoryInjected: true.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-invariant-extractor.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-invariant-extractor.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "3 mandatory invariants are always added to domain-model.json after domain-brief extraction",
+        "INV: 'Meta-knowledge write exclusivity — only the knowledge-integrator agent may write to meta/'",
+        "INV: 'Confidence ladder strict enforcement — entries must follow low→medium→high across runs, never skip levels'",
+        "INV: 'Quality gate mandatory — every candidate entry must pass reusability + actionability + non-redundancy'",
+        "All 3 have factoryInjected: true flag"
+      ]
+    },
+    {
+      "id": "MK-005",
+      "phase": 2,
+      "ref": "phase-2-exemplar-analyzer-modification",
+      "title": "Modify exemplar-analyzer — recognize meta-knowledge patterns in exemplars",
+      "description": "Update fractal-factory-exemplar-analyzer.agent.md to specifically look for existing meta-knowledge patterns in exemplar agent families. If exemplars contain knowledge-curator, signal-analyzer, or knowledge-integrator agents (or equivalents), extract their specific knowledge categories, signal types, and confidence rules as PATTERN entries categorized as 'meta-knowledge'. This helps the factory learn from already-deployed meta-knowledge implementations.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-exemplar-analyzer.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-exemplar-analyzer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 3 (Analyze Agent Hierarchy) extended: 'Identify meta-knowledge subgraph — curator, analyzers, integrator, synthesis coordinator'",
+        "New Step 3.5: 'Extract Meta-Knowledge Specifics' — knowledge categories used, signal types defined, confidence ladder variant, quality gate criteria",
+        "Extracted patterns get category 'meta-knowledge' in domain-model.json",
+        "If no meta-knowledge pattern found in exemplars, no entries added (factory's mandatory injection handles this)"
+      ]
+    },
+    {
+      "id": "MK-006",
+      "phase": 3,
+      "ref": "phase-3-pipeline-architect-modification",
+      "title": "Modify pipeline-architect — add Pass 0 and synthesis pass to every pipeline",
+      "description": "Update fractal-factory-pipeline-architect.agent.md to ALWAYS include two additional universal passes: Pass 0 (knowledge curation, runs before discovery-equivalent) and a synthesis pass (runs after verification, before delivery). These are non-optional universal passes, like how delivery is always included. The pipeline architect must wire Pass 0's output (knowledge-brief.json) as an input available to all downstream passes, and wire verification output as input to the synthesis pass.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-pipeline-architect.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-pipeline-architect.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 2 (Select Pipeline Passes) table has 2 new mandatory rows: Pass 0 (Knowledge Curation) — 'Always include', and Synthesis pass — 'Always include'",
+        "Pass 0 definition: purpose 'Read prior meta-knowledge, produce knowledge-brief.json for downstream agents', entryCondition 'Always first — before discovery', exitCondition 'knowledge-brief.json exists'",
+        "Synthesis pass definition: purpose 'Extract learning signals and write to meta/', entryCondition 'Verification pass completed', exitCondition 'Synthesis coordinator reports complete'",
+        "Step 3 (Define Pass Details) includes both new passes with coordinator hints",
+        "Step 4 (Define Re-Entry Rules) specifies: synthesis NEVER re-enters — it runs once after final verification convergence",
+        "Architecture.json pipeline output includes both new passes in the passes array"
+      ]
+    },
+    {
+      "id": "MK-007",
+      "phase": 3,
+      "ref": "phase-3-artifact-designer-modification",
+      "title": "Modify artifact-designer — add universal meta-knowledge artifacts",
+      "description": "Update fractal-factory-artifact-designer.agent.md to always design meta-knowledge artifacts alongside existing universal artifacts. New universal artifacts: meta/index.json (entry registry), knowledge-brief.json (Pass 0 output), synthesis-signals/*.json (signal analyzer outputs), meta/run-retrospectives/*.json. Also design domain-specific knowledge category directories by inferring 3-6 categories from domain-model.json subdomains. Schema designs follow meta-knowledge-reference.md § Meta Directory Structure.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-artifact-designer.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-artifact-designer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 1 (Identify Required Artifacts) universal table expanded with 4 meta-knowledge entries: meta/index.json, knowledge-brief.json, synthesis-signals/, meta/run-retrospectives/",
+        "New Step 1.5: 'Derive Knowledge Categories' — infer 3-6 domain-specific categories from subdomains and invariants (e.g., doc domain → patterns, anti-patterns, domain-insights; fiction domain → craft-patterns, pacing-insights, voice-insights)",
+        "Step 2 (Design Each Artifact Schema) includes full schema for each meta-knowledge artifact per meta-knowledge-reference.md § Meta Directory Structure",
+        "knowledge-brief.json schema defines: taskProfile, per-category insight arrays, staleEntries, conflicts, summary",
+        "meta/index.json schema defines: version, entries array (id, title, type, category, confidence, dates, usageCount, sourceRun)",
+        "Step 3 (Map Data Flow) shows: meta/index.json → knowledge-curator → knowledge-brief.json → [all discovery+execution agents] → synthesis-signals/*.json → knowledge-integrator → meta/index.json (shows the cycle)"
+      ]
+    },
+    {
+      "id": "MK-008",
+      "phase": 3,
+      "ref": "phase-3-depth-analyzer-modification",
+      "title": "Modify depth-analyzer — treat meta-knowledge as depth-2",
+      "description": "Update fractal-factory-depth-analyzer.agent.md to always assign depth-2 to the meta-knowledge subdomain. The synthesis coordinator dispatches 3-4 subagents sequentially — well within the ≤8 specialists threshold for depth-2. This decision is pre-made and does not go through the normal criteria evaluation.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-depth-analyzer.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-depth-analyzer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 2 (Estimate Specialist Count) includes meta-knowledge entry: 'knowledge-curator (1) + signal analyzers (2) + integrator (1) + coordinator (1) = 5, always depth-2'",
+        "Step 3 (Apply Depth Decision Criteria) has a pre-decision: 'Meta-knowledge (factoryInjected): Always depth-2 — skip criteria evaluation'",
+        "Step 4 (Budget Check) treats meta-knowledge agents as non-negotiable floor (cannot be reduced during trimming)"
+      ]
+    },
+    {
+      "id": "MK-009",
+      "phase": 4,
+      "ref": "phase-4-roster-planner-modification",
+      "title": "Modify roster-planner — always include meta-knowledge agents in roster",
+      "description": "Update fractal-factory-roster-planner.agent.md to always include the meta-knowledge agent set in the roster. New mandatory agents: {prefix}-knowledge-curator (specialist, Pass 0), {prefix}-{domain}-signal-analyzer (specialist, synthesis pass), {prefix}-context-signal-analyzer (specialist, synthesis pass), {prefix}-knowledge-integrator (specialist, synthesis pass), {prefix}-synthesis-coordinator (coordinator, synthesis pass). Agent names are domain-adapted using the naming prefix and domain context. These agents cannot be merged away during budget trimming (factoryInjected subdomain = protected).",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-roster-planner.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-roster-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 3 (Plan Coordinators) includes synthesis-coordinator as a mandatory coordinator entry with its 3-4 children",
+        "Step 4 (Plan Specialists) has a new section: 'Meta-Knowledge Specialists (mandatory)' listing all 4 leaf specialists",
+        "Each meta-knowledge agent has reads/writes defined per meta-knowledge-reference.md — curator reads meta/index.json + writes knowledge-brief.json, integrator reads signals + writes meta/, etc.",
+        "Step 5 (Assign Artifact Responsibilities) cross-references meta-knowledge artifacts with their mandatory writers/readers",
+        "Step 6 (Define Result Codes): curator has 'curated|cold-start', analyzers have 'signals-extracted|no-signals', integrator has 'integrated|no-new-entries', coordinator has 'synthesized|degraded'",
+        "Step 7 (Budget Validation) treats factoryInjected agents as a protected floor — budget trims happen elsewhere first"
+      ]
+    },
+    {
+      "id": "MK-010",
+      "phase": 4,
+      "ref": "phase-4-routing-planner-modification",
+      "title": "Modify routing-planner — add meta-knowledge routing rules",
+      "description": "Update fractal-factory-routing-planner.agent.md to always include routing rules for the meta-knowledge subsystem. (1) Orchestrator routing: add Pass 0 dispatch (knowledge-curator before discovery) and synthesis pass dispatch (synthesis-coordinator after verification, before delivery). (2) Synthesis-coordinator routing: sequential dispatch of signal-analyzer-1 → signal-analyzer-2 → knowledge-integrator with degraded-mode fallthrough. (3) Consumer routing: all discovery/execution-pass coordinators must pass knowledge-brief.json as an input to their specialists.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-routing-planner.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-routing-planner.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 1 (Build Orchestrator Routing Table) includes Pass 0 and synthesis pass dispatch rows",
+        "Pass 0 routing: dispatch knowledge-curator when pass0.status == pending; advance to discovery when curator.result in [curated, cold-start]",
+        "Synthesis pass routing: dispatch synthesis-coordinator when synthPass.status == pending AND verification completed; advance to delivery when synthesis complete",
+        "Step 2 (Build Coordinator Routing Tables) includes synthesis-coordinator: sequential dispatch of domain-signal-analyzer → context-signal-analyzer → knowledge-integrator",
+        "Synthesis-coordinator has degraded-mode handling: if analyzer fails, create empty signal file and continue to next agent",
+        "Step 3 (Validate Routing Completeness) checks: Pass 0 and synthesis pass are routed; synthesis coordinator handles all child result codes"
+      ]
+    },
+    {
+      "id": "MK-011",
+      "phase": 5,
+      "ref": "phase-5-prompt-writer-modification",
+      "title": "Modify prompt-writer — use meta-knowledge templates for meta agents",
+      "description": "Update fractal-factory-prompt-writer.agent.md to use meta-knowledge-templates.md when writing prompts for the 5 meta-knowledge agent roles. The prompt-writer reads the template skeletons, fills in domain-specific content (knowledge categories, signal types, artifact names, review lens names) using the domain model, and writes the .agent.md files. Also modify the writer to add knowledge-brief.json consumption sections to every discovery/execution/verification specialist prompt — not just the meta-knowledge agents themselves.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-prompt-writer.agent.md",
+      "prerequisites": ["MK-002"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-prompt-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 3 (Apply the Universal Template) has a new section: 'For meta-knowledge agents, read meta-knowledge-templates.md and fill {DOMAIN_SPECIFIC} placeholders'",
+        "Knowledge-curator prompt: references actual domain knowledge categories (from architecture.json artifacts), actual pipeline pass names",
+        "Signal analyzer prompts: reference actual review/verification artifacts the produced system will generate, with domain-specific signal type definitions",
+        "Knowledge-integrator prompt: has exact confidence ladder rules (from meta-knowledge-reference.md), references actual meta/ subdirectory names",
+        "New Step 3.5: 'Add knowledge-brief consumption to consumer agents' — every produced specialist in discovery/execution/verification gets an optional 'Read knowledge-brief.json if available, skip gracefully if absent' clause",
+        "Consumer prompts include: 'Note which brief entries you consulted in your status.json' (for effectiveness tracking)"
+      ]
+    },
+    {
+      "id": "MK-012",
+      "phase": 5,
+      "ref": "phase-5-prompt-reviewer-modification",
+      "title": "Modify prompt-reviewer — add meta-knowledge review criteria",
+      "description": "Update fractal-factory-prompt-reviewer.agent.md to include meta-knowledge-specific review criteria when reviewing the 5 meta-knowledge agent prompts. Every knowledge-curator must have cold-start handling; every integrator must have exact confidence ladder rules; every signal analyzer must define at least 2 signal types; every synthesis coordinator must have degraded-mode handling. Also verify that all consumer agents have the optional knowledge-brief consumption clause.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-prompt-reviewer.agent.md",
+      "prerequisites": ["MK-002"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-prompt-reviewer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Review checklist expanded with meta-knowledge-specific items",
+        "For knowledge-curator: cold-start handling present? 4-factor relevance scoring defined? max entry count specified?",
+        "For knowledge-integrator: exact confidence ladder rules present (low→medium→high)? quality gate 3 criteria present? meta/ write exclusivity stated?",
+        "For signal analyzers: at least 2 signal types defined? signal strength rating scheme present?",
+        "For synthesis coordinator: degraded-mode handling present (empty signals → continue)?",
+        "For consumer agents: knowledge-brief.json consumption clause present? graceful skip on absence?"
+      ]
+    },
+    {
+      "id": "MK-013",
+      "phase": 5,
+      "ref": "phase-5-infra-writer-modification",
+      "title": "Modify infra-writer — always create meta/ infrastructure in bootstrap",
+      "description": "Update fractal-factory-infra-writer.agent.md to always include meta-knowledge infrastructure in the produced system's bootstrap script. The bootstrap must create: .{domain}/meta/ with domain-derived category subdirectories, .{domain}/meta/index.json (seeded empty), .{domain}/meta/confidence-ladder.md, .{domain}/synthesis-signals/, and meta/run-retrospectives/. Also add meta-knowledge schema docs to the schemas/ output. Also add pass0 and synthesis pass fields to the seeded progress.json.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-infra-writer.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-infra-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 1 (Write the Bootstrap Script) includes: create meta/ + category subdirectories, create synthesis-signals/, seed meta/index.json and confidence-ladder.md",
+        "Bootstrap seeds progress.json with pass0_knowledgeCuration and passSynthesis fields",
+        "Bootstrap creates meta/run-retrospectives/ directory",
+        "Category subdirectory names come from architecture.json.artifacts (the domain-derived categories from MK-007)",
+        "Step 2 (Write Schema Documentation) includes schemas for meta/index.json, knowledge-brief.json, and run-retrospective.json",
+        "Step 6 (Validate Completeness) checks: meta/ directory tree created, meta schemas documented"
+      ]
+    },
+    {
+      "id": "MK-014",
+      "phase": 5,
+      "ref": "phase-5-checklist-validator-modification",
+      "title": "Modify checklist-validator — add meta-knowledge validation checks",
+      "description": "Update fractal-factory-checklist-validator.agent.md to include meta-knowledge system validation in its checklist. Verify: (1) knowledge-curator prompt has cold-start handling, (2) knowledge-integrator is the ONLY agent with write rules targeting meta/, (3) all consumer agents have optional knowledge-brief consumption, (4) confidence ladder rules match the reference exactly, (5) synthesis coordinator dispatch order is correct.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-checklist-validator.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-checklist-validator.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Checklist expanded with 'Meta-Knowledge System' section containing 5+ checks",
+        "Check: knowledge-integrator is the ONLY produced agent with Write Rules targeting meta/ (scan all produced prompts)",
+        "Check: knowledge-curator has cold-start handling and 4-factor scoring",
+        "Check: confidence ladder rules in integrator match meta-knowledge-reference.md exactly",
+        "Check: synthesis coordinator dispatches analyzers before integrator",
+        "Check: at least 3 consumer agents have knowledge-brief.json consumption clause"
+      ]
+    },
+    {
+      "id": "MK-015",
+      "phase": 5,
+      "ref": "phase-5-audit-oracle-modification",
+      "title": "Modify audit-oracle — add meta-knowledge audit rules",
+      "description": "Update fractal-factory-audit-oracle.agent.md to include meta-knowledge invariant verification. The 3 factory-injected invariants (write exclusivity, confidence ladder, quality gate) must be auditable in the produced system's prompts. Verify that the produced system enforces these invariants through explicit rules in the relevant agent prompts, not through implicit convention.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-audit-oracle.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-audit-oracle.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Audit rules expanded: verify produced integrator prompt has explicit 'Do NOT write to any directory other than meta/' rule",
+        "Audit rules expanded: verify confidence ladder promotion rules are numeric (2-run confirm = medium, 3+ = high), not vague",
+        "Audit rules expanded: verify quality gate criteria are testable (each has a pass/fail definition)",
+        "Findings categorized as severity 'high' if meta-knowledge invariant enforcement is missing (not just 'medium')"
+      ]
+    },
+    {
+      "id": "MK-016",
+      "phase": 5,
+      "ref": "phase-5-gap-hunter-modification",
+      "title": "Modify gap-hunter — add meta-knowledge completeness checks",
+      "description": "Update fractal-factory-gap-hunter.agent.md to check for meta-knowledge system completeness during gap hunting. Specific checks: (1) all 5 meta-knowledge agent prompts exist, (2) bootstrap creates meta/ directory, (3) schemas for meta artifacts exist, (4) orchestrator routes Pass 0 and synthesis pass, (5) at least 50% of consumer agents have knowledge-brief consumption. Missing items are reported as gaps that trigger re-entry.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-gap-hunter.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-gap-hunter.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Gap-hunting checklist includes 'Meta-Knowledge Subsystem Completeness' section",
+        "Check: all 5 meta-knowledge agent .agent.md files exist in produced-output/agents/",
+        "Check: bootstrap.sh creates meta/ directory tree",
+        "Check: orchestrator routing table includes Pass 0 and synthesis pass",
+        "Check: at least 50% of produced consumer agents reference knowledge-brief.json",
+        "Missing meta-knowledge items reported as dirty gaps using existing gap-report format"
+      ]
+    },
+    {
+      "id": "MK-017",
+      "phase": 5,
+      "ref": "phase-5-packager-modification",
+      "title": "Modify packager — include meta-knowledge in completeness checklist",
+      "description": "Update fractal-factory-packager.agent.md to include meta-knowledge components in its completeness verification. The packaging checklist must verify: 5 meta-knowledge agent prompts, meta-knowledge schemas, bootstrap meta/ creation, and the confidence-ladder.md reference file. Missing meta-knowledge components should be flagged as incomplete.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-packager.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-packager.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Step 1 (Enumerate Expected Files) includes meta-knowledge agents in agent prompt checklist",
+        "Step 1 includes meta-knowledge schemas in schema checklist",
+        "Step 2 (Verify Source Completeness) checks all meta-knowledge files",
+        "packaging-report.json completeness section includes 'metaKnowledge' category with expected/present counts"
+      ]
+    },
+    {
+      "id": "MK-018",
+      "phase": 5,
+      "ref": "phase-5-documentation-writer-modification",
+      "title": "Modify documentation-writer — document meta-knowledge in produced README",
+      "description": "Update fractal-factory-documentation-writer.agent.md to always include a 'Cross-Run Meta-Knowledge' section in the produced system's README and architecture docs. This section explains: what meta-knowledge is, where it's stored, how the confidence ladder works, how to interpret the knowledge brief, and how to bootstrap a fresh system (cold-start). This ensures every produced system is self-documenting about its learning capability.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory-documentation-writer.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory-documentation-writer.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "README template includes 'Cross-Run Meta-Knowledge' section",
+        "Section covers: purpose (learn from prior runs), storage location (meta/), confidence ladder explanation, knowledge categories, cold-start behavior",
+        "Architecture docs explain the Pass 0 / synthesis pass lifecycle",
+        "Docs explain how to reset meta-knowledge (delete meta/index.json → cold-start on next run)"
+      ]
+    },
+    {
+      "id": "MK-019",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-modification",
+      "title": "Modify factory orchestrator — aware of meta-knowledge pipeline requirements",
+      "description": "Update fractal-factory.agent.md (the session orchestrator) to be aware that produced systems will always include Pass 0 and a synthesis pass. This doesn't change the factory's own 7-pass pipeline — it changes what the factory UNDERSTANDS about the systems it produces. Add a section to the orchestrator's context reading that checks for the meta-knowledge-reference.md and confirms it was loaded. Also update the progress recomputation to count meta-knowledge agents separately.",
+      "type": "modify",
+      "target": ".fractals/fractal-factory/agents/fractal-factory.agent.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["fractal-factory.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "Context section includes: 'Read .fractal-factory/meta-knowledge-reference.md — universal meta-knowledge specification for produced systems'",
+        "Progress Recomputation section distinguishes factoryInjected agents (meta-knowledge) from domain-derived agents in counts",
+        "No changes to the factory's own 7-pass routing — this is about awareness of produced system requirements, not factory pipeline changes"
+      ]
+    },
+    {
+      "id": "MK-020",
+      "phase": 6,
+      "ref": "phase-6-verify-reference-doc-completeness",
+      "title": "Verify meta-knowledge-reference.md is complete and self-contained",
+      "description": "Read through meta-knowledge-reference.md end-to-end and verify: all 7 sections are present and substantive, all JSON schemas are complete (not placeholders), the confidence ladder has exact numeric rules, the quality gate has testable criteria, and the knowledge category derivation section has worked examples for 3 different domain types (doc-writing, fiction-writing, code-migration).",
+      "type": "verification",
+      "target": ".fractal-factory/meta-knowledge-reference.md",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "All 7 sections present and substantive (not stubs)",
+        "JSON schemas are complete with field types, not placeholders",
+        "Confidence ladder: exact numbers (2-run = medium, 3+ = high, >80% acceptance threshold)",
+        "Quality gate: 3 criteria each with a pass/fail binary test",
+        "Category derivation: worked examples for 3 different domains",
+        "No external references that require reading another file — document is self-contained for factory agents"
+      ]
+    },
+    {
+      "id": "MK-021",
+      "phase": 6,
+      "ref": "phase-6-verify-all-factory-agents-modified",
+      "title": "Verify all 12 factory agent modifications are consistent",
+      "description": "Cross-check all modified factory agents for internal consistency: (1) domain-scanner's injected subdomain matches what roster-planner expects, (2) pipeline-architect's new passes match what routing-planner wires, (3) artifact-designer's meta-knowledge schemas match what infra-writer creates, (4) prompt-writer's meta-knowledge templates match what prompt-reviewer checks, (5) gap-hunter's checks cover what checklist-validator also checks (defense in depth).",
+      "type": "verification",
+      "target": "all 12 modified factory agents",
+      "prerequisites": ["MK-003", "MK-004", "MK-005", "MK-006", "MK-007", "MK-008", "MK-009", "MK-010", "MK-011", "MK-012", "MK-013", "MK-014", "MK-015", "MK-016", "MK-017", "MK-018"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "Domain-scanner subdomain ID and name match what roster-planner looks for when planning meta-knowledge agents",
+        "Pipeline-architect pass names match what routing-planner wires (pass0/synthesis)",
+        "Artifact-designer schemas match what infra-writer seeds in bootstrap",
+        "Prompt-writer template references match what prompt-reviewer validates",
+        "Gap-hunter checks are a superset of checklist-validator meta-knowledge checks (defense in depth)",
+        "No orphan references — every artifact, agent name, and pass name referenced in one agent is defined in another"
+      ]
+    },
+    {
+      "id": "MK-022",
+      "phase": 6,
+      "ref": "phase-6-verify-produced-system-architecture",
+      "title": "Verify that a hypothetical factory run would produce a complete meta-knowledge system",
+      "description": "Trace the full factory pipeline mentally and verify that the modifications would produce a working meta-knowledge system: (1) Pass 1 injects meta-knowledge subdomain + invariants + patterns, (2) Pass 2 designs the pipeline with Pass 0 and synthesis pass, designs meta-knowledge artifacts, assigns depth-2, (3) Pass 3 includes meta-knowledge agents in roster with routing, (4) Pass 4 writes meta-knowledge prompts using templates and populates meta/ in bootstrap, (5) Pass 5-6 verify everything, (6) Pass 7 packages the complete system. No step depends on something that another step forgot to produce.",
+      "type": "verification",
+      "target": "end-to-end factory pipeline trace",
+      "prerequisites": ["MK-021"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "Pass 1 → domain-model.json contains meta-knowledge subdomain, 3 invariants, and any exemplar meta-knowledge patterns",
+        "Pass 2 → architecture.json contains Pass 0 + synthesis pass in pipeline, meta-knowledge artifacts in artifact list, depth-2 for meta-knowledge coordinator",
+        "Pass 3 → roster.json contains 5 meta-knowledge agents with correct reads/writes/result-codes, orchestrator routing includes Pass 0 and synthesis, synthesis coordinator routing is sequential with degraded mode",
+        "Pass 4 → produced-output/agents/ contains 5 meta-knowledge .agent.md files written from templates, consumer agents have knowledge-brief consumption. bootstrap.sh creates meta/ tree. Schemas exist.",
+        "Pass 5-6 → checklist validates meta-knowledge invariants, audit verifies enforcement, gap-hunter catches any missing meta-knowledge components",
+        "Pass 7 → packager includes meta-knowledge in completeness report, docs include Cross-Run Meta-Knowledge section",
+        "The produced system's first run would: curator produces empty brief, pipeline runs normally, synthesis extracts signals, integrator writes entries, retrospective recorded"
+      ]
+    },
+    {
+      "id": "MK-023",
+      "phase": 6,
+      "ref": "phase-6-verify-backward-compatibility",
+      "title": "Verify existing factory behavior is preserved for domain-specific agents",
+      "description": "Verify that the meta-knowledge additions don't break or alter the factory's behavior for domain-specific content. The factory must still: scan domain briefs normally, extract domain-specific invariants, design domain-specific artifacts, plan domain-specific agents, write domain-specific prompts, and verify domain-specific completeness. Meta-knowledge is purely additive — it adds agents and passes, but doesn't modify how the factory handles user-described domain content.",
+      "type": "verification",
+      "target": "factory backward compatibility",
+      "prerequisites": ["MK-021"],
+      "status": "not-started",
+      "artifacts": {
+        "creates": []
+      },
+      "acceptanceCriteria": [
+        "Domain-scanner still produces all domain-derived subdomains exactly as before (meta-knowledge subdomain is ADDED, not replacing)",
+        "Invariant-extractor still extracts all domain-brief invariants (meta-knowledge invariants are ADDED)",
+        "Pipeline-architect still respects options.pipelinePasses for domain passes (Pass 0 and synthesis are outside user control)",
+        "Roster-planner still merges/trims domain agents per budget (meta-knowledge agents are protected, domain agents are flexible)",
+        "Prompt-writer still uses the universal template for domain agents (meta-knowledge templates are used ONLY for meta-knowledge agents)",
+        "All existing status contracts, result codes, and routing patterns unchanged for non-meta-knowledge agents"
+      ]
+    },
+    {
+      "id": "MK-024",
+      "phase": 6,
+      "ref": "phase-6-context-json-update",
+      "title": "Update context.json schema — add meta-knowledge options",
+      "description": "Add an optional options.metaKnowledge section to the context.json schema that allows users to configure meta-knowledge behavior: knowledgeCategories (override auto-derived categories), maxEntriesPerCategory (default 50), confidenceLadder (allow customizing thresholds), and enabled (allow disabling meta-knowledge for simple one-off runs, default true). The factory respects these options when set, uses defaults otherwise.",
+      "type": "modify",
+      "target": ".fractal-factory/context.json schema (and factory-guide.agent.md)",
+      "prerequisites": ["MK-001"],
+      "status": "not-started",
+      "artifacts": {
+        "modifies": ["context.json schema documentation", "fractal-factory-guide.agent.md"]
+      },
+      "acceptanceCriteria": [
+        "context.json schema includes options.metaKnowledge: { enabled: boolean, knowledgeCategories?: string[], maxEntriesPerCategory?: number }",
+        "Default: enabled = true, categories auto-derived, maxEntries = 50",
+        "When enabled = false, all meta-knowledge additions are skipped (domain-scanner doesn't inject subdomain, pipeline doesn't add passes, etc.)",
+        "Guide agent explains the meta-knowledge options when interacting with the user",
+        "All factory agents that add meta-knowledge content check options.metaKnowledge.enabled before proceeding"
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "phase": 1,
+        "tasks": ["MK-001", "MK-002"],
+        "parallelSafe": true,
+        "note": "Reference architecture and prompt templates are independent — both inform later modifications"
+      },
+      {
+        "step": 2,
+        "phase": 2,
+        "tasks": ["MK-003", "MK-004", "MK-005"],
+        "parallelSafe": true,
+        "note": "Pass 1 factory agent modifications — domain-scanner, invariant-extractor, exemplar-analyzer are independent"
+      },
+      {
+        "step": 3,
+        "phase": 3,
+        "tasks": ["MK-006", "MK-007", "MK-008"],
+        "parallelSafe": true,
+        "note": "Pass 2 factory agent modifications — pipeline-architect, artifact-designer, depth-analyzer are independent"
+      },
+      {
+        "step": 4,
+        "phase": 4,
+        "tasks": ["MK-009", "MK-010"],
+        "parallelSafe": true,
+        "note": "Pass 3 factory agent modifications — roster-planner and routing-planner are independent"
+      },
+      {
+        "step": 5,
+        "phase": 5,
+        "tasks": ["MK-011", "MK-012", "MK-013"],
+        "parallelSafe": true,
+        "note": "Pass 4 factory agent modifications — prompt-writer, prompt-reviewer, infra-writer are independent"
+      },
+      {
+        "step": 6,
+        "phase": 5,
+        "tasks": ["MK-014", "MK-015", "MK-016", "MK-017", "MK-018"],
+        "parallelSafe": true,
+        "note": "Pass 5-7 factory agent modifications — checklist-validator, audit-oracle, gap-hunter, packager, documentation-writer are independent"
+      },
+      {
+        "step": 7,
+        "phase": 6,
+        "tasks": ["MK-019", "MK-024"],
+        "parallelSafe": true,
+        "note": "Orchestrator awareness + context.json schema update"
+      },
+      {
+        "step": 8,
+        "phase": 6,
+        "tasks": ["MK-020"],
+        "parallelSafe": false,
+        "note": "Verify reference doc before checking agent consistency"
+      },
+      {
+        "step": 9,
+        "phase": 6,
+        "tasks": ["MK-021"],
+        "parallelSafe": false,
+        "note": "Cross-check all 12 factory agent modifications for consistency"
+      },
+      {
+        "step": 10,
+        "phase": 6,
+        "tasks": ["MK-022", "MK-023"],
+        "parallelSafe": true,
+        "note": "End-to-end trace and backward compatibility verification are independent"
+      }
+    ]
+  }
+}

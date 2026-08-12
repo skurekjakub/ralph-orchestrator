@@ -1,0 +1,26 @@
+{
+  "id": "MK-019",
+  "category": "factory-operations",
+  "subcategory": "agent-performance-pattern",
+  "content": "Analysis pass agents (pipeline-architect, artifact-designer, depth-analyzer) all completed on first iteration within ~38 minutes. Like discovery, the analysis pass shows zero retries. These single-shot passes suggest the prompt-to-artifact contract is tight for early pipeline agents that operate on well-structured inputs (domain-model.json, invariants).",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "medium",
+  "sourceArtifact": ".fractal-factory/agents/fractal-factory-analysis-coordinator/status.json",
+  "sourceEvidence": "analysis-coordinator iteration=1, result=complete. artifact-designer: 42 artifacts designed. depth-analyzer: 4 depth-2 + 5 depth-3 decisions.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

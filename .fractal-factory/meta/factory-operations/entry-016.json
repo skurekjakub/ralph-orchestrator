@@ -1,0 +1,26 @@
+{
+  "id": "MK-016",
+  "category": "factory-operations",
+  "subcategory": "pipeline-bottleneck-pattern",
+  "content": "Initial execution pass (cycle 1) was the single largest time block at ~269 minutes. The prompt-writer produced 67 agent prompts but was rejected by the prompt-reviewer on first submission, requiring a full rewrite cycle. Writing 67 agents in one pass is the dominant bottleneck \u2014 the writer-reviewer loop's first-attempt rejection multiplied the cost of the largest pass.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/manifest.json",
+  "sourceEvidence": "prompt-reviewer cycle 1 at 02:15 returned 'rejected'; prompt-writer cycle 2 completed at 06:20 (4h05m gap). execution-coordinator cycle 1 completed at 06:44.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

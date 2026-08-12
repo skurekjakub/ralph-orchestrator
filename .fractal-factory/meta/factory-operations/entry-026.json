@@ -1,0 +1,26 @@
+{
+  "id": "MK-026",
+  "category": "factory-operations",
+  "subcategory": "iteration-pattern",
+  "content": "Execution required 3 iterations: cycle 1 (initial 67-agent write + reviewer rejection + rewrite), cycle 2 (6 infrastructure gap fixes from gap-cycle-2), cycle 3 (2 cross-reference fixes from gap-cycle-3). Each re-entry cycle was progressively lighter \u2014 cycle 2 fixed 6 items across 6 files, cycle 3 fixed 2 reader arrays in 1 file. The diminishing fix scope per cycle confirms healthy convergence.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/agents/fractal-factory-execution-coordinator/status.json",
+  "sourceEvidence": "iteration: 3. cycleDetails.gapsAddressed: ['CR-004', 'CR-005']. cycleDetails.writerReviewerIterations: 1. Previous cycles: cycle 2 addressed AC-004/AC-005/CR-002/CR-003/DC-W05/MK-W03.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-context-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

@@ -112,6 +112,7 @@ Compare agent instructions against architecture documentation:
 - Do the agents' actual behaviors match what the architecture doc describes?
 - Are data flow diagrams accurate?
 - Are artifact dependency graphs complete?
+- Do coordinator internal dispatch sequences in the routing document match the actual coordinator prompts, especially after specialist → sub-coordinator promotions or loop refactors?
 
 **What to look for:** Architectural descriptions that describe an ideal design but don't match what the agents are actually told to do. This is especially common in re-entry logic and directive propagation where the architecture may describe one model but agents implement another.
 
@@ -129,3 +130,43 @@ For the pipeline's bootstrap/context file:
 **What to look for:** Agents referencing a value (like `issueKey`, `projectName`, etc.) that no artifact in their declared input chain contains. Also check that the bootstrap clean mode preserves the right artifacts.
 
 **How to check:** Start from each agent's output schemas that include identifiers or external references. Trace backward: does the value exist in any declared input? Does it ultimately trace back to context.json or progress.json? If it traces to context.json, verify the bootstrap template includes it.
+
+## 11. Specialist Scope & Complexity Bounds
+
+For each specialist agent:
+
+- How many independent check areas, categories, or methodologies does its Process section define?
+- Does the agent need to hold more than ~3 independent cross-reference datasets in context simultaneously?
+- Is there evidence from prior runs that later categories receive shallower treatment than earlier ones?
+
+**What to look for:** Specialists with 5+ independent categories or methodologies, each requiring cross-referencing different artifact sets. Gap-hunters and validators are the most common offenders — they're asked to check everything in one invocation.
+
+**How to check:** Count the independent "Category N:" or "Step N:" sections in the specialist's Process. For each section, count the distinct artifacts it must read and cross-reference. If (categories × artifacts-per-category) exceeds ~15–20, the specialist is overloaded.
+
+**Fix pattern:** Promote the specialist to a sub-coordinator dispatching dedicated specialists, each handling 2–3 categories. The sub-coordinator aggregates results and writes the unified output. This is preferable to simply making the specialist "try harder" — context limits are architectural, not motivational.
+
+## 12. Pipeline Schema Completeness
+
+For the progress tracking schema:
+
+- Does every pass the orchestrator routes to have a corresponding field in the progress schema?
+- Do pass names in the schema match the names used in routing tables and coordinator status files?
+- Are there schema fields for non-standard passes (Pass 0, synthesis, inter-pass stages)?
+- Does the schema's status enum include all values the orchestrator uses?
+
+**What to look for:** Passes that exist in the routing table but not in the schema. Field name mismatches between schema definition and orchestrator code (e.g., schema says `pass1_discovery` but orchestrator checks `passes.discovery`). Missing status values (e.g., `re-entered` in schema but never used by orchestrator, or `active` in orchestrator but not in schema).
+
+**How to check:** Extract every `passes.X.status` reference from the orchestrator. Extract every field from the progress schema. Diff the two lists. Also diff status enum values.
+
+## 13. Agent Count & Description Accuracy
+
+For READMEs, architecture docs, and agent descriptions:
+
+- Do stated agent counts match the actual number of agent files?
+- Do pipeline pass counts match the actual number of passes in the routing table?
+- Are all agents listed in roster/architecture tables? Are there agents in the filesystem not in the tables?
+- Do frontmatter descriptions reference correct counts?
+
+**What to look for:** Stale counts after agents are added or removed. Architecture diagrams showing an old pipeline shape. README roster tables missing recently added agents.
+
+**How to check:** Count `*.agent.md` files. Compare against README roster table rows, architecture diagram agent entries, frontmatter descriptions with numeric counts.

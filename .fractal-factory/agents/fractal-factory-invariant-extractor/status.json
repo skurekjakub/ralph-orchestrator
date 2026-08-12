@@ -1,0 +1,10 @@
+{
+  "agent": "fractal-factory-invariant-extractor",
+  "task_id": "pass1/invariant-extraction",
+  "status": "completed",
+  "result": "extracted",
+  "summary": "Extracted 81 invariants (21 behavioral, 33 quality, 14 structural, 13 workflow). 65 high-confidence (≥0.9), 16 medium-confidence (0.7–0.89), 0 need verification. Sources: invariants.md Part 1 (38 non-negotiable), Part 2 (26 craft toolbox conditional), domain-brief.md (17 implicit).",
+  "artifacts": ["domain-model.json", "agents/fractal-factory-invariant-extractor/output.md"],
+  "next_hint": "fractal-factory-asset-auditor",
+  "iteration": 1
+}

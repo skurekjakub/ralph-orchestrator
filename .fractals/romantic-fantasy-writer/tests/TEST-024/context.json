@@ -1,0 +1,10 @@
+{
+  "bookId": "test-book-024",
+  "targetChapters": 1,
+  "scenario": "Character-auditor rejects, triggering depth-3 cascade reset and retry",
+  "description": "The character-auditor rejects the first attempt. The character-coordinator must delete all sub-coordinator and specialist statuses (7 agents), then re-dispatch. On retry, voice parameters must be measurably distinct and romance arc must have emotional spine stages.",
+  "preconditions": [
+    "Concept and worldbuilding phases complete",
+    "Orchestrator dispatching character-coordinator"
+  ]
+}

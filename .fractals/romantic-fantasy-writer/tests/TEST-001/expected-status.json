@@ -1,0 +1,20 @@
+{
+  "orchestrator": {
+    "status": "completed",
+    "result": "delivered"
+  },
+  "coordinators": {
+    "concept": "complete",
+    "worldbuilding": "complete",
+    "character": "complete",
+    "plotting": "complete",
+    "style": "complete",
+    "drafting": "complete",
+    "revision": "complete",
+    "beta-reading": "complete",
+    "polish": "complete"
+  },
+  "chapters_delivered": 1,
+  "auditor_rejections": 0,
+  "revision_beta_cycles": 0
+}

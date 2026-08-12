@@ -1,0 +1,9 @@
+{
+  "orchestrator": {
+    "status": "completed",
+    "result": "delivered"
+  },
+  "revision_beta_cycles": 2,
+  "max_cycles_exceeded": true,
+  "delivered_with_issues": true
+}

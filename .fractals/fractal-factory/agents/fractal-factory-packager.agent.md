@@ -25,7 +25,7 @@ Read `.fractal-factory/context.json` for:
 3. **`architecture.json`** — artifact list (checklist of expected schema files)
 4. **`verification-report.json`** — any failing agents that should be flagged
 5. **`audit-report.json`** — any unresolved audit findings
-6. **`gap-report.json`** — any outstanding gaps
+6. **`production-graph.json`** — task statuses and outstanding gaps
 7. **`produced-output/`** — all files to package
 
 ## Process
@@ -45,7 +45,9 @@ Build a completeness checklist from roster.json and architecture.json:
 - `tests/{scenario-id}/` for every P0/P1 test
 
 **Skills** (if any):
-- `skills/{skill-name}/SKILL.md`
+- `skills/workflow/{namingPrefix}-specialists-workflow/SKILL.md`
+- `skills/workflow/{namingPrefix}-specialists-workflow/references/{specialist-name}/*.md` for every workflow phase referenced by that specialist prompt
+- `skills/{skill-name}/SKILL.md` for auxiliary reusable/adaptable skills
 
 ### Step 2: Verify Source Completeness
 
@@ -61,7 +63,7 @@ Copy the entire `.fractal-factory/produced-output/` structure to `context.json.t
 {outputDirectory}/
 ├── agents/         ← .agent.md files
 ├── schemas/        ← .schema.md files
-├── skills/         ← skill stubs
+├── skills/         ← shared specialists workflow router + auxiliary skills
 ├── tests/          ← test fixtures
 ├── docs/           ← (will be filled by documentation-writer)
 ├── bootstrap.sh    ← bootstrap script

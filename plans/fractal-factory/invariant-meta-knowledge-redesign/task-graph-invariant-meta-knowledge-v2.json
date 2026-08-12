@@ -1,0 +1,169 @@
+{
+  "$schema": "task-graph-v1",
+  "name": "fractal-factory-invariant-meta-knowledge-redesign",
+  "version": 2,
+  "versionNote": "All planned prompt and documentation changes implemented; final status snapshot.",
+  "description": "Redesign the Fractal Factory meta-knowledge architecture so cross-run memory stores only curated invariant-handling heuristics, process patterns, and reusable strategies.",
+  "implementationStatus": "complete",
+  "implementedAt": "2026-03-16",
+  "summary": {
+    "totalTasks": 7,
+    "totalPhases": 3,
+    "newFiles": 5,
+    "modifiedFiles": 6
+  },
+  "designDecisions": [
+    "Raw invariants remain run-local domain artifacts rather than persistent meta-knowledge entries.",
+    "Invariant-related cross-run memory is allowed only when abstracted into reusable heuristics, verification strategies, or recurring failure modes.",
+    "Prompt-level enforcement comes first: reference architecture, templates, analyzers, and integrator must all encode the same boundary."
+  ],
+  "phases": [
+    {
+      "id": "P1",
+      "name": "Architecture Boundary",
+      "description": "Clarify docs so cross-run meta-knowledge excludes raw invariant inventories."
+    },
+    {
+      "id": "P2",
+      "name": "Prompt Constraint Rollout",
+      "description": "Constrain synthesis prompts to accept only abstracted invariant heuristics."
+    },
+    {
+      "id": "P3",
+      "name": "Template Alignment",
+      "description": "Align produced-system meta-knowledge templates with the new boundary."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "IMK-001",
+      "phase": "P1",
+      "title": "Clarify meta-knowledge boundary",
+      "ref": "phase-1-architecture-boundary-v1.md § 1.1",
+      "targets": [".fractals/fractal-factory/meta-knowledge-reference.md"],
+      "prerequisites": [],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Reference architecture explicitly forbids storing raw domain-local invariant inventories in meta/.",
+        "Reference architecture explicitly allows only abstracted invariant heuristics, strategies, or recurring failure modes.",
+        "Positive and negative examples are included."
+      ]
+    },
+    {
+      "id": "IMK-002",
+      "phase": "P1",
+      "title": "Align README wording",
+      "ref": "phase-1-architecture-boundary-v1.md § 1.2",
+      "targets": [".fractals/fractal-factory/README.md"],
+      "prerequisites": ["IMK-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "README frames meta-knowledge as reusable strategy rather than accumulated domain rules.",
+        "README does not imply that raw invariants persist across runs."
+      ]
+    },
+    {
+      "id": "IMK-003",
+      "phase": "P2",
+      "title": "Constrain factory signal analyzer",
+      "ref": "phase-2-prompt-constraint-rollout-v1.md § 2.1",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-factory-signal-analyzer.agent.md"],
+      "prerequisites": ["IMK-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Prompt forbids raw invariant inventories as signals.",
+        "Prompt permits only generalized invariant heuristics, verification strategies, or failure modes.",
+        "Prompt contains concrete examples of rejected vs accepted signals."
+      ]
+    },
+    {
+      "id": "IMK-004",
+      "phase": "P2",
+      "title": "Constrain context signal analyzer",
+      "ref": "phase-2-prompt-constraint-rollout-v1.md § 2.2",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-context-signal-analyzer.agent.md"],
+      "prerequisites": ["IMK-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Prompt treats invariant observations as process patterns rather than stored rule sets.",
+        "Prompt explicitly bans persisting raw invariant content."
+      ]
+    },
+    {
+      "id": "IMK-005",
+      "phase": "P2",
+      "title": "Tighten knowledge integrator gate",
+      "ref": "phase-2-prompt-constraint-rollout-v1.md § 2.3",
+      "targets": [".fractals/fractal-factory/agents/fractal-factory-knowledge-integrator.agent.md"],
+      "prerequisites": ["IMK-003", "IMK-004"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Integrator rejects raw domain-local invariant inventories by default.",
+        "Integrator allows only tightly abstracted invariant-related entries that pass reusability and actionability.",
+        "Prompt includes accepted vs rejected examples."
+      ]
+    },
+    {
+      "id": "IMK-006",
+      "phase": "P3",
+      "title": "Align produced-system templates",
+      "ref": "phase-3-template-alignment-v1.md § 3.1",
+      "targets": [".fractals/fractal-factory/meta-knowledge-templates.md"],
+      "prerequisites": ["IMK-003", "IMK-004", "IMK-005"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Templates forbid raw invariant inventories in domain and context signal analyzers.",
+        "Templates make the knowledge integrator reject domain-local invariant catalogs."
+      ]
+    },
+    {
+      "id": "IMK-007",
+      "phase": "P3",
+      "title": "Run consistency pass",
+      "ref": "phase-3-template-alignment-v1.md § 3.2",
+      "targets": [
+        ".fractals/fractal-factory/meta-knowledge-reference.md",
+        ".fractals/fractal-factory/meta-knowledge-templates.md",
+        ".fractals/fractal-factory/agents/fractal-factory-factory-signal-analyzer.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-context-signal-analyzer.agent.md",
+        ".fractals/fractal-factory/agents/fractal-factory-knowledge-integrator.agent.md",
+        ".fractals/fractal-factory/README.md"
+      ],
+      "prerequisites": ["IMK-002", "IMK-006"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "All modified files use the same boundary language.",
+        "No modified file implies that raw invariant inventories accumulate across runs."
+      ]
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      {
+        "step": 1,
+        "tasks": ["IMK-001"],
+        "parallel": false
+      },
+      {
+        "step": 2,
+        "tasks": ["IMK-002", "IMK-003", "IMK-004"],
+        "parallel": true
+      },
+      {
+        "step": 3,
+        "tasks": ["IMK-005"],
+        "parallel": false
+      },
+      {
+        "step": 4,
+        "tasks": ["IMK-006"],
+        "parallel": false
+      },
+      {
+        "step": 5,
+        "tasks": ["IMK-007"],
+        "parallel": false
+      }
+    ]
+  }
+}

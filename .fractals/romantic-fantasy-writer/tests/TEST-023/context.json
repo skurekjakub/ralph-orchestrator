@@ -1,0 +1,10 @@
+{
+  "bookId": "test-book-023",
+  "targetChapters": 3,
+  "scenario": "Plotting-auditor rejects, triggering depth-3 cascade reset and retry",
+  "description": "The plotting-auditor rejects the first attempt. The plotting-coordinator must delete all sub-coordinator and specialist statuses (8 agents), then re-dispatch with feedback. All plotting artifacts are rewritten on retry.",
+  "preconditions": [
+    "Concept, worldbuilding, and character phases complete",
+    "Orchestrator dispatching plotting-coordinator"
+  ]
+}

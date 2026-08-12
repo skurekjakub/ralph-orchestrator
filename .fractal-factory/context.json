@@ -16,10 +16,14 @@
     "constraints": null
   },
   "options": {
-    "maxDepth": 4,
+    "maxDepth": 3,
     "maxAgents": 80,
     "maxGapCycles": 10,
     "maxWriterReviewerRetries": 10,
-    "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"]
+    "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"],
+    "metaKnowledge": {
+      "enabled": true,
+      "domainSignalName": "craft"
+    }
   }
 }

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T21:30:13Z",
+  "coldStart": false,
+  "taskRelevance": "First factory run for fantasy-writer domain completed. 29 meta-knowledge entries created across 2 categories: craft (15 entries covering hierarchy design, cross-cutting agents, adversarial patterns, quality tiers, convergence, artifact protocols, pipeline structure, evaluation patterns, and domain decomposition) and factory-operations (14 entries covering pipeline bottlenecks, agent performance baselines, gap convergence patterns, invariant violation patterns, and iteration patterns). All entries at confidence=low pending confirmation from future runs.",
+  "insights": [
+    {
+      "id": "MK-001",
+      "summary": "Mixed depth-2/depth-3 hierarchy optimal for 9+ phase creative pipelines. Use depth-2 for \u22643 specialists, depth-3 for 5+ groups.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-002",
+      "summary": "Cross-cutting concerns (consistency, series knowledge, craft enforcement) should be orchestrator-level shared specialists, not per-phase duplicates.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-003",
+      "summary": "Adversarial auditor-per-phase pattern with distributed invariants (81 across 8 auditors) provides full coverage without overloading agents.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-004",
+      "summary": "Two-tier quality: non-negotiable invariants (always-on) + selectable craft toolbox (chosen per-story, then binding). Avoids over-constraining.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-006",
+      "summary": "Multi-writer artifacts MUST use read-modify-write protocol, not create-once. Default to read-modify-write when >1 writer.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-010",
+      "summary": "Ghost agent references appear after roster restructuring. Add automated cross-reference sweep after any agent rename/split/merge.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-012",
+      "summary": "Guide agent needs explicit exemption from ask_questions prohibition since its role requires user input gathering.",
+      "confidence": "low",
+      "category": "craft"
+    },
+    {
+      "id": "MK-016",
+      "summary": "Initial 67-agent prompt writing is the dominant bottleneck (~269min). First-pass rejection by reviewer forces full rewrite cycle.",
+      "confidence": "low",
+      "category": "factory-operations"
+    },
+    {
+      "id": "MK-020",
+      "summary": "Prompt-reviewer shows reject-once-then-approve pattern. Budget for one rewrite cycle on initial submissions.",
+      "confidence": "low",
+      "category": "factory-operations"
+    },
+    {
+      "id": "MK-021",
+      "summary": "Gap convergence follows exponential decay (~73% reduction per cycle). 4 of 10 allowed cycles needed for 67-agent system.",
+      "confidence": "low",
+      "category": "factory-operations"
+    }
+  ],
+  "staleEntries": []
+}

@@ -1,0 +1,10 @@
+{
+  "bookId": "test-book-003",
+  "storyIdea": "Vague idea about dragons",
+  "targetChapters": 1,
+  "targetWordCount": 4000,
+  "mood": null,
+  "heatLevel": "sweet",
+  "constraints": null,
+  "seriesId": null
+}

@@ -1,0 +1,8 @@
+{
+  "bookId": "test-book-012",
+  "seriesId": "test-trilogy",
+  "existingArtifacts": [
+    "chapters/001/final.md",
+    "delivery/delivery-report.json"
+  ]
+}

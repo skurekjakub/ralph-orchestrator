@@ -60,7 +60,7 @@ Create `.fractal-factory/produced-output/docs/user-guide.md` covering:
 6. **Monitoring Progress**: How to read progress.json and manifest.json
 7. **Troubleshooting**: Common issues and how to resolve them
    - Agent blocked: check status.json for the failing agent
-   - Convergence not reached: check gap-report.json for outstanding gaps
+   - Convergence not reached: check production-graph.json for tasks with gap annotations
    - Missing output: check packaging-report.json for missing files
 8. **Extending the System**: How to add new specialists, modify routing tables, add invariants
 

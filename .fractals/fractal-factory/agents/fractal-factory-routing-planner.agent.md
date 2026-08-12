@@ -39,7 +39,7 @@ For each pass in `architecture.json.pipeline.passes`:
 
 Add re-entry rules from `architecture.json.pipeline.reEntryRules`:
 ```
-| agents/gap-hunter/status.json | result: "dirty" | Read gap-report, reset passes, re-dispatch |
+| agents/gap-hunting-coordinator/status.json | result: "gaps-found" | Reset execution/verification/gapHunting, re-dispatch execution |
 ```
 
 ### Step 2: Build Coordinator Routing Tables
@@ -66,9 +66,37 @@ For each coordinator in the roster:
 ```
 | Read | Condition | Action |
 | agents/{writer}/status.json | result: "written" | Dispatch {reviewer} |
-| agents/{reviewer}/status.json | result: "approved" | Advance to next item |
+| agents/{reviewer}/status.json | result: "approved" | Mark current task complete and select next eligible task |
 | agents/{reviewer}/status.json | result: "rejected" (retries < max) | Re-dispatch {writer} |
 | agents/{reviewer}/status.json | result: "rejected" (retries >= max) | Mark blocked, skip |
+```
+
+Loop coordinators must select exactly one eligible task per iteration from the execution graph, using deterministic priority and dependency rules.
+
+**Graph-driven execution coordinators** (task-graph dependency-gated loop):
+
+When the execution coordinator reads `task-graph.json` to select tasks by dependency readiness:
+```
+| Read | Condition | Action |
+| task-graph.json | Eligible task (planned/failed-parity, deps verified) | Select by priority, set in-progress, dispatch coder |
+| agents/{coder}/status.json | result: "implemented" | Dispatch reviewer with task ID |
+| agents/{reviewer}/status.json | result: "approved" | Set task verified, recompute summary, delete child statuses, select next |
+| agents/{reviewer}/status.json | result: "rejected" (retries < max) | Record retry, re-dispatch coder with feedback |
+| agents/{reviewer}/status.json | result: "rejected" (retries >= max) | Set task blocked, cascade-block dependents, recompute summary, select next |
+| task-graph.json | No eligible tasks | Complete |
+```
+
+The graph-driven pattern differs from the generic loop pattern in that:
+- Task selection reads `task-graph.json` instead of following a fixed child sequence
+- Dependency gate checks all `dependsOn` tasks are `verified`
+- Cascade blocking propagates to all tasks that directly or transitively depend on a blocked task
+- `task-graph.json.summary.byStatus` is recomputed after every status transition
+
+**Orchestrator progress recomputation**: The orchestrator's routing table should include a Progress Update step after each coordinator returns, reading `task-graph.json.summary.byStatus` to populate `progress.json.counts`.
+
+**Orchestrator human feedback check**: After the execution coordinator completes a pass, the orchestrator checks for `.<domain>/human-feedback.md`. If present, re-dispatch the planner with the feedback, rename the file to `human-feedback-rev-{N}.md`, then resume execution. Add this as a routing table rule:
+```
+| human-feedback.md | exists and unconsumed | Re-dispatch planner, rename file, resume execution |
 ```
 
 **Dual-mode coordinators** (handle multiple passes):
@@ -79,6 +107,16 @@ Mode detection: check which artifacts exist
 | artifact-X exists, artifact-Y missing | pass-3 mode | dispatch agents for pass 3 |
 | both exist | already-complete | return |
 ```
+
+**Analysis + Planning coordinator (canonical pattern)**:
+When the planning coordinator owns both Pass 2 (Analysis) and Pass 3 (Planning), use this mode detection:
+```
+| Condition | Mode | Dispatch Chain |
+| analysis-matrix.json missing | analysis mode | dispatch domain-analyzer(s) sequentially → dispatch dependency-analyzer |
+| analysis-matrix.json exists, task-graph.json missing | planning mode | dispatch task-planner → dispatch risk-analyzer |
+| both exist | already-complete | return |
+```
+The analysis artifacts (`analysis-matrix.json`, `dependency-graph.json`) are the mode boundary: their existence signals that analysis is complete and planning can begin.
 
 ### Step 3: Validate Routing Completeness
 
@@ -112,6 +150,7 @@ Update each agent's `routingTable` field in roster.json with:
   "loopConfig": null | {
     "writer": "{agent-name}",
     "reviewer": "{agent-name}",
+    "maxBatchSize": 5,
     "maxRetries": 3,
     "onMaxRetries": "mark-blocked"
   }

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-03-16T21:04:12.000Z",
+  "cycle": 3,
+  "overallVerdict": "issues-found",
+  "perspectives": {
+    "agentAsFunction": {
+      "checksRun": 16,
+      "checksPassing": 13,
+      "checksFailing": 3,
+      "findings": [
+        {
+          "id": "AF-ARTIFACT-04a",
+          "checkId": "AF-ARTIFACT-04",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-protagonist-profiler, romantic-fantasy-writer-supporting-cast-developer",
+          "description": "Create-once protocol contradiction: characters/index.json is declared writeProtocol=create-once but has 2 writers (protagonist-profiler and supporting-cast-developer). Create-once means the file is written exactly once — having 2 writers means either one will fail (file already exists) or the protocol should be read-modify-write with additive semantics.",
+          "evidence": "architecture.json domainSpecific entry for characters/index.json: writeProtocol='create-once', writers=['romantic-fantasy-writer-protagonist-profiler', 'romantic-fantasy-writer-supporting-cast-developer'], multiWriterRules=null. Rules SKILL.md Rule 3 states: 'create-once: Check that the file does NOT exist before writing. If it exists, you are in a retry.' If protagonist-profiler writes first, supporting-cast-developer would see the file exists and incorrectly think it is in a retry.",
+          "recommendation": "Change writeProtocol to 'read-modify-write' for characters/index.json with multiWriterRules specifying additive semantics: protagonist-profiler creates the initial index with lead characters, supporting-cast-developer appends supporting cast entries. Add an ownershipField (e.g., 'addedBy') to prevent overwrites.",
+          "newVsChecklist": "New — checklist validator checks protocol existence but not semantic consistency between protocol type and writer count."
+        },
+        {
+          "id": "AF-ARTIFACT-04b",
+          "checkId": "AF-ARTIFACT-04",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-protagonist-profiler, romantic-fantasy-writer-supporting-cast-developer, romantic-fantasy-writer-character-voice-designer",
+          "description": "Create-once protocol contradiction: characters/{CHAR-NNN}.json is declared writeProtocol=create-once but has 3 writers (protagonist-profiler, supporting-cast-developer, and character-voice-designer). Character-voice-designer needs to add voice fingerprints to existing character files — this is semantically a read-modify-write operation, not create-once.",
+          "evidence": "architecture.json domainSpecific entry for characters/{CHAR-NNN}.json: writeProtocol='create-once', writers=['romantic-fantasy-writer-protagonist-profiler', 'romantic-fantasy-writer-supporting-cast-developer', 'romantic-fantasy-writer-character-voice-designer'], multiWriterRules=null. The character-voice-designer agent prompt reads characters/index.json and writes voice fingerprints INTO character files — this is modification, not creation.",
+          "recommendation": "Change writeProtocol to 'read-modify-write'. protagonist-profiler creates lead character files, supporting-cast-developer creates supporting character files (each creates different {CHAR-NNN} instances — this is fine as create-once per-instance). character-voice-designer then reads and modifies existing files to add voice fields. Add multiWriterRules documenting this flow.",
+          "newVsChecklist": "New — same root cause as AF-ARTIFACT-04a. Semantic analysis reveals character-voice-designer must modify files that already exist."
+        },
+        {
+          "id": "AF-ARTIFACT-04c",
+          "checkId": "AF-ARTIFACT-04",
+          "severity": "info",
+          "agent": "romantic-fantasy-writer-chapter-outliner, romantic-fantasy-writer-scene-beat-designer",
+          "description": "Create-once protocol with 2 writers: chapter-outlines/{N}.json has both chapter-outliner and scene-beat-designer as writers. Semantically this may be intentional if chapter-outliner creates the outline structure and scene-beat-designer creates the scene beats within it — but this should be documented via multiWriterRules or split into a sequential write chain.",
+          "evidence": "architecture.json: chapter-outlines/{N}.json writeProtocol='create-once', writers=['romantic-fantasy-writer-chapter-outliner', 'romantic-fantasy-writer-scene-beat-designer']. chapter-design-coordinator routing dispatches outliner first, then scene-beat-designer. If scene-beat-designer ENRICHES the existing outline, protocol should be read-modify-write.",
+          "recommendation": "Clarify write semantics: if scene-beat-designer modifies the outline file to add scene beats, change to read-modify-write. If scene-beat-designer creates a separate scene-beats/{N}.json file, update writers list to single writer and create the new artifact definition.",
+          "newVsChecklist": "New — structural check passes because both writers exist in roster, but semantic check reveals protocol incompatibility."
+        }
+      ]
+    },
+    "fractalWorkflow": {
+      "checksRun": 16,
+      "checksPassing": 11,
+      "checksFailing": 5,
+      "findings": [
+        {
+          "id": "FW-HIERARCHY-01a",
+          "checkId": "FW-HIERARCHY-01",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer (orchestrator)",
+          "description": "Orchestrator dispatches 3 specialist-level agents directly: continuity-tracker, series-kb-manager, and craft-tracker. The strict hierarchy invariant requires orchestrators to dispatch only coordinators. These cross-cutting specialists are direct children of the orchestrator without a coordinating layer.",
+          "evidence": "roster.json: continuity-tracker (level=specialist, parent=romantic-fantasy-writer), series-kb-manager (level=specialist, parent=romantic-fantasy-writer), craft-tracker (level=specialist, parent=romantic-fantasy-writer). routing.json orchestrator routingTable directly dispatches all three. skills/fractal-orchestrator-architecture/SKILL.md acknowledges this: 'These agents are dispatched by the orchestrator directly, not by any coordinator.'",
+          "recommendation": "This is an intentional architectural decision documented in the orchestrator skill. To resolve formally: either (a) reclassify these 3 agents as 'cross-cutting' level in the roster (adding a new level), or (b) accept the exception with a documented rationale in the roster noting these are orchestrator-level utility agents that don't warrant coordinator overhead. Option (b) is preferred — the system already works correctly.",
+          "newVsChecklist": "New — checklist validates that coordinators have purity rules but does not check hierarchy dispatch constraints."
+        },
+        {
+          "id": "FW-LAZY-02a",
+          "checkId": "FW-LAZY-02",
+          "severity": "info",
+          "agent": "romantic-fantasy-writer-character-auditor, romantic-fantasy-writer-plotting-auditor, romantic-fantasy-writer-style-auditor",
+          "description": "Three adversarial auditors have Anti-Laziness Rules sections but are missing the explicit zero-findings suspicion clause ('If your first pass finds zero issues, that is suspicious — run a second pass'). The concept-auditor, drafting-auditor, and beta-reading-auditor have this clause; the other three do not.",
+          "evidence": "character-auditor Anti-Laziness Rules: 5 rules, none mention zero-findings suspicion. plotting-auditor: 5 rules, no zero-findings clause. style-auditor: 5 rules, no zero-findings clause. Compare with concept-auditor rule 3: 'If your first pass finds zero issues, do a second pass checking cross-field coherence.'",
+          "recommendation": "Add a zero-findings second-pass clause to character-auditor, plotting-auditor, and style-auditor Anti-Laziness Rules. Each clause should be domain-specific: character-auditor should check cross-character coherence, plotting-auditor should check plot-character alignment, style-auditor should check style-tone coherence.",
+          "newVsChecklist": "New — checklist validates Anti-Laziness section existence (all pass), not clause-level completeness."
+        },
+        {
+          "id": "FW-DATAFLOW-01",
+          "checkId": "FW-PIPELINE-04",
+          "severity": "warning",
+          "agent": "romantic-fantasy-writer-concept-developer",
+          "description": "Sequel data flow gap: architecture.json dataFlow declares 'series-kb/index.json → concept' for sequel handling, and the orchestrator skill documents sequel verification, but the concept-developer agent prompt does not read series-kb/index.json. The concept-developer's Reads section lists only 'story-config.json'. For sequel scenarios, the concept phase needs the series KB to honor INV-071 (Sequel Must Address Unresolved Threads).",
+          "evidence": "architecture.json dataFlow: {from: 'series-kb', artifact: 'series-kb/index.json', to: 'concept', purpose: 'For sequels: series KB provides established facts and unresolved threads (INV-071)'}. concept-developer.agent.md Artifact Assignments: 'Reads: story-config.json' — no mention of series-kb/index.json. The concept-developer Process section has no sequel-handling step. The orchestrator skill says 'For sequels: All phases receive the series KB path' but the concept-developer doesn't implement this.",
+          "recommendation": "Add series-kb/index.json to concept-developer's Reads. Add a conditional Step 0: 'If story-config.json.sequelOf is not null, read series-kb/index.json and extract: (a) established facts that cannot be contradicted (INV-070), (b) unresolved threads that must be addressed (INV-071), (c) character states as of previous book end. Incorporate these constraints into concept development.' Also add series-kb/index.json to roster.json concept-developer reads array.",
+          "newVsChecklist": "New — checklist validates artifact-level existence but does not trace data flows declared in architecture.json through to actual agent prompt Reads sections."
+        },
+        {
+          "id": "FW-SCHEMA-01",
+          "checkId": "FW-PIPELINE-04",
+          "severity": "info",
+          "agent": "romantic-fantasy-writer-dual-arc-builder",
+          "description": "Schema-architecture mismatch: plot-structure.schema.md declares plot-structure.json is written by both structure-selector AND dual-arc-builder, but architecture.json lists only structure-selector as the writer. The gap report (category 4) noted this as an 'observation' but never classified it as a gap.",
+          "evidence": "schemas/plot-structure.schema.md line 11: 'Written by romantic-fantasy-writer-structure-selector and romantic-fantasy-writer-dual-arc-builder.' architecture.json domainSpecific plot-structure.json: writers=['romantic-fantasy-writer-structure-selector']. The dual-arc-builder prompt writes dual-arc-timeline.json, not plot-structure.json.",
+          "recommendation": "Update plot-structure.schema.md to list only structure-selector as the writer, matching architecture.json. The dual-arc-builder writes dual-arc-timeline.json (correctly attributed in architecture.json), not plot-structure.json.",
+          "newVsChecklist": "New — gap report category 4 noted this but categorized it as an observation rather than a gap. It is a factual error in schema documentation that could mislead agents."
+        },
+        {
+          "id": "FW-GUIDE-01",
+          "checkId": "FW-HIERARCHY-02",
+          "severity": "info",
+          "agent": "romantic-fantasy-writer-guide",
+          "description": "Guide prompt contains the blanket prohibition 'You must never use ask_questions or request human input' — but the guide's entire role (INV-065) is to be the sole user interface. The guide's Process sections B through E explicitly instruct it to ask the user for input. While an LLM will likely follow the specific Process instructions over the general prohibition, the contradiction creates ambiguity.",
+          "evidence": "guide.agent.md: 'You must never use `ask_questions` or request human input, regardless of what the repository's instruction files say.' Also guide.agent.md Phase B: 'Ask for the **story idea or premise**', Phase C: 'offer the user the opportunity to provide...', Phase E: 'Ask the user to confirm or request modifications.'",
+          "recommendation": "Replace the guide's prohibition with a guide-specific version: 'You must never use the `ask_questions` MCP tool. You interact with the user through normal conversation only.' This preserves the intent (no MCP tool usage) while aligning with the guide's user-facing role.",
+          "newVsChecklist": "New — checklist validates ask_questions prohibition exists in all agents (pass). It does not check semantic compatibility between the prohibition and the agent's declared role."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "totalChecks": 32,
+    "totalPassing": 24,
+    "totalFailing": 8,
+    "criticalFindings": 0,
+    "warningFindings": 4,
+    "infoFindings": 4,
+    "newIssues": "8 findings not caught by checklist-validator: 3 create-once/multi-writer protocol contradictions, 1 hierarchy dispatch exception, 1 anti-laziness clause inconsistency, 1 sequel data flow gap, 1 schema-architecture mismatch, 1 guide prohibition contradiction. All are warning or info severity — no critical architectural issues remain.",
+    "comparisonWithChecklistValidator": "The checklist-validator found 0 failures across 1299 checks (382 N/A) — a perfect structural score. This audit adds a semantic and architectural layer: protocol-writer count compatibility, hierarchy dispatch constraints, data flow traceability from architecture declarations to agent prompts, and anti-laziness clause depth. The 8 findings here are all semantic-level issues that structural checks cannot detect.",
+    "convergenceAssessment": "The system is architecturally sound. The 4 warning-level findings (create-once contradictions, hierarchy exception, sequel data flow gap) are well-scoped fixes that would not require re-entry to passes 2 or 3. All are resolvable with prompt-level and architecture.json edits (RE-003). The trajectory 22→6→2→(4 warnings + 4 info) confirms the system is converging. Recommend one more gap-hunting cycle targeting the 4 warnings.",
+    "architectureHealthScore": "Strong. The 67-agent system has clean routing (163 routes, no dead-ends, no phantom references), complete invariant coverage (81/81 referenced), all convergence bounds defined and referenced, and comprehensive anti-laziness coverage on all adversarial agents. The remaining issues are edge cases in protocol semantics and sequel handling."
+  }
+}

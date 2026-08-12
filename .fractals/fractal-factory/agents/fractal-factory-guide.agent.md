@@ -49,8 +49,23 @@ Ask about system options (provide sensible defaults):
 - **Max gap cycles**: How many gap-hunting re-entry cycles? (default: 3)
 - **Max writer-reviewer retries**: How many iterations for the coder-reviewer loop? (default: 3)
 - **Pipeline passes**: All 7 or a subset? (default: all)
+- **Human feedback**: Will a human provide mid-run feedback via `human-feedback.md`? (default: true)
 
-### Step 4: Build context.json
+### Step 4: Gather Re-Entry Policy
+
+This is a critical design decision. Ask the user how the produced system should handle feedback-driven re-entry (gap hunting, verification failure, human feedback, or analysis discovering new items mid-execution). Present these options clearly:
+
+**Option A — Rigid reset** (simplest): Any rejection/feedback always restarts from a fixed pass. For example: "verification failure → always restart from planning (Pass 3)." The orchestrator doesn't decide — the rule is hardcoded per trigger type.
+
+**Option B — Tiered reset** (recommended default): Different feedback sources trigger different re-entry points based on severity. Gap hunting that discovers new items needing analysis → restart from analysis (Pass 2). Gap hunting that only needs new tasks → restart from planning (Pass 3). Verification failure on specific tasks → restart from execution (Pass 4) for those tasks only. Human feedback → planner re-dispatch within the current execution cycle.
+
+**Option C — Agent discretion**: The orchestrator/coordinators decide where to re-enter based on the content of the feedback. More flexible but harder to predict. The gap-hunting coordinator reads its findings and chooses the re-entry point.
+
+Seed the user's choice (and any customizations) into `context.json.options.reEntryPolicy`.
+
+Also ask: **Should human feedback be able to trigger analysis re-entry?** (i.e., can human feedback say "you missed an entire subdomain, go back to discovery"?) Default: yes for tiered, no for rigid.
+
+### Step 5: Build context.json
 
 Write the gathered information to `.fractal-factory/context.json`:
 
@@ -77,20 +92,37 @@ Write the gathered information to `.fractal-factory/context.json`:
     "maxAgents": 50,
     "maxGapCycles": 3,
     "maxWriterReviewerRetries": 3,
-    "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"]
+    "pipelinePasses": ["discovery", "analysis", "planning", "execution", "verification", "gapHunting", "delivery"],
+    "humanFeedbackEnabled": true,
+    "reEntryPolicy": {
+      "mode": "rigid | tiered | agent-discretion",
+      "humanFeedbackCanTriggerAnalysis": true,
+      "rules": [
+        {
+          "trigger": "<feedback source: gap-hunting-new-items | gap-hunting-task-gaps | verification-failure | human-feedback | analysis-reentry>",
+          "reEntryPass": "<pass number to restart from>",
+          "resetPasses": ["<pass numbers to reset>"],
+          "scope": "all | affected-tasks-only"
+        }
+      ]
+    }
   }
 }
 ```
 
-### Step 5: Confirm and Launch
+For **rigid mode**, generate a single rule per trigger type with fixed `reEntryPass`.
+For **tiered mode**, generate the differentiated rules based on the discussion.
+For **agent-discretion mode**, set `rules: []` — the pipeline-architect will design adaptive routing.
+
+### Step 6: Confirm and Launch
 
 Show the user a summary of the configuration. Ask for confirmation. On confirmation:
 
 1. Invoke `fractal-factory` (the session orchestrator)
-2. The orchestrator runs the entire 7-pass pipeline autonomously
+2. The orchestrator runs the full pipeline autonomously (Pass 0 + 7 domain passes + synthesis)
 3. When the orchestrator completes, read its status.json and report the result to the user
 
-### Step 6: Report Results
+### Step 7: Report Results
 
 Read `.fractal-factory/agents/fractal-factory/status.json` and report:
 - Result: delivered / delivered-with-gaps / failed

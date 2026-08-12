@@ -1,0 +1,26 @@
+{
+  "id": "MK-007",
+  "category": "craft",
+  "subcategory": "artifact-granularity",
+  "content": "For creative-production domains with deep worldbuilding, splitting artifacts into subcategory files (world-bible/geography.json, world-bible/magic-system.json, world-bible/politics.json, world-bible/culture.json, world-bible/history.json) rather than monolithic files is critical. This enables targeted loading \u2014 a chapter-drafter referencing magic rules doesn't ingest geography data. The run produced 42 artifacts across 18 schema files, with per-chapter artifacts (chapters/{N}/draft.md, chapters/{N}/revised.md, chapters/{N}/final.md) and per-lens beta feedback (beta-feedback/{N}/romance-lens.json, fantasy-lens.json, etc.). This granularity aligned naturally with the sub-coordinator structure.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/architecture.json",
+  "sourceEvidence": "architecture.json domainSpecific artifacts: world-bible/geography.json, world-bible/magic-system.json, world-bible/politics.json, world-bible/culture.json, world-bible/history.json (each with single specialist writer). chapters/{N}/draft.md, beta-feedback/{N}/romance-lens.json, etc. Domain-brief I28: 'content MUST be decomposed into subcategory files within typed directories \u2014 not stored as monolithic files.'",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

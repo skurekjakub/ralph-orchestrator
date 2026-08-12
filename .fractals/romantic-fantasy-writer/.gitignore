@@ -1,0 +1,19 @@
+# Romantic Fantasy Writer - .gitignore
+# Runtime artifacts (generated during story production)
+.romantic-fantasy-writer/stories/*/agents/*/status.json
+.romantic-fantasy-writer/stories/*/manifest.json
+.romantic-fantasy-writer/stories/*/progress.json
+.romantic-fantasy-writer/stories/*/chapters/
+.romantic-fantasy-writer/stories/*/revision-reports/
+.romantic-fantasy-writer/stories/*/beta-feedback/
+.romantic-fantasy-writer/stories/*/beta-synthesis/
+.romantic-fantasy-writer/stories/*/audit-reports/
+.romantic-fantasy-writer/stories/*/delivery/
+.romantic-fantasy-writer/stories/*/chapter-summaries/
+
+# Keep templates and schemas
+!schemas/
+!skills/
+!tests/
+!bootstrap.sh
+!README.md

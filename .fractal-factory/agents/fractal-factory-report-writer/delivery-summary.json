@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "domain": "romantic-fantasy-writer",
+  "timestamp": "2026-03-16T22:00:00Z",
+  "verdict": "complete",
+  "coverage": {
+    "subdomains": {
+      "total": 14,
+      "covered": 14,
+      "percentage": 100
+    },
+    "invariants": {
+      "total": 81,
+      "enforced": 81,
+      "percentage": 100,
+      "singleReference": 8,
+      "universalInvariant": "INV-030"
+    },
+    "agents": {
+      "total": 67,
+      "produced": 67,
+      "reviewed": 67,
+      "percentage": 100,
+      "byLevel": {
+        "guide": 1,
+        "orchestrator": 1,
+        "coordinator": 9,
+        "subCoordinator": 10,
+        "specialist": 46
+      }
+    },
+    "schemas": {
+      "total": 18,
+      "produced": 18,
+      "percentage": 100,
+      "artifactsDefined": 42
+    },
+    "skills": {
+      "total": 9,
+      "produced": 9,
+      "percentage": 100
+    },
+    "tests": {
+      "total": 26,
+      "produced": 26,
+      "percentage": 100,
+      "byCategory": {
+        "happy-path": 2,
+        "coordinator-routing": 4,
+        "specialist-behavior": 2,
+        "auditor-rejection": 4,
+        "revision-beta-loop": 2,
+        "per-chapter-iteration": 2,
+        "cross-cutting-agents": 4,
+        "edge-case": 3,
+        "re-entry": 1,
+        "convergence-exhaustion": 2
+      }
+    },
+    "documentation": {
+      "total": 3,
+      "produced": 3,
+      "totalWords": 9966
+    },
+    "infrastructure": {
+      "total": 4,
+      "produced": 4
+    }
+  },
+  "quality": {
+    "verification": {
+      "totalChecks": 1326,
+      "passing": 1326,
+      "failing": 0,
+      "passRate": "100.0%",
+      "iteration": 2
+    },
+    "audit": {
+      "overallVerdict": "issues-found",
+      "agentAsFunction": {
+        "checksRun": 16,
+        "checksPassing": 13,
+        "warnings": 2,
+        "info": 1
+      },
+      "fractalWorkflow": {
+        "checksRun": 16,
+        "checksPassing": 11,
+        "warnings": 2,
+        "info": 3
+      },
+      "criticalFindings": 0,
+      "totalWarnings": 4,
+      "totalInfo": 4
+    },
+    "gapHunting": {
+      "converged": true,
+      "cyclesUsed": 4,
+      "maxCycles": 10,
+      "trajectory": [22, 6, 2, 0],
+      "finalGapCount": 0,
+      "categoriesClean": 9,
+      "categoriesTotal": 9
+    }
+  },
+  "pipeline": {
+    "totalPasses": 9,
+    "passNames": ["pass0", "discovery", "analysis", "planning", "execution", "verification", "gapHunting", "synthesis", "delivery"],
+    "reEntryCycles": 2,
+    "writerReviewerCycles": {
+      "initialExecution": 2,
+      "repairCycle2": 1,
+      "repairCycle3": 1
+    }
+  },
+  "outstandingItems": {
+    "mustFix": 0,
+    "shouldFix": 3,
+    "niceToFix": 5,
+    "shouldFixIds": ["AF-ARTIFACT-04a", "AF-ARTIFACT-04b", "FW-DATAFLOW-01"],
+    "niceToFixIds": ["AF-ARTIFACT-04c", "FW-HIERARCHY-01a", "FW-LAZY-02a", "FW-SCHEMA-01", "FW-GUIDE-01"]
+  },
+  "deliverables": {
+    "totalFiles": 179,
+    "agents": 67,
+    "schemas": 18,
+    "tests": 26,
+    "skills": 9,
+    "documentation": 3,
+    "infrastructure": 4
+  },
+  "metaKnowledge": {
+    "entriesSynthesized": 29,
+    "craftDomain": 15,
+    "factoryOperations": 14
+  }
+}

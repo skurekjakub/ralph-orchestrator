@@ -1,0 +1,21 @@
+{
+  "orchestrator": {
+    "agent": "romantic-fantasy-writer",
+    "result": "delivered-with-gaps",
+    "summaryContains": "Polish incomplete"
+  },
+  "polishCoordinator": {
+    "agent": "romantic-fantasy-writer-polish-coordinator",
+    "result": "blocked"
+  },
+  "expectations": {
+    "seriesKbManagerDispatched": false,
+    "priorPhasesUnchanged": true,
+    "agentsExercised": [
+      "romantic-fantasy-writer",
+      "romantic-fantasy-writer-polish-coordinator",
+      "romantic-fantasy-writer-polisher"
+    ],
+    "notes": "Polish failure does not invalidate prior work. Chapters exist in revised form even without final polish."
+  }
+}

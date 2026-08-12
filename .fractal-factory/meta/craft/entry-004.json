@@ -1,0 +1,26 @@
+{
+  "id": "MK-004",
+  "category": "craft",
+  "subcategory": "two-tier-quality",
+  "content": "A two-tier quality system \u2014 non-negotiable invariants (always enforced) plus a selectable craft toolbox (chosen per-story during concept/plotting, then binding) \u2014 is an effective pattern for creative domains. It separates universal quality floors from story-specific technique decisions. This run had 34 invariants (I1-I34) as the always-on tier and 26 craft tools (T1-T26) as the selectable tier. The craft-profile-selector agent picks 5-8 tools per story, and adversarial auditors verify against the selected set rather than the entire toolbox. This avoids over-constraining stories while maintaining quality floors.",
+  "confidence": "low",
+  "confidenceValue": 0.3,
+  "sourceStrength": "high",
+  "sourceArtifact": ".fractal-factory/invariants.md",
+  "sourceEvidence": "Part 1: 'Invariants \u2014 Non-negotiable rules that MUST hold for every story'. Part 2: 'Craft Toolbox \u2014 Proven storytelling techniques... During Concept and Plotting, the system selects which tools fit the story... Once selected for a story, a tool becomes binding.' The system selected 5-8 tools per story with auditors verifying against selected toolset only.",
+  "sourceRun": "2026-03-16T21:30:13Z",
+  "sourceAnalyzer": "fractal-factory-factory-signal-analyzer",
+  "confirmationCount": 1,
+  "deprecated": false,
+  "createdAt": "2026-03-16T21:30:13Z",
+  "updatedAt": "2026-03-16T21:30:13Z",
+  "history": [
+    {
+      "action": "created",
+      "timestamp": "2026-03-16T21:30:13Z",
+      "fromConfidence": null,
+      "toConfidence": "low",
+      "reason": "Cold start \u2014 first observation from initial factory run"
+    }
+  ]
+}

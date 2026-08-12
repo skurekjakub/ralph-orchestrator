@@ -1,0 +1,19 @@
+{
+  "bookId": "test-book-010",
+  "existingArtifacts": [
+    "craft-profile.json"
+  ],
+  "craftProfile": {
+    "selectedTools": [
+      {
+        "toolId": "T1"
+      },
+      {
+        "toolId": "T15"
+      },
+      {
+        "toolId": "T21"
+      }
+    ]
+  }
+}
