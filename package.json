@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.2.3",
+    "@types/node": "^24.19.1",
     "@types/react": "^19.2.14",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/parser": "^8.56.1",
@@ -54,7 +54,7 @@
     "vitest": "^4.0.18"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24"
   },
   "overrides": {
     "minimatch": ">=10.2.1"

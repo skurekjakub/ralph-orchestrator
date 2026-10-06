@@ -19,7 +19,7 @@ No quick fixes. Always diagnose to the root cause and devise proper solutions. N
 
 ## Setup
 
-- Node ≥ 22 (`engines`), Docker running, and the target repo cloned at each profile's `repo` path (validation fails otherwise).
+- Node ≥ 24 (`engines`, `.nvmrc`), Docker running, and the target repo cloned at each profile's `repo` path (validation fails otherwise).
 - `cp config.json.sample config.json` and `cp .env.example .env` (both gitignored). `npm run setup` = `npm install && npm run validate`.
 - Required env: `GH_TOKEN` and `ADO_PAT` (`loadConfig()` throws without both). Each JIRA data source also needs `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the `dataSources` key uppercased with `-` → `_` (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`).
 - MCP servers read the vars in their manifest's `requiredEnv` (`shared/mcp-servers/<name>/mcp-server.json`). Optional: `ADO_PAT_XPERIENCE`, and `DASHBOARD_URL` + `DASHBOARD_SECRET` for heartbeats. Operator reference: `docs/user-guide/environment-variables.md`.

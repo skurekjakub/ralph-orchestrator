@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 # ============================================================
 # Version pinning
@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # ============================================================
 # 1. Non-root user (matches devcontainers convention)
-#    node:22-bookworm-slim ships with uid/gid 1000 as "node" —
+#    node:24-bookworm-slim ships with uid/gid 1000 as "node" —
 #    rename to "vscode" for consistency with agent scripts.
 # ============================================================
 RUN usermod -l vscode -d /home/vscode -m node \

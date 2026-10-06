@@ -14,10 +14,10 @@
     "@modelcontextprotocol/sdk": "^1.26.0"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24"
   },
   "devDependencies": {
-    "@types/node": "^25.3.0",
+    "@types/node": "^24.19.1",
     "ts-loader": "^9.5.4",
     "typescript": "^5.0.0",
     "webpack": "^5.105.2",

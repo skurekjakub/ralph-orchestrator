@@ -70,11 +70,12 @@ function stubProfiles(profileContent: string = VALID_PROFILE, dirName = "test-pr
     { name: dirName, isDirectory: () => true } as unknown as ReturnType<typeof readdirSync>[0],
   ] as ReturnType<typeof readdirSync>);
 
-  vi.mocked(readFileSync).mockImplementation(((path: string) => {
+  vi.mocked(readFileSync).mockImplementation((p) => {
+    const path = String(p);
     if (path.endsWith("config.json")) return VALID_GLOBAL_CONFIG;
     if (path.endsWith("profile.json")) return profileContent;
     throw new Error(`Unexpected readFileSync call: ${path}`);
-  }) as typeof readFileSync);
+  });
 }
 
 describe("loadConfig", () => {
@@ -88,11 +89,12 @@ describe("loadConfig", () => {
       { name: "ralph-docs", isDirectory: () => true } as unknown as ReturnType<typeof readdirSync>[0],
     ] as ReturnType<typeof readdirSync>);
 
-    vi.mocked(readFileSync).mockImplementation(((path: string) => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const path = String(p);
       if (path.endsWith("config.json")) return VALID_GLOBAL_CONFIG;
       if (path.endsWith("profile.json")) return VALID_PROFILE;
       throw new Error(`Unexpected readFileSync: ${path}`);
-    }) as typeof readFileSync);
+    });
   });
 
   afterEach(() => {
