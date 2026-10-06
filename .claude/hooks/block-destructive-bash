@@ -32,11 +32,16 @@ if [ -z "$cmd" ]; then
     exit 0
 fi
 
+# Patterns are matched per simple command, split on `&&`, `||`, `;`, `|` and
+# newlines, so a flag in one command never pairs with the verb of another
+# (`git push && git worktree remove --force` is not a force push).
+segments=$(printf '%s\n' "$cmd" | sed -E 's/(&&|\|\||;|\|)/\n/g')
+
 # Pattern checks. Each match emits a reason to stderr and exits 2.
 match_and_block() {
     local pattern="$1"
     local reason="$2"
-    if echo "$cmd" | grep -qE "$pattern"; then
+    if printf '%s\n' "$segments" | grep -qE "$pattern"; then
         echo "blocked by project hook: ${reason}" >&2
         echo "command was: ${cmd}" >&2
         exit 2
@@ -47,7 +52,7 @@ match_and_block 'rm[[:space:]]+-rf[[:space:]]+/[^/a-zA-Z]' \
     "rm -rf rooted at filesystem root"
 match_and_block 'rm[[:space:]]+-rf[[:space:]]+/$' \
     "rm -rf / (literal)"
-match_and_block 'git[[:space:]]+push.*--force' \
+match_and_block 'git[[:space:]]+push.*[[:space:]](-f|--force)([[:space:]=]|$)' \
     "git push --force (rewrites remote history)"
 match_and_block 'git[[:space:]]+push.*--force-with-lease' \
     "git push --force-with-lease (still rewrites remote)"
