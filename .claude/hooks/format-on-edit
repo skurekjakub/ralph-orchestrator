@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# PostToolUse hook matching Write|Edit|MultiEdit. Formats the edited file using
+# the project's local toolchain, mirroring lint-staged:
+#   *.{js,jsx,mjs,ts,tsx,mts}          → prettier --write + eslint --fix
+#   *.{json,md,css,html,yml,yaml,scss} → prettier --write
+# Other extensions, *.mdx included, silent no-op. Prettier reads .prettierrc + .prettierignore
+# (and any Prettier plugins it configures); eslint reads
+# its flat or legacy config. Silent no-op if binaries missing or file gone — never
+# blocks the edit.
+#
+# Latency: ~500ms-1s per edit for script files (prettier + eslint), ~100-200ms
+# for prettier-only files.
+
+set -euo pipefail
+
+input=$(cat)
+file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""' 2>/dev/null || echo "")
+
+[ -z "$file_path" ] && exit 0
+[ -f "$file_path" ] || exit 0
+
+# Only this project's own files are formatted. Sibling checkouts or worktrees
+# opened in the same session may follow different formatting rules.
+# On Windows both paths may arrive as C:\… — compare them with forward slashes
+# and a lower-cased drive letter so the prefix match holds.
+norm() { local p="${1//\\//}"; printf '%s' "$(printf '%s' "${p:0:1}" | tr '[:upper:]' '[:lower:]')${p:1}"; }
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
+    case "$(norm "$file_path")" in
+        "$(norm "$CLAUDE_PROJECT_DIR")"/*) ;;
+        *) exit 0 ;;
+    esac
+fi
+
+# MDX is never formatted: Prettier finds .prettierignore relative to the shell's
+# working directory, so an edit made from a subdirectory can reflow MDX and
+# move inline JSX onto its own lines, where MDX renders it as a separate block.
+case "$file_path" in
+    *.js|*.jsx|*.mjs|*.ts|*.tsx|*.mts)
+        run_eslint=1; run_prettier=1 ;;
+    *.json|*.md|*.css|*.html|*.yml|*.yaml|*.scss)
+        run_eslint=0; run_prettier=1 ;;
+    *)
+        exit 0 ;;
+esac
+
+project_root="${CLAUDE_PROJECT_DIR:-}"
+if [ -z "$project_root" ]; then
+    project_root=$(git -C "$(dirname "$file_path")" rev-parse --show-toplevel 2>/dev/null || echo "")
+fi
+[ -n "$project_root" ] || exit 0
+
+prettier_bin="${project_root}/node_modules/.bin/prettier"
+eslint_bin="${project_root}/node_modules/.bin/eslint"
+
+if [ "$run_prettier" = "1" ] && [ -x "$prettier_bin" ]; then
+    "$prettier_bin" --write --log-level error "$file_path" >/dev/null 2>&1 || true
+fi
+
+if [ "$run_eslint" = "1" ] && [ -x "$eslint_bin" ]; then
+    "$eslint_bin" --fix "$file_path" >/dev/null 2>&1 || true
+fi
+
+exit 0

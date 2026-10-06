@@ -44,3 +44,9 @@ todo.md
 
 # Stray vendored CLI tarballs
 *.tgz
+
+.cache/claude-scratch/
+
+.ai/followups/*
+!.ai/followups/README.md
+.ai/**/*-handoff.md

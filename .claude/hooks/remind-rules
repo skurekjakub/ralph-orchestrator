@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Injects a short, periodic reminder of the project's highest-priority rules.
+# Wired on UserPromptSubmit and on PostToolUse for the tools the rules govern;
+# emits at most once per REMIND_INTERVAL_SECONDS (default 360) so the rules stay
+# live inside long autonomous turns without flooding context.
+#
+# The rules live in .ai/reminders.md — one "- " bullet per rule, three to
+# five at most. Edit that file, not this script. Lines that are not bullets are
+# ignored, so the file can carry its own explanation.
+#
+# Output: JSON with hookSpecificOutput.additionalContext (Claude Code shape).
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+REMINDERS_FILE="${PROJECT_DIR}/.ai/reminders.md"
+[ -r "$REMINDERS_FILE" ] || exit 0
+
+# The event name decides which output key Claude Code reads; a payload without
+# one is treated as a user prompt. Reading it needs jq; without jq the reminder
+# is still emitted, labelled as a user-prompt injection.
+payload=$(cat 2>/dev/null || true)
+event=$(printf '%s' "$payload" | jq -r '.hook_event_name // empty' 2>/dev/null || true)
+[ -n "$event" ] || event="UserPromptSubmit"
+
+# Throttle on wall clock, not turn count: a single autonomous turn can run for
+# many minutes of tool calls without a UserPromptSubmit ever firing. State is
+# the last emit timestamp, per project, so concurrent repos throttle
+# independently.
+REMIND_INTERVAL_SECONDS="${REMIND_INTERVAL_SECONDS:-360}"
+state_dir="${HOME}/.claude"
+state_file="${state_dir}/.remind-rules-last-$(printf '%s' "$PROJECT_DIR" | cksum | cut -d' ' -f1)"
+mkdir -p "$state_dir"
+now=$(date +%s)
+last=$(cat "$state_file" 2>/dev/null || echo 0)
+case "$last" in ''|*[!0-9]*) last=0 ;; esac
+if [ $((now - last)) -lt "$REMIND_INTERVAL_SECONDS" ]; then
+    exit 0
+fi
+printf '%s' "$now" > "$state_file"
+
+rules=$(grep -E '^- ' "$REMINDERS_FILE" || true)
+[ -n "$rules" ] || exit 0
+
+reminder_text="HIGH-PRIORITY RULES (auto-injected periodically — edit .ai/reminders.md if outdated):
+${rules}"
+
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+# Claude Code drops the block unless hookEventName matches the firing event.
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "%s",\n    "additionalContext": "%s"\n  }\n}\n' "$event" "$(escape_for_json "$reminder_text")"
+
+exit 0

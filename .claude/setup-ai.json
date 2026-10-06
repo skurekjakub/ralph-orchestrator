@@ -1,0 +1,270 @@
+{
+  "setupAiVersion": "0.2.3",
+  "installedAt": "2026-10-06T21:23:24.141Z",
+  "updatedAt": "2026-10-06T21:23:24.141Z",
+  "packs": [
+    {
+      "name": "baseline",
+      "version": "0.1.1"
+    },
+    {
+      "name": "hooks",
+      "version": "0.1.1"
+    },
+    {
+      "name": "review-agents",
+      "version": "0.1.0"
+    },
+    {
+      "name": "dev-workflow",
+      "version": "0.1.1"
+    },
+    {
+      "name": "issue-tracking",
+      "version": "0.2.2"
+    }
+  ],
+  "options": {
+    "hooks": [
+      "block-destructive-bash",
+      "project-context",
+      "remind-rules",
+      "format-on-edit"
+    ],
+    "agents": [
+      "rubber-duk-review",
+      "rubber-duk-auditor",
+      "rubber-duk-backend",
+      "rubber-duk-tests",
+      "rubber-duk-frontend"
+    ],
+    "profile": "generic",
+    "issueSkills": [
+      "file-github-issue"
+    ],
+    "codeWork": "no"
+  },
+  "tokens": {
+    "AI_DIR": ".ai",
+    "PROJECT_NAME": "ralph-orchestrator",
+    "STACK_SUMMARY": "Node.js 24 / TypeScript ESM / awilix DI / Docker Compose / Vitest (+ React/Vite & Next.js dashboards)",
+    "UNIT_TEST_GLOB": "tests/**/*.test.ts",
+    "TEST_CMD": "npx vitest run",
+    "VERIFY_CMD": "npm test",
+    "DEV_CMD": "npm run dashboard",
+    "LOCAL_URL": "http://localhost:3101",
+    "GITHUB_REPO": "skurekjakub/ralph-orchestrator",
+    "DEFAULT_BRANCH": "main"
+  },
+  "plugins": [
+    "research-planning@giga-marketplace",
+    "frontend-design@claude-plugins-official",
+    "superpowers@claude-plugins-official"
+  ],
+  "vendorSkills": [
+    {
+      "source": "vercel-labs/agent-skills",
+      "skill": "web-design-guidelines"
+    },
+    {
+      "source": "vercel-labs/agent-skills",
+      "skill": "vercel-react-best-practices"
+    },
+    {
+      "source": "vercel-labs/agent-skills",
+      "skill": "vercel-composition-patterns"
+    },
+    {
+      "source": "antfu/skills",
+      "skill": "vitest"
+    },
+    {
+      "source": "vercel-labs/agent-browser",
+      "skill": "agent-browser"
+    }
+  ],
+  "appends": [
+    {
+      "to": "CLAUDE.md",
+      "pack": "baseline",
+      "created": false,
+      "text": "@.ai/agent-working-rules.md"
+    },
+    {
+      "to": ".gitignore",
+      "pack": "baseline",
+      "created": false,
+      "text": ".cache/claude-scratch/"
+    },
+    {
+      "to": ".gitattributes",
+      "pack": "hooks",
+      "created": true,
+      "text": "# setup-ai hooks are bash scripts; CRLF breaks them.\n.claude/hooks/* text eol=lf"
+    },
+    {
+      "to": ".gitignore",
+      "pack": "dev-workflow",
+      "created": false,
+      "text": ".ai/followups/*\n!.ai/followups/README.md\n.ai/**/*-handoff.md"
+    }
+  ],
+  "files": {
+    ".ai/agent-working-rules.md": {
+      "pack": "baseline",
+      "hash": "91aea9e932d62cc6"
+    },
+    ".ai/resources/pr-guidelines.md": {
+      "pack": "baseline",
+      "hash": "4d5b99ad94cb08f3"
+    },
+    ".claude/hooks/block-destructive-bash": {
+      "pack": "hooks",
+      "hash": "df48a0b0219bff5c"
+    },
+    ".claude/hooks/format-on-edit": {
+      "pack": "hooks",
+      "hash": "3fe76181755d945e"
+    },
+    ".claude/hooks/project-context": {
+      "pack": "hooks",
+      "hash": "979dda549bc7d195"
+    },
+    ".claude/hooks/remind-rules": {
+      "pack": "hooks",
+      "hash": "3ab3518c2c8c4a63"
+    },
+    ".ai/reminders.md": {
+      "pack": "hooks",
+      "hash": "8a74a8760da34e9e"
+    },
+    "docs/conventions/comment-policy.md": {
+      "pack": "review-agents",
+      "hash": "7e44a60f32f672ce"
+    },
+    "docs/conventions/stack-profile.md": {
+      "pack": "review-agents",
+      "hash": "99092481cc5e0f58"
+    },
+    "docs/conventions/test-layout.md": {
+      "pack": "review-agents",
+      "hash": "0a49988c756f615c"
+    },
+    "docs/conventions/test-quality.md": {
+      "pack": "review-agents",
+      "hash": "c850938c1de92622"
+    },
+    "docs/gotchas.md": {
+      "pack": "review-agents",
+      "hash": "077eb977c460a683"
+    },
+    ".claude/agents/rubber-duk-auditor.md": {
+      "pack": "review-agents",
+      "hash": "842e91ec1c24bfad"
+    },
+    ".claude/agents/rubber-duk-backend.md": {
+      "pack": "review-agents",
+      "hash": "5b90067e6622aaef"
+    },
+    ".claude/agents/rubber-duk-frontend.md": {
+      "pack": "review-agents",
+      "hash": "a4a940e1123cab00"
+    },
+    ".claude/agents/rubber-duk-review.md": {
+      "pack": "review-agents",
+      "hash": "67e15c27cde5bd00"
+    },
+    ".claude/agents/rubber-duk-tests.md": {
+      "pack": "review-agents",
+      "hash": "899a852310bdbe16"
+    },
+    ".claude/skills/codebase-analysis/SKILL.md": {
+      "pack": "dev-workflow",
+      "hash": "1865b982fdc0f5bd"
+    },
+    ".claude/skills/codebase-analysis/references/followup-template.md": {
+      "pack": "dev-workflow",
+      "hash": "f4b6602418f20021"
+    },
+    ".claude/skills/codebase-analysis/references/measurement-recipes.md": {
+      "pack": "dev-workflow",
+      "hash": "da29452ffd785342"
+    },
+    ".claude/skills/codebase-refactoring/SKILL.md": {
+      "pack": "dev-workflow",
+      "hash": "c57e0880b143c2e6"
+    },
+    ".claude/skills/codebase-refactoring/references/completeness-sweep.md": {
+      "pack": "dev-workflow",
+      "hash": "41f33a8c9db065a1"
+    },
+    ".claude/skills/codebase-refactoring/references/decluttering.md": {
+      "pack": "dev-workflow",
+      "hash": "05eea6c5a7624ed6"
+    },
+    ".claude/skills/codebase-refactoring/references/spec-review-claims.md": {
+      "pack": "dev-workflow",
+      "hash": "05be9430b1cd13d6"
+    },
+    ".claude/skills/feature-development/SKILL.md": {
+      "pack": "dev-workflow",
+      "hash": "9681399a72064335"
+    },
+    ".claude/skills/feature-development/references/constitution-folder.md": {
+      "pack": "dev-workflow",
+      "hash": "4153fe311fe8a478"
+    },
+    ".claude/skills/feature-development/references/readme-contract.md": {
+      "pack": "dev-workflow",
+      "hash": "d6b0423fd7a7d3ba"
+    },
+    ".claude/skills/feature-development/references/ui-surface-rules.md": {
+      "pack": "dev-workflow",
+      "hash": "5e46d5d724015c23"
+    },
+    ".claude/skills/project-bugfixing/SKILL.md": {
+      "pack": "dev-workflow",
+      "hash": "ad24e4393d2f110a"
+    },
+    ".claude/skills/project-bugfixing/references/explainer-template.html": {
+      "pack": "dev-workflow",
+      "hash": "88cb94f08e2f46ce"
+    },
+    ".ai/diagrams/README.md": {
+      "pack": "dev-workflow",
+      "hash": "80a02c3ae61c756f"
+    },
+    ".ai/dod/README.md": {
+      "pack": "dev-workflow",
+      "hash": "12816d81ecd14696"
+    },
+    ".ai/feature-constitution/README.md": {
+      "pack": "dev-workflow",
+      "hash": "df8d4ceb5fe0f2e0"
+    },
+    ".ai/followups/README.md": {
+      "pack": "dev-workflow",
+      "hash": "47a6fb636494c665"
+    },
+    ".ai/regression/README.md": {
+      "pack": "dev-workflow",
+      "hash": "0394590929b360bb"
+    },
+    ".ai/resources/skills/explainer-contract.md": {
+      "pack": "dev-workflow",
+      "hash": "f944f204b4cd203c"
+    },
+    ".ai/resources/skills/explainer-template.html": {
+      "pack": "dev-workflow",
+      "hash": "fb4468f59fb5d7d3"
+    },
+    ".ai/resources/skills/seats.md": {
+      "pack": "dev-workflow",
+      "hash": "67f6f7c3d0d82951"
+    },
+    ".claude/skills/file-github-issue/SKILL.md": {
+      "pack": "issue-tracking",
+      "hash": "a02ea50d8085f3e1"
+    }
+  }
+}

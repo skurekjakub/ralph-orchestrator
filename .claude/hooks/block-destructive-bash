@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# PreToolUse hook matching Bash. Blocks destructive command patterns by exiting
+# with code 2 (Claude Code's "deny" signal for PreToolUse). Pass-through (exit 0)
+# for anything that doesn't match.
+#
+# Patterns blocked:
+#   - rm -rf / (any variation rooted at /)
+#   - git push --force / --force-with-lease (rewrites remote history)
+#   - git reset --hard origin/<branch> (silently overwrites local work)
+#   - git rebase -i (interactive — not supported in Claude Code)
+#   - git commit --amend (per project convention, prefer new commits)
+#   - git push --no-verify / commit --no-verify (skips hooks)
+#   - git push / commit --no-gpg-sign (skips signing)
+#
+# Edit or delete any match_and_block line your team doesn't want.
+#
+# Reads the command with jq. Without jq it fails closed-ish: the patterns are
+# matched against the raw hook payload instead, which still catches every
+# destructive command (at the cost of the odd false positive).
+
+set -euo pipefail
+
+input=$(cat)
+if command -v jq >/dev/null 2>&1; then
+    cmd=$(echo "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || echo "")
+else
+    cmd="$input"
+fi
+
+# Empty command — let it through; Claude Code will handle.
+if [ -z "$cmd" ]; then
+    exit 0
+fi
+
+# Pattern checks. Each match emits a reason to stderr and exits 2.
+match_and_block() {
+    local pattern="$1"
+    local reason="$2"
+    if echo "$cmd" | grep -qE "$pattern"; then
+        echo "blocked by project hook: ${reason}" >&2
+        echo "command was: ${cmd}" >&2
+        exit 2
+    fi
+}
+
+match_and_block 'rm[[:space:]]+-rf[[:space:]]+/[^/a-zA-Z]' \
+    "rm -rf rooted at filesystem root"
+match_and_block 'rm[[:space:]]+-rf[[:space:]]+/$' \
+    "rm -rf / (literal)"
+match_and_block 'git[[:space:]]+push.*--force' \
+    "git push --force (rewrites remote history)"
+match_and_block 'git[[:space:]]+push.*--force-with-lease' \
+    "git push --force-with-lease (still rewrites remote)"
+match_and_block 'git[[:space:]]+reset[[:space:]]+--hard[[:space:]]+origin/' \
+    "git reset --hard against origin/ (silently overwrites local)"
+match_and_block 'git[[:space:]]+rebase[[:space:]]+-i' \
+    "git rebase -i (interactive; unsupported)"
+match_and_block 'git[[:space:]]+commit.*--amend' \
+    "git commit --amend (project convention prefers new commits)"
+match_and_block 'git[[:space:]]+(push|commit).*--no-verify' \
+    "git --no-verify (skipping hooks is project-forbidden)"
+match_and_block 'git[[:space:]]+(push|commit).*--no-gpg-sign' \
+    "git --no-gpg-sign (bypassing signing is project-forbidden)"
+
+exit 0

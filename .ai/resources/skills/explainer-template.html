@@ -1,0 +1,492 @@
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  EXPLAINER TEMPLATE — shared by feature-development, codebase-refactoring and
+  codebase-analysis. Contract: .ai/resources/skills/explainer-contract.md
+  ═══════════════════════════════════════════════════════════════════════════
+
+  Copy this file next to the work it explains, fill every FILL: slot, delete
+  every slot you did not use, and delete this comment block. Publish with the
+  `Artifact` tool.
+
+  HOW TO USE IT
+  - The <style> block is the house style and is NOT a fill slot. Leave the
+    tokens alone so every explainer reads as one series. Add a rule if a figure
+    needs one; do not restyle what is here.
+  - Sections are fixed: SUMMARY → IN PLAIN TERMS → WALKTHROUGH → CHECK
+    YOURSELF. Do not add, reorder or rename them.
+  - The figure components at the bottom are commented-out blocks. Move the
+    ones you need into place, delete the rest.
+  - The page must survive the Artifact CSP: no external fonts, scripts,
+    stylesheets or images.
+  - Both themes are handled by the tokens. Do not write component CSS inside a
+    media query; restyle the token instead.
+
+  THE TITLE IS A NAME
+  Two to four words naming the feature, refactor or sweep. The one-sentence
+  description goes in the standfirst and in the `description` you pass to
+  `Artifact`.
+
+  NUMBERS ARE MEASUREMENTS, NOT TARGETS
+  Every number carries where it came from and when (command, commit, date).
+-->
+
+<title>FILL: two to four words</title>
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f4f5f6;
+    --panel: #ffffff;
+    --ink: #16191d;
+    --muted: #5d6772;
+    --hair: #d5dadd;
+    --accent: #0e6f68;
+    --accent-soft: #d9e8e6;
+    --defect: #9c3a2c;
+    --wire: #8a5a10;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    --serif: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #15181b;
+      --panel: #1c2024;
+      --ink: #e6e9ea;
+      --muted: #97a1ab;
+      --hair: #2e343a;
+      --accent: #57b3aa;
+      --accent-soft: #1d3230;
+      --defect: #d98a7c;
+      --wire: #d3a45c;
+    }
+  }
+
+  /* The viewer's toggle stamps data-theme on the root and must win in both
+     directions, so both are restated here after the media query. */
+  :root[data-theme="dark"] {
+    --paper: #15181b;
+    --panel: #1c2024;
+    --ink: #e6e9ea;
+    --muted: #97a1ab;
+    --hair: #2e343a;
+    --accent: #57b3aa;
+    --accent-soft: #1d3230;
+    --defect: #d98a7c;
+    --wire: #d3a45c;
+  }
+
+  :root[data-theme="light"] {
+    --paper: #f4f5f6;
+    --panel: #ffffff;
+    --ink: #16191d;
+    --muted: #5d6772;
+    --hair: #d5dadd;
+    --accent: #0e6f68;
+    --accent-soft: #d9e8e6;
+    --defect: #9c3a2c;
+    --wire: #8a5a10;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    margin: 0;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .wrap {
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.6rem;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.5rem, 4.6vw, 2.05rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h1 code {
+    background: none;
+    padding: 0;
+    font-size: 1em;
+  }
+
+  .standfirst {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.02rem;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  p {
+    margin: 0;
+  }
+
+  /* An identifier the reader could grep for. */
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--accent-soft);
+    color: inherit;
+    padding: 0.1em 0.34em;
+    border-radius: 3px;
+  }
+
+  /* A path or symbol mentioned in passing — quieter than code. */
+  .file {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    color: var(--muted);
+    background: none;
+    padding: 0;
+  }
+
+  pre {
+    font-family: var(--mono);
+    font-size: 0.79rem;
+    line-height: 1.65;
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    border-left: 3px solid var(--hair);
+    padding: 1rem 1.1rem;
+    margin: 0;
+    overflow-x: auto;
+  }
+
+  /* The excerpt that carries the fix — amber rail. */
+  pre.wire {
+    border-left-color: var(--wire);
+  }
+
+  pre b {
+    color: var(--wire);
+    font-weight: 600;
+  }
+
+  pre i {
+    color: var(--muted);
+    font-style: normal;
+  }
+
+  figure {
+    margin: 0;
+    background: var(--panel);
+    border: 1px solid var(--hair);
+    padding: 1.15rem 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .bars {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content;
+    align-items: center;
+    gap: 0.55rem 0.75rem;
+  }
+
+  .bar-label {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .track {
+    height: 13px;
+    background: var(--hair);
+    border-radius: 0 3px 3px 0;
+    min-width: 2px;
+  }
+
+  .track.bad {
+    background: var(--defect);
+  }
+
+  .track.good {
+    background: var(--accent);
+  }
+
+  .bar-value {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .lane {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .lane-head {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .lane-head b {
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .segs {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    height: 15px;
+  }
+
+  .seg {
+    border-radius: 0 3px 3px 0;
+    display: block;
+  }
+
+  .seg.spent {
+    background: var(--accent);
+  }
+
+  .seg.over {
+    background: var(--defect);
+  }
+
+  .capline {
+    position: relative;
+    height: 1.1rem;
+    border-top: 1px dashed var(--muted);
+  }
+
+  .capline span {
+    position: absolute;
+    top: 0.15rem;
+    left: 50%;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .note {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  li::marker {
+    color: var(--accent);
+  }
+
+  .verdict {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-top: 1px solid var(--hair);
+    padding-top: 1.1rem;
+  }
+
+  .verdict strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  details.check {
+    border-top: 1px solid var(--hair);
+    padding: 0.8rem 0;
+  }
+
+  details.check summary {
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  details.check > :not(summary) {
+    margin-top: 0.6rem;
+    color: var(--muted);
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="kicker">FILL: feature / refactor / analysis · FILL: the area · FILL: date</p>
+
+    <h1>FILL: two to four words</h1>
+
+    <!-- FILL: two or three sentences. What changed (or was found), why it
+         matters, and the headline number. A reader who stops here should know
+         the outcome. -->
+    <p class="standfirst">FILL: the outcome in brief, with its number.</p>
+  </header>
+
+  <section>
+    <h2>Summary</h2>
+    <!-- FILL: the broad summary of the change. For an analysis sweep this is a
+         findings table: one row per finding with its headline number and the
+         recommendation. For a feature or refactor: what now exists, what moved,
+         what was deleted. -->
+    <p>FILL</p>
+  </section>
+
+  <section>
+    <h2>In plain terms</h2>
+    <!-- FILL: the simplified explainer. What the area does and what changed,
+         in the subject's vocabulary, with no file paths. Someone who doesn't
+         read code should come away with the right mental model. -->
+    <p>FILL</p>
+  </section>
+
+  <section>
+    <h2>Walkthrough</h2>
+    <!-- FILL: the thorough walkthrough, one step per change (or per finding),
+         in order. Real file:line references, the measurement and its method,
+         and what was deliberately left alone. Use a figure only when it shows
+         something the prose cannot. -->
+    <p>FILL</p>
+  </section>
+
+  <section>
+    <h2>Check yourself</h2>
+    <!-- FILL: six to ten questions on the mechanism, answer in your head, then
+         open to check. Each answer names the file or measurement that holds
+         it. Questions test understanding, not recall of trivia. -->
+    <details class="check">
+      <summary>FILL: the question</summary>
+      <p>FILL: the answer, and where it is shown (file:line or measurement).</p>
+    </details>
+
+    <p class="verdict"><strong>npm test → exit 0.</strong> FILL: where the
+      journal for this work lives.</p>
+  </section>
+</div>
+
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  FIGURE COMPONENTS — move what you need into a section, delete the rest
+  ═══════════════════════════════════════════════════════════════════════════
+
+  ── A. Code excerpt ────────────────────────────────────────────────────────
+  Plain rail for the broken code, `class="wire"` (amber) for the fix. <b> the
+  line that matters, <i> for an inline comment. Elide with `...` rather than
+  pasting the whole function — the reader wants the branch, not the file.
+
+  <pre><span>function statusResult(res) {
+    <b>if (res.status === 429) {</b>          <i>// ← the header is read only in here</i>
+      ...
+    }
+  }</span></pre>
+
+  ── B. Comparison bars ─────────────────────────────────────────────────────
+  For a before/after magnitude. One row per state, direct-labelled — no legend,
+  the labels carry identity. `.bad` = the defect's number, `.good` = the
+  correct one. Width is a percentage of the largest value. Always caption with
+  what was measured, when, and under what conditions.
+
+  <figure>
+    <figcaption>What was measured</figcaption>
+    <div class="bars">
+      <span class="bar-label">state · before</span>
+      <div class="track bad" style="width: 25%"></div>
+      <span class="bar-value">500 ms</span>
+
+      <span class="bar-label">state · after</span>
+      <div class="track good" style="width: 100%"></div>
+      <span class="bar-value">2000 ms</span>
+    </div>
+    <p class="note">Measured YYYY-MM-DD, under what conditions, against which code.</p>
+  </figure>
+
+  ── C. Segmented lanes ─────────────────────────────────────────────────────
+  For a budget, a sequence, or anything spent in parts. `flex` on each segment
+  is its share. `.over` marks the part that should not have happened. The
+  optional `.capline` draws the limit.
+
+  <figure>
+    <figcaption>One call against a host answering twice</figcaption>
+    <div class="lane">
+      <div class="lane-head"><span>Before — each part checked alone</span><b>60 000 ms</b></div>
+      <div class="segs">
+        <span class="seg spent" style="flex: 30"></span>
+        <span class="seg over" style="flex: 30"></span>
+      </div>
+      <div class="capline"><span>allowance ends here</span></div>
+    </div>
+    <div class="lane">
+      <div class="lane-head"><span>After — one allowance for the call</span><b>30 000 ms</b></div>
+      <div class="segs">
+        <span class="seg spent" style="flex: 30"></span>
+        <span class="seg" style="flex: 30"></span>
+      </div>
+    </div>
+    <p class="note">Measured YYYY-MM-DD, under what conditions.</p>
+  </figure>
+
+  ── D. A table ─────────────────────────────────────────────────────────────
+  For more than two measured states, a plain table beats bars. Wrap it in a
+  container with `overflow-x: auto` so the page body never scrolls sideways,
+  and give the numeric column `font-variant-numeric: tabular-nums`.
+-->

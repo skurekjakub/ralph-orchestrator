@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# SessionStart hook — re-injects the project's identity docs after startup and
+# compaction, so a long session doesn't drift once the originals have scrolled
+# out of context:
+#   - AGENTS.md (only when CLAUDE.md doesn't already import it — Claude Code
+#     loads CLAUDE.md and its @imports by itself)
+#   - the project memory index (MEMORY.md) from Claude Code's per-project dir
+#   - the current branch
+#
+# The memory directory is computed from CLAUDE_PROJECT_DIR with Claude Code's
+# path mangling: every character that is not a letter or digit becomes '-'
+# (/home/me/repo -> -home-me-repo, C:\Users\me\repo -> C--Users-me-repo).
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+mangled=$(printf '%s' "$PROJECT_DIR" | sed 's/[^A-Za-z0-9]/-/g')
+MEMORY_DIR="${HOME}/.claude/projects/${mangled}/memory"
+
+agents_md=""
+if [ -f "${PROJECT_DIR}/AGENTS.md" ] && ! grep -qs '^@AGENTS\.md' "${PROJECT_DIR}/CLAUDE.md"; then
+    agents_md=$(cat "${PROJECT_DIR}/AGENTS.md")
+fi
+
+memory_index=""
+if [ -f "${MEMORY_DIR}/MEMORY.md" ]; then
+    memory_index=$(cat "${MEMORY_DIR}/MEMORY.md")
+fi
+
+current_branch=""
+if git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+    current_branch=$(git -C "${PROJECT_DIR}" branch --show-current 2>/dev/null || echo "")
+fi
+
+# Nothing worth injecting — stay silent.
+if [ -z "$agents_md" ] && [ -z "$memory_index" ] && [ -z "$current_branch" ]; then
+    exit 0
+fi
+
+# Bash parameter-substitution JSON escaper (no jq needed for output).
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+context="<project-context-on-session-start-or-compact>
+PROJECT_DIR: ${PROJECT_DIR}
+BRANCH: ${current_branch}"
+[ -n "$agents_md" ] && context="${context}
+
+==== AGENTS.md ====
+${agents_md}"
+[ -n "$memory_index" ] && context="${context}
+
+==== Project memory index (MEMORY.md) ====
+${memory_index}
+
+Read individual memory files at ${MEMORY_DIR}/<name>.md when their hooks match what you're doing."
+context="${context}
+</project-context-on-session-start-or-compact>"
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$(escape_for_json "$context")"
+
+exit 0

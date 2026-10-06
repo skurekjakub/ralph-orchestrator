@@ -1,0 +1,2 @@
+# setup-ai hooks are bash scripts; CRLF breaks them.
+.claude/hooks/* text eol=lf

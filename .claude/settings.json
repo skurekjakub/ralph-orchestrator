@@ -1,0 +1,71 @@
+{
+  "enabledPlugins": {
+    "setup-ai@giga-marketplace": true,
+    "agent-architecture@giga-marketplace": true,
+    "research-planning@giga-marketplace": true,
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "giga-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "skurekjakub/giga-marketplace"
+      }
+    }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-destructive-bash\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/format-on-edit\""
+          },
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-rules\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/remind-rules\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/project-context\""
+          }
+        ]
+      }
+    ]
+  }
+}
