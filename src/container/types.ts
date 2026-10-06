@@ -1,4 +1,4 @@
-import { IAgentProfile, type IStageConfig } from "../config/types.js";
+import type { IAgentProfile, IStageConfig, StageMode } from "../config/types.js";
 import { IContainerManager } from "./manager.js";
 import type { ICliExecutor } from "./cli-executor-factory.js";
 
@@ -22,12 +22,6 @@ export interface ContainerExecResult {
   timedOut: boolean;
 }
 
-/** Which CLI tool to use for agent execution inside the container. */
-export enum CliType {
-  Copilot = "copilot",
-  Claude = "claude",
-}
-
 /**
  * Factory for creating {@link ContainerManager} instances.
  */
@@ -42,6 +36,23 @@ export interface ContainerManagerFactory {
     profile: IAgentProfile,
     stage: IStageConfig,
   ): { executor: ICliExecutor; sessionRunner: IAgentSessionRunner };
+}
+
+/** Where one stage's CLI runs and where its rendered agents, skills and artifacts live. */
+export interface StageWorkspace {
+  readonly mode: StageMode;
+  /** CLI working directory: `/workspace` in the container, a per-stage directory under the task output dir on the host. */
+  readonly cwd: string;
+  /** `artifactDir` template value: relative to `/workspace` in the container, absolute and shared by a hook's stages on the host. */
+  readonly artifactDir: string;
+  /** Host directory receiving the stage's rendered agent files. */
+  readonly agentsOutDir: string;
+  /** Host directory receiving the stage's rendered skills. */
+  readonly skillsOutDir: string;
+  /** CLI home directory for a host stage; absent for container stages, whose home is the runtime layout's `configDir`. */
+  readonly cliHomeDir?: string;
+  /** Host directories the agent may reach besides `cwd`; empty for container stages. */
+  readonly additionalDirs: readonly string[];
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */
@@ -69,7 +80,7 @@ export interface StageResult {
 /**
  * Derive a stage-scoped profile from a base profile and a specific stage config.
  *
- * Overrides `agentName`, `displayName`, `model`, `timeoutMs`, and `skills`
+ * Overrides `agentName`, `displayName`, `cli`, `model`, `timeoutMs`, and `skills`
  * with stage-specific values. Other profile fields (repo, compose, MCP, etc.)
  * remain unchanged.
  */
@@ -78,6 +89,7 @@ export function deriveStageProfile(profile: IAgentProfile, stage: IStageConfig):
     ...profile,
     agentName: stage.agent,
     displayName: stage.agent.replace(/^ralph\./, ""),
+    cli: stage.cli,
     model: stage.model ?? profile.model,
     timeoutMs: stage.timeoutMs ?? profile.timeoutMs,
     skills: [...stage.skills],

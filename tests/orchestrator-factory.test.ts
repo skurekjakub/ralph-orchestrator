@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle.js";
+import { ClaudeAuthMode, CliType } from "../src/config/types.js";
 import { makeConfig } from "./helpers/factories.js";
 
 // Ensure built-in data source factories are registered
@@ -61,5 +62,27 @@ describe("createCradle", () => {
     const cradle = createCradle(config);
 
     expect(cradle.heartbeat).toBeNull();
+  });
+
+  it("registers the Copilot CLI runtime", () => {
+    // Arrange
+    const cradle = createCradle(makeConfig());
+
+    // Act
+    const runtime = cradle.cliRuntimes.get(CliType.Copilot);
+
+    // Assert
+    expect(runtime.cli).toBe(CliType.Copilot);
+  });
+
+  it("exposes claudeAuth from the config", () => {
+    // Arrange
+    const config = { ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey };
+
+    // Act
+    const cradle = createCradle(config);
+
+    // Assert
+    expect(cradle.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
   });
 });

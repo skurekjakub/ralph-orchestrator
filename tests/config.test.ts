@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig } from "../src/config/loader.js";
+import { ClaudeAuthMode } from "../src/config/types.js";
 import { readFileSync, readdirSync } from "node:fs";
 
 vi.mock("node:fs", async () => {
@@ -40,7 +41,7 @@ const VALID_PROFILE = JSON.stringify({
   ],
 });
 
-const ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE", "GH_TOKEN", "ADO_PAT"];
+const ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE", "GH_TOKEN", "ADO_PAT", "CLAUDE_CODE_OAUTH_TOKEN"];
 
 function setRequiredEnv() {
   process.env.JIRA_PAT_TEST_SOURCE = "jira-token";
@@ -101,11 +102,44 @@ describe("loadConfig", () => {
     restoreEnv();
   });
 
-  it("throws when GH_TOKEN is missing", () => {
+  it("loads without GH_TOKEN, leaving the credential requirement to startup validation", () => {
+    // Arrange
     setRequiredEnv();
     delete process.env.GH_TOKEN;
 
-    expect(() => loadConfig()).toThrow("GH_TOKEN");
+    // Act
+    const config = loadConfig();
+
+    // Assert
+    expect(config.secrets.ghToken).toBe("");
+  });
+
+  it("defaults claudeAuth to the OAuth token and reads CLAUDE_CODE_OAUTH_TOKEN", () => {
+    // Arrange
+    setRequiredEnv();
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth-token";
+
+    // Act
+    const config = loadConfig();
+
+    // Assert
+    expect(config.claudeAuth).toBe(ClaudeAuthMode.OAuthToken);
+    expect(config.secrets.claudeCodeOauthToken).toBe("oauth-token");
+  });
+
+  it("reads claudeAuth from config.json", () => {
+    // Arrange
+    setRequiredEnv();
+    const configWithApiKey = JSON.stringify({ ...JSON.parse(VALID_GLOBAL_CONFIG), claudeAuth: "api-key" });
+    vi.mocked(readFileSync).mockImplementation((p) =>
+      String(p).endsWith("config.json") ? configWithApiKey : VALID_PROFILE,
+    );
+
+    // Act
+    const config = loadConfig();
+
+    // Assert
+    expect(config.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
   });
 
   it("loads config with profiles from profiles/ directory", () => {

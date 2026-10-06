@@ -6,7 +6,9 @@ import type {
   IPromptAuditConfig,
   IRalphchivesConfig,
   IAgentProfile,
+  ClaudeAuthMode,
 } from "./config/types.js";
+import type { ICliRuntimeRegistry } from "./cli/cli-runtime.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { Logger } from "./logger.js";
 import type { IOperationLedger } from "./services/operation-ledger.js";
@@ -50,6 +52,7 @@ export interface OrchestratorCradle {
   promptAuditConfig: IPromptAuditConfig;
   ralphchivesConfig: IRalphchivesConfig;
   enableContinuation: boolean;
+  claudeAuth: ClaudeAuthMode;
 
   // Infrastructure
   activityLog: IActivityLog;
@@ -71,6 +74,7 @@ export interface OrchestratorCradle {
   triggerScanner: ITriggerScanner;
 
   // Execution infrastructure
+  cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
   executorFactory: ICliExecutorFactory;

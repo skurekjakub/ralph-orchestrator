@@ -3,6 +3,17 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } 
 import { join } from "node:path";
 import { resolveAllProfileSetup, generatePreInitScript } from "../../src/container/setup/profile-setup.js";
 import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
+import { createMockLogger } from "../helpers/mocks.js";
+
+/** A schema-valid profile.json with one single-stage variant, merged with `overrides`. */
+function profileJson(overrides: Record<string, unknown> = {}): string {
+  return JSON.stringify({
+    repo: "/tmp/test-repo",
+    dataSource: "test-source",
+    variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { commentTrigger: "@go" } }],
+    ...overrides,
+  });
+}
 
 describe("Profile Setup", () => {
   describe("resolveAllProfileSetup", () => {
@@ -24,7 +35,7 @@ describe("Profile Setup", () => {
         sidecarPort: 9100,
       });
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: ["test-server"] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: ["test-server"] }));
 
       writeFileSync(
         join(securityDir, "squid.conf"),
@@ -90,7 +101,7 @@ describe("Profile Setup", () => {
         requiredEnv: ["MCP_TOKEN"],
       });
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: ["test-mcp"] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: ["test-mcp"] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -119,7 +130,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({ mcpServers: [], allowlistDomains: [".npmjs.org"] }),
+        profileJson({ mcpServers: [], allowlistDomains: [".npmjs.org"] }),
       );
 
       writeFileSync(
@@ -160,7 +171,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({
+        profileJson({
           mcpServers: [],
           allowlistDomains: [".npmjs.org", "dev.azure.com", ".rubygems.org"],
         }),
@@ -199,7 +210,7 @@ describe("Profile Setup", () => {
       writeFileSync(join(profileDir, "resources", "test-file.md"), "# Test");
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({
+        profileJson({
           mcpServers: [],
           resources: { mountBase: "resources/ralph-resources" },
         }),
@@ -246,7 +257,7 @@ describe("Profile Setup", () => {
         sidecarPort: 9102,
       });
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: ["server-a", "server-c"] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: ["server-a", "server-c"] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -265,7 +276,7 @@ describe("Profile Setup", () => {
       mkdirSync(join(profileDir, "agents"), { recursive: true });
       mkdirSync(mcpDir, { recursive: true });
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: [] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: [] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -287,7 +298,7 @@ describe("Profile Setup", () => {
       mkdirSync(mcpDir, { recursive: true });
 
       writeFileSync(join(profileDir, "agents", "ralph.ralph.agent.md"), "# Agent");
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: [] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: [] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -311,7 +322,7 @@ describe("Profile Setup", () => {
 
       writeFileSync(
         join(profileDir, "profile.json"),
-        JSON.stringify({
+        profileJson({
           mcpServers: [],
           variants: [
             {
@@ -348,7 +359,7 @@ describe("Profile Setup", () => {
       });
       writeFileSync(join(mcpDir, "with-init", "init.sh"), "#!/bin/bash\necho init");
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: ["with-init"] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: ["with-init"] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -381,7 +392,7 @@ describe("Profile Setup", () => {
         sidecarPort: 9100,
       });
 
-      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: ["plain-server"] }));
+      writeFileSync(join(profileDir, "profile.json"), profileJson({ mcpServers: ["plain-server"] }));
 
       resolveAllProfileSetup(rootDir);
 
@@ -390,6 +401,57 @@ describe("Profile Setup", () => {
       // Overlay should NOT contain pre-init mount
       const overlay = readFileSync(join(profileDir, ".build/docker-compose.overlay.yml"), "utf-8");
       expect(overlay).not.toContain("pre-init.sh");
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("includes variant-level MCP servers in the startup gateway config", () => {
+      // Arrange
+      const rootDir = createTempDir();
+      const mcpDir = join(rootDir, "shared/mcp-servers");
+      const profileDir = join(rootDir, "profiles/test-profile");
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      writeManifest(mcpDir, "server-a", { name: "server-a", type: "npm", command: "npx", args: [], sidecarPort: 9100 });
+      writeManifest(mcpDir, "server-b", { name: "server-b", type: "npm", command: "npx", args: [], sidecarPort: 9101 });
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        profileJson({
+          mcpServers: ["server-a"],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { commentTrigger: "@go" } },
+            {
+              stages: [{ agent: "ralph", role: "primary" }],
+              match: { commentTrigger: "@other" },
+              mcpServers: ["server-b"],
+            },
+          ],
+        }),
+      );
+
+      // Act
+      resolveAllProfileSetup(rootDir);
+
+      // Assert
+      const gateway = JSON.parse(readFileSync(join(profileDir, ".build/gateway.json"), "utf-8"));
+      expect(gateway.servers.map((s: { name: string }) => s.name)).toEqual(["server-a", "server-b"]);
+
+      rmSync(rootDir, { recursive: true, force: true });
+    });
+
+    it("warns and skips a profile.json that breaks the schema", () => {
+      // Arrange
+      const rootDir = createTempDir();
+      const profileDir = join(rootDir, "profiles/test-profile");
+      mkdirSync(join(profileDir, "agents"), { recursive: true });
+      writeFileSync(join(profileDir, "profile.json"), JSON.stringify({ mcpServers: [] }));
+      const logger = createMockLogger();
+
+      // Act
+      resolveAllProfileSetup(rootDir, logger);
+
+      // Assert
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Skipping profile test-profile"));
+      expect(existsSync(join(profileDir, ".build"))).toBe(false);
 
       rmSync(rootDir, { recursive: true, force: true });
     });

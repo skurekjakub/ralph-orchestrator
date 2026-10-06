@@ -1,3 +1,5 @@
+// Credential checks read process.env; `npm run validate` must see the same .env as the orchestrator.
+import "dotenv/config";
 export type { ValidationResult } from "./types.js";
 
 import type { Logger } from "../logger.js";
@@ -14,6 +16,7 @@ import { validateDocker } from "./docker.js";
  * - `.env` file exists and has all required variables
  * - `config.json` exists and has valid structure
  * - Agent profile repo paths, variants, and compose files
+ * - Credentials of the CLIs the profiles' stages run
  * - Security infrastructure (Squid proxy, network isolation)
  * - Docker daemon is reachable
  *

@@ -1,11 +1,25 @@
 import { Dirent, existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
+import type { ZodError } from "zod";
 import { resolvePath } from "../util/path.js";
-import { discoverMcpServers, loadMcpManifest } from "../container/setup/mcp-manifest.js";
-import { VcsProvider } from "../config/types.js";
+import { toErrorMessage } from "../util/error.js";
+import { discoverMcpServers, loadMcpManifest, type McpServerManifest } from "../container/setup/mcp-manifest.js";
+import { resolveProfileVariants } from "../config/profile-variants.js";
+import { profileFileSchema } from "../config/schemas.js";
+import type { IAgentProfile } from "../config/types.js";
+import { validateStageClis } from "./stages.js";
 import type { ValidationCollector } from "./types.js";
 
-export function validateProfiles({ errors, warnings }: ValidationCollector): void {
+/**
+ * Validate every `profiles/<id>/profile.json`: its schema, the repo, compose file, agents, skills
+ * and MCP servers it references, its stages' CLIs and models, and the repo-sync PAT.
+ *
+ * A profile that breaks the schema gets only its schema errors reported.
+ *
+ * @returns The resolved variants of every profile that passed the schema, for checks that span
+ *   profiles.
+ */
+export function validateProfiles({ errors, warnings }: ValidationCollector): IAgentProfile[] {
   const profilesDir = resolve(process.cwd(), "profiles");
 
   if (!existsSync(profilesDir)) {
@@ -13,7 +27,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       `profiles/ directory not found at ${profilesDir}\n` +
         `  Create profile directories under profiles/ with a profile.json in each`,
     );
-    return;
+    return [];
   }
 
   let dirs: string[];
@@ -23,21 +37,17 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       .map((d) => d.name);
   } catch {
     errors.push(`Cannot read profiles directory: ${profilesDir}`);
-    return;
+    return [];
   }
 
   if (dirs.length === 0) {
     errors.push(`No profile directories found in ${profilesDir}`);
-    return;
+    return [];
   }
 
   /** Collected across all profiles for cross-profile trigger uniqueness check. */
-  const allVariants: Array<{
-    profileId: string;
-    variantIndex: number;
-    projects: string[];
-    trigger: string;
-  }> = [];
+  const allVariants: VariantTriggerInfo[] = [];
+  const resolved: IAgentProfile[] = [];
 
   for (const dirName of dirs) {
     const profileJsonPath = join(profilesDir, dirName, "profile.json");
@@ -48,31 +58,12 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       continue;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
-    let p: any;
+    let raw: unknown;
     try {
-      p = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
+      raw = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (e) {
-      errors.push(`${prefix}: profile.json is not valid JSON: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(`${prefix}: profile.json is not valid JSON: ${toErrorMessage(e)}`);
       continue;
-    }
-
-    if (!p.repo) {
-      errors.push(`${prefix}: repo path is required`);
-    } else {
-      const repoPath = resolvePath(p.repo);
-      if (!existsSync(repoPath)) {
-        errors.push(
-          `${prefix}: repo path does not exist: ${repoPath}\n` +
-            `  Clone the repository or update the path in profile.json`,
-        );
-      }
-    }
-
-    if (p.cli === "claude") {
-      errors.push(
-        `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`,
-      );
     }
 
     const composePath = resolve(process.cwd(), `profiles/${dirName}/docker-compose.yml`);
@@ -80,9 +71,26 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       errors.push(`${prefix}: docker-compose.yml not found\n` + `  Create profiles/${dirName}/docker-compose.yml`);
     }
 
-    const variants = p.variants;
-    if (!Array.isArray(variants) || variants.length === 0) {
-      errors.push(`${prefix}: at least one variant is required`);
+    const parsed = profileFileSchema.safeParse(raw);
+    if (!parsed.success) {
+      errors.push(...formatSchemaIssues(prefix, parsed.error));
+      continue;
+    }
+    const profile = parsed.data;
+
+    const repoPath = resolvePath(profile.repo);
+    if (!existsSync(repoPath)) {
+      errors.push(
+        `${prefix}: repo path does not exist: ${repoPath}\n` +
+          `  Clone the repository or update the path in profile.json`,
+      );
+    }
+
+    let variants: IAgentProfile[];
+    try {
+      variants = resolveProfileVariants(profile, dirName);
+    } catch (e) {
+      errors.push(toErrorMessage(e));
       continue;
     }
 
@@ -90,41 +98,22 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     const agentFiles = existsSync(agentsDir) ? readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md")) : [];
     const availableAgents = agentFiles.map((f) => f.replace(".agent.md", ""));
 
-    for (let i = 0; i < variants.length; i++) {
-      const v = variants[i];
+    profile.variants.forEach((v, i) => {
       const vPrefix = `${prefix}/variants[${i}]`;
 
-      if (v.stages != null && !Array.isArray(v.stages)) {
-        errors.push(`${vPrefix}: stages must be an array`);
-        continue;
-      }
-      const stages = v.stages ?? [];
-      if (stages.length === 0) {
-        errors.push(`${vPrefix}: at least one stage is required`);
-      }
-      for (let si = 0; si < stages.length; si++) {
-        const s = stages[si];
-        const sPrefix = `${vPrefix}/stages[${si}]`;
-        if (!s?.agent) {
-          errors.push(`${sPrefix}: agent name is required`);
-        } else if (agentFiles.length > 0 && !availableAgents.includes(s.agent)) {
+      v.stages.forEach((stage, si) => {
+        if (agentFiles.length > 0 && !availableAgents.includes(stage.agent)) {
           errors.push(
-            `${sPrefix}: agent "${s.agent}" not found in ${prefix}/agents/\n` +
+            `${vPrefix}/stages[${si}]: agent "${stage.agent}" not found in ${prefix}/agents/\n` +
               `  Available agents: ${availableAgents.join(", ")}\n` +
               `  Agent files use the pattern: <name>.agent.md`,
           );
         }
-      }
+      });
 
-      if (!v.match?.projects?.length) {
+      if (v.match.projects.length === 0) {
         warnings.push(`${vPrefix}: no match.projects defined — this variant won't match any issues`);
-      }
-
-      if (!v.match?.commentTrigger) {
-        errors.push(`${vPrefix}: match.commentTrigger is required`);
-      }
-
-      if (v.match?.commentTrigger && v.match?.projects?.length) {
+      } else {
         allVariants.push({
           profileId: dirName,
           variantIndex: i,
@@ -133,10 +122,9 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
         });
       }
 
-      const revisionStatuses: string[] = v.match?.revisionStatuses ?? [];
-      const statuses: string[] = v.match?.statuses ?? [];
+      const { statuses, revisionStatuses } = v.match;
       if (revisionStatuses.length > 0 && statuses.length > 0) {
-        const statusesLower = new Set(statuses.map((s: string) => s.toLowerCase()));
+        const statusesLower = new Set(statuses.map((st) => st.toLowerCase()));
         for (const rs of revisionStatuses) {
           if (!statusesLower.has(rs.toLowerCase())) {
             errors.push(
@@ -146,11 +134,11 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
           }
         }
       }
-    }
+    });
 
-    // Validate that the git PAT env var is set for repo sync
-    const vcsProvider = p.vcsProvider ?? VcsProvider.Ado;
-    const repoPat: string = p.repoPat ?? (vcsProvider === VcsProvider.GitHub ? "GH_TOKEN" : "ADO_PAT");
+    validateStageClis(profile, variants, prefix, errors);
+
+    const { repoPat } = variants[0];
     if (!process.env[repoPat]) {
       errors.push(
         `${prefix}: env var ${repoPat} is not set (required for repo-sync hook)\n` +
@@ -158,50 +146,49 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       );
     }
 
-    validateMcpServers(p, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
-    validateVariantSkills(p, resolve(process.cwd(), "shared/skills"), prefix, errors);
+    validateMcpServers(variants, resolve(process.cwd(), "shared/mcp-servers"), prefix, errors);
+    validateVariantSkills(variants, resolve(process.cwd(), "shared/skills"), prefix, errors);
 
-    if (Array.isArray(p.githubMcpTools) && p.githubMcpTools.length === 0) {
-      errors.push(
-        `${prefix}: githubMcpTools is an empty array — list at least one tool name, or use false to disable the server`,
-      );
-    }
+    resolved.push(...variants);
   }
 
   validateTriggerUniqueness(allVariants, errors);
+  return resolved;
+}
+
+/** One error per schema issue, located by its profile.json path (`profiles/x/variants[0]/stages[1]/cli`). */
+function formatSchemaIssues(prefix: string, error: ZodError): string[] {
+  return error.issues.map((issue) => {
+    const path = issue.path.reduce<string>((acc, segment) => {
+      if (typeof segment === "number") return `${acc}[${segment}]`;
+      return acc === "" ? String(segment) : `${acc}/${String(segment)}`;
+    }, "");
+    return path === "" ? `${prefix}: ${issue.message}` : `${prefix}/${path}: ${issue.message}`;
+  });
 }
 
 /**
- * Validate that all skills referenced by each variant exist in shared/skills/
+ * Validate that all skills referenced by each variant's stages exist in shared/skills/
  * (searching subdirectories recursively).
  */
 function validateVariantSkills(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
-  profile: any,
+  variants: readonly IAgentProfile[],
   skillsDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  if (!Array.isArray(profile.variants)) return;
-  for (let i = 0; i < profile.variants.length; i++) {
-    const v = profile.variants[i];
-    if (!Array.isArray(v?.stages)) continue;
-    for (let si = 0; si < v.stages.length; si++) {
-      const stage = v.stages[si];
-      if (stage?.skills != null && !Array.isArray(stage.skills)) continue;
-      const skills = stage?.skills ?? [];
-      if (skills.length === 0) continue;
-      const sPrefix = `${prefix}/variants[${i}]/stages[${si}]`;
-      for (const skill of skills) {
-        if (typeof skill !== "string") continue;
+  variants.forEach((variant, i) => {
+    variant.stages.forEach((stage, si) => {
+      for (const skill of stage.skills) {
         if (!findSkillDirSync(skillsDir, skill)) {
           errors.push(
-            `${sPrefix}: skill "${skill}" not found in shared/skills/\n` + `  Create shared/skills/${skill}/`,
+            `${prefix}/variants[${i}]/stages[${si}]: skill "${skill}" not found in shared/skills/\n` +
+              `  Create shared/skills/${skill}/`,
           );
         }
       }
-    }
-  }
+    });
+  });
 }
 
 /** Synchronous recursive search for a skill directory by name. */
@@ -233,35 +220,21 @@ export interface VariantTriggerInfo {
 }
 
 /**
- * Validate that all MCP servers referenced by a profile exist in shared/mcp-servers/.
+ * Validate the MCP servers each variant runs: profile-level servers plus its own.
  *
- * Also checks that sidecarPort values are unique across all servers and that
- * profiles provide all `requiredConfig` env vars declared by each manifest.
+ * Checks that every server exists in shared/mcp-servers/, that sidecarPort values are unique
+ * across all servers, and that each variant's effective server config provides every
+ * `requiredConfig` env var the manifest declares. A missing-config finding shared by several
+ * variants is reported once, naming them all.
  */
 function validateMcpServers(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
-  profile: any,
+  variants: readonly IAgentProfile[],
   mcpServersDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  const rawEntries: unknown[] = profile.mcpServers ?? [];
-  if (rawEntries.length === 0) return;
-
-  // Parse mixed mcpServers entries to extract names and per-server configs
-  const serverNames: string[] = [];
-  const serverConfigs: Record<string, Record<string, string>> = {};
-  for (const entry of rawEntries) {
-    if (typeof entry === "string") {
-      serverNames.push(entry);
-    } else if (entry && typeof entry === "object" && "name" in entry) {
-      const obj = entry as { name: string; env?: Record<string, string> };
-      serverNames.push(obj.name);
-      if (obj.env && Object.keys(obj.env).length > 0) {
-        serverConfigs[obj.name] = obj.env;
-      }
-    }
-  }
+  const serverNames = [...new Set(variants.flatMap((v) => v.mcpServers))];
+  if (serverNames.length === 0) return;
 
   const available = discoverMcpServers(mcpServersDir);
 
@@ -283,6 +256,7 @@ function validateMcpServers(
     }
   }
 
+  const manifests = new Map<string, McpServerManifest>();
   for (const serverName of serverNames) {
     if (!available.includes(serverName)) {
       errors.push(
@@ -292,24 +266,32 @@ function validateMcpServers(
       );
       continue;
     }
-
-    // Cross-check requiredConfig from manifest against profile-level configs
     try {
-      const manifest = loadMcpManifest(mcpServersDir, serverName);
-      if (manifest.requiredConfig && manifest.requiredConfig.length > 0) {
-        const provided = serverConfigs[serverName] ?? {};
-        const missing = manifest.requiredConfig.filter((k) => !(k in provided));
-        if (missing.length > 0) {
-          errors.push(
-            `${prefix}: MCP server "${serverName}" requires config [${missing.join(", ")}] ` +
-              `but the profile does not provide them\n` +
-              `  Add an object entry in mcpServers with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`,
-          );
-        }
-      }
+      manifests.set(serverName, loadMcpManifest(mcpServersDir, serverName));
     } catch {
       // manifest load errors handled elsewhere
     }
+  }
+
+  const missingConfig = new Map<string, { server: string; missing: string[]; variants: string[] }>();
+  variants.forEach((variant, i) => {
+    for (const serverName of variant.mcpServers) {
+      const required = manifests.get(serverName)?.requiredConfig ?? [];
+      const provided = variant.mcpServerConfigs[serverName] ?? {};
+      const missing = required.filter((k) => !(k in provided));
+      if (missing.length === 0) continue;
+      const key = `${serverName}:${missing.join(",")}`;
+      const finding = missingConfig.get(key) ?? { server: serverName, missing, variants: [] };
+      finding.variants.push(`variants[${i}]`);
+      missingConfig.set(key, finding);
+    }
+  });
+
+  for (const { server, missing, variants: affected } of missingConfig.values()) {
+    errors.push(
+      `${prefix}: MCP server "${server}" requires config [${missing.join(", ")}], missing for ${affected.join(", ")}\n` +
+        `  Add an object entry in mcpServers (profile or variant level) with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`,
+    );
   }
 }
 

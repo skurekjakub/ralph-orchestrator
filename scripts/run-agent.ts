@@ -23,6 +23,7 @@ import { AppStartup } from "../src/app-startup.js";
 import { ComposeClient } from "../src/container/compose-client.js";
 import { ComposeFileResolver } from "../src/container/setup/compose-files.js";
 import { CopilotExecutor } from "../src/container/cli-executors/copilot-executor.js";
+import { COPILOT_CONTAINER_LAYOUT } from "../src/cli/copilot/copilot-layout.js";
 import { StreamCapture } from "../src/container/stream-capture.js";
 import { ContainerLogCollector, CaptureMode } from "../src/container/log-collector.js";
 import { ContainerWorkspaceCleaner } from "../src/container/workspace-cleaner.js";
@@ -81,7 +82,7 @@ async function main() {
   logs.addSource({
     id: "transcript",
     service: "app",
-    containerPath: CopilotExecutor.TRANSCRIPT_PATH,
+    containerPath: COPILOT_CONTAINER_LAYOUT.transcriptPath,
     extension: "md",
     mode: CaptureMode.Collect,
   });
@@ -123,7 +124,7 @@ async function main() {
     // 8. Prepare workspace
     logger.info("Preparing workspace...");
     const cleaner = new ContainerWorkspaceCleaner(compose, logger);
-    await cleaner.prepareConfigDir(CopilotExecutor.CONFIG_DIR, CopilotExecutor.WRITABLE_DIRS);
+    await cleaner.prepareConfigDir(COPILOT_CONTAINER_LAYOUT.configDir, COPILOT_CONTAINER_LAYOUT.writableDirs);
     await cleaner.cleanPaths(profile.cleanPaths);
 
     logs.attach();

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout.js";
 
 /**
  * Discover agent `.agent.md` templates and generate Docker Compose volume mounts.
@@ -20,7 +21,7 @@ export function generateAgentVolumeMounts(profileDir: string): string[] {
     .sort();
   const buildDir = join(profileDir, ".build");
 
-  return agentFiles.map((file) => `      - ${join(buildDir, file)}:/workspace/.github/agents/${file}:ro`);
+  return agentFiles.map((file) => `      - ${join(buildDir, file)}:${COPILOT_CONTAINER_LAYOUT.agentsDir}/${file}:ro`);
 }
 
 /**
@@ -36,5 +37,5 @@ export function generateAgentVolumeMounts(profileDir: string): string[] {
  */
 export function generateSkillVolumeMounts(skillsDir: string, skillNames: string[]): string[] {
   const buildDir = join(skillsDir, ".build");
-  return skillNames.map((name) => `      - ${join(buildDir, name)}:/workspace/.github/skills/${name}:ro`);
+  return skillNames.map((name) => `      - ${join(buildDir, name)}:${COPILOT_CONTAINER_LAYOUT.skillsDir}/${name}:ro`);
 }

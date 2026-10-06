@@ -21,7 +21,7 @@ No quick fixes. Always diagnose to the root cause and devise proper solutions. N
 
 - Node ≥ 24 (`engines`, `.nvmrc`), Docker running, and the target repo cloned at each profile's `repo` path (validation fails otherwise).
 - `cp config.json.sample config.json` and `cp .env.example .env` (both gitignored). `npm run setup` = `npm install && npm run validate`.
-- Required env: `GH_TOKEN` and `ADO_PAT` (`loadConfig()` throws without both). Each JIRA data source also needs `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the `dataSources` key uppercased with `-` → `_` (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`).
+- Required env: `ADO_PAT`, plus the credential of every CLI a stage runs: `GH_TOKEN` for Copilot, `CLAUDE_CODE_OAUTH_TOKEN` for Claude Code (`ANTHROPIC_API_KEY` with `claudeAuth: "api-key"` in `config.json`). Each profile's `repoPat` variable must be set too. Startup validation (`src/validate/`) enforces these; `loadConfig()` reads unset ones as empty. Each JIRA data source also needs `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the `dataSources` key uppercased with `-` → `_` (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`).
 - MCP servers read the vars in their manifest's `requiredEnv` (`shared/mcp-servers/<name>/mcp-server.json`). Optional: `ADO_PAT_XPERIENCE`, and `DASHBOARD_URL` + `DASHBOARD_SECRET` for heartbeats. Operator reference: `docs/user-guide/environment-variables.md`.
 
 ## Commands
@@ -85,7 +85,8 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 | Path                                                            | Contents                                                                                                                                                                                                                                                                |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/`                                                          | `index.tsx` entry, `app-startup.ts`, `orchestrator.ts` (+ `-observer`, `-types` enums), `awilix-cradle.ts` + `awilix-cradle-types.ts`, `logger.ts`, `retry.ts`                                                                                                          |
-| `src/config/`                                                   | zod `schemas.ts`, `types.ts`, `loader.ts`, `constants.ts` (`DEFAULT_MODEL`)                                                                                                                                                                                             |
+| `src/config/`                                                   | zod `schemas.ts`, `types.ts`, `loader.ts`, `profile-variants.ts` (`resolveProfileVariants`: profile.json → one `IAgentProfile` per variant, shared by loader, validators and profile setup)                                                                             |
+| `src/cli/`                                                      | per-CLI knowledge: `ICliRuntime` + `CliRuntimeRegistry` (`cli-runtime.ts`), `copilot/` runtime and container layout, `model-catalog.ts` (model validation, `DEFAULT_COPILOT_MODEL`), `credential-catalog.ts`, interfaces for agent file writers and output decoders     |
 | `src/datasource/`                                               | `WorkItem` types, `IDataSourceConnector` + optional capabilities and type guards (`connector.ts`), `IWorkItemPoller`, plugin `registry.ts`                                                                                                                              |
 | `src/datasource/connectors/jira/`                               | REST v3 client (native `fetch`), JQL builder, ADF converter, mapper, poller, self-registering `factory.ts`                                                                                                                                                              |
 | `src/services/`                                                 | trigger scanner, operation ledger, profile router, task runner, `agent-pipeline-executor.ts`, `profile-setup-service.ts`, result writer, issue/resource managers, `preflight.ts`, VCS PR lookup, activity log, heartbeat, dashboard WebSocket server, comment templates |
@@ -104,7 +105,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 3. Register it in `createCradle()` in `src/awilix-cradle.ts` (`asClass(Foo).singleton()`).
 4. Tests construct `Foo` directly with mocks, not with the container. Add `createMockFoo(overrides)` returning `Mocked<IFoo>` to `tests/helpers/mocks.ts` when more than one suite needs it.
 
-Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `preExecuteHooks`.
+Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`, `preExecuteHooks`.
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
@@ -119,8 +120,9 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 - **Runtime CLI.** Only GitHub Copilot CLI runs today:
   - `CliExecutorFactory` always builds `CopilotExecutor` / `LocalCopilotExecutor` and throws without `GH_TOKEN`.
-  - `src/validate/profiles.ts` rejects `cli: "claude"`, and `ClaudeCodeExecutor` is unreachable.
-  - Model IDs are Copilot IDs (`claude-opus-4.6`).
+  - The CLI is chosen per stage: `stages[].cli`, else the profile `cli` (default `copilot`).
+  - `src/validate/stages.ts` rejects any stage that resolves to `cli: "claude"`, and `ClaudeCodeExecutor` is unreachable.
+  - Model IDs are validated per stage CLI (`src/cli/model-catalog.ts`): Copilot takes dotted ids (`claude-opus-4.6`), Claude Code takes aliases (`opus`) or hyphenated ids.
   - Full Claude Code runtime support is being built and will become the default; Copilot will remain the secondary CLI.
 - **Containers.** `ComposeFileResolver` (`src/container/setup/compose-files.ts`) merges three files: `profiles/<id>/docker-compose.yml`, `shared/security/docker-compose.security.yml`, and `profiles/<id>/.build/docker-compose.overlay.yml` (skipped if absent). `ComposeOverlayWriter` regenerates the overlay per task for the variant's servers and skills.
   - The agent runs on the internal `ralph-internal` network behind Squid. The baseline allowlist is `shared/security/squid.conf`, extended by profile `allowlistDomains`.
@@ -139,7 +141,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.
 - **Data-source plugins.** `BUILTIN_PLUGINS` (`src/app-startup.ts`) and `config.plugins` are `import()`ed. Each module calls `registerDataSourceFactory()`, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
 - **Stages and post-task hooks.**
-  - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `skills`, `model` and `timeoutMs`; `deriveStageProfile` applies those overrides.
+  - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort` and `maxBudgetUsd`, and `requireResultBlock` (default true for variant stages, false for hook stages); `deriveStageProfile` applies the stage overrides.
   - `local` stages run `copilot` on the host with cwd = this repo root. They symlink rendered agents into `.github/agents/` and write `.ralph/` here.
   - `postTaskHooks` are local-only stage lists that run after teardown, and their failures never change the result. See `docs/dev-doc/multistage-pipelines.md`.
 - **Continuation.** A session can be retried with `--continue` (exponential backoff, 5 s base, 30 s cap) when it ends without `===RALPH_RESULT_START===`. This requires **both** `enableContinuation: true` in `config.json` and `maxContinuations > 0` in `profile.json`. The loop lives in `ContinuationRunner`, invoked by `AgentSessionRunner`, and is skipped on timeout.

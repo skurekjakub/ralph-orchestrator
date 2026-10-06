@@ -14,7 +14,7 @@ import { TaskStatus, type ContainerManagerFactory } from "../../src/container/ty
 import { StageMode } from "../../src/config/types.js";
 import { TransitionPhase } from "../../src/orchestrator-types.js";
 import type { IContainerManager } from "../../src/container/manager.js";
-import { makeWorkItem, makeProfile, makeResult, makeTaskContext, makeConfig } from "../helpers/factories.js";
+import { makeWorkItem, makeProfile, makeResult, makeStage, makeTaskContext, makeConfig } from "../helpers/factories.js";
 import { buildTaskContext } from "../../src/services/task-context.js";
 import {
   createMockLogger,
@@ -577,7 +577,7 @@ describe("TaskRunner", () => {
         agentName: "ralph",
         postTaskHooks: hooks.map((h) => ({
           name: h.name,
-          stages: h.stages.map((s) => ({ agent: s.agent, role: s.role, mode: StageMode.Local, skills: [] })),
+          stages: h.stages.map((s) => makeStage({ agent: s.agent, role: s.role, mode: StageMode.Local })),
         })),
       });
     }

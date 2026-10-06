@@ -11,8 +11,7 @@ import {
 import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
-import { makeProfile, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
-import { StageMode } from "../../src/config/types.js";
+import { makeProfile, makeStage, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -380,8 +379,8 @@ describe("buildTemplateContext", () => {
   it("defaults stage fields from first stage when no overrides", () => {
     const profile = makeProfile({
       stages: [
-        { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
-        { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
+        makeStage({ agent: "ralph.writer", role: "writer" }),
+        makeStage({ agent: "ralph.reviewer", role: "reviewer" }),
       ],
     });
     const ctx = buildTemplateContext(makeTaskContext({ profile }));
@@ -396,9 +395,9 @@ describe("buildTemplateContext", () => {
   it("applies stageOverrides when provided", () => {
     const profile = makeProfile({
       stages: [
-        { agent: "ralph.writer", role: "writer", mode: StageMode.Container, skills: [] },
-        { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [] },
-        { agent: "ralph.editor", role: "editor", mode: StageMode.Container, skills: [] },
+        makeStage({ agent: "ralph.writer", role: "writer" }),
+        makeStage({ agent: "ralph.reviewer", role: "reviewer" }),
+        makeStage({ agent: "ralph.editor", role: "editor" }),
       ],
     });
     const ctx = buildTemplateContext(makeTaskContext({ profile }), {

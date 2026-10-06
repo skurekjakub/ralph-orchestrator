@@ -17,8 +17,8 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
   const content = readFileSync(envPath, "utf-8");
   const vars = parseEnvFile(content);
 
+  // CLI credentials depend on which CLIs the stages run, so validateCliCredentials checks them.
   const required: [string, string][] = [
-    ["GH_TOKEN", "GitHub PAT with Copilot Requests permission — needed for Copilot CLI"],
     ["ADO_PAT", "Azure DevOps PAT for the ADO MCP server — needed for PR creation and review threads"],
   ];
 

@@ -2,7 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
 import type { IAgentProfile } from "../../config/types.js";
-import { DEFAULT_MODEL } from "../../config/constants.js";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog.js";
+import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { IComposeClient } from "../compose-client.js";
@@ -19,36 +20,20 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
  * - Active process tracking for graceful shutdown
  */
 export class CopilotExecutor implements ICliExecutor {
-  /** Path inside the container where the session transcript is saved. */
-  static readonly TRANSCRIPT_PATH = "/workspace/.ralph/logs/session-transcript.md";
-
   /** Path inside the container where the MCP server config is mounted. */
   static readonly MCP_CONFIG_PATH = "/workspace/.ralph/mcp-config.json";
 
-  /** Copilot CLI config directory inside the container. */
-  static readonly CONFIG_DIR = "/workspace/.ralph";
-
-  /** Copilot CLI debug log directory. */
-  static readonly LOG_DIR = "/workspace/.ralph/logs/cli-debug";
-
   /** Prompt file path inside the container — used with `$(cat ...)` to avoid passing large prompts as CLI args. */
   static readonly PROMPT_FILE = "/workspace/.ralph/prompt.txt";
-
-  /** Subdirectories the CLI needs to create at runtime (must be writable by vscode). */
-  static readonly WRITABLE_DIRS = [
-    "/workspace/.ralph/logs",
-    "/workspace/.ralph/logs/cli-debug",
-    "/workspace/.ralph/session-state",
-  ] as const;
 
   activeProcess: ResultPromise | null = null;
 
   /** Filesystem paths specific to the Copilot CLI. */
   readonly paths: CliPaths = {
-    configDir: CopilotExecutor.CONFIG_DIR,
-    writableDirs: CopilotExecutor.WRITABLE_DIRS,
-    transcriptPath: CopilotExecutor.TRANSCRIPT_PATH,
-    logDir: CopilotExecutor.LOG_DIR,
+    configDir: COPILOT_CONTAINER_LAYOUT.configDir,
+    writableDirs: COPILOT_CONTAINER_LAYOUT.writableDirs,
+    transcriptPath: COPILOT_CONTAINER_LAYOUT.transcriptPath,
+    logDir: COPILOT_CONTAINER_LAYOUT.debugLog.path,
   };
 
   constructor(
@@ -118,23 +103,23 @@ export class CopilotExecutor implements ICliExecutor {
       "exec",
       "copilot",
       "--config-dir",
-      CopilotExecutor.CONFIG_DIR,
+      COPILOT_CONTAINER_LAYOUT.configDir,
       "--additional-mcp-config",
       `@${CopilotExecutor.MCP_CONFIG_PATH}`,
       "--agent",
       this.profile.agentName,
       "--model",
-      this.profile.model ?? DEFAULT_MODEL,
+      this.profile.model ?? DEFAULT_COPILOT_MODEL,
       ...this.githubMcpFlags(),
       "--log-level",
       "debug",
       "--log-dir",
-      CopilotExecutor.LOG_DIR,
+      COPILOT_CONTAINER_LAYOUT.debugLog.path,
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
       "--share",
-      CopilotExecutor.TRANSCRIPT_PATH,
+      COPILOT_CONTAINER_LAYOUT.transcriptPath,
       ...promptFlags,
       `"$(cat ${CopilotExecutor.PROMPT_FILE})"`,
     ].join(" ");

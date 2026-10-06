@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ClaudeAuthMode, CliType, ReasoningEffort, StageMode, VcsProvider } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for config.json (global settings only)
@@ -62,6 +63,8 @@ export const configFileSchema = z.object({
   ralphchives: rawRalphchivesSchema,
   /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
   enableContinuation: z.boolean().default(false),
+  /** Credential Claude Code stages authenticate with: `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`. */
+  claudeAuth: z.enum(ClaudeAuthMode).default(ClaudeAuthMode.OAuthToken),
 });
 
 // ---------------------------------------------------------------------------
@@ -71,7 +74,7 @@ export const configFileSchema = z.object({
 export const profileMatchSchema = z.object({
   projects: z.array(z.string()).default([]),
   statuses: z.array(z.string()).default([]),
-  commentTrigger: z.string().min(1, "match.commentTrigger is required"),
+  commentTrigger: z.string("match.commentTrigger is required").min(1, "match.commentTrigger is required"),
   revisionStatuses: z.array(z.string()).default([]),
 });
 
@@ -83,15 +86,23 @@ export const agentTransitionSchema = z
 
 export const stageSchema = z.object({
   /** Agent CLI name (e.g. `ralph.ralph`). */
-  agent: z.string().min(1, "stage agent must not be empty"),
+  agent: z.string("agent name is required").min(1, "agent name is required"),
   /** Unique role within the pipeline (e.g. `primary`, `reviewer`). */
-  role: z.string().min(1, "stage role must not be empty"),
+  role: z.string("stage role is required").min(1, "stage role is required"),
   /** Where the agent runs: inside Docker (`container`) or on the host (`local`). */
-  mode: z.enum(["container", "local"]).default("container"),
+  mode: z.enum(StageMode).default(StageMode.Container),
+  /** CLI for this stage. Falls back to the profile `cli`. */
+  cli: z.enum(CliType).optional(),
   /** Skill names from shared/skills/ to mount. Per-stage override. */
   skills: z.array(z.string()).default([]),
   /** Model override for this stage. */
   model: z.string().optional(),
+  /** Claude Code reasoning effort (`--effort`). Claude stages only. */
+  effort: z.enum(ReasoningEffort).optional(),
+  /** Claude Code spend cap per session in USD (`--max-budget-usd`). Claude stages only. */
+  maxBudgetUsd: z.number().positive().optional(),
+  /** Fail the stage when the agent ends without a result block. Defaults to true for variant stages, false for post-task hook stages. */
+  requireResultBlock: z.boolean().optional(),
   /** Timeout override in ms for this stage. */
   timeoutMs: z.number().positive().optional(),
 });
@@ -106,7 +117,7 @@ export const postTaskHookSchema = z.object({
   stages: z
     .array(stageSchema)
     .min(1, "Post-task hook must have at least one stage")
-    .refine((stages) => stages.every((s) => s.mode === "local"), "Post-task hook stages must be mode: 'local'")
+    .refine((stages) => stages.every((s) => s.mode === StageMode.Local), "Post-task hook stages must be mode: 'local'")
     .refine(
       (stages) => new Set(stages.map((s) => s.role)).size === stages.length,
       "Stage roles must be unique within a hook",
@@ -126,8 +137,8 @@ export const mcpServerEntrySchema = z.union([
 export const variantSchema = z.object({
   description: z.string().optional(),
   stages: z
-    .array(stageSchema)
-    .min(1, "At least one stage is required")
+    .array(stageSchema, "stages must be an array")
+    .min(1, "at least one stage is required")
     .refine((stages) => {
       const roles = stages.map((s) => s.role);
       return new Set(roles).size === roles.length;
@@ -158,14 +169,15 @@ export const resourcesSchema = z
   .optional();
 
 export const profileFileSchema = z.object({
-  repo: z.string().min(1, "Profile repo path must not be empty"),
+  repo: z.string("repo path is required").min(1, "repo path is required"),
   /** Data source key — must reference an entry in config.json `dataSources`. */
-  dataSource: z.string().min(1, "Profile dataSource must not be empty"),
+  dataSource: z.string("dataSource is required").min(1, "dataSource is required"),
   /** VCS platform for the repo (determines git auth format). */
-  vcsProvider: z.enum(["ado", "github"]).default("ado"),
+  vcsProvider: z.enum(VcsProvider).default(VcsProvider.Ado),
   /** Env var name containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
   repoPat: z.string().optional(),
-  cli: z.enum(["copilot", "claude"]).default("copilot"),
+  /** Default CLI for the profile's stages; `stages[].cli` overrides it per stage. */
+  cli: z.enum(CliType).default(CliType.Copilot),
   model: z.string().optional(),
   timeoutMs: z.number().positive().default(1_800_000),
   setupScript: z.string().default("/usr/local/bin/setup.sh"),
@@ -192,5 +204,11 @@ export const profileFileSchema = z.object({
     .default(false),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
-  variants: z.array(variantSchema).min(1, "At least one variant must be defined"),
+  variants: z.array(variantSchema, "at least one variant is required").min(1, "at least one variant is required"),
 });
+
+/** A `profiles/<id>/profile.json` after schema validation, with defaults applied. */
+export type ProfileFile = z.output<typeof profileFileSchema>;
+
+/** One `stages[]` entry of a profile.json variant or post-task hook. */
+export type StageFile = z.output<typeof stageSchema>;

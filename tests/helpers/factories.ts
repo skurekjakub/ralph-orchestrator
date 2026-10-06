@@ -6,14 +6,17 @@
  */
 
 import {
+  ClaudeAuthMode,
+  CliType,
   StageMode,
   type IAppConfig,
   type IAgentProfile,
   type IDataSourceConfig,
   type IProfileMatch,
+  type IStageConfig,
   VcsProvider,
 } from "../../src/config/types.js";
-import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
+import { TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { CompletedTask } from "../../src/orchestrator-types.js";
@@ -151,7 +154,20 @@ export function makeMatch(overrides: Partial<IProfileMatch> & Pick<IProfileMatch
   };
 }
 
-/** Create a minimal IAgentProfile for testing. */
+/** Create a resolved IStageConfig: a Copilot container stage that requires a result block. */
+export function makeStage(overrides: Partial<IStageConfig> = {}): IStageConfig {
+  return {
+    agent: "ralph",
+    role: "primary",
+    mode: StageMode.Container,
+    cli: CliType.Copilot,
+    skills: [],
+    requireResultBlock: true,
+    ...overrides,
+  };
+}
+
+/** Create a minimal IAgentProfile for testing. `containerClis` follows the stages unless overridden. */
 export function makeProfile(
   overrides: Partial<Omit<IAgentProfile, "match">> & { match?: Partial<IProfileMatch> } = {},
 ): IAgentProfile {
@@ -164,7 +180,7 @@ export function makeProfile(
     revisionStatuses: [],
     ...overrides.match,
   };
-  const stages = overrides.stages ?? [{ agent: agentName, role: "primary", mode: StageMode.Container, skills: [] }];
+  const stages = overrides.stages ?? [makeStage({ agent: agentName })];
   return {
     id,
     repoPath: "/tmp/test-repo",
@@ -173,6 +189,7 @@ export function makeProfile(
     displayName: agentName.replace(/^ralph\./, ""),
     variantKey: `${id}:${agentName}:${match.commentTrigger}`,
     cli: CliType.Copilot,
+    containerClis: [...new Set(stages.filter((s) => s.mode === StageMode.Container).map((s) => s.cli))],
     timeoutMs: 1800000,
     setupScript: "/usr/local/bin/setup.sh",
     auditLogPath: "/workspace/.ralph/logs/audit.jsonl",
@@ -221,6 +238,7 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       mode: AuditMode.Warn,
     },
     enableContinuation: false,
+    claudeAuth: ClaudeAuthMode.OAuthToken,
     ralphchives: {
       enabled: false,
       nodebbApiUrl: "http://localhost:4567",
@@ -233,6 +251,7 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       adoPat: "test-ado-pat",
       adoPatXperience: "test-ado-xp-pat",
       anthropicApiKey: "",
+      claudeCodeOauthToken: "",
       discordBotToken: "",
       discordChannelId: "",
     },

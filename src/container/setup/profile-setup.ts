@@ -1,10 +1,14 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { Logger } from "../../logger.js";
+import { readProfileFile, resolveProfileVariants } from "../../config/profile-variants.js";
+import type { ProfileFile } from "../../config/schemas.js";
+import type { IAgentProfile } from "../../config/types.js";
+import { toErrorMessage } from "../../util/error.js";
 import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
 import { generateComposeOverlay } from "./compose-overlay.js";
 import { generateProfileSquidConf } from "./squid-config.js";
-import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
+import { generateResourceVolumeMounts } from "./resource-mounts.js";
 import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
 import { writeCopilotConfig } from "./url-restrictions.js";
 import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest.js";
@@ -94,30 +98,17 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: {
-      mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[];
-      allowlistDomains?: string[];
-      resources?: ResourceConfig;
-      variants?: {
-        stages?: { skills?: string[] }[];
-        mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[];
-      }[];
-    };
+    let parsed: ProfileFile;
+    let variants: IAgentProfile[];
     try {
-      parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
+      parsed = readProfileFile(profileJsonPath);
+      variants = resolveProfileVariants(parsed, profileId.name);
     } catch (err) {
-      logger?.warn(
-        `Skipping profile ${profileId.name}: failed to parse profile.json — ${err instanceof Error ? err.message : err}`,
-      );
+      logger?.warn(`Skipping profile ${profileId.name}: invalid profile.json — ${toErrorMessage(err)}`);
       continue;
     }
 
-    // Union of profile-level + all variant-level mcpServers for the startup overlay
-    const profileServerNames = (parsed.mcpServers ?? []).map((s) => (typeof s === "string" ? s : s.name));
-    const variantServerNames = (parsed.variants ?? []).flatMap((v) =>
-      (v.mcpServers ?? []).map((s: string | { name: string }) => (typeof s === "string" ? s : s.name)),
-    );
-    const serverNames = [...new Set([...profileServerNames, ...variantServerNames])];
+    const serverNames = [...new Set(variants.flatMap((v) => v.mcpServers))];
     logger?.info(
       `Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`,
     );
@@ -146,21 +137,12 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileDir = join(profilesDir, profileId.name);
     const resourceVolumes = parsed.resources ? generateResourceVolumeMounts(profileDir, parsed.resources) : [];
     const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillNames = [
-      ...new Set((parsed.variants ?? []).flatMap((v) => (v.stages ?? []).flatMap((s) => s.skills ?? []))),
-    ];
+    const skillNames = [...new Set(variants.flatMap((v) => v.skills))];
     const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
 
-    // Collect sidecar container-level env from all MCP server entries (profile + variants).
-    const sidecarEnv: Record<string, string> = {};
-    const allEntries = [...(parsed.mcpServers ?? []), ...(parsed.variants ?? []).flatMap((v) => v.mcpServers ?? [])];
-    for (const e of allEntries) {
-      if (typeof e !== "string" && e.sidecarEnv) {
-        Object.assign(sidecarEnv, e.sidecarEnv);
-      }
-    }
+    const sidecarEnv: Record<string, string> = Object.assign({}, ...variants.map((v) => v.mcpSidecarEnv));
 
     // Generate pre-init script from MCP server initScript declarations.
     const preInitScript = generatePreInitScript(mcpServersDir, serverNames);
@@ -182,7 +164,7 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     writeFileSync(join(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
 
     if (hasBaselineSquid) {
-      const squidConf = generateProfileSquidConf(baselineSquidPath, parsed.allowlistDomains ?? []);
+      const squidConf = generateProfileSquidConf(baselineSquidPath, parsed.allowlistDomains);
       writeFileSync(join(buildDir, "squid.conf"), squidConf, "utf-8");
 
       if (logger) {

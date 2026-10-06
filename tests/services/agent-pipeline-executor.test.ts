@@ -11,8 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor.js";
 import { TaskStatus } from "../../src/container/types.js";
-import { StageMode } from "../../src/config/types.js";
-import { makeTaskContext, makeProfile, makeResult } from "../helpers/factories.js";
+import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories.js";
 import { createMockProfileSetupService, createSilentLogger } from "../helpers/mocks.js";
 import type { IContainerManager } from "../../src/container/manager.js";
 import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
@@ -129,10 +128,7 @@ describe("AgentPipelineExecutor", () => {
   describe("multi-stage pipeline", () => {
     function makeMultiStageCtx() {
       const profile = makeProfile({
-        stages: [
-          { agent: "ralph", role: "primary", mode: StageMode.Container, skills: [] },
-          { agent: "ralph", role: "reviewer", mode: StageMode.Container, skills: [] },
-        ],
+        stages: [makeStage({ agent: "ralph", role: "primary" }), makeStage({ agent: "ralph", role: "reviewer" })],
       });
       return makeTaskContext({ profile });
     }
@@ -200,10 +196,7 @@ describe("AgentPipelineExecutor", () => {
       const { pipeline, container } = createExecutor();
       const ctx = makeTaskContext({
         profile: makeProfile({
-          stages: [
-            { agent: "ralph", role: "primary", mode: StageMode.Container, skills: [] },
-            { agent: "ralph", role: "reviewer", mode: StageMode.Container, skills: [] },
-          ],
+          stages: [makeStage({ agent: "ralph", role: "primary" }), makeStage({ agent: "ralph", role: "reviewer" })],
         }),
       });
 
@@ -237,10 +230,7 @@ describe("AgentPipelineExecutor", () => {
       const ctx = makeTaskContext({
         signal: controller.signal,
         profile: makeProfile({
-          stages: [
-            { agent: "ralph", role: "primary", mode: StageMode.Container, skills: [] },
-            { agent: "ralph", role: "reviewer", mode: StageMode.Container, skills: [] },
-          ],
+          stages: [makeStage({ agent: "ralph", role: "primary" }), makeStage({ agent: "ralph", role: "reviewer" })],
         }),
       });
 
@@ -265,10 +255,7 @@ describe("AgentPipelineExecutor", () => {
       const { pipeline, container } = createExecutor();
       const ctx = makeTaskContext({
         profile: makeProfile({
-          stages: [
-            { agent: "ralph", role: "primary", mode: StageMode.Container, skills: [] },
-            { agent: "ralph", role: "reviewer", mode: StageMode.Container, skills: [] },
-          ],
+          stages: [makeStage({ agent: "ralph", role: "primary" }), makeStage({ agent: "ralph", role: "reviewer" })],
         }),
       });
 
@@ -286,10 +273,7 @@ describe("AgentPipelineExecutor", () => {
       const { pipeline, container } = createExecutor();
       const ctx = makeTaskContext({
         profile: makeProfile({
-          stages: [
-            { agent: "ralph", role: "primary", mode: StageMode.Container, skills: [] },
-            { agent: "ralph", role: "reviewer", mode: StageMode.Container, skills: [] },
-          ],
+          stages: [makeStage({ agent: "ralph", role: "primary" }), makeStage({ agent: "ralph", role: "reviewer" })],
         }),
       });
 

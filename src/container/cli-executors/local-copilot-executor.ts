@@ -2,7 +2,7 @@ import { execa, ExecaError, type ResultPromise } from "execa";
 import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { IAgentProfile } from "../../config/types.js";
-import { DEFAULT_MODEL } from "../../config/constants.js";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog.js";
 import type { ContainerExecResult, CliPaths } from "../types.js";
 import type { Logger } from "../../logger.js";
 import type { ICliExecutor } from "../cli-executor-factory.js";
@@ -77,7 +77,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
       "--agent",
       this.profile.agentName,
       "--model",
-      this.profile.model ?? DEFAULT_MODEL,
+      this.profile.model ?? DEFAULT_COPILOT_MODEL,
       ...this.githubMcpFlags(),
       "--log-level",
       "debug",

@@ -2,8 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor.js";
-import { DEFAULT_MODEL } from "../../src/config/constants.js";
-import { CliType, type CliPaths } from "../../src/container/types.js";
+import { DEFAULT_COPILOT_MODEL } from "../../src/cli/model-catalog.js";
+import { CliType } from "../../src/config/types.js";
+import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
 import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
 
@@ -103,7 +104,7 @@ describe("CopilotExecutor.run", () => {
     expect(shellCmd).toContain("--add-github-mcp-tool search_code");
   });
 
-  it("uses profile model when set, DEFAULT_MODEL when not", async () => {
+  it("uses profile model when set, DEFAULT_COPILOT_MODEL when not", async () => {
     const { executor: withModel, compose: c1 } = createExecutor({ model: "claude-sonnet-4" });
     const { executor: noModel, compose: c2 } = createExecutor({ model: undefined });
 
@@ -111,7 +112,7 @@ describe("CopilotExecutor.run", () => {
     await noModel.run("prompt");
 
     expect(getShellCmd(c1)).toContain("--model claude-sonnet-4");
-    expect(getShellCmd(c2)).toContain(`--model ${DEFAULT_MODEL}`);
+    expect(getShellCmd(c2)).toContain(`--model ${DEFAULT_COPILOT_MODEL}`);
   });
 
   it("writes prompt to file and reads via $(cat) instead of CLI arg", async () => {

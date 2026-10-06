@@ -1,21 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import "dotenv/config";
-import { resolvePath } from "../util/path.js";
 import { AuditMode } from "../prompt/prompt-auditor.js";
-import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
-import { configFileSchema, profileFileSchema } from "./schemas.js";
-import {
-  type IAppConfig,
-  type IAgentProfile,
-  type IDataSourceConfig,
-  type ISecretsConfig,
-  type IDashboardConfig,
-  type IStageConfig,
-  StageMode,
-  VcsProvider,
-} from "./types.js";
+import { readProfileFile, resolveProfileVariants } from "./profile-variants.js";
+import { configFileSchema } from "./schemas.js";
+import type { IAppConfig, IAgentProfile, IDataSourceConfig, ISecretsConfig, IDashboardConfig } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Profile discovery
@@ -24,9 +14,8 @@ import {
 /**
  * Discover and load all profile.json files from `profiles/` subdirectories.
  *
- * Each `profiles/<id>/profile.json` is validated with Zod, then "exploded"
- * into one {@link IAgentProfile} per variant. The `id` is derived from the
- * directory name; `composeFile` is `profiles/<id>/docker-compose.yml`.
+ * Each `profiles/<id>/profile.json` is validated with Zod, then expanded into
+ * one {@link IAgentProfile} per variant by {@link resolveProfileVariants}.
  */
 function loadProfiles(profilesDir: string): IAgentProfile[] {
   let dirs: string[];
@@ -42,136 +31,9 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
     throw new Error(`No profile directories found in ${profilesDir}`);
   }
 
-  const profiles: IAgentProfile[] = [];
-
-  for (const dirName of dirs) {
-    const profileJsonPath = join(profilesDir, dirName, "profile.json");
-    let rawJson: unknown;
-    try {
-      rawJson = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
-    } catch (err) {
-      throw new Error(`Failed to read ${profileJsonPath}: ${toErrorMessage(err)}`);
-    }
-
-    const parsed = profileFileSchema.parse(rawJson);
-    const profileId = dirName;
-
-    // Normalize mixed mcpServers array into names + configs
-    const mcpServers: string[] = [];
-    const mcpServerConfigs: Record<string, Record<string, string>> = {};
-    const mcpSidecarEnv: Record<string, string> = {};
-    for (const entry of parsed.mcpServers) {
-      if (typeof entry === "string") {
-        mcpServers.push(entry);
-      } else {
-        mcpServers.push(entry.name);
-        if (entry.env && Object.keys(entry.env).length > 0) {
-          mcpServerConfigs[entry.name] = entry.env;
-        }
-        if (entry.sidecarEnv && Object.keys(entry.sidecarEnv).length > 0) {
-          Object.assign(mcpSidecarEnv, entry.sidecarEnv);
-        }
-      }
-    }
-
-    const uniqueServers = new Set(mcpServers);
-    if (uniqueServers.size !== mcpServers.length) {
-      const dupes = mcpServers.filter((s, i) => mcpServers.indexOf(s) !== i);
-      throw new Error(`Profile "${profileId}": duplicate MCP server(s): ${[...new Set(dupes)].join(", ")}`);
-    }
-
-    const vcsProvider = parsed.vcsProvider as VcsProvider;
-    const repoPat = parsed.repoPat ?? (vcsProvider === VcsProvider.GitHub ? "GH_TOKEN" : "ADO_PAT");
-
-    for (let vi = 0; vi < parsed.variants.length; vi++) {
-      const variant = parsed.variants[vi];
-
-      // Merge profile-level + variant-level mcpServers
-      const variantMcpNames: string[] = [];
-      const variantMcpConfigs: Record<string, Record<string, string>> = { ...mcpServerConfigs };
-      const variantSidecarEnv: Record<string, string> = { ...mcpSidecarEnv };
-      for (const entry of variant.mcpServers) {
-        if (typeof entry === "string") {
-          variantMcpNames.push(entry);
-        } else {
-          variantMcpNames.push(entry.name);
-          if (entry.env && Object.keys(entry.env).length > 0) {
-            variantMcpConfigs[entry.name] = entry.env;
-          }
-          if (entry.sidecarEnv && Object.keys(entry.sidecarEnv).length > 0) {
-            Object.assign(variantSidecarEnv, entry.sidecarEnv);
-          }
-        }
-      }
-      const mergedServers = [...new Set([...mcpServers, ...variantMcpNames])];
-
-      const stages: IStageConfig[] = variant.stages.map((s) => ({
-        agent: s.agent,
-        role: s.role,
-        mode: s.mode as unknown as StageMode,
-        skills: s.skills,
-        model: s.model,
-        timeoutMs: s.timeoutMs,
-      }));
-
-      const mapStage = (s: (typeof variant.stages)[number]): IStageConfig => ({
-        agent: s.agent,
-        role: s.role,
-        mode: s.mode as unknown as StageMode,
-        skills: s.skills,
-        model: s.model,
-        timeoutMs: s.timeoutMs,
-      });
-
-      const postTaskHooks = (variant.postTaskHooks ?? []).map((h) => ({
-        name: h.name,
-        stages: h.stages.map(mapStage),
-      }));
-
-      const firstAgent = stages[0].agent;
-      const allSkills = [...new Set(stages.flatMap((s) => s.skills))];
-
-      profiles.push({
-        id: profileId,
-        dataSource: parsed.dataSource,
-        repoPath: resolvePath(parsed.repo),
-        vcsProvider,
-        repoPat,
-        composeFile: `profiles/${profileId}/docker-compose.yml`,
-        agentName: firstAgent,
-        displayName: firstAgent.replace(/^ralph\./, ""),
-        variantKey: `${profileId}:${firstAgent}:${variant.match.commentTrigger}`,
-        cli: parsed.cli as CliType,
-        model: variant.model ?? parsed.model,
-        timeoutMs: parsed.timeoutMs,
-        setupScript: parsed.setupScript,
-        auditLogPath: parsed.auditLogPath,
-        composeProjectLabel: parsed.composeProjectLabel,
-        cleanPaths: parsed.cleanPaths,
-        maxContinuations: parsed.maxContinuations,
-        mcpServers: mergedServers,
-        mcpServerConfigs: variantMcpConfigs,
-        mcpSidecarEnv: variantSidecarEnv,
-        githubMcpTools: parsed.githubMcpTools,
-        match: {
-          projects: variant.match.projects,
-          statuses: variant.match.statuses,
-          commentTrigger: variant.match.commentTrigger,
-          revisionStatuses: variant.match.revisionStatuses,
-        },
-        beforeAgent: variant.beforeAgent,
-        afterAgent: variant.afterAgent,
-        preflight: variant.preflight,
-        failureComment: variant.failureComment,
-        description: variant.description,
-        skills: allSkills,
-        stages,
-        postTaskHooks,
-      });
-    }
-  }
-
-  return profiles;
+  return dirs.flatMap((dirName) =>
+    resolveProfileVariants(readProfileFile(join(profilesDir, dirName, "profile.json")), dirName),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -181,9 +43,12 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
 /**
  * Load and validate configuration from `config.json` (Zod-validated) and `.env` (secrets).
  *
- * Resolves all repo paths (expands `~`, strips quotes).
- * Throws a descriptive {@link ZodError} if config.json has invalid structure,
- * or a plain {@link Error} for missing environment variables.
+ * Resolves all repo paths (expands `~`, strips quotes). Credentials are read as given, an unset
+ * one as an empty string: which of them are required depends on the CLIs the stages run, and
+ * startup validation enforces that.
+ *
+ * @throws ZodError when config.json or a profile.json breaks its schema; Error when a file is
+ *   unreadable or a profile references an unknown data source.
  */
 export function loadConfig(): IAppConfig {
   const configPath = resolve(process.cwd(), "config.json");
@@ -211,17 +76,12 @@ export function loadConfig(): IAppConfig {
   }
 
   // ── Global secrets ────────────────────────────────────────────────────────
-  const ghToken = process.env.GH_TOKEN;
-  const adoPat = process.env.ADO_PAT;
-  if (!ghToken || !adoPat) {
-    throw new Error("GH_TOKEN and ADO_PAT must be set in .env");
-  }
-
   const secrets: ISecretsConfig = {
-    ghToken,
-    adoPat,
+    ghToken: process.env.GH_TOKEN ?? "",
+    adoPat: process.env.ADO_PAT ?? "",
     adoPatXperience: process.env.ADO_PAT_XPERIENCE ?? "",
     anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+    claudeCodeOauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? "",
     discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
     discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",
   };
@@ -267,6 +127,7 @@ export function loadConfig(): IAppConfig {
       neo4jUser: parsed.ralphchives?.neo4jUser ?? "neo4j",
     },
     enableContinuation: parsed.enableContinuation ?? false,
+    claudeAuth: parsed.claudeAuth,
     secrets,
   };
 }

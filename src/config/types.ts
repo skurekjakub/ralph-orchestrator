@@ -1,5 +1,4 @@
 import type { AuditMode } from "../prompt/prompt-auditor.js";
-import type { CliType } from "../container/types.js";
 
 // ---------------------------------------------------------------------------
 // Runtime types (post-resolution)
@@ -15,6 +14,27 @@ export enum VcsProvider {
 export enum StageMode {
   Container = "container",
   Local = "local",
+}
+
+/** Agent CLI that runs a stage. */
+export enum CliType {
+  Copilot = "copilot",
+  Claude = "claude",
+}
+
+/** How Claude Code authenticates: an OAuth token from `claude setup-token`, or an Anthropic API key. */
+export enum ClaudeAuthMode {
+  OAuthToken = "oauth-token",
+  ApiKey = "api-key",
+}
+
+/** Claude Code reasoning effort, passed as `--effort`. */
+export enum ReasoningEffort {
+  Low = "low",
+  Medium = "medium",
+  High = "high",
+  XHigh = "xhigh",
+  Max = "max",
 }
 
 /** A named post-task hook pipeline — runs after main pipeline + log collection + teardown. */
@@ -33,10 +53,18 @@ export interface IStageConfig {
   readonly role: string;
   /** Where the agent runs: inside the Docker container (`container`) or on the host (`local`). */
   readonly mode: StageMode;
+  /** CLI that runs this stage: the stage's own `cli`, else the profile `cli`. */
+  readonly cli: CliType;
   /** Skill folder names for this stage. Overrides profile-level skills. */
   readonly skills: readonly string[];
   /** Model override for this stage. Falls back to profile-level model. */
   readonly model?: string;
+  /** Claude Code reasoning effort for this stage. Claude stages only. */
+  readonly effort?: ReasoningEffort;
+  /** Claude Code spend cap for one session of this stage, in USD. Claude stages only. */
+  readonly maxBudgetUsd?: number;
+  /** Whether the stage fails when the agent ends without a `===RALPH_RESULT_START===` block. */
+  readonly requireResultBlock: boolean;
   /** Timeout override in ms for this stage. Falls back to profile-level timeout. */
   readonly timeoutMs?: number;
 }
@@ -95,8 +123,10 @@ export interface IAgentProfile {
   readonly displayName: string;
   /** Unique variant identifier: `<profileId>:<agentName>:<commentTrigger>`. Used for ledger dedup and profile lookup. */
   readonly variantKey: string;
-  /** Which CLI to use for agent execution. */
+  /** Default CLI for the profile's stages; each stage's resolved CLI is `stages[].cli`. */
   readonly cli: CliType;
+  /** Distinct CLIs of the variant's `mode: "container"` stages, in stage order. */
+  readonly containerClis: readonly CliType[];
   /** Model override (e.g. `claude-opus-4.6`). Optional — CLI default is used when omitted. */
   readonly model?: string;
   readonly timeoutMs: number;
@@ -149,12 +179,16 @@ export interface IOutputConfig {
   readonly handoffDir: string;
 }
 
+/** Credentials read from the environment. An unset variable is an empty string; startup validation decides which are required. */
 export interface ISecretsConfig {
+  /** GitHub PAT: authenticates Copilot CLI and git for `vcsProvider: "github"` profiles. */
   readonly ghToken: string;
   readonly adoPat: string;
   readonly adoPatXperience: string;
-  /** Anthropic API key for Claude Code CLI. Optional — only needed when a profile uses `cli: "claude"`. */
+  /** Anthropic API key for Claude Code when `claudeAuth` is `api-key`. */
   readonly anthropicApiKey: string;
+  /** Claude Code OAuth token (from `claude setup-token`) when `claudeAuth` is `oauth-token`. */
+  readonly claudeCodeOauthToken: string;
   /** Discord bot token for the discord-hitl MCP server. Optional — only needed when a profile uses the discord-hitl MCP server. */
   readonly discordBotToken: string;
   /** Discord channel ID where HITL threads are created. Optional — paired with discordBotToken. */
@@ -195,5 +229,7 @@ export interface IAppConfig {
   readonly ralphchives: IRalphchivesConfig;
   /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
   readonly enableContinuation: boolean;
+  /** Credential Claude Code stages authenticate with. */
+  readonly claudeAuth: ClaudeAuthMode;
   readonly secrets: ISecretsConfig;
 }

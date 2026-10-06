@@ -15,8 +15,9 @@ let tempDir: string;
 let origCwd: string;
 let savedEnv: Record<string, string | undefined>;
 
-const REQUIRED_VARS = ["GH_TOKEN", "ADO_PAT"];
+const REQUIRED_VARS = ["ADO_PAT"];
 const OPTIONAL_VARS = ["ADO_PAT_XPERIENCE", "DASHBOARD_URL", "DASHBOARD_SECRET"];
+const CLI_CREDENTIAL_VARS = ["GH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"];
 
 function collector(): ValidationCollector {
   return { errors: [], warnings: [] };
@@ -37,7 +38,7 @@ beforeEach(() => {
 
   // Save and clear all relevant env vars so process.env doesn't interfere
   savedEnv = {};
-  for (const v of [...REQUIRED_VARS, ...OPTIONAL_VARS]) {
+  for (const v of [...REQUIRED_VARS, ...OPTIONAL_VARS, ...CLI_CREDENTIAL_VARS]) {
     savedEnv[v] = process.env[v];
     delete process.env[v];
   }
@@ -69,6 +70,19 @@ describe("validateEnvFile", () => {
     for (const varName of REQUIRED_VARS) {
       expect(c.errors.some((e) => e.includes(varName))).toBe(true);
     }
+  });
+
+  it("leaves CLI credentials to the per-stage credential check", () => {
+    // Arrange
+    writeEnv({ ADO_PAT: "ado_abc" });
+    const c = collector();
+
+    // Act
+    validateEnvFile(c);
+
+    // Assert
+    expect(c.errors).toEqual([]);
+    expect(c.warnings.some((w) => CLI_CREDENTIAL_VARS.some((v) => w.includes(v)))).toBe(false);
   });
 
   it("no errors when all required env vars are in .env file", () => {

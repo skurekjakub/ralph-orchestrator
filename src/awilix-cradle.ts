@@ -33,6 +33,8 @@ import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner.js";
 import { LogSourceRegistry } from "./container/log-source-registry.js";
 import { ContinuationRunner } from "./container/continuation-runner.js";
 import { AgentSessionRunner } from "./container/agent-session-runner.js";
+import { CliRuntimeRegistry } from "./cli/cli-runtime.js";
+import { CopilotRuntime } from "./cli/copilot/copilot-runtime.js";
 
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
@@ -123,6 +125,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     promptAuditConfig: asValue(config.promptAudit),
     ralphchivesConfig: asValue(config.ralphchives),
     enableContinuation: asValue(config.enableContinuation),
+    claudeAuth: asValue(config.claudeAuth),
     preExecuteHooks: asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
 
     // ── Infrastructure ────────────────────────────────────────────────────────
@@ -143,6 +146,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     triggerScanner: asClass(TriggerScanner).singleton(),
 
     // ── Execution infrastructure ──────────────────────────────────────────────
+    cliRuntimes: asFunction(() => new CliRuntimeRegistry({ runtimes: [new CopilotRuntime()] })).singleton(),
     logCollector: asClass(LogCollector).singleton(),
     promptBuilder: asClass(PromptBuilder).singleton(),
     executorFactory: asClass(CliExecutorFactory).singleton(),

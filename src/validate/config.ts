@@ -1,8 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { configFileSchema } from "../config/schemas.js";
+import { validateCliCredentials } from "./credentials.js";
 import { validateProfiles } from "./profiles.js";
 import type { ValidationCollector } from "./types.js";
 
+/**
+ * Validate config.json, the profiles, and the credentials of the CLIs the profiles' stages run
+ * under the configured `claudeAuth`.
+ */
 export function validateConfigFile(collector: ValidationCollector): void {
   const configPath = resolve(process.cwd(), "config.json");
 
@@ -41,5 +47,13 @@ export function validateConfigFile(collector: ValidationCollector): void {
     }
   }
 
-  validateProfiles(collector);
+  const claudeAuth = configFileSchema.shape.claudeAuth.safeParse(raw.claudeAuth);
+  if (!claudeAuth.success) {
+    collector.errors.push(...claudeAuth.error.issues.map((issue) => `config.json: claudeAuth: ${issue.message}`));
+  }
+
+  const profiles = validateProfiles(collector);
+  if (claudeAuth.success) {
+    validateCliCredentials(profiles, claudeAuth.data, process.env, collector);
+  }
 }

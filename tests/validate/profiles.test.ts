@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { ValidationCollector } from "../../src/validate/types.js";
 import { validateProfiles } from "../../src/validate/profiles.js";
+import { CliType } from "../../src/config/types.js";
 const PROJECT = "DF";
 
 let tempDir: string;
@@ -21,7 +22,7 @@ function collector(): ValidationCollector {
   return { errors: [], warnings: [] };
 }
 
-/** Create a minimal valid profile directory with one variant. */
+/** Create a minimal valid profile directory with one variant. `dataSource` defaults to `test-source` unless the JSON sets it. */
 function writeValidProfile(
   profileId: string,
   overrides: {
@@ -56,7 +57,41 @@ function writeValidProfile(
     ],
   };
 
-  writeFileSync(join(dir, "profile.json"), JSON.stringify(overrides.profileJson ?? defaultJson, null, 2));
+  const profileJson = { dataSource: "test-source", ...(overrides.profileJson ?? defaultJson) };
+  writeFileSync(join(dir, "profile.json"), JSON.stringify(profileJson, null, 2));
+}
+
+/** A profile.json with one variant built from `stages` and optional post-task hook `hookStages`. */
+function profileWithStages(
+  stages: Record<string, unknown>[],
+  extra: {
+    hookStages?: Record<string, unknown>[];
+    profile?: Record<string, unknown>;
+    variant?: Record<string, unknown>;
+  } = {},
+): Record<string, unknown> {
+  return {
+    repo: tempDir,
+    ...extra.profile,
+    variants: [
+      {
+        stages,
+        match: { projects: [PROJECT], commentTrigger: "@go" },
+        postTaskHooks: extra.hookStages ? [{ name: "analysis", stages: extra.hookStages }] : [],
+        ...extra.variant,
+      },
+    ],
+  };
+}
+
+/** Write a loadable MCP server manifest to shared/mcp-servers/<name>/; give each server its own port. */
+function writeMcpServer(name: string, sidecarPort: number, manifest: Record<string, unknown> = {}) {
+  const serverDir = join(tempDir, "shared", "mcp-servers", name);
+  mkdirSync(serverDir, { recursive: true });
+  writeFileSync(
+    join(serverDir, "mcp-server.json"),
+    JSON.stringify({ name, type: "npm", command: "npx", args: [], sidecarPort, ...manifest }),
+  );
 }
 
 beforeEach(() => {
@@ -380,5 +415,348 @@ describe("validateProfiles", () => {
     const c = collector();
     validateProfiles(c);
     expect(c.errors).toHaveLength(0);
+  });
+
+  it("reports schema errors with their profile.json location", () => {
+    // Arrange
+    writeValidProfile("test", {
+      profileJson: { ...profileWithStages([{ agent: "ralph", role: "primary" }]), dataSource: "" },
+    });
+    const c = collector();
+
+    // Act
+    validateProfiles(c);
+
+    // Assert
+    expect(c.errors).toEqual(["profiles/test/dataSource: dataSource is required"]);
+  });
+
+  it("reports a profile that lists an MCP server twice", () => {
+    // Arrange
+    writeMcpServer("srv", 9100);
+    writeValidProfile("test", {
+      profileJson: { ...profileWithStages([{ agent: "ralph", role: "primary" }]), mcpServers: ["srv", "srv"] },
+    });
+    const c = collector();
+
+    // Act
+    validateProfiles(c);
+
+    // Assert
+    expect(c.errors.some((e) => e.includes("duplicate MCP server(s): srv"))).toBe(true);
+  });
+
+  it("returns the resolved variants of every valid profile", () => {
+    // Arrange
+    writeValidProfile("profile-a");
+    writeValidProfile("profile-b", { profileJson: { repo: "/nonexistent/path/12345", variants: "nope" } });
+    const c = collector();
+
+    // Act
+    const resolved = validateProfiles(c);
+
+    // Assert
+    expect(resolved.map((p) => p.variantKey)).toEqual(["profile-a:ralph:@ralph"]);
+  });
+
+  describe("stage cli", () => {
+    it("rejects claude once per profile, naming every stage that runs it", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "claude" }], {
+          hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", cli: "claude" }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      const claudeErrors = c.errors.filter((e) => e.includes('cli "claude"'));
+      expect(claudeErrors).toHaveLength(1);
+      expect(claudeErrors[0]).toContain("not supported yet");
+      expect(claudeErrors[0]).toContain("variants[0]/stages[0]");
+      expect(claudeErrors[0]).toContain("variants[0]/postTaskHooks[0]/stages[0]");
+    });
+
+    it("reports an unknown stage cli", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "gemini" }]),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]\/stages\[0\]\/cli: /);
+    });
+
+    it.each([
+      ["effort", { effort: "high" }],
+      ["maxBudgetUsd", { maxBudgetUsd: 5 }],
+    ])("rejects %s on a Copilot stage", (option, setting) => {
+      // Arrange
+      writeValidProfile("test", { profileJson: profileWithStages([{ agent: "ralph", role: "primary", ...setting }]) });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toEqual([
+        `profiles/test/variants[0]/stages[0]: ${option} is a Claude Code option, but this stage runs cli "${CliType.Copilot}"`,
+      ]);
+    });
+
+    it("rejects githubMcpTools when no stage runs Copilot", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          profile: { cli: "claude", githubMcpTools: ["get_file_contents"] },
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors.some((e) => e.startsWith("profiles/test: githubMcpTools only affects Copilot stages"))).toBe(
+        true,
+      );
+    });
+
+    it("accepts githubMcpTools when a post-task hook stage runs Copilot", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          profile: { cli: "claude", githubMcpTools: ["get_file_contents"] },
+          hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", cli: "copilot" }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors.filter((e) => e.includes("githubMcpTools"))).toEqual([]);
+    });
+  });
+
+  describe("models", () => {
+    it("rejects a stage model the stage cli does not accept, with the replacement", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary", model: "opus" }]),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]\/stages\[0\]: model "opus" is a Claude Code alias/);
+      expect(c.errors[0]).toContain('"claude-opus-4.6"');
+    });
+
+    it("reports an invalid profile-level model once, at the profile", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: {
+          repo: tempDir,
+          model: "opus",
+          variants: [
+            {
+              stages: [
+                { agent: "ralph", role: "primary" },
+                { agent: "ralph", role: "reviewer" },
+              ],
+              match: { projects: [PROJECT], commentTrigger: "@go" },
+            },
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@again" } },
+          ],
+        },
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toMatch(/^profiles\/test: model "opus" is a Claude Code alias/);
+    });
+
+    it("reports an invalid variant-level model at the variant", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          variant: { model: "claude-opus-4-6" },
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]: model "claude-opus-4-6" is a Claude Code model id/);
+    });
+
+    it("rejects a stage that switches cli but inherits the model chosen for the profile cli", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages(
+          [
+            { agent: "ralph", role: "primary" },
+            { agent: "ralph", role: "reviewer", cli: "claude" },
+          ],
+          { profile: { model: "claude-sonnet-4" } },
+        ),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      const modelErrors = c.errors.filter((e) => e.includes("model"));
+      expect(modelErrors).toHaveLength(1);
+      expect(modelErrors[0]).toContain('profiles/test/variants[0]/stages[1]: runs cli "claude"');
+      expect(modelErrors[0]).toContain('model "claude-sonnet-4" chosen for cli "copilot"');
+    });
+
+    it("accepts a stage that switches cli and sets a model for it", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "reviewer", cli: "claude", model: "sonnet" }], {
+          profile: { model: "claude-sonnet-4.6" },
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors.filter((e) => e.includes("model"))).toEqual([]);
+    });
+
+    it("validates post-task hook stage models", () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", model: "sonnet" }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]\/postTaskHooks\[0\]\/stages\[0\]: model "sonnet"/);
+    });
+  });
+
+  describe("variant-level MCP servers", () => {
+    it("enforces requiredConfig for a server declared only on the variant", () => {
+      // Arrange
+      writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT", "ADO_REPO"] });
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], { variant: { mcpServers: ["ado"] } }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toContain('MCP server "ado" requires config [ADO_PROJECT, ADO_REPO]');
+      expect(c.errors[0]).toContain("variants[0]");
+    });
+
+    it("accepts requiredConfig provided by the variant-level entry", () => {
+      // Arrange
+      writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT"] });
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          variant: { mcpServers: [{ name: "ado", env: { ADO_PROJECT: "Docs" } }] },
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toEqual([]);
+    });
+
+    it("rejects a variant entry whose env drops config the profile entry provided", () => {
+      // Arrange
+      writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT", "ADO_REPO"] });
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          profile: { mcpServers: [{ name: "ado", env: { ADO_PROJECT: "Docs", ADO_REPO: "docs" } }] },
+          variant: { mcpServers: [{ name: "ado", env: { ADO_REPO: "kb" } }] },
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toContain('MCP server "ado" requires config [ADO_PROJECT]');
+    });
+
+    it("reports missing profile-level config once, naming every affected variant", () => {
+      // Arrange
+      writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT"] });
+      writeValidProfile("test", {
+        profileJson: {
+          repo: tempDir,
+          mcpServers: ["ado"],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@again" } },
+          ],
+        },
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toHaveLength(1);
+      expect(c.errors[0]).toContain("variants[0], variants[1]");
+    });
+
+    it("errors when a variant-level server does not exist", () => {
+      // Arrange
+      writeMcpServer("ado", 9100);
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], { variant: { mcpServers: ["missing"] } }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors.some((e) => e.includes('MCP server "missing" not found'))).toBe(true);
+    });
   });
 });
