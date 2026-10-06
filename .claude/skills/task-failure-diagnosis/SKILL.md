@@ -19,7 +19,7 @@ Read `references/log-map.md` first. Without the file layout you will waste time 
 - `stderr`: first 5000 chars, present when non-empty. `stdout`: first 5000 chars, only for non-completed runs.
 - `durationMs` under ~10 s with empty `stderr` means the CLI likely never started → Step 2.
 
-The operation ledger `output/logs/history/<issueKey>.json` also records the failure `reason` per operation.
+The operation ledger `<output.logDir>/history/<dataSource>/<issueKey>.json` also records the failure `reason` per operation.
 
 ## Step 2: Sidecar and proxy logs
 

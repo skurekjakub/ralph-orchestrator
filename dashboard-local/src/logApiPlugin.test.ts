@@ -79,20 +79,93 @@ describe("logApiPlugin", () => {
     expect(invalidRes.body).toBe("Invalid filename");
   });
 
-  it("returns history entries from the history directory", () => {
-    const logDir = makeTempLogDir();
-    const historyDir = join(logDir, "history");
-    mkdirSync(historyDir, { recursive: true });
-    writeFileSync(join(historyDir, "DOC-3141.json"), JSON.stringify({ status: "completed" }));
+  describe("operation ledger history", () => {
+    function makeLedger(status: string) {
+      return { operations: [{ id: `op-${status}`, status }] };
+    }
 
-    const middleware = createLogApiMiddleware(logDir);
-    const res = makeResponse();
+    /** Lay out ledger files the way OperationLedger writes them: `history/<dataSource>/<issueKey>.json`. */
+    function writeLedger(logDir: string, dataSource: string, issueKey: string, content: string) {
+      const sourceDir = join(logDir, "history", dataSource);
+      mkdirSync(sourceDir, { recursive: true });
+      writeFileSync(join(sourceDir, `${issueKey}.json`), content);
+    }
 
-    middleware({ url: "/api/history" } as IncomingMessage & { url?: string }, res, () => {});
+    function get(logDir: string, url: string) {
+      const res = makeResponse();
+      createLogApiMiddleware(logDir)({ url } as IncomingMessage & { url?: string }, res, () => {});
+      return res;
+    }
 
-    const body = JSON.parse(res.body) as Array<{ taskId: string; data: { status: string } }>;
-    expect(body).toHaveLength(1);
-    expect(body[0].taskId).toBe("DOC-3141");
-    expect(body[0].data.status).toBe("completed");
+    it("lists ledger files from every data-source directory", () => {
+      const logDir = makeTempLogDir();
+      writeLedger(logDir, "kentico-jira", "DOC-3141", JSON.stringify(makeLedger("completed")));
+      writeLedger(logDir, "other-jira", "DF-7", JSON.stringify(makeLedger("error")));
+
+      const res = get(logDir, "/api/history");
+
+      const body = JSON.parse(res.body) as Array<{ dataSource: string; taskId: string; data: unknown }>;
+      expect(res.statusCode).toBe(200);
+      expect([...body].sort((a, b) => a.taskId.localeCompare(b.taskId))).toEqual([
+        { dataSource: "other-jira", taskId: "DF-7", data: makeLedger("error") },
+        { dataSource: "kentico-jira", taskId: "DOC-3141", data: makeLedger("completed") },
+      ]);
+    });
+
+    it("ignores files at the history root and in-flight temp files", () => {
+      const logDir = makeTempLogDir();
+      writeLedger(logDir, "kentico-jira", "DOC-3141", JSON.stringify(makeLedger("completed")));
+      writeFileSync(join(logDir, "history", "DOC-1.json"), JSON.stringify(makeLedger("pending")));
+      writeFileSync(join(logDir, "history", "kentico-jira", "DOC-3141.json.tmp"), "{");
+
+      const body = JSON.parse(get(logDir, "/api/history").body) as Array<{ taskId: string }>;
+
+      expect(body.map((e) => e.taskId)).toEqual(["DOC-3141"]);
+    });
+
+    it("skips a corrupt ledger file without hiding the others", () => {
+      const logDir = makeTempLogDir();
+      writeLedger(logDir, "kentico-jira", "DOC-1", "not json");
+      writeLedger(logDir, "kentico-jira", "DOC-2", JSON.stringify(makeLedger("completed")));
+
+      const body = JSON.parse(get(logDir, "/api/history").body) as Array<{ taskId: string }>;
+
+      expect(body.map((e) => e.taskId)).toEqual(["DOC-2"]);
+    });
+
+    it("serves a single ledger addressed as <dataSource>/<issueKey>", () => {
+      const logDir = makeTempLogDir();
+      writeLedger(logDir, "kentico-jira", "DOC-3141", JSON.stringify(makeLedger("completed")));
+
+      const res = get(logDir, "/api/history/kentico-jira/DOC-3141");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Content-Type"]).toContain("application/json");
+      expect(JSON.parse(res.body)).toEqual(makeLedger("completed"));
+    });
+
+    it("returns 404 for a ledger that does not exist", () => {
+      const logDir = makeTempLogDir();
+
+      expect(get(logDir, "/api/history/kentico-jira/DOC-404").statusCode).toBe(404);
+    });
+
+    it.each([
+      ["a flat issue key", "/api/history/DOC-3141"],
+      ["a flat file name", "/api/history/DOC-3141.json"],
+      ["an encoded parent segment", "/api/history/..%2Fsecret"],
+      ["a dot segment in place of the data source", "/api/history/.%2FDOC-3141"],
+      ["an extra nested segment", "/api/history/kentico-jira%2F..%2F..%2Fsecret"],
+      ["an empty data source", "/api/history//DOC-3141"],
+    ])("rejects %s", (_label, url) => {
+      const logDir = makeTempLogDir();
+      writeFileSync(join(logDir, "secret.json"), JSON.stringify({ leaked: true }));
+      writeLedger(logDir, "kentico-jira", "DOC-3141", JSON.stringify(makeLedger("completed")));
+
+      const res = get(logDir, url);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).not.toContain("leaked");
+    });
   });
 });

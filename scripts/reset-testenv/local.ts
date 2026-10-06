@@ -2,14 +2,28 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, readdirSync, rmSyn
 import { resolve } from "node:path";
 import type { ResetContext } from "./types.js";
 
+/**
+ * Delete the issue's operation ledger (`history/<dataSource>/<issueKey>.json`) under every data source.
+ *
+ * Every other piece of local state this reset clears is keyed by the bare issue key, and the
+ * remote reset has just deleted the trigger comments the ledgers point at, so a ledger for
+ * this key under any data source is stale.
+ */
 export function clearLedger(ctx: ResetContext) {
-  const ledgerPath = resolve(ctx.rootDir, `output/logs/history/${ctx.issueKey}.json`);
-  if (existsSync(ledgerPath)) {
+  const historyDir = resolve(ctx.rootDir, "output/logs/history");
+  const dataSources = existsSync(historyDir)
+    ? readdirSync(historyDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+    : [];
+
+  let deleted = 0;
+  for (const dataSource of dataSources) {
+    const ledgerPath = resolve(historyDir, dataSource, `${ctx.issueKey}.json`);
+    if (!existsSync(ledgerPath)) continue;
     unlinkSync(ledgerPath);
+    deleted++;
     console.log(`  ✓ Deleted ledger: ${ledgerPath}`);
-  } else {
-    console.log("  ✓ No ledger entry to clear");
   }
+  if (deleted === 0) console.log("  ✓ No ledger entry to clear");
 }
 
 export function clearTriggerCache(ctx: ResetContext) {

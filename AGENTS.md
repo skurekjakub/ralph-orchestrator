@@ -131,7 +131,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - `JitMcpConfigWriter` (`src/container/setup/jit-mcp-params.ts`) resolves `$task.*`, `$trigger.<key>` and `$variantEnv.PREFIX` in `env` per task. Unknown macros or missing variant env vars throw.
   - `sidecarEnv` sets sidecar container env. A manifest `initScript` runs before the gateway via `.build/pre-init.sh`.
   - See `MCP.md` and `docs/user-guide/runtime-macros.md`.
-- **Operation ledger.** One file per issue at `<output.logDir>/history/<dataSource>/<issueKey>.json`, with transitions `pending → active | rejected` and `active → completed | error` (`VALID_TRANSITIONS`).
+- **Operation ledger.** One file per issue at `<output.logDir>/history/<dataSource>/<issueKey>.json`, with transitions `pending → active | rejected | error` and `active → completed | error` (`VALID_TRANSITIONS`). `pending → error` records an operation that failed before activation (profile gone, work item unreachable, a pre-activation phase threw).
   - On restart, active operations are marked `error`.
   - Each trigger is consumed once per `variantKey`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.

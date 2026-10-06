@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
@@ -37,8 +37,8 @@ export function createLogApiMiddleware(logDir: string) {
     } else if (url.pathname === "/api/history") {
       handleHistoryList(logDir, res);
     } else if (url.pathname.startsWith("/api/history/")) {
-      const filename = decodeURIComponent(url.pathname.slice("/api/history/".length));
-      handleLogFile(logDir, `history/${filename}`, res);
+      const ledgerRef = decodeURIComponent(url.pathname.slice("/api/history/".length));
+      handleHistoryFile(logDir, ledgerRef, res);
     } else {
       next();
     }
@@ -169,19 +169,66 @@ function handleLogFile(
   }
 }
 
+/** One operation ledger file, as written by the orchestrator's `OperationLedger`. */
+interface HistoryEntry {
+  /** Data-source key from config.json; also the ledger's subdirectory under `history/`. */
+  dataSource: string;
+  /** Work item key; fetch the same ledger again at `/api/history/<dataSource>/<taskId>`. */
+  taskId: string;
+  data: unknown;
+}
+
+/**
+ * A data-source key or work item key used as a single path segment.
+ * Leading alphanumeric excludes `.` and `..`; no separators can appear.
+ */
+const SAFE_SEGMENT_RE = /^[A-Za-z0-9][\w.-]*$/;
+const LEDGER_EXT = ".json";
+
+/** Ledgers live at `history/<dataSource>/<issueKey>.json` (see `OperationLedger`). */
 function handleHistoryList(logDir: string, res: import("node:http").ServerResponse) {
+  const historyDir = join(logDir, "history");
+  let sources: Dirent[];
   try {
-    const historyDir = join(logDir, "history");
-    const files = readdirSync(historyDir).filter((f) => f.endsWith(".json"));
-    const entries = files.map((f) => ({
-      filename: f,
-      taskId: f.replace(".json", ""),
-      data: JSON.parse(readFileSync(join(historyDir, f), "utf-8")),
-    }));
-    json(res, entries);
+    sources = readdirSync(historyDir, { withFileTypes: true });
   } catch {
     json(res, []);
+    return;
   }
+
+  const entries: HistoryEntry[] = [];
+  // Files directly under history/ predate per-data-source ledgers; the orchestrator no longer reads them.
+  for (const source of sources.filter((d) => d.isDirectory())) {
+    const sourceDir = join(historyDir, source.name);
+    for (const file of readdirSync(sourceDir).filter((f) => f.endsWith(LEDGER_EXT))) {
+      try {
+        entries.push({
+          dataSource: source.name,
+          taskId: file.slice(0, -LEDGER_EXT.length),
+          data: JSON.parse(readFileSync(join(sourceDir, file), "utf-8")),
+        });
+      } catch {
+        // One unreadable ledger must not hide every other issue's history.
+      }
+    }
+  }
+  json(res, entries);
+}
+
+/** Serve one ledger addressed as `<dataSource>/<issueKey>`. */
+function handleHistoryFile(
+  logDir: string,
+  ledgerRef: string,
+  res: import("node:http").ServerResponse,
+) {
+  const segments = ledgerRef.split("/");
+  if (segments.length !== 2 || !segments.every((s) => SAFE_SEGMENT_RE.test(s))) {
+    res.writeHead(400);
+    res.end("Invalid ledger reference — expected <dataSource>/<issueKey>");
+    return;
+  }
+  const [dataSource, issueKey] = segments;
+  handleLogFile(logDir, `history/${dataSource}/${issueKey}${LEDGER_EXT}`, res);
 }
 
 function json(res: import("node:http").ServerResponse, data: unknown) {

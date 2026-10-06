@@ -114,6 +114,31 @@ describe("OperationLedger", () => {
       expect(ops[0].reason).toBe("timeout");
       expect(ops[0].completedAt).toBeDefined();
     });
+
+    it("transitions pending → error when the operation fails before activation", () => {
+      const id = ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: TS });
+
+      ledger.transition(DS, KEY, id, OperationStatus.Error, { reason: "Profile v no longer exists" });
+
+      const [op] = ledger.getOperations(DS, KEY);
+      expect(op.status).toBe(OperationStatus.Error);
+      expect(op.reason).toBe("Profile v no longer exists");
+      expect(op.completedAt).toBeDefined();
+      expect(op.resultStatus).toBeUndefined();
+    });
+
+    it("treats a pre-activation error as terminal: not pending, not recoverable, trigger still consumed", () => {
+      const id = ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: TS });
+
+      ledger.transition(DS, KEY, id, OperationStatus.Error, { reason: "Work item not found or unreachable" });
+
+      expect(ledger.getAllPending()).toEqual([]);
+      expect(ledger.hasPendingOrActive(DS, KEY)).toBe(false);
+      expect(ledger.recoverActiveOperations()).toEqual([]);
+      expect(ledger.isConsumed(DS, KEY, VARIANT, CID)).toBe(true);
+      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Active))
+        .toThrow("Invalid operation state transition: error → active");
+    });
   });
 
   describe("reject", () => {

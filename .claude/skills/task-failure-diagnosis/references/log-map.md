@@ -33,7 +33,7 @@ Sources are registered in `LogSourceRegistry.registerAll()` (`src/container/log-
 |---|---|---|
 | `output/logs/activity-YYYY-MM-DD.log` | `ActivityLog` (`src/services/activity-log.ts`) | Orchestrator events (JSONL) |
 | `output/logs/container-YYYY-MM-DD.log` | `ActivityLog.createContainerLogger()` | All container-tagged lines (JSONL) |
-| `output/logs/history/<issueKey>.json` | `OperationLedger` (`src/services/operation-ledger.ts`) | Operation state machine incl. failure `reason` |
+| `<output.logDir>/history/<dataSource>/<issueKey>.json` | `OperationLedger` (`src/services/operation-ledger.ts`) | Operation state machine incl. failure `reason` |
 
 ## Summary fields
 

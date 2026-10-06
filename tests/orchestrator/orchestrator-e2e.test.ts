@@ -733,4 +733,114 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
     expect(deps.resources.fetchHandoff).not.toHaveBeenCalled();
   });
+
+  describe("pre-activation failures", () => {
+    const LIVE_TS = "2026-01-01T01:00:00Z";
+
+    function makeDocsProfile(statuses: string[] = [], revisionStatuses: string[] = []): IAgentProfile {
+      return makeProfile({
+        id: "ralph-docs",
+        agentName: "ralph",
+        match: { projects: [PROJECT], statuses, commentTrigger: "@docs", revisionStatuses },
+      });
+    }
+
+    it("records error for an operation whose profile no longer exists and moves on to the next one", async () => {
+      const profile = makeDocsProfile();
+      const liveIssue = makeWorkItem("DF-1001", "Live task");
+      const deps = buildBaseDeps(tempDir, {
+        profiles: [profile],
+        issueManager: { refreshWorkItem: vi.fn().mockResolvedValue(liveIssue) },
+        logDirName: "missing-profile-logs",
+      });
+
+      // Planned before the variant was removed from profile.json, then the orchestrator restarted.
+      deps.ledger.plan("DF-1000", {
+        dataSource: DS,
+        variant: "ralph-removed:ralph:@removed",
+        triggerCommentId: CID,
+        commentTimestamp: TS,
+      });
+      deps.ledger.plan("DF-1001", {
+        dataSource: DS,
+        variant: profile.variantKey,
+        triggerCommentId: "C2",
+        commentTimestamp: LIVE_TS,
+      });
+
+      const orchestrator = new Orchestrator(deps);
+      await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
+
+      const [orphan] = deps.ledger.getOperations(DS, "DF-1000");
+      expect(orphan.status).toBe(OperationStatus.Error);
+      expect(orphan.reason).toBe("Profile ralph-removed:ralph:@removed no longer exists");
+      expect(orphan.completedAt).toBeDefined();
+      expect(deps.issueManager.refreshWorkItem).not.toHaveBeenCalledWith(DS, "DF-1000");
+
+      expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(deps.taskRunner.run).mock.calls[0][0].workItem.id).toBe("DF-1001");
+      expect(deps.ledger.getAllPending()).toHaveLength(0);
+    });
+
+    it("records error for an operation whose work item is unreachable and moves on to the next one", async () => {
+      const profile = makeDocsProfile();
+      const liveIssue = makeWorkItem("DF-1003", "Live task");
+      const deps = buildBaseDeps(tempDir, {
+        profiles: [profile],
+        issueManager: {
+          refreshWorkItem: vi.fn().mockImplementation(async (_source: string, key: string) =>
+            key === "DF-1003" ? liveIssue : null,
+          ),
+        },
+        logDirName: "unreachable-item-logs",
+      });
+
+      deps.ledger.plan("DF-1002", { dataSource: DS, variant: profile.variantKey, triggerCommentId: CID, commentTimestamp: TS });
+      deps.ledger.plan("DF-1003", { dataSource: DS, variant: profile.variantKey, triggerCommentId: "C2", commentTimestamp: LIVE_TS });
+
+      const orchestrator = new Orchestrator(deps);
+      await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
+
+      const [unreachable] = deps.ledger.getOperations(DS, "DF-1002");
+      expect(unreachable.status).toBe(OperationStatus.Error);
+      expect(unreachable.reason).toBe("Work item not found or unreachable");
+      expect(unreachable.completedAt).toBeDefined();
+      expect(deps.issueManager.refreshWorkItem).toHaveBeenCalledTimes(2);
+
+      expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(deps.taskRunner.run).mock.calls[0][0].workItem.id).toBe("DF-1003");
+      expect(deps.ledger.getAllPending()).toHaveLength(0);
+    });
+
+    it("records error when a pre-activation phase throws instead of crashing the loop", async () => {
+      const profile = makeDocsProfile(["New", "Defect Found"], ["Defect Found"]);
+      const revisionIssue = makeWorkItem("DF-1004", "Revision task", "Defect Found");
+      const liveIssue = makeWorkItem("DF-1005", "Live task", "New");
+      const deps = buildBaseDeps(tempDir, {
+        profiles: [profile],
+        issueManager: {
+          refreshWorkItem: vi.fn().mockImplementation(async (_source: string, key: string) =>
+            key === "DF-1004" ? revisionIssue : liveIssue,
+          ),
+          getComments: vi.fn().mockRejectedValue(new Error("JIRA responded 503 Service Unavailable")),
+        },
+        logDirName: "preflight-throw-logs",
+      });
+
+      deps.ledger.plan("DF-1004", { dataSource: DS, variant: profile.variantKey, triggerCommentId: CID, commentTimestamp: TS });
+      deps.ledger.plan("DF-1005", { dataSource: DS, variant: profile.variantKey, triggerCommentId: "C2", commentTimestamp: LIVE_TS });
+
+      const orchestrator = new Orchestrator(deps);
+      await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
+
+      const [failed] = deps.ledger.getOperations(DS, "DF-1004");
+      expect(failed.status).toBe(OperationStatus.Error);
+      expect(failed.reason).toContain("JIRA responded 503 Service Unavailable");
+      expect(failed.completedAt).toBeDefined();
+
+      expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(deps.taskRunner.run).mock.calls[0][0].workItem.id).toBe("DF-1005");
+      expect(deps.ledger.getAllPending()).toHaveLength(0);
+    });
+  });
 });

@@ -18,6 +18,14 @@ import type { IVcsSourceClient } from "./services/vcs-source-client.js";
 import type { IHeartbeatSender } from "./services/heartbeat.js";
 import type { Logger } from "./logger.js";
 
+/** Everything the pre-activation phases resolved for an operation that is cleared to run. */
+interface PreparedOperation {
+  profile: IAgentProfile;
+  workItem: WorkItem;
+  /** Set only for revision tasks, which run the `revision-ready` preflight. */
+  revisionPreflightCtx: PreflightContext | null;
+}
+
 /**
  * Main orchestration loop.
  *
@@ -259,21 +267,44 @@ export class Orchestrator {
    *
    * Each phase is a private method that returns `null` to signal abort.
    * Abort paths handle their own ledger transitions, comments, and state emission.
+   * An exception thrown before activation is recorded as `pending → error`.
    */
   private async executeOperation(
     issueKey: string,
     operation: Operation,
   ): Promise<void> {
+    let prepared: PreparedOperation | null;
+    try {
+      prepared = await this.prepareOperation(issueKey, operation);
+    } catch (err) {
+      // Escaping here would reject start() with the operation still pending, and
+      // getAllPending() would hand the same operation back first on every restart.
+      this.failPendingOperation(issueKey, operation, toErrorMessage(err));
+      return;
+    }
+    if (!prepared) return;
+
+    await this.runTask(prepared.workItem, prepared.profile, operation, prepared.revisionPreflightCtx);
+  }
+
+  /**
+   * Run every pre-activation phase for a pending operation.
+   * Returns `null` when a phase has already recorded a terminal ledger state.
+   */
+  private async prepareOperation(
+    issueKey: string,
+    operation: Operation,
+  ): Promise<PreparedOperation | null> {
     const profile = this.resolveProfile(issueKey, operation);
-    if (!profile) return;
+    if (!profile) return null;
 
     const workItem = await this.refreshIssue(issueKey, operation);
-    if (!workItem) return;
+    if (!workItem) return null;
 
-    if (!this.validateStatusMatch(workItem, profile, operation)) return;
+    if (!this.validateStatusMatch(workItem, profile, operation)) return null;
 
     if (profile.preflight) {
-      if (!await this.runPreflight(workItem, profile, operation)) return;
+      if (!await this.runPreflight(workItem, profile, operation)) return null;
     }
 
     // Auto-preflight for revision tasks — requires an existing PR and handoff.
@@ -285,10 +316,20 @@ export class Orchestrator {
     let revisionPreflightCtx: PreflightContext | null = null;
     if (isRevision) {
       revisionPreflightCtx = await this.runPreflight(workItem, profile, operation, "revision-ready");
-      if (!revisionPreflightCtx) return;
+      if (!revisionPreflightCtx) return null;
     }
 
-    await this.runTask(workItem, profile, operation, revisionPreflightCtx);
+    return { profile, workItem, revisionPreflightCtx };
+  }
+
+  /**
+   * Record that a pending operation could not be started (`pending → error`).
+   * The terminal state keeps the trigger consumed and removes the operation from the pending queue.
+   */
+  private failPendingOperation(issueKey: string, operation: Operation, reason: string): void {
+    // Persist first so the state emitted by logError no longer lists the operation as pending.
+    this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, { reason });
+    this.logError(`Operation on ${issueKey} failed before activation: ${reason}`);
   }
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
@@ -297,11 +338,7 @@ export class Orchestrator {
       (p) => p.variantKey === operation.variant,
     );
     if (!profile) {
-      this.log(`Operation on ${issueKey} failed: profile ${operation.variant} no longer exists`);
-      this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, {
-        reason: `Profile ${operation.variant} no longer exists`,
-      });
-      this.emitState();
+      this.failPendingOperation(issueKey, operation, `Profile ${operation.variant} no longer exists`);
       return null;
     }
     return profile;
@@ -311,11 +348,7 @@ export class Orchestrator {
   private async refreshIssue(issueKey: string, operation: Operation): Promise<WorkItem | null> {
     const workItem = await this.issueManager.refreshWorkItem(operation.dataSource, issueKey);
     if (!workItem) {
-      this.log(`Operation on ${issueKey} failed: work item not found or unreachable`);
-      this.ledger.transition(operation.dataSource, issueKey, operation.id, OperationStatus.Error, {
-        reason: "Work item not found or unreachable",
-      });
-      this.emitState();
+      this.failPendingOperation(issueKey, operation, "Work item not found or unreachable");
       return null;
     }
     return workItem;

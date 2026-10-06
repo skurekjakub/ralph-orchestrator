@@ -13,12 +13,21 @@ function assertSafeItemId(id: string): void {
   }
 }
 
-/** Operation lifecycle state. */
+/** Operation lifecycle state. See {@link VALID_TRANSITIONS} for the allowed edges. */
 export enum OperationStatus {
+  /** Planned from a trigger comment; waiting for the main loop to pick it up. */
   Pending = "pending",
+  /** The agent is running for this operation. At most one per issue. */
   Active = "active",
+  /** Terminal: the agent finished with a completed or partial result. */
   Completed = "completed",
+  /**
+   * Terminal: the operation failed. Reached from `active` when the agent run fails,
+   * or from `pending` when the orchestrator could not start it (the variant's profile
+   * no longer exists, the work item is unreachable, a pre-activation phase threw).
+   */
   Error = "error",
+  /** Terminal: refused without running the agent (allowedUsers, stale status, failed preflight). */
   Rejected = "rejected",
 }
 
@@ -42,7 +51,7 @@ export interface Operation {
   completedAt?: string;
   /** Human-readable reason for `rejected` or `error` status. */
   reason?: string;
-  /** Result status from the agent. Only set on terminal states. */
+  /** Result status reported by the agent. Absent when the agent never produced a result. */
   resultStatus?: TaskStatus;
   /** Parameters extracted from the trigger comment (e.g. `@Ralph(codesamples, verbose)` → `["codesamples", "verbose"]`). */
   triggerParams?: string[];
@@ -53,11 +62,16 @@ export interface Operation {
  *
  * ```
  * pending → active → completed | error
- *         ↘ rejected
+ *         ↘ rejected | error
  * ```
+ *
+ * `pending → error` exists because an operation can fail before it is ever
+ * activated (config or infrastructure failure). Recording that as a terminal
+ * state is what stops the main loop from picking the same pending operation
+ * up again on every iteration and every restart.
  */
 const VALID_TRANSITIONS = new Map<OperationStatus, ReadonlySet<OperationStatus>>([
-  [OperationStatus.Pending,  new Set([OperationStatus.Active, OperationStatus.Rejected])],
+  [OperationStatus.Pending,  new Set([OperationStatus.Active, OperationStatus.Rejected, OperationStatus.Error])],
   [OperationStatus.Active,   new Set([OperationStatus.Completed, OperationStatus.Error])],
 ]);
 
@@ -97,13 +111,13 @@ export interface IOperationLedger {
 /**
  * Persistent per-issue operation history.
  *
- * Each issue gets a JSON file in `<historyDir>/<issueKey>.json` that tracks
- * every agent invocation through its lifecycle:
+ * Each issue gets a JSON file in `<historyDir>/<dataSource>/<issueKey>.json`
+ * that tracks every agent invocation through its lifecycle:
  *
  * ```
  * pending → active → completed | error
- *                ↗
- * rejected (invalid state, conflict, preflight fail)
+ *         ↘ rejected (allowedUsers, stale status, preflight fail)
+ *         ↘ error    (failed before activation: missing profile, unreachable work item)
  * ```
  *
  * Used for:
