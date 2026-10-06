@@ -1,12 +1,12 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { DiscordClient } from "../discord-client.js";
 import type { ThreadManager } from "../thread-manager.js";
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const MAX_TIMEOUT_MINUTES = 1440; // 24h
 
-const inputSchema = {
+const inputSchema = z.object({
   question: z.string().describe("The question to ask the human (supports markdown)"),
   context: z.string().optional().describe("Optional context header (e.g. 'Phase 2 Questions')"),
   timeout_minutes: z
@@ -15,7 +15,7 @@ const inputSchema = {
     .max(MAX_TIMEOUT_MINUTES)
     .default(DEFAULT_TIMEOUT_MINUTES)
     .describe("How long to wait for a response in minutes (default: 60)"),
-};
+});
 
 export function registerDiscordAsk(server: McpServer, client: DiscordClient, threadManager: ThreadManager): void {
   server.registerTool(

@@ -7,7 +7,7 @@ interface TopicResponse {
   mainPid: number;
 }
 
-const inputSchema: Record<string, z.ZodTypeAny> = {
+const inputShape: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Short observation title (e.g. 'Content Item API naming inconsistency')"),
   content: z.string().describe("Detailed observation in markdown — what you noticed, why it matters, any suggestions"),
   tags: z
@@ -19,7 +19,7 @@ const inputSchema: Record<string, z.ZodTypeAny> = {
 };
 
 if (!NODEBB_CATEGORY_ID) {
-  inputSchema.categoryId = z.number().describe("NodeBB category ID to post into");
+  inputShape.categoryId = z.number().describe("NodeBB category ID to post into");
 }
 
 export const tool: ToolDefinition = {
@@ -29,7 +29,7 @@ export const tool: ToolDefinition = {
       "Post a standalone observation to Ralphchives. Use this for insights " +
       "discovered during a task that aren't part of the task report — patterns, " +
       "inconsistencies, documentation gaps, or improvement suggestions.",
-    inputSchema,
+    inputSchema: z.object(inputShape),
   },
   handler: async (args) => {
     if (unavailableReason) return errorResult(unavailableReason);

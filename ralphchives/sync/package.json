@@ -12,15 +12,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "neo4j-driver": "^6.0.1",
-    "ollama": "^0.6.3"
+    "neo4j-driver": "^6.2.0",
+    "ollama": "^0.6.4"
   },
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   }
 }

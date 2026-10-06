@@ -7,7 +7,7 @@ interface TopicResponse {
   mainPid: number;
 }
 
-const inputSchema: Record<string, z.ZodTypeAny> = {
+const inputShape: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Topic title — use the JIRA issue key as prefix (e.g. 'DF-123: Migrated API docs')"),
   content: z.string().describe("Full task report in markdown — include changes made, PR links, observations"),
   tags: z
@@ -19,7 +19,7 @@ const inputSchema: Record<string, z.ZodTypeAny> = {
 };
 
 if (!NODEBB_CATEGORY_ID) {
-  inputSchema.categoryId = z.number().describe("NodeBB category ID to post into");
+  inputShape.categoryId = z.number().describe("NodeBB category ID to post into");
 }
 
 export const tool: ToolDefinition = {
@@ -29,7 +29,7 @@ export const tool: ToolDefinition = {
       "Post a task report to Ralphchives after completing a JIRA task. " +
       "Creates a new topic in the profile's category with a structured summary " +
       "of what was done, what changed, and any observations.",
-    inputSchema,
+    inputSchema: z.object(inputShape),
   },
   handler: async (args) => {
     if (unavailableReason) return errorResult(unavailableReason);

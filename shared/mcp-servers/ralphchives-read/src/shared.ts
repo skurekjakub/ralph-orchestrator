@@ -1,11 +1,11 @@
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ZodRawShape } from "zod";
+import type { BaseToolCallback, CallToolResult, ServerContext } from "@modelcontextprotocol/server";
+import type { ZodObject } from "zod";
 
-/** Tool definition returned by each tool module. */
+/** Tool definition returned by each tool module. Handlers resolve to a `CallToolResult`. */
 export interface ToolDefinition {
   name: string;
-  config: { description: string; inputSchema: ZodRawShape };
-  handler: ToolCallback<ZodRawShape>;
+  config: { description: string; inputSchema: ZodObject };
+  handler: BaseToolCallback<CallToolResult, ServerContext, ZodObject>;
 }
 
 // ---------------------------------------------------------------------------

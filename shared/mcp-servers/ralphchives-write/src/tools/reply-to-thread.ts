@@ -6,10 +6,10 @@ interface PostResponse {
   tid: number;
 }
 
-const inputSchema: Record<string, z.ZodTypeAny> = {
+const inputSchema = z.object({
   topicId: z.number().int().describe("Topic ID to reply to (from search_ralphchives or list_recent_topics)"),
   content: z.string().describe("Reply content in markdown"),
-};
+});
 
 export const tool: ToolDefinition = {
   name: "reply_to_thread",

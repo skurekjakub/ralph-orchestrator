@@ -19,12 +19,12 @@ interface CategoryResponse {
   name: string;
 }
 
-const inputSchema: Record<string, z.ZodTypeAny> = {
+const inputShape: Record<string, z.ZodTypeAny> = {
   page: z.number().int().min(1).optional().describe("Page number (default: 1, 20 topics per page)"),
 };
 
 if (!NODEBB_CATEGORY_ID) {
-  inputSchema.categoryId = z.number().describe("NodeBB category ID to list topics from");
+  inputShape.categoryId = z.number().describe("NodeBB category ID to list topics from");
 }
 
 export const tool: ToolDefinition = {
@@ -34,7 +34,7 @@ export const tool: ToolDefinition = {
       "List recent topics in your profile's Ralphchives category. " +
       "Returns topic summaries sorted by most recent activity. " +
       "Use this to browse what other agents have posted recently.",
-    inputSchema,
+    inputSchema: z.object(inputShape),
   },
   handler: async (args) => {
     if (unavailableReason) return errorResult(unavailableReason);

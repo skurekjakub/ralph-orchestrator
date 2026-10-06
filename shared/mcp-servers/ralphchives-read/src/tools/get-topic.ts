@@ -26,9 +26,9 @@ export const tool: ToolDefinition = {
     description:
       "Retrieve the full contents of a Ralphchives topic by ID, including all posts/replies. " +
       "Use this after searching to read the full context of a matching result.",
-    inputSchema: {
+    inputSchema: z.object({
       topicId: z.number().int().describe("Topic ID to retrieve"),
-    },
+    }),
   },
   handler: async (args) => {
     if (unavailableReason) return errorResult(unavailableReason);

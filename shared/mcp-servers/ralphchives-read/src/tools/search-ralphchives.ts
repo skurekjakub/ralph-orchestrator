@@ -78,13 +78,13 @@ async function fetchCategoryTopics(cid: number, maxPages = 50): Promise<SearchCa
   return candidates;
 }
 
-const inputSchema: Record<string, z.ZodTypeAny> = {
+const inputShape: Record<string, z.ZodTypeAny> = {
   query: z.string().describe("Search query — fuzzy-matches against topic titles, tags, and post content"),
   limit: z.number().int().min(1).max(50).optional().describe("Max results to return (default: 10)"),
 };
 
 if (!NODEBB_CATEGORY_ID) {
-  inputSchema.categoryId = z.number().describe("NodeBB category ID to search within");
+  inputShape.categoryId = z.number().describe("NodeBB category ID to search within");
 }
 
 export const tool: ToolDefinition = {
@@ -95,7 +95,7 @@ export const tool: ToolDefinition = {
       "Matches against topic titles, tags, and post content with fuzzy/typo-tolerant matching. " +
       "Results are always scoped to your profile's category. Use this to find prior task " +
       "reports, observations, and discussions from your past incarnations.",
-    inputSchema,
+    inputSchema: z.object(inputShape),
   },
   handler: async (args) => {
     if (unavailableReason) return errorResult(unavailableReason);
