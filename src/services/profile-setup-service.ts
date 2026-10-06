@@ -1,13 +1,13 @@
-import type { Logger } from "../logger.js";
-import type { TaskContext } from "./task-context.js";
+import type { Logger } from "../logger";
+import type { TaskContext } from "./task-context";
 import {
   buildTemplateContext,
   type StageOverrides,
   type IAgentTemplateRenderer,
-} from "../container/setup/agent-includes.js";
-import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
-import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
-import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer.js";
+} from "../container/setup/agent-includes";
+import type { ISkillTemplateRenderer } from "../container/setup/skill-includes";
+import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params";
+import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer";
 
 /** Coordinates all profile artifact writes before and between pipeline stages. */
 export interface IProfileSetupService {

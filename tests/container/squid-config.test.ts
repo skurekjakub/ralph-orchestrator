@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { generateProfileSquidConf } from "../../src/container/setup/squid-config.js";
-import { createTempDir } from "../helpers/mcp-fs.js";
+import { generateProfileSquidConf } from "../../src/container/setup/squid-config";
+import { createTempDir } from "../helpers/mcp-fs";
 
 const BASELINE_CONTENT = [
   "acl allowed_domains dstdomain .githubcopilot.com",

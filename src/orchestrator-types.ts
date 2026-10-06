@@ -1,6 +1,6 @@
-import { TaskStatus } from "./container/types.js";
-import type { IAgentProfile } from "./config/types.js";
-import type { WorkItem } from "./datasource/types.js";
+import { TaskStatus } from "./container/types";
+import type { IAgentProfile } from "./config/types";
+import type { WorkItem } from "./datasource/types";
 
 /** Tracks the currently executing task. Null when the orchestrator is idle. */
 export interface ActiveTask {

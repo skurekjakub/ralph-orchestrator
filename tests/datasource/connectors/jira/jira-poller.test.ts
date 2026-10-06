@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { JiraWorkItemPoller } from "../../../../src/datasource/connectors/jira/jira-poller.js";
-import { createSilentLogger } from "../../../helpers/mocks.js";
-import { makeWorkItem } from "../../../helpers/factories.js";
-import type { IWorkItemSource } from "../../../../src/datasource/connector.js";
+import { JiraWorkItemPoller } from "../../../../src/datasource/connectors/jira/jira-poller";
+import { createSilentLogger } from "../../../helpers/mocks";
+import { makeWorkItem } from "../../../helpers/factories";
+import type { IWorkItemSource } from "../../../../src/datasource/connector";
 
 function createMockSource(items: ReturnType<typeof makeWorkItem>[] = []): IWorkItemSource {
   return {

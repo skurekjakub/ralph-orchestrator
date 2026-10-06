@@ -4,14 +4,14 @@ import {
   mapCommentToWorkItemComment,
   mapAttachmentToWorkItemAttachment,
   mapTransitionToWorkItemTransition,
-} from "../../../../src/datasource/connectors/jira/jira-mapper.js";
+} from "../../../../src/datasource/connectors/jira/jira-mapper";
 import type {
   JiraIssue,
   JiraComment,
   JiraAttachment,
   JiraTransition,
-} from "../../../../src/datasource/connectors/jira/jira-types.js";
-import { makeIssue, makeComment } from "../../../helpers/factories.js";
+} from "../../../../src/datasource/connectors/jira/jira-types";
+import { makeIssue, makeComment } from "../../../helpers/factories";
 
 describe("mapIssueToWorkItem", () => {
   it("maps all standard fields", () => {

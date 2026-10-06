@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeWorkItem, makeProfile } from "../helpers/factories.js";
+import { ProfileRouter } from "../../src/services/profile-router";
+import { makeWorkItem, makeProfile } from "../helpers/factories";
 const PROJECT = "DF";
 const KEY = "DF-1";
 const PID = "ralph-docs";

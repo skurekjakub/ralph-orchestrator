@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime.js";
-import { CliType } from "../../../src/config/types.js";
+import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime";
+import { CliType } from "../../../src/config/types";
 
 describe("CopilotRuntime", () => {
   it("describes the Copilot CLI", () => {

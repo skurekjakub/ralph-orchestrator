@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { consoleLogger, type Logger } from "../src/logger.js";
+import { consoleLogger, type Logger } from "../src/logger";
 
 describe("Logger", () => {
   it("consoleLogger.info calls console.log", () => {

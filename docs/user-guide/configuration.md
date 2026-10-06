@@ -50,9 +50,9 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 }
 ```
 
-| Field     | Type       | Default | Description                                                                                 |
-| --------- | ---------- | ------- | ------------------------------------------------------------------------------------------- |
-| `plugins` | `string[]` | `[]`    | Module specifiers loaded at startup. Each must call `registerDataSourceFactory()` on import |
+| Field     | Type       | Default | Description                                                                                                                                                                                              |
+| --------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins` | `string[]` | `[]`    | Module specifiers loaded at startup. Each must call `registerDataSourceFactory()` on import. Relative paths resolve against the working directory; other entries resolve as packages from `node_modules` |
 
 Built-in plugins (JIRA) are loaded automatically.
 

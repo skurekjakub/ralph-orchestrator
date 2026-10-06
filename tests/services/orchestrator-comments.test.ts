@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { OrchestratorComments } from "../../src/services/orchestrator-comments.js";
-import { TransitionPhase } from "../../src/orchestrator-types.js";
+import { OrchestratorComments } from "../../src/services/orchestrator-comments";
+import { TransitionPhase } from "../../src/orchestrator-types";
 
 describe("OrchestratorComments", () => {
   it("ack includes the agent display name", () => {

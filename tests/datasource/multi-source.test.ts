@@ -6,16 +6,12 @@
  * to the correct data source by key.
  */
 import { describe, it, expect } from "vitest";
-import {
-  registerDataSourceFactory,
-  buildDataSourceMaps,
-  type DataSourceFactory,
-} from "../../src/datasource/registry.js";
-import { makeConfig, makeProfile, makeDataSourceConfig, makeWorkItem } from "../helpers/factories.js";
-import type { IDataSourceConnector } from "../../src/datasource/connector.js";
-import type { IWorkItemPoller } from "../../src/datasource/poller.js";
-import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
-import type { IDataSourceConfig, IAgentProfile } from "../../src/config/types.js";
+import { registerDataSourceFactory, buildDataSourceMaps, type DataSourceFactory } from "../../src/datasource/registry";
+import { makeConfig, makeProfile, makeDataSourceConfig, makeWorkItem } from "../helpers/factories";
+import type { IDataSourceConnector } from "../../src/datasource/connector";
+import type { IWorkItemPoller } from "../../src/datasource/poller";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
+import type { IDataSourceConfig, IAgentProfile } from "../../src/config/types";
 
 // ── Minimal stub connector + poller for test factories ────────────────────────
 

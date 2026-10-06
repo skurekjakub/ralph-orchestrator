@@ -2,10 +2,10 @@ import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Liquid } from "liquidjs";
-import type { Logger } from "../../logger.js";
-import { normalizeContent } from "../../prompt/normalizer.js";
-import { registerCustomTags } from "./liquid-tags.js";
-import { TaskContext } from "../../services/task-context.js";
+import type { Logger } from "../../logger";
+import { normalizeContent } from "../../prompt/normalizer";
+import { registerCustomTags } from "./liquid-tags";
+import { TaskContext } from "../../services/task-context";
 
 /**
  * Render agent templates to resolved `.agent.md` files in `.build/`.

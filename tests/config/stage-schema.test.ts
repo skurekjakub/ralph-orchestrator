@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { configFileSchema, stageSchema } from "../../src/config/schemas.js";
-import { ClaudeAuthMode, CliType, ReasoningEffort } from "../../src/config/types.js";
+import { configFileSchema, stageSchema } from "../../src/config/schemas";
+import { ClaudeAuthMode, CliType, ReasoningEffort } from "../../src/config/types";
 
 const BASE_STAGE = { agent: "ralph.ralph", role: "primary" };
 

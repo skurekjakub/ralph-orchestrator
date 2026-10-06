@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ValidationCollector } from "./types.js";
+import type { ValidationCollector } from "./types";
 
 export function validateEnvFile({ errors, warnings }: ValidationCollector): void {
   const envPath = resolve(process.cwd(), ".env");

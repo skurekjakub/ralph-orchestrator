@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildPrompt, type IssueContext } from "../../src/prompt/prompt.js";
-import { makeWorkItem } from "../helpers/factories.js";
+import { buildPrompt, type IssueContext } from "../../src/prompt/prompt";
+import { makeWorkItem } from "../helpers/factories";
 
 // ── Prompt building tests ────────────────────────────────
 // Tests the prompt construction logic that transforms JIRA issue fields

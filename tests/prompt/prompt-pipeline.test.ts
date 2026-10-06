@@ -9,12 +9,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { PromptBuilder } from "../../src/prompt/prompt-builder.js";
-import { AuditMode } from "../../src/prompt/prompt-auditor.js";
-import type { JiraIssue } from "../../src/datasource/connectors/jira/jira-types.js";
-import type { IssueContext } from "../../src/prompt/prompt.js";
-import { createSilentLogger } from "../helpers/mocks.js";
-import { mapIssueToWorkItem } from "../../src/datasource/connectors/jira/jira-mapper.js";
+import { PromptBuilder } from "../../src/prompt/prompt-builder";
+import { AuditMode } from "../../src/prompt/prompt-auditor";
+import type { JiraIssue } from "../../src/datasource/connectors/jira/jira-types";
+import type { IssueContext } from "../../src/prompt/prompt";
+import { createSilentLogger } from "../helpers/mocks";
+import { mapIssueToWorkItem } from "../../src/datasource/connectors/jira/jira-mapper";
 
 const FIXTURES_DIR = resolve(import.meta.dirname, "fixtures");
 const EXCLUDE_FIELDS = ["customfield_19181", "customfield_19222", "customfield_11500"];

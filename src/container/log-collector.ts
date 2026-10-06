@@ -1,9 +1,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
-import type { IComposeClient } from "./compose-client.js";
-import type { Logger } from "../logger.js";
-import { toErrorMessage } from "../util/error.js";
+import type { IComposeClient } from "./compose-client";
+import type { Logger } from "../logger";
+import { toErrorMessage } from "../util/error";
 
 /** How a log source should be captured. */
 export enum CaptureMode {

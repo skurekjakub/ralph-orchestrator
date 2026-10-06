@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { RepoSyncHook, ensureGitExclude } from "../../src/container/lifecycle.js";
-import { makeProfile, makeTaskContext, makeWorkItem } from "../helpers/factories.js";
-import { createMockContainer, createMockLogger } from "../helpers/mocks.js";
-import { VcsProvider } from "../../src/config/types.js";
+import { RepoSyncHook, ensureGitExclude } from "../../src/container/lifecycle";
+import { makeProfile, makeTaskContext, makeWorkItem } from "../helpers/factories";
+import { createMockContainer, createMockLogger } from "../helpers/mocks";
+import { VcsProvider } from "../../src/config/types";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { slugifyBranchName } from "../../src/util/branch.js";
+import { slugifyBranchName } from "../../src/util/branch";
 
 vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();

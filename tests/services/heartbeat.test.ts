@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { HeartbeatSender, HeartbeatStatus, type HeartbeatPayload } from "../../src/services/heartbeat.js";
-import { createMockLogger } from "../helpers/mocks.js";
-import type { Logger } from "../../src/logger.js";
+import { HeartbeatSender, HeartbeatStatus, type HeartbeatPayload } from "../../src/services/heartbeat";
+import { createMockLogger } from "../helpers/mocks";
+import type { Logger } from "../../src/logger";
 
 function makePayload(overrides: Partial<HeartbeatPayload> = {}): HeartbeatPayload {
   return {

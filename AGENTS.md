@@ -29,12 +29,12 @@ No quick fixes. Always diagnose to the root cause and devise proper solutions. N
 Safe (local only, no external side effects):
 
 ```bash
-npm run lint         # tsc --noEmit (src + tests) + eslint . + prettier --check . (lint fails on unformatted files)
+npm run lint         # tsc type-check (src + tests) + eslint . + prettier --check . (lint fails on unformatted files)
 npm run format       # prettier --write . + eslint --fix (the format-on-edit hook does this per edited file)
 npm test             # lint + build + vitest run (CI runs these three gates as separate steps)
 npm run test:watch   # vitest watch, no lint/build
 npx vitest run tests/services/task-runner.test.ts   # single file
-npm run build        # rm -rf dist && tsc
+npm run build        # esbuild bundles src/index.tsx into dist/index.js; npm packages stay external
 npm run validate     # env/config/profiles/security checks + `docker info`
 npm run prompt:vis   # print the agent → include → skill graph (scripts/visualize-agent-graph.ts)
 npm run dashboard    # dashboard-local Vite dev server on :3101 (reads output/logs/)
@@ -139,7 +139,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - On restart, active operations are marked `error`.
   - Each trigger is consumed once per `variantKey`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.
-- **Data-source plugins.** `BUILTIN_PLUGINS` (`src/app-startup.ts`) and `config.plugins` are `import()`ed. Each module calls `registerDataSourceFactory()`, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
+- **Data-source plugins.** `BUILTIN_PLUGINS` (`src/app-startup.ts`) imports each built-in with a literal `import()`, so the bundle includes it. `config.plugins` entries are `import()`ed at runtime: relative paths resolve against the working directory, anything else as a package. Each module calls `registerDataSourceFactory()`, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
 - **Stages and post-task hooks.**
   - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort` and `maxBudgetUsd`, and `requireResultBlock` (default true for variant stages, false for hook stages); `deriveStageProfile` applies the stage overrides.
   - `local` stages run `copilot` on the host with cwd = this repo root. They symlink rendered agents into `.github/agents/` and write `.ralph/` here.
@@ -148,7 +148,9 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 ## Conventions
 
-- ESM only (`"type": "module"`, NodeNext); relative imports use `.js` extensions. `execa` v10 for subprocesses. Native `fetch` against JIRA REST v3, no SDK.
+- ESM only (`"type": "module"`). esbuild bundles the orchestrator; `tsconfig.json` only type-checks (`moduleResolution: "bundler"`, `isolatedModules`).
+- **Relative imports are extensionless**: `./foo`, `../dir/index`, never `./foo.js` or `./foo.ts`. esbuild, tsx and Vitest resolve them, and ESLint rejects an extension. `.json` imports keep theirs.
+- `execa` v10 for subprocesses. Native `fetch` against JIRA REST v3, no SDK.
 - **Never re-export** (`export … from`). Update the import site to the defining module.
 - **No backward-compat wrappers, adapters or shims.** When something moves, update every call site.
 - **Enums for fixed string sets** (`OperationStatus`, `StageMode`, `AuditMode`, `VcsProvider`), not string-literal unions. Zod `z.enum` validates the raw JSON.

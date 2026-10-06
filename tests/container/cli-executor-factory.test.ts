@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { CliExecutorFactory } from "../../src/container/cli-executor-factory.js";
-import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
-import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor.js";
-import { makeConfig, makeProfile } from "../helpers/factories.js";
-import { createMockCompose, createMockLogger } from "../helpers/mocks.js";
+import { CliExecutorFactory } from "../../src/container/cli-executor-factory";
+import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
+import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
+import { makeConfig, makeProfile } from "../helpers/factories";
+import { createMockCompose, createMockLogger } from "../helpers/mocks";
 
 const { compose: mockCompose } = createMockCompose();
 const mockLogger = createMockLogger();

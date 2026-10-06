@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { resolveAllProfileSetup, generatePreInitScript } from "../../src/container/setup/profile-setup.js";
-import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { resolveAllProfileSetup, generatePreInitScript } from "../../src/container/setup/profile-setup";
+import { createTempDir, writeManifest } from "../helpers/mcp-fs";
+import { createMockLogger } from "../helpers/mocks";
 
 /** A schema-valid profile.json with one single-stage variant, merged with `overrides`. */
 function profileJson(overrides: Record<string, unknown> = {}): string {

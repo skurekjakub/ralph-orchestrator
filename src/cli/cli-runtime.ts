@@ -1,6 +1,6 @@
-import type { CliType } from "../config/types.js";
-import type { ICliCredentialPolicy } from "./credential-catalog.js";
-import type { ICliModelPolicy } from "./model-catalog.js";
+import type { CliType } from "../config/types";
+import type { ICliCredentialPolicy } from "./credential-catalog";
+import type { ICliModelPolicy } from "./model-catalog";
 
 /** Whether a CLI writes its debug log to one file or to files inside a directory. */
 export enum CliDebugLogKind {

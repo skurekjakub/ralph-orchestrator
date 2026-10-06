@@ -1,4 +1,4 @@
-import type { ValidationCollector } from "./types.js";
+import type { ValidationCollector } from "./types";
 
 export async function validateDocker({ errors }: ValidationCollector): Promise<void> {
   try {

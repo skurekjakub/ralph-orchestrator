@@ -1,6 +1,6 @@
-import type { IAgentProfile, IStageConfig, StageMode } from "../config/types.js";
-import { IContainerManager } from "./manager.js";
-import type { ICliExecutor } from "./cli-executor-factory.js";
+import type { IAgentProfile, IStageConfig, StageMode } from "../config/types";
+import { IContainerManager } from "./manager";
+import type { ICliExecutor } from "./cli-executor-factory";
 
 /** Filesystem paths specific to the chosen CLI (Copilot or Claude Code). */
 export interface CliPaths {
@@ -25,7 +25,7 @@ export interface ContainerExecResult {
 /**
  * Factory for creating {@link ContainerManager} instances.
  */
-import type { IAgentSessionRunner } from "./agent-session-runner.js";
+import type { IAgentSessionRunner } from "./agent-session-runner";
 
 export interface ContainerManagerFactory {
   create(profile: IAgentProfile): IContainerManager;

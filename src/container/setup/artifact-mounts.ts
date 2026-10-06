@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout.js";
+import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout";
 
 /**
  * Discover agent `.agent.md` templates and generate Docker Compose volume mounts.

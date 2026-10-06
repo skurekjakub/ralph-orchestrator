@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { McpServerType, loadMcpManifest, resolveToolAllowlist } from "./mcp-manifest.js";
+import { McpServerType, loadMcpManifest, resolveToolAllowlist } from "./mcp-manifest";
 
 /** MCP config entry for URL-based remote servers (Streamable HTTP). */
 interface McpConfigUrlEntry {

@@ -1,12 +1,12 @@
 import { execa, ExecaError, type ResultPromise } from "execa";
 import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { IAgentProfile } from "../../config/types.js";
-import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog.js";
-import type { ContainerExecResult, CliPaths } from "../types.js";
-import type { Logger } from "../../logger.js";
-import type { ICliExecutor } from "../cli-executor-factory.js";
-import { StreamCapture } from "../stream-capture.js";
+import type { IAgentProfile } from "../../config/types";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import type { ContainerExecResult, CliPaths } from "../types";
+import type { Logger } from "../../logger";
+import type { ICliExecutor } from "../cli-executor-factory";
+import { StreamCapture } from "../stream-capture";
 
 /**
  * Executes the Copilot CLI directly on the host machine (no Docker).

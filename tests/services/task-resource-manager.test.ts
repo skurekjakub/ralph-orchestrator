@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { TaskResourceManager } from "../../src/services/task-resource-manager.js";
-import { makeWorkItemComment } from "../helpers/factories.js";
-import { createMockConnector, createMockLogger } from "../helpers/mocks.js";
-import type { IDataSourceConnector } from "../../src/datasource/connector.js";
+import { TaskResourceManager } from "../../src/services/task-resource-manager";
+import { makeWorkItemComment } from "../helpers/factories";
+import { createMockConnector, createMockLogger } from "../helpers/mocks";
+import type { IDataSourceConnector } from "../../src/datasource/connector";
 
 const DS = "mock";
 const KEY = "DF-100";

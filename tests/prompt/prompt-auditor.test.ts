@@ -7,7 +7,7 @@ import {
   formatAuditFindings,
   type PromptSection,
   type AuditFinding,
-} from "../../src/prompt/prompt-auditor.js";
+} from "../../src/prompt/prompt-auditor";
 
 // ── Helper ──────────────────────────────────────────────
 function section(

@@ -3,9 +3,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveSkillIncludes, SkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
-import { createMockLogger } from "../helpers/mocks.js";
-import { makeTemplateContext } from "../helpers/factories.js";
+import { resolveSkillIncludes, SkillTemplateRenderer } from "../../src/container/setup/skill-includes";
+import { createMockLogger } from "../helpers/mocks";
+import { makeTemplateContext } from "../helpers/factories";
 
 let tmpDir: string;
 let originalCwd: string;

@@ -1,4 +1,4 @@
-import type { AuditMode } from "../prompt/prompt-auditor.js";
+import type { AuditMode } from "../prompt/prompt-auditor";
 
 // ---------------------------------------------------------------------------
 // Runtime types (post-resolution)

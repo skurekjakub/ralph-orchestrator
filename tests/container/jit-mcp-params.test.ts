@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { GatewayConfig } from "../../src/container/setup/mcp-config.js";
-import { McpServerType } from "../../src/container/setup/mcp-manifest.js";
-import { makeWorkItem, makeProfile } from "../helpers/factories.js";
-import { createSilentLogger, createMockLogger } from "../helpers/mocks.js";
+import type { GatewayConfig } from "../../src/container/setup/mcp-config";
+import { McpServerType } from "../../src/container/setup/mcp-manifest";
+import { makeWorkItem, makeProfile } from "../helpers/factories";
+import { createSilentLogger, createMockLogger } from "../helpers/mocks";
 const PID = "ralph-docs";
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -16,7 +16,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const { existsSync, readFileSync, writeFileSync } = await import("node:fs");
-const { JitMcpConfigWriter } = await import("../../src/container/setup/jit-mcp-params.js");
+const { JitMcpConfigWriter } = await import("../../src/container/setup/jit-mcp-params");
 
 function makeGateway(servers: GatewayConfig["servers"] = []): GatewayConfig {
   return { servers };

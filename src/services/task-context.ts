@@ -1,8 +1,8 @@
-import type { IAgentProfile, IRalphchivesConfig } from "../config/types.js";
-import type { WorkItem } from "../datasource/types.js";
-import { buildTriggerParams } from "../container/setup/agent-includes.js";
+import type { IAgentProfile, IRalphchivesConfig } from "../config/types";
+import type { WorkItem } from "../datasource/types";
+import { buildTriggerParams } from "../container/setup/agent-includes";
 import { join } from "node:path";
-import { slugifyBranchName } from "../util/branch.js";
+import { slugifyBranchName } from "../util/branch";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {

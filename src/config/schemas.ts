@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClaudeAuthMode, CliType, ReasoningEffort, StageMode, VcsProvider } from "./types.js";
+import { ClaudeAuthMode, CliType, ReasoningEffort, StageMode, VcsProvider } from "./types";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for config.json (global settings only)

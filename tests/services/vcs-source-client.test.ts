@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { VcsProvider } from "../../src/config/types.js";
-import { VcsSourceClient } from "../../src/services/vcs-source-client.js";
-import { makeProfile } from "../helpers/factories.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { VcsProvider } from "../../src/config/types";
+import { VcsSourceClient } from "../../src/services/vcs-source-client";
+import { makeProfile } from "../helpers/factories";
+import { createMockLogger } from "../helpers/mocks";
 
 describe("VcsSourceClient", () => {
   const client = new VcsSourceClient();

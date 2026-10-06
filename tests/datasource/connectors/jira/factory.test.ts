@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createJiraDataSource } from "../../../../src/datasource/connectors/jira/factory.js";
-import { makeDataSourceConfig, makeProfile } from "../../../helpers/factories.js";
+import { createJiraDataSource } from "../../../../src/datasource/connectors/jira/factory";
+import { makeDataSourceConfig, makeProfile } from "../../../helpers/factories";
 
 const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
 const savedEnv: Record<string, string | undefined> = {};

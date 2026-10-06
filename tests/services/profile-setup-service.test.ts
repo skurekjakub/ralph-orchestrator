@@ -10,15 +10,15 @@
  * not on their internal behavior.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ProfileSetupService } from "../../src/services/profile-setup-service.js";
+import { ProfileSetupService } from "../../src/services/profile-setup-service";
 import {
   createMockTemplateRenderer,
   createMockSkillRenderer,
   createMockJitMcpConfigWriter,
   createMockOverlayWriter,
   createSilentLogger,
-} from "../helpers/mocks.js";
-import { makeTaskContext } from "../helpers/factories.js";
+} from "../helpers/mocks";
+import { makeTaskContext } from "../helpers/factories";
 
 function createService() {
   const templateRenderer = createMockTemplateRenderer();

@@ -1,4 +1,4 @@
-import type { JiraIssue } from "./jira-types.js";
+import type { JiraIssue } from "./jira-types";
 
 /**
  * Patterns that identify boilerplate JIRA field content — form templates,

@@ -6,16 +6,16 @@
  * transition ID resolution happen inside this connector.
  */
 
-import type { IJiraClient } from "./jira-client.js";
-import type { IDataSourceConnector, ISupportsAttachments, ISupportsTransitions, SourceQuery } from "../../connector.js";
-import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types.js";
-import type { Logger } from "../../../logger.js";
+import type { IJiraClient } from "./jira-client";
+import type { IDataSourceConnector, ISupportsAttachments, ISupportsTransitions, SourceQuery } from "../../connector";
+import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types";
+import type { Logger } from "../../../logger";
 import {
   mapIssueToWorkItem,
   mapCommentToWorkItemComment,
   mapAttachmentToWorkItemAttachment,
   mapTransitionToWorkItemTransition,
-} from "./jira-mapper.js";
+} from "./jira-mapper";
 
 /** JIRA issue key pattern: one or more uppercase letters, dash, one or more digits. */
 const JIRA_KEY_PATTERN = /^[A-Z][A-Z0-9]*-\d+$/;

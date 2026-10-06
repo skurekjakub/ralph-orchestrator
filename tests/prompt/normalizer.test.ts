@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeContent, needsNormalization } from "../../src/prompt/normalizer.js";
+import { normalizeContent, needsNormalization } from "../../src/prompt/normalizer";
 
 describe("Content normalizer", () => {
   // ── Invisible character removal ──

@@ -1,10 +1,10 @@
 import { execa } from "execa";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { IContainerManager } from "./manager.js";
-import type { Logger } from "../logger.js";
-import type { TaskContext } from "../services/task-context.js";
-import { VcsProvider } from "../config/types.js";
+import type { IContainerManager } from "./manager";
+import type { Logger } from "../logger";
+import type { TaskContext } from "../services/task-context";
+import { VcsProvider } from "../config/types";
 
 /**
  * A pre-execution hook that runs between container setup and agent execution.

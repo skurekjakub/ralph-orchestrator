@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { IssueManager } from "../../src/services/issue-manager.js";
-import { TransitionPhase } from "../../src/orchestrator-types.js";
-import { createMockConnector, createMockLogger } from "../helpers/mocks.js";
-import { makeWorkItem } from "../helpers/factories.js";
-import type { IDataSourceConnector } from "../../src/datasource/connector.js";
+import { IssueManager } from "../../src/services/issue-manager";
+import { TransitionPhase } from "../../src/orchestrator-types";
+import { createMockConnector, createMockLogger } from "../helpers/mocks";
+import { makeWorkItem } from "../helpers/factories";
+import type { IDataSourceConnector } from "../../src/datasource/connector";
 
 const DS = "mock";
 const KEY = "DF-100";

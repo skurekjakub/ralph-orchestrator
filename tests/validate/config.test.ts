@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { ValidationCollector } from "../../src/validate/types.js";
-import { validateConfigFile } from "../../src/validate/config.js";
+import type { ValidationCollector } from "../../src/validate/types";
+import { validateConfigFile } from "../../src/validate/config";
 
 const CREDENTIAL_VARS = ["ADO_PAT", "GH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"];
 

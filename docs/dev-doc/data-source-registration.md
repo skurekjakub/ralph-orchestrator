@@ -173,7 +173,7 @@ Then reference the data source key in a profile:
 ## Plugin Loading Order
 
 1. **Built-in plugins** — `BUILTIN_PLUGINS` array in `app-startup.ts` (currently just JIRA)
-2. **User plugins** — `config.plugins` array, in declaration order
+2. **User plugins** — `config.plugins` array, in declaration order. Relative paths resolve against the working directory; other entries are package specifiers resolved from `node_modules`
 
 All plugins are loaded via dynamic `import()` before the DI container is created. Each plugin must self-register synchronously during module evaluation (top-level `registerDataSourceFactory()` call).
 
@@ -181,7 +181,7 @@ Duplicate type registrations throw immediately — two plugins cannot claim the 
 
 ## Built-in JIRA Connector
 
-The JIRA connector follows the exact same registration pattern as third-party plugins. Its factory lives at `src/datasource/connectors/jira/factory.ts` and is loaded as a built-in plugin (not via a static import).
+The JIRA connector follows the exact same registration pattern as third-party plugins. Its factory lives at `src/datasource/connectors/jira/factory.ts` and is loaded as a built-in plugin: `BUILTIN_PLUGINS` imports it with a literal `import()`, so the esbuild bundle includes it and it still loads in the startup order above.
 
 ## Key Interfaces
 

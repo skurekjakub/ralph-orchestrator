@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { classifyFailure } from "../../src/logs/collector.js";
-import { makeResult } from "../helpers/factories.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { classifyFailure } from "../../src/logs/collector";
+import { makeResult } from "../helpers/factories";
+import { TaskStatus } from "../../src/container/types";
 
 describe("classifyFailure", () => {
   it("classifies short run with no output as infra", () => {

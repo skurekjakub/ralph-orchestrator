@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
-import { TaskStatus } from "../../src/container/types.js";
-import { ProfileRouter } from "../../src/services/profile-router.js";
-import { extractAdfText } from "../../src/datasource/connectors/jira/adf-converter.js";
-import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
+import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger";
+import { TaskStatus } from "../../src/container/types";
+import { ProfileRouter } from "../../src/services/profile-router";
+import { extractAdfText } from "../../src/datasource/connectors/jira/adf-converter";
+import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories";
 
 const DS = "jira";
 const TS = "2026-01-01T00:00:00Z";

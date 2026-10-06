@@ -1,17 +1,17 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { Logger } from "../../logger.js";
-import { readProfileFile, resolveProfileVariants } from "../../config/profile-variants.js";
-import type { ProfileFile } from "../../config/schemas.js";
-import type { IAgentProfile } from "../../config/types.js";
-import { toErrorMessage } from "../../util/error.js";
-import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
-import { generateComposeOverlay } from "./compose-overlay.js";
-import { generateProfileSquidConf } from "./squid-config.js";
-import { generateResourceVolumeMounts } from "./resource-mounts.js";
-import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
-import { writeCopilotConfig } from "./url-restrictions.js";
-import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest.js";
+import type { Logger } from "../../logger";
+import { readProfileFile, resolveProfileVariants } from "../../config/profile-variants";
+import type { ProfileFile } from "../../config/schemas";
+import type { IAgentProfile } from "../../config/types";
+import { toErrorMessage } from "../../util/error";
+import { generateMcpConfig, generateGatewayConfig } from "./mcp-config";
+import { generateComposeOverlay } from "./compose-overlay";
+import { generateProfileSquidConf } from "./squid-config";
+import { generateResourceVolumeMounts } from "./resource-mounts";
+import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts";
+import { writeCopilotConfig } from "./url-restrictions";
+import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest";
 
 /**
  * Generate a `pre-init.sh` script that sources each active server's `initScript`

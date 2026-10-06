@@ -10,7 +10,7 @@
  * whether a connector supports optional operations before calling them.
  */
 
-import type { WorkItem, WorkItemAttachment, WorkItemComment, WorkItemTransition } from "./types.js";
+import type { WorkItem, WorkItemAttachment, WorkItemComment, WorkItemTransition } from "./types";
 
 /**
  * A query string or object understood by the source system.

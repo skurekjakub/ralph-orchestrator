@@ -1,7 +1,7 @@
 import { accessSync, constants, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CONTAINER_HOOKS_DIR, HOOKS_DIR, HookSandbox, loadPayloads } from "./hook-harness.js";
+import { CONTAINER_HOOKS_DIR, HOOKS_DIR, HookSandbox, loadPayloads } from "./hook-harness";
 
 interface ClaudeHookCommand {
   readonly type: string;

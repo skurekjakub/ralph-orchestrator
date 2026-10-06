@@ -8,13 +8,13 @@
  * a factory that produces a real connector instance backed by mock infrastructure.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { JiraConnector } from "../../src/datasource/connectors/jira/jira-connector.js";
-import { supportsTransitions, supportsAttachments, type IDataSourceConnector } from "../../src/datasource/connector.js";
-import type { WorkItem, WorkItemComment, WorkItemTransition, WorkItemAttachment } from "../../src/datasource/types.js";
-import { createMockJiraClient } from "../helpers/mocks.js";
-import { makeIssue, makeComment } from "../helpers/factories.js";
-import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client.js";
-import type { JiraAttachment, JiraTransition } from "../../src/datasource/connectors/jira/jira-types.js";
+import { JiraConnector } from "../../src/datasource/connectors/jira/jira-connector";
+import { supportsTransitions, supportsAttachments, type IDataSourceConnector } from "../../src/datasource/connector";
+import type { WorkItem, WorkItemComment, WorkItemTransition, WorkItemAttachment } from "../../src/datasource/types";
+import { createMockJiraClient } from "../helpers/mocks";
+import { makeIssue, makeComment } from "../helpers/factories";
+import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client";
+import type { JiraAttachment, JiraTransition } from "../../src/datasource/connectors/jira/jira-types";
 
 // ── Compliance test runner ────────────────────────────────────────────────────
 

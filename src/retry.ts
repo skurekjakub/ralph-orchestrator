@@ -1,4 +1,4 @@
-import type { Logger } from "./logger.js";
+import type { Logger } from "./logger";
 
 export interface RetryOptions {
   /** Maximum number of attempts (default: 3). */

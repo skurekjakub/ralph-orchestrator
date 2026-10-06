@@ -1,9 +1,9 @@
-import type { RalphResult } from "../container/types.js";
-import type { Logger } from "../logger.js";
-import type { IContainerManager } from "../container/manager.js";
-import type { ILogCollector } from "../logs/collector.js";
-import type { IResourceManager } from "./task-resource-manager.js";
-import type { TaskContext } from "./task-context.js";
+import type { RalphResult } from "../container/types";
+import type { Logger } from "../logger";
+import type { IContainerManager } from "../container/manager";
+import type { ILogCollector } from "../logs/collector";
+import type { IResourceManager } from "./task-resource-manager";
+import type { TaskContext } from "./task-context";
 
 /** Collects container logs, attaches transcripts, and saves execution summaries. */
 export interface ITaskResultWriter {

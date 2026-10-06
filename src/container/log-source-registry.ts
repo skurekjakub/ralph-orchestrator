@@ -1,6 +1,6 @@
-import type { IAgentProfile } from "../config/types.js";
-import { CaptureMode, type IContainerLogCollector } from "./log-collector.js";
-import type { CliPaths } from "./types.js";
+import type { IAgentProfile } from "../config/types";
+import { CaptureMode, type IContainerLogCollector } from "./log-collector";
+import type { CliPaths } from "./types";
 
 /** Path to the CLI session-state directory inside the container. */
 const SESSION_STATE_PATH = "/workspace/.ralph/session-state";

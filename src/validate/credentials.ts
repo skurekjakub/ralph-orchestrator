@@ -1,6 +1,6 @@
-import { credentialPolicyFor } from "../cli/credential-catalog.js";
-import type { ClaudeAuthMode, CliType, IAgentProfile } from "../config/types.js";
-import type { ValidationCollector } from "./types.js";
+import { credentialPolicyFor } from "../cli/credential-catalog";
+import type { ClaudeAuthMode, CliType, IAgentProfile } from "../config/types";
+import type { ValidationCollector } from "./types";
 
 /**
  * Validate that the credential of every CLI some stage runs is set.

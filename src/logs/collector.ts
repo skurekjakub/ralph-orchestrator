@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { IOutputConfig } from "../config/types.js";
-import type { RalphResult } from "../container/types.js";
+import type { IOutputConfig } from "../config/types";
+import type { RalphResult } from "../container/types";
 
 /** Failure categories for automated triage of non-successful runs. */
 export type FailureCategory = "infra" | "task" | "timeout" | "unknown";

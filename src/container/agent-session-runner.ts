@@ -1,11 +1,11 @@
-import type { WorkItem } from "../datasource/types.js";
-import type { RalphResult } from "./types.js";
-import type { Logger } from "../logger.js";
-import type { PromptBuilder } from "../prompt/prompt-builder.js";
-import type { IssueContext } from "../prompt/prompt.js";
-import { parseResultBlock, resolveStatus } from "./result-parser.js";
-import type { ICliExecutor } from "./cli-executor-factory.js";
-import type { IContinuationRunner } from "./continuation-runner.js";
+import type { WorkItem } from "../datasource/types";
+import type { RalphResult } from "./types";
+import type { Logger } from "../logger";
+import type { PromptBuilder } from "../prompt/prompt-builder";
+import type { IssueContext } from "../prompt/prompt";
+import { parseResultBlock, resolveStatus } from "./result-parser";
+import type { ICliExecutor } from "./cli-executor-factory";
+import type { IContinuationRunner } from "./continuation-runner";
 
 /** Options controlling a single agent session execution. */
 export interface AgentSessionOptions {

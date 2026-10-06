@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { configFileSchema } from "../config/schemas.js";
-import { validateCliCredentials } from "./credentials.js";
-import { validateProfiles } from "./profiles.js";
-import type { ValidationCollector } from "./types.js";
+import { configFileSchema } from "../config/schemas";
+import { validateCliCredentials } from "./credentials";
+import { validateProfiles } from "./profiles";
+import type { ValidationCollector } from "./types";
 
 /**
  * Validate config.json, the profiles, and the credentials of the CLIs the profiles' stages run

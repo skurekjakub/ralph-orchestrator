@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach } from "vitest";
 import { readdir, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { resolveAgentIncludes, type TemplateContext } from "../../src/container/setup/agent-includes.js";
-import { resolveSkillIncludes } from "../../src/container/setup/skill-includes.js";
-import { makeTemplateContext } from "../helpers/factories.js";
+import { resolveAgentIncludes, type TemplateContext } from "../../src/container/setup/agent-includes";
+import { resolveSkillIncludes } from "../../src/container/setup/skill-includes";
+import { makeTemplateContext } from "../helpers/factories";
 
 /**
  * Integration tests that render real agent templates, shared includes,
@@ -408,7 +408,7 @@ describe("shared agent includes (real files)", () => {
   /** Render a single include as if it were an agent template. */
   async function renderInclude(includeName: string, ctx: TemplateContext): Promise<string> {
     const { Liquid } = await import("liquidjs");
-    const { registerCustomTags } = await import("../../src/container/setup/liquid-tags.js");
+    const { registerCustomTags } = await import("../../src/container/setup/liquid-tags");
     const engine = new Liquid({
       root: [INCLUDES_DIR],
       extname: ".md",

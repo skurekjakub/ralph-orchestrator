@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { OperationLedger, OperationStatus } from "../../src/services/operation-ledger";
+import { TaskStatus } from "../../src/container/types";
 
 const DS = "jira";
 const TS = "2026-01-01T00:00:00Z";

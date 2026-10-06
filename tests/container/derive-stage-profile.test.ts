@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { deriveStageProfile } from "../../src/container/types.js";
-import { CliType } from "../../src/config/types.js";
-import { makeProfile, makeStage } from "../helpers/factories.js";
+import { deriveStageProfile } from "../../src/container/types";
+import { CliType } from "../../src/config/types";
+import { makeProfile, makeStage } from "../helpers/factories";
 
 describe("deriveStageProfile", () => {
   const base = makeProfile({

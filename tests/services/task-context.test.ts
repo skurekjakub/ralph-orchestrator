@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { buildTaskContext } from "../../src/services/task-context.js";
-import { makeWorkItem, makeProfile } from "../helpers/factories.js";
-import type { IRalphchivesConfig } from "../../src/config/types.js";
+import { buildTaskContext } from "../../src/services/task-context";
+import { makeWorkItem, makeProfile } from "../helpers/factories";
+import type { IRalphchivesConfig } from "../../src/config/types";
 const KEY = "DF-100";
 
 const ralphchivesConfig: IRalphchivesConfig = {

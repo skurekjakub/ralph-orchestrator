@@ -17,7 +17,7 @@
  */
 import "dotenv/config";
 import { resolve } from "node:path";
-import type { ResetContext, JiraEnv, TaskDifficulty } from "./reset-testenv/types.js";
+import type { ResetContext, JiraEnv, TaskDifficulty } from "./reset-testenv/types";
 import {
   fetchIssue,
   deleteComments,
@@ -25,10 +25,10 @@ import {
   resetFields,
   transitionToToDo,
   postComment,
-} from "./reset-testenv/jira.js";
-import { clearLedger, clearTriggerCache, clearLogFiles } from "./reset-testenv/local.js";
-import { cleanBranches } from "./reset-testenv/git.js";
-import { cleanContainers } from "./reset-testenv/docker.js";
+} from "./reset-testenv/jira";
+import { clearLedger, clearTriggerCache, clearLogFiles } from "./reset-testenv/local";
+import { cleanBranches } from "./reset-testenv/git";
+import { cleanContainers } from "./reset-testenv/docker";
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));

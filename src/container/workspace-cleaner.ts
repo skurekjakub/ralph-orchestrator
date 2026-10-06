@@ -1,5 +1,5 @@
-import type { IComposeClient } from "./compose-client.js";
-import type { Logger } from "../logger.js";
+import type { IComposeClient } from "./compose-client";
+import type { Logger } from "../logger";
 
 /** Public contract for workspace cleanup inside a container. */
 export interface IContainerWorkspaceCleaner {

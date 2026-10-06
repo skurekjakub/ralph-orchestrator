@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { buildPreflightContext, runPreflight } from "../../src/services/preflight.js";
-import { makeProfile, makeWorkItem, makeWorkItemComment } from "../helpers/factories.js";
-import {
-  createMockLogger,
-  createMockResources,
-  createMockVcsSourceClient,
-  createSilentLogger,
-} from "../helpers/mocks.js";
+import { buildPreflightContext, runPreflight } from "../../src/services/preflight";
+import { makeProfile, makeWorkItem, makeWorkItemComment } from "../helpers/factories";
+import { createMockLogger, createMockResources, createMockVcsSourceClient, createSilentLogger } from "../helpers/mocks";
 const KEY = "DF-1";
 
 describe("runPreflight", () => {

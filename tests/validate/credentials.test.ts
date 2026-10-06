@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { validateCliCredentials } from "../../src/validate/credentials.js";
-import type { ValidationCollector } from "../../src/validate/types.js";
-import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types.js";
-import { makeProfile, makeStage } from "../helpers/factories.js";
+import { validateCliCredentials } from "../../src/validate/credentials";
+import type { ValidationCollector } from "../../src/validate/types";
+import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
+import { makeProfile, makeStage } from "../helpers/factories";
 
 function collector(): ValidationCollector {
   return { errors: [], warnings: [] };

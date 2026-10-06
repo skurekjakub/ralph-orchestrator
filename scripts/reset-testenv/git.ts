@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
-import type { ResetContext } from "./types.js";
+import type { ResetContext } from "./types";
 
 function resolveRepoPath(rootDir: string): string | null {
   const profileJson = resolve(rootDir, "profiles/ralph-docs/profile.json");

@@ -1,8 +1,8 @@
-import type { IAgentProfile } from "../config/types.js";
-import type { WorkItemComment, WorkItem } from "../datasource/types.js";
-import type { Logger } from "../logger.js";
-import type { IResourceManager } from "./task-resource-manager.js";
-import type { IVcsSourceClient, PullRequestBranchInfo } from "./vcs-source-client.js";
+import type { IAgentProfile } from "../config/types";
+import type { WorkItemComment, WorkItem } from "../datasource/types";
+import type { Logger } from "../logger";
+import type { IResourceManager } from "./task-resource-manager";
+import type { IVcsSourceClient, PullRequestBranchInfo } from "./vcs-source-client";
 
 export type PreflightResult = { ok: true } | { ok: false; reason: string };
 

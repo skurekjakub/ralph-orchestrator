@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
-import { resolvePath } from "../util/path.js";
-import { toErrorMessage } from "../util/error.js";
-import { profileFileSchema, type ProfileFile, type StageFile } from "./schemas.js";
-import { type CliType, type IAgentProfile, type IStageConfig, StageMode, VcsProvider } from "./types.js";
+import { resolvePath } from "../util/path";
+import { toErrorMessage } from "../util/error";
+import { profileFileSchema, type ProfileFile, type StageFile } from "./schemas";
+import { type CliType, type IAgentProfile, type IStageConfig, StageMode, VcsProvider } from "./types";
 
 /** One `mcpServers` list normalised into server names, per-server `env` and merged `sidecarEnv`. */
 interface McpServerSet {

@@ -10,9 +10,9 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { ValidationCollector } from "../../src/validate/types.js";
-import { validateProfiles } from "../../src/validate/profiles.js";
-import { CliType } from "../../src/config/types.js";
+import type { ValidationCollector } from "../../src/validate/types";
+import { validateProfiles } from "../../src/validate/profiles";
+import { CliType } from "../../src/config/types";
 const PROJECT = "DF";
 
 let tempDir: string;

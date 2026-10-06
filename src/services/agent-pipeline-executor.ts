@@ -1,10 +1,10 @@
-import { StageMode } from "../config/types.js";
-import { TaskStatus, type RalphResult, type StageResult } from "../container/types.js";
-import type { IContainerManager } from "../container/manager.js";
-import type { IssueContext } from "../prompt/prompt.js";
-import type { Logger } from "../logger.js";
-import type { IProfileSetupService } from "./profile-setup-service.js";
-import type { TaskContext } from "./task-context.js";
+import { StageMode } from "../config/types";
+import { TaskStatus, type RalphResult, type StageResult } from "../container/types";
+import type { IContainerManager } from "../container/manager";
+import type { IssueContext } from "../prompt/prompt";
+import type { Logger } from "../logger";
+import type { IProfileSetupService } from "./profile-setup-service";
+import type { TaskContext } from "./task-context";
 
 /** Public contract for the multi-stage agent execution loop. */
 export interface IAgentPipelineExecutor {

@@ -1,6 +1,6 @@
-import { modelPolicyFor } from "../cli/model-catalog.js";
-import type { ProfileFile } from "../config/schemas.js";
-import { CliType, type IAgentProfile, type IStageConfig } from "../config/types.js";
+import { modelPolicyFor } from "../cli/model-catalog";
+import type { ProfileFile } from "../config/schemas";
+import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 
 /** A resolved stage with its location in profile.json (`variants[0]/postTaskHooks[1]/stages[2]`). */
 interface LocatedStage {

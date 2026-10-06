@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { buildTemplateContext } from "../../src/container/setup/agent-includes.js";
-import { makeTaskContext } from "../helpers/factories.js";
+import { buildTemplateContext } from "../../src/container/setup/agent-includes";
+import { makeTaskContext } from "../helpers/factories";
 
 /**
  * Extract the explicitly typed keys of {@link TemplateContext}.

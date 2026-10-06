@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync, readdirSync, rmSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ResetContext } from "./types.js";
+import type { ResetContext } from "./types";
 
 /**
  * Delete the issue's operation ledger (`history/<dataSource>/<issueKey>.json`) under every data source.

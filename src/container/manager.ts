@@ -1,19 +1,19 @@
 import { execa } from "execa";
-import { toErrorMessage } from "../util/error.js";
+import { toErrorMessage } from "../util/error";
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
-import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types.js";
-import type { WorkItem } from "../datasource/types.js";
-import { deriveStageProfile, type RalphResult, type CliPaths } from "./types.js";
-import type { Logger } from "../logger.js";
-import type { IssueContext } from "../prompt/prompt.js";
-import type { IComposeClient } from "./compose-client.js";
-import type { ICliExecutor, ICliExecutorFactory } from "./cli-executor-factory.js";
-import { StreamCapture } from "./stream-capture.js";
-import type { IContainerLogCollector, CollectedLog } from "./log-collector.js";
-import type { IContainerWorkspaceCleaner } from "./workspace-cleaner.js";
-import type { ILogSourceRegistry } from "./log-source-registry.js";
-import type { IAgentSessionRunner } from "./agent-session-runner.js";
+import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
+import type { WorkItem } from "../datasource/types";
+import { deriveStageProfile, type RalphResult, type CliPaths } from "./types";
+import type { Logger } from "../logger";
+import type { IssueContext } from "../prompt/prompt";
+import type { IComposeClient } from "./compose-client";
+import type { ICliExecutor, ICliExecutorFactory } from "./cli-executor-factory";
+import { StreamCapture } from "./stream-capture";
+import type { IContainerLogCollector, CollectedLog } from "./log-collector";
+import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
+import type { ILogSourceRegistry } from "./log-source-registry";
+import type { IAgentSessionRunner } from "./agent-session-runner";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {

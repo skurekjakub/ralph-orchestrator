@@ -1,4 +1,4 @@
-import { CliType } from "../config/types.js";
+import { CliType } from "../config/types";
 
 /** Claude Code model aliases. The pinned Claude Code version decides which model each one resolves to. */
 export enum ClaudeModelAlias {

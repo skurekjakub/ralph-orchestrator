@@ -1,4 +1,4 @@
-import { CliDebugLogKind, type CliContainerLayout } from "../cli-runtime.js";
+import { CliDebugLogKind, type CliContainerLayout } from "../cli-runtime";
 
 /** Where Copilot CLI keeps its home, agents, skills, debug logs and transcript inside the agent container. */
 export const COPILOT_CONTAINER_LAYOUT = {

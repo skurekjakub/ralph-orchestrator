@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeWorkItem, makeConfig, makeCompletion } from "../helpers/factories.js";
-import { OrchestratorStatus } from "../../src/orchestrator-types.js";
-import { TaskStatus } from "../../src/container/types.js";
+import { ProfileRouter } from "../../src/services/profile-router";
+import { makeProfile, makeWorkItem, makeConfig, makeCompletion } from "../helpers/factories";
+import { OrchestratorStatus } from "../../src/orchestrator-types";
+import { TaskStatus } from "../../src/container/types";
 const TRIGGER = "@ralph";
 
 /**

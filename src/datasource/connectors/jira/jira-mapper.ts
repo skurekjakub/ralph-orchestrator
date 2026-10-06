@@ -5,9 +5,9 @@
  * raw JIRA shapes or Atlassian Document Format.
  */
 
-import type { JiraIssue, JiraComment, JiraAttachment, JiraTransition } from "./jira-types.js";
-import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types.js";
-import { extractAdfText } from "./adf-converter.js";
+import type { JiraIssue, JiraComment, JiraAttachment, JiraTransition } from "./jira-types";
+import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types";
+import { extractAdfText } from "./adf-converter";
 
 /** Convert a JIRA issue to a generic WorkItem. */
 export function mapIssueToWorkItem(issue: JiraIssue, source: string, excludeFields: string[] = []): WorkItem {

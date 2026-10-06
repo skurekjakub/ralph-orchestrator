@@ -1,12 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
-import type { IAgentProfile } from "../../config/types.js";
-import type { ContainerExecResult, CliPaths } from "../types.js";
-import type { Logger } from "../../logger.js";
-import type { IComposeClient } from "../compose-client.js";
-import { ICliExecutor } from "../cli-executor-factory.js";
-import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
+import type { IAgentProfile } from "../../config/types";
+import type { ContainerExecResult, CliPaths } from "../types";
+import type { Logger } from "../../logger";
+import type { IComposeClient } from "../compose-client";
+import { ICliExecutor } from "../cli-executor-factory";
+import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /**
  * Executes the Claude Code CLI inside a running container.

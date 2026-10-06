@@ -68,12 +68,14 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 ## Usage
 
 ```bash
-# Development (with tsx for TypeScript)
+# Development (runs the TypeScript sources with tsx)
 npm run dev
 
-# Production
-npm run build
+# Production: validate, bundle src/ into dist/index.js with esbuild, run the bundle
 npm start
+
+# Bundle only
+npm run build
 
 # Run tests
 npm test

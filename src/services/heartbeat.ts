@@ -4,9 +4,9 @@
  * on the next interval, never blocking the main loop.
  */
 
-import type { Logger } from "../logger.js";
-import type { IDashboardConfig } from "../config/types.js";
-import { toErrorMessage } from "../util/error.js";
+import type { Logger } from "../logger";
+import type { IDashboardConfig } from "../config/types";
+import { toErrorMessage } from "../util/error";
 
 /** Heartbeat lifecycle status sent to the dashboard. */
 export enum HeartbeatStatus {

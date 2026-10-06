@@ -9,13 +9,13 @@
  * stage re-rendering) occur — not on internal call sequences.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor.js";
-import { TaskStatus } from "../../src/container/types.js";
-import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories.js";
-import { createMockProfileSetupService, createSilentLogger } from "../helpers/mocks.js";
-import type { IContainerManager } from "../../src/container/manager.js";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
-import type { IssueContext } from "../../src/prompt/prompt.js";
+import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
+import { TaskStatus } from "../../src/container/types";
+import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories";
+import { createMockProfileSetupService, createSilentLogger } from "../helpers/mocks";
+import type { IContainerManager } from "../../src/container/manager";
+import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { IssueContext } from "../../src/prompt/prompt";
 
 // ── Mock helpers ─────────────────────────────────────────────────────────────
 

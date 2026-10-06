@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner.js";
-import { createMockLogger, createMockCompose } from "../helpers/mocks.js";
+import { ContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
+import { createMockLogger, createMockCompose } from "../helpers/mocks";
 const SVC_APP = "app";
 
 describe("ContainerWorkspaceCleaner", () => {

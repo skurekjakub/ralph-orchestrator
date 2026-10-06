@@ -3,9 +3,9 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ZodError } from "zod";
-import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants.js";
-import { profileFileSchema } from "../../src/config/schemas.js";
-import { CliType, ReasoningEffort, StageMode } from "../../src/config/types.js";
+import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants";
+import { profileFileSchema } from "../../src/config/schemas";
+import { CliType, ReasoningEffort, StageMode } from "../../src/config/types";
 
 /** A schema-valid profile.json with one single-stage variant, merged with `overrides`. */
 function profileFile(overrides: Record<string, unknown> = {}) {

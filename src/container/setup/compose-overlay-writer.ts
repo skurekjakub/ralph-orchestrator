@@ -1,11 +1,11 @@
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { IAgentProfile } from "../../config/types.js";
-import type { Logger } from "../../logger.js";
-import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts.js";
-import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts.js";
-import { generateComposeOverlay } from "./compose-overlay.js";
-import { generateMcpConfig, generateGatewayConfig } from "./mcp-config.js";
+import type { IAgentProfile } from "../../config/types";
+import type { Logger } from "../../logger";
+import { generateAgentVolumeMounts, generateSkillVolumeMounts } from "./artifact-mounts";
+import { generateResourceVolumeMounts, type ResourceConfig } from "./resource-mounts";
+import { generateComposeOverlay } from "./compose-overlay";
+import { generateMcpConfig, generateGatewayConfig } from "./mcp-config";
 
 /**
  * Regenerates the Docker Compose overlay, mcp-config.json, and gateway.json

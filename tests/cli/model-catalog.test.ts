@@ -5,8 +5,8 @@ import {
   COPILOT_MODEL_FOR_ALIAS,
   ClaudeModelAlias,
   modelPolicyFor,
-} from "../../src/cli/model-catalog.js";
-import { CliType } from "../../src/config/types.js";
+} from "../../src/cli/model-catalog";
+import { CliType } from "../../src/config/types";
 
 describe("CLAUDE_MODEL_POLICY", () => {
   describe("validate", () => {

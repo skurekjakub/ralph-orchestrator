@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { TriggerScanner } from "../../src/services/trigger-scanner.js";
-import { OperationLedger, type IOperationLedger } from "../../src/services/operation-ledger.js";
-import { ProfileRouter, type IProfileRouter } from "../../src/services/profile-router.js";
-import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories.js";
-import { createMockLogger, createMockConnector } from "../helpers/mocks.js";
-import { makeMockIssueManager } from "./trigger-test-helpers.js";
-import type { IDataSourceConnector } from "../../src/datasource/connector.js";
-import type { IIssueManager } from "../../src/services/issue-manager.js";
-import type { Logger } from "../../src/logger.js";
+import { TriggerScanner } from "../../src/services/trigger-scanner";
+import { OperationLedger, type IOperationLedger } from "../../src/services/operation-ledger";
+import { ProfileRouter, type IProfileRouter } from "../../src/services/profile-router";
+import { makeProfile, makeWorkItem, makeMatch, makeWorkItemComment } from "../helpers/factories";
+import { createMockLogger, createMockConnector } from "../helpers/mocks";
+import { makeMockIssueManager } from "./trigger-test-helpers";
+import type { IDataSourceConnector } from "../../src/datasource/connector";
+import type { IIssueManager } from "../../src/services/issue-manager";
+import type { Logger } from "../../src/logger";
 
 function makeCacheScanner(
   mgr: IIssueManager,

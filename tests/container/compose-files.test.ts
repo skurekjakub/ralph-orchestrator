@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { ComposeFileResolver } from "../../src/container/setup/compose-files.js";
-import { makeProfile } from "../helpers/factories.js";
+import { ComposeFileResolver } from "../../src/container/setup/compose-files";
+import { makeProfile } from "../helpers/factories";
 
 const TMP = join(import.meta.dirname, ".tmp-compose-files");
 

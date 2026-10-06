@@ -19,15 +19,15 @@
 import "dotenv/config";
 import { resolve, join } from "node:path";
 import { existsSync, rmSync, mkdirSync } from "node:fs";
-import { AppStartup } from "../src/app-startup.js";
-import { ComposeClient } from "../src/container/compose-client.js";
-import { ComposeFileResolver } from "../src/container/setup/compose-files.js";
-import { CopilotExecutor } from "../src/container/cli-executors/copilot-executor.js";
-import { COPILOT_CONTAINER_LAYOUT } from "../src/cli/copilot/copilot-layout.js";
-import { StreamCapture } from "../src/container/stream-capture.js";
-import { ContainerLogCollector, CaptureMode } from "../src/container/log-collector.js";
-import { ContainerWorkspaceCleaner } from "../src/container/workspace-cleaner.js";
-import { consoleLogger } from "../src/logger.js";
+import { AppStartup } from "../src/app-startup";
+import { ComposeClient } from "../src/container/compose-client";
+import { ComposeFileResolver } from "../src/container/setup/compose-files";
+import { CopilotExecutor } from "../src/container/cli-executors/copilot-executor";
+import { COPILOT_CONTAINER_LAYOUT } from "../src/cli/copilot/copilot-layout";
+import { StreamCapture } from "../src/container/stream-capture";
+import { ContainerLogCollector, CaptureMode } from "../src/container/log-collector";
+import { ContainerWorkspaceCleaner } from "../src/container/workspace-cleaner";
+import { consoleLogger } from "../src/logger";
 
 const [trigger, ...promptParts] = process.argv.slice(2);
 const prompt = promptParts.join(" ");

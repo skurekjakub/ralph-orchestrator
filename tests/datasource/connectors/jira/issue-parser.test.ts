@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { JiraIssueParser } from "../../../../src/datasource/connectors/jira/issue-parser.js";
-import { makeIssue } from "../../../helpers/factories.js";
+import { JiraIssueParser } from "../../../../src/datasource/connectors/jira/issue-parser";
+import { makeIssue } from "../../../helpers/factories";
 
 function makeIssueWithFields(customFields: Record<string, unknown> = {}) {
   return makeIssue("DOC-100", "Test issue", "To Do", undefined, {

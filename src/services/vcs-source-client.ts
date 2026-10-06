@@ -1,5 +1,5 @@
-import { VcsProvider, type IAgentProfile } from "../config/types.js";
-import type { Logger } from "../logger.js";
+import { VcsProvider, type IAgentProfile } from "../config/types";
+import type { Logger } from "../logger";
 
 /** Resolved source and target branch names for an existing pull request. */
 export interface PullRequestBranchInfo {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text } from "ink";
-import { StatusPanel } from "./StatusPanel.js";
-import { QueuePanel } from "./QueuePanel.js";
-import { HistoryPanel } from "./HistoryPanel.js";
-import { LogPanel } from "./LogPanel.js";
-import type { OrchestratorState } from "../orchestrator-types.js";
-import type { OrchestratorObserver } from "../orchestrator-observer.js";
+import { StatusPanel } from "./StatusPanel";
+import { QueuePanel } from "./QueuePanel";
+import { HistoryPanel } from "./HistoryPanel";
+import { LogPanel } from "./LogPanel";
+import type { OrchestratorState } from "../orchestrator-types";
+import type { OrchestratorObserver } from "../orchestrator-observer";
 
 /** Props for the root Ink dashboard. */
 interface AppProps {

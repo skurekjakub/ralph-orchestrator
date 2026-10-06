@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { rmSync } from "node:fs";
-import { generateMcpConfig, generateGatewayConfig } from "../../src/container/setup/mcp-config.js";
-import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
+import { generateMcpConfig, generateGatewayConfig } from "../../src/container/setup/mcp-config";
+import { createTempDir, writeManifest } from "../helpers/mcp-fs";
 
 describe("MCP Config", () => {
   let tempDir: string;

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
-import type { ValidationCollector } from "./types.js";
+import type { ValidationCollector } from "./types";
 
 /**
  * Validate that the shared security infrastructure is present and that

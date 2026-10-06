@@ -17,6 +17,22 @@ const sharedRules = {
   "no-duplicate-imports": "error",
 };
 
+// The orchestrator is bundled by esbuild, which resolves relative imports without an extension.
+const SPECIFIER_WITH_EXTENSION = String.raw`/^\.\.?\/.*\.[cm]?[jt]sx?$/`;
+const extensionlessImportRules = {
+  "no-restricted-syntax": [
+    "error",
+    ...[
+      `ImportDeclaration[source.value=${SPECIFIER_WITH_EXTENSION}]`,
+      `ExportNamedDeclaration[source.value=${SPECIFIER_WITH_EXTENSION}]`,
+      `ExportAllDeclaration[source.value=${SPECIFIER_WITH_EXTENSION}]`,
+      `ImportExpression[source.value=${SPECIFIER_WITH_EXTENSION}]`,
+      `TSImportType[source.value=${SPECIFIER_WITH_EXTENSION}]`,
+      `CallExpression[callee.object.name="vi"][callee.property.name=/^(mock|doMock|unmock|doUnmock|importActual|importMock)$/][arguments.0.value=${SPECIFIER_WITH_EXTENSION}]`,
+    ].map((selector) => ({ selector, message: "Relative imports are extensionless (esbuild resolves them)" })),
+  ],
+};
+
 export default [
   {
     ignores: [
@@ -30,6 +46,7 @@ export default [
       "profiles/",
       "containment/",
       ".claude/worktrees/",
+      ".cache/",
     ],
   },
 
@@ -46,7 +63,7 @@ export default [
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    rules: { ...sharedRules },
+    rules: { ...sharedRules, ...extensionlessImportRules },
   },
 
   {
@@ -59,6 +76,7 @@ export default [
     },
     rules: {
       ...sharedRules,
+      ...extensionlessImportRules,
       "@typescript-eslint/no-explicit-any": "off",
     },
   },

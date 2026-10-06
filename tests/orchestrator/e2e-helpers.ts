@@ -2,12 +2,12 @@ import { vi } from "vitest";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import type { Orchestrator } from "../../src/orchestrator.js";
-import { OperationLedger } from "../../src/services/operation-ledger.js";
-import { ProfileRouter } from "../../src/services/profile-router.js";
-import { TriggerScanner } from "../../src/services/trigger-scanner.js";
-import { ActivityLog } from "../../src/services/activity-log.js";
-import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
+import type { Orchestrator } from "../../src/orchestrator";
+import { OperationLedger } from "../../src/services/operation-ledger";
+import { ProfileRouter } from "../../src/services/profile-router";
+import { TriggerScanner } from "../../src/services/trigger-scanner";
+import { ActivityLog } from "../../src/services/activity-log";
+import { makeProfile, makeConfig, makeResult } from "../helpers/factories";
 import {
   createMockLogger,
   createMockIssueManager,
@@ -17,17 +17,17 @@ import {
   createMockConnector,
   createMockVcsSourceClient,
   type Mocked,
-} from "../helpers/mocks.js";
-import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
-import type { IDataSourceConnector } from "../../src/datasource/connector.js";
-import type { IAgentProfile } from "../../src/config/types.js";
+} from "../helpers/mocks";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
+import type { IDataSourceConnector } from "../../src/datasource/connector";
+import type { IAgentProfile } from "../../src/config/types";
 
 type OrchestratorOpts = ConstructorParameters<typeof Orchestrator>[0];
-import type { RalphResult } from "../../src/container/types.js";
-import type { IIssueManager } from "../../src/services/issue-manager.js";
-import type { IResourceManager } from "../../src/services/task-resource-manager.js";
-import type { ITaskRunner } from "../../src/services/task-runner.js";
-import type { IVcsSourceClient } from "../../src/services/vcs-source-client.js";
+import type { RalphResult } from "../../src/container/types";
+import type { IIssueManager } from "../../src/services/issue-manager";
+import type { IResourceManager } from "../../src/services/task-resource-manager";
+import type { ITaskRunner } from "../../src/services/task-runner";
+import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 
 export const DS = "jira";
 const silentLogger = createMockLogger();

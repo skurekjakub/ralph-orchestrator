@@ -1,8 +1,8 @@
 import { ExecaError, type ResultPromise } from "execa";
-import type { Logger } from "../../logger.js";
-import type { IComposeClient } from "../compose-client.js";
-import type { ContainerExecResult } from "../types.js";
-import { StreamCapture } from "../stream-capture.js";
+import type { Logger } from "../../logger";
+import type { IComposeClient } from "../compose-client";
+import type { ContainerExecResult } from "../types";
+import { StreamCapture } from "../stream-capture";
 
 /** Mutable reference to the active CLI process, shared between executor and these helpers. */
 export interface ProcessTracker {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { clearLedger } from "../../../scripts/reset-testenv/local.js";
+import { clearLedger } from "../../../scripts/reset-testenv/local";
 
 const KEY = "DOC-3143";
 

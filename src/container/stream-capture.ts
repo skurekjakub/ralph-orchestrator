@@ -1,5 +1,5 @@
 import type { ResultPromise } from "execa";
-import type { Logger } from "../logger.js";
+import type { Logger } from "../logger";
 
 /** Marker line that signals the end of the agent's result block in stdout. */
 const RESULT_END_MARKER = "===RALPH_RESULT_END===";

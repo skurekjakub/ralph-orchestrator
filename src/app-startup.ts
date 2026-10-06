@@ -1,24 +1,47 @@
-import type { Logger } from "./logger.js";
-import { resolveAllProfileSetup } from "./container/setup/profile-setup.js";
-import { buildCustomMcpServers } from "./container/setup/mcp-builder.js";
-import { loadConfig } from "./config/loader.js";
-import type { IAppConfig } from "./config/types.js";
-import { validatePrerequisites, printValidationResults, type ValidationResult } from "./validate/index.js";
+import type { Logger } from "./logger";
+import { resolveAllProfileSetup } from "./container/setup/profile-setup";
+import { buildCustomMcpServers } from "./container/setup/mcp-builder";
+import { loadConfig } from "./config/loader";
+import type { IAppConfig } from "./config/types";
+import { validatePrerequisites, printValidationResults, type ValidationResult } from "./validate/index";
 import { execa } from "execa";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+/** A plugin module that self-registers (e.g. calls `registerDataSourceFactory()`) when imported. */
+export interface PluginModule {
+  /** Name shown in logs and load errors. */
+  readonly name: string;
+  /** Imports the module, which runs its self-registration. */
+  load(): Promise<unknown>;
+}
 
 /**
- * Built-in plugin modules loaded before any user-specified plugins.
- * Each module self-registers via `registerDataSourceFactory()` on import.
+ * Built-in plugin modules, loaded before any user-specified plugins.
+ * Each `import()` names its module literally so the bundle includes it.
  */
-const BUILTIN_PLUGINS: readonly string[] = ["./datasource/connectors/jira/factory.js"];
+const BUILTIN_PLUGINS: readonly PluginModule[] = [
+  { name: "jira", load: () => import("./datasource/connectors/jira/factory") },
+];
+
+/**
+ * Build the runtime import for one `config.plugins` entry.
+ *
+ * A relative or absolute path resolves against `cwd` and is imported by file URL.
+ * Any other entry is a package specifier that Node resolves from `node_modules`.
+ */
+export function userPluginModule(specifier: string, cwd: string = process.cwd()): PluginModule {
+  const isPath = specifier.startsWith("./") || specifier.startsWith("../") || isAbsolute(specifier);
+  const target = isPath ? pathToFileURL(resolve(cwd, specifier)).href : specifier;
+  return { name: specifier, load: () => import(target) };
+}
 
 /** Injectable hooks for the startup pipeline steps. */
 export interface AppStartupDeps {
   validate(logger?: Logger): Promise<ValidationResult>;
   printResults(result: ValidationResult): boolean;
   loadConfig(): IAppConfig;
-  loadPlugins(modules: readonly string[], logger: Logger): Promise<void>;
+  loadPlugins(plugins: readonly PluginModule[], logger: Logger): Promise<void>;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
   startRalphchives(logger: Logger): Promise<void>;
@@ -48,19 +71,17 @@ async function startRalphchivesStack(logger: Logger): Promise<void> {
 }
 
 /**
- * Load plugin modules via dynamic import.
+ * Import plugin modules in order, so each one self-registers as a side effect.
  *
- * Built-in plugins (e.g. JIRA connector) are loaded first, then any
- * user-specified plugins from `config.plugins`. Each module is expected
- * to self-register (e.g. call `registerDataSourceFactory()`) as a side effect.
+ * @throws Error naming the plugin when its import fails
  */
-async function loadPluginModules(modules: readonly string[], logger: Logger): Promise<void> {
-  for (const mod of modules) {
+async function loadPluginModules(plugins: readonly PluginModule[], logger: Logger): Promise<void> {
+  for (const plugin of plugins) {
     try {
-      await import(mod);
-      logger.info(`Loaded plugin: ${mod}`);
+      await plugin.load();
+      logger.info(`Loaded plugin: ${plugin.name}`);
     } catch (err) {
-      throw new Error(`Failed to load plugin "${mod}": ${(err as Error).message}`);
+      throw new Error(`Failed to load plugin "${plugin.name}": ${(err as Error).message}`);
     }
   }
 }
@@ -110,8 +131,8 @@ export class AppStartup implements IAppStartup {
     const config = this.deps.loadConfig();
     log.info("Loaded configuration");
 
-    // Load built-in + user-specified plugins (data source factories, etc.)
-    await this.deps.loadPlugins([...BUILTIN_PLUGINS, ...config.plugins], log);
+    const userPlugins = config.plugins.map((specifier) => userPluginModule(specifier));
+    await this.deps.loadPlugins([...BUILTIN_PLUGINS, ...userPlugins], log);
 
     if (config.ralphchives?.enabled) {
       await this.deps.startRalphchives(log);

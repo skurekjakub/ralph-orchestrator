@@ -7,17 +7,11 @@
  * should treat prompt preparation as a black box handled by this class.
  */
 
-import type { IPromptAuditConfig } from "../config/types.js";
-import type { WorkItem } from "../datasource/types.js";
-import { buildPromptWithSections, type IssueContext } from "./prompt.js";
-import {
-  AuditMode,
-  AuditSeverity,
-  auditPromptSections,
-  formatAuditFindings,
-  type AuditResult,
-} from "./prompt-auditor.js";
-import type { Logger } from "../logger.js";
+import type { IPromptAuditConfig } from "../config/types";
+import type { WorkItem } from "../datasource/types";
+import { buildPromptWithSections, type IssueContext } from "./prompt";
+import { AuditMode, AuditSeverity, auditPromptSections, formatAuditFindings, type AuditResult } from "./prompt-auditor";
+import type { Logger } from "../logger";
 
 /** Result of building and auditing a prompt. */
 export interface BuiltPrompt {

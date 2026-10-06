@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loadConfig } from "../src/config/loader.js";
-import { ClaudeAuthMode } from "../src/config/types.js";
+import { loadConfig } from "../src/config/loader";
+import { ClaudeAuthMode } from "../src/config/types";
 import { readFileSync, readdirSync } from "node:fs";
 
 vi.mock("node:fs", async () => {

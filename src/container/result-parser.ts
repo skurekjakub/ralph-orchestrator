@@ -1,5 +1,5 @@
-import { TaskStatus, type RalphResult } from "./types.js";
-import type { Logger } from "../logger.js";
+import { TaskStatus, type RalphResult } from "./types";
+import type { Logger } from "../logger";
 
 /** Valid agent-reported statuses accepted by {@link resolveStatus}. */
 const RECOGNIZED_STATUSES: ReadonlySet<string> = new Set([

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolvePath } from "../../src/util/path.js";
+import { resolvePath } from "../../src/util/path";
 import { resolve } from "node:path";
 
 describe("resolvePath", () => {

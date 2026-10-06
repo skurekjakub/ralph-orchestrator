@@ -1,8 +1,8 @@
-import type { ContainerExecResult } from "./types.js";
-import type { WorkItem } from "../datasource/types.js";
-import type { Logger } from "../logger.js";
-import { parseResultBlock } from "./result-parser.js";
-import { ICliExecutor } from "./cli-executor-factory.js";
+import type { ContainerExecResult } from "./types";
+import type { WorkItem } from "../datasource/types";
+import type { Logger } from "../logger";
+import { parseResultBlock } from "./result-parser";
+import { ICliExecutor } from "./cli-executor-factory";
 
 /** Accumulated output from the initial run plus any continuation attempts. */
 export interface ContinuationResult {

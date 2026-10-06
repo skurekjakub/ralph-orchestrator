@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { ExecaError, type ResultPromise } from "execa";
-import { createMockCompose, createMockLogger } from "../../helpers/mocks.js";
+import { createMockCompose, createMockLogger } from "../../helpers/mocks";
 
-vi.mock("../../../src/container/stream-capture.js", () => ({
+vi.mock("../../../src/container/stream-capture", () => ({
   StreamCapture: class MockStreamCapture {
     readonly stdout = "captured-stdout";
     readonly stderr = "captured-stderr";
@@ -11,7 +11,7 @@ vi.mock("../../../src/container/stream-capture.js", () => ({
   },
 }));
 
-const { executeCliCommand, killActiveProcess } = await import("../../../src/container/cli-executors/shared-exec.js");
+const { executeCliCommand, killActiveProcess } = await import("../../../src/container/cli-executors/shared-exec");
 
 function makeExecaError(
   overrides: {

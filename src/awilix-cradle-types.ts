@@ -7,32 +7,32 @@ import type {
   IRalphchivesConfig,
   IAgentProfile,
   ClaudeAuthMode,
-} from "./config/types.js";
-import type { ICliRuntimeRegistry } from "./cli/cli-runtime.js";
-import type { IActivityLog } from "./services/activity-log.js";
-import type { Logger } from "./logger.js";
-import type { IOperationLedger } from "./services/operation-ledger.js";
-import type { ILogCollector } from "./logs/collector.js";
-import type { PromptBuilder } from "./prompt/prompt-builder.js";
-import type { ICliExecutorFactory } from "./container/cli-executor-factory.js";
-import type { IProfileRouter } from "./services/profile-router.js";
-import type { IIssueManager } from "./services/issue-manager.js";
-import type { IResourceManager } from "./services/task-resource-manager.js";
-import type { IAgentTemplateRenderer } from "./container/setup/agent-includes.js";
-import type { ISkillTemplateRenderer } from "./container/setup/skill-includes.js";
-import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params.js";
-import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-writer.js";
-import type { ITriggerScanner } from "./services/trigger-scanner.js";
-import type { ITaskRunner } from "./services/task-runner.js";
-import type { ITaskResultWriter } from "./services/task-result-writer.js";
-import type { IHeartbeatSender } from "./services/heartbeat.js";
-import type { ContainerManagerFactory } from "./container/types.js";
-import type { IDataSourceConnector } from "./datasource/connector.js";
-import type { IWorkItemPoller } from "./datasource/poller.js";
-import type { ILifecycleHook } from "./container/lifecycle.js";
-import type { IProfileSetupService } from "./services/profile-setup-service.js";
-import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor.js";
-import type { IVcsSourceClient } from "./services/vcs-source-client.js";
+} from "./config/types";
+import type { ICliRuntimeRegistry } from "./cli/cli-runtime";
+import type { IActivityLog } from "./services/activity-log";
+import type { Logger } from "./logger";
+import type { IOperationLedger } from "./services/operation-ledger";
+import type { ILogCollector } from "./logs/collector";
+import type { PromptBuilder } from "./prompt/prompt-builder";
+import type { ICliExecutorFactory } from "./container/cli-executor-factory";
+import type { IProfileRouter } from "./services/profile-router";
+import type { IIssueManager } from "./services/issue-manager";
+import type { IResourceManager } from "./services/task-resource-manager";
+import type { IAgentTemplateRenderer } from "./container/setup/agent-includes";
+import type { ISkillTemplateRenderer } from "./container/setup/skill-includes";
+import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params";
+import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
+import type { ITriggerScanner } from "./services/trigger-scanner";
+import type { ITaskRunner } from "./services/task-runner";
+import type { ITaskResultWriter } from "./services/task-result-writer";
+import type { IHeartbeatSender } from "./services/heartbeat";
+import type { ContainerManagerFactory } from "./container/types";
+import type { IDataSourceConnector } from "./datasource/connector";
+import type { IWorkItemPoller } from "./datasource/poller";
+import type { ILifecycleHook } from "./container/lifecycle";
+import type { IProfileSetupService } from "./services/profile-setup-service";
+import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor";
+import type { IVcsSourceClient } from "./services/vcs-source-client";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.

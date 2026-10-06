@@ -1,14 +1,14 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
-import type { IAgentProfile } from "../../config/types.js";
-import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog.js";
-import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout.js";
-import type { ContainerExecResult, CliPaths } from "../types.js";
-import type { Logger } from "../../logger.js";
-import type { IComposeClient } from "../compose-client.js";
-import { ICliExecutor } from "../cli-executor-factory.js";
-import { executeCliCommand, killActiveProcess } from "./shared-exec.js";
+import type { IAgentProfile } from "../../config/types";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout";
+import type { ContainerExecResult, CliPaths } from "../types";
+import type { Logger } from "../../logger";
+import type { IComposeClient } from "../compose-client";
+import { ICliExecutor } from "../cli-executor-factory";
+import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /**
  * Executes the Copilot CLI agent inside a running container.

@@ -1,13 +1,13 @@
 // Credential checks read process.env; `npm run validate` must see the same .env as the orchestrator.
 import "dotenv/config";
-export type { ValidationResult } from "./types.js";
+export type { ValidationResult } from "./types";
 
-import type { Logger } from "../logger.js";
-import type { ValidationResult } from "./types.js";
-import { validateEnvFile } from "./env.js";
-import { validateConfigFile } from "./config.js";
-import { validateSecurityInfra } from "./security.js";
-import { validateDocker } from "./docker.js";
+import type { Logger } from "../logger";
+import type { ValidationResult } from "./types";
+import { validateEnvFile } from "./env";
+import { validateConfigFile } from "./config";
+import { validateSecurityInfra } from "./security";
+import { validateDocker } from "./docker";
 
 /**
  * Validate all prerequisites before starting the orchestrator.

@@ -1,4 +1,4 @@
-import { ClaudeAuthMode, CliType } from "../config/types.js";
+import { ClaudeAuthMode, CliType } from "../config/types";
 
 /** One environment variable a CLI reads to authenticate. */
 export interface CliCredential {

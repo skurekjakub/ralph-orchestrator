@@ -6,8 +6,8 @@ import {
   discoverMcpServers,
   McpServerType,
   resolveToolAllowlist,
-} from "../../src/container/setup/mcp-manifest.js";
-import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
+} from "../../src/container/setup/mcp-manifest";
+import { createTempDir, writeManifest } from "../helpers/mcp-fs";
 
 describe("MCP Manifest", () => {
   let tempDir: string;

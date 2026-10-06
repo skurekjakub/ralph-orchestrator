@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import "dotenv/config";
-import { AuditMode } from "../prompt/prompt-auditor.js";
-import { toErrorMessage } from "../util/error.js";
-import { readProfileFile, resolveProfileVariants } from "./profile-variants.js";
-import { configFileSchema } from "./schemas.js";
-import type { IAppConfig, IAgentProfile, IDataSourceConfig, ISecretsConfig, IDashboardConfig } from "./types.js";
+import { AuditMode } from "../prompt/prompt-auditor";
+import { toErrorMessage } from "../util/error";
+import { readProfileFile, resolveProfileVariants } from "./profile-variants";
+import { configFileSchema } from "./schemas";
+import type { IAppConfig, IAgentProfile, IDataSourceConfig, ISecretsConfig, IDashboardConfig } from "./types";
 
 // ---------------------------------------------------------------------------
 // Profile discovery

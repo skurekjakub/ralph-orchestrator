@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { generateResourceVolumeMounts } from "../../src/container/setup/resource-mounts.js";
-import { createTempDir } from "../helpers/mcp-fs.js";
+import { generateResourceVolumeMounts } from "../../src/container/setup/resource-mounts";
+import { createTempDir } from "../helpers/mcp-fs";
 
 describe("Resource Mounts", () => {
   let tempDir: string;

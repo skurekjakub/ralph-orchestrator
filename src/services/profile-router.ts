@@ -1,5 +1,5 @@
-import type { IAgentProfile } from "../config/types.js";
-import type { WorkItem } from "../datasource/types.js";
+import type { IAgentProfile } from "../config/types";
+import type { WorkItem } from "../datasource/types";
 
 /** Result of a profile match. */
 export interface ProfileMatchResult {

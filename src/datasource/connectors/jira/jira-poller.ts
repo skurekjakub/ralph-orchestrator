@@ -6,11 +6,11 @@
  * consumes work items via {@link drain} without knowing the source system.
  */
 
-import type { IWorkItemSource } from "../../connector.js";
-import type { IWorkItemPoller } from "../../poller.js";
-import type { WorkItem } from "../../types.js";
-import { consoleLogger, type Logger } from "../../../logger.js";
-import { toErrorMessage } from "../../../util/error.js";
+import type { IWorkItemSource } from "../../connector";
+import type { IWorkItemPoller } from "../../poller";
+import type { WorkItem } from "../../types";
+import { consoleLogger, type Logger } from "../../../logger";
+import { toErrorMessage } from "../../../util/error";
 
 /**
  * Polls JIRA for work items matching pre-built JQL queries.

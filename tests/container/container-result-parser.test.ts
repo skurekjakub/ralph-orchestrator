@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseResultBlock } from "../../src/container/result-parser.js";
+import { parseResultBlock } from "../../src/container/result-parser";
 
 // ── Result parsing tests ─────────────────────────────────
 // Tests the structured result block parser that extracts PR URL and agent status

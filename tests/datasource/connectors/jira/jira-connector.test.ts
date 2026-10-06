@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { JiraConnector } from "../../../../src/datasource/connectors/jira/jira-connector.js";
-import { createMockJiraClient, createSilentLogger, type Mocked } from "../../../helpers/mocks.js";
-import { makeIssue, makeComment } from "../../../helpers/factories.js";
-import type { IJiraClient } from "../../../../src/datasource/connectors/jira/jira-client.js";
+import { JiraConnector } from "../../../../src/datasource/connectors/jira/jira-connector";
+import { createMockJiraClient, createSilentLogger, type Mocked } from "../../../helpers/mocks";
+import { makeIssue, makeComment } from "../../../helpers/factories";
+import type { IJiraClient } from "../../../../src/datasource/connectors/jira/jira-client";
 const PROJECT = "DF";
 const KEY = "DF-100";
 

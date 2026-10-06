@@ -1,5 +1,5 @@
-import type { JiraIssue } from "./jira-types.js";
-import { extractAdfText } from "./adf-converter.js";
+import type { JiraIssue } from "./jira-types";
+import { extractAdfText } from "./adf-converter";
 
 /**
  * Known JIRA custom field IDs and their human-readable labels.

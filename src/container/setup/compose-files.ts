@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { IAgentProfile } from "../../config/types.js";
+import type { IAgentProfile } from "../../config/types";
 
 /**
  * Resolves the set of Docker Compose files for a given agent profile.

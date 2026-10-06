@@ -11,9 +11,9 @@
  * Use the accountIds in config.json's dataSources.<key>.connection.allowedUsers array.
  */
 import "dotenv/config";
-import { loadConfig } from "../src/config/loader.js";
-import { JiraClient } from "../src/datasource/connectors/jira/jira-client.js";
-import type { IJiraConnectionConfig } from "../src/config/types.js";
+import { loadConfig } from "../src/config/loader";
+import { JiraClient } from "../src/datasource/connectors/jira/jira-client";
+import type { IJiraConnectionConfig } from "../src/config/types";
 
 const issueKey = process.argv[2];
 const sourceKey = process.argv[3];

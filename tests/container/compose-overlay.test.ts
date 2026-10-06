@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { generateComposeOverlay } from "../../src/container/setup/compose-overlay.js";
-import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
+import { generateComposeOverlay } from "../../src/container/setup/compose-overlay";
+import { createTempDir, writeManifest } from "../helpers/mcp-fs";
 
 describe("Compose Overlay", () => {
   describe("generateComposeOverlay with extraVolumes", () => {

@@ -1,14 +1,14 @@
 import { Dirent, existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { ZodError } from "zod";
-import { resolvePath } from "../util/path.js";
-import { toErrorMessage } from "../util/error.js";
-import { discoverMcpServers, loadMcpManifest, type McpServerManifest } from "../container/setup/mcp-manifest.js";
-import { resolveProfileVariants } from "../config/profile-variants.js";
-import { profileFileSchema } from "../config/schemas.js";
-import type { IAgentProfile } from "../config/types.js";
-import { validateStageClis } from "./stages.js";
-import type { ValidationCollector } from "./types.js";
+import { resolvePath } from "../util/path";
+import { toErrorMessage } from "../util/error";
+import { discoverMcpServers, loadMcpManifest, type McpServerManifest } from "../container/setup/mcp-manifest";
+import { resolveProfileVariants } from "../config/profile-variants";
+import { profileFileSchema } from "../config/schemas";
+import type { IAgentProfile } from "../config/types";
+import { validateStageClis } from "./stages";
+import type { ValidationCollector } from "./types";
 
 /**
  * Validate every `profiles/<id>/profile.json`: its schema, the repo, compose file, agents, skills

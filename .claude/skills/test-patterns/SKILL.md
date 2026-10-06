@@ -15,7 +15,7 @@ npm test                                            # lint (src + tests tsconfig
 
 ## Layout and naming
 
-- `tests/` mirrors `src/`: `src/services/issue-manager.ts` → `tests/services/issue-manager.test.ts`. Import source with relative `.js` paths (`../../src/services/issue-manager.js`).
+- `tests/` mirrors `src/`: `src/services/issue-manager.ts` → `tests/services/issue-manager.test.ts`. Import source, and name `vi.mock` targets, with extensionless relative paths (`../../src/services/issue-manager`).
 - One top-level `describe` per unit under test (class or exported function name). Nested `describe` blocks group **public** methods (`tests/services/issue-manager.test.ts`) or behaviour areas (`"crash recovery"`, `"persistence"` in `tests/services/operation-ledger.test.ts`). Never group by private method or internal call.
 - `it(...)` names state behaviour as a sentence: `"posts failure comment when connector throws"`, not `"calls transitionWorkItem"`.
 

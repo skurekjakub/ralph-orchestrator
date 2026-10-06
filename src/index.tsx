@@ -1,10 +1,10 @@
 import React from "react";
 import { render } from "ink";
-import { App } from "./cli-dashboard/App.js";
-import { Orchestrator } from "./orchestrator.js";
-import { createCradle } from "./awilix-cradle.js";
-import { AppStartup } from "./app-startup.js";
-import { DashboardServer } from "./services/dashboard-server.js";
+import { App } from "./cli-dashboard/App";
+import { Orchestrator } from "./orchestrator";
+import { createCradle } from "./awilix-cradle";
+import { AppStartup } from "./app-startup";
+import { DashboardServer } from "./services/dashboard-server";
 
 async function main(): Promise<void> {
   const startup = new AppStartup();

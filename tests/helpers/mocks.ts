@@ -6,33 +6,33 @@
  */
 
 import { vi, type Mock } from "vitest";
-import type { Logger } from "../../src/logger.js";
-import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client.js";
-import type { IIssueManager } from "../../src/services/issue-manager.js";
-import type { IResourceManager } from "../../src/services/task-resource-manager.js";
-import type { IComposeClient } from "../../src/container/compose-client.js";
-import type { IContainerManager } from "../../src/container/manager.js";
+import type { Logger } from "../../src/logger";
+import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client";
+import type { IIssueManager } from "../../src/services/issue-manager";
+import type { IResourceManager } from "../../src/services/task-resource-manager";
+import type { IComposeClient } from "../../src/container/compose-client";
+import type { IContainerManager } from "../../src/container/manager";
 import type {
   IDataSourceConnector,
   IDataSourceIdentity,
   ISupportsAttachments,
   ISupportsTransitions,
-} from "../../src/datasource/connector.js";
-import type { ILogCollector } from "../../src/logs/collector.js";
-import type { IWorkItemPoller } from "../../src/datasource/poller.js";
-import type { ITaskRunner } from "../../src/services/task-runner.js";
-import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes.js";
-import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes.js";
-import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params.js";
-import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer.js";
-import type { IProfileSetupService } from "../../src/services/profile-setup-service.js";
-import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor.js";
-import type { ITaskResultWriter } from "../../src/services/task-result-writer.js";
-import type { IVcsSourceClient } from "../../src/services/vcs-source-client.js";
-import type { AppStartupDeps } from "../../src/app-startup.js";
-import type { RalphResult, CliPaths } from "../../src/container/types.js";
+} from "../../src/datasource/connector";
+import type { ILogCollector } from "../../src/logs/collector";
+import type { IWorkItemPoller } from "../../src/datasource/poller";
+import type { ITaskRunner } from "../../src/services/task-runner";
+import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes";
+import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes";
+import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params";
+import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer";
+import type { IProfileSetupService } from "../../src/services/profile-setup-service";
+import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
+import type { ITaskResultWriter } from "../../src/services/task-result-writer";
+import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
+import type { AppStartupDeps } from "../../src/app-startup";
+import type { RalphResult, CliPaths } from "../../src/container/types";
 import type { ResultPromise } from "execa";
-import { makeConfig, makeResult } from "./factories.js";
+import { makeConfig, makeResult } from "./factories";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
 

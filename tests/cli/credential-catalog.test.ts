@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { credentialPolicyFor } from "../../src/cli/credential-catalog.js";
-import { ClaudeAuthMode, CliType } from "../../src/config/types.js";
+import { credentialPolicyFor } from "../../src/cli/credential-catalog";
+import { ClaudeAuthMode, CliType } from "../../src/config/types";
 
 describe("credentialPolicyFor", () => {
   it("requires only the OAuth token for Claude Code in oauth-token mode", () => {

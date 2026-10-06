@@ -1,10 +1,10 @@
-import type { Logger } from "../logger.js";
-import { supportsTransitions, type IDataSourceConnector, type ISupportsTransitions } from "../datasource/connector.js";
-import type { WorkItem, WorkItemComment } from "../datasource/types.js";
-import { withRetry, type RetryOptions } from "../retry.js";
-import { TransitionPhase } from "../orchestrator-types.js";
-import { OrchestratorComments } from "./orchestrator-comments.js";
-import { toErrorMessage } from "../util/error.js";
+import type { Logger } from "../logger";
+import { supportsTransitions, type IDataSourceConnector, type ISupportsTransitions } from "../datasource/connector";
+import type { WorkItem, WorkItemComment } from "../datasource/types";
+import { withRetry, type RetryOptions } from "../retry";
+import { TransitionPhase } from "../orchestrator-types";
+import { OrchestratorComments } from "./orchestrator-comments";
+import { toErrorMessage } from "../util/error";
 
 /** Public contract for work item lifecycle operations. */
 export interface IIssueManager {

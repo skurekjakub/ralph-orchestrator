@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { withRetry, sleep } from "../src/retry.js";
-import { createMockLogger } from "./helpers/mocks.js";
+import { withRetry, sleep } from "../src/retry";
+import { createMockLogger } from "./helpers/mocks";
 
 describe("withRetry", () => {
   it("returns result on first success", async () => {

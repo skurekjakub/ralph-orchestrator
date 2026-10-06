@@ -15,7 +15,7 @@ vi.mock("execa", () => ({
   execa: mockExeca,
 }));
 
-import { ComposeClient } from "../../src/container/compose-client.js";
+import { ComposeClient } from "../../src/container/compose-client";
 const SVC_APP = "app";
 const SVC_SIDECAR = "mcp-sidecar";
 

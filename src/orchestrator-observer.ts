@@ -6,8 +6,8 @@ import {
   type CompletedTask,
   type ActiveTask,
   type LogEntry,
-} from "./orchestrator-types.js";
-import { HeartbeatStatus } from "./services/heartbeat.js";
+} from "./orchestrator-types";
+import { HeartbeatStatus } from "./services/heartbeat";
 
 /** Live data the observer reads from the orchestrator on each state snapshot. */
 export interface ObservableContext {

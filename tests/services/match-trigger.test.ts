@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchesTrigger, parseTriggerParams } from "../../src/services/trigger-scanner.js";
+import { matchesTrigger, parseTriggerParams } from "../../src/services/trigger-scanner";
 
 describe("matchesTrigger", () => {
   it("matches trigger at start of text", () => {

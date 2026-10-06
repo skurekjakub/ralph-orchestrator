@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugifyBranchName } from "../../src/util/branch.js";
+import { slugifyBranchName } from "../../src/util/branch";
 
 describe("slugifyBranchName", () => {
   it("builds branch name from key and summary", () => {

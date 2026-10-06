@@ -5,7 +5,7 @@
  * in the work item comment stream.
  */
 
-import { TransitionPhase } from "../orchestrator-types.js";
+import { TransitionPhase } from "../orchestrator-types";
 
 const PREFIX = "[Ralph-Orchestrator]";
 

@@ -6,15 +6,15 @@
  * pattern available to third-party integrations.
  */
 
-import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "../../../config/types.js";
-import type { IDataSourceConnector } from "../../connector.js";
-import type { IWorkItemPoller } from "../../poller.js";
-import { registerDataSourceFactory } from "../../registry.js";
-import { jiraConnectionSchema } from "../../../config/schemas.js";
-import { JiraClient } from "./jira-client.js";
-import { JiraConnector } from "./jira-connector.js";
-import { JiraWorkItemPoller } from "./jira-poller.js";
-import { buildJqlFromProfiles } from "./jql-builder.js";
+import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "../../../config/types";
+import type { IDataSourceConnector } from "../../connector";
+import type { IWorkItemPoller } from "../../poller";
+import { registerDataSourceFactory } from "../../registry";
+import { jiraConnectionSchema } from "../../../config/schemas";
+import { JiraClient } from "./jira-client";
+import { JiraConnector } from "./jira-connector";
+import { JiraWorkItemPoller } from "./jira-poller";
+import { buildJqlFromProfiles } from "./jql-builder";
 
 /**
  * Resolve JIRA credentials from environment variables.

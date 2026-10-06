@@ -37,8 +37,8 @@ One operation runs at a time. The main loop is event-driven (no busy polling).
 
 ```bash
 npm run dev          # Development mode (tsx, no build)
-npm run build        # Compile TypeScript
-npm start            # Validate + build + run
+npm run build        # Bundle src/index.tsx into dist/index.js (esbuild)
+npm start            # Validate + build + run the bundle
 npm test             # Lint + build + vitest
 npm run validate     # Pre-start env/config/Docker/profile checks
 ```

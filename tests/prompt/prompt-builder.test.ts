@@ -6,11 +6,11 @@
  * this file focuses on the auditor integration within PromptBuilder.
  */
 import { describe, it, expect, vi } from "vitest";
-import { PromptBuilder } from "../../src/prompt/prompt-builder.js";
-import { AuditMode } from "../../src/prompt/prompt-auditor.js";
-import { createMockLogger } from "../helpers/mocks.js";
-import { makeWorkItem } from "../helpers/factories.js";
-import type { Logger } from "../../src/logger.js";
+import { PromptBuilder } from "../../src/prompt/prompt-builder";
+import { AuditMode } from "../../src/prompt/prompt-auditor";
+import { createMockLogger } from "../helpers/mocks";
+import { makeWorkItem } from "../helpers/factories";
+import type { Logger } from "../../src/logger";
 
 function makeBuilder(mode: AuditMode, logger: Logger) {
   return new PromptBuilder({ promptAuditConfig: { mode }, logger });

@@ -6,8 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { ValidationCollector } from "../../src/validate/types.js";
-import { validateSecurityInfra } from "../../src/validate/security.js";
+import type { ValidationCollector } from "../../src/validate/types";
+import { validateSecurityInfra } from "../../src/validate/security";
 
 let tempDir: string;
 let origCwd: string;

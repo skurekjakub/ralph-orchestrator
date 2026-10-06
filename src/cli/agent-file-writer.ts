@@ -1,4 +1,4 @@
-import type { CliType, ReasoningEffort } from "../config/types.js";
+import type { CliType, ReasoningEffort } from "../config/types";
 
 /** One agent of a profile in its canonical, CLI-neutral form, with its Liquid body already rendered. */
 export interface AgentDefinition {

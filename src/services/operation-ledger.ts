@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { IOutputConfig } from "../config/types.js";
-import { TaskStatus } from "../container/types.js";
+import type { IOutputConfig } from "../config/types";
+import { TaskStatus } from "../container/types";
 
 /** Work item IDs are used as filenames — reject anything with path-traversal characters. */
 const SAFE_ID_RE = /^[A-Za-z0-9][\w-]*$/;

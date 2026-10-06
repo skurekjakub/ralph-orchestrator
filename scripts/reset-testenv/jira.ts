@@ -1,4 +1,4 @@
-import type { JiraEnv, TaskDifficulty } from "./types.js";
+import type { JiraEnv, TaskDifficulty } from "./types";
 
 const EASY_DESCRIPTION = {
   version: 1,

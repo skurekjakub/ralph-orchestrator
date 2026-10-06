@@ -15,10 +15,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector.js";
-import type { IComposeClient } from "../../src/container/compose-client.js";
-import { createMockCompose, createSilentLogger, fakeExecResult } from "../helpers/mocks.js";
-import type { Logger } from "../../src/logger.js";
+import { CaptureMode, ContainerLogCollector } from "../../src/container/log-collector";
+import type { IComposeClient } from "../../src/container/compose-client";
+import { createMockCompose, createSilentLogger, fakeExecResult } from "../helpers/mocks";
+import type { Logger } from "../../src/logger";
 
 const SVC_APP = "app";
 const SVC_SIDECAR = "mcp-sidecar";

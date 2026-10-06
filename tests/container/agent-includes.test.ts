@@ -7,11 +7,11 @@ import {
   AgentTemplateRenderer,
   buildTemplateContext,
   buildTriggerParams,
-} from "../../src/container/setup/agent-includes.js";
-import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
+} from "../../src/container/setup/agent-includes";
+import { registerCustomTags } from "../../src/container/setup/liquid-tags";
 import { Liquid } from "liquidjs";
-import { createMockLogger } from "../helpers/mocks.js";
-import { makeProfile, makeStage, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories.js";
+import { createMockLogger } from "../helpers/mocks";
+import { makeProfile, makeStage, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories";
 
 let tmpDir: string;
 let originalCwd: string;

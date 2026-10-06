@@ -3,15 +3,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-import { Orchestrator } from "../../src/orchestrator.js";
-import { OperationStatus } from "../../src/services/operation-ledger.js";
-import { makeProfile, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories.js";
-import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types.js";
-import type { IAgentProfile } from "../../src/config/types.js";
-import { TaskStatus } from "../../src/container/types.js";
-import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import { buildMockDeps, buildBaseDeps, runUntil, DS } from "./e2e-helpers.js";
-import { createMockVcsSourceClient } from "../helpers/mocks.js";
+import { Orchestrator } from "../../src/orchestrator";
+import { OperationStatus } from "../../src/services/operation-ledger";
+import { makeProfile, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories";
+import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types";
+import type { IAgentProfile } from "../../src/config/types";
+import { TaskStatus } from "../../src/container/types";
+import { HeartbeatStatus } from "../../src/services/heartbeat";
+import { buildMockDeps, buildBaseDeps, runUntil, DS } from "./e2e-helpers";
+import { createMockVcsSourceClient } from "../helpers/mocks";
 
 const PROJECT = "DF";
 const TS = "2026-01-01T00:00:00Z";

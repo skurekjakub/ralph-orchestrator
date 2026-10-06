@@ -1,6 +1,6 @@
-import type { WorkItem } from "../datasource/types.js";
-import { PromptSectionSource, type PromptSection } from "./prompt-auditor.js";
-import { normalizeContent } from "./normalizer.js";
+import type { WorkItem } from "../datasource/types";
+import { PromptSectionSource, type PromptSection } from "./prompt-auditor";
+import { normalizeContent } from "./normalizer";
 
 /**
  * Context about an issue provided to the agent alongside the work item fields.

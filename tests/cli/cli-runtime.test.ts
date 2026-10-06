@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { CliRuntimeRegistry, CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime.js";
-import { CLAUDE_MODEL_POLICY, COPILOT_MODEL_POLICY } from "../../src/cli/model-catalog.js";
-import { CliType } from "../../src/config/types.js";
+import { CliRuntimeRegistry, CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
+import { CLAUDE_MODEL_POLICY, COPILOT_MODEL_POLICY } from "../../src/cli/model-catalog";
+import { CliType } from "../../src/config/types";
 
 /** A runtime whose layout paths are tagged with the CLI name, so tests can tell runtimes apart. */
 function fakeRuntime(cli: CliType): ICliRuntime {

@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { ValidationCollector } from "../../src/validate/types.js";
-import { validateEnvFile } from "../../src/validate/env.js";
+import type { ValidationCollector } from "../../src/validate/types";
+import { validateEnvFile } from "../../src/validate/env";
 
 let tempDir: string;
 let origCwd: string;

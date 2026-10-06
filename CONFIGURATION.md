@@ -89,7 +89,7 @@ Each entry in `dataSources` defines a connection to an external work item source
 
 ### Plugins
 
-Additional data source connector modules to load at startup. Each module must call `registerDataSourceFactory()` as a side effect on import.
+Additional data source connector modules to load at startup. Each module must call `registerDataSourceFactory()` as a side effect on import. A relative path (`./my-datasource/factory.js`) resolves against the working directory, an absolute path is used as is, and any other entry is a package specifier resolved from `node_modules`.
 
 ```json
 "plugins": [

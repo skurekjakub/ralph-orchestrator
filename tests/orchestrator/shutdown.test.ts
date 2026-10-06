@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { Orchestrator } from "../../src/orchestrator.js";
-import { makeProfile, makeWorkItem, makeDataSourceConfig } from "../helpers/factories.js";
+import { Orchestrator } from "../../src/orchestrator";
+import { makeProfile, makeWorkItem, makeDataSourceConfig } from "../helpers/factories";
 import {
   createMockIssueManager,
   createMockTaskRunner,
@@ -8,13 +8,13 @@ import {
   createMockResources,
   createMockVcsSourceClient,
   createSilentLogger,
-} from "../helpers/mocks.js";
-import type { IActivityLog } from "../../src/services/activity-log.js";
-import { OperationStatus, type IOperationLedger, type Operation } from "../../src/services/operation-ledger.js";
-import type { IProfileRouter } from "../../src/services/profile-router.js";
-import type { ITriggerScanner } from "../../src/services/trigger-scanner.js";
-import { TaskStatus } from "../../src/container/types.js";
-import type { TaskContext } from "../../src/services/task-context.js";
+} from "../helpers/mocks";
+import type { IActivityLog } from "../../src/services/activity-log";
+import { OperationStatus, type IOperationLedger, type Operation } from "../../src/services/operation-ledger";
+import type { IProfileRouter } from "../../src/services/profile-router";
+import type { ITriggerScanner } from "../../src/services/trigger-scanner";
+import { TaskStatus } from "../../src/container/types";
+import type { TaskContext } from "../../src/services/task-context";
 
 const TRIGGER = "@ralph";
 const DATA_SOURCE = "test-source";

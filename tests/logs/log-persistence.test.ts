@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { TaskStatus } from "../../src/container/types.js";
-import { LogLevel } from "../../src/orchestrator-types.js";
-import { resolveStatus } from "../../src/container/result-parser.js";
-import { makeResult } from "../helpers/factories.js";
+import { TaskStatus } from "../../src/container/types";
+import { LogLevel } from "../../src/orchestrator-types";
+import { resolveStatus } from "../../src/container/result-parser";
+import { makeResult } from "../helpers/factories";
 
 // ── Log persistence tests ────────────────────────────────
 // Tests for persistent activity log, CLI output saving, log collector,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateTriggerUniqueness, type VariantTriggerInfo } from "../../src/validate/profiles.js";
+import { validateTriggerUniqueness, type VariantTriggerInfo } from "../../src/validate/profiles";
 const PROJECT_DOC = "DOC";
 
 function variant(profileId: string, variantIndex: number, projects: string[], trigger: string): VariantTriggerInfo {

@@ -14,9 +14,9 @@
  * 3. See `docs/dev-doc/data-source-registration.md` for the full integration guide
  */
 
-import type { IAppConfig, IAgentProfile, IDataSourceConfig } from "../config/types.js";
-import type { IDataSourceConnector } from "./connector.js";
-import type { IWorkItemPoller } from "./poller.js";
+import type { IAppConfig, IAgentProfile, IDataSourceConfig } from "../config/types";
+import type { IDataSourceConnector } from "./connector";
+import type { IWorkItemPoller } from "./poller";
 
 /** Factory function that creates a connector + poller for a single data source entry. */
 export type DataSourceFactory = (

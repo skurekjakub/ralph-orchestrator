@@ -1,14 +1,14 @@
-import type { IIssueManager } from "./issue-manager.js";
-import type { WorkItem, WorkItemComment } from "../datasource/types.js";
-import type { IDataSourceConnector } from "../datasource/connector.js";
-import type { IAgentProfile } from "../config/types.js";
-import type { IProfileRouter } from "./profile-router.js";
-import type { IOperationLedger } from "./operation-ledger.js";
-import { OrchestratorComments } from "./orchestrator-comments.js";
-import type { Logger } from "../logger.js";
+import type { IIssueManager } from "./issue-manager";
+import type { WorkItem, WorkItemComment } from "../datasource/types";
+import type { IDataSourceConnector } from "../datasource/connector";
+import type { IAgentProfile } from "../config/types";
+import type { IProfileRouter } from "./profile-router";
+import type { IOperationLedger } from "./operation-ledger";
+import { OrchestratorComments } from "./orchestrator-comments";
+import type { Logger } from "../logger";
 import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { toErrorMessage } from "../util/error.js";
+import { toErrorMessage } from "../util/error";
 
 /** Escape a trigger string for use in a RegExp. */
 function escapeTrigger(trigger: string): string {

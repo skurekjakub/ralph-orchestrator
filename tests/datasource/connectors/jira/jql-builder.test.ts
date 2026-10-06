@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildJqlFromProfiles } from "../../../../src/datasource/connectors/jira/jql-builder.js";
-import { makeProfile } from "../../../helpers/factories.js";
+import { buildJqlFromProfiles } from "../../../../src/datasource/connectors/jira/jql-builder";
+import { makeProfile } from "../../../helpers/factories";
 const PROJECT_DOC = "DOC";
 const PROJECT = "DF";
 const TRIGGER = "@ralph";

@@ -19,11 +19,11 @@
 import "dotenv/config";
 import { readFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { AppStartup } from "../src/app-startup.js";
-import { createCradle } from "../src/awilix-cradle.js";
-import { TaskStatus } from "../src/container/types.js";
-import { consoleLogger } from "../src/logger.js";
-import type { IPostTaskHook } from "../src/config/types.js";
+import { AppStartup } from "../src/app-startup";
+import { createCradle } from "../src/awilix-cradle";
+import { TaskStatus } from "../src/container/types";
+import { consoleLogger } from "../src/logger";
+import type { IPostTaskHook } from "../src/config/types";
 
 interface HookManifest {
   taskId: string;

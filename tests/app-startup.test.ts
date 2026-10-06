@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-import { AppStartup } from "../src/app-startup.js";
-import { makeConfig } from "./helpers/factories.js";
-import { createMockLogger, createMockStartupDeps } from "./helpers/mocks.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { AppStartup, userPluginModule } from "../src/app-startup";
+import { registerDataSourceFactory } from "../src/datasource/registry";
+import { makeConfig } from "./helpers/factories";
+import { createMockLogger, createMockStartupDeps } from "./helpers/mocks";
 
 describe("AppStartup", () => {
   describe("run", () => {
@@ -138,5 +142,99 @@ describe("AppStartup", () => {
 
       expect(deps.startRalphchives).not.toHaveBeenCalled();
     });
+
+    it("loads the built-in plugins first, then the configured plugins in config order", async () => {
+      // Arrange
+      const config = { ...makeConfig(), plugins: ["./local-plugin.mjs", "some-plugin-package"] };
+      const deps = createMockStartupDeps({ loadConfig: vi.fn().mockReturnValue(config) });
+
+      // Act
+      await new AppStartup(deps).run(createMockLogger());
+
+      // Assert
+      const [plugins] = vi.mocked(deps.loadPlugins).mock.calls[0];
+      expect(plugins.map((plugin) => plugin.name)).toEqual(["jira", "./local-plugin.mjs", "some-plugin-package"]);
+    });
+
+    it("registers the built-in JIRA data source factory through the default plugin loader", async () => {
+      // Arrange
+      const { loadPlugins: _defaultLoader, ...deps } = createMockStartupDeps();
+      const logger = createMockLogger();
+
+      // Act
+      await new AppStartup(deps).run(logger);
+
+      // Assert
+      expect(logger.info).toHaveBeenCalledWith("Loaded plugin: jira");
+      expect(() => registerDataSourceFactory("jira", vi.fn())).toThrow('already registered for type "jira"');
+    });
+
+    it("fails with the plugin name when a configured plugin cannot be imported", async () => {
+      // Arrange
+      const config = { ...makeConfig(), plugins: ["./no-such-plugin.mjs"] };
+      const { loadPlugins: _defaultLoader, ...deps } = createMockStartupDeps({
+        loadConfig: vi.fn().mockReturnValue(config),
+      });
+
+      // Act & Assert
+      await expect(new AppStartup(deps).run(createMockLogger())).rejects.toThrow(
+        'Failed to load plugin "./no-such-plugin.mjs"',
+      );
+    });
+  });
+});
+
+describe("userPluginModule", () => {
+  let pluginDir: string;
+
+  beforeEach(() => {
+    pluginDir = mkdtempSync(join(tmpdir(), "plugin-module-"));
+    writeFileSync(join(pluginDir, "plugin.mjs"), 'export const marker = "loaded";\n');
+  });
+
+  afterEach(() => {
+    rmSync(pluginDir, { recursive: true, force: true });
+  });
+
+  it("imports a relative path from the given working directory", async () => {
+    // Arrange
+    const plugin = userPluginModule("./plugin.mjs", pluginDir);
+
+    // Act
+    const loaded = (await plugin.load()) as { marker: string };
+
+    // Assert
+    expect(plugin.name).toBe("./plugin.mjs");
+    expect(loaded.marker).toBe("loaded");
+  });
+
+  it("imports an absolute path as given", async () => {
+    // Arrange
+    const plugin = userPluginModule(join(pluginDir, "plugin.mjs"), "/nonexistent-cwd");
+
+    // Act
+    const loaded = (await plugin.load()) as { marker: string };
+
+    // Assert
+    expect(loaded.marker).toBe("loaded");
+  });
+
+  it("leaves a package specifier for Node to resolve", async () => {
+    // Arrange
+    const plugin = userPluginModule("node:path", pluginDir);
+
+    // Act
+    const loaded = (await plugin.load()) as { join: unknown };
+
+    // Assert
+    expect(loaded.join).toBe(join);
+  });
+
+  it("rejects when a relative path does not exist under the working directory", async () => {
+    // Arrange
+    const plugin = userPluginModule("./missing.mjs", pluginDir);
+
+    // Act & Assert
+    await expect(plugin.load()).rejects.toThrow(/missing\.mjs/);
   });
 });

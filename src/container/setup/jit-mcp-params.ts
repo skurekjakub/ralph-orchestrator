@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
-import type { IAgentProfile } from "../../config/types.js";
-import type { WorkItem } from "../../datasource/types.js";
-import type { Logger } from "../../logger.js";
-import type { GatewayConfig, GatewayServerEntry } from "./mcp-config.js";
-import { slugifyBranchName } from "../../util/branch.js";
+import type { IAgentProfile } from "../../config/types";
+import type { WorkItem } from "../../datasource/types";
+import type { Logger } from "../../logger";
+import type { GatewayConfig, GatewayServerEntry } from "./mcp-config";
+import { slugifyBranchName } from "../../util/branch";
 
 export interface BranchResolutionContext {
   readonly sourceBranch?: string;

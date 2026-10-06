@@ -4,14 +4,9 @@
  * Tests log collection, transcript attachment, and execution summary persistence.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TaskResultWriter } from "../../src/services/task-result-writer.js";
-import { makeWorkItem, makeProfile, makeResult, makeTaskContext } from "../helpers/factories.js";
-import {
-  createMockLogger,
-  createMockContainer,
-  createMockLogCollector,
-  createMockResources,
-} from "../helpers/mocks.js";
+import { TaskResultWriter } from "../../src/services/task-result-writer";
+import { makeWorkItem, makeProfile, makeResult, makeTaskContext } from "../helpers/factories";
+import { createMockLogger, createMockContainer, createMockLogCollector, createMockResources } from "../helpers/mocks";
 
 const DS = "jira";
 const KEY = "DF-100";

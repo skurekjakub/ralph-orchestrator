@@ -6,7 +6,7 @@
  * regardless of which source produced them.
  */
 
-import type { WorkItem } from "./types.js";
+import type { WorkItem } from "./types";
 
 /** Polls a single data source for work items on a fixed interval. */
 export interface IWorkItemPoller {

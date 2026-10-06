@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor.js";
-import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor.js";
-import { DEFAULT_COPILOT_MODEL } from "../../src/cli/model-catalog.js";
-import { CliType } from "../../src/config/types.js";
-import type { CliPaths } from "../../src/container/types.js";
-import { makeProfile } from "../helpers/factories.js";
-import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks.js";
+import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
+import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor";
+import { DEFAULT_COPILOT_MODEL } from "../../src/cli/model-catalog";
+import { CliType } from "../../src/config/types";
+import type { CliPaths } from "../../src/container/types";
+import { makeProfile } from "../helpers/factories";
+import { createMockCompose, createMockLogger, fakeExecResult } from "../helpers/mocks";
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();

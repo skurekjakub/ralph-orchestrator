@@ -1,8 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
-import { toErrorMessage } from "../util/error.js";
-import type { OrchestratorState, LogEntry } from "../orchestrator-types.js";
-import type { OrchestratorObserver } from "../orchestrator-observer.js";
-import type { Logger } from "../logger.js";
+import { toErrorMessage } from "../util/error";
+import type { OrchestratorState, LogEntry } from "../orchestrator-types";
+import type { OrchestratorObserver } from "../orchestrator-observer";
+import type { Logger } from "../logger";
 
 /** Message types sent from the server to dashboard clients. */
 export type DashboardMessage =

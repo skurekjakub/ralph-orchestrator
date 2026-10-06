@@ -1,9 +1,9 @@
-import type { IAgentProfile, ISecretsConfig } from "../config/types.js";
-import type { Logger } from "../logger.js";
-import type { IComposeClient } from "./compose-client.js";
-import type { ContainerExecResult, CliPaths } from "./types.js";
-import { CopilotExecutor } from "./cli-executors/copilot-executor.js";
-import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor.js";
+import type { IAgentProfile, ISecretsConfig } from "../config/types";
+import type { Logger } from "../logger";
+import type { IComposeClient } from "./compose-client";
+import type { ContainerExecResult, CliPaths } from "./types";
+import { CopilotExecutor } from "./cli-executors/copilot-executor";
+import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
 
 /**
  * Common interface for CLI executors (Copilot CLI, Claude Code CLI).

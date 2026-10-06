@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { HookSandbox, loadCapturedPreToolUse, loadPayloads, type AuditRecord, type HookRun } from "./hook-harness.js";
+import { HookSandbox, loadCapturedPreToolUse, loadPayloads, type AuditRecord, type HookRun } from "./hook-harness";
 
 const claude = loadPayloads("claude");
 const copilot = loadPayloads("copilot");

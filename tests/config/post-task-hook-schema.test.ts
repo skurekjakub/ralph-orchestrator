@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { postTaskHookSchema, variantSchema } from "../../src/config/schemas.js";
+import { postTaskHookSchema, variantSchema } from "../../src/config/schemas";
 
 describe("postTaskHookSchema", () => {
   const validHook = {

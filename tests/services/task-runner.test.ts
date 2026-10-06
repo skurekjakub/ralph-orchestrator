@@ -9,13 +9,13 @@
  * scenarios are tested in agent-pipeline-executor.test.ts.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TaskRunner } from "../../src/services/task-runner.js";
-import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types.js";
-import { StageMode } from "../../src/config/types.js";
-import { TransitionPhase } from "../../src/orchestrator-types.js";
-import type { IContainerManager } from "../../src/container/manager.js";
-import { makeWorkItem, makeProfile, makeResult, makeStage, makeTaskContext, makeConfig } from "../helpers/factories.js";
-import { buildTaskContext } from "../../src/services/task-context.js";
+import { TaskRunner } from "../../src/services/task-runner";
+import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types";
+import { StageMode } from "../../src/config/types";
+import { TransitionPhase } from "../../src/orchestrator-types";
+import type { IContainerManager } from "../../src/container/manager";
+import { makeWorkItem, makeProfile, makeResult, makeStage, makeTaskContext, makeConfig } from "../helpers/factories";
+import { buildTaskContext } from "../../src/services/task-context";
 import {
   createMockLogger,
   createMockContainer,
@@ -24,7 +24,7 @@ import {
   createMockIssueManager,
   createMockProfileSetupService,
   createMockPipelineExecutor,
-} from "../helpers/mocks.js";
+} from "../helpers/mocks";
 
 const DS = "jira";
 const KEY = "DF-100";

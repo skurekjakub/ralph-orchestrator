@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { ActivityLog } from "../../src/services/activity-log.js";
-import { LogLevel, LogSource } from "../../src/orchestrator-types.js";
+import { ActivityLog } from "../../src/services/activity-log";
+import { LogLevel, LogSource } from "../../src/orchestrator-types";
 import { readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { IOutputConfig } from "../../src/config/types.js";
+import type { IOutputConfig } from "../../src/config/types";
 
 function makeTmpDir(): string {
   const dir = join(tmpdir(), `ralph-test-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);

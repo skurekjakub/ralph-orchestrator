@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { makeProfile } from "../helpers/factories.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { makeProfile } from "../helpers/factories";
+import { createMockLogger } from "../helpers/mocks";
 
 const PID = "ralph-docs";
 
@@ -16,7 +16,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const { existsSync, readFileSync, writeFileSync, readdirSync } = await import("node:fs");
-const { ComposeOverlayWriter } = await import("../../src/container/setup/compose-overlay-writer.js");
+const { ComposeOverlayWriter } = await import("../../src/container/setup/compose-overlay-writer");
 
 describe("ComposeOverlayWriter", () => {
   const writer = new ComposeOverlayWriter();

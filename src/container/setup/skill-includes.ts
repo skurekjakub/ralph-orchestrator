@@ -2,9 +2,9 @@ import { readFile, writeFile, mkdir, readdir, cp } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { Liquid } from "liquidjs";
-import type { Logger } from "../../logger.js";
-import { registerCustomTags } from "./liquid-tags.js";
-import type { TemplateContext } from "./agent-includes.js";
+import type { Logger } from "../../logger";
+import { registerCustomTags } from "./liquid-tags";
+import type { TemplateContext } from "./agent-includes";
 
 /**
  * Recursively collect all `.md` file paths under `dir`.

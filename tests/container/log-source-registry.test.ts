@@ -13,15 +13,15 @@
  * - folder exports
  */
 import { describe, it, expect, vi } from "vitest";
-import { LogSourceRegistry } from "../../src/container/log-source-registry.js";
+import { LogSourceRegistry } from "../../src/container/log-source-registry";
 import {
   CaptureMode,
   type LogSourceDef,
   type FolderExportDef,
   type IContainerLogCollector,
-} from "../../src/container/log-collector.js";
-import type { CliPaths } from "../../src/container/types.js";
-import { makeProfile } from "../helpers/factories.js";
+} from "../../src/container/log-collector";
+import type { CliPaths } from "../../src/container/types";
+import { makeProfile } from "../helpers/factories";
 
 const TASK_ID = "DF-100-1234567890000";
 const WORK_ITEM_ID = "DF-100";

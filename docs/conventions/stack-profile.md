@@ -20,7 +20,9 @@
     sidecar design, data-source registration, egress security,
     prompt-injection hardening), `MCP.md`, `SECURITY.md`.
   - Orchestrator (`src/`): Node.js 24 API (`engines` ≥ 24, CI runs 24.x),
-    TypeScript 6.0 with `NodeNext` modules, awilix 13 (`InjectionMode.PROXY`,
+    TypeScript 6.0 as a type-checker only (`moduleResolution: "bundler"`,
+    `isolatedModules`), esbuild bundling `src/index.tsx` into
+    `dist/index.js`, awilix 13 (`InjectionMode.PROXY`,
     `strict`), execa 10, zod 4 (not the v3 API), liquidjs 10, ws 8, ink 8 +
     React 19 (`src/cli-dashboard/`), Docker Compose multi-file merge rules,
     Squid ACL syntax (`shared/security/squid.conf`).
@@ -58,7 +60,8 @@
 - **Anti-patterns**, forbidden → do instead:
   - `export … from` re-export, or a compat wrapper/shim after a move → import
     from the defining module and update every call site.
-  - Relative import without `.js` → `./foo.js` (ESM, NodeNext).
+  - Relative import with an extension (`./foo.js`, `./foo.ts`) → `./foo`
+    (esbuild resolves it; `.json` imports keep their extension).
   - A consumer importing or `new`-ing a concrete service class → depend on its
     `I`-interface; register the class in `createCradle()`
     (`src/awilix-cradle.ts`) and add the token to `OrchestratorCradle`

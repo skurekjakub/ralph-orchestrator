@@ -6,8 +6,8 @@ import {
   parseSquidHostLoopbackPorts,
   generateAllowedUrls,
   writeCopilotConfig,
-} from "../../src/container/setup/url-restrictions.js";
-import { createTempDir } from "../helpers/mcp-fs.js";
+} from "../../src/container/setup/url-restrictions";
+import { createTempDir } from "../helpers/mcp-fs";
 
 describe("URL Restrictions", () => {
   let tempDir: string;

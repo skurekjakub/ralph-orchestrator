@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { StreamCapture } from "../../src/container/stream-capture.js";
-import { createMockLogger } from "../helpers/mocks.js";
+import { StreamCapture } from "../../src/container/stream-capture";
+import { createMockLogger } from "../helpers/mocks";
 import type { ResultPromise } from "execa";
 import { EventEmitter } from "node:events";
 

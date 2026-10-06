@@ -15,15 +15,15 @@ import {
   type IProfileMatch,
   type IStageConfig,
   VcsProvider,
-} from "../../src/config/types.js";
-import { TaskStatus, type RalphResult } from "../../src/container/types.js";
-import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
-import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
-import type { CompletedTask } from "../../src/orchestrator-types.js";
-import type { TemplateContext } from "../../src/container/setup/agent-includes.js";
-import type { TaskContext } from "../../src/services/task-context.js";
-import { AuditMode } from "../../src/prompt/prompt-auditor.js";
-import { slugifyBranchName } from "../../src/util/branch.js";
+} from "../../src/config/types";
+import { TaskStatus, type RalphResult } from "../../src/container/types";
+import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types";
+import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
+import type { CompletedTask } from "../../src/orchestrator-types";
+import type { TemplateContext } from "../../src/container/setup/agent-includes";
+import type { TaskContext } from "../../src/services/task-context";
+import { AuditMode } from "../../src/prompt/prompt-auditor";
+import { slugifyBranchName } from "../../src/util/branch";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
 

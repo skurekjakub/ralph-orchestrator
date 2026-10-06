@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { JiraClient } from "../../../../src/datasource/connectors/jira/jira-client.js";
-import { makeIssue, makeComment } from "../../../helpers/factories.js";
-import { createMockLogger } from "../../../helpers/mocks.js";
-import type { IJiraConnectionConfig } from "../../../../src/config/types.js";
+import { JiraClient } from "../../../../src/datasource/connectors/jira/jira-client";
+import { makeIssue, makeComment } from "../../../helpers/factories";
+import { createMockLogger } from "../../../helpers/mocks";
+import type { IJiraConnectionConfig } from "../../../../src/config/types";
 
 const mockConnection: IJiraConnectionConfig = {
   baseUrl: "https://api.atlassian.com/ex/jira",

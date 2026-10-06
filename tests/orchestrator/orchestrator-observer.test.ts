@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { OrchestratorObserver, type ObservableContext } from "../../src/orchestrator-observer.js";
-import { OrchestratorStatus, LogLevel, LogSource, type LogEntry } from "../../src/orchestrator-types.js";
-import { HeartbeatStatus } from "../../src/services/heartbeat.js";
-import { makeWorkItem, makeProfile, makeCompletion } from "../helpers/factories.js";
+import { OrchestratorObserver, type ObservableContext } from "../../src/orchestrator-observer";
+import { OrchestratorStatus, LogLevel, LogSource, type LogEntry } from "../../src/orchestrator-types";
+import { HeartbeatStatus } from "../../src/services/heartbeat";
+import { makeWorkItem, makeProfile, makeCompletion } from "../helpers/factories";
 
 const PID = "ralph-docs";
 

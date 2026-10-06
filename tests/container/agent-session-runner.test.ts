@@ -6,13 +6,13 @@
  * assembles the final RalphResult.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AgentSessionRunner } from "../../src/container/agent-session-runner.js";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory.js";
-import type { IContinuationRunner } from "../../src/container/continuation-runner.js";
-import type { PromptBuilder } from "../../src/prompt/prompt-builder.js";
-import { TaskStatus, type CliPaths } from "../../src/container/types.js";
-import { makeWorkItem } from "../helpers/factories.js";
-import { createSilentLogger, type Mocked } from "../helpers/mocks.js";
+import { AgentSessionRunner } from "../../src/container/agent-session-runner";
+import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { IContinuationRunner } from "../../src/container/continuation-runner";
+import type { PromptBuilder } from "../../src/prompt/prompt-builder";
+import { TaskStatus, type CliPaths } from "../../src/container/types";
+import { makeWorkItem } from "../helpers/factories";
+import { createSilentLogger, type Mocked } from "../helpers/mocks";
 
 const cliPaths: CliPaths = {
   configDir: "/workspace/.ralph",

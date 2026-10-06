@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createCradle } from "../src/awilix-cradle.js";
-import { ClaudeAuthMode, CliType } from "../src/config/types.js";
-import { makeConfig } from "./helpers/factories.js";
+import { createCradle } from "../src/awilix-cradle";
+import { ClaudeAuthMode, CliType } from "../src/config/types";
+import { makeConfig } from "./helpers/factories";
 
 // Ensure built-in data source factories are registered
-import "../src/datasource/connectors/jira/factory.js";
+import "../src/datasource/connectors/jira/factory";
 
 /**
  * Verifies that awilix resolves all cradle services without errors.

@@ -1,22 +1,22 @@
-import type { IAgentProfile, IDataSourceConfig, IOutputConfig, IRalphchivesConfig } from "./config/types.js";
-import { TaskStatus } from "./container/types.js";
-import { LogLevel, TransitionPhase, type ActiveTask } from "./orchestrator-types.js";
-import { OperationStatus, type Operation, type IOperationLedger } from "./services/operation-ledger.js";
-import { OrchestratorObserver } from "./orchestrator-observer.js";
-import type { WorkItem } from "./datasource/types.js";
-import type { IWorkItemPoller } from "./datasource/poller.js";
-import { buildTaskContext, type TaskCallbacks } from "./services/task-context.js";
-import type { PreflightContext } from "./services/preflight.js";
-import { toErrorMessage } from "./util/error.js";
-import type { IActivityLog } from "./services/activity-log.js";
-import type { IProfileRouter } from "./services/profile-router.js";
-import type { IIssueManager } from "./services/issue-manager.js";
-import type { IResourceManager } from "./services/task-resource-manager.js";
-import type { ITaskRunner } from "./services/task-runner.js";
-import type { ITriggerScanner } from "./services/trigger-scanner.js";
-import type { IVcsSourceClient } from "./services/vcs-source-client.js";
-import type { IHeartbeatSender } from "./services/heartbeat.js";
-import type { Logger } from "./logger.js";
+import type { IAgentProfile, IDataSourceConfig, IOutputConfig, IRalphchivesConfig } from "./config/types";
+import { TaskStatus } from "./container/types";
+import { LogLevel, TransitionPhase, type ActiveTask } from "./orchestrator-types";
+import { OperationStatus, type Operation, type IOperationLedger } from "./services/operation-ledger";
+import { OrchestratorObserver } from "./orchestrator-observer";
+import type { WorkItem } from "./datasource/types";
+import type { IWorkItemPoller } from "./datasource/poller";
+import { buildTaskContext, type TaskCallbacks } from "./services/task-context";
+import type { PreflightContext } from "./services/preflight";
+import { toErrorMessage } from "./util/error";
+import type { IActivityLog } from "./services/activity-log";
+import type { IProfileRouter } from "./services/profile-router";
+import type { IIssueManager } from "./services/issue-manager";
+import type { IResourceManager } from "./services/task-resource-manager";
+import type { ITaskRunner } from "./services/task-runner";
+import type { ITriggerScanner } from "./services/trigger-scanner";
+import type { IVcsSourceClient } from "./services/vcs-source-client";
+import type { IHeartbeatSender } from "./services/heartbeat";
+import type { Logger } from "./logger";
 
 /** Everything the pre-activation phases resolved for an operation that is cleared to run. */
 interface PreparedOperation {
@@ -359,7 +359,7 @@ export class Orchestrator {
     checkName?: string,
   ): Promise<PreflightContext | null> {
     const name = checkName ?? profile.preflight!;
-    const { buildPreflightContext, runPreflight } = await import("./services/preflight.js");
+    const { buildPreflightContext, runPreflight } = await import("./services/preflight");
     const comments = await this.issueManager.getComments(workItem.source, workItem.id);
     const ctx = await buildPreflightContext(
       this.resources,
