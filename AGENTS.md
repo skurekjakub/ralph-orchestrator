@@ -29,7 +29,8 @@ No quick fixes. Always diagnose to the root cause and devise proper solutions. N
 Safe (local only, no external side effects):
 
 ```bash
-npm run lint         # tsc --noEmit (src) + tsc --noEmit -p tests/tsconfig.json + eslint .
+npm run lint         # tsc --noEmit (src + tests) + eslint . + prettier --check . (lint fails on unformatted files)
+npm run format       # prettier --write . + eslint --fix (the format-on-edit hook does this per edited file)
 npm test             # lint + build + vitest run (CI runs these three gates as separate steps)
 npm run test:watch   # vitest watch, no lint/build
 npx vitest run tests/services/task-runner.test.ts   # single file
