@@ -1,0 +1,465 @@
+{
+  "$schema": "Docwriter manual-family task graph — augments existing VS Code agent family with 3 extensions",
+  "version": 1,
+  "family": "manual",
+  "generatedAt": "2026-03-13T00:00:00Z",
+  "implementedAt": "2026-03-13",
+  "implementationStatus": "complete",
+  "description": "Adds meta-knowledge base, internet research gate, and knowledge synthesis to the existing manually-deployed docwriter agent family. All 30 tasks implemented — 7 agents created, 9 modified, 2 docs updated, bootstrap extended.",
+  "summary": {
+    "totalTasks": 30,
+    "phases": 7,
+    "newAgentFiles": 7,
+    "modifiedAgentFiles": 9,
+    "newDirectories": 2,
+    "agentCount": {
+      "before": 22,
+      "after": 29,
+      "delta": "+7 (1 coordinator + 6 specialists)"
+    }
+  },
+  "assumptions": [
+    "22 base docwriter agents already exist as .github/agents/docwriter*.agent.md",
+    "docwriter-bootstrap.sh already exists and creates .docwriter/ directory",
+    "VS Code Copilot Chat is the invocation surface (human types @docwriter)",
+    "No orchestrator, Docker, Liquid templates, or JIRA integration",
+    "Meta-knowledge persists repo-local (.docwriter/meta/ committed or gitignored by user)",
+    "Internet access is direct (user's network), fetch tool available in Copilot"
+  ],
+  "tasks": [
+    {
+      "id": "M-001",
+      "phase": 1,
+      "ref": "phase-1-foundation-bootstrap.md § 1.1",
+      "title": "Modify docwriter-bootstrap.sh — meta directories + seed files",
+      "description": "Add .docwriter/meta/ subdirectories (patterns, anti-patterns, domain-insights, task-retros, style-evolutions), .docwriter/synthesis-signals/, seed meta/index.json and meta/research-sources.json (5 curated sources), add pass0/pass65 to progress.json schema.",
+      "type": "modify",
+      "target": ".github/agents/docwriter-bootstrap.sh",
+      "prerequisites": [],
+      "status": "implemented",
+      "artifacts": {
+        "creates": [
+          ".docwriter/meta/",
+          ".docwriter/meta/patterns/",
+          ".docwriter/meta/anti-patterns/",
+          ".docwriter/meta/domain-insights/",
+          ".docwriter/meta/task-retros/",
+          ".docwriter/meta/style-evolutions/",
+          ".docwriter/synthesis-signals/",
+          ".docwriter/meta/index.json",
+          ".docwriter/meta/research-sources.json"
+        ],
+        "modifies": [".docwriter/progress.json"]
+      },
+      "acceptanceCriteria": [
+        "bootstrap creates .docwriter/meta/ with all 5 subdirectories",
+        "bootstrap creates .docwriter/synthesis-signals/",
+        "meta/index.json seeded with version 1, empty entries array",
+        "meta/research-sources.json seeded with 5 curated URL sources",
+        "progress.json includes pass0_knowledgeCuration and pass6_5_knowledgeSynthesis"
+      ]
+    },
+    {
+      "id": "M-002",
+      "phase": 1,
+      "ref": "phase-1-foundation-bootstrap.md § 1.2",
+      "title": "Create placeholder docwriter-meta skill directory",
+      "description": "Create .github/skills/docwriter-meta/ with SKILL.md (frontmatter + reference table) and 5 placeholder reference files.",
+      "type": "create",
+      "target": ".github/skills/docwriter-meta/",
+      "prerequisites": [],
+      "status": "implemented",
+      "artifacts": {
+        "creates": [
+          ".github/skills/docwriter-meta/SKILL.md",
+          ".github/skills/docwriter-meta/references/patterns.md",
+          ".github/skills/docwriter-meta/references/anti-patterns.md",
+          ".github/skills/docwriter-meta/references/domain-knowledge.md",
+          ".github/skills/docwriter-meta/references/style-decisions.md",
+          ".github/skills/docwriter-meta/references/task-effectiveness.md"
+        ]
+      },
+      "acceptanceCriteria": [
+        "SKILL.md has valid frontmatter (name, description)",
+        "All 5 reference files exist with placeholder content",
+        "Placeholder text references docwriter-skill-rebuilder as generator"
+      ]
+    },
+    {
+      "id": "M-003",
+      "phase": 1,
+      "ref": "phase-1-foundation-bootstrap.md § 1.3",
+      "title": "Add --clean re-run mode to bootstrap",
+      "description": "--clean flag deletes everything EXCEPT meta/ then re-creates core artifacts. No flag = existing error behavior. Ensures meta/ persists across teardown-rebuild cycles.",
+      "type": "modify",
+      "target": ".github/agents/docwriter-bootstrap.sh",
+      "prerequisites": ["M-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Re-running with --clean preserves meta/ while resetting core artifacts",
+        "No --clean flag with existing .docwriter/ exits with current error",
+        "No existing .docwriter/ performs full fresh bootstrap"
+      ]
+    },
+    {
+      "id": "M-004",
+      "phase": 2,
+      "ref": "phase-2-knowledge-curator.md § 2.1",
+      "title": "Create docwriter-knowledge-curator.agent.md",
+      "description": "New specialist for Pass 0 (direct orchestrator dispatch). 7-step curation: read index → task profile → multi-factor relevance scoring (domain 40%, confidence 25%, recency 20%, usage 15%) → consumer-aware grouping → read entries (max 20, saturation guard) → staleness/conflict detection → knowledge-brief.json. Cold-start produces empty brief.",
+      "type": "create",
+      "target": ".github/agents/docwriter-knowledge-curator.agent.md",
+      "prerequisites": ["M-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "VS Code frontmatter (description, model: claude-opus-4.6, name, user-invocable: false)",
+        "Multi-factor relevance scoring with threshold ≥0.4",
+        "Saturation guard caps brief at 20 entries",
+        "Consumer-aware grouping (patterns/anti-patterns, domain-insights/style-evolutions, retro lessons)",
+        "Staleness detection (stale >90d/<3 uses, decaying >180d, contradicted)",
+        "Cold-start produces valid empty brief with taskProfile",
+        "Read-only against meta/ — never modifies index or entries"
+      ]
+    },
+    {
+      "id": "M-005",
+      "phase": 2,
+      "ref": "phase-2-knowledge-curator.md § 2.2",
+      "title": "Define knowledge-brief.json contract",
+      "description": "Document the output schema for knowledge-brief.json and 6 curation quality principles.",
+      "type": "contract",
+      "target": "knowledge-brief.json schema",
+      "prerequisites": ["M-004"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "knowledge-brief.json schema fully specified with all sections",
+        "Each entry includes id, title, insight, applicability, confidence, relevanceScore, consumers",
+        "Summary includes counts, threshold, truncated flag, coldStart flag"
+      ]
+    },
+    {
+      "id": "M-006",
+      "phase": 3,
+      "ref": "phase-3-research-scout.md § 3.1",
+      "title": "Create docwriter-research-scout.agent.md",
+      "description": "New specialist dispatched at Pass 2 Step 2b (parallel with code-analyzer). 5-step: derive queries → fetch curated sources (max 8) → extract recommendations with REC-NNN IDs → invariant gate → research-brief.json. Non-blocking failure mode.",
+      "type": "create",
+      "target": ".github/agents/docwriter-research-scout.agent.md",
+      "prerequisites": ["M-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "VS Code frontmatter",
+        "Every recommendation has invariantCheck (approved/blocked/adapted)",
+        "Blocked recommendations excluded from downstream list",
+        "Fetch failures produce valid empty brief",
+        "Max 8 fetches, no hallucinated recommendations"
+      ]
+    },
+    {
+      "id": "M-007",
+      "phase": 3,
+      "ref": "phase-3-research-scout.md § 3.2",
+      "title": "Modify analysis-coordinator — add research-scout + reorder Pass 2",
+      "description": "Reorder Pass 2: Step 1 invariant-scanner → Step 2a code-analyzer + Step 2b research-scout (parallel) → Step 3 impact-mapper. Non-blocking failure for research-scout.",
+      "type": "modify",
+      "target": ".github/agents/docwriter-analysis-coordinator.agent.md",
+      "prerequisites": ["M-006"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "research-scout added to agents array in frontmatter",
+        "Pass 2 dispatches invariant-scanner BEFORE code-analyzer + research-scout",
+        "Research-scout failure is non-blocking"
+      ]
+    },
+    {
+      "id": "M-008",
+      "phase": 3,
+      "ref": "phase-3-research-scout.md § 3.3",
+      "title": "Document research-sources.json schema",
+      "description": "Document the source entry schema for future evolution by knowledge-integrator.",
+      "type": "contract",
+      "target": ".docwriter/meta/research-sources.json schema",
+      "prerequisites": ["M-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Schema documented with all fields and semantics",
+        "effectiveness field documented as synthesizer-updated"
+      ]
+    },
+    {
+      "id": "M-009",
+      "phase": 4,
+      "ref": "phase-4-knowledge-synthesizer.md § 4.1",
+      "title": "Create docwriter-synthesis-coordinator.agent.md",
+      "description": "New coordinator for Pass 6.5 (direct orchestrator dispatch). Sequential dispatch: task-signal-analyzer → context-signal-analyzer → knowledge-integrator → skill-rebuilder. Degraded-mode handling.",
+      "type": "create",
+      "target": ".github/agents/docwriter-synthesis-coordinator.agent.md",
+      "prerequisites": ["M-001", "M-004", "M-006"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Frontmatter has agents array with 4 subagents",
+        "Sequential dispatch with validation between steps",
+        "Degraded mode on signal analyzer failure"
+      ]
+    },
+    {
+      "id": "M-010",
+      "phase": 4,
+      "ref": "phase-4-knowledge-synthesizer.md § 4.2",
+      "title": "Create docwriter-task-signal-analyzer.agent.md",
+      "description": "Synthesis Step 1. Signals A1 (first-attempt success → patterns), A2 (multi-cycle failure → anti-patterns), A3 (style evolution). Writes synthesis-signals/task-signals.json.",
+      "type": "create",
+      "target": ".github/agents/docwriter-task-signal-analyzer.agent.md",
+      "prerequisites": ["M-001"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Signal A1: first-attempt success analysis",
+        "Signal A2: multi-cycle failure root cause",
+        "Signal A3: style evolution from reviewer feedback",
+        "Writes task-signals.json with runStats, per-task signals, styleEvolutions"
+      ]
+    },
+    {
+      "id": "M-011",
+      "phase": 4,
+      "ref": "phase-4-knowledge-synthesizer.md § 4.3",
+      "title": "Create docwriter-context-signal-analyzer.agent.md",
+      "description": "Synthesis Step 2. Signals B1 (gap findings), B2 (domain insights), B3 (research effectiveness), B4 (meta-knowledge effectiveness). Writes synthesis-signals/context-signals.json.",
+      "type": "create",
+      "target": ".github/agents/docwriter-context-signal-analyzer.agent.md",
+      "prerequisites": ["M-001", "M-010"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Signal B1: gap findings (predictable vs. novel)",
+        "Signal B3: research effectiveness per source",
+        "Signal B4: meta-knowledge effectiveness"
+      ]
+    },
+    {
+      "id": "M-012",
+      "phase": 4,
+      "ref": "phase-4-knowledge-synthesizer.md § 4.4",
+      "title": "Create docwriter-knowledge-integrator.agent.md",
+      "description": "Synthesis Step 3. Confidence calibration → dedup → quality gate → write entries → update index → task retro → update research-sources.",
+      "type": "create",
+      "target": ".github/agents/docwriter-knowledge-integrator.agent.md",
+      "prerequisites": ["M-001", "M-010", "M-011"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "Confidence calibration follows strict ladder",
+        "Deduplication uses type + title + domain overlap",
+        "Entry files include Provenance and How to Apply sections",
+        "Additive-only: no entries deleted, only deprecated"
+      ]
+    },
+    {
+      "id": "M-013",
+      "phase": 4,
+      "ref": "phase-4-knowledge-synthesizer.md § 4.5",
+      "title": "Create docwriter-skill-rebuilder.agent.md",
+      "description": "Synthesis Step 4. Full-rebuild of 5 reference files + SKILL.md header from meta index + entries.",
+      "type": "create",
+      "target": ".github/agents/docwriter-skill-rebuilder.agent.md",
+      "prerequisites": ["M-001", "M-002", "M-012"],
+      "status": "implemented",
+      "acceptanceCriteria": [
+        "All 5 reference files fully regenerated (full rebuild, never incremental)",
+        "Entries grouped by domain, ordered by confidence then usage",
+        "SKILL.md header includes running stats"
+      ]
+    },
+    {
+      "id": "M-014",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.1",
+      "title": "Modify docwriter-task-planner — consume briefs + meta-skill",
+      "description": "Add knowledge-brief.json + research-brief.json + skill patterns/anti-patterns as optional inputs. Pattern-derived acceptance criteria (PAT-NNN), research recommendations (REC-NNN).",
+      "type": "modify",
+      "target": ".github/agents/docwriter-task-planner.agent.md",
+      "prerequisites": ["M-005", "M-006"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-015",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.2",
+      "title": "Modify docwriter-content-writer — consume briefs + patterns",
+      "type": "modify",
+      "target": ".github/agents/docwriter-content-writer.agent.md",
+      "prerequisites": ["M-005", "M-006"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-016",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.3",
+      "title": "Modify docwriter-style-reviewer — consume anti-patterns + style evolutions",
+      "type": "modify",
+      "target": ".github/agents/docwriter-style-reviewer.agent.md",
+      "prerequisites": ["M-005"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-017",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.4",
+      "title": "Modify docwriter-accuracy-reviewer — consume domain insights + research",
+      "type": "modify",
+      "target": ".github/agents/docwriter-accuracy-reviewer.agent.md",
+      "prerequisites": ["M-005", "M-006"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-018",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.5",
+      "title": "Modify docwriter-gap-hunter — consume historical failure data",
+      "type": "modify",
+      "target": ".github/agents/docwriter-gap-hunter.agent.md",
+      "prerequisites": ["M-005"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-019",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.6",
+      "title": "Modify docwriter-impact-mapper — consume research brief",
+      "type": "modify",
+      "target": ".github/agents/docwriter-impact-mapper.agent.md",
+      "prerequisites": ["M-006"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-020",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.7",
+      "title": "Modify docwriter-risk-analyzer — add research alignment dimension",
+      "type": "modify",
+      "target": ".github/agents/docwriter-risk-analyzer.agent.md",
+      "prerequisites": ["M-006"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-021",
+      "phase": 5,
+      "ref": "phase-5-downstream-consumers.md § 5.8",
+      "title": "Add invariant supremacy rule to all 7 modified agents",
+      "type": "modify",
+      "target": "7 agent files (M-014 through M-020)",
+      "prerequisites": ["M-014", "M-015", "M-016", "M-017", "M-018", "M-019", "M-020"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-022",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-wiring.md § 6.1",
+      "title": "Update docwriter.agent.md agents array",
+      "description": "Add knowledge-curator and synthesis-coordinator to the orchestrator's agents array.",
+      "type": "modify",
+      "target": ".github/agents/docwriter.agent.md",
+      "prerequisites": ["M-004", "M-009"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-023",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-wiring.md § 6.2",
+      "title": "Update routing table to 9 rows — add Pass 0 + Pass 6.5",
+      "type": "modify",
+      "target": ".github/agents/docwriter.agent.md",
+      "prerequisites": ["M-022"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-024",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-wiring.md § 6.4",
+      "title": "Update re-entry logic — skip Pass 0 and Pass 6.5",
+      "type": "modify",
+      "target": ".github/agents/docwriter.agent.md",
+      "prerequisites": ["M-023"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-025",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-wiring.md § 6.5",
+      "title": "Add post-dispatch actions for Pass 0 and Pass 6.5",
+      "type": "modify",
+      "target": ".github/agents/docwriter.agent.md",
+      "prerequisites": ["M-023"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-026",
+      "phase": 6,
+      "ref": "phase-6-orchestrator-wiring.md § 6.6",
+      "title": "Update pipeline completion summary with meta/research/skill metrics",
+      "type": "modify",
+      "target": ".github/agents/docwriter.agent.md",
+      "prerequisites": ["M-025"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-027",
+      "phase": 7,
+      "ref": "phase-7-docs-verification.md § 7.1",
+      "title": "Update docwriter-guide.agent.md for 3 extensions",
+      "type": "modify",
+      "target": ".github/agents/docwriter-guide.agent.md",
+      "prerequisites": ["M-022", "M-023", "M-024", "M-025", "M-026"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-028",
+      "phase": 7,
+      "ref": "phase-7-docs-verification.md § 7.2",
+      "title": "Update docwriter-architecture.agent.md — 29 agents + synthesis team",
+      "type": "modify",
+      "target": ".github/agents/docwriter-architecture.agent.md",
+      "prerequisites": ["M-027"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-029",
+      "phase": 7,
+      "ref": "phase-7-docs-verification.md § 7.3",
+      "title": "Update docwriter-bootstrap.sh header comment",
+      "type": "modify",
+      "target": ".github/agents/docwriter-bootstrap.sh",
+      "prerequisites": ["M-001", "M-003"],
+      "status": "implemented"
+    },
+    {
+      "id": "M-030",
+      "phase": 7,
+      "ref": "phase-7-docs-verification.md § Verification Checklist",
+      "title": "Run full end-to-end verification checklist",
+      "type": "verify",
+      "target": "All agent files + infrastructure",
+      "prerequisites": ["M-027", "M-028", "M-029"],
+      "status": "implemented"
+    }
+  ],
+  "executionOrder": {
+    "steps": [
+      { "step": 1, "tasks": ["M-001", "M-002"], "note": "Foundation: meta directories + skill scaffold" },
+      { "step": 2, "tasks": ["M-003"], "note": "Bootstrap --clean mode" },
+      { "step": 3, "tasks": ["M-004", "M-006", "M-008"], "note": "New agents: curator + research-scout + source schema" },
+      { "step": 4, "tasks": ["M-005", "M-007"], "note": "Contracts + coordinator wiring" },
+      { "step": 5, "tasks": ["M-009", "M-010"], "note": "Synthesis coordinator + task-signal-analyzer" },
+      { "step": 6, "tasks": ["M-011"], "note": "Context-signal-analyzer" },
+      { "step": 7, "tasks": ["M-012"], "note": "Knowledge-integrator" },
+      { "step": 8, "tasks": ["M-013"], "note": "Skill-rebuilder" },
+      { "step": 9, "tasks": ["M-014", "M-015", "M-016", "M-017", "M-018", "M-019", "M-020"], "note": "All 7 downstream consumer modifications (parallel-safe)" },
+      { "step": 10, "tasks": ["M-021"], "note": "Invariant supremacy rollout" },
+      { "step": 11, "tasks": ["M-022"], "note": "Orchestrator agents array" },
+      { "step": 12, "tasks": ["M-023"], "note": "Routing table → 9 rows" },
+      { "step": 13, "tasks": ["M-024", "M-025"], "note": "Re-entry logic + post-dispatch actions" },
+      { "step": 14, "tasks": ["M-026"], "note": "Completion summary" },
+      { "step": 15, "tasks": ["M-027", "M-029"], "note": "Guide + bootstrap header" },
+      { "step": 16, "tasks": ["M-028"], "note": "Architecture doc" },
+      { "step": 17, "tasks": ["M-030"], "note": "End-to-end verification" }
+    ]
+  }
+}

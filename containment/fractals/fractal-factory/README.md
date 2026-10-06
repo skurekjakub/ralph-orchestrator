@@ -1,0 +1,170 @@
+# Fractal Factory
+
+A meta-level fractal orchestrator that **produces validated fractal agent families** from domain specifications. Give it a domain description, supporting documents, and behavioral invariants — it outputs a complete agent system with orchestrator, coordinators, specialists, artifact schemas, bootstrap script, golden tests, and documentation.
+
+The factory itself follows the fractal pattern: session orchestrator → 7 coordinators → 16 specialists, running a 7-pass pipeline from discovery through delivery.
+
+## Quick Start
+
+```bash
+# 1. Bootstrap the artifact directory
+bash fractal-factory-bootstrap.sh
+
+# 2. Fill in the context
+#    Edit .fractal-factory/context.json — set domain name, output path, input file paths
+
+# 3. Prepare your inputs
+#    - domain-brief.md: narrative description of the domain
+#    - domain-docs/: supporting documents (optional)
+#    - invariants.md: behavioral rules the produced system must enforce (optional)
+#    - exemplars/: existing agent families to learn from (optional)
+#    - constraints.json: hard constraints (optional)
+
+# 4. Invoke the guide
+#    The guide agent gathers any missing context and starts the factory
+```
+
+Invoke `@fractal-factory-guide` to begin. The guide interviews you for domain details, builds `context.json`, then invokes the session orchestrator which runs the entire pipeline autonomously.
+
+## Architecture
+
+```
+User invokes fractal-factory-guide (once)
+       ↓
+   fractal-factory-guide
+       ↓ builds context.json, invokes:
+   fractal-factory (session orchestrator)
+       ↓ 7-pass pipeline routing
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Pass 1: Discovery                                          │
+   │   discovery-coordinator                                    │
+   │     → domain-scanner → invariant-extractor                 │
+   │     → asset-auditor → exemplar-analyzer                    │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 2: Analysis                                           │
+   │   analysis-coordinator                                     │
+   │     → pipeline-architect → artifact-designer               │
+   │     → depth-analyzer                                       │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 3: Planning                                           │
+   │   planning-coordinator                                     │
+   │     → roster-planner → routing-planner → test-planner      │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 4: Execution                                          │
+   │   execution-coordinator                                    │
+   │     → prompt-writer ↔ prompt-reviewer (loop, max 3)        │
+   │     → infra-writer                                         │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 5: Verification                                       │
+   │   verification-coordinator                                 │
+   │     → checklist-validator → audit-oracle                   │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 6: Gap Hunting                                        │
+   │   gap-hunting-coordinator                                  │
+   │     → gap-hunter                                           │
+   │     (if dirty → re-enter Pass 2 or 3, max 3 cycles)       │
+   ├─────────────────────────────────────────────────────────────┤
+   │ Pass 7: Delivery                                           │
+   │   delivery-coordinator                                     │
+   │     → packager → documentation-writer → report-writer      │
+   └─────────────────────────────────────────────────────────────┘
+```
+
+## Agent Roster
+
+| Agent | Level | Parent | Pass |
+|---|---|---|---|
+| `fractal-factory` | orchestrator | guide | All |
+| `fractal-factory-guide` | guide | user | — |
+| `fractal-factory-discovery-coordinator` | coordinator | orchestrator | 1 |
+| `fractal-factory-analysis-coordinator` | coordinator | orchestrator | 2 |
+| `fractal-factory-planning-coordinator` | coordinator | orchestrator | 3 |
+| `fractal-factory-execution-coordinator` | coordinator | orchestrator | 4 |
+| `fractal-factory-verification-coordinator` | coordinator | orchestrator | 5 |
+| `fractal-factory-gap-hunting-coordinator` | coordinator | orchestrator | 6 |
+| `fractal-factory-delivery-coordinator` | coordinator | orchestrator | 7 |
+| `fractal-factory-domain-scanner` | specialist | discovery-coord | 1 |
+| `fractal-factory-invariant-extractor` | specialist | discovery-coord | 1 |
+| `fractal-factory-asset-auditor` | specialist | discovery-coord | 1 |
+| `fractal-factory-exemplar-analyzer` | specialist | discovery-coord | 1 |
+| `fractal-factory-pipeline-architect` | specialist | analysis-coord | 2 |
+| `fractal-factory-artifact-designer` | specialist | analysis-coord | 2 |
+| `fractal-factory-depth-analyzer` | specialist | analysis-coord | 2 |
+| `fractal-factory-roster-planner` | specialist | planning-coord | 3 |
+| `fractal-factory-routing-planner` | specialist | planning-coord | 3 |
+| `fractal-factory-test-planner` | specialist | planning-coord | 3 |
+| `fractal-factory-prompt-writer` | specialist | execution-coord | 4 |
+| `fractal-factory-prompt-reviewer` | specialist | execution-coord | 4 |
+| `fractal-factory-infra-writer` | specialist | execution-coord | 4 |
+| `fractal-factory-checklist-validator` | specialist | verification-coord | 5 |
+| `fractal-factory-audit-oracle` | specialist | verification-coord | 5 |
+| `fractal-factory-gap-hunter` | specialist | gap-hunting-coord | 6 |
+| `fractal-factory-packager` | specialist | delivery-coord | 7 |
+| `fractal-factory-documentation-writer` | specialist | delivery-coord | 7 |
+| `fractal-factory-report-writer` | specialist | delivery-coord | 7 |
+
+**Total: 27 agents** (1 orchestrator + 1 guide + 7 coordinators + 16 specialists + 2 meta agents: guide and orchestrator)
+
+## Artifact Directory
+
+```
+.fractal-factory/
+├── context.json              — User input (domain, paths, options)
+├── progress.json             — Pipeline state (owned by orchestrator)
+├── manifest.json             — Prepend-only audit log
+├── domain-model.json         — Discovery output (subdomains, invariants, assets, patterns)
+├── architecture.json         — Architecture design (pipeline, artifacts, depth decisions)
+├── roster.json               — Full agent roster with routing tables
+├── test-plan.json            — Golden test scenarios
+├── agents/                   — Per-agent status.json and output.md
+│   ├── fractal-factory-domain-scanner/
+│   │   ├── status.json
+│   │   └── output.md
+│   ├── fractal-factory-invariant-extractor/
+│   │   ├── status.json
+│   │   └── output.md
+│   └── ... (one directory per agent)
+├── produced-output/          — The actual product
+│   ├── agents/               — .agent.md files for the produced system
+│   ├── schemas/              — Artifact JSON schemas
+│   ├── skills/               — Domain-specific skills
+│   ├── tests/                — Golden test scenario files
+│   ├── docs/                 — Architecture, user guide, roster reference
+│   └── bootstrap.sh          — Bootstrap script for the produced system
+├── verification-report.json  — Checklist validation results
+├── audit-report.json         — Oracle audit findings
+├── gap-report.json           — Gap-hunting results
+└── packaging-report.json     — Final packaging completeness
+```
+
+## Input Requirements
+
+| Input | Required | Purpose |
+|---|---|---|
+| `domain-brief.md` | **Yes** | Narrative description of the domain |
+| `domain-docs/` | No | Supporting documents, API specs, examples |
+| `invariants.md` | No (recommended) | Behavioral rules the produced system must enforce |
+| `exemplars/` | No | Existing agent families to learn from |
+| `constraints.json` | No | Hard constraints (max agents, required roles, etc.) |
+
+## Key Design Patterns
+
+### Read-Modify-Write
+Multiple specialists write to the same JSON files. Each agent reads the current state, adds its entries (identified by `discoveredBy` field), preserves all entries from other agents, and writes back.
+
+### Coder-Reviewer Loop
+The execution coordinator dispatches `prompt-writer` → `prompt-reviewer` for each produced agent. On rejection, the writer is re-dispatched with feedback (max 3 retries). Blocked agents are logged but don't halt the pipeline.
+
+### Gap-Hunting Convergence
+After verification, the gap-hunter searches for anything missed. If it finds new items: re-enter Pass 2 or 3. Convergence = gap-hunter finds zero new items. Max 3 cycles before forced delivery.
+
+### Oracle Verification
+Produced agents are validated against the structural validation checklist AND by applying the perspectives from the `agent-as-function-audit` and `fractal-workflow-eval` skills.
+
+## Schemas
+
+See `schemas/` for full JSON schema documentation:
+- `progress.schema.md` — Pipeline state
+- `context.schema.md` — User input configuration
+- `domain-model.schema.md` — Discovery output
+- `produced-agent.schema.md` — Structural requirements for produced agents

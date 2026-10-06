@@ -21,6 +21,9 @@ dashboard-local/
 cache/
 *.json.bak
 
-# Evals & plans (not code)
-evals/
+# Plans & backlog (not code)
 plans/
+todos/
+
+# Quarantined, unrelated material
+containment/

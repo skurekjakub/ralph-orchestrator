@@ -1,0 +1,142 @@
+{
+  "project": "fractal-migration-agent",
+  "plan": "../fractal-migration-agent-v2.md",
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "Scaffold",
+      "status": "done",
+      "file": "phase-0-scaffold.md",
+      "agents": [],
+      "deliverables": [
+        ".migration/ directory tree",
+        "progress.json seed",
+        "migration-manifest.json seed",
+        "bootstrap.sh script (optional)"
+      ]
+    },
+    {
+      "id": "phase-1",
+      "name": "Session Orchestrator",
+      "status": "done",
+      "file": "phase-1-session-orchestrator.md",
+      "agents": [
+        "session-orchestrator.agent.md"
+      ],
+      "deliverables": [
+        "session-orchestrator.agent.md"
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Discovery Agents",
+      "status": "done",
+      "file": "phase-2-discovery.md",
+      "agents": [
+        "discovery-coordinator.agent.md",
+        "feature-mapper.agent.md",
+        "route-mapper.agent.md",
+        "api-mapper.agent.md",
+        "data-mapper.agent.md",
+        "job-mapper.agent.md",
+        "config-mapper.agent.md"
+      ],
+      "deliverables": [
+        "discovery-coordinator.agent.md",
+        "feature-mapper.agent.md",
+        "route-mapper.agent.md",
+        "api-mapper.agent.md",
+        "data-mapper.agent.md",
+        "job-mapper.agent.md",
+        "config-mapper.agent.md"
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Semantics Agents",
+      "status": "done",
+      "file": "phase-3-semantics.md",
+      "agents": [
+        "planning-coordinator.agent.md",
+        "semantics-analyzer.agent.md",
+        "dependency-analyzer.agent.md"
+      ],
+      "deliverables": [
+        "planning-coordinator.agent.md",
+        "semantics-analyzer.agent.md",
+        "dependency-analyzer.agent.md"
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Planning Agents",
+      "status": "done",
+      "file": "phase-4-planning.md",
+      "agents": [
+        "slice-planner.agent.md",
+        "risk-analyzer.agent.md"
+      ],
+      "deliverables": [
+        "slice-planner.agent.md",
+        "risk-analyzer.agent.md",
+        "planning-coordinator.agent.md (updated with Pass 3 routing)"
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Execution Agents",
+      "status": "done",
+      "file": "phase-5-execution.md",
+      "agents": [
+        "execution-coordinator.agent.md",
+        "coder.agent.md",
+        "reviewer.agent.md",
+        "test-writer.agent.md"
+      ],
+      "deliverables": [
+        "execution-coordinator.agent.md",
+        "coder.agent.md",
+        "reviewer.agent.md",
+        "test-writer.agent.md"
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Verification + Gap Hunting",
+      "status": "done",
+      "file": "phase-6-verification.md",
+      "agents": [
+        "verification-coordinator.agent.md",
+        "journey-validator.agent.md",
+        "contract-validator.agent.md",
+        "parity-checker.agent.md",
+        "gap-hunter.agent.md"
+      ],
+      "deliverables": [
+        "verification-coordinator.agent.md",
+        "journey-validator.agent.md",
+        "contract-validator.agent.md",
+        "parity-checker.agent.md",
+        "gap-hunter.agent.md"
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Delivery Agents",
+      "status": "done",
+      "file": "phase-7-delivery.md",
+      "agents": [
+        "delivery-coordinator.agent.md",
+        "hardening-checker.agent.md",
+        "documentation-writer.agent.md",
+        "handoff-writer.agent.md"
+      ],
+      "deliverables": [
+        "delivery-coordinator.agent.md",
+        "hardening-checker.agent.md",
+        "documentation-writer.agent.md",
+        "handoff-writer.agent.md"
+      ]
+    }
+  ]
+}
