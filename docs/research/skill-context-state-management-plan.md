@@ -57,7 +57,7 @@ Core principles relevant to context management:
 ### GitHub Copilot Custom Instructions
 
 - **Path-specific `.instructions.md`**: Instructions loaded only when the agent is working on files matching an `applyTo` glob pattern. This is JIT context injection based on file context rather than explicit phase transitions
-- **Hierarchy**: `copilot-instructions.md` (always loaded) → `.instructions.md` (path-triggered) → `AGENTS.md` (agent-specific). Ralph already uses this hierarchy for the orchestrator codebase itself
+- **Hierarchy**: `copilot-instructions.md` (always loaded) → `.instructions.md` (path-triggered) → `AGENTS.md` (agent-specific)
 
 ### OpenAI Conversation State
 
@@ -323,7 +323,7 @@ This dual-placement ensures the pattern is fresh in context exactly when it matt
 
 ## Interaction with Multi-Agent Execution
 
-The [multi-agent execution plan](multi-agent-execution-plan.md) introduces concurrent agents sharing a workspace. Skills and state management interact with this in several ways:
+The multi-agent execution plan (`plans/multi-agent-execution-plan.md`, no longer in the tree) introduces concurrent agents sharing a workspace. Skills and state management interact with this in several ways:
 
 ### Blackboard Pattern + `state.md`
 

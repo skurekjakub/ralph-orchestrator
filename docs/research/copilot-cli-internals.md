@@ -1,5 +1,7 @@
 # GitHub Copilot CLI Internals — Fleet Mode, Sub-Agents & SQL Tool
 
+> **Version caveat:** documents Copilot CLI v0.0.411/v0.0.420; agent containers pin `@github/copilot@1.0.3` (`profiles/*/setup.sh`), so details may differ.
+
 > Reverse-engineered from the bundled source at `~/.copilot/pkg/` (v0.0.411 linux-x64 + v0.0.420 universal).
 
 ---
@@ -47,9 +49,11 @@ lVr = {
   execute: async (t, e) => {
     let n = e.join(" ").trim();
     // Simply sends the fleet prompt + optional user request into the conversation
-    return await t.session.instance.fleet.start({ prompt: n || void 0 }),
-      { kind: "noop" };
-  }
+    return (
+      await t.session.instance.fleet.start({ prompt: n || void 0 }),
+      { kind: "noop" }
+    );
+  },
 };
 ```
 
@@ -62,13 +66,16 @@ function svr(t) {
       let n = e?.prompt
         ? `${FLEET_SYSTEM_PROMPT}\n\nUser request: ${e.prompt}`
         : FLEET_SYSTEM_PROMPT;
-      return await t.send({
-        prompt: n,
-        displayPrompt: e?.prompt
-          ? `Fleet deployed: ${e.prompt}`
-          : "Fleet deployed"
-      }), { started: true };
-    }
+      return (
+        await t.send({
+          prompt: n,
+          displayPrompt: e?.prompt
+            ? `Fleet deployed: ${e.prompt}`
+            : "Fleet deployed",
+        }),
+        { started: true }
+      );
+    },
   };
 }
 ```
@@ -78,11 +85,11 @@ The fleet object is a reactive store on the session instance:
 ```js
 // Session class (Zit)
 class Session {
-  model  = bvr(this);
-  mode   = pvr(this);
-  plan   = gvr(this);
+  model = bvr(this);
+  mode = pvr(this);
+  plan = gvr(this);
   workspace = Nvr(this);
-  fleet  = svr(this);    // ← fleet store
+  fleet = svr(this); // ← fleet store
   // ...
 }
 ```
@@ -130,7 +137,7 @@ Now proceed with the user's request using fleet mode.
 
 ```js
 // Fleet is generally available ("on"), not staff-only or experimental
-FLEET_COMMAND: "on"
+FLEET_COMMAND: "on";
 ```
 
 ---
@@ -162,7 +169,7 @@ class VGe {
       prompt,
       status: "running",
       startedAt: Date.now(),
-      modelOverride
+      modelOverride,
     };
 
     this.agents.set(agentId, agent);
@@ -171,7 +178,7 @@ class VGe {
 
     // executorFn is the actual LLM agent call — returns a Promise
     let promise = executorFn(abortController.signal)
-      .then(result => {
+      .then((result) => {
         if (agent.status === "running") {
           agent.status = "completed";
           agent.completedAt = Date.now();
@@ -179,7 +186,7 @@ class VGe {
         }
         return result;
       })
-      .catch(err => {
+      .catch((err) => {
         if (agent.status === "running") {
           agent.status = "failed";
           agent.completedAt = Date.now();
@@ -187,7 +194,7 @@ class VGe {
           let failResult = {
             textResultForLlm: `Background agent "${agentType}" failed: ${agent.error}`,
             resultType: "failure",
-            error: agent.error
+            error: agent.error,
           };
           agent.result = failResult;
           return failResult;
@@ -214,16 +221,17 @@ class VGe {
     let promise = this.pendingPromises.get(agentId);
     let result = await Promise.race([
       promise,
-      new Promise(resolve => setTimeout(() => resolve("timeout"), timeout))
+      new Promise((resolve) => setTimeout(() => resolve("timeout"), timeout)),
     ]);
 
-    if (result === "timeout") return { agent: this.agents.get(agentId), timedOut: true };
+    if (result === "timeout")
+      return { agent: this.agents.get(agentId), timedOut: true };
     return { agent: this.agents.get(agentId), result: agent.result };
   }
 
   list(includeCompleted = true) {
     let all = Array.from(this.agents.values());
-    return includeCompleted ? all : all.filter(a => a.status === "running");
+    return includeCompleted ? all : all.filter((a) => a.status === "running");
   }
 }
 ```
@@ -236,11 +244,11 @@ this.backgroundAgentRegistry = new VGe();
 this.detachedShellRegistry = new fVe();
 
 // Both notify the UI when tasks change
-this.backgroundAgentRegistry.setOnChangeCallback(
-  () => this.notifyBackgroundTaskChange()
+this.backgroundAgentRegistry.setOnChangeCallback(() =>
+  this.notifyBackgroundTaskChange(),
 );
-this.detachedShellRegistry.setOnChangeCallback(
-  () => this.notifyBackgroundTaskChange()
+this.detachedShellRegistry.setOnChangeCallback(() =>
+  this.notifyBackgroundTaskChange(),
 );
 ```
 
@@ -249,16 +257,27 @@ this.detachedShellRegistry.setOnChangeCallback(
 ```js
 // When a sub-agent is invoked via the task tool:
 async function invokeSubAgent(agentDef, context) {
-  let callback = toolCallId && context.createSubAgentCallback
-    ? context.createSubAgentCallback(toolCallId)
-    : defaultCallback;
+  let callback =
+    toolCallId && context.createSubAgentCallback
+      ? context.createSubAgentCallback(toolCallId)
+      : defaultCallback;
 
   // Signal session boundary (start)
-  await h6(callback, "start", agentDef.name, toolCallId,
-           agentDef.displayName, agentDef.description);
+  await h6(
+    callback,
+    "start",
+    agentDef.name,
+    toolCallId,
+    agentDef.displayName,
+    agentDef.description,
+  );
 
   // Get or create the agent instance
-  let { agent, tools } = await context.getOrCreateAgent(callback, toolCallId, modelOverride);
+  let { agent, tools } = await context.getOrCreateAgent(
+    callback,
+    toolCallId,
+    modelOverride,
+  );
 
   // Run the agent loop (prompt → LLM → tool calls → repeat)
   // This is the Promise that backgroundAgentRegistry tracks
@@ -271,13 +290,13 @@ async function invokeSubAgent(agentDef, context) {
 
 ### Built-in agent types
 
-| Agent | Model | Tools | Purpose |
-|-------|-------|-------|---------|
-| **explore** | claude-haiku-4.5 | grep, glob, view, GitHub MCP (read-only), Bluebird | Fast codebase Q&A, <300 word answers |
-| **task** | claude-haiku-4.5 | `*` (all) | Command execution, brief success / verbose failure |
-| **code-review** | (not shown) | All CLI tools (read-only) | High signal-to-noise code review |
-| **general-purpose** | (Sonnet-class) | All CLI tools | Full-capability agent in separate context |
-| **research** | (not shown) | (not shown) | Deep research with web + GitHub search |
+| Agent               | Model            | Tools                                              | Purpose                                            |
+| ------------------- | ---------------- | -------------------------------------------------- | -------------------------------------------------- |
+| **explore**         | claude-haiku-4.5 | grep, glob, view, GitHub MCP (read-only), Bluebird | Fast codebase Q&A, <300 word answers               |
+| **task**            | claude-haiku-4.5 | `*` (all)                                          | Command execution, brief success / verbose failure |
+| **code-review**     | (not shown)      | All CLI tools (read-only)                          | High signal-to-noise code review                   |
+| **general-purpose** | (Sonnet-class)   | All CLI tools                                      | Full-capability agent in separate context          |
+| **research**        | (not shown)      | (not shown)                                        | Deep research with web + GitHub search             |
 
 ### Agent YAML structure
 
@@ -288,13 +307,13 @@ description: >
   Execute development commands like tests, builds, linters, and formatters.
 model: claude-haiku-4.5
 tools:
-  - "*"                    # Wildcard = all available tools
+  - "*" # Wildcard = all available tools
 promptParts:
   includeAISafety: true
   includeToolInstructions: true
   includeParallelToolCalling: true
-  includeCustomAgentInstructions: false   # Sub-agents don't get custom instructions
-  includeEnvironmentContext: false        # Sub-agents don't get env context
+  includeCustomAgentInstructions: false # Sub-agents don't get custom instructions
+  includeEnvironmentContext: false # Sub-agents don't get env context
 prompt: |
   You are a command execution agent...
   On SUCCESS: Return brief one-line summary
@@ -304,6 +323,7 @@ prompt: |
 ### Explore agent — tool allowlist
 
 The explore agent has a curated read-only tool set including:
+
 - File tools: `grep`, `glob`, `view`, `lsp`
 - GitHub MCP: `get_commit`, `get_file_contents`, `issue_read`, `list_*`, `search_*`
 - Bluebird (code intelligence): `search_file_content`, `do_vector_search`, `do_hybrid_search`, `get_source_code`, `get_class_or_struct_*`, `get_function_*`, `retrieve_commits_*`
@@ -321,17 +341,17 @@ The `sql` tool is a **first-class built-in tool** registered directly in the age
 ```js
 // From the bundle:
 Sgt = require("node:sqlite").DatabaseSync;
-this.db = new Sgt(dbPath);  // Synchronous API, Node.js 22+
+this.db = new Sgt(dbPath); // Synchronous API, Node.js 22+
 ```
 
 **Zero external dependencies** — no `better-sqlite3`, no native `.node` addons for SQLite. Uses the `DatabaseSync` class from Node's built-in `node:sqlite` module.
 
 ### Two databases (v0.0.420+)
 
-| Database | Parameter | Access | Location | Purpose |
-|----------|-----------|--------|----------|---------|
-| **Session** | `"session"` (default) | Read/Write | `<session-dir>/session.db` | Per-session scratch data |
-| **Session Store** | `"session_store"` | Read-only | Global | Cross-session history, FTS5 search |
+| Database          | Parameter             | Access     | Location                   | Purpose                            |
+| ----------------- | --------------------- | ---------- | -------------------------- | ---------------------------------- |
+| **Session**       | `"session"` (default) | Read/Write | `<session-dir>/session.db` | Per-session scratch data           |
+| **Session Store** | `"session_store"`     | Read-only  | Global                     | Cross-session history, FTS5 search |
 
 ### Tool schema
 
@@ -391,6 +411,7 @@ CREATE TABLE IF NOT EXISTS todo_deps (
 ### Security guardrails
 
 Blocked SQL patterns (regex):
+
 - `/\bATTACH\b/i`
 - `/\bLOAD_EXTENSION\b/i`
 - `/\bPRAGMA\s+database_list\b/i`
@@ -440,9 +461,9 @@ Sub-agents **do not communicate with each other**. The coordination model is:
 ```js
 // Session instance holds all state:
 class Session {
-  backgroundAgentRegistry = new VGe();       // tracks running sub-agents
-  detachedShellRegistry = new fVe();         // tracks detached shell processes
-  usageMetricsTracker = new Nit(startTime);  // premium request counting
+  backgroundAgentRegistry = new VGe(); // tracks running sub-agents
+  detachedShellRegistry = new fVe(); // tracks detached shell processes
+  usageMetricsTracker = new Nit(startTime); // premium request counting
 
   // Shutdown emits metrics
   shutdown(type = "routine", errorReason) {
@@ -452,7 +473,7 @@ class Session {
       totalApiDurationMs,
       codeChanges: { linesAdded, linesRemoved, filesModified },
       modelMetrics,
-      currentModel
+      currentModel,
     });
   }
 }
@@ -464,17 +485,17 @@ class Session {
 
 ```js
 const featureFlags = {
-  CUSTOM_AGENTS:        "on",
-  CCA_DELEGATE:         "on",
-  FLEET_COMMAND:        "on",        // ← Generally available
-  LSP_TOOLS:           "on",
-  PLAN_COMMAND:         "on",
-  AUTOPILOT_MODE:      "on",
-  PLUGIN_COMMAND:       "on",
-  CONTENT_EXCLUSION:   "staff",
+  CUSTOM_AGENTS: "on",
+  CCA_DELEGATE: "on",
+  FLEET_COMMAND: "on", // ← Generally available
+  LSP_TOOLS: "on",
+  PLAN_COMMAND: "on",
+  AUTOPILOT_MODE: "on",
+  PLUGIN_COMMAND: "on",
+  CONTENT_EXCLUSION: "staff",
   SUBAGENT_COMPACTION: "staff-or-experimental",
-  DIAGNOSE:            "staff",
-  TUIKIT_COMMAND:      "off",
+  DIAGNOSE: "staff",
+  TUIKIT_COMMAND: "off",
   // ... and more
 };
 
@@ -486,4 +507,4 @@ const featureFlags = {
 
 ---
 
-*Document generated 2026-03-04 from Copilot CLI v0.0.411/v0.0.420 bundle analysis.*
+_Document generated 2026-03-04 from Copilot CLI v0.0.411/v0.0.420 bundle analysis._

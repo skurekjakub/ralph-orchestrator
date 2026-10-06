@@ -13,12 +13,12 @@ Agent invocations are triggered by JIRA comments matching a variant's `commentTr
 
 ### Parsing Rules
 
-| Input | Parsed As | Notes |
-|---|---|---|
-| `codesamples` | `{ codesamples: "true" }` | Bare params map to `"true"` |
-| `branch=feature-xyz` | `{ branch: "feature-xyz" }` | Key-value split on first `=` |
-| `config=a=b` | `{ config: "a=b" }` | Only first `=` is the delimiter |
-| `key=` | `{ key: "" }` | Empty string value (still truthy in Liquid `{% if %}`) |
+| Input                | Parsed As                   | Notes                                                  |
+| -------------------- | --------------------------- | ------------------------------------------------------ |
+| `codesamples`        | `{ codesamples: "true" }`   | Bare params map to `"true"`                            |
+| `branch=feature-xyz` | `{ branch: "feature-xyz" }` | Key-value split on first `=`                           |
+| `config=a=b`         | `{ config: "a=b" }`         | Only first `=` is the delimiter                        |
+| `key=`               | `{ key: "" }`               | Empty string value (still truthy in Liquid `{% if %}`) |
 
 Parameters are **case-sensitive**. Commas separate parameters — values cannot contain commas.
 
@@ -42,11 +42,11 @@ Any parameter name is valid — new parameters can be used in templates without 
 
 These parameters are recognized by the orchestrator itself (not just templates):
 
-| Parameter | Type | Used By | Description |
-|---|---|---|---|
-| `source_branch` | `key=value` | RepoSyncHook | Base branch for repo checkout and task branch creation. Default: `main`, or the existing PR target branch on revisions when available |
-| `branch` | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the resolved task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention |
-| `skip_hooks` | bare | TaskRunner | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay |
+| Parameter       | Type        | Used By                            | Description                                                                                                                           |
+| --------------- | ----------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `source_branch` | `key=value` | RepoSyncHook                       | Base branch for repo checkout and task branch creation. Default: `main`, or the existing PR target branch on revisions when available |
+| `branch`        | `key=value` | RepoSyncHook, `$task.branch` macro | Overrides the resolved task branch name. Use for pre-existing branches that don't follow the `ralph/<id>-<slug>` naming convention    |
+| `skip_hooks`    | bare        | TaskRunner                         | Skips post-task hook execution. Writes a `hook-manifest.json` to the output directory for manual replay                               |
 
 ### source_branch
 
@@ -124,28 +124,28 @@ These parameters are recognized by agent templates and workflow skills. Availabi
 
 ### ralph-docs Profile
 
-| Parameter | Agent | Description |
-|---|---|---|
-| `codesamples` | `ralph.ralph` | Includes ASP.NET code project authoring instructions. When combined with `xpversion`, triggers the coder subagent to bootstrap the project before research. |
-| `xpversion` | `ralph.ralph` | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below. |
-| `adminui` | `ralph.ralph` | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
-| `branch_name` | `ralph.ralph` | Xperience source branch for `git diff` context |
-| `release_notes` | `ralph.ralph` | write release notes |
-| `scope` | `ralph.ralph` | Restricts file changes to a specified path |
-| `codesamples` | `ralph.malph` | Adds code sample review checklist |
-| `branch_name` | `ralph.malph` | Instructs reviewer to diff against specified Xperience branch |
-| `scope` | `ralph.malph` | Restricts review scope to a specified path |
+| Parameter       | Agent         | Description                                                                                                                                                  |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `codesamples`   | `ralph.ralph` | Includes ASP.NET code project authoring instructions. When combined with `xpversion`, triggers the coder subagent to bootstrap the project before research.  |
+| `xpversion`     | `ralph.ralph` | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below.        |
+| `adminui`       | `ralph.ralph` | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
+| `branch_name`   | `ralph.ralph` | Xperience source branch for `git diff` context                                                                                                               |
+| `release_notes` | `ralph.ralph` | write release notes                                                                                                                                          |
+| `scope`         | `ralph.ralph` | Restricts file changes to a specified path                                                                                                                   |
+| `codesamples`   | `ralph.malph` | Adds code sample review checklist                                                                                                                            |
+| `branch_name`   | `ralph.malph` | Instructs reviewer to diff against specified Xperience branch                                                                                                |
+| `scope`         | `ralph.malph` | Restricts review scope to a specified path                                                                                                                   |
 
 ### xpversion Formats
 
 The `xpversion` parameter accepts multiple formats. The value is passed verbatim to the docs-repo `npm run codesamples:setversion` script.
 
-| Format | Example | Description |
-|---|---|---|
-| Semver (public NuGet) | `31.0.0` | Stable public release from nuget.org |
-| Private feed version | `31.1.0-hash` | Pre-release build from the Kentico private NuGet feed (requires `ADO_PAT_XPERIENCE`) |
-| PR URL | `https://dev.azure.com/kenticoxperience/CMS/_git/xperience/pullrequest/24735` | Downloads artifacts from the PR's latest build |
-| Build URL | `https://dev.azure.com/kenticoxperience/CMS/_build/results?buildId=550290` | Downloads artifacts from a specific CI build |
+| Format                | Example                                                                       | Description                                                                          |
+| --------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Semver (public NuGet) | `31.0.0`                                                                      | Stable public release from nuget.org                                                 |
+| Private feed version  | `31.1.0-hash`                                                                 | Pre-release build from the Kentico private NuGet feed (requires `ADO_PAT_XPERIENCE`) |
+| PR URL                | `https://dev.azure.com/kenticoxperience/CMS/_git/xperience/pullrequest/24735` | Downloads artifacts from the PR's latest build                                       |
+| Build URL             | `https://dev.azure.com/kenticoxperience/CMS/_build/results?buildId=550290`    | Downloads artifacts from a specific CI build                                         |
 
 #### Usage examples
 
@@ -178,9 +178,11 @@ The `xpversion` parameter accepts multiple formats. The value is passed verbatim
 
 ### ralph-vscode Profile
 
-| Parameter | Agent | Description |
-|---|---|---|
-| *(No profile-specific params defined yet)* | | |
+| Parameter      | Agent         | Description                                                                                                                                                                                                                                                      |
+| -------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `skip_planner` | `ralph.ralph` | Bare flag. Skips `ralph-planner`: the analyst's plan goes straight to a `ralph-coder` → `ralph-reviewer` loop (max 2 iterations) instead of planned task files with a per-task loop (max 3 rounds) and planner verification. Applies to fresh and revision runs. |
+
+Example: `@RalphAutocomplete(skip_planner)`
 
 ## Adding New Parameters
 

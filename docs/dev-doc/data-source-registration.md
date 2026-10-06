@@ -29,31 +29,58 @@ Optionally implement additional capability interfaces:
 The orchestrator checks capabilities at runtime via type guards (`supportsTransitions()`, `supportsAttachments()`).
 
 ```ts
-import type { IDataSourceConnector, ISupportsTransitions } from "ralph-orchestrator/datasource/connector";
-import type { WorkItem, WorkItemComment } from "ralph-orchestrator/datasource/types";
+import type {
+  IDataSourceConnector,
+  ISupportsTransitions,
+} from "ralph-orchestrator/datasource/connector";
+import type {
+  WorkItem,
+  WorkItemComment,
+} from "ralph-orchestrator/datasource/types";
 
 export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
   readonly name = "My Source";
   readonly sourceKey: string;
 
-  constructor(sourceKey: string, private config: MyConnectionConfig) {
+  constructor(
+    sourceKey: string,
+    private config: MyConnectionConfig,
+  ) {
     this.sourceKey = sourceKey;
   }
 
   // IWorkItemSource
-  buildQueries(profiles) { /* ... */ }
-  async searchWorkItems(query, pageSize?) { /* ... */ }
-  async refreshWorkItem(id) { /* ... */ }
-  isValidItemId(id) { /* ... */ }
-  getAllowedUsers() { return []; }
+  buildQueries(profiles) {
+    /* ... */
+  }
+  async searchWorkItems(query, pageSize?) {
+    /* ... */
+  }
+  async refreshWorkItem(id) {
+    /* ... */
+  }
+  isValidItemId(id) {
+    /* ... */
+  }
+  getAllowedUsers() {
+    return [];
+  }
 
   // IWorkItemComments
-  async getComments(workItemId) { /* ... */ }
-  async addComment(workItemId, bodyText) { /* ... */ }
+  async getComments(workItemId) {
+    /* ... */
+  }
+  async addComment(workItemId, bodyText) {
+    /* ... */
+  }
 
   // ISupportsTransitions (optional)
-  async getTransitions(workItemId) { /* ... */ }
-  async transitionWorkItem(workItemId, targetStatus) { /* ... */ }
+  async getTransitions(workItemId) {
+    /* ... */
+  }
+  async transitionWorkItem(workItemId, targetStatus) {
+    /* ... */
+  }
 }
 ```
 
@@ -67,14 +94,25 @@ import type { IWorkItemPoller } from "ralph-orchestrator/datasource/poller";
 export class MyPoller implements IWorkItemPoller {
   readonly sourceKey: string;
 
-  constructor(private connector: MyConnector, private intervalMs: number) {
+  constructor(
+    private connector: MyConnector,
+    private intervalMs: number,
+  ) {
     this.sourceKey = connector.sourceKey;
   }
 
-  start() { /* Start polling interval */ }
-  stop() { /* Clear interval */ }
-  onItems(callback: () => void) { /* Register new-items callback */ }
-  drain() { /* Return and clear buffered items */ }
+  start() {
+    /* Start polling interval */
+  }
+  stop() {
+    /* Clear interval */
+  }
+  onItems(callback: () => void) {
+    /* Register new-items callback */
+  }
+  drain() {
+    /* Return and clear buffered items */
+  }
 }
 ```
 
@@ -85,7 +123,10 @@ The factory module creates connector + poller from config and self-registers:
 ```ts
 import { registerDataSourceFactory } from "ralph-orchestrator/datasource/registry";
 import type { DataSourceFactory } from "ralph-orchestrator/datasource/registry";
-import type { IDataSourceConfig, IAgentProfile } from "ralph-orchestrator/config/types";
+import type {
+  IDataSourceConfig,
+  IAgentProfile,
+} from "ralph-orchestrator/config/types";
 import { MyConnector } from "./my-connector";
 import { MyPoller } from "./my-poller";
 
@@ -98,7 +139,9 @@ function createMyDataSource(
   const conn = dsConfig.connection as MyConnectionConfig;
   const connector = new MyConnector(sourceKey, conn);
   const poller = new MyPoller(connector, dsConfig.pollIntervalMs);
-  logger?.info(`Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`);
+  logger?.info(
+    `Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`,
+  );
   return { connector, poller };
 }
 
@@ -114,15 +157,12 @@ Add the plugin to `config.json`:
 
 ```json
 {
-  "plugins": [
-    "my-datasource-package/factory.js"
-  ],
+  "plugins": ["my-datasource-package/factory.js"],
   "dataSources": {
     "my-instance": {
       "type": "my-source",
       "connection": {
-        "baseUrl": "https://api.example.com",
-        "apiToken": "..."
+        "baseUrl": "https://api.example.com"
       },
       "pollIntervalMs": 60000
     }
@@ -156,29 +196,29 @@ The JIRA connector follows the exact same registration pattern as third-party pl
 
 ## Key Interfaces
 
-| Interface | File | Purpose |
-|---|---|---|
+| Interface              | File                          | Purpose                               |
+| ---------------------- | ----------------------------- | ------------------------------------- |
 | `IDataSourceConnector` | `src/datasource/connector.ts` | Base connector (discovery + comments) |
-| `ISupportsTransitions` | `src/datasource/connector.ts` | Optional workflow transitions |
-| `ISupportsAttachments` | `src/datasource/connector.ts` | Optional file attachments |
-| `IWorkItemPoller` | `src/datasource/poller.ts` | Interval-based polling |
-| `WorkItem` | `src/datasource/types.ts` | Normalized work item DTO |
-| `WorkItemComment` | `src/datasource/types.ts` | Normalized comment DTO |
-| `DataSourceFactory` | `src/datasource/registry.ts` | Factory function signature |
-| `IDataSourceConfig` | `src/config/types.ts` | Per-source config shape |
+| `ISupportsTransitions` | `src/datasource/connector.ts` | Optional workflow transitions         |
+| `ISupportsAttachments` | `src/datasource/connector.ts` | Optional file attachments             |
+| `IWorkItemPoller`      | `src/datasource/poller.ts`    | Interval-based polling                |
+| `WorkItem`             | `src/datasource/types.ts`     | Normalized work item DTO              |
+| `WorkItemComment`      | `src/datasource/types.ts`     | Normalized comment DTO                |
+| `DataSourceFactory`    | `src/datasource/registry.ts`  | Factory function signature            |
+| `IDataSourceConfig`    | `src/config/types.ts`         | Per-source config shape               |
 
 ## Config Schema
 
 The `dataSources` block in `config.json` is a keyed map. Each entry has:
 
-| Field | Type | Description |
-|---|---|---|
-| `type` | `string` | Registered factory type (e.g. `"jira"`) |
-| `connection` | `object` | Type-specific connection properties (validated by the connector, not the orchestrator) |
-| `pollIntervalMs` | `number` | Polling interval in milliseconds |
+| Field            | Type     | Description                                                                            |
+| ---------------- | -------- | -------------------------------------------------------------------------------------- |
+| `type`           | `string` | Registered factory type (e.g. `"jira"`)                                                |
+| `connection`     | `object` | Type-specific connection properties (validated by the connector, not the orchestrator) |
+| `pollIntervalMs` | `number` | Polling interval in milliseconds                                                       |
 
 The `type` field is a plain string — not a closed enum. Any value is accepted as long as a matching factory is registered before startup.
 
 ## Credential Injection
 
-Data source credentials should be injected from environment variables in the config loader, not stored in `config.json`. The JIRA connector injects `JIRA_PAT` and `JIRA_EMAIL` from `.env` into `connection.apiToken` and `connection.email` at config load time. Third-party connectors should follow the same pattern by reading from `process.env` in their factory function.
+Data source credentials should come from environment variables, not `config.json`. The loader passes `connection` through untouched; each factory resolves its own credentials. The JIRA factory (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`) reads `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the data source key uppercased with dashes replaced by underscores, and throws if either is missing. It merges them into the connection as `apiToken` and `email` when the connector is created at startup. Third-party connectors should follow the same pattern by reading from `process.env` in their factory function.

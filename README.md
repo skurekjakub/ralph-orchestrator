@@ -4,7 +4,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 24+
 - Docker Desktop running
 - Access to the target repos referenced in your profiles (e.g. `kentico-docs-jekyll`)
 
@@ -17,18 +17,22 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and fill in the required values:
+2. Create `config.json` and `.env` from the templates and fill in the values:
    ```bash
+   cp config.json.sample config.json
    cp .env.example .env
    ```
 
-   See [CONFIGURATION.md](CONFIGURATION.md) § Environment Variables for the full list. Key variables: `GH_TOKEN` (Copilot), `ANTHROPIC_API_KEY` (Claude Code), `ADO_PAT`, `JIRA_PAT`, `JIRA_EMAIL`.
+   `config.json` holds the data sources (JIRA `cloudId`), output paths, dashboard and prompt-audit settings. `npm run validate` fails without it.
 
-3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`:
+   Key variables in `.env`: `GH_TOKEN` (Copilot), `ANTHROPIC_API_KEY` (Claude Code), `ADO_PAT`, and one `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` pair per JIRA data source, where `<KEY>` is the data source key from `config.json` uppercased with dashes replaced by underscores (`my-jira` → `JIRA_PAT_MY_JIRA`). Startup fails if `GH_TOKEN`, `ADO_PAT` or a data source's JIRA pair is missing. See [docs/user-guide/environment-variables.md](docs/user-guide/environment-variables.md) for the full list.
+
+3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`, and its `dataSource` must name a key in `config.json` `dataSources`:
    ```bash
    # Example: profiles/ralph-docs/profile.json
    {
      "repo": "~/repositories/kentico-docs-jekyll",
+     "dataSource": "my-jira",
      "cli": "copilot",
      "timeoutMs": 3600000,
      "variants": [
@@ -44,12 +48,17 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    }
    ```
 
-   See [CONFIGURATION.md](CONFIGURATION.md) for the full configuration reference.
+   See [docs/user-guide/](docs/user-guide/README.md) for the operator reference (configuration, environment variables, profiles, trigger parameters, template variables, MCP servers, runtime macros, skills).
 
 4. Verify JIRA transitions work for your project — the orchestrator resolves transition IDs dynamically from target status names (`beforeAgent.targetStatus`, `afterAgent.targetStatus`):
    ```bash
-   curl -u "$JIRA_EMAIL:$JIRA_PAT" \
+   curl -u "$JIRA_EMAIL_MY_JIRA:$JIRA_PAT_MY_JIRA" \
      "https://api.atlassian.com/ex/jira/<cloudId>/rest/api/3/issue/DF-2704/transitions"
+   ```
+
+5. Validate the setup (env vars, config, Docker, profiles, security infrastructure):
+   ```bash
+   npm run validate
    ```
 
 ## Usage
@@ -107,26 +116,28 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 
 1. **Polls JIRA** every 60s for issues matching JQL queries auto-generated from profile match rules. Auto-paginates to fetch all results (no truncation).
 2. **Scans comments** for trigger strings (`commentTrigger`) on matching issues. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`). Uses cached `updated` timestamps to skip unchanged issues — only issues with new JIRA activity trigger API calls.
-3. **Plans operations** in the persistent ledger — each trigger comment is consumed exactly once per variant. Trigger parameters (including key-value pairs like `branch_name=xyz`) are persisted and passed to agent templates as `triggerParams` (`Record<string, string>`). See [docs/agent-templates.md](docs/agent-templates.md) for the template parameterization system.
+3. **Plans operations** in the persistent ledger — each trigger comment is consumed exactly once per variant. Trigger parameters (including key-value pairs like `branch_name=xyz`) are persisted and passed to agent templates as `triggerParams` (`Record<string, string>`). See [docs/dev-doc/agent-templates.md](docs/dev-doc/agent-templates.md) for the template parameterization system.
 4. **Routes to a profile** — matches the issue's project key and status against profile variants. Unmatched issues are skipped.
 5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
-5. **Processes one at a time:**
+6. **Processes one at a time:**
    - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
-  - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing repo sync and `$task.branch` to reuse the PR's real source/target branches
-   - Transitions the JIRA issue to "In Progress" + posts a start comment (with retry)
+   - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing repo sync and `$task.branch` to reuse the PR's real source/target branches
+   - Transitions the JIRA issue to the variant's `beforeAgent.targetStatus` + posts a start comment (with retry)
    - Starts containers via `docker compose up -d --build` (base + security overlay + resources overlay) for the matched profile's repo
    - Runs the setup script inside the container (CLI installs, dependency setup)
+   - Syncs the target repo on the host and checks out the task branch (`RepoSyncHook`)
    - Loops over the variant's `stages` array, executing each stage sequentially with the appropriate executor:
      - **Container stages** (`mode: "container"`) — run the CLI inside Docker via `docker compose exec`
      - **Local stages** (`mode: "local"`) — run the CLI directly on the host
    - Each stage uses its own agent, model, skills, and timeout (falling back to profile defaults)
    - If any stage fails, the pipeline aborts — remaining stages are skipped
-   - Ralph creates a branch, researches via sub-agent, writes the docs himself, runs a reviewer loop, creates an ADO PR, posts a JIRA comment, and attaches the handoff file
-6. **Collects results** — `TaskResultWriter` collects audit logs, per-task streaming log, session transcript, and proxy access log to `output/logs/`
-7. **Attaches** the session transcript to the JIRA issue
-8. **Stops** the container and cleans up volumes
-9. **Transitions** the issue to "Ready for Review"
-10. **Resumes** polling for the next task
+   - The agent (e.g. Ralph) dispatches research, writing and review subagents, then pushes the branch and creates an ADO PR, posts a JIRA comment and attaches the handoff file through MCP tools that run in the MCP sidecar
+7. **Collects results** — `TaskResultWriter` collects audit logs, per-task streaming log, session transcript, and proxy access log to `output/logs/`
+8. **Attaches** the session transcript to the JIRA issue
+9. **Stops** the container and cleans up volumes
+10. **Runs post-task hooks** — local-only analysis pipelines declared in the variant's `postTaskHooks` (failures never affect the task result)
+11. **Transitions** the issue to the variant's `afterAgent.targetStatus` on success
+12. **Resumes** polling for the next task
 
 ## Responsibility Split
 
@@ -140,12 +151,14 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 | Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
 | Create executor per stage (container vs local mode) | ContainerManager |
 | Manage `.git/info/exclude` for bind-mount artifacts | RepoSyncHook (lifecycle hook) |
-| Render agent templates (JIT) + resolve MCP macros | TaskRunner |
-| `git pull`, branch, write, review, revise | Ralph (inside container) |
-| Create PR via ADO REST API, push branch | Ralph (inside container) |
-| Post completion comment on JIRA | Ralph (inside container) |
-| Attach handoff.md to JIRA issue | Ralph (inside container) |
-| JIRA transition to "Ready for Review" | Orchestrator |
+| Sync target repo to the base branch, check out the task branch (host-side) | RepoSyncHook (lifecycle hook) |
+| Render agent templates (JIT) + resolve MCP macros | TaskRunner (ProfileSetupService) |
+| Research, write, review, revise | Ralph and its subagents (inside container) |
+| Push branch + create ADO PR (`ado` MCP tools) | Ralph (inside container) → MCP sidecar |
+| Post completion comment on JIRA (`jira-kentico` MCP tools) | Ralph (inside container) → MCP sidecar |
+| Attach handoff.md to JIRA issue (`jira-kentico` MCP tools) | Ralph (inside container) → MCP sidecar |
+| Post-task hooks (local analysis pipelines) | TaskRunner |
+| JIRA transition to `afterAgent.targetStatus` | Orchestrator |
 | Collect audit logs, transcript, proxy access log, save to disk | TaskResultWriter |
 | Attach session transcript to JIRA issue | TaskResultWriter |
 
@@ -160,22 +173,53 @@ output/
     │   ├── <key>-<startTs>-<ts>.log                  # Per-task streaming log (real-time container output)
     │   ├── <key>-<startTs>-<ts>-audit.jsonl          # Audit trail from hooks
     │   ├── <key>-<startTs>-<ts>-transcript.md        # Copilot CLI session transcript
+    │   ├── <key>-<startTs>-<ts>-pre-tool.log         # Tool invocations logged by the pre-tool hook
     │   ├── <key>-<startTs>-<ts>-tool-output.log      # Untruncated tool output from hooks
+    │   ├── <key>-<startTs>-<ts>-cli-debug.log        # CLI debug log
     │   ├── <key>-<startTs>-<ts>-proxy.log            # Squid proxy access log (allowed/denied domains)
     │   ├── <key>-<startTs>-<ts>-sidecar.log          # MCP sidecar gateway output
+    │   ├── <key>-<startTs>-<ts>-state.md             # Agent state file (.ralph/tasks/<key>/state.md)
+    │   ├── <key>-<startTs>-<ts>-session-state/       # Exported CLI session state
+    │   ├── <key>-<startTs>-<ts>-session-db           # Exported CLI session store
+    │   ├── <key>-<startTs>-<ts>-artifacts/           # Exported subagent artifacts (.ralph/tasks/<key>/artifacts)
     │   ├── <key>-<startTs>-<ts>-summary.json         # Execution metadata
+    │   ├── hooks/<hook-name>/                        # Post-task hook output directory (hook.outputDir)
     │   └── hook-manifest.json                        # Hook replay manifest (only when skip_hooks param is set)
     ├── activity-YYYY-MM-DD.log                       # Persistent activity log (all sessions)
     ├── container-YYYY-MM-DD.log                      # Persistent container output log
     └── history/
-        └── <key>.json                                # Operation ledger
+        └── <dataSource>/
+            └── <key>.json                            # Operation ledger (per data source, per issue)
 ```
 
-Each task gets its own timestamped directory (`<key>-<startTs>/`). Files within are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`. The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
+Each task gets its own timestamped directory (`<key>-<startTs>/`). Collected files are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`; in multi-stage pipelines the stage role is inserted before the source ID (`<key>-<startTs>-<collectTs>-<role>-<sourceId>.<ext>`). The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 
-## Architecture
+The ledger lives at `<output.logDir>/history/<dataSource>/<issueKey>.json` (`output.logDir` defaults to `./output/logs`). Operation states move `pending → active | rejected | error` and `active → completed | error`.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system architecture.
+## Documentation
+
+- [docs/user-guide/](docs/user-guide/README.md) — operator reference: `config.json`, `.env`, `profile.json`, trigger parameters, template variables, MCP servers, runtime macros, skills.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — system architecture.
+- [CONFIGURATION.md](CONFIGURATION.md) — configuration guide with examples.
+- [MCP.md](MCP.md) — MCP sidecar, manifests, JIT parameters.
+- [SECURITY.md](SECURITY.md) — threat model and container controls.
+- [docs/dev-doc/](docs/dev-doc/) — design and internals (dependency injection, agent templates, multi-stage pipelines, data source registration, dataflow diagram).
+- [docs/research/](docs/research/) and [docs/past-issues/](docs/past-issues/) — research notes and postmortems.
+
+## Repository Layout
+
+| Path | Contents |
+|---|---|
+| `src/` | Orchestrator source (TypeScript, ESM) |
+| `tests/` | Vitest tests |
+| `profiles/<id>/` | Agent profiles: `profile.json`, Dockerfile, compose file, setup script, agent templates |
+| `shared/` | Security overlay, audit hooks, agent includes, skills, MCP servers, MCP sidecar |
+| `scripts/` | Operator and debugging scripts (`npm run validate`, `npm run agent`, `reset-testenv:*`, …) |
+| `dashboard-local/` | Local Vite dashboard for browsing run logs (`npm run dashboard`) |
+| `ralph-dashboard/` | Status dashboard (Next.js, receives heartbeats) |
+| `ralphchives/` | Ralphchives knowledge base stack (NodeBB, Neo4j, sync) |
+| `docs/` | User guide, design docs, research notes |
+| `containment/` | Quarantined archive of material unrelated to this project. Not part of the product. |
 
 ## Verified JIRA API Endpoints
 

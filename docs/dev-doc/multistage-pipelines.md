@@ -244,7 +244,7 @@ All agent templates are rendered per-stage — even templates for inactive stage
 
 Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer cleans `.build/` and reconstructs it, so only the current stage's skills are available.
 
-If a stage declares no skills (`"skills": []`), the profile-level `skills` are **not** inherited — the stage gets an empty skill set. This is intentional: per-stage skills are explicit overrides, not merges.
+There is no profile-level `skills` field. The variant's container mounts the union of all its stages' skills, but each stage renders only its own list: a stage that declares no skills (`"skills": []`) gets an empty skill set.
 
 ## Known Limitations
 
@@ -349,14 +349,16 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 ### Template context
 
-Hook stages receive additional template variables beyond the standard stage context:
+Hook stages receive the `hook` object in addition to the standard stage context (empty values for main pipeline stages):
 
 | Variable | Type | Description |
 |---|---|---|
-| `outputDir` | `string` | Absolute path to the task's log directory (`output/logs/<taskId>`) |
-| `collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline |
-| `hookName` | `string` | Name of the current hook (e.g. `"run-analysis"`) |
-| `hookOutputDir` | `string` | `outputDir/hooks/<hookName>/` — where this hook should write output |
+| `hook.taskOutputDir` | `string` | Absolute path to the task's log directory (`<output.logDir>/<taskId>`) |
+| `hook.collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline |
+| `hook.name` | `string` | Name of the current hook (e.g. `"run-analysis"`) |
+| `hook.outputDir` | `string` | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs |
+
+`artifactDir` stays `.ralph/tasks/<id>/artifacts`. Hook stages run with the orchestrator repo root as cwd, so subagent artifacts written there land in `<orchestrator-repo>/.ralph/tasks/<id>/artifacts/`, not in `hook.outputDir`.
 
 ### Output directory layout
 
@@ -366,9 +368,11 @@ output/logs/<taskId>/
   DF-100-...-summary.json
   DF-100-...-audit.jsonl
   hooks/
-    run-analysis/              ← hook output directory
-      analysis.md              ← run-analyzer output
-      improvements.md          ← agent-improver output
+    run-analysis/              ← hook.outputDir (created by TaskRunner)
+
+<orchestrator-repo>/.ralph/tasks/DF-100/artifacts/
+  subagent-mapper/ run-analyzer/<subagent>/ agent-improver/<subagent>/ run-synthesizer/
+                               ← scientist subagent artifacts ({{ artifactDir }})
 ```
 
 ### Execution flow
@@ -386,7 +390,9 @@ Main pipeline stages → collectResults → container teardown
 
 ### Built-in hooks
 
-The `@RalphAnalyzed` trigger variant in `ralph-docs` includes a pre-configured `run-analysis` hook:
+Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`. The scientist dispatches subagents:
 
-1. **run-analyzer** (sonnet) — reads collected logs and produces `analysis.md` covering tool usage patterns, error recovery, workflow compliance, and improvement suggestions.
-2. **agent-improver** (opus) — reads the analysis report and proposes targeted changes to agent templates, skills, shared includes, and MCP server configs.
+1. **subagent-mapper** (`ralph-docs` only) — extracts per-subagent spans, tool calls and errors from the collected CLI debug log.
+2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`).
+3. **agent-improver** — applies targeted changes to agent templates, skills, shared includes and MCP server configs based on one analysis (`improved` or `no-action`).
+4. **run-synthesizer** (`ralph-docs` only) — writes a cross-subagent synthesis.

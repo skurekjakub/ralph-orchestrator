@@ -48,29 +48,36 @@ Both the `app` and `egress-proxy` containers have `extra_hosts: ["host.docker.in
 
 ### Domain Allowlist
 
-The allowlist (`shared/security/squid.conf`) permits only domains the agent needs:
+Each profile gets its own `squid.conf` (`profiles/<id>/.build/squid.conf`), generated at startup from the shared baseline plus the profile's `allowlistDomains` (`src/container/setup/squid-config.ts`).
 
-| Category | Domains |
-|---|---|
-| AI/LLM backends | `.githubcopilot.com`, `.anthropic.com`, `api.github.com`, `github.com` |
-| Azure infrastructure | `aka.ms` |
-| Package registries | `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org` |
+The baseline (`shared/security/squid.conf`) allows only the AI/LLM backends:
 
-Domains previously in the allowlist (JIRA, Azure DevOps, documentation sites) are now accessed exclusively through MCP tools running in the sidecar container, which has direct internet access via `ralph-sidecar-external`. The agent's Squid allowlist is intentionally minimal — only AI providers and package registries are needed for the agent itself.
+| Category                                 | Domains                                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| AI/LLM backends (baseline, all profiles) | `.githubcopilot.com`, `api.github.com`, `github.com`, `.anthropic.com` |
+
+Profiles add what their agent needs via `allowlistDomains` in `profile.json`. The bundled profiles add:
+
+| Profile        | Added domains                                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ralph-docs`   | `.aka.ms`, `.dev.azure.com`, `.artifacts.visualstudio.com`, `.blob.core.windows.net`, `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org` |
+| `ralph-vscode` | `.npmjs.org`, `dev.azure.com`, `pkgs.dev.azure.com`, `vsblob.dev.azure.com`, `.artifacts.visualstudio.com`                                                          |
+
+JIRA, ADO REST, documentation sites and arbitrary web fetches are meant to go through MCP tools in the sidecar container, which has direct internet access via `ralph-sidecar-external`. Both bundled profiles still put Azure DevOps domains on the agent's allowlist, so domain filtering alone does not stop the agent from calling ADO with a credential it holds.
 
 All other domains are blocked. Squid access logs (allowed + denied) are collected per task for tuning.
 
 ### Container Hardening
 
-| Control | Implementation | Why |
-|---|---|---|
-| No Docker socket | Removed from all compose volume mounts | Prevents container escape via Docker API |
-| No sudo | Base image (`ubuntu:22.04`) does not include sudo; vscode user created without privilege escalation | Prevents privilege escalation to root |
-| `cap_drop: ALL` | In security overlay compose file | Drops all Linux capabilities |
-| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts. NOTE: This is mainly to simplify Dockerfile setup requirements for now. Will be revised later. |
-| `no-new-privileges: true` | In security overlay compose file | Prevents setuid/setgid privilege escalation |
-| Resource limits | Memory: 8G, CPU: 4, PIDs: 500 | Prevents resource exhaustion attacks |
-| User-writable npm prefix | `~/.npm-global` set via `NPM_CONFIG_PREFIX` | Allows `npm install -g` without root |
+| Control                        | Implementation                                                                                                                                                                                  | Why                                                                                                                                                                                                                                             |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No Docker socket               | Removed from all compose volume mounts                                                                                                                                                          | Prevents container escape via Docker API                                                                                                                                                                                                        |
+| No sudo                        | Profile images (`ralph-docs`: `ubuntu:22.04`, `ralph-vscode`: `node:24-bookworm-slim`) don't install sudo; the CLI runs as the unprivileged `vscode` user (`docker compose exec --user vscode`) | Prevents privilege escalation to root                                                                                                                                                                                                           |
+| `cap_drop: ALL`                | In security overlay compose file                                                                                                                                                                | Drops all Linux capabilities                                                                                                                                                                                                                    |
+| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file                                                                                                                                                                | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts. NOTE: This is mainly to simplify Dockerfile setup requirements for now. Will be revised later. |
+| `no-new-privileges: true`      | In security overlay compose file                                                                                                                                                                | Prevents setuid/setgid privilege escalation                                                                                                                                                                                                     |
+| Resource limits                | Memory: 8G, CPU: 4, PIDs: 500                                                                                                                                                                   | Prevents resource exhaustion attacks                                                                                                                                                                                                            |
+| User-writable npm prefix       | `~/.npm-global` set via `NPM_CONFIG_PREFIX`                                                                                                                                                     | Allows `npm install -g` without root                                                                                                                                                                                                            |
 
 ### Compose Merge Pattern
 
@@ -78,16 +85,30 @@ Security is applied via a **compose file merge** (up to three files):
 
 1. **Base:** `profiles/<id>/docker-compose.yml` — services, volumes, build config
 2. **Security overlay:** `shared/security/docker-compose.security.yml` — Squid sidecar, networks, limits, hardening
-3. **Resources overlay:** `profiles/<id>/.build/docker-compose.overlay.yml` — MCP server mounts, env var passthrough, resource file mounts (auto-generated at startup, only included if present)
+3. **Resources overlay:** `profiles/<id>/.build/docker-compose.overlay.yml` — MCP sidecar service, agent env vars, agent/skill/resource file mounts (generated at startup and regenerated per task, only included if present)
 
 `ComposeClient` automatically injects all applicable files for every command. The security overlay adds:
 
 - `egress-proxy` service (Squid on both internal and external networks)
 - `ralph-internal` network (`internal: true`) — agent's only network
 - `ralph-external` network — Squid's bridge to the internet
+- `ralph-sidecar-external` network — the MCP sidecar's direct route to the internet
 - Proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY` and lowercase variants)
-- Security options (`cap_drop`, `no-new-privileges`)
+- Read-only audit hook mounts (`shared/hooks/`)
+- Security options (`cap_drop: ALL`, `cap_add: DAC_OVERRIDE, CHOWN`, `no-new-privileges`)
 - Resource limits (`deploy.resources.limits`)
+
+### Credentials in the Agent Container
+
+MCP server secrets (`ADO_PAT`, `JIRA_PAT_<KEY>`, `JIRA_EMAIL_<KEY>`, Discord and NodeBB tokens) are written to `gateway.json`, which is mounted only into the MCP sidecar; the agent container does not get them. It does get these credentials through its environment:
+
+| Variable            | Source                                                       | Containers                             |
+| ------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| `GH_TOKEN`          | Resources overlay (`src/container/setup/compose-overlay.ts`) | Every agent container                  |
+| `ANTHROPIC_API_KEY` | Resources overlay (`src/container/setup/compose-overlay.ts`) | Every agent container (empty if unset) |
+| `ADO_PAT_XPERIENCE` | `profiles/ralph-docs/docker-compose.yml`                     | `ralph-docs` agent container           |
+
+A prompt-injected agent can read these values. Combined with an allowlisted domain (`api.github.com`, `github.com`, Azure DevOps hosts), it can use them directly.
 
 ## Startup Validation
 
@@ -95,8 +116,8 @@ The `src/validate/security.ts` module checks on every startup:
 
 - Security overlay compose file exists
 - Squid config exists
-- Base compose files reference `ralph-internal` network
-- No `docker.sock` mounts in any compose file
+- Each profile's `docker-compose.yml` references the `ralph-internal` network
+- No profile's `docker-compose.yml` mounts `docker.sock`
 
 ## Log Collection for Allowlist Tuning
 
@@ -114,7 +135,7 @@ Proxy logs are saved in each task's subdirectory as `<key>-<startTs>-<ts>-proxy.
 
 ## Prompt Injection Defense
 
-The orchestrator builds the CLI prompt from work item data (description, comments, custom fields, handoff attachments). This data is user-provided and could contain adversarial instructions. Four defense layers mitigate this risk:
+The orchestrator builds the CLI prompt from work item data (description, comments, custom fields, handoff attachments). This data is user-provided and could contain adversarial instructions. Three defense layers mitigate this risk:
 
 ### Layer 1: Content Normalization (`src/prompt/normalizer.ts`)
 
@@ -125,116 +146,90 @@ Before untrusted content enters the prompt, it is normalized:
 - **Non-standard whitespace normalization** — replaces non-breaking spaces, em spaces, ideographic spaces with regular spaces
 - **Excessive blank line collapsing** — collapses runs of 4+ newlines to prevent off-screen content hiding
 
-### Layer 2: Untrusted Data Delimiters (`src/prompt/prompt.ts`)
+The prompt (`src/prompt/prompt.ts`) places the normalized description, labels, components, priority, custom fields and comments after a `JIRA Issue:` / `Title:` header, without delimiters. Agent instructions (Layer 3) tell the agent to treat that data as task information.
 
-Untrusted content is wrapped in explicit delimiters:
-
-```
-JIRA Issue: DOC-123
-Title: Fix typo in API docs
-
---- BEGIN UNTRUSTED DATA ---
-Description: ...
-Labels: ...
-JIRA Comments: ...
---- END UNTRUSTED DATA ---
-```
-
-Agent template instructions (Layer 4) reference these delimiters to distinguish system instructions from user-provided data.
-
-### Layer 3: Heuristic Pattern Scanner (`src/prompt/prompt-auditor.ts`)
+### Layer 2: Heuristic Pattern Scanner (`src/prompt/prompt-auditor.ts`)
 
 A configurable scanner examines all untrusted prompt sections for common injection patterns:
 
-| Category | Severity | Examples |
-|---|---|---|
-| Instruction override | Critical | "ignore previous instructions", "new instructions:" |
-| Prompt format tokens | Critical | `<\|im_start\|>`, `[INST]`, `<<SYS>>` |
-| Context hijacking | Critical | "forget everything", "reset your context" |
-| Credential probing | Critical | "cat .env", "dump credentials", "print api key" |
-| Git remote manipulation | Critical | "git remote add", "git remote set-url" to non-allowlisted hosts |
-| Exfiltration commands | Critical | `curl`/`wget`/`fetch` with URLs |
-| Role hijacking | Warning | "you are now", "pretend to be", "act as" |
-| Suspicious URLs | Warning | URLs not in the domain allowlist |
-| Base64 blocks | Warning | Large encoded payloads |
-| Unicode control chars | Warning | Clusters of invisible formatting characters |
-| Output manipulation | Warning | "do not reveal", "hide this from" |
-| Delimiter flooding | Warning | Excessive `===`, backticks, dashes |
+| Category                | Severity | Examples                                                                                                                  |
+| ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Instruction override    | Critical | "ignore previous instructions", "new instructions:"                                                                       |
+| Prompt format tokens    | Critical | `<\|im_start\|>`, `[INST]`, `<<SYS>>`                                                                                     |
+| Context hijacking       | Critical | "forget everything", "reset your context"                                                                                 |
+| Credential probing      | Critical | "cat .env", "dump credentials", "print api key"                                                                           |
+| Git remote manipulation | Critical | "git remote add", "git remote set-url", `git clone` from hosts other than `dev.azure.com` / `github.com`                  |
+| Exfiltration commands   | Critical | `curl`/`wget`/`fetch` with URLs                                                                                           |
+| Role hijacking          | Warning  | "you are now", "pretend to be", "act as"                                                                                  |
+| Suspicious URLs         | Warning  | URLs outside a fixed host list (`api.atlassian.com`, `dev.azure.com`, `github.com`, `registry.npmjs.org`, `rubygems.org`) |
+| Base64 blocks           | Warning  | Large encoded payloads                                                                                                    |
+| Unicode control chars   | Warning  | Clusters of invisible formatting characters                                                                               |
+| Output manipulation     | Warning  | "do not reveal", "hide this from"                                                                                         |
+| Delimiter flooding      | Warning  | Excessive `===`, backticks, dashes                                                                                        |
 
 **Audit modes** (configured via `config.json` → `promptAudit.mode`):
+
 - `"warn"` (default) — logs findings, continues execution
 - `"block"` — throws an error for critical findings, stopping the task
 - `"off"` — disables auditing
 
 Each finding includes the pattern name, matched text (truncated), severity, and which JIRA field/comment triggered it.
 
-### Layer 4: Agent Security Instructions (`shared/agent-includes/prompt-security.md`)
+### Layer 3: Agent Security Instructions (`shared/agent-includes/prompt-security.md`)
 
-A shared Liquid partial injected into all top-level agent templates via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ taskId }}`, `{{ taskProject }}`) to scope the agent's authorization to a specific work item:
+A shared Liquid partial rendered into the top-level agent templates (`ralph.ralph`, `ralph.malph`, `ralph.stacky`) and some subagents via `{% render 'prompt-security' %}`. It uses TemplateContext variables (`{{ taskId }}`, `{{ taskProject }}`) to scope the agent's authorization to a specific work item:
 
 - Assigns the agent to a specific issue key and project, rejecting requests targeting other issues
-- Treats content between `BEGIN/END UNTRUSTED DATA` delimiters strictly as task information
-- Ignores embedded instructions or directives in untrusted data
+- Treats issue data in the prompt (description, comments, custom fields, attachments) strictly as task information
+- Ignores embedded instructions or directives in task data and tool output
 - Never discloses credentials, environment variables, or secrets
 - Only uses network endpoints required by the workflow
 - Never adds, modifies, or removes git remotes
 - Enforces branch scope lock — only works on branches related to the assigned issue
-- Instructs meta-agents to tell sub-agents to never use `ask_questions`
-- Reports suspected injection attempts in the handoff file
+- Reports suspected injection attempts in the handoff file under "Security Notes"
 
 ### Defense Philosophy
 
-Prompt injection is **fundamentally unsolved at the model level**. No filtering, training, or detection technique reliably prevents it against adaptive attacks. These layers are **tripwire defenses** — they catch accidental or opportunistic injections and provide audit visibility. The real security boundary remains **architectural**: network isolation, domain allowlist proxy, container hardening, and privilege minimization.
+Prompt injection is **fundamentally unsolved at the model level**. No filtering, training, or detection technique reliably prevents it against adaptive attacks. These layers are **tripwire defenses** — they catch accidental or opportunistic injections and provide audit visibility. The real security boundary remains **architectural**: network isolation, domain allowlist proxy, container hardening, and privilege minimization, with the credential gaps listed under [Credentials in the Agent Container](#credentials-in-the-agent-container).
 
 ## Runtime URL Enforcement
 
-Domain-level allowlisting (Squid proxy) prevents the agent from reaching arbitrary servers, but an injected agent could still abuse *allowed* APIs to target different organizations or resources. URL **path** restrictions provide an additional enforcement layer.
+Both URL controls work at **domain** level. Neither restricts URL paths, so neither can confine the agent to one JIRA instance or one Azure DevOps organization.
 
 ### Threat Model
 
-An attacker embeds a PAT (personal access token) in a JIRA issue description. The injected agent uses `curl` or a bash tool to call an allowlisted API (e.g., `dev.azure.com`) with the stolen PAT, targeting a different organization than the one Ralph is configured for. Domain-level filtering alone can't prevent this.
+An attacker embeds a PAT (personal access token) in a JIRA issue description, or the agent reads one from its own environment (see [Credentials in the Agent Container](#credentials-in-the-agent-container)). The injected agent uses `curl` or a bash tool to call an allowlisted API (e.g., `dev.azure.com` for profiles that allow it) with that PAT, targeting a different organization than the one Ralph is configured for. The controls below do not prevent this; the pre-tool hook only records it.
 
 ### Pre-Tool Hook Audit Logging (`shared/hooks/log-pre-tool.sh`)
 
-A Copilot CLI pre-tool hook that runs **synchronously before every tool execution**. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to host in real-time) and `audit.jsonl` for post-task analysis.
+A Copilot CLI `preToolUse` hook that runs before every tool execution. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to the host in real time) and `audit.jsonl` for post-task analysis. The other hooks in `shared/hooks/` log session start/end, prompts, tool output and errors.
+
+The hook configuration (`shared/hooks/ralph-audit.json`) uses the Copilot CLI hook format and is mounted by the security overlay at `/workspace/.github/hooks/ralph-audit.json`, the location Copilot CLI reads repository hooks from; the scripts are mounted at `/workspace/.ralph/hooks/`.
 
 **Limitations:**
-- Only applies to Copilot CLI (Claude Code has no equivalent hook protocol)
-- Audit-only — does not block tool calls (URL enforcement is handled by the CLI URL allowlist and Squid proxy)
+
+- Read only by Copilot CLI running in the container. Local-mode stages don't get these hooks.
+- Audit-only — the hook never blocks a tool call.
 
 ### Copilot CLI URL Allowlist (`copilot-config.json`)
 
 The Copilot CLI's built-in URL permission system, configured via a generated config file. The CLI checks URLs at its own permission layer before tools execute.
 
-At startup, the orchestrator:
+At startup, `writeCopilotConfig()` (`src/container/setup/url-restrictions.ts`):
 
 1. Parses the profile's generated `squid.conf` for allowed domains
-2. Applies path restrictions from MCP server manifests to sensitive domains (JIRA, ADO)
-3. Includes host loopback ports from the squid config
-4. Writes `copilot-config.json` with `allowed_urls` patterns
+2. Converts each domain to a URL pattern: `.example.com` → `https://*.example.com`, `api.github.com` → `https://api.github.com`
+3. Adds `http://host.docker.internal:<port>/*` for each host loopback port in the squid config
+4. Writes `copilot-config.json` with the `allowed_urls` patterns
 
-**URL pattern examples:**
-- `https://*.github.com` — any GitHub subdomain, any path
-- `https://api.atlassian.com/ex/jira/cloud-42/*` — only the configured JIRA cloud instance
-- `https://dev.azure.com/MyOrg/*` — only the configured ADO organization
-- `http://host.docker.internal:4500/*` — host loopback on specific port
+The allowlist therefore mirrors the Squid domain allowlist. It adds no path scoping.
 
-The config is mounted read-only at `/workspace/.ralph/config.json` and read by the CLI via `--config-dir /workspace/.ralph`. The `--yolo` flag (which includes `--allow-all-urls`) is replaced with explicit `--allow-all-tools --allow-all-paths` to keep URL enforcement active.
+The config is mounted read-only at `/workspace/.ralph/config.json` and read by the CLI via `--config-dir /workspace/.ralph`. The CLI runs with `--allow-all-tools --allow-all-paths` instead of `--yolo` (which includes `--allow-all-urls`), so URL checks stay active.
 
 **Limitations:**
-- Only applies to Copilot CLI (Claude Code has no equivalent URL restriction config)
-- Path wildcards are prefix-based (`/*` suffix) — exact path matching not available
 
-### Path Restriction Auto-Derivation (`src/container/setup/url-restrictions.ts`)
-
-Path restrictions are auto-derived at startup from MCP server manifests:
-
-| Source | Rule | Restricts |
-|---|---|---|
-| JIRA cloud ID (`config.json`) | `api.atlassian.com` → `/ex/jira/{cloudId}/` | Agent can only access the configured JIRA instance |
-| ADO MCP manifest (`shared/mcp-servers/ado/mcp-server.json`) | `dev.azure.com` → `/{orgName}/` | Agent can only access the configured ADO organization |
-
-Rules are used to generate path-scoped `allowed_urls` in `copilot-config.json` (consumed by the CLI).
+- Applies only to the Copilot CLI running in the container, which reads it via `--config-dir`. Local-mode stages don't get it.
+- Domain-level only — any path on an allowlisted domain is permitted.
 
 ### Defense Layering Summary
 
@@ -242,51 +237,64 @@ Rules are used to generate path-scoped `allowed_urls` in `copilot-config.json` (
 ┌─────────────────────────────────────────────────────────────────┐
 │                      URL Access Control                         │
 │                                                                 │
-│  Layer 2: Squid Proxy (DOMAIN level — network enforcement)      │
-│    └─ Blocks all traffic to non-allowlisted domains             │
+│  Squid Proxy (DOMAIN level — network enforcement)               │
+│    └─ Blocks all agent traffic to non-allowlisted domains       │
 │                                                                 │
-│  Layer 1: Copilot CLI URL Allowlist (PATH level — CLI layer)    │
-│    └─ Restricts tool URL access to path-scoped patterns         │
+│  Copilot CLI URL Allowlist (DOMAIN level — CLI layer)           │
+│    └─ Same domains as Squid, checked before tools execute       │
 │                                                                 │
 │  Audit: Pre-tool hook logs all tool calls for observability     │
 │                                                                 │
-│  Note: Layer 1 is Copilot-only. Claude Code relies on           │
-│  Layer 2 (Squid) + the hook for audit logging only.             │
+│  Not covered: MCP sidecar traffic (direct internet access),     │
+│  local-mode stages (run on the host).                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Local-Mode Stages
+
+Stages with `mode: "local"` — including every post-task hook stage — run the Copilot CLI directly on the orchestrator host via `LocalCopilotExecutor`. They run in the orchestrator repo root with `--allow-all-tools --allow-all-paths` and inherit the orchestrator's environment, including the secrets loaded from `.env`. They get no `--config-dir`, so no `copilot-config.json` URL allowlist or audit hooks. None of the container controls in this document (network isolation, Squid, capability drop, resource limits) apply to them.
 
 ## What the Agent Can Still Do
 
 These are **by design** — the agent needs them to function:
 
 - Read/write the mounted workspace (`/workspace`)
-- Push to git remotes via Azure DevOps (PAT in env)
-- Create PRs via ADO REST API
-- Post comments and attach files to JIRA
+- Push the task branch and create PRs through the `ado` MCP tools (the ADO PAT stays in the sidecar)
+- Post comments and attach files to JIRA through the `jira-kentico` MCP tools
+- Call any tool of its effective MCP servers, including `web-fetch` and `playwright` where declared — these run in the sidecar, which has unrestricted internet access
+- Read the credentials in its environment (`GH_TOKEN`, `ANTHROPIC_API_KEY`, and `ADO_PAT_XPERIENCE` for `ralph-docs`) and use them against allowlisted domains
 - Make LLM API calls (Copilot, Anthropic)
-- Install npm/gem packages from public registries (through the proxy)
+- Install packages from the registries on its profile's allowlist (through the proxy)
 - Run arbitrary commands inside the container (as unprivileged `vscode` user)
 
 ## What the Agent Cannot Do
 
 - Access the Docker socket or control other containers
-- Reach any domain not in the allowlist
-- Escalate to root (no sudo, no setuid, no capabilities)
+- Reach a domain outside its profile's allowlist directly (MCP tools in the sidecar are not subject to the allowlist)
+- Escalate to root (no sudo, no setuid; only `DAC_OVERRIDE` and `CHOWN` capabilities are kept)
 - Exhaust host resources beyond the limits
-- Access the host filesystem outside the mounted workspace
+- Access the host filesystem outside the mounted workspace and the read-only mounts (rendered agents, skills, MCP config, hooks, resources)
 - Install system packages (no apt/dpkg without root)
+
+These limits apply to container stages only; see [Local-Mode Stages](#local-mode-stages).
 
 ## FAQ
 
 ### How do I allow the agent to reach a new external domain?
 
-Add it to the domain allowlist in `shared/security/squid.conf`:
+For one profile, add it to `allowlistDomains` in `profiles/<id>/profile.json`:
+
+```json
+"allowlistDomains": [".example.com"]
+```
+
+For all profiles, add it to the baseline allowlist in `shared/security/squid.conf`:
 
 ```squid
 acl allowed_domains dstdomain .example.com
 ```
 
-Restart or rebuild the containers for the change to take effect. The domain will appear in proxy logs for verification.
+Restart the orchestrator so it regenerates the profile's `squid.conf` and `copilot-config.json`. The domain will appear in proxy logs for verification.
 
 ### How do I expose a host service (e.g. local RAG endpoint) to the agent?
 
@@ -311,7 +319,7 @@ Set `promptAudit.mode` in `config.json`:
 ```json
 {
   "promptAudit": {
-    "mode": "block"   // "warn" (default) | "block" | "off"
+    "mode": "block" // "warn" (default) | "block" | "off"
   }
 }
 ```

@@ -48,7 +48,7 @@ Given the "portable with the repo" requirement, the lightweight approach (JSON +
 
 ### New MCP Server
 
-- `shared/mcp-servers/ralphchives/mcp-server.json` — manifest with `type: "custom"`, tools definition, `proxyDomains` (none needed — local filesystem only)
+- `shared/mcp-servers/ralphchives/mcp-server.json` — manifest with `type: "custom"` and tools definition
 - `shared/mcp-servers/ralphchives/src/` — TypeScript MCP server implementing the tools
 - Profile `mcpServers` arrays updated to include `"ralphchives"` for profiles that should have access
 

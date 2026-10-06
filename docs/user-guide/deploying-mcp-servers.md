@@ -26,19 +26,19 @@ Agent Container (app)                        MCP Sidecar Container
 
 ### What each container has
 
-| | Agent Container | Sidecar Container |
-|---|---|---|
-| **MCP binaries** | None | All server processes |
-| **Credentials** | None (URL-only config) | All secrets in `gateway.json` |
-| **Network** | `ralph-internal` (Squid-proxied) | `ralph-internal` + `ralph-sidecar-external` (direct internet) |
-| **Config file** | `mcp-config.json` | `gateway.json` |
+|                  | Agent Container                  | Sidecar Container                                             |
+| ---------------- | -------------------------------- | ------------------------------------------------------------- |
+| **MCP binaries** | None                             | All server processes                                          |
+| **Credentials**  | None (URL-only config)           | All secrets in `gateway.json`                                 |
+| **Network**      | `ralph-internal` (Squid-proxied) | `ralph-internal` + `ralph-sidecar-external` (direct internet) |
+| **Config file**  | `mcp-config.json`                | `gateway.json`                                                |
 
 ## Two Types of MCP Server
 
-| Type | When to use | Code lives in | Needs Dockerfile change? |
-|---|---|---|---|
-| **`"npm"`** (external) | Third-party npm package | npm registry | **Yes** — install in sidecar Dockerfile |
-| **`"custom"`** (bespoke) | Your own implementation | `shared/mcp-servers/<name>/` | **No** — volume-mounted automatically |
+| Type                     | When to use             | Code lives in                | Needs Dockerfile change?                |
+| ------------------------ | ----------------------- | ---------------------------- | --------------------------------------- |
+| **`"npm"`** (external)   | Third-party npm package | npm registry                 | **Yes** — install in sidecar Dockerfile |
+| **`"custom"`** (bespoke) | Your own implementation | `shared/mcp-servers/<name>/` | **No** — volume-mounted automatically   |
 
 ## Adding an External npm MCP Server
 
@@ -64,17 +64,17 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
 
 **Fields:**
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | Yes | Must match the directory name |
-| `type` | Yes | `"npm"` for external packages |
-| `command` | Yes | The binary/npx command to run |
-| `args` | Yes | Command-line arguments (can be `[]`) |
-| `sidecarPort` | Yes | Unique port — see [Port Allocation](#port-allocation) |
-| `requiredEnv` | No | Env vars needed in `.env` on the host |
-| `tools` | No | Tool names the server exposes (for agent tool filtering) |
-| `requiredConfig` | No | Env var keys that profiles must provide in `mcpServers.env` |
-| `initScript` | No | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`) |
+| Field            | Required | Description                                                                                       |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `name`           | Yes      | Must match the directory name                                                                     |
+| `type`           | Yes      | `"npm"` for external packages                                                                     |
+| `command`        | Yes      | The binary/npx command to run                                                                     |
+| `args`           | Yes      | Command-line arguments (can be `[]`)                                                              |
+| `sidecarPort`    | Yes      | Unique port — see [Port Allocation](#port-allocation)                                             |
+| `requiredEnv`    | No       | Env vars needed in `.env` on the host                                                             |
+| `tools`          | No       | Tool names the server exposes (for agent tool filtering)                                          |
+| `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`                                       |
+| `initScript`     | No       | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`) |
 
 > **Tip:** Don't trust documentation for tool names — verify them by querying the server directly. See [Verifying Tool Names](#verifying-tool-names).
 
@@ -129,13 +129,14 @@ In this example, the @Ralph variant sees both `web-fetch` (profile) and `codegra
 
 #### Server entry fields
 
-| Field | Description |
-|---|---|
-| `name` | Server name — must match a directory in `shared/mcp-servers/` |
-| `env` | Per-server env vars injected into `gateway.json` → child process env. Supports `$task.*`, `$trigger.*`, `$variantEnv.*` [runtime macros](runtime-macros.md). |
+| Field        | Description                                                                                                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`       | Server name — must match a directory in `shared/mcp-servers/`                                                                                                                                                                  |
+| `env`        | Per-server env vars injected into `gateway.json` → child process env. Supports `$task.*`, `$trigger.*`, `$variantEnv.*` [runtime macros](runtime-macros.md).                                                                   |
 | `sidecarEnv` | Container-level env vars injected into the sidecar Docker service. Used for entrypoint scripts that run before the gateway (e.g. `CGC_INDEX_PATH` for CodeGraphContext indexing). Not macro-resolved — use static values only. |
 
 Values starting with `$` in `env` are [runtime macros](runtime-macros.md) resolved per-task:
+
 - `$task.id`, `$task.project`, `$task.branch`, `$task.title`
 - `$trigger.<key>` — from JIRA comment parameters
 - `$variantEnv.PREFIX` — resolves to host env var `PREFIX_PROFILEID_DISPLAYNAME`
@@ -174,20 +175,24 @@ shared/mcp-servers/<name>/
     └── index.ts
 ```
 
-Use `"type": "custom"` in the manifest:
+Use `"type": "custom"` in the manifest, modelled on `shared/mcp-servers/web-fetch/mcp-server.json`:
 
 ```json
 {
   "name": "my-custom-server",
+  "description": "What this server does",
   "type": "custom",
   "command": "node",
-  "args": [],
-  "sidecarPort": 9108,
+  "args": ["dist/bundle.js"],
+  "containerPath": "/opt/mcp/servers/my-custom-server",
+  "sidecarPort": 9109,
   "requiredEnv": [],
   "tools": ["my_tool"],
   "requiredConfig": ["SOME_PARAM"]
 }
 ```
+
+For custom servers, the gateway config joins each `args` entry onto `containerPath` (`dist/bundle.js` → `/opt/mcp/servers/my-custom-server/dist/bundle.js`), and the gateway appends `--transport http --port <sidecarPort>` when it spawns the process. Without `containerPath`, the args are used as-is, so `args: []` would launch a bare `node`.
 
 ### Step 2: Implement the server
 
@@ -215,17 +220,17 @@ Custom server code is volume-mounted from `shared/mcp-servers/` to `/opt/mcp/ser
 
 Each server needs a unique port declared in `sidecarPort`. Current assignments:
 
-| Port | Server |
-|---|---|
-| 9100 | jira-kentico |
-| 9101 | ado |
-| 9102 | discord-hitl |
-| 9103 | playwright |
-| 9104 | web-fetch |
-| 9105 | microsoft-docs |
+| Port | Server            |
+| ---- | ----------------- |
+| 9100 | jira-kentico      |
+| 9101 | ado               |
+| 9102 | discord-hitl      |
+| 9103 | playwright        |
+| 9104 | web-fetch         |
+| 9105 | microsoft-docs    |
 | 9106 | ralphchives-write |
-| 9107 | ralphchives-read |
-| 9108 | codegraphcontext |
+| 9107 | ralphchives-read  |
+| 9108 | codegraphcontext  |
 
 Use the next available port (9109+) for new servers.
 
@@ -293,21 +298,25 @@ process.exit(0);
 ## Troubleshooting
 
 ### Server doesn't appear in agent tools
+
 - Verify `profile.json` lists the server in `mcpServers`
 - Check `mcp-server.json` exists in `shared/mcp-servers/<name>/`
 - If `requiredConfig` is set, the profile must provide those keys in `env`
 
 ### npm server won't start in the sidecar
+
 - Confirm the package is installed in `shared/mcp-sidecar/Dockerfile` (check `docker exec mcp-sidecar which <binary>`)
 - Some packages need system libraries — check their install docs
 - Test locally first: `npx <package> --help`
 
 ### Custom server bundle missing
+
 - Run `npx webpack` in the server directory
 - Verify `dist/bundle.js` exists
 - The volume mount is read-only — changes require restart
 
 ### Port conflict
+
 - Two servers cannot share a port — check manifests for duplicates
 - The gateway health endpoint uses port 9000 (reserved)
 

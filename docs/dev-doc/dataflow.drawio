@@ -22,7 +22,7 @@
         </mxCell>
 
         <!-- LLM APIs -->
-        <mxCell id="llm" value="&lt;b&gt;LLM APIs&lt;/b&gt;&lt;br&gt;Anthropic / OpenAI" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="llm" value="&lt;b&gt;LLM APIs&lt;/b&gt;&lt;br&gt;GitHub Copilot / Anthropic" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1320" y="600" width="180" height="100" as="geometry" />
         </mxCell>
 
@@ -34,8 +34,8 @@
           <mxGeometry x="150" y="15" width="300" height="25" as="geometry" />
         </mxCell>
 
-        <!-- JiraPoller -->
-        <mxCell id="poller" value="&lt;b&gt;JiraPoller&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;setInterval polling&lt;br&gt;JQL auto-generated&lt;br&gt;from match rules&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+        <!-- JiraWorkItemPoller -->
+        <mxCell id="poller" value="&lt;b&gt;JiraWorkItemPoller&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;setInterval polling&lt;br&gt;JQL auto-generated&lt;br&gt;from match rules&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="160" y="60" width="140" height="70" as="geometry" />
         </mxCell>
 
@@ -45,7 +45,7 @@
         </mxCell>
 
         <!-- OperationLedger -->
-        <mxCell id="ledger" value="&lt;b&gt;OperationLedger&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;pending → active →&lt;br&gt;completed | error&lt;br&gt;crash recovery&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="ledger" value="&lt;b&gt;OperationLedger&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;pending → active | rejected | error&lt;br&gt;active → completed | error&lt;br&gt;crash recovery&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="360" y="160" width="140" height="70" as="geometry" />
         </mxCell>
 
@@ -60,7 +60,7 @@
         </mxCell>
 
         <!-- TaskRunner -->
-        <mxCell id="taskrunner" value="&lt;b&gt;TaskRunner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;run(ctx, callbacks?)&lt;br&gt;4-phase pipeline&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="taskrunner" value="&lt;b&gt;TaskRunner&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;run(ctx)&lt;br&gt;4-phase pipeline&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="560" y="260" width="140" height="55" as="geometry" />
         </mxCell>
 
@@ -77,7 +77,7 @@
           <mxGeometry x="470" y="350" width="130" height="55" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase4" value="&lt;b&gt;4. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;loop over stages[]&lt;br&gt;per-stage executor&lt;br&gt;(container | local)&lt;br&gt;prompt build + audit&lt;br&gt;continuation loop&lt;br&gt;abort on failure&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="phase4" value="&lt;b&gt;4. executeAgent&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;AgentPipelineExecutor&lt;br&gt;per-stage executor&lt;br&gt;(container | local)&lt;br&gt;prompt build + audit&lt;br&gt;continuation loop&lt;br&gt;abort on failure&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="630" y="340" width="120" height="70" as="geometry" />
         </mxCell>
 
@@ -87,17 +87,17 @@
         </mxCell>
 
         <!-- Post-execution -->
-        <mxCell id="postexec" value="&lt;b&gt;Post-Execution&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;JIRA transition (afterAgent)&lt;br&gt;completion/error comment&lt;br&gt;ledger update + teardown&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="postexec" value="&lt;b&gt;Post-Execution&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;teardown + post-task hooks&lt;br&gt;afterAgent transition + comment&lt;br&gt;ledger update&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="560" y="440" width="160" height="60" as="geometry" />
         </mxCell>
 
         <!-- Profile Setup (startup) -->
-        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (static baseline)&lt;br&gt;copilot-config.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (baseline + allowlistDomains)&lt;br&gt;copilot-config.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="160" y="440" width="160" height="85" as="geometry" />
         </mxCell>
 
         <!-- JIT MCP Config -->
-        <mxCell id="jitmcp" value="&lt;b&gt;JitMcpConfigWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;$jira.key, $jira.project&lt;br&gt;$jira.branch, $jira.summary&lt;br&gt;$trigger.&amp;lt;key&amp;gt; macros&lt;br&gt;→ gateway.json in-place&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="jitmcp" value="&lt;b&gt;JitMcpConfigWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;$task.id, $task.project&lt;br&gt;$task.branch, $task.title&lt;br&gt;$trigger.&amp;lt;key&amp;gt;, $variantEnv.&amp;lt;PREFIX&amp;gt;&lt;br&gt;→ gateway.json in-place&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="360" y="440" width="160" height="75" as="geometry" />
         </mxCell>
 
@@ -123,27 +123,27 @@
         </mxCell>
 
         <!-- MCP Sidecar -->
-        <mxCell id="sidecar" value="&lt;b&gt;mcp-sidecar&lt;/b&gt;&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• supergateway bridge&lt;br&gt;• reads gateway.json (secrets)&lt;br&gt;• stdio → Streamable HTTP&lt;br&gt;• one process per MCP server&lt;br&gt;• agent gets URL-only access&lt;br&gt;• direct internet: ralph-sidecar-external&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="sidecar" value="&lt;b&gt;mcp-sidecar&lt;/b&gt;&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• reads gateway.json (secrets)&lt;br&gt;• npm: supergateway (stdio → HTTP)&lt;br&gt;• custom: native Streamable HTTP&lt;br&gt;• one process per MCP server&lt;br&gt;• agent gets URL-only access&lt;br&gt;• direct internet: ralph-sidecar-external&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="475" y="655" width="210" height="145" as="geometry" />
         </mxCell>
 
         <!-- MCP Servers inside sidecar -->
-        <mxCell id="mcpservers" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;MCP Servers&lt;/b&gt;&lt;br&gt;ado (PR + git push)&lt;br&gt;jira-kentico (comments)&lt;br&gt;discord-hitl, playwright&lt;br&gt;microsoft-docs, web-fetch&lt;br&gt;ralphchives-write, -read&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="mcpservers" value="&lt;font size=&quot;1&quot;&gt;&lt;b&gt;MCP Servers&lt;/b&gt;&lt;br&gt;ado (PR + git push)&lt;br&gt;jira-kentico (comments)&lt;br&gt;discord-hitl, playwright&lt;br&gt;microsoft-docs, web-fetch&lt;br&gt;ralphchives-*, codegraphcontext&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="490" y="815" width="180" height="80" as="geometry" />
         </mxCell>
 
         <!-- Egress Proxy -->
-        <mxCell id="proxy" value="&lt;b&gt;egress-proxy&lt;/b&gt;&lt;br&gt;(Squid)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• static domain allowlist&lt;br&gt;• AI providers + pkg registries&lt;br&gt;• access log collected&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="proxy" value="&lt;b&gt;egress-proxy&lt;/b&gt;&lt;br&gt;(Squid)&lt;br&gt;&lt;hr&gt;&lt;font size=&quot;1&quot;&gt;• per-profile domain allowlist&lt;br&gt;• AI providers + allowlistDomains&lt;br&gt;• access log collected&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;verticalAlign=top;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="760" y="655" width="170" height="120" as="geometry" />
         </mxCell>
 
         <!-- ===== OUTPUT / STORAGE ===== -->
-        <mxCell id="output" value="&lt;b&gt;output/logs/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• &amp;lt;key&amp;gt;-&amp;lt;ts&amp;gt;/ per-task dir&lt;br&gt;• audit.jsonl, transcript.md&lt;br&gt;• proxy.log, sidecar.log&lt;br&gt;• summary.json&lt;br&gt;• activity-YYYY-MM-DD.log&lt;br&gt;• history/&amp;lt;key&amp;gt;.json (ledger)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="output" value="&lt;b&gt;output/logs/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• &amp;lt;key&amp;gt;-&amp;lt;ts&amp;gt;/ per-task dir&lt;br&gt;• audit.jsonl, transcript.md&lt;br&gt;• proxy.log, sidecar.log&lt;br&gt;• summary.json&lt;br&gt;• activity-YYYY-MM-DD.log&lt;br&gt;• history/&amp;lt;dataSource&amp;gt;/&amp;lt;key&amp;gt;.json (ledger)&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1050" y="120" width="170" height="150" as="geometry" />
         </mxCell>
 
         <!-- .build directory -->
-        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf, copilot-config.json&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1050" y="310" width="180" height="140" as="geometry" />
         </mxCell>
 
@@ -159,7 +159,7 @@
         <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;fontSize=10;" edge="1" source="poller" target="orchestrator" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e2-label" value="JiraIssue[]&lt;br&gt;+ wakeUp()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e2">
+        <mxCell id="e2-label" value="WorkItem[]&lt;br&gt;+ wakeUp()" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#82b366;" vertex="1" connectable="0" parent="e2">
           <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
         </mxCell>
 
@@ -440,7 +440,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e24-label" value="history/&lt;key&gt;.json" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e24">
+        <mxCell id="e24-label" value="history/&amp;lt;dataSource&amp;gt;/&amp;lt;key&amp;gt;.json" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#d6b656;" vertex="1" connectable="0" parent="e24">
           <mxGeometry relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
         </mxCell>
 

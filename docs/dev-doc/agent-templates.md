@@ -1,8 +1,6 @@
 # Agent Templates & Parameterization
 
-How agent templates are authored, rendered, and parameterized at runtime.
-
-For prompt architecture decisions (inline vs. deferred, ordering, sizing), see [AGENT-PROMPT-AUTHORING.md](../AGENT-PROMPT-AUTHORING.md).
+How agent templates are authored, rendered, and parameterized at runtime. The operator-facing variable reference is [docs/user-guide/template-variables.md](../user-guide/template-variables.md).
 
 ## Template Locations
 
@@ -12,20 +10,26 @@ profiles/<id>/.build/*.agent.md      — Rendered output (gitignored, mounted in
 shared/agent-includes/               — Shared Liquid partials
   ├── ado-api.md                     — ADO MCP tool reference
   ├── ado-pr-format.md               — PR description template
+  ├── agent-as-function-contract.md  — Subagent artifact contract
   ├── prompt-security.md             — Prompt injection defense rules
+  ├── ralphchives.md                 — Ralphchives usage
+  ├── rules.md                       — Shared agent rules
   ├── source-references.md           — Xperience source browser URL format
   ├── personality/                   — Agent personality partials
   │   ├── ralph.md
   │   └── malph.md
-  └── ralph-docs/                    — Profile-specific workflow partials
-      ├── ralph-standard-workflow.md
-      ├── ralph-revision-workflow.md
-      └── ralph-codesamples.md
+  ├── post-hooks/                    — Scientist subagent bodies
+  ├── ralph-docs/                    — ralph-docs workflow partials
+  │   ├── ralph-standard-workflow.md
+  │   ├── ralph-revision-workflow.md
+  │   ├── ralph-codesamples.md
+  │   └── ...
+  └── ralph-vscode/                  — ralph-vscode workflow partials
 ```
 
 ## Rendering Pipeline
 
-1. `TaskRunner.run()` calls `buildTemplateContext()` with the profile, JIRA issue, revision flag, and trigger params
+1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params); `prepareForStage()` repeats this before each pipeline stage with stage overrides
 2. `buildTemplateContext()` produces a `TemplateContext` — a typed object with all template variables
 3. `AgentTemplateRenderer.render()` creates a LiquidJS engine with `shared/agent-includes/` as the root and the context as globals
 4. Each `.agent.md` file is parsed and rendered — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
@@ -44,7 +48,8 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 | Variable | Type | Example | Description |
 |---|---|---|---|
 | `profileId` | `string` | `"ralph-docs"` | Profile directory name |
-| `repo` | `string` | `"/workspace"` | Absolute path to target repo in container |
+| `repo` | `string` | `"/home/user/repositories/kentico-docs-jekyll"` | Absolute path to the target repo on the host |
+| `targetRepoPath` | `string` | *(same as `repo`)* | Alias for `repo` |
 | `cli` | `string` | `"copilot"` | CLI type (`copilot` or `claude`) |
 | `model` | `string` | `"claude-opus-4.6"` | Model override, empty string for CLI default |
 | `agentName` | `string` | `"ralph.ralph"` | Raw CLI agent name |
@@ -79,6 +84,17 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 | Variable | Type | Description |
 |---|---|---|
 | `isRevision` | `boolean` | `true` when the issue status matches `revisionStatuses` in the variant config |
+| `ralphchivesEnabled` | `boolean` | `ralphchives.enabled` from `config.json` |
+| `prUrl` | `string` | PR URL from a previous run, extracted from comments; empty string if none |
+
+### Skills, Artifacts, Stages and Hooks
+
+| Variable | Type | Description |
+|---|---|---|
+| `skills` | `string[]` | Skill names for the current stage |
+| `artifactDir` | `string` | `.ralph/tasks/<taskId>/artifacts` (relative; see [agent-as-function.md](agent-as-function.md)) |
+| `stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles` | — | Pipeline stage context (see [multistage-pipelines.md](multistage-pipelines.md)) |
+| `hook.taskOutputDir`, `hook.collectedLogs`, `hook.name`, `hook.outputDir` | — | Post-task hook context; empty for main pipeline stages |
 
 ## Trigger Parameters
 
@@ -123,40 +139,19 @@ Check branch: **{{ triggerParams.branch_name }}**
 
 Trigger params are open-ended — any param can be passed in any callsign. If a param isn't recognized by the agent template, it's silently ignored (`triggerParams.unknown` is `undefined` → falsy in Liquid).
 
-#### `@RalphDf` / `@Ralph` → `ralph.ralph` (ralph-docs)
+The bundled callsigns are:
 
-Both callsigns invoke the same agent template. `@RalphDf` targets the DF project, `@Ralph` targets the DOC project.
-
-| Param | Type | Effect |
+| Callsign | Agent | Profile |
 |---|---|---|
-| `codesamples` | flag | Renders ASP.NET code project instructions (build commands, namespace conventions, `code_link` tag usage) |
-| `branch_name` | key=value | Adds Xperience source branch context — git diff commands against `master` for the specified branch |
-| `source_branch` | key=value | Overrides `main` as the base branch for `git checkout -b` and the PR target branch |
-| `scope` | key=value | Restricts file changes to the specified path; out-of-scope work goes to handoff as follow-up |
+| `@Ralph` | `ralph.ralph` | ralph-docs (DOC, DF) |
+| `@Malph` | `ralph.malph` | ralph-docs (DOC, DF) |
+| `@RalphDev` | `ralph.stacky` | ralph-docs (DOC, DF) |
+| `@RalphAutocomplete` | `ralph.ralph` | ralph-vscode (DOC) |
+| `@MalphAutocomplete` | `ralph.malph` | ralph-vscode (DOC) |
+
+Orchestrator-level params (`source_branch`, `branch`, `skip_hooks`) and the params each agent recognizes (`codesamples`, `xpversion`, `adminui`, `branch_name`, `release_notes`, `scope`, `skip_planner`, …) are listed in [docs/user-guide/trigger-parameters.md](../user-guide/trigger-parameters.md).
 
 Example: `@Ralph(codesamples, branch_name=feature/custom-modules, source_branch=release/30)`
-
-#### `@Malph` → `ralph.malph` (ralph-docs)
-
-| Param | Type | Effect |
-|---|---|---|
-| `codesamples` | flag | Adds code review checklist (code_link paths, explicit types, Generated/ protection, namespace patterns) |
-| `branch_name` | key=value | Instructs the investigator sub-agent to diff against the specified branch instead of `master` |
-| `scope` | key=value | Restricts review scope to the specified path; findings outside are out of bounds |
-
-Example: `@Malph(codesamples, branch_name=feature/custom-modules, scope=src/_documentation/developers)`
-
-#### `@OverRalph` → `ralph.overralph` (ralph-docs)
-
-No trigger params are currently recognized by this template.
-
-#### `@McpProbe` → `ralph.mcp-probe` (ralph-docs)
-
-No trigger params are currently recognized by this template.
-
-#### `@RalphAutocomplete` / `@MalphAutocomplete` (ralph-vscode)
-
-No trigger params are currently recognized by these templates.
 
 ### Adding New Parameters
 

@@ -50,7 +50,7 @@ The orchestrator sees **only** status.json at each step. All detail flows horizo
 Each task gets a shared artifact directory. Every subagent writes to its own subdirectory within it.
 
 ```
-{artifact-root}/{task-id}/
+.ralph/tasks/{task-id}/artifacts/      # {{ artifactDir }}
 ├── manifest.json              # append-only audit log
 ├── {agent-name}/
 │   ├── output.md              # primary artifact (or output-v1.md, output-v2.md for iterations)
@@ -58,9 +58,12 @@ Each task gets a shared artifact directory. Every subagent writes to its own sub
 │   └── ...                    # any additional files
 ```
 
-The artifact root varies by execution context:
-- **Container agents**: `.ralph/tasks/{task-id}/artifacts/` (inside the target repo, alongside `state.md`)
-- **Local/post-hook agents**: `{hook.outputDir}/artifacts/` (in the orchestrator's output directory)
+Templates get the artifact root as the `artifactDir` template variable, set in `buildTemplateContext()` (`src/container/setup/agent-includes.ts`). It is always the relative path `.ralph/tasks/{task-id}/artifacts`, for every stage type. The shared partial `agent-as-function-contract` tells subagents to write to `{{ artifactDir }}/{{ agentName }}/`.
+
+The relative path resolves against the CLI's working directory:
+
+- **Container stages**: the CLI runs in `/workspace` (the target repo checkout), so artifacts land in `<target-repo>/.ralph/tasks/{task-id}/artifacts/`, alongside `state.md`. The orchestrator exports this folder into the task's log directory after the run.
+- **Local stages and post-task hooks**: the CLI runs on the host with the orchestrator repo root as cwd, so artifacts land in `<orchestrator-repo>/.ralph/tasks/{task-id}/artifacts/`. The hook output directory (`hook.outputDir`, `<output.logDir>/<key>-<startTs>/hooks/<hook-name>`) is available to templates but is not used as the artifact root.
 
 ### status.json
 
@@ -79,16 +82,16 @@ Every subagent writes this before exiting. This is the **only** file the orchest
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `agent` | string | Subagent name |
-| `task_id` | string | Task identifier (e.g. JIRA key) |
-| `status` | enum | `completed` · `failed` · `blocked` — did the agent finish? |
-| `result` | string | Task-specific outcome. Agent-defined. Used by orchestrator for routing. |
-| `summary` | string | One-line description, max ~100 tokens. Enough for a routing decision. Not a report. |
-| `artifacts` | string[] | File paths relative to `{artifact-root}/{task-id}/` |
-| `next_hint` | string? | Suggested next subagent. Orchestrator can override. |
-| `iteration` | number | How many times this agent has run for this task. Orchestrator uses this to detect loops. |
+| Field       | Type     | Description                                                                              |
+| ----------- | -------- | ---------------------------------------------------------------------------------------- |
+| `agent`     | string   | Subagent name                                                                            |
+| `task_id`   | string   | Task identifier (e.g. JIRA key)                                                          |
+| `status`    | enum     | `completed` · `failed` · `blocked` — did the agent finish?                               |
+| `result`    | string   | Task-specific outcome. Agent-defined. Used by orchestrator for routing.                  |
+| `summary`   | string   | One-line description, max ~100 tokens. Enough for a routing decision. Not a report.      |
+| `artifacts` | string[] | File paths relative to the artifact root (`{{ artifactDir }}`)                                      |
+| `next_hint` | string?  | Suggested next subagent. Orchestrator can override.                                      |
+| `iteration` | number   | How many times this agent has run for this task. Orchestrator uses this to detect loops. |
 
 ### manifest.json
 
@@ -140,13 +143,14 @@ ralph-reviewer/
 The orchestrator is a **pure router** with administrative duties. It:
 
 1. **Dispatches** a subagent with a minimal task description and the task-id.
-2. **Reads** only `{artifact-root}/{task-id}/{agent-name}/status.json` after the subagent completes.
+2. **Reads** only `{{ artifactDir }}/{agent-name}/status.json` after the subagent completes.
 3. **Routes** based on `status`, `result`, `summary`, and `iteration`. Never based on artifact content.
 4. **Dispatches** the next subagent with nothing but the task-id and a one-line directive. The next subagent reads upstream artifacts on its own.
 5. **Enforces** iteration limits to prevent infinite loops (e.g. max 2 coder→reviewer rounds).
 6. **Does** administrative work itself: commit, push, PR creation, JIRA transitions/comments, handoff file, exit block.
 
 The orchestrator **never**:
+
 - Reads `output.md` or any artifact file.
 - Relays content from one subagent to another. Subagents read each other's artifacts directly.
 - Summarizes or interprets subagent output beyond what `status.json` provides.
@@ -160,7 +164,7 @@ Every subagent follows the same contract:
 1. **Read** the artifact contract (shared partial: `agent-as-function-contract`).
 2. **Read input** from upstream subagent artifacts on the filesystem (e.g. coder reads `ralph-analyst/output.md`).
 3. **Do** its work — reason, use tools, read/write code. Internal behavior is unchanged.
-4. **Write** its primary artifact to `{artifact-root}/{task-id}/{agent-name}/output.md` (or `output-v{N}.md` for iterations).
+4. **Write** its primary artifact to `{{ artifactDir }}/{agent-name}/output.md` (or `output-v{N}.md` for iterations).
 5. **Write** `status.json` to its artifact directory.
 6. **Append** to `manifest.json` in the task artifact root.
 7. **Return** to the orchestrator with only: `"Done. Status: {status}, result: {result}."`
@@ -171,49 +175,60 @@ The subagent's conversational return to the orchestrator is one line. The orches
 
 This is the key design principle: **subagents read each other's artifacts directly.** The orchestrator never relays data.
 
-| Consumer | Reads from | Why |
-|---|---|---|
-| coder (iteration 1) | `ralph-analyst/output.md` | Implementation plan |
+| Consumer             | Reads from                                                    | Why                               |
+| -------------------- | ------------------------------------------------------------- | --------------------------------- |
+| coder (iteration 1)  | `ralph-analyst/output.md`                                     | Implementation plan               |
 | coder (iteration 2+) | `ralph-analyst/output.md` + `ralph-reviewer/output-v{N-1}.md` | Original plan + reviewer feedback |
-| reviewer | `ralph-coder/output-v{N}.md` + actual changed files in repo | Change summary + real code |
-| agent-improver | `run-analyzer/output.md` (via `status.json` check first) | Execution analysis |
+| reviewer             | `ralph-coder/output-v{N}.md` + actual changed files in repo   | Change summary + real code        |
+| agent-improver       | `run-analyzer/<target-subagent>/output.md` (path given by the scientist)      | Execution analysis                |
 
 On **revisions** (fixing a previously-reviewed PR), the orchestrator dispatches the analyst with the revision context (task-id only). The analyst reads the PR feedback, prior handoff, and reviewer comments from the filesystem/MCP tools itself, then produces a fresh `output.md` scoped to "what needs fixing." The coder reads that artifact — same flow as a fresh task.
 
 ## Post-Hook Agents
 
-Post-hooks run locally on the host (not in Docker) and use the same artifact contract but write to a different root:
+Post-hooks (the `ralph.scientist` stage in the bundled profiles) run locally on the host (not in Docker) and use the same artifact contract and the same `artifactDir`. Because their cwd is the orchestrator repo root, the artifacts land there:
 
 ```
-{hook.outputDir}/artifacts/
+<orchestrator-repo>/.ralph/tasks/{task-id}/artifacts/
 ├── manifest.json
-├── run-analyzer/
-│   ├── output.md          # execution analysis report
-│   └── status.json        # result: issues-found | clean
-├── agent-improver/
-│   ├── output.md          # improvement summary
-│   └── status.json        # result: improved | no-action
+├── subagent-mapper/
+│   ├── output.md                  # subagent inventory
+│   └── subagents/<agent-name>.md  # per-subagent extraction
+├── run-analyzer/<target-subagent>/
+│   ├── output.md                  # execution analysis report
+│   └── status.json                # result: analyzed | skipped
+├── agent-improver/<target-subagent>/
+│   ├── output.md                  # improvement summary
+│   └── status.json                # result: improved | no-action
+└── run-synthesizer/
+    ├── output.md                  # cross-subagent synthesis
+    └── status.json
 ```
 
-`agent-improver` reads `run-analyzer/status.json` first — if `result: clean`, it writes a `no-action` status and exits early without reading the full analysis.
+The scientist dispatches `run-analyzer` and `agent-improver` once per subagent found by `subagent-mapper`. `agent-improver` reads the analysis report it is given; if the file is missing or the analyzer's result was `skipped`, it writes a `no-action` status and stops.
 
 ## Refactoring Existing Agents
 
 When converting an existing agent to this pattern:
 
 ### 1. Identify conversational output
+
 Look at the subagent's final turn — the message that flows back into the orchestrator's context. This content moves to `output.md`.
 
 ### 2. Redirect to filesystem
-Write the same content (identical structure, quality, depth) to `{artifact-root}/{task-id}/{agent-name}/output.md`. Change where it goes, not what it says.
+
+Write the same content (identical structure, quality, depth) to `{{ artifactDir }}/{agent-name}/output.md`. Change where it goes, not what it says.
 
 ### 3. Replace return with status.json
+
 Write `status.json`, append to `manifest.json`, then return one line: `"Done. Status: completed, result: analyzed."`
 
 ### 4. Update downstream consumers
+
 Any subagent that previously received this agent's output through the orchestrator now reads it from the filesystem directly. The orchestrator gives downstream agents nothing but the task-id and a one-line dispatch directive.
 
 ### 5. Don't change internals
+
 How the subagent reasons, what tools it uses, what skills it loads — leave all of that alone. Only the I/O boundary changes.
 
 ## Validation

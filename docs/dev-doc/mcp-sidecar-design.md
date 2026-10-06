@@ -1,6 +1,6 @@
 # MCP Sidecar Design — Agent Filesystem Isolation
 
-> **Status:** Implemented. Some sections below reflect the original design proposal. Key post-implementation changes: custom servers now use **stateless per-request** `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), sidecar PID limit raised to 300, Playwright uses the pre-installed `playwright-mcp` binary, and the sidecar connects to `ralph-sidecar-external` for **direct internet access** (does NOT route through Squid). See [001-ado-server-crash-session-loss.md](past-issues/001-ado-server-crash-session-loss.md) for details.
+> **Status:** Implemented. Some sections below reflect the original design proposal. Key post-implementation changes: custom servers now use **stateless per-request** `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), sidecar PID limit raised to 300, Playwright uses the pre-installed `playwright-mcp` binary, and the sidecar connects to `ralph-sidecar-external` for **direct internet access** (does NOT route through Squid). See [001-ado-server-crash-session-loss.md](../past-issues/001-ado-server-crash-session-loss.md) for details.
 
 ## Problem
 
@@ -181,7 +181,7 @@ The gateway:
       "port": 9100,
       "command": "node",
       "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js", "--transport", "http", "--port", "9100"],
-      "env": { "JIRA_PAT": "...", "JIRA_EMAIL": "..." }
+      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "..." }
     },
     {
       "name": "playwright",
@@ -198,7 +198,7 @@ The gateway:
 ### 3. Sidecar Dockerfile
 
 ```dockerfile
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 
 # Dedicated non-root user
 RUN groupadd -r mcp && useradd -r -g mcp -m -s /bin/false mcp
@@ -292,7 +292,7 @@ The generated `docker-compose.overlay.yml`:
 
 ```typescript
 // Before (stdio):
-{ "jira-kentico": { "command": "node", "args": [...], "env": { "JIRA_PAT": "..." } } }
+{ "jira-kentico": { "command": "node", "args": [...], "env": { "JIRA_PAT_KENTICO_JIRA": "..." } } }
 
 // After (Streamable HTTP):
 { "jira-kentico": { "type": "http", "url": "http://mcp-sidecar:9100/mcp" } }

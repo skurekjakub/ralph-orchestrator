@@ -39,8 +39,8 @@ Partials run in an **isolated scope** but receive all template variables as Liqu
 | Variable | Type | Example | Description |
 |---|---|---|---|
 | `profileId` | `string` | `"ralph-docs"` | Profile directory name |
-| `repo` | `string` | `"/workspace"` | Absolute path to target repo in container |
-| `targetRepoPath` | `string` | `"/workspace"` | Alias for `repo` (useful in `mode: "local"` stages where the path differs) |
+| `repo` | `string` | `"/home/user/repositories/kentico-docs-jekyll"` | Absolute path to the target repo on the host (`profile.json` `repo`, `~` expanded). Inside the container the repo is at `/workspace` |
+| `targetRepoPath` | `string` | `"/home/user/repositories/kentico-docs-jekyll"` | Alias for `repo` (useful in `mode: "local"` stages, which run in the orchestrator repo) |
 | `cli` | `string` | `"copilot"` | CLI type: `"copilot"` or `"claude"` |
 | `model` | `string` | `"claude-opus-4.6"` | Model override. Empty string = CLI default |
 | `agentName` | `string` | `"ralph.ralph"` | Raw CLI agent name |
@@ -73,6 +73,7 @@ Partials run in an **isolated scope** but receive all template variables as Liqu
 | `isRevision` | `boolean` | `false` | `true` when the issue status matches `revisionStatuses` in the variant config |
 | `prUrl` | `string` | `"https://dev.azure.com/.../pull/123"` | PR URL from a previous run (extracted from comments). Empty string if none |
 | `ralphchivesEnabled` | `boolean` | `true` | Whether Ralphchives knowledge base is enabled globally |
+| `artifactDir` | `string` | `".ralph/tasks/DOC-3143/artifacts"` | Relative subagent artifact root. Resolves under `/workspace` in container stages and under the orchestrator repo root in local and hook stages |
 
 ## Pipeline Stage Context
 
@@ -95,4 +96,4 @@ These variables are populated only for post-task hook stages. They are empty/def
 | `hook.taskOutputDir` | `string` | `/path/to/DOC-3143-1709000000/` | Absolute path to the task's log directory |
 | `hook.collectedLogs` | `Record<string, string>` | `{ audit: "/path/audit.jsonl" }` | Map of log file IDs to their absolute paths |
 | `hook.name` | `string` | `"run-analysis"` | Name of the current post-task hook |
-| `hook.outputDir` | `string` | `/path/to/DOC-3143-1709000000/run-analysis/` | Hook-specific output directory |
+| `hook.outputDir` | `string` | `/path/to/DOC-3143-1709000000/hooks/run-analysis` | Hook-specific output directory |

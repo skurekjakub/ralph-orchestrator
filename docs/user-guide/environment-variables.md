@@ -6,21 +6,25 @@ All secrets and credentials are stored in `.env` at the project root. Never comm
 
 At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set.
 
-| Variable | Description |
-|---|---|
-| `GH_TOKEN` | GitHub PAT with **Copilot Requests** permission. Required for `cli: "copilot"` profiles |
-| `ADO_PAT` | Azure DevOps PAT for the target ADO org (Code: Read+Write). Default credential for `vcsProvider: "ado"` profiles |
+| Variable   | Description                                                                                                      |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GH_TOKEN` | GitHub PAT with **Copilot Requests** permission. Required for `cli: "copilot"` profiles                          |
+| `ADO_PAT`  | Azure DevOps PAT for the target ADO org (Code: Read+Write). Default credential for `vcsProvider: "ado"` profiles |
 
 ## Optional
 
-| Variable | Description |
-|---|---|
-| `ANTHROPIC_API_KEY` | Anthropic API key. Required for `cli: "claude"` profiles |
-| `ADO_PAT_XPERIENCE` | ADO PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read). Agent skips related operations if unset |
-| `DASHBOARD_URL` | Ralph Status Dashboard URL. Required if `dashboard.enabled` is `true` |
-| `DASHBOARD_SECRET` | Shared secret for dashboard auth. Required alongside `DASHBOARD_URL` |
-| `DISCORD_BOT_TOKEN` | Discord bot token for the `discord-hitl` MCP server |
-| `DISCORD_CHANNEL_ID` | Discord channel ID for human-in-the-loop threads. Paired with `DISCORD_BOT_TOKEN` |
+| Variable               | Description                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`    | Anthropic API key. Required for `cli: "claude"` profiles                                                                                                    |
+| `ADO_PAT_XPERIENCE`    | ADO PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read). Agent skips related operations if unset                                        |
+| `DASHBOARD_URL`        | Ralph Status Dashboard URL. Required if `dashboard.enabled` is `true`                                                                                       |
+| `DASHBOARD_SECRET`     | Shared secret for dashboard auth. Required alongside `DASHBOARD_URL`                                                                                        |
+| `DISCORD_BOT_TOKEN`    | Discord bot token for the `discord-hitl` MCP server                                                                                                         |
+| `DISCORD_CHANNEL_ID`   | Discord channel ID for human-in-the-loop threads. Paired with `DISCORD_BOT_TOKEN`                                                                           |
+| `DISCORD_TASK_CONTEXT` | Label for Discord thread names (default `Agent`)                                                                                                            |
+| `NODEBB_API_URL`       | NodeBB API URL as seen from the MCP sidecar (e.g. `http://host.docker.internal:4567`). Required by the `ralphchives-read` / `ralphchives-write` MCP servers |
+
+MCP servers receive the variables named in their manifest's `requiredEnv` / `optionalEnv` from the orchestrator's environment, through `gateway.json` in the sidecar. The agent container never gets them.
 
 ## Per-Data-Source Variables
 
@@ -31,12 +35,12 @@ JIRA_PAT_<KEY>
 JIRA_EMAIL_<KEY>
 ```
 
-Where `<KEY>` is the data source key **uppercased with dashes replaced by underscores**.
+Where `<KEY>` is the data source key **uppercased with dashes replaced by underscores**. Startup fails if either variable is missing for a JIRA data source. The `jira-kentico` MCP server reads `JIRA_PAT_KENTICO_JIRA` / `JIRA_EMAIL_KENTICO_JIRA` by those exact names, whatever your data source key is.
 
-| Data Source Key | PAT Variable | Email Variable |
-|---|---|---|
-| `kentico-jira` | `JIRA_PAT_KENTICO_JIRA` | `JIRA_EMAIL_KENTICO_JIRA` |
-| `my-jira` | `JIRA_PAT_MY_JIRA` | `JIRA_EMAIL_MY_JIRA` |
+| Data Source Key | PAT Variable            | Email Variable            |
+| --------------- | ----------------------- | ------------------------- |
+| `kentico-jira`  | `JIRA_PAT_KENTICO_JIRA` | `JIRA_EMAIL_KENTICO_JIRA` |
+| `my-jira`       | `JIRA_PAT_MY_JIRA`      | `JIRA_EMAIL_MY_JIRA`      |
 
 ## Per-Variant Variables
 
@@ -48,9 +52,11 @@ MCP server configs using `$variantEnv.PREFIX` macros resolve to env vars named:
 
 All uppercase, dashes/dots/slashes converted to underscores.
 
-| Macro | Profile ID | Display Name | Resolved Env Var |
-|---|---|---|---|
-| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `ralph` | `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
-| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `malph` | `NODEBB_TOKEN_RALPH_DOCS_MALPH` |
+| Macro                      | Profile ID   | Display Name | Resolved Env Var                |
+| -------------------------- | ------------ | ------------ | ------------------------------- |
+| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `ralph`      | `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
+| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `malph`      | `NODEBB_TOKEN_RALPH_DOCS_MALPH` |
+
+A missing per-variant variable fails the task when its MCP config is resolved. Both bundled profiles resolve `$variantEnv.NODEBB_TOKEN` for every variant.
 
 See [Runtime Macros](runtime-macros.md) for full macro reference.

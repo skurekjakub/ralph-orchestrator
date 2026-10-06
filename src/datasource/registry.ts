@@ -11,7 +11,7 @@
  * 1. Create a factory module that calls {@link registerDataSourceFactory}
  * 2. Add the module path to `config.plugins` in `config.json`
  *    (built-ins are listed in `BUILTIN_PLUGINS` in `app-startup.ts`)
- * 3. See `docs/data-source-registration.md` for the full integration guide
+ * 3. See `docs/dev-doc/data-source-registration.md` for the full integration guide
  */
 
 import type { IAppConfig, IAgentProfile, IDataSourceConfig } from "../config/types.js";

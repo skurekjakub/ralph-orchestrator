@@ -20,7 +20,7 @@ profile.json → mcpServers: ["jira-kentico", "ado", "playwright"]
      container    container  merge       proxy
 ```
 
-Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. The config contains only HTTP URLs pointing to the sidecar — no secrets.
+Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar gateway does not filter tools: it exposes every tool a server registers, so the `tools` allowlist takes effect only if the CLI reading `mcp-config.json` applies it.
 
 ## Server Registry
 
@@ -45,17 +45,17 @@ shared/mcp-sidecar/
 
 ### Current Servers
 
-| Server | Type | Tools | Proxy Domains |
+| Server | Type | Port | Tools (manifest `tools`) |
 |---|---|---|---|
-| `ado` | custom | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment`, `ado_push_progress` | `.dev.azure.com`, `.visualstudio.com` |
-| `jira-kentico` | custom | `jira_add_comment`, `jira_add_attachment` | `.atlassian.com`, `.atlassian.net` |
-| `discord-hitl` | custom | `discord_ask` | `.discord.com`, `.discord.gg` |
-| `playwright` | npm | `browser_navigate`, `browser_navigate_back`, `browser_take_screenshot`, `browser_network_requests`, `browser_click`, `browser_fill_form`, `browser_evaluate`, `browser_press_key` | — |
-| `web-fetch` | custom | `web_fetch` | — |
-| `microsoft-docs` | custom | `microsoft_docs_search` | — |
-| `ralphchives-write` | custom | `post_task_report`, `post_observation` | — |
-| `ralphchives-read` | custom | `search_ralphchives`, `list_recent_topics`, `get_topic` | — |
-| `codegraphcontext` | npm | `add_code_to_graph`, `find_code`, `analyze_code_relationships`, `find_dead_code`, `find_most_complex_functions`, `execute_cypher_query`, and more | — |
+| `ado` | custom | 9101 | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment`, `ado_push_progress` |
+| `jira-kentico` | custom | 9100 | `jira_add_comment`, `jira_add_attachment` |
+| `discord-hitl` | custom | 9102 | `discord_ask` |
+| `playwright` | npm | 9103 | `browser_navigate`, `browser_navigate_back`, `browser_take_screenshot`, `browser_network_requests`, `browser_click`, `browser_fill_form`, `browser_evaluate`, `browser_press_key` |
+| `web-fetch` | custom | 9104 | `web_fetch` |
+| `microsoft-docs` | custom | 9105 | `microsoft_docs_search` |
+| `ralphchives-write` | custom | 9106 | `post_task_report`, `post_observation`, `reply_to_thread` |
+| `ralphchives-read` | custom | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics` |
+| `codegraphcontext` | npm | 9108 | `add_code_to_graph`, `find_code`, `analyze_code_relationships`, `find_dead_code`, `find_most_complex_functions`, `execute_cypher_query`, and more |
 
 ## Server Types
 
@@ -85,7 +85,9 @@ Locally built server with source in `src/`, bundled to `dist/`. The `containerPa
   "args": ["dist/bundle.js"],
   "containerPath": "/opt/mcp/servers/jira-kentico",
   "sidecarPort": 9100,
-  "requiredEnv": ["JIRA_PAT", "JIRA_EMAIL"]
+  "requiredEnv": ["JIRA_PAT_KENTICO_JIRA", "JIRA_EMAIL_KENTICO_JIRA"],
+  "tools": ["jira_add_comment", "jira_add_attachment"],
+  "requiredConfig": ["JIRA_ISSUE_KEY"]
 }
 ```
 
@@ -102,11 +104,9 @@ Custom servers support both stdio and HTTP transport modes. In sidecar mode, the
 | `args` | Command arguments | Yes |
 | `sidecarPort` | Fixed port the server listens on inside the MCP sidecar container (1–65535, must be unique) | Yes |
 | `containerPath` | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`) | Custom only |
-| `requiredEnv` | Env vars that must be present (embedded in gateway.json, not in the agent container) | No |
-| `optionalEnv` | Optional env vars the server supports | No |
-| `proxyDomains` | Domains the server needs egress access to | No |
-| `allowedUrlPaths` | Domain → allowed URL path prefixes for Copilot CLI URL restrictions | No |
-| `tools` | Tool names (documentation reference + tool filtering) | No |
+| `requiredEnv` | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container | No |
+| `optionalEnv` | Optional env vars the server supports (embedded in gateway.json when set) | No |
+| `tools` | Tool names. Written into the agent's `mcp-config.json` as the server's `tools` allowlist; the sidecar does not filter | No |
 | `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error. | No |
 | `initScript` | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No |
 
@@ -139,7 +139,8 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
 2. **Resolution** — Before each task, `JitMcpConfigWriter.write()` processes each env value:
    - Static values (no `$` prefix) pass through as-is
-   - `$`-prefixed macros are resolved from the current JIRA issue
+   - `$`-prefixed macros are resolved from the current JIRA issue, the trigger comment's parameters, or the orchestrator's environment (`$variantEnv.*`)
+   - An unknown `$` macro, or a `$variantEnv.*` variable missing from the environment, fails the task
 
 3. **Injection** — Resolved values merge into the server's `env` block in `gateway.json`. Existing env vars (secrets from `requiredEnv`) are preserved.
 
@@ -151,9 +152,10 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 |---|---|---|
 | `$task.id` | JIRA issue key | `DOC-3143` |
 | `$task.project` | Project key derived from issue key | `DOC` |
-| `$task.branch` | Branch name: `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
+| `$task.branch` | Resolved task branch: the branch from preflight/PR metadata, else the `branch` trigger parameter, else `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
 | `$task.title` | JIRA issue summary | `Update getting started guide` |
 | `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing) | `$trigger.branch` → `feature-xyz` |
+| `$variantEnv.<PREFIX>` | Value of the env var `<PREFIX>_<PROFILEID>_<DISPLAYNAME>` (uppercase; `-`, `.`, `/` → `_`) | `$variantEnv.NODEBB_TOKEN` → value of `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
 
 ### Manifest `requiredConfig`
 
@@ -210,29 +212,31 @@ At startup, `generatePreInitScript()` collects all init scripts from active serv
 ### Execution order
 
 ```
-template rendering → JIT MCP param injection → JIRA transition → container start → setup → hooks → execute
+template + skill rendering → overlay/mcp-config/gateway regeneration (variant scope) → JIT MCP param injection → JIRA transition → container start → setup → lifecycle hooks (repo sync) → execute
 ```
 
 The JIT write happens after templates are rendered but before the container starts, so the sidecar always sees the task-specific config.
 
 ## Startup Resolution
 
-At startup, `resolveAllProfileSetup()` processes each profile and generates six files in `profiles/<id>/.build/`:
+At startup, `resolveAllProfileSetup()` processes each profile, deletes and recreates `profiles/<id>/.build/`, and writes `mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `squid.conf`, `copilot-config.json`, `pre-init.sh` (only when a server declares `initScript`), a `.gitignore` and an `attachments/` exchange directory. Startup files cover the union of all variants' servers and skills; before each task `ComposeOverlayWriter` regenerates `mcp-config.json`, `gateway.json` and the overlay for the matched variant only.
 
 ### `mcp-config.json`
 
-MCP server configuration consumed by both CLIs. Maps server names to HTTP URLs on the sidecar — **no secrets included**:
+MCP server configuration mounted into the agent container. Maps server names to HTTP URLs on the sidecar, plus the manifest's `tools` allowlist — **no secrets included**:
 
 ```json
 {
   "mcpServers": {
     "jira-kentico": {
       "type": "http",
-      "url": "http://mcp-sidecar:9100/mcp"
+      "url": "http://mcp-sidecar:9100/mcp",
+      "tools": ["jira_add_comment", "jira_add_attachment"]
     },
     "ado": {
       "type": "http",
-      "url": "http://mcp-sidecar:9101/mcp"
+      "url": "http://mcp-sidecar:9101/mcp",
+      "tools": ["ado_create_pull_request", "ado_list_pull_requests", "..."]
     }
   }
 }
@@ -251,32 +255,31 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
       "port": 9100,
       "command": "node",
       "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js"],
-      "env": { "JIRA_PAT": "...", "JIRA_EMAIL": "...", "JIRA_ISSUE_KEY": "DOC-3143" }
+      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "...", "JIRA_ISSUE_KEY": "DOC-3143" }
     }
   ]
 }
 ```
 
 (The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.)
-```
 
 ### `docker-compose.overlay.yml`
 
 Compose overlay merged as the third file. Generates:
-- **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, etc.), URL-only `mcp-config.json` mount, copilot-config mount, resource mounts, `depends_on: mcp-sidecar`
-- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (4G memory, 1 CPU, 300 PIDs), mounts the target repo volume at `/workspace` for git-powered tools (`REPO_ROOT` env var)
+- **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`), read-only mounts for `mcp-config.json`, `copilot-config.json`, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
+- **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the target repo at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
 
-No MCP server code, secrets, or gateway config is mounted into the agent container.
+No MCP server code, secrets, or gateway config is mounted into the agent container. `GH_TOKEN` and `ANTHROPIC_API_KEY` are set in every agent container's environment; see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container).
 
 ### `squid.conf`
 
-Profile-specific squid proxy configuration. Copied from the shared baseline `shared/security/squid.conf` with infrastructure domains (AI/LLM backends, package registries).
+Profile-specific squid proxy configuration: the shared baseline `shared/security/squid.conf` (AI/LLM backends, host loopback ports) plus the profile's `allowlistDomains`.
 
-The MCP sidecar has **direct internet access** via the `ralph-sidecar-external` Docker network and bypasses Squid entirely. MCP server `proxyDomains` are no longer injected into the squid config — they exist in manifests for documentation purposes only.
+The MCP sidecar has **direct internet access** via the `ralph-sidecar-external` Docker network and bypasses Squid entirely. MCP servers need no Squid entries.
 
 ### `copilot-config.json`
 
-Copilot CLI config with `allowed_urls` derived from squid domains + path restrictions from MCP server manifests. For sensitive domains (JIRA, ADO), emits path-scoped patterns (e.g., `https://dev.azure.com/MyOrg/*`). For other domains, emits domain-level patterns. Mounted at `/workspace/.ralph/config.json`. See [SECURITY.md](SECURITY.md) for details.
+Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` (`.example.com` → `https://*.example.com`) plus `http://host.docker.internal:<port>/*` for each host loopback port. Domain-level only — no path restrictions. Mounted at `/workspace/.ralph/config.json`. See [SECURITY.md](SECURITY.md) for details.
 
 ## Network Flow
 
@@ -296,10 +299,10 @@ The agent container has no direct internet access and no MCP credentials. The ag
 2. For npm servers: set `type: "npm"`, `command`, `args` — no local code needed
 3. For custom servers: add `package.json`, `tsconfig.json`, `src/index.ts` with HTTP transport support (`--transport http --port PORT`), set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
 4. Add `"<name>"` to the profile or variant `mcpServers` arrays that should use this server
-5. List `requiredEnv` / `optionalEnv` in the manifest — they're embedded in `gateway.json` (sidecar-only)
-6. List `proxyDomains` in the manifest for documentation purposes (no longer injected into squid config — the sidecar has direct internet access)
+5. List `requiredEnv` / `optionalEnv` in the manifest and set them in `.env` — they're embedded in `gateway.json` (sidecar-only)
+6. List the server's tools in `tools` — this becomes the agent's tool allowlist for the server
 
-No manual squid.conf edits, compose file edits, or env var wiring needed. The orchestrator discovers manifests automatically and generates all configuration at startup.
+No squid.conf edits (the sidecar has direct internet access), compose file edits, or env var wiring needed. The orchestrator discovers manifests automatically and generates all configuration at startup.
 
 ### Custom Server HTTP Transport
 
