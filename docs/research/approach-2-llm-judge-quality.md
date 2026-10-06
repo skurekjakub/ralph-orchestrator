@@ -375,9 +375,9 @@ Source Material Fidelity failures happen when the agent documents an API from me
 
 ```markdown
 BEFORE writing any API documentation, complete this template for every public method:
-Method: **_
+Method: **\_
 Namespace: _** (verify against resources/repositories/xperience/CMSSolution/)
-Parameters: **_ (name, type, description)
+Parameters: **\_ (name, type, description)
 Return type: _**
 Exceptions: \_\_\_
 

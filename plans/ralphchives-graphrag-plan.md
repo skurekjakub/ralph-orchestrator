@@ -89,12 +89,13 @@ Ralphchives/
 Lives in `shared/mcp-servers/ralphchives/`. Runs in the existing Ralph MCP sidecar. TypeScript, same pattern as existing MCP servers.
 
 **Tools:**
-| Tool | Description |
-|---|---|
+
+| Tool                  | Description                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `post_session_result` | Create a topic in the agent's profile category with structured handoff + commentary. Called at end of session. |
-| `post_observation` | Create a standalone observation topic (agent noticed something worth recording but it's not a task result). |
-| `reply_to_thread` | Append a reply to an existing topic (agent found a prior thread useful and wants to add context). |
-| `search_ralphchives` | Lightweight fuzzy/keyword search directly against the NodeBB search API (no RAG, fast). |
+| `post_observation`    | Create a standalone observation topic (agent noticed something worth recording but it's not a task result).    |
+| `reply_to_thread`     | Append a reply to an existing topic (agent found a prior thread useful and wants to add context).              |
+| `search_ralphchives`  | Lightweight fuzzy/keyword search directly against the NodeBB search API (no RAG, fast).                        |
 
 **Manifest (`mcp-server.json`):**
 
@@ -142,19 +143,21 @@ Runs after sync. Processes posts that lack embeddings/entities. Same Node.js pro
 TypeScript MCP server exposing the GraphRAG retrieval engine. Lives in `shared/mcp-servers/archives/`. Runs in the existing Ralph MCP sidecar — same pattern as every other MCP server in the codebase. Queries Neo4j via `neo4j-driver`, generates query embeddings via `ollama`.
 
 **Single primary tool with depth parameter:**
-| Depth | What it does |
-|---|---|
-| `quick` | Vector similarity search only. Returns top 3 posts with metadata. |
+
+| Depth      | What it does                                                          |
+| ---------- | --------------------------------------------------------------------- |
+| `quick`    | Vector similarity search only. Returns top 3 posts with metadata.     |
 | `thorough` | Vector + full thread context + mentioned entities + related entities. |
 
 (`deep` depth with community summaries deferred — see "Deferred: Community Detection" below.)
 
 **Additional tools:**
-| Tool | Description |
-|---|---|
-| `get_thread` | Retrieve a full topic with all replies |
+
+| Tool                  | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `get_thread`          | Retrieve a full topic with all replies               |
 | `find_related_topics` | Given a topic ID, find related via graph connections |
-| `entity_lookup` | Look up an entity and find all posts mentioning it |
+| `entity_lookup`       | Look up an entity and find all posts mentioning it   |
 
 **Manifest (`mcp-server.json`):**
 

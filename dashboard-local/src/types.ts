@@ -31,9 +31,7 @@ export interface CompletedTask {
 }
 
 export type DashboardMessage =
-  | { type: "state"; data: OrchestratorState }
-  | { type: "log"; data: LogEntry }
-  | { type: "toolOutput"; data: string };
+  { type: "state"; data: OrchestratorState } | { type: "log"; data: LogEntry } | { type: "toolOutput"; data: string };
 
 /** A group of log files belonging to a single task execution. */
 export interface TaskLogGroup {

@@ -21,9 +21,7 @@ Both APIs return JSON with a standard envelope:
 ```json
 {
   "status": { "code": "ok", "message": "OK" },
-  "response": {
-    /* payload */
-  }
+  "response": {/* payload */}
 }
 ```
 
