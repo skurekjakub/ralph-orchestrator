@@ -1,0 +1,68 @@
+{
+  "sessionStart": {
+    "timestamp": 1791321200000,
+    "cwd": "/workspace",
+    "source": "new",
+    "initialPrompt": "Process DOC-3141"
+  },
+  "userPromptSubmitted": {
+    "timestamp": 1791321200500,
+    "cwd": "/workspace",
+    "prompt": "Process DOC-3141"
+  },
+  "preToolUseSkill": {
+    "timestamp": 1791321201000,
+    "cwd": "/workspace",
+    "toolName": "skill",
+    "toolArgs": "{\"skill\":\"malph-vscode-workflow-setup\"}"
+  },
+  "preToolUseTask": {
+    "timestamp": 1791321202000,
+    "cwd": "/workspace",
+    "toolName": "task",
+    "toolArgs": "{\n  \"agent_type\": \"ralph.malph-scout\",\n  \"prompt\": \"Scout the repo\"\n}"
+  },
+  "preToolUseBash": {
+    "timestamp": 1791321203000,
+    "cwd": "/workspace",
+    "toolName": "bash",
+    "toolArgs": "{\"command\":\"echo ralph-bash-ok\",\"description\":\"Echo ralph-bash-ok\"}"
+  },
+  "preToolUseMcp": {
+    "timestamp": 1791321204000,
+    "cwd": "/workspace",
+    "toolName": "ado-ado_push_progress",
+    "toolArgs": "{\"message\":\"Phase 1 done\"}"
+  },
+  "postToolUseBash": {
+    "timestamp": 1791321203400,
+    "cwd": "/workspace",
+    "toolName": "bash",
+    "toolArgs": "{\"command\":\"echo ralph-bash-ok\",\"description\":\"Echo ralph-bash-ok\"}",
+    "toolResult": { "resultType": "success", "textResultForLlm": "ralph-bash-ok" }
+  },
+  "postToolUseFailure": {
+    "timestamp": 1791321205000,
+    "cwd": "/workspace",
+    "toolName": "task",
+    "toolArgs": "{\"agent_type\":\"ralph.leaf\",\"prompt\":\"Compute 2+2\"}",
+    "toolResult": {
+      "resultType": "failure",
+      "textResultForLlm": "Agent type 'leaf' not found. Available agents: helper"
+    }
+  },
+  "errorOccurred": {
+    "timestamp": 1791321206000,
+    "cwd": "/workspace",
+    "error": {
+      "name": "RateLimitError",
+      "message": "429 Too Many Requests",
+      "stack": "RateLimitError: 429 Too Many Requests\n    at request (copilot.js:1:1)"
+    }
+  },
+  "sessionEnd": {
+    "timestamp": 1791321207000,
+    "cwd": "/workspace",
+    "reason": "complete"
+  }
+}

@@ -1,0 +1,233 @@
+{
+  "sessionStart": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "hook_event_name": "SessionStart",
+    "source": "startup"
+  },
+  "userPromptSubmit": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "permission_mode": "auto",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "say hi\n"
+  },
+  "stopFailure": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "effort": { "level": "medium" },
+    "hook_event_name": "StopFailure",
+    "error": "authentication_failed",
+    "last_assistant_message": "Not logged in · Please run /login"
+  },
+  "sessionEnd": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "hook_event_name": "SessionEnd",
+    "reason": "other"
+  },
+  "preToolUseSkill": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "50efa625-1286-483a-8174-a3943d771a86",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Skill",
+    "tool_input": { "skill": "ralph-echo" },
+    "tool_use_id": "toolu_016A41Nzyo3NaJaPDnvC5iNS"
+  },
+  "preToolUseMcp": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "50efa625-1286-483a-8174-a3943d771a86",
+    "permission_mode": "bypassPermissions",
+    "agent_id": "a2d04af995c61fd80",
+    "agent_type": "ralph-writer",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "mcp__ado__ado_push_progress",
+    "tool_input": { "message": "Phase 1 done" },
+    "tool_use_id": "toolu_01Ry2We8EPMkY36rAhnyS4zG"
+  },
+  "postToolUseBash": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "50efa625-1286-483a-8174-a3943d771a86",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": { "command": "echo ralph-bash-ok", "description": "Echo ralph-bash-ok" },
+    "tool_response": {
+      "stdout": "ralph-bash-ok",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "toolu_011Jt92sqkxnLQ29kBeyVTH8",
+    "duration_ms": 412
+  },
+  "postToolUseAgent": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "50efa625-1286-483a-8174-a3943d771a86",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Agent",
+    "tool_input": {
+      "description": "Compute 2+2",
+      "prompt": "Please compute 2+2 and provide the answer.",
+      "subagent_type": "helper"
+    },
+    "tool_response": {
+      "status": "completed",
+      "prompt": "Please compute 2+2 and provide the answer.",
+      "agentId": "a2d04af995c61fd80",
+      "agentType": "helper",
+      "content": [{ "type": "text", "text": "4" }],
+      "resolvedModel": "claude-haiku-4-5-20251001",
+      "totalDurationMs": 3067,
+      "totalTokens": 5020,
+      "totalToolUseCount": 1,
+      "usage": {
+        "input_tokens": 8,
+        "cache_creation_input_tokens": 233,
+        "cache_read_input_tokens": 4730,
+        "output_tokens": 49
+      },
+      "toolStats": { "readCount": 0, "searchCount": 0, "bashCount": 1, "editFileCount": 0, "otherToolCount": 0 }
+    },
+    "tool_use_id": "toolu_01VWZ7MSXHJMPQy7BhSXnU3p",
+    "duration_ms": 3120
+  },
+  "postToolUseMcp": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "agent_id": "a2d04af995c61fd80",
+    "agent_type": "ralph-writer",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "mcp__ado__ado_push_progress",
+    "tool_input": { "message": "Phase 1 done" },
+    "tool_response": [{ "type": "text", "text": "Pushed 2 files to ralph/DOC-3141" }],
+    "tool_use_id": "toolu_01Ry2We8EPMkY36rAhnyS4zG",
+    "duration_ms": 1830
+  },
+  "postToolUseRead": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Read",
+    "tool_input": { "file_path": "/workspace/README.md" },
+    "tool_response": {
+      "type": "text",
+      "file": {
+        "filePath": "/workspace/README.md",
+        "content": "# Docs\n",
+        "numLines": 1,
+        "startLine": 1,
+        "totalLines": 1
+      }
+    },
+    "tool_use_id": "toolu_01BsNY1NbFhZuZwqWYqrZm6m",
+    "duration_ms": 9
+  },
+  "postToolUseEdit": {
+    "session_id": "2b878e7c-3934-41bc-898e-b9af5ab6a4bc",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/2b878e7c-3934-41bc-898e-b9af5ab6a4bc.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Edit",
+    "tool_input": { "file_path": "/workspace/README.md", "old_string": "# Docs", "new_string": "# Product docs" },
+    "tool_response": {
+      "filePath": "/workspace/README.md",
+      "oldString": "# Docs",
+      "newString": "# Product docs",
+      "originalFile": "# Docs\nEntire original file body\n",
+      "structuredPatch": [
+        { "oldStart": 1, "oldLines": 1, "newStart": 1, "newLines": 1, "lines": ["-# Docs", "+# Product docs"] }
+      ],
+      "userModified": false,
+      "replaceAll": false
+    },
+    "tool_use_id": "toolu_01Gtma6rLj6VWvNasTxXNv95",
+    "duration_ms": 14
+  },
+  "postToolUseFailure": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "agent_id": "a2d45f3a31ba3dd20",
+    "agent_type": "helper",
+    "hook_event_name": "PostToolUseFailure",
+    "tool_name": "Agent",
+    "tool_input": {
+      "description": "Compute 2+2",
+      "prompt": "Compute 2+2 and reply with just the number result.",
+      "subagent_type": "leaf"
+    },
+    "tool_use_id": "toolu_01Ph8GNJsdfKmMsATViHDtVi",
+    "error": "Agent type 'leaf' not found. Available agents: helper",
+    "is_interrupt": false
+  },
+  "subagentStart": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "hook_event_name": "SubagentStart",
+    "agent_id": "a2d45f3a31ba3dd20",
+    "agent_type": "helper"
+  },
+  "subagentStop": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "SubagentStop",
+    "stop_hook_active": false,
+    "agent_id": "a2d45f3a31ba3dd20",
+    "agent_type": "helper",
+    "agent_transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e/subagents/agent-a2d45f3a31ba3dd20.jsonl",
+    "last_assistant_message": "4"
+  },
+  "preCompact": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "agent_type": "orch",
+    "hook_event_name": "PreCompact",
+    "trigger": "auto",
+    "custom_instructions": null
+  },
+  "stop": {
+    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
+    "cwd": "/workspace",
+    "permission_mode": "bypassPermissions",
+    "agent_type": "orch",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false,
+    "last_assistant_message": "DONE 4 lint: SKIPPED\nRALPH_END",
+    "background_tasks": []
+  }
+}

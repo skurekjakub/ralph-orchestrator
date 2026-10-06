@@ -1,19 +1,7 @@
 #!/bin/bash
-# Ralph audit logger — User Prompt Submitted
-set -e
-INPUT=$(cat)
-
-LOG_DIR="/workspace/.ralph/logs"
-SESSION_ID=$(cat "$LOG_DIR/.current-session-id" 2>/dev/null || echo "unknown")
-
-TIMESTAMP=$(echo "$INPUT" | jq -r '.timestamp')
-PROMPT=$(echo "$INPUT" | jq -r '.prompt // ""')
-
-# Prompt can be very large — pass INPUT directly to jq to avoid shell variable limits.
-jq -n -c \
-  --arg event "prompt" \
-  --arg ts "$TIMESTAMP" \
-  --arg session "$SESSION_ID" \
-  --arg prompt "$PROMPT" \
-  '{event: $event, timestamp: ($ts | tonumber), session: $session, prompt: $prompt}' \
-  >> "$LOG_DIR/audit.jsonl"
+# Ralph audit hook: prompt submitted (Copilot userPromptSubmitted, Claude Code UserPromptSubmit).
+# Usage: log-prompt.sh [--cli copilot|claude] < payload
+set -Eeuo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh" || exit 0
+ralph_hook_init prompt "$@"
+ralph_log_event
