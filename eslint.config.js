@@ -29,6 +29,7 @@ export default [
       "shared/",
       "profiles/",
       "containment/",
+      ".claude/worktrees/",
     ],
   },
 

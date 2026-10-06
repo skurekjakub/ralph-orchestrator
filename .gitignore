@@ -42,6 +42,9 @@ todo.md
 # Personal Claude Code settings (shared settings live in .claude/settings.json)
 .claude/settings.local.json
 
+# Agent worktrees: full checkouts that search, prettier and the main checkout's git must not see
+.claude/worktrees/
+
 # Stray vendored CLI tarballs
 *.tgz
 
