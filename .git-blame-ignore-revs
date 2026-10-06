@@ -1,3 +1,6 @@
 # Formatting-only commits. Use: git config blame.ignoreRevsFile .git-blame-ignore-revs
 # Prettier + ESLint --fix pass over the whole repo
 74d6894802cb1fb531bd8f04222604ea016d54f7
+
+# Prettier 3.9 reformat
+a98574496ac902e814ef6c04dcaa9072a21d8ce5
