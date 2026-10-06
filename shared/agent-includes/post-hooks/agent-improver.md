@@ -36,8 +36,8 @@ You may modify files in these directories:
 | `shared/agent-includes/` | Shared Liquid partials |
 | `shared/skills/` | Agent skill definitions — use the **skill-creator** skill if improving or creating new skills. |
 | `shared/mcp-servers/` | MCP server manifests and custom server code — use the **mcp-builder** skill if making changes to or adding new MCP servers. |
-| `.github/instructions/` | Codebase instruction files |
-| `.github/skills/` | Copilot workspace skills |
+| `.claude/rules/` | Codebase instruction files (path-scoped rules) |
+| `.claude/skills/` | Workspace skills |
 
 ### Subagent-Level Improvements
 
