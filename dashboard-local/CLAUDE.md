@@ -1,0 +1,3 @@
+# dashboard-local
+
+@AGENTS.md

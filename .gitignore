@@ -6,7 +6,6 @@ output/
 # Build artifacts (generated from templates at startup)
 profiles/**/.build/
 shared/skills/.build/
-.builder/
 
 # MCP server build artifacts (custom servers are built before container deployment)
 shared/mcp-servers/*/dist/
@@ -28,3 +27,20 @@ Thumbs.db
 config.json
 
 todo.md
+
+# Runtime output written into the repo root by host-side (local) stages and post-task hooks
+/.ralph/
+/logs/
+
+# Rendered runtime agents symlinked here by local stages (LocalCopilotExecutor)
+/.github/agents/
+
+# Agent scratch state
+/.agents/
+/.sisyphus/
+
+# Personal Claude Code settings (shared settings live in .claude/settings.json)
+.claude/settings.local.json
+
+# Stray vendored CLI tarballs
+*.tgz

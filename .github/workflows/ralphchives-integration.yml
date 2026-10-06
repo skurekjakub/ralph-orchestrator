@@ -1,0 +1,53 @@
+name: Ralphchives Integration Tests
+
+# Manual: spins up an ephemeral NodeBB + MongoDB stack, so it is too slow and too
+# runner-dependent to gate every PR.
+on:
+  workflow_dispatch:
+
+jobs:
+  ralphchives-integration:
+    name: Ralphchives Integration Tests
+    runs-on: satriel-ralph
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      # The runner must already provide Docker + the compose plugin; CI never mutates the host.
+      - name: Require Docker
+        run: |
+          docker info >/dev/null 2>&1 || { echo "::error::Docker daemon not reachable on this runner"; exit 1; }
+          docker compose version
+
+      - name: Start NodeBB + MongoDB
+        id: start-nodebb
+        run: docker compose -f ralphchives/docker-compose.ci.yml up -d --wait --wait-timeout 300
+
+      - name: Seed test data
+        run: |
+          node ralphchives/scripts/seed-test-data.mjs > "$RUNNER_TEMP/seed-env.txt"
+          cat "$RUNNER_TEMP/seed-env.txt" >> "$GITHUB_ENV"
+
+      - name: Install ralphchives-read dependencies
+        run: npm ci
+        working-directory: shared/mcp-servers/ralphchives-read
+
+      - name: Run ralphchives-read integration tests
+        run: npx vitest run tests/search-integration.test.ts
+        working-directory: shared/mcp-servers/ralphchives-read
+
+      - name: Install ralphchives-write dependencies
+        run: npm ci
+        working-directory: shared/mcp-servers/ralphchives-write
+
+      - name: Run ralphchives-write integration tests
+        run: npx vitest run tests/write-integration.test.ts
+        working-directory: shared/mcp-servers/ralphchives-write
+
+      - name: Teardown NodeBB
+        if: always() && steps.start-nodebb.outcome != 'skipped'
+        run: docker compose -f ralphchives/docker-compose.ci.yml down --volumes --remove-orphans
