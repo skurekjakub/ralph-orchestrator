@@ -7,7 +7,7 @@ export async function validateDocker({ errors }: ValidationCollector): Promise<v
   } catch {
     errors.push(
       "Docker is not running or not accessible\n" +
-      "  Start Docker Desktop or the Docker daemon before running the orchestrator"
+        "  Start Docker Desktop or the Docker daemon before running the orchestrator",
     );
   }
 }

@@ -2,8 +2,7 @@ import { useZoom } from "../useZoom";
 import { Button, ButtonVariant, ButtonSize } from "./Button";
 
 export function ZoomControls() {
-  const { zoomPercent, zoomIn, zoomOut, resetZoom, canZoomIn, canZoomOut } =
-    useZoom();
+  const { zoomPercent, zoomIn, zoomOut, resetZoom, canZoomIn, canZoomOut } = useZoom();
 
   return (
     <div className="flex items-center gap-0.5">

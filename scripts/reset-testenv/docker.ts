@@ -2,10 +2,9 @@ import { execSync } from "node:child_process";
 
 export function cleanContainers() {
   try {
-    const containers = execSync(
-      'docker ps -aq --filter "label=com.docker.compose.project=ralph-sandbox"',
-      { encoding: "utf-8" },
-    ).trim();
+    const containers = execSync('docker ps -aq --filter "label=com.docker.compose.project=ralph-sandbox"', {
+      encoding: "utf-8",
+    }).trim();
 
     if (containers) {
       const ids = containers.split("\n").filter(Boolean);

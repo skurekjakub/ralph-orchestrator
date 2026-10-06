@@ -42,9 +42,7 @@ export const tool: ToolDefinition = {
     const page = Number(args.page ?? 1);
 
     try {
-      const data = await nodebbGet<CategoryResponse>(
-        `/api/category/${cid}?page=${page}`,
-      );
+      const data = await nodebbGet<CategoryResponse>(`/api/category/${cid}?page=${page}`);
 
       const topics = (data.topics ?? []).map((t) => ({
         topicId: t.tid,
@@ -59,15 +57,17 @@ export const tool: ToolDefinition = {
       }));
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            category: data.name,
-            totalTopics: data.topic_count,
-            page,
-            topics,
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              category: data.name,
+              totalTopics: data.topic_count,
+              page,
+              topics,
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

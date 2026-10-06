@@ -41,6 +41,7 @@ Each concurrent operation needs its own container instance. Currently, a profile
 ### Resource Contention
 
 Multiple containers running simultaneously compete for:
+
 - **CPU/Memory**: The security overlay sets resource limits per container (4 CPU, 8G RAM). N containers = N × resources. The host machine must be sized accordingly.
 - **Docker network**: Each compose project creates its own network. Docker has limits on bridge networks (~30 by default).
 - **Squid proxy**: Currently one proxy sidecar per profile. With parallel execution, either each operation gets its own proxy or operations from the same profile share one (but then proxy logs can't be attributed to a specific operation).
@@ -49,6 +50,7 @@ Multiple containers running simultaneously compete for:
 ### Ledger Concurrency
 
 The operation ledger uses file-based JSON storage. Concurrent reads/writes from multiple async operations could corrupt state. The ledger needs either:
+
 - In-memory operation with periodic flush (simpler, risk of loss on crash)
 - File-level locking via `proper-lockfile` or similar
 - Transition to SQLite for atomic operations

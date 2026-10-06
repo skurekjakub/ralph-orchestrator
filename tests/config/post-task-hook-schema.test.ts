@@ -4,9 +4,7 @@ import { postTaskHookSchema, variantSchema } from "../../src/config/schemas.js";
 describe("postTaskHookSchema", () => {
   const validHook = {
     name: "run-analysis",
-    stages: [
-      { agent: "ralph.run-analyzer", role: "analyzer", mode: "local" as const },
-    ],
+    stages: [{ agent: "ralph.run-analyzer", role: "analyzer", mode: "local" as const }],
   };
 
   it("accepts a valid hook with local-only stages", () => {

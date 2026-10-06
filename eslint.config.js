@@ -18,7 +18,19 @@ const sharedRules = {
 };
 
 export default [
-  { ignores: ["dist/", "output/", "node_modules/", "ralph-dashboard/", "dashboard-local/", "scripts/", "shared/", "profiles/", "containment/"] },
+  {
+    ignores: [
+      "**/dist/",
+      "output/",
+      "**/node_modules/",
+      "ralph-dashboard/",
+      "dashboard-local/",
+      "scripts/",
+      "shared/",
+      "profiles/",
+      "containment/",
+    ],
+  },
 
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

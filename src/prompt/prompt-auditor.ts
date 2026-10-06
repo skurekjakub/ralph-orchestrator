@@ -85,24 +85,28 @@ const INJECTION_PATTERNS: PatternRule[] = [
   {
     name: "instruction-override",
     severity: AuditSeverity.Critical,
-    pattern: /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(previous|prior|above|all|system|original)\b.{0,20}\b(instructions?|prompts?|rules?|guidelines?|constraints?)\b/i,
+    pattern:
+      /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(previous|prior|above|all|system|original)\b.{0,20}\b(instructions?|prompts?|rules?|guidelines?|constraints?)\b/i,
   },
   {
     name: "new-instructions",
     severity: AuditSeverity.Critical,
-    pattern: /\b(new|updated|revised|real|actual|true)\s+(instructions?|directives?|system\s*prompt|guidelines?)\s*[:=]/i,
+    pattern:
+      /\b(new|updated|revised|real|actual|true)\s+(instructions?|directives?|system\s*prompt|guidelines?)\s*[:=]/i,
   },
 
   // ── Role hijacking ──
   {
     name: "role-hijack",
     severity: AuditSeverity.Warning,
-    pattern: /\b(you\s+are\s+now|from\s+now\s+on\s+you\s+are|pretend\s+(you\s+are|to\s+be)|act\s+as\s+(if\s+you\s+are|a|an)|your\s+new\s+(role|persona|identity)\s+is)\b/i,
+    pattern:
+      /\b(you\s+are\s+now|from\s+now\s+on\s+you\s+are|pretend\s+(you\s+are|to\s+be)|act\s+as\s+(if\s+you\s+are|a|an)|your\s+new\s+(role|persona|identity)\s+is)\b/i,
   },
   {
     name: "roleplay-exploit",
     severity: AuditSeverity.Warning,
-    pattern: /\b(do\s+not\s+break\s+character|stay\s+in\s+character|you\s+must\s+always\s+respond\s+as|answer\s+only\s+as)\b/i,
+    pattern:
+      /\b(do\s+not\s+break\s+character|stay\s+in\s+character|you\s+must\s+always\s+respond\s+as|answer\s+only\s+as)\b/i,
   },
 
   // ── Model-specific prompt format tokens ──
@@ -116,7 +120,8 @@ const INJECTION_PATTERNS: PatternRule[] = [
   {
     name: "context-hijack",
     severity: AuditSeverity.Critical,
-    pattern: /\b(forget\s+everything|clear\s+(your\s+)?(memory|context|history)|start\s+fresh|reset\s+(your\s+)?(context|instructions|memory))\b/i,
+    pattern:
+      /\b(forget\s+everything|clear\s+(your\s+)?(memory|context|history)|start\s+fresh|reset\s+(your\s+)?(context|instructions|memory))\b/i,
   },
 
   // ── Data exfiltration indicators ──
@@ -128,7 +133,8 @@ const INJECTION_PATTERNS: PatternRule[] = [
   {
     name: "suspicious-url-in-data",
     severity: AuditSeverity.Warning,
-    pattern: /https?:\/\/(?!api\.atlassian\.com|dev\.azure\.com|github\.com|registry\.npmjs\.org|rubygems\.org)[^\s"')\]]{10,}/i,
+    pattern:
+      /https?:\/\/(?!api\.atlassian\.com|dev\.azure\.com|github\.com|registry\.npmjs\.org|rubygems\.org)[^\s"')\]]{10,}/i,
   },
 
   // ── Encoding/obfuscation ──
@@ -140,14 +146,16 @@ const INJECTION_PATTERNS: PatternRule[] = [
   {
     name: "unicode-control-chars",
     severity: AuditSeverity.Warning,
-    pattern: /[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u202A\u202B\u202C\u202D\u202E]{3,}/,
+    pattern:
+      /[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u202A\u202B\u202C\u202D\u202E]{3,}/,
   },
 
   // ── Output/behavior manipulation ──
   {
     name: "output-manipulation",
     severity: AuditSeverity.Warning,
-    pattern: /\b(do\s+not\s+(mention|reveal|disclose|show)|never\s+(mention|reveal|tell|show)|hide\s+this\s+(from|in))\b/i,
+    pattern:
+      /\b(do\s+not\s+(mention|reveal|disclose|show)|never\s+(mention|reveal|tell|show)|hide\s+this\s+(from|in))\b/i,
   },
 
   // ── Delimiter escape attempts ──
@@ -161,7 +169,8 @@ const INJECTION_PATTERNS: PatternRule[] = [
   {
     name: "credential-probe",
     severity: AuditSeverity.Critical,
-    pattern: /\b(print|echo|output|show|reveal|dump|cat|read)\b.{0,20}\b(env|\.env|password|secret|token|api[_\s]?key|credentials?|private[_\s]?key)\b/i,
+    pattern:
+      /\b(print|echo|output|show|reveal|dump|cat|read)\b.{0,20}\b(env|\.env|password|secret|token|api[_\s]?key|credentials?|private[_\s]?key)\b/i,
   },
 
   // ── Git remote manipulation ──
@@ -193,9 +202,7 @@ export function auditPromptSections(sections: PromptSection[]): AuditResult {
     for (const rule of INJECTION_PATTERNS) {
       const match = rule.pattern.exec(section.content);
       if (match) {
-        const truncated = match[0].length > 120
-          ? match[0].slice(0, 120) + "…"
-          : match[0];
+        const truncated = match[0].length > 120 ? match[0].slice(0, 120) + "…" : match[0];
 
         findings.push({
           severity: rule.severity,
@@ -234,8 +241,6 @@ export function auditPrompt(prompt: string): AuditResult {
 export function formatAuditFindings(findings: AuditFinding[]): string {
   if (findings.length === 0) return "No suspicious patterns detected.";
 
-  const lines = findings.map((f) =>
-    `  [${f.severity.toUpperCase()}] ${f.pattern} in "${f.section}": "${f.match}"`,
-  );
+  const lines = findings.map((f) => `  [${f.severity.toUpperCase()}] ${f.pattern} in "${f.section}": "${f.match}"`);
   return `Prompt audit found ${findings.length} finding(s):\n${lines.join("\n")}`;
 }

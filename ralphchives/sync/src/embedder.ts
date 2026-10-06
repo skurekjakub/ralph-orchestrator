@@ -64,9 +64,7 @@ export class Embedder {
     }
   }
 
-  private async writeEmbeddings(
-    updates: Array<{ pid: number; embedding: number[] }>,
-  ): Promise<void> {
+  private async writeEmbeddings(updates: Array<{ pid: number; embedding: number[] }>): Promise<void> {
     const session = this.driver.session();
     try {
       await session.run(

@@ -36,7 +36,7 @@ export class DiscordClient {
 
   private headers(): Record<string, string> {
     return {
-      "Authorization": `Bot ${this.token}`,
+      Authorization: `Bot ${this.token}`,
       "Content-Type": "application/json",
     };
   }
@@ -66,28 +66,22 @@ export class DiscordClient {
 
   /** Create a thread in the configured channel. */
   async createThread(name: string): Promise<DiscordThread> {
-    return this.request<DiscordThread>(
-      `/channels/${this.channelId}/threads`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name: name.slice(0, 100),
-          type: 11, // PUBLIC_THREAD
-          auto_archive_duration: 1440, // 24h
-        }),
-      },
-    );
+    return this.request<DiscordThread>(`/channels/${this.channelId}/threads`, {
+      method: "POST",
+      body: JSON.stringify({
+        name: name.slice(0, 100),
+        type: 11, // PUBLIC_THREAD
+        auto_archive_duration: 1440, // 24h
+      }),
+    });
   }
 
   /** Post a message to a channel or thread. */
   async postMessage(channelId: string, content: string): Promise<DiscordMessage> {
-    return this.request<DiscordMessage>(
-      `/channels/${channelId}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify({ content: content.slice(0, 2000) }),
-      },
-    );
+    return this.request<DiscordMessage>(`/channels/${channelId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: content.slice(0, 2000) }),
+    });
   }
 
   /**

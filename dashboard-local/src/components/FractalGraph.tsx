@@ -208,9 +208,7 @@ function layoutPipeline(data: FractalGraphData): LayoutResult {
         type: "smoothstep",
         animated: true,
         style: { stroke: "#a78bfa", strokeWidth: 2 },
-        label: data.pipeline[i - 1].resultValues.length > 0
-          ? data.pipeline[i - 1].resultValues[0]
-          : undefined,
+        label: data.pipeline[i - 1].resultValues.length > 0 ? data.pipeline[i - 1].resultValues[0] : undefined,
         labelStyle: { fill: "#c4b5fd", fontSize: 9, fontWeight: 500 },
         labelBgStyle: { fill: "#161b22", fillOpacity: 0.95 },
         labelBgPadding: [4, 2] as [number, number],
@@ -241,9 +239,8 @@ export function FractalGraph() {
 
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!graph) return { initialNodes: [] as Node[], initialEdges: [] as Edge[] };
-    const { flowNodes, flowEdges } = viewMode === "dataflow"
-      ? layoutDataflow(graph, edgeFilters)
-      : layoutPipeline(graph);
+    const { flowNodes, flowEdges } =
+      viewMode === "dataflow" ? layoutDataflow(graph, edgeFilters) : layoutPipeline(graph);
     return { initialNodes: flowNodes, initialEdges: flowEdges };
   }, [graph, edgeFilters, viewMode]);
 
@@ -255,10 +252,7 @@ export function FractalGraph() {
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-  const onSelectFamily = useCallback(
-    (f: typeof families[number]) => selectFamily(f),
-    [selectFamily],
-  );
+  const onSelectFamily = useCallback((f: (typeof families)[number]) => selectFamily(f), [selectFamily]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-full text-dim text-sm">Loading families...</div>;
@@ -276,18 +270,18 @@ export function FractalGraph() {
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-header border-b border-border shrink-0 overflow-x-auto">
-        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim shrink-0">
-          Fractal Agents
-        </span>
+        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim shrink-0">Fractal Agents</span>
 
         {/* Family selector */}
         {families.map((f) => (
           <Button
             key={`${f.dir}/${f.name}`}
             onClick={() => onSelectFamily(f)}
-            variant={selectedFamily?.name === f.name && selectedFamily?.dir === f.dir
-              ? ButtonVariant.Pill
-              : ButtonVariant.Ghost}
+            variant={
+              selectedFamily?.name === f.name && selectedFamily?.dir === f.dir
+                ? ButtonVariant.Pill
+                : ButtonVariant.Ghost
+            }
             className={selectedFamily?.name === f.name ? "bg-info/15 text-info" : ""}
           >
             {f.name} ({f.agentCount})
@@ -330,10 +324,7 @@ export function FractalGraph() {
                     background: edgeFilters.has(key) ? `${color}15` : "transparent",
                   }}
                 >
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ background: color }}
-                  />
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: color }} />
                   {label}
                 </button>
               ),
@@ -354,9 +345,7 @@ export function FractalGraph() {
         {graphLoading ? (
           <div className="flex items-center justify-center h-full text-dim text-sm">Loading graph...</div>
         ) : nodes.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-dim text-sm">
-            Select a family to visualize
-          </div>
+          <div className="flex items-center justify-center h-full text-dim text-sm">Select a family to visualize</div>
         ) : (
           <ReactFlow
             nodes={nodes}

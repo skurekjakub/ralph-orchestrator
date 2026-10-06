@@ -48,10 +48,7 @@ export class PromptBuilder {
   private readonly mode: AuditMode;
   private readonly logger: Logger;
 
-  constructor({ promptAuditConfig, logger }: {
-    promptAuditConfig: IPromptAuditConfig;
-    logger: Logger;
-  }) {
+  constructor({ promptAuditConfig, logger }: { promptAuditConfig: IPromptAuditConfig; logger: Logger }) {
     this.mode = promptAuditConfig.mode;
     this.logger = logger;
   }
@@ -83,9 +80,7 @@ export class PromptBuilder {
     }
 
     if (!audit.safe && this.mode === AuditMode.Block) {
-      const criticalCount = audit.findings.filter(
-        (f) => f.severity === AuditSeverity.Critical,
-      ).length;
+      const criticalCount = audit.findings.filter((f) => f.severity === AuditSeverity.Critical).length;
       throw new Error(
         `Prompt audit blocked execution for ${workItem.id}: ${criticalCount} critical finding(s) detected`,
       );

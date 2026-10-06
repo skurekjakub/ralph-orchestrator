@@ -11,9 +11,9 @@ This skill covers the NodeBB REST API (v3), authentication patterns, common oper
 
 NodeBB exposes two parallel REST APIs:
 
-| API | Base Path | Purpose |
-|---|---|---|
-| **Read API** | `/api/` | Read-only access — topics, posts, categories, search, user profiles |
+| API           | Base Path  | Purpose                                                              |
+| ------------- | ---------- | -------------------------------------------------------------------- |
+| **Read API**  | `/api/`    | Read-only access — topics, posts, categories, search, user profiles  |
 | **Write API** | `/api/v3/` | Mutations — create topics, reply, edit, delete, manage tokens, admin |
 
 Both APIs return JSON with a standard envelope:
@@ -21,7 +21,9 @@ Both APIs return JSON with a standard envelope:
 ```json
 {
   "status": { "code": "ok", "message": "OK" },
-  "response": { /* payload */ }
+  "response": {
+    /* payload */
+  }
 }
 ```
 
@@ -44,16 +46,20 @@ Bearer tokens work for both Read and Write API calls. No CSRF token needed. This
 **Creating tokens programmatically:**
 
 1. Login via cookie-based auth first:
+
    ```
    POST /api/v3/utilities/login
    Body: { "username": "admin", "password": "..." }
    ```
+
    Response sets session cookies.
 
 2. Get CSRF token:
+
    ```
    GET /api/config
    ```
+
    Response contains `csrf_token` field.
 
 3. Create admin token:
@@ -75,6 +81,7 @@ Login via `/api/v3/utilities/login`, then pass cookies on subsequent requests. *
 ### Topics
 
 **Create a topic:**
+
 ```
 POST /api/v3/topics/
 Body: {
@@ -86,6 +93,7 @@ Body: {
 ```
 
 **Get a topic (with all posts):**
+
 ```
 GET /api/topic/{tid}          (Read API — rendered HTML content)
 GET /api/v3/topics/{tid}      (Write API — raw data)
@@ -94,6 +102,7 @@ GET /api/v3/topics/{tid}      (Write API — raw data)
 The Read API `/api/topic/{tid}` returns full topic data including all posts with rendered content, category info, and tags. Each post includes `content` (HTML), `user` info, and `timestamp`.
 
 **Reply to a topic:**
+
 ```
 POST /api/v3/topics/{tid}
 Body: {
@@ -103,6 +112,7 @@ Body: {
 ```
 
 **Delete a topic:**
+
 ```
 DELETE /api/v3/topics/{tid}        — Purge (permanent)
 DELETE /api/v3/topics/{tid}/state  — Soft delete (restorable)
@@ -111,18 +121,21 @@ DELETE /api/v3/topics/{tid}/state  — Soft delete (restorable)
 ### Tags
 
 **Set tags on a topic (replaces all):**
+
 ```
 PUT /api/v3/topics/{tid}/tags
 Body: { "tags": ["new-tag", "other-tag"] }
 ```
 
 **Add tags (append):**
+
 ```
 PATCH /api/v3/topics/{tid}/tags
 Body: { "tags": ["additional-tag"] }
 ```
 
 **Remove all tags:**
+
 ```
 DELETE /api/v3/topics/{tid}/tags
 ```
@@ -132,11 +145,13 @@ Tags are searchable. The category listing API returns tags for each topic as `ta
 ### Categories
 
 **List all categories:**
+
 ```
 GET /api/v3/categories/
 ```
 
 **Get topics in a category:**
+
 ```
 GET /api/v3/categories/{cid}/topics
 Query params: ?after=0&categoryTopicSort=newest_to_oldest
@@ -145,6 +160,7 @@ Query params: ?after=0&categoryTopicSort=newest_to_oldest
 Returns paginated topics with `nextStart` for pagination. Topics include `tags` array. The `after` parameter is an offset index (not a page number).
 
 **Create a category:**
+
 ```
 POST /api/v3/categories/
 Body: { "name": "my-category", "description": "..." }
@@ -153,13 +169,16 @@ Body: { "name": "my-category", "description": "..." }
 ### Posts
 
 **Edit a post:**
+
 ```
 PUT /api/v3/posts/{pid}
 Body: { "content": "Updated content", "title": "New title" }
 ```
+
 The `title` field is only accepted for main posts (first post in a topic).
 
 **Get raw post content:**
+
 ```
 GET /api/v3/posts/{pid}/raw
 ```
@@ -167,6 +186,7 @@ GET /api/v3/posts/{pid}/raw
 ### Search
 
 **Search topics/posts:**
+
 ```
 GET /api/search?term=keyword&categories[]=5&sortBy=timestamp&sortDirection=desc
 ```
@@ -176,11 +196,13 @@ The search API scopes to categories via `categories[]` parameter. Returns topics
 ### Users
 
 **Get user profile:**
+
 ```
 GET /api/v3/users/{uid}
 ```
 
 **Create a user:**
+
 ```
 POST /api/v3/users/
 Body: { "username": "botname", "password": "...", "email": "bot@example.org" }
@@ -197,7 +219,7 @@ When you have a category name (string) but need the numeric `cid`:
 ```typescript
 const res = await fetch(`${baseUrl}/api/categories`);
 const data = await res.json();
-const cat = data.categories.find(c => c.name === categoryName);
+const cat = data.categories.find((c) => c.name === categoryName);
 const cid = cat?.cid;
 ```
 
@@ -224,10 +246,10 @@ const create = async (title, content, tags) => {
   const res = await fetch(`${baseUrl}/api/v3/topics`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ cid, title, content, tags })
+    body: JSON.stringify({ cid, title, content, tags }),
   });
   return res.json();
 };
@@ -245,11 +267,11 @@ const fuse = new Fuse(candidates, {
   keys: [
     { name: "title", weight: 2 },
     { name: "tags", weight: 2 },
-    { name: "content", weight: 1 }
+    { name: "content", weight: 1 },
   ],
   threshold: 0.4,
   distance: 200,
-  useExtendedSearch: true
+  useExtendedSearch: true,
 });
 
 // Split query words into OR expression
@@ -265,15 +287,16 @@ const results = fuse.search(orQuery);
 
 The repo already has the stack. Read and reuse it rather than writing a new one:
 
-| File | Role |
-|---|---|
-| `ralphchives/docker-compose.ci.yml` | NodeBB + MongoDB with a custom entrypoint and healthchecks |
-| `ralphchives/nodebb/entrypoint.ci.sh` | Non-interactive `./nodebb setup` + `node app` in the foreground |
-| `ralphchives/nodebb/config.ci.json` | Seed config copied to `/opt/config/config.json` |
-| `ralphchives/scripts/seed-test-data.mjs` | Logs in as admin, creates a test category + API token, seeds topics; prints `KEY=value` env lines on stdout, progress on stderr |
-| `.github/workflows/ralphchives-integration.yml` | CI job: start stack → seed → run `ralphchives-read`/`ralphchives-write` integration tests → teardown |
+| File                                            | Role                                                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `ralphchives/docker-compose.ci.yml`             | NodeBB + MongoDB with a custom entrypoint and healthchecks                                                                      |
+| `ralphchives/nodebb/entrypoint.ci.sh`           | Non-interactive `./nodebb setup` + `node app` in the foreground                                                                 |
+| `ralphchives/nodebb/config.ci.json`             | Seed config copied to `/opt/config/config.json`                                                                                 |
+| `ralphchives/scripts/seed-test-data.mjs`        | Logs in as admin, creates a test category + API token, seeds topics; prints `KEY=value` env lines on stdout, progress on stderr |
+| `.github/workflows/ralphchives-integration.yml` | CI job: start stack → seed → run `ralphchives-read`/`ralphchives-write` integration tests → teardown                            |
 
 Key points:
+
 - `setup.json` only pre-fills the web installer form and does NOT run setup. Use `./nodebb setup --config=... '{admin JSON}'`.
 - The admin JSON **must** include `admin:password:confirm`.
 - Run `node app` (not `./nodebb start`) so the container stays in the foreground.
@@ -310,19 +333,19 @@ In this project, NodeBB is used as the backing store for **Ralphchives** — a p
 
 ### ralphchives-read (Port 9107)
 
-| Tool | Purpose |
-|---|---|
+| Tool                 | Purpose                                                          |
+| -------------------- | ---------------------------------------------------------------- |
 | `search_ralphchives` | Fuzzy OR search across topics (title w:2, tags w:2, content w:1) |
-| `get_topic` | Full topic with all posts/replies |
-| `list_recent_topics` | Browse recent topics in a category (paginated) |
+| `get_topic`          | Full topic with all posts/replies                                |
+| `list_recent_topics` | Browse recent topics in a category (paginated)                   |
 
 ### ralphchives-write (Port 9106)
 
-| Tool | Purpose |
-|---|---|
+| Tool               | Purpose                                                                      |
+| ------------------ | ---------------------------------------------------------------------------- |
 | `post_task_report` | Create topic for completed task (title convention: `ISSUE-KEY: description`) |
-| `post_observation` | Create observation topic (auto-prefixed `[Observation]`, auto-tagged) |
-| `reply_to_thread` | Add reply to existing topic |
+| `post_observation` | Create observation topic (auto-prefixed `[Observation]`, auto-tagged)        |
+| `reply_to_thread`  | Add reply to existing topic                                                  |
 
 Both servers resolve `NODEBB_CATEGORY_NAME` to a numeric `cid` at startup. When the env var `NODEBB_CATEGORY_ID` is already set, the `categoryId` parameter is removed from tool schemas to simplify the agent's interface.
 

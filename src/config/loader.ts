@@ -7,7 +7,6 @@ import type { CliType } from "../container/types.js";
 import { toErrorMessage } from "../util/error.js";
 import { configFileSchema, profileFileSchema } from "./schemas.js";
 import {
-
   type IAppConfig,
   type IAgentProfile,
   type IDataSourceConfig,
@@ -51,9 +50,7 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
     try {
       rawJson = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
-      throw new Error(
-        `Failed to read ${profileJsonPath}: ${toErrorMessage(err)}`
-      );
+      throw new Error(`Failed to read ${profileJsonPath}: ${toErrorMessage(err)}`);
     }
 
     const parsed = profileFileSchema.parse(rawJson);
@@ -108,7 +105,6 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
       }
       const mergedServers = [...new Set([...mcpServers, ...variantMcpNames])];
 
-
       const stages: IStageConfig[] = variant.stages.map((s) => ({
         agent: s.agent,
         role: s.role,
@@ -118,7 +114,7 @@ function loadProfiles(profilesDir: string): IAgentProfile[] {
         timeoutMs: s.timeoutMs,
       }));
 
-      const mapStage = (s: typeof variant.stages[number]): IStageConfig => ({
+      const mapStage = (s: (typeof variant.stages)[number]): IStageConfig => ({
         agent: s.agent,
         role: s.role,
         mode: s.mode as unknown as StageMode,
@@ -196,9 +192,7 @@ export function loadConfig(): IAppConfig {
   try {
     rawJson = JSON.parse(readFileSync(configPath, "utf-8"));
   } catch (err) {
-    throw new Error(
-      `Failed to read config.json at ${configPath}: ${toErrorMessage(err)}`
-    );
+    throw new Error(`Failed to read config.json at ${configPath}: ${toErrorMessage(err)}`);
   }
 
   const parsed = configFileSchema.parse(rawJson);
@@ -249,7 +243,7 @@ export function loadConfig(): IAppConfig {
     if (!dataSources[profile.dataSource]) {
       throw new Error(
         `Profile "${profile.id}" variant "${profile.displayName}" references unknown data source "${profile.dataSource}". ` +
-        `Available: ${Object.keys(dataSources).join(", ")}`,
+          `Available: ${Object.keys(dataSources).join(", ")}`,
       );
     }
   }

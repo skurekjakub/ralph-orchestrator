@@ -20,11 +20,13 @@ Is the external dashboard pulling its weight? If the local dashboard becomes a r
 ### Decision Framework
 
 **Keep and refine if:**
+
 - Multiple people need to see agent status (team visibility)
 - The orchestrator runs on a headless server where the local terminal dashboard is impractical
 - Historical state tracking (Redis) is valuable for debugging
 
 **Cut if:**
+
 - Only one operator uses the system
 - The local dashboard covers all monitoring needs
 - The Vercel + Redis infrastructure adds maintenance burden without clear value
@@ -58,6 +60,7 @@ The local dashboard is a Vite + React app at `dashboard-local/`. The orchestrato
 ### Expected Improvements
 
 **Syntax highlighting for log viewer:**
+
 - Parse log lines by type (ISO timestamp prefix, log level, component tag)
 - Colorize: GREEN for info-level, YELLOW for warnings, RED for errors
 - Monospace font with line numbers
@@ -65,11 +68,13 @@ The local dashboard is a Vite + React app at `dashboard-local/`. The orchestrato
 - Tool output lines could be distinguished from container stdout/stderr
 
 **WebSocket stability:**
+
 - Heartbeat/ping-pong keep-alive between client and server
 - Buffered message replay on reconnection (server holds last N messages)
 - Connection state indicator in the UI (not just "connected/disconnected" but also "reconnecting" with backoff timer)
 
 **Streaming reliability:**
+
 - Server-side line buffering before broadcast (assemble complete lines before sending)
 - Client-side sequence numbering to detect dropped messages
 - Consider Server-Sent Events (SSE) as an alternative for the log stream — simpler than WebSocket for unidirectional data, automatic reconnection built into the browser API

@@ -41,10 +41,7 @@ describe("matchesTrigger", () => {
 
 describe("parseTriggerParams", () => {
   it("extracts comma-separated params from parentheses", () => {
-    expect(parseTriggerParams("@Ralph(codesamples, verbose)", "@Ralph")).toEqual([
-      "codesamples",
-      "verbose",
-    ]);
+    expect(parseTriggerParams("@Ralph(codesamples, verbose)", "@Ralph")).toEqual(["codesamples", "verbose"]);
   });
 
   it("extracts a single param", () => {

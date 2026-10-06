@@ -118,7 +118,9 @@ interface Harness {
 function createHarness(overrides?: Partial<Harness>): Harness {
   const compose = overrides?.compose ?? createMockComposeClient();
   const executor = overrides?.executor ?? createMockExecutor();
-  const executorFactory = overrides?.executorFactory ?? { create: vi.fn().mockReturnValue(createMockExecutor()) } as unknown as Mocked<ICliExecutorFactory>;
+  const executorFactory =
+    overrides?.executorFactory ??
+    ({ create: vi.fn().mockReturnValue(createMockExecutor()) } as unknown as Mocked<ICliExecutorFactory>);
   const logs = overrides?.logs ?? createMockLogCollector();
   const cleaner = overrides?.cleaner ?? createMockCleaner();
   const logRegistry = overrides?.logRegistry ?? createMockLogRegistry();
@@ -171,8 +173,13 @@ describe("ContainerManager", () => {
     it("checks docker before compose up", async () => {
       const callOrder: string[] = [];
       const compose = createMockComposeClient();
-      compose.checkDocker.mockImplementation(async () => { callOrder.push("checkDocker"); });
-      compose.compose.mockImplementation(() => { callOrder.push("compose"); return fakeResultPromise(); });
+      compose.checkDocker.mockImplementation(async () => {
+        callOrder.push("checkDocker");
+      });
+      compose.compose.mockImplementation(() => {
+        callOrder.push("compose");
+        return fakeResultPromise();
+      });
       const { manager } = createHarness({ compose });
 
       await manager.start(new AbortController().signal);
@@ -205,18 +212,14 @@ describe("ContainerManager", () => {
       // ContainerManager uses the profile's setupScript
       await manager.setup();
 
-      expect(compose.exec).toHaveBeenCalledWith(
-        expect.arrayContaining(["--user", "vscode", "app"]),
-      );
+      expect(compose.exec).toHaveBeenCalledWith(expect.arrayContaining(["--user", "vscode", "app"]));
     });
   });
 
   describe("execInApp", () => {
     it("delegates to compose.exec with vscode user", async () => {
       const compose = createMockComposeClient();
-      compose.exec.mockReturnValue(
-        fakeResultPromise({ stdout: "output", stderr: "" }),
-      );
+      compose.exec.mockReturnValue(fakeResultPromise({ stdout: "output", stderr: "" }));
       const { manager } = createHarness({ compose });
 
       const result = await manager.execInApp(["echo", "hello"]);
@@ -229,9 +232,7 @@ describe("ContainerManager", () => {
   describe("execInSidecar", () => {
     it("delegates to compose.exec targeting mcp-sidecar", async () => {
       const compose = createMockComposeClient();
-      compose.exec.mockReturnValue(
-        fakeResultPromise({ stdout: "sidecar-output", stderr: "" }),
-      );
+      compose.exec.mockReturnValue(fakeResultPromise({ stdout: "sidecar-output", stderr: "" }));
       const { manager } = createHarness({ compose });
 
       const result = await manager.execInSidecar(["git", "status"]);
@@ -308,7 +309,8 @@ describe("ContainerManager", () => {
         status: TaskStatus.Completed,
         durationMs: 200,
         exitCode: 0,
-        stdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
+        stdout:
+          "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
         stderr: "",
         collectedLogs: {},
         prUrl: "https://dev.azure.com/pr/1",
@@ -342,10 +344,10 @@ describe("ContainerManager", () => {
 
       await manager.execute(makeWorkItem("DF-600"));
 
-      expect(sessionRunner.run).toHaveBeenCalledWith(
-        expect.anything(), expect.anything(), undefined,
-        { maxContinuations: 0, enableContinuation: false },
-      );
+      expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), undefined, {
+        maxContinuations: 0,
+        enableContinuation: false,
+      });
     });
 
     it("passes profile maxContinuations when enableContinuation is true", async () => {
@@ -367,10 +369,10 @@ describe("ContainerManager", () => {
 
       await manager.execute(makeWorkItem("DF-601"));
 
-      expect(sessionRunner.run).toHaveBeenCalledWith(
-        expect.anything(), expect.anything(), undefined,
-        { maxContinuations: profile.maxContinuations, enableContinuation: true },
-      );
+      expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), undefined, {
+        maxContinuations: profile.maxContinuations,
+        enableContinuation: true,
+      });
     });
   });
 
@@ -385,9 +387,16 @@ describe("ContainerManager", () => {
       await manager.start(new AbortController().signal);
 
       // Attach order-tracking after start() so only stop() calls are recorded
-      logs.detach.mockImplementation(() => { callOrder.push("detach"); });
-      executor.killActive.mockImplementation(() => { callOrder.push("killActive"); });
-      compose.compose.mockImplementation(() => { callOrder.push("compose-down"); return fakeResultPromise(); });
+      logs.detach.mockImplementation(() => {
+        callOrder.push("detach");
+      });
+      executor.killActive.mockImplementation(() => {
+        callOrder.push("killActive");
+      });
+      compose.compose.mockImplementation(() => {
+        callOrder.push("compose-down");
+        return fakeResultPromise();
+      });
 
       await manager.stop();
 
@@ -402,7 +411,9 @@ describe("ContainerManager", () => {
       const { manager } = createHarness({ compose });
       await manager.start(new AbortController().signal);
 
-      compose.compose.mockImplementation(() => { throw new Error("compose down failed"); });
+      compose.compose.mockImplementation(() => {
+        throw new Error("compose down failed");
+      });
 
       // Should not throw — the fallback swallows errors
       await expect(manager.stop()).resolves.toBeUndefined();

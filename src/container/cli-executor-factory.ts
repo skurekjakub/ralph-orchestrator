@@ -50,9 +50,7 @@ export class CliExecutorFactory implements ICliExecutorFactory {
       return new CopilotExecutor(compose, profile, cliLogger);
     }
 
-    throw new Error(
-      "GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env",
-    );
+    throw new Error("GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env");
   }
 
   createLocal(profile: IAgentProfile, cwd: string, cliLogger: Logger): ICliExecutor {
@@ -60,8 +58,6 @@ export class CliExecutorFactory implements ICliExecutorFactory {
       return new LocalCopilotExecutor(profile, cwd, cliLogger);
     }
 
-    throw new Error(
-      "GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env",
-    );
+    throw new Error("GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env");
   }
 }

@@ -49,7 +49,12 @@ describe("OperationLedger", () => {
 
     it("plans multiple operations on the same issue", () => {
       ledger.plan(KEY, { dataSource: DS, variant: VARIANT_FULL, triggerCommentId: CID100, commentTimestamp: TS });
-      ledger.plan(KEY, { dataSource: DS, variant: "ralph-docs:malph", triggerCommentId: "C101", commentTimestamp: "2026-01-01T01:00:00Z" });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: "ralph-docs:malph",
+        triggerCommentId: "C101",
+        commentTimestamp: "2026-01-01T01:00:00Z",
+      });
 
       expect(ledger.getOperations(DS, KEY)).toHaveLength(2);
     });
@@ -69,15 +74,17 @@ describe("OperationLedger", () => {
       ledger.transition(DS, KEY, id, OperationStatus.Active);
       ledger.transition(DS, KEY, id, OperationStatus.Completed);
 
-      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Active))
-        .toThrow("Invalid operation state transition: completed → active");
+      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Active)).toThrow(
+        "Invalid operation state transition: completed → active",
+      );
     });
 
     it("rejects invalid transition: pending → completed", () => {
       const id = ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: TS });
 
-      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Completed))
-        .toThrow("Invalid operation state transition: pending → completed");
+      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Completed)).toThrow(
+        "Invalid operation state transition: pending → completed",
+      );
     });
 
     it("rejects invalid transition: error → pending", () => {
@@ -85,8 +92,9 @@ describe("OperationLedger", () => {
       ledger.transition(DS, KEY, id, OperationStatus.Active);
       ledger.transition(DS, KEY, id, OperationStatus.Error);
 
-      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Pending))
-        .toThrow("Invalid operation state transition: error → pending");
+      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Pending)).toThrow(
+        "Invalid operation state transition: error → pending",
+      );
     });
 
     it("transitions pending → active → completed", () => {
@@ -136,8 +144,9 @@ describe("OperationLedger", () => {
       expect(ledger.hasPendingOrActive(DS, KEY)).toBe(false);
       expect(ledger.recoverActiveOperations()).toEqual([]);
       expect(ledger.isConsumed(DS, KEY, VARIANT, CID)).toBe(true);
-      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Active))
-        .toThrow("Invalid operation state transition: error → active");
+      expect(() => ledger.transition(DS, KEY, id, OperationStatus.Active)).toThrow(
+        "Invalid operation state transition: error → active",
+      );
     });
   });
 
@@ -170,8 +179,18 @@ describe("OperationLedger", () => {
 
     it("getConsumedTriggerIds returns all consumed IDs for a variant", () => {
       ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID100, commentTimestamp: TS });
-      ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: "C200", commentTimestamp: "2026-01-01T01:00:00Z" });
-      ledger.plan(KEY, { dataSource: DS, variant: "other", triggerCommentId: "C300", commentTimestamp: "2026-01-01T02:00:00Z" });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: "C200",
+        commentTimestamp: "2026-01-01T01:00:00Z",
+      });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: "other",
+        triggerCommentId: "C300",
+        commentTimestamp: "2026-01-01T02:00:00Z",
+      });
 
       const ids = ledger.getConsumedTriggerIds(DS, KEY, VARIANT);
       expect(ids).toEqual(new Set([CID100, "C200"]));
@@ -193,8 +212,18 @@ describe("OperationLedger", () => {
 
   describe("pending/active queries", () => {
     it("getPending returns pending ops sorted by comment timestamp", () => {
-      ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: "C2", commentTimestamp: "2026-01-01T02:00:00Z" });
-      ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: "2026-01-01T01:00:00Z" });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: "C2",
+        commentTimestamp: "2026-01-01T02:00:00Z",
+      });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: CID,
+        commentTimestamp: "2026-01-01T01:00:00Z",
+      });
 
       const pending = ledger.getPending(DS, KEY);
       expect(pending).toHaveLength(2);
@@ -226,7 +255,12 @@ describe("OperationLedger", () => {
 
     it("does not affect non-active operations", () => {
       ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: TS });
-      const id2 = ledger.plan("DF-2", { dataSource: DS, variant: VARIANT, triggerCommentId: "C2", commentTimestamp: TS });
+      const id2 = ledger.plan("DF-2", {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: "C2",
+        commentTimestamp: TS,
+      });
       ledger.transition(DS, "DF-2", id2, OperationStatus.Active);
       ledger.transition(DS, "DF-2", id2, OperationStatus.Completed);
 
@@ -238,8 +272,18 @@ describe("OperationLedger", () => {
 
   describe("getAllPending", () => {
     it("returns pending ops across all issues sorted by timestamp", () => {
-      ledger.plan("DF-2", { dataSource: DS, variant: VARIANT, triggerCommentId: "C2", commentTimestamp: "2026-01-01T02:00:00Z" });
-      ledger.plan(KEY, { dataSource: DS, variant: VARIANT, triggerCommentId: CID, commentTimestamp: "2026-01-01T01:00:00Z" });
+      ledger.plan("DF-2", {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: "C2",
+        commentTimestamp: "2026-01-01T02:00:00Z",
+      });
+      ledger.plan(KEY, {
+        dataSource: DS,
+        variant: VARIANT,
+        triggerCommentId: CID,
+        commentTimestamp: "2026-01-01T01:00:00Z",
+      });
 
       const all = ledger.getAllPending();
       expect(all).toHaveLength(2);

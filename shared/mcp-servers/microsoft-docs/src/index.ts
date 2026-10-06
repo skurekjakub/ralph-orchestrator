@@ -49,10 +49,7 @@ function createMcpServer(): McpServer {
         "Use the web_fetch tool to retrieve the full content of a result page.",
       inputSchema: {
         query: z.string().min(1).describe("Search query"),
-        locale: z
-          .string()
-          .optional()
-          .describe("Locale for results (default: en-us)"),
+        locale: z.string().optional().describe("Locale for results (default: en-us)"),
         maxResults: z
           .number()
           .int()
@@ -74,20 +71,24 @@ function createMcpServer(): McpServer {
         const response = await fetch(`${SEARCH_API_BASE}?${params}`);
         if (!response.ok) {
           return {
-            content: [{
-              type: "text" as const,
-              text: `Microsoft Learn search API returned HTTP ${response.status} ${response.statusText}`,
-            }],
+            content: [
+              {
+                type: "text" as const,
+                text: `Microsoft Learn search API returned HTTP ${response.status} ${response.statusText}`,
+              },
+            ],
             isError: true,
           };
         }
-        data = await response.json() as SearchResponse;
+        data = (await response.json()) as SearchResponse;
       } catch (err) {
         return {
-          content: [{
-            type: "text" as const,
-            text: `Failed to search Microsoft Learn: ${err instanceof Error ? err.message : String(err)}`,
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: `Failed to search Microsoft Learn: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -153,7 +154,10 @@ function startHttpTransport(port: number): void {
 
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, body);
   });

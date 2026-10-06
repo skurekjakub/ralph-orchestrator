@@ -5,6 +5,7 @@ A planner sits between the analyst/researcher and the coder/writer. It turns the
 Use it when one coder→reviewer pass over a whole plan keeps missing pieces. Don't use it for a simple new subagent; `subagent-wiring.md` covers that.
 
 **Canonical implementations, to copy from rather than re-derive:**
+
 - `profiles/ralph-vscode/agents/ralph.ralph-planner.agent.md` + `ralph.ralph.agent.md` (toggle `skip_planner`)
 - `profiles/ralph-docs/agents/ralph.ralph-planner.agent.md` + `shared/skills/workflow/docs/ralph-workflow/references/`
 

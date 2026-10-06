@@ -15,6 +15,7 @@ This dramatically lowers the friction for requesting documentation work, especia
 ### Discord Bot
 
 A lightweight bot that:
+
 1. Listens for slash commands or mentions in designated channels
 2. Parses the request into JIRA issue fields (summary, description, project, labels)
 3. Creates the JIRA issue via REST API
@@ -34,6 +35,7 @@ A lightweight bot that:
 ### MCP Server vs Standalone
 
 Two implementation approaches:
+
 - **MCP server**: Lives in `shared/mcp-servers/discord/`, exposed to agents. Agents could post to Discord channels during work (progress updates, questions). But this is agent→Discord, not Discord→JIRA.
 - **Standalone bot**: Separate process/deployment (could be a simple Node.js app). Watches Discord, creates JIRA issues, triggers the existing orchestrator flow. This is the primary use case.
 
@@ -52,6 +54,7 @@ If a JIRA account whitelist is implemented (see `jql-access-control.md`), the Di
 ### New Repository/Package
 
 The Discord bot is likely its own deployment:
+
 - Could live in this repo under `discord-bot/` or as a separate repo
 - Needs Discord bot token, JIRA credentials, channel→project mapping config
 - Minimal dependencies: discord.js, node-fetch for JIRA API

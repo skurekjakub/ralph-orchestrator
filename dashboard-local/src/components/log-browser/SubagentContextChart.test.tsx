@@ -23,9 +23,7 @@ function makeSlice(overrides: Partial<AgentWindowSlice> = {}): AgentWindowSlice 
 
 describe("SubagentContextChart", () => {
   it("renders nothing when slice has no data", () => {
-    const { container } = render(
-      <SubagentContextChart slice={makeSlice({ entries: [], usageEntries: [] })} />,
-    );
+    const { container } = render(<SubagentContextChart slice={makeSlice({ entries: [], usageEntries: [] })} />);
     expect(container.innerHTML).toBe("");
   });
 
@@ -57,9 +55,7 @@ describe("SubagentContextChart", () => {
   });
 
   it("renders without utilization when only usage entries exist", () => {
-    const { container } = render(
-      <SubagentContextChart slice={makeSlice({ entries: [] })} />,
-    );
+    const { container } = render(<SubagentContextChart slice={makeSlice({ entries: [] })} />);
 
     const svgs = container.querySelectorAll("svg");
     expect(svgs.length).toBe(1); // token cost only

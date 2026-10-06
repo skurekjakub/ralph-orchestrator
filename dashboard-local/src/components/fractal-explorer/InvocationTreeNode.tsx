@@ -44,16 +44,17 @@ export function InvocationTreeNode({ node, selectedNodeId, expandedIds, onToggle
       >
         {/* Expand arrow */}
         <span
-          onClick={(e) => { e.stopPropagation(); if (hasChildren) onToggle(node.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasChildren) onToggle(node.id);
+          }}
           className={`w-3 text-center shrink-0 ${hasChildren ? "cursor-pointer text-dim hover:text-fg-primary" : "text-transparent"}`}
         >
           {hasChildren ? (isExpanded ? "▾" : "▸") : "·"}
         </span>
 
         {/* Agent name + invocation badge */}
-        <span className="truncate font-medium">
-          {isRoot ? "orchestrator" : node.name}
-        </span>
+        <span className="truncate font-medium">{isRoot ? "orchestrator" : node.name}</span>
         {!isRoot && node.invocationIndex > 0 && (
           <span className="text-dim text-[10px] shrink-0">#{node.invocationIndex}</span>
         )}

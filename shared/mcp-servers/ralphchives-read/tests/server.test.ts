@@ -48,11 +48,7 @@ describe("Ralphchives Read MCP Server manifest", () => {
 
   it("lists all three tool names", () => {
     const manifest = loadManifest();
-    expect(manifest.tools).toEqual([
-      "search_ralphchives",
-      "get_topic",
-      "list_recent_topics",
-    ]);
+    expect(manifest.tools).toEqual(["search_ralphchives", "get_topic", "list_recent_topics"]);
   });
 });
 

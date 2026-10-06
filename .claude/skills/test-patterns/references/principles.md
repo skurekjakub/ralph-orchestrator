@@ -4,12 +4,12 @@
 
 Test through the public API and assert on what a caller can observe. If you refactor the internals without changing the contract, zero tests should break. When they do break, they were testing wiring.
 
-| Observable (assert on it) | Internal (don't) |
-|---|---|
-| Return value / resolved `RalphResult` | Which private helper ran |
-| State visible through the public API (ledger status, collected log paths) | Order of internal steps |
+| Observable (assert on it)                                                              | Internal (don't)                         |
+| -------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Return value / resolved `RalphResult`                                                  | Which private helper ran                 |
+| State visible through the public API (ledger status, collected log paths)              | Order of internal steps                  |
 | Side effects at a boundary: file written, `execa` argv, connector call, comment posted | Arguments passed between our own classes |
-| Error thrown or warning logged for bad input | Which validator caught it |
+| Error thrown or warning logged for bad input                                           | Which validator caught it                |
 
 Asserting the arguments sent across an **architectural boundary** is legitimate, because that is the contract with the outside world. Examples: the `docker compose` argv given to `execa`, the issue key and status given to a connector, the text of a posted comment. Asserting that class A called class B's method with exact arguments is not.
 
@@ -30,9 +30,7 @@ Given / When / Then, separated by blank lines, no labels needed. Keep the Given 
 ```ts
 // tests/services/issue-manager.test.ts
 it("posts failure comment when connector throws", async () => {
-  connector.transitionWorkItem.mockRejectedValue(
-    new Error('No transition to "Done" available for DF-100'),
-  );
+  connector.transitionWorkItem.mockRejectedValue(new Error('No transition to "Done" available for DF-100'));
 
   await manager.transitionWorkItem(DS, KEY, "Done", TransitionPhase.AfterAgent);
 

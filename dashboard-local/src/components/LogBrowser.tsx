@@ -8,22 +8,21 @@ import { ToolTimeline } from "./log-browser/ToolTimeline";
 import { Button, ButtonVariant } from "./Button";
 
 export function LogBrowser() {
-  const {
-    groups,
-    loading,
-    selectedFile,
-    fileContent,
-    fileLoading,
-    selectFile,
-    refresh,
-  } = useLogBrowser();
+  const { groups, loading, selectedFile, fileContent, fileLoading, selectFile, refresh } = useLogBrowser();
 
-  const [timelineFiles, setTimelineFiles] = useState<{ preTool: string; toolOutput?: string; cliDebug?: string } | null>(null);
+  const [timelineFiles, setTimelineFiles] = useState<{
+    preTool: string;
+    toolOutput?: string;
+    cliDebug?: string;
+  } | null>(null);
 
-  const openTimeline = useCallback((preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => {
-    setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile, cliDebug: cliDebugFile });
-    selectFile(null); // Clear file view when opening timeline
-  }, [selectFile]);
+  const openTimeline = useCallback(
+    (preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => {
+      setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile, cliDebug: cliDebugFile });
+      selectFile(null); // Clear file view when opening timeline
+    },
+    [selectFile],
+  );
 
   const closeTimeline = useCallback(() => setTimelineFiles(null), []);
 
@@ -47,26 +46,26 @@ export function LogBrowser() {
       ig.latestStatus = latest?.summary?.status;
       ig.latestTimestamp = latest?.timestamp;
     }
-    return [...map.values()].sort(
-      (a, b) => (b.latestTimestamp ?? 0) - (a.latestTimestamp ?? 0)
-    );
+    return [...map.values()].sort((a, b) => (b.latestTimestamp ?? 0) - (a.latestTimestamp ?? 0));
   }, [taskGroups]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-header border-b border-border shrink-0">
-        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim">
-          Log Browser
-        </span>
-        <span className="bg-border text-dim px-1.5 rounded-lg text-[10px] font-semibold">
-          {taskGroups.length} runs
-        </span>
+        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim">Log Browser</span>
+        <span className="bg-border text-dim px-1.5 rounded-lg text-[10px] font-semibold">{taskGroups.length} runs</span>
         <Button onClick={refresh} variant={ButtonVariant.Ghost} className="ml-auto text-info hover:underline">
           Refresh
         </Button>
         {(selectedFile || timelineFiles) && (
-          <Button onClick={() => { selectFile(null); closeTimeline(); }} variant={ButtonVariant.Ghost}>
+          <Button
+            onClick={() => {
+              selectFile(null);
+              closeTimeline();
+            }}
+            variant={ButtonVariant.Ghost}
+          >
             ← Back
           </Button>
         )}
@@ -83,30 +82,17 @@ export function LogBrowser() {
             cliDebugFile={timelineFiles.cliDebug}
           />
         ) : selectedFile ? (
-          <FileViewer
-            filename={selectedFile}
-            content={fileContent}
-            loading={fileLoading}
-          />
+          <FileViewer filename={selectedFile} content={fileContent} loading={fileLoading} />
         ) : (
           <div className="p-2">
             {issueGroups.map((ig) => (
-              <IssueGroupSection
-                key={ig.taskId}
-                group={ig}
-                onSelectFile={selectFile}
-                onOpenTimeline={openTimeline}
-              />
+              <IssueGroupSection key={ig.taskId} group={ig} onSelectFile={selectFile} onOpenTimeline={openTimeline} />
             ))}
 
-            {dailyLogs.length > 0 && (
-              <DailyLogsSection logs={dailyLogs} onSelectFile={selectFile} />
-            )}
+            {dailyLogs.length > 0 && <DailyLogsSection logs={dailyLogs} onSelectFile={selectFile} />}
 
             {issueGroups.length === 0 && dailyLogs.length === 0 && (
-              <div className="text-dim text-[11px] italic p-4">
-                No log files found
-              </div>
+              <div className="text-dim text-[11px] italic p-4">No log files found</div>
             )}
           </div>
         )}

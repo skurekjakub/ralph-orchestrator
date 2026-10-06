@@ -6,17 +6,15 @@ function makeLine(ts: string, content: string) {
   return `${ts} ${content}`;
 }
 
-function makeSubagentBlock(
-  startTs: string,
-  endTs: string,
-  agentName: string,
-  model = "claude-opus-4.6",
-) {
+function makeSubagentBlock(startTs: string, endTs: string, agentName: string, model = "claude-opus-4.6") {
   return [
-    makeLine(startTs, '[DEBUG] kind: subagent_started'),
-    makeLine(startTs, `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`),
+    makeLine(startTs, "[DEBUG] kind: subagent_started"),
+    makeLine(
+      startTs,
+      `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`,
+    ),
     makeLine(startTs, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="${model}"`),
-    makeLine(endTs, '[DEBUG] kind: subagent_completed'),
+    makeLine(endTs, "[DEBUG] kind: subagent_completed"),
   ].join("\n");
 }
 
@@ -40,11 +38,14 @@ describe("parseCliDebugTree", () => {
   it("parses nested depth-2 subagents", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="claude-opus-4.6"'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
+      makeLine(
+        "2026-01-01T00:01:00.000Z",
+        '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="claude-opus-4.6"',
+      ),
       // Nested child
       makeSubagentBlock("2026-01-01T00:01:30.000Z", "2026-01-01T00:01:45.000Z", "ralph.writer"),
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_completed"),
     ].join("\n");
 
     const tree = parseCliDebugTree(log);
@@ -61,17 +62,17 @@ describe("parseCliDebugTree", () => {
   });
 
   it("parses deep (4+) nesting", () => {
-    const lines = [
-      makeLine("2026-01-01T00:00:00.000Z", "startup"),
-    ];
+    const lines = [makeLine("2026-01-01T00:00:00.000Z", "startup")];
     // Open 4 levels
     for (let d = 1; d <= 4; d++) {
-      lines.push(makeLine(`2026-01-01T00:0${d}:00.000Z`, '[DEBUG] kind: subagent_started'));
-      lines.push(makeLine(`2026-01-01T00:0${d}:00.000Z`, `[DEBUG] Agent "ralph.agent-${d}" getOrCreateAgent: final model="m"`));
+      lines.push(makeLine(`2026-01-01T00:0${d}:00.000Z`, "[DEBUG] kind: subagent_started"));
+      lines.push(
+        makeLine(`2026-01-01T00:0${d}:00.000Z`, `[DEBUG] Agent "ralph.agent-${d}" getOrCreateAgent: final model="m"`),
+      );
     }
     // Close 4 levels
     for (let d = 4; d >= 1; d--) {
-      lines.push(makeLine(`2026-01-01T00:1${d}:00.000Z`, '[DEBUG] kind: subagent_completed'));
+      lines.push(makeLine(`2026-01-01T00:1${d}:00.000Z`, "[DEBUG] kind: subagent_completed"));
     }
 
     const tree = parseCliDebugTree(lines.join("\n"));
@@ -101,7 +102,7 @@ describe("parseCliDebugTree", () => {
   it("handles unclosed spans gracefully", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.scout" getOrCreateAgent: final model="m"'),
       makeLine("2026-01-01T00:05:00.000Z", "some other log line"),
     ].join("\n");
@@ -134,12 +135,12 @@ describe("parseCliDebugTree", () => {
   it("counts tool calls correctly", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.scout" getOrCreateAgent: final model="m"'),
-      makeLine("2026-01-01T00:01:30.000Z", '[DEBUG] kind: tool_call_executed'),
-      makeLine("2026-01-01T00:01:40.000Z", '[DEBUG] kind: tool_call_executed'),
-      makeLine("2026-01-01T00:01:50.000Z", '[DEBUG] kind: assistant_usage'),
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:01:30.000Z", "[DEBUG] kind: tool_call_executed"),
+      makeLine("2026-01-01T00:01:40.000Z", "[DEBUG] kind: tool_call_executed"),
+      makeLine("2026-01-01T00:01:50.000Z", "[DEBUG] kind: assistant_usage"),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_completed"),
     ].join("\n");
 
     const tree = parseCliDebugTree(log);
@@ -152,21 +153,21 @@ describe("parseCliDebugTree", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
       // Coordinator starts
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="m"'),
       // 3 parallel dispatches within 10ms
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] Agent "ralph.style-reviewer" getOrCreateAgent: final model="m"'),
-      makeLine("2026-01-01T00:02:00.002Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:02:00.002Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:02:00.002Z", '[DEBUG] Agent "ralph.persona-reviewer" getOrCreateAgent: final model="m"'),
-      makeLine("2026-01-01T00:02:00.010Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:02:00.010Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:02:00.010Z", '[DEBUG] Agent "ralph.accuracy-reviewer" getOrCreateAgent: final model="m"'),
       // Completions in LIFO order
-      makeLine("2026-01-01T00:05:00.000Z", '[DEBUG] kind: subagent_completed'),
-      makeLine("2026-01-01T00:06:00.000Z", '[DEBUG] kind: subagent_completed'),
-      makeLine("2026-01-01T00:07:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:05:00.000Z", "[DEBUG] kind: subagent_completed"),
+      makeLine("2026-01-01T00:06:00.000Z", "[DEBUG] kind: subagent_completed"),
+      makeLine("2026-01-01T00:07:00.000Z", "[DEBUG] kind: subagent_completed"),
       // Coordinator completes
-      makeLine("2026-01-01T00:08:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:08:00.000Z", "[DEBUG] kind: subagent_completed"),
     ].join("\n");
 
     const tree = parseCliDebugTree(log);
@@ -176,7 +177,9 @@ describe("parseCliDebugTree", () => {
     // All 3 reviewers should be siblings (children of coordinator), not nested
     expect(coordinator.children).toHaveLength(3);
     expect(coordinator.children.map((c) => c.name).sort()).toEqual([
-      "accuracy-reviewer", "persona-reviewer", "style-reviewer",
+      "accuracy-reviewer",
+      "persona-reviewer",
+      "style-reviewer",
     ]);
     // All at the same depth
     expect(coordinator.children.every((c) => c.depth === 2)).toBe(true);
@@ -188,13 +191,13 @@ describe("parseCliDebugTree", () => {
     // Coordinator dispatches agent A, which takes 30s, then dispatches agent B
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="m"'),
       // Child agent starts 30s after coordinator (not parallel)
-      makeLine("2026-01-01T00:01:30.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:30.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:30.000Z", '[DEBUG] Agent "ralph.writer" getOrCreateAgent: final model="m"'),
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_completed'),
-      makeLine("2026-01-01T00:03:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_completed"),
+      makeLine("2026-01-01T00:03:00.000Z", "[DEBUG] kind: subagent_completed"),
     ].join("\n");
 
     const tree = parseCliDebugTree(log);
@@ -209,10 +212,10 @@ describe("flattenTree", () => {
   it("produces flat SubagentSpan[] in DFS order", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="m"'),
       makeSubagentBlock("2026-01-01T00:01:30.000Z", "2026-01-01T00:01:45.000Z", "ralph.writer"),
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_completed"),
       makeSubagentBlock("2026-01-01T00:03:00.000Z", "2026-01-01T00:04:00.000Z", "ralph.reviewer"),
     ].join("\n");
 
@@ -259,10 +262,10 @@ describe("attributeEntriesToTree", () => {
   it("attributes entries to deepest matching node", () => {
     const log = [
       makeLine("2026-01-01T00:00:00.000Z", "startup"),
-      makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] kind: subagent_started'),
+      makeLine("2026-01-01T00:01:00.000Z", "[DEBUG] kind: subagent_started"),
       makeLine("2026-01-01T00:01:00.000Z", '[DEBUG] Agent "ralph.coordinator" getOrCreateAgent: final model="m"'),
       makeSubagentBlock("2026-01-01T00:01:30.000Z", "2026-01-01T00:01:45.000Z", "ralph.writer"),
-      makeLine("2026-01-01T00:02:00.000Z", '[DEBUG] kind: subagent_completed'),
+      makeLine("2026-01-01T00:02:00.000Z", "[DEBUG] kind: subagent_completed"),
     ].join("\n");
 
     const tree = parseCliDebugTree(log);
@@ -274,7 +277,13 @@ describe("attributeEntriesToTree", () => {
     ];
 
     const usageEntries: AssistantUsageEntry[] = [
-      { tsMs: new Date("2026-01-01T00:01:35.000Z").getTime(), promptTokens: 100, completionTokens: 50, cachedTokens: 10, totalTokens: 150 },
+      {
+        tsMs: new Date("2026-01-01T00:01:35.000Z").getTime(),
+        promptTokens: 100,
+        completionTokens: 50,
+        cachedTokens: 10,
+        totalTokens: 150,
+      },
     ];
 
     attributeEntriesToTree(tree, contextEntries, usageEntries);
@@ -303,8 +312,11 @@ describe("attributeEntriesToTree", () => {
     // 2 more agents. Without fix, they'd nest under the unclosed coordinator.
     function makeUnclosedStart(ts: string, agentName: string, model = "claude-opus-4.6") {
       return [
-        makeLine(ts, '[DEBUG] kind: subagent_started'),
-        makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`),
+        makeLine(ts, "[DEBUG] kind: subagent_started"),
+        makeLine(
+          ts,
+          `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`,
+        ),
         makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="${model}"`),
       ].join("\n");
     }
@@ -337,8 +349,11 @@ describe("attributeEntriesToTree", () => {
   it("does not attribute entries to unclosed spans", () => {
     function makeUnclosedStart(ts: string, agentName: string, model = "claude-opus-4.6") {
       return [
-        makeLine(ts, '[DEBUG] kind: subagent_started'),
-        makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`),
+        makeLine(ts, "[DEBUG] kind: subagent_started"),
+        makeLine(
+          ts,
+          `[DEBUG] Agent "${agentName}" getOrCreateAgent: definitionModel="${model}" sessionModel="${model}"`,
+        ),
         makeLine(ts, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="${model}"`),
       ].join("\n");
     }

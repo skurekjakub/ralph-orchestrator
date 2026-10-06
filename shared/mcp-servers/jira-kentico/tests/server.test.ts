@@ -23,9 +23,7 @@ describe("JIRA MCP Server manifest", () => {
 
   it("lists required JIRA env vars", () => {
     const manifest = loadManifest();
-    expect(manifest.requiredEnv).toEqual(
-      expect.arrayContaining(["JIRA_PAT_KENTICO_JIRA", "JIRA_PAT_KENTICO_JIRA"]),
-    );
+    expect(manifest.requiredEnv).toEqual(expect.arrayContaining(["JIRA_PAT_KENTICO_JIRA", "JIRA_PAT_KENTICO_JIRA"]));
     expect(manifest.requiredEnv).not.toContain("JIRA_BASE_URL");
     expect(manifest.requiredEnv).not.toContain("JIRA_CLOUD_ID");
   });
@@ -39,12 +37,12 @@ describe("JIRA MCP Server manifest", () => {
 describe("JIRA MCP Server source", () => {
   it("registers jira_add_comment tool", () => {
     const source = readSource();
-    expect(source).toContain('registerTool("jira_add_comment"');
+    expect(source).toMatch(/registerTool\(\s*"jira_add_comment"/);
   });
 
   it("registers jira_add_attachment tool", () => {
     const source = readSource();
-    expect(source).toContain('registerTool("jira_add_attachment"');
+    expect(source).toMatch(/registerTool\(\s*"jira_add_attachment"/);
   });
 
   it("sanitizes wiki markup before posting comments", () => {

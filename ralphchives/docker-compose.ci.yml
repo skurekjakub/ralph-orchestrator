@@ -39,7 +39,19 @@ services:
     expose:
       - "27017"
     healthcheck:
-      test: ["CMD", "mongosh", "-u", "nodebb", "-p", "nodebb", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "-u",
+          "nodebb",
+          "-p",
+          "nodebb",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -76,7 +76,9 @@ async function main() {
     process.exit(1);
   }
 
-  logger.info(`Manifest loaded: task=${manifest.taskId}, profile=${manifest.profileId}, hooks=${manifest.hooks.length}`);
+  logger.info(
+    `Manifest loaded: task=${manifest.taskId}, profile=${manifest.profileId}, hooks=${manifest.hooks.length}`,
+  );
 
   // 2. Startup + config
   const config = await new AppStartup().run(logger);
@@ -84,7 +86,9 @@ async function main() {
   // 3. Find profile
   const profile = config.profiles.find((p) => p.id === manifest.profileId);
   if (!profile) {
-    console.error(`Profile "${manifest.profileId}" not found. Available: ${config.profiles.map((p) => p.id).join(", ")}`);
+    console.error(
+      `Profile "${manifest.profileId}" not found. Available: ${config.profiles.map((p) => p.id).join(", ")}`,
+    );
     process.exit(1);
   }
 
@@ -104,7 +108,22 @@ async function main() {
 
   // 6. Build a minimal TaskContext from the manifest
   const ctx = {
-    workItem: { id: manifest.workItemId, source: manifest.source, title: "", status: "", type: "", priority: "", labels: [], components: [], project: "", description: "", created: "", updated: "", customFields: new Map(), sourceData: null },
+    workItem: {
+      id: manifest.workItemId,
+      source: manifest.source,
+      title: "",
+      status: "",
+      type: "",
+      priority: "",
+      labels: [],
+      components: [],
+      project: "",
+      description: "",
+      created: "",
+      updated: "",
+      customFields: new Map(),
+      sourceData: null,
+    },
     profile,
     taskId: manifest.taskId,
     triggerParams: manifest.triggerParams,
@@ -116,7 +135,7 @@ async function main() {
     onToolOutput: undefined,
     onPreToolUse: undefined,
     sourceBranch: "",
-    taskBranch: ""
+    taskBranch: "",
   };
 
   const result = {
@@ -160,10 +179,15 @@ async function main() {
         const { executor, sessionRunner } = cradle.containerFactory.createLocalSession(profile, stage);
 
         logger.info(`${stageLabel} Executing ${stage.agent}...`);
-        const stageResult = await sessionRunner.run(executor, ctx.workItem, { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams }, {
-          maxContinuations: 0,
-          enableContinuation: false,
-        });
+        const stageResult = await sessionRunner.run(
+          executor,
+          ctx.workItem,
+          { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams },
+          {
+            maxContinuations: 0,
+            enableContinuation: false,
+          },
+        );
 
         if (stageResult.status !== TaskStatus.Completed) {
           logger.warn(`${stageLabel} Failed (${stageResult.status}) — skipping remaining stages`);

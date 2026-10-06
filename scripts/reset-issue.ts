@@ -18,7 +18,14 @@
 import "dotenv/config";
 import { resolve } from "node:path";
 import type { ResetContext, JiraEnv, TaskDifficulty } from "./reset-testenv/types.js";
-import { fetchIssue, deleteComments, deleteAttachments, resetFields, transitionToToDo, postComment } from "./reset-testenv/jira.js";
+import {
+  fetchIssue,
+  deleteComments,
+  deleteAttachments,
+  resetFields,
+  transitionToToDo,
+  postComment,
+} from "./reset-testenv/jira.js";
 import { clearLedger, clearTriggerCache, clearLogFiles } from "./reset-testenv/local.js";
 import { cleanBranches } from "./reset-testenv/git.js";
 import { cleanContainers } from "./reset-testenv/docker.js";
@@ -29,7 +36,9 @@ const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
 const issueKey = args[0] || "DOC-3143";
 const triggerFlag = flags.find((f) => f === "--trigger" || f.startsWith("--trigger="));
 const triggerComment = triggerFlag
-  ? (triggerFlag.includes("=") ? triggerFlag.split("=").slice(1).join("=") : "@Ralph")
+  ? triggerFlag.includes("=")
+    ? triggerFlag.split("=").slice(1).join("=")
+    : "@Ralph"
   : null;
 
 const difficulty: TaskDifficulty = flags.includes("--very-hard-admin")

@@ -152,7 +152,7 @@ function extractRefs(content: string): NodeRef[] {
     if (condClose) activeCondition = null;
     if (condElse && activeCondition) {
       // Flip the condition label
-      const label : string = activeCondition.label.startsWith("not ")
+      const label: string = activeCondition.label.startsWith("not ")
         ? activeCondition.label.slice(4)
         : `not ${activeCondition.label}`;
       activeCondition = { label, line: i };
@@ -194,11 +194,11 @@ function extractRefs(content: string): NodeRef[] {
       const esc = escapeRegex(skillName);
       const pattern = new RegExp(
         `(?:` +
-          `\\*\\*${esc}\\*\\*` +             // **skill-name**
-          `|\`${esc}\`` +                     // `skill-name`
-          `|\\|\\s*${esc}\\s*\\|` +           // | skill-name |
-          `|"${esc}"` +                       // "skill-name"
-        `)`,
+          `\\*\\*${esc}\\*\\*` + // **skill-name**
+          `|\`${esc}\`` + // `skill-name`
+          `|\\|\\s*${esc}\\s*\\|` + // | skill-name |
+          `|"${esc}"` + // "skill-name"
+          `)`,
       );
       if (pattern.test(lines[i])) {
         seen.add(key);
@@ -334,7 +334,7 @@ function buildGraph(agent: AgentFile): Map<string, GraphNode> {
       const skillFilePath = path.join(SKILLS_DIR, relPath.replace(/^skills\//, ""), "SKILL.md");
       if (fs.existsSync(skillFilePath)) {
         const skillContent = fs.readFileSync(skillFilePath, "utf-8");
-        crossRefs = extractRefs(skillContent).filter(r => r.type === "skill" && r.target !== skillName);
+        crossRefs = extractRefs(skillContent).filter((r) => r.type === "skill" && r.target !== skillName);
         // Queue newly discovered skills
         for (const cr of crossRefs) {
           if (!visitedSkills.has(cr.target)) {
@@ -362,17 +362,17 @@ const COLORS = {
   reset: "\x1b[0m",
   bold: "\x1b[1m",
   dim: "\x1b[2m",
-  agent: "\x1b[1;36m",       // bold cyan
-  subAgent: "\x1b[36m",      // cyan
-  include: "\x1b[33m",       // yellow
-  skill: "\x1b[32m",         // green
+  agent: "\x1b[1;36m", // bold cyan
+  subAgent: "\x1b[36m", // cyan
+  include: "\x1b[33m", // yellow
+  skill: "\x1b[32m", // green
   skillDomain: "\x1b[32m",
   skillWorkflow: "\x1b[34m", // blue
-  skillInteg: "\x1b[35m",    // magenta
-  skillTask: "\x1b[33m",     // yellow
-  condition: "\x1b[2;35m",   // dim magenta
-  connector: "\x1b[2m",      // dim
-  header: "\x1b[1;37m",      // bold white
+  skillInteg: "\x1b[35m", // magenta
+  skillTask: "\x1b[33m", // yellow
+  condition: "\x1b[2;35m", // dim magenta
+  connector: "\x1b[2m", // dim
+  header: "\x1b[1;37m", // bold white
 };
 
 function skillColor(category?: string): string {
@@ -422,7 +422,9 @@ function renderAsciiTree(agent: AgentFile, graph: Map<string, GraphNode>): strin
     if (depth === 0) {
       lines.push(`${color}${icon} ${node.label}${COLORS.reset}${suffix}`);
     } else {
-      lines.push(`${COLORS.connector}${prefix}${connector}${COLORS.reset}${color}${icon} ${node.label}${COLORS.reset}${suffix}`);
+      lines.push(
+        `${COLORS.connector}${prefix}${connector}${COLORS.reset}${color}${icon} ${node.label}${COLORS.reset}${suffix}`,
+      );
     }
 
     // Prevent infinite loops but still show the node name with a back-ref marker
@@ -478,7 +480,7 @@ function renderAsciiTree(agent: AgentFile, graph: Map<string, GraphNode>): strin
         const groupIsLast = i === children.length - 1;
 
         lines.push(
-          `${COLORS.connector}${nextPrefix}${groupIsLast ? "└── " : "├── "}${COLORS.condition}[${child.condition}]${COLORS.reset}`
+          `${COLORS.connector}${nextPrefix}${groupIsLast ? "└── " : "├── "}${COLORS.condition}[${child.condition}]${COLORS.reset}`,
         );
         const groupPrefix = nextPrefix + (groupIsLast ? "    " : "│   ");
         for (let g = 0; g < group.length; g++) {
@@ -609,9 +611,15 @@ if (!mermaidMode) {
   console.log(`${COLORS.header}╚══════════════════════════════════════════════╝${COLORS.reset}`);
   console.log();
   console.log(`${COLORS.dim}Legend:${COLORS.reset}`);
-  console.log(`  ${COLORS.agent}🤖 Agent${COLORS.reset}    ${COLORS.subAgent}🧩 Sub-agent${COLORS.reset}    ${COLORS.include}📄 Include${COLORS.reset}`);
-  console.log(`  ${COLORS.skillWorkflow}⚡ Skill [workflow]${COLORS.reset}    ${COLORS.skillDomain}⚡ Skill [domain]${COLORS.reset}`);
-  console.log(`  ${COLORS.skillInteg}⚡ Skill [integrations]${COLORS.reset}    ${COLORS.skillTask}⚡ Skill [tasks]${COLORS.reset}`);
+  console.log(
+    `  ${COLORS.agent}🤖 Agent${COLORS.reset}    ${COLORS.subAgent}🧩 Sub-agent${COLORS.reset}    ${COLORS.include}📄 Include${COLORS.reset}`,
+  );
+  console.log(
+    `  ${COLORS.skillWorkflow}⚡ Skill [workflow]${COLORS.reset}    ${COLORS.skillDomain}⚡ Skill [domain]${COLORS.reset}`,
+  );
+  console.log(
+    `  ${COLORS.skillInteg}⚡ Skill [integrations]${COLORS.reset}    ${COLORS.skillTask}⚡ Skill [tasks]${COLORS.reset}`,
+  );
   console.log(`  ${COLORS.condition}[condition]${COLORS.reset} = conditional render`);
   console.log();
 }
@@ -662,7 +670,7 @@ if (!mermaidMode) {
       }
     }
   }
-  const unreferenced = skillNames.filter(s => !allReferencedSkills.has(s));
+  const unreferenced = skillNames.filter((s) => !allReferencedSkills.has(s));
   if (unreferenced.length > 0) {
     console.log(`${COLORS.dim}  Unreferenced skills (not reachable from any agent):${COLORS.reset}`);
     for (const s of unreferenced) {

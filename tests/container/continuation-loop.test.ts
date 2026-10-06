@@ -42,7 +42,10 @@ const cliPaths: CliPaths = {
   logDir: "/workspace/.ralph/logs/cli-debug",
 };
 
-function createMockExecutor(): ICliExecutor & { run: ReturnType<typeof vi.fn>; continueSession: ReturnType<typeof vi.fn> } {
+function createMockExecutor(): ICliExecutor & {
+  run: ReturnType<typeof vi.fn>;
+  continueSession: ReturnType<typeof vi.fn>;
+} {
   return {
     paths: cliPaths,
     run: vi.fn().mockResolvedValue(makeExecResult()),
@@ -102,8 +105,15 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
   };
 
   return new ContainerManager({
-    profile, compose, executor, executorFactory, logs, cleaner,
-    logRegistry, sessionRunner, logger,
+    profile,
+    compose,
+    executor,
+    executorFactory,
+    logs,
+    cleaner,
+    logRegistry,
+    sessionRunner,
+    logger,
     enableContinuation: true,
   });
 }

@@ -13,13 +13,7 @@ describe("ExecutionRow", () => {
     const onSelectFile = vi.fn();
     const onOpenTimeline = vi.fn();
 
-    render(
-      <ExecutionRow
-        group={makeTaskLogGroup()}
-        onSelectFile={onSelectFile}
-        onOpenTimeline={onOpenTimeline}
-      />
-    );
+    render(<ExecutionRow group={makeTaskLogGroup()} onSelectFile={onSelectFile} onOpenTimeline={onOpenTimeline} />);
 
     await user.click(screen.getByRole("button", { name: /Summary/ }));
     await user.click(screen.getByRole("button", { name: /Timeline/ }));
@@ -28,7 +22,7 @@ describe("ExecutionRow", () => {
     expect(onOpenTimeline).toHaveBeenCalledWith(
       "DOC-3141/pre-tool.log",
       "DOC-3141/tool-output.log",
-      "DOC-3141/cli-debug.log"
+      "DOC-3141/cli-debug.log",
     );
   });
 });
@@ -37,13 +31,7 @@ describe("IssueGroupSection", () => {
   it("expands to reveal executions for a task", async () => {
     const user = userEvent.setup();
 
-    render(
-      <IssueGroupSection
-        group={makeIssueGroup()}
-        onSelectFile={() => {}}
-        onOpenTimeline={() => {}}
-      />
-    );
+    render(<IssueGroupSection group={makeIssueGroup()} onSelectFile={() => {}} onOpenTimeline={() => {}} />);
 
     expect(screen.queryByRole("button", { name: /Timeline/ })).toBeNull();
 
@@ -60,9 +48,15 @@ describe("DailyLogsSection", () => {
 
     render(
       <DailyLogsSection
-        logs={[makeTaskLogGroup({ id: "activity-2026-03-07", taskId: "activity-2026-03-07", files: { log: "activity-2026-03-07.log" } })]}
+        logs={[
+          makeTaskLogGroup({
+            id: "activity-2026-03-07",
+            taskId: "activity-2026-03-07",
+            files: { log: "activity-2026-03-07.log" },
+          }),
+        ]}
         onSelectFile={onSelectFile}
-      />
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: /Daily Logs/ }));

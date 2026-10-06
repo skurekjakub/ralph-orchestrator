@@ -41,8 +41,8 @@ export function repoUrl(project: string, repositoryId: string, path: string) {
 }
 
 export function errorResult(err: unknown) {
-  const status = axios.isAxiosError(err) ? err.response?.status ?? 0 : 0;
-  const message = axios.isAxiosError(err) ? err.response?.data ?? err.message : String(err);
+  const status = axios.isAxiosError(err) ? (err.response?.status ?? 0) : 0;
+  const message = axios.isAxiosError(err) ? (err.response?.data ?? err.message) : String(err);
   return {
     content: [{ type: "text" as const, text: JSON.stringify({ error: true, status, message }) }],
     isError: true,
@@ -89,16 +89,23 @@ export async function gitExec(args: string[]): Promise<{ stdout: string; stderr:
   if (!ADO_PAT) throw new Error("ADO_PAT env var is not set — cannot authenticate git");
 
   try {
-    return await execFileAsync("git", [
-      "-c", `user.name=${GIT_USER_NAME}`,
-      "-c", `user.email=${GIT_USER_EMAIL}`,
-      "-c", `http.extraHeader=Authorization: ${authHeader}`,
-      ...args,
-    ], {
-      cwd: REPO_ROOT,
-      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      timeout: 120_000,
-    });
+    return await execFileAsync(
+      "git",
+      [
+        "-c",
+        `user.name=${GIT_USER_NAME}`,
+        "-c",
+        `user.email=${GIT_USER_EMAIL}`,
+        "-c",
+        `http.extraHeader=Authorization: ${authHeader}`,
+        ...args,
+      ],
+      {
+        cwd: REPO_ROOT,
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+        timeout: 120_000,
+      },
+    );
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(msg.replaceAll(ADO_PAT, "***"));
@@ -106,32 +113,30 @@ export async function gitExec(args: string[]): Promise<{ stdout: string; stderr:
 }
 
 /** Stage all changes, commit, and force-push to a task branch. */
-export async function gitStageCommitPush(
-  message: string, branch: string,
-): Promise<{ stdout: string; stderr: string }> {
+export async function gitStageCommitPush(message: string, branch: string): Promise<{ stdout: string; stderr: string }> {
   let isIgnored = false;
 
   // Stage
   try {
-      // git check-ignore exits with 0 if ignored
-      await gitExec(["check-ignore", "-q", ".ralph/"]);
-      isIgnored = true; 
+    // git check-ignore exits with 0 if ignored
+    await gitExec(["check-ignore", "-q", ".ralph/"]);
+    isIgnored = true;
   } catch (error) {
-      // exits with code 1 if not ignored
-      isIgnored = false; 
+    // exits with code 1 if not ignored
+    isIgnored = false;
   }
 
   if (isIgnored) {
-      // It's already in .gitignore, safe to use -A
-      await gitExec(["add", "-A"]);
+    // It's already in .gitignore, safe to use -A
+    await gitExec(["add", "-A"]);
   } else {
-      // It's not in .gitignore, we must exclude it manually
-      await gitExec(["add", ".", ":!.ralph/*"]);
+    // It's not in .gitignore, we must exclude it manually
+    await gitExec(["add", ".", ":!.ralph/*"]);
   }
 
   // Commit
   await gitExec(["commit", "-m", message, "--allow-empty"]);
-  
+
   // Push
   return gitExec(["push", "origin", `HEAD:refs/heads/${branch}`, "--force-with-lease"]);
 }

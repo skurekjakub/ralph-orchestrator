@@ -94,21 +94,33 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     const profileJsonPath = join(profilesDir, profileId.name, "profile.json");
     if (!existsSync(profileJsonPath)) continue;
 
-    let parsed: { mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[]; allowlistDomains?: string[]; resources?: ResourceConfig; variants?: { stages?: { skills?: string[] }[]; mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[] }[] };
+    let parsed: {
+      mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[];
+      allowlistDomains?: string[];
+      resources?: ResourceConfig;
+      variants?: {
+        stages?: { skills?: string[] }[];
+        mcpServers?: (string | { name: string; sidecarEnv?: Record<string, string> })[];
+      }[];
+    };
     try {
       parsed = JSON.parse(readFileSync(profileJsonPath, "utf-8"));
     } catch (err) {
-      logger?.warn(`Skipping profile ${profileId.name}: failed to parse profile.json — ${err instanceof Error ? err.message : err}`);
+      logger?.warn(
+        `Skipping profile ${profileId.name}: failed to parse profile.json — ${err instanceof Error ? err.message : err}`,
+      );
       continue;
     }
 
     // Union of profile-level + all variant-level mcpServers for the startup overlay
-    const profileServerNames = (parsed.mcpServers ?? []).map((s) => typeof s === "string" ? s : s.name);
+    const profileServerNames = (parsed.mcpServers ?? []).map((s) => (typeof s === "string" ? s : s.name));
     const variantServerNames = (parsed.variants ?? []).flatMap((v) =>
-      (v.mcpServers ?? []).map((s: string | { name: string }) => typeof s === "string" ? s : s.name),
+      (v.mcpServers ?? []).map((s: string | { name: string }) => (typeof s === "string" ? s : s.name)),
     );
     const serverNames = [...new Set([...profileServerNames, ...variantServerNames])];
-    logger?.info(`Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`);
+    logger?.info(
+      `Setting up profile ${profileId.name} (${serverNames.length} MCP server${serverNames.length === 1 ? "" : "s"})`,
+    );
 
     // Startup mcp-config includes ALL servers (union). Per-task writer narrows to variant scope.
     const config = generateMcpConfig(mcpServersDir, serverNames);
@@ -127,38 +139,23 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
     // to hide orchestrator-managed runtime files from git inside the container
     writeFileSync(join(buildDir, ".gitignore"), "*\n", "utf-8");
 
-    writeFileSync(
-      join(buildDir, "mcp-config.json"),
-      JSON.stringify(config, null, 2) + "\n",
-      "utf-8",
-    );
+    writeFileSync(join(buildDir, "mcp-config.json"), JSON.stringify(config, null, 2) + "\n", "utf-8");
 
-    writeFileSync(
-      join(buildDir, "gateway.json"),
-      JSON.stringify(gatewayConfig, null, 2) + "\n",
-      "utf-8",
-    );
+    writeFileSync(join(buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
 
     const profileDir = join(profilesDir, profileId.name);
-    const resourceVolumes = parsed.resources
-      ? generateResourceVolumeMounts(profileDir, parsed.resources)
-      : [];
+    const resourceVolumes = parsed.resources ? generateResourceVolumeMounts(profileDir, parsed.resources) : [];
     const agentVolumes = generateAgentVolumeMounts(profileDir);
-    const skillNames = [...new Set(
-      (parsed.variants ?? []).flatMap((v) =>
-        (v.stages ?? []).flatMap((s) => s.skills ?? []),
-      ),
-    )];
+    const skillNames = [
+      ...new Set((parsed.variants ?? []).flatMap((v) => (v.stages ?? []).flatMap((s) => s.skills ?? []))),
+    ];
     const skillVolumes = generateSkillVolumeMounts(skillsDir, skillNames);
 
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
 
     // Collect sidecar container-level env from all MCP server entries (profile + variants).
     const sidecarEnv: Record<string, string> = {};
-    const allEntries = [
-      ...(parsed.mcpServers ?? []),
-      ...(parsed.variants ?? []).flatMap((v) => v.mcpServers ?? []),
-    ];
+    const allEntries = [...(parsed.mcpServers ?? []), ...(parsed.variants ?? []).flatMap((v) => v.mcpServers ?? [])];
     for (const e of allEntries) {
       if (typeof e !== "string" && e.sidecarEnv) {
         Object.assign(sidecarEnv, e.sidecarEnv);
@@ -173,12 +170,16 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
       chmodSync(preInitPath, 0o755);
     }
 
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes, sidecarEnv, preInitScript !== null);
-    writeFileSync(
-      join(buildDir, "docker-compose.overlay.yml"),
-      overlay,
-      "utf-8",
+    const overlay = generateComposeOverlay(
+      mcpServersDir,
+      serverNames,
+      buildDir,
+      sidecarDir,
+      extraVolumes,
+      sidecarEnv,
+      preInitScript !== null,
     );
+    writeFileSync(join(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
 
     if (hasBaselineSquid) {
       const squidConf = generateProfileSquidConf(baselineSquidPath, parsed.allowlistDomains ?? []);
@@ -189,7 +190,9 @@ export function resolveAllProfileSetup(rootDir?: string, logger?: Logger): void 
           .split("\n")
           .filter((l) => l.startsWith("acl allowed_domains dstdomain"))
           .map((l) => l.replace("acl allowed_domains dstdomain ", ""));
-        logger.info(`  → squid.conf: ${domains.length} allowed domain${domains.length === 1 ? "" : "s"}: ${domains.join(", ")}`);
+        logger.info(
+          `  → squid.conf: ${domains.length} allowed domain${domains.length === 1 ? "" : "s"}: ${domains.join(", ")}`,
+        );
       }
     }
 

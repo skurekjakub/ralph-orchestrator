@@ -4,9 +4,7 @@ import type { Logger } from "../logger.js";
 import type { IResourceManager } from "./task-resource-manager.js";
 import type { IVcsSourceClient, PullRequestBranchInfo } from "./vcs-source-client.js";
 
-export type PreflightResult =
-  | { ok: true }
-  | { ok: false; reason: string };
+export type PreflightResult = { ok: true } | { ok: false; reason: string };
 
 /** Context gathered by the orchestrator and passed to preflight checks. */
 export interface PreflightContext {
@@ -21,7 +19,8 @@ export interface PreflightContext {
 
 type PreflightCheck = (workItem: WorkItem, ctx: PreflightContext) => PreflightResult;
 
-const PR_URL_PATTERN = /https?:\/\/(?:github\.com|dev\.azure\.com|bitbucket\.org)[^\s)>]+\/pull(?:request|-requests)?\/\d+/i;
+const PR_URL_PATTERN =
+  /https?:\/\/(?:github\.com|dev\.azure\.com|bitbucket\.org)[^\s)>]+\/pull(?:request|-requests)?\/\d+/i;
 
 function findPrUrl(comments: WorkItemComment[]): string | null {
   for (let i = comments.length - 1; i >= 0; i--) {
@@ -38,8 +37,10 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
     return { ok: true };
   },
   "revision-ready": (_workItem, ctx) => {
-    if (!ctx.prUrl) return { ok: false, reason: "No PR URL found in comments — revision requires an existing pull request" };
-    if (!ctx.handoffContent) return { ok: false, reason: "No handoff.md attachment found — revision requires a previous handoff" };
+    if (!ctx.prUrl)
+      return { ok: false, reason: "No PR URL found in comments — revision requires an existing pull request" };
+    if (!ctx.handoffContent)
+      return { ok: false, reason: "No handoff.md attachment found — revision requires a previous handoff" };
     return { ok: true };
   },
 };
@@ -84,11 +85,7 @@ export async function buildPreflightContext(
  * Run a named preflight check. Returns `{ ok: true }` if the check name
  * is not registered (unknown checks pass by default).
  */
-export function runPreflight(
-  name: string,
-  workItem: WorkItem,
-  ctx: PreflightContext,
-): PreflightResult {
+export function runPreflight(name: string, workItem: WorkItem, ctx: PreflightContext): PreflightResult {
   const check = PREFLIGHT_CHECKS[name];
   if (!check) return { ok: true };
   return check(workItem, ctx);

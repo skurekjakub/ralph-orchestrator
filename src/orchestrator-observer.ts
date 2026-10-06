@@ -1,5 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { OrchestratorStatus, LogSource, type OrchestratorState, type CompletedTask, type ActiveTask, type LogEntry } from "./orchestrator-types.js";
+import {
+  OrchestratorStatus,
+  LogSource,
+  type OrchestratorState,
+  type CompletedTask,
+  type ActiveTask,
+  type LogEntry,
+} from "./orchestrator-types.js";
 import { HeartbeatStatus } from "./services/heartbeat.js";
 
 /** Live data the observer reads from the orchestrator on each state snapshot. */
@@ -56,11 +63,7 @@ export class OrchestratorObserver {
     const ctx = this.context();
     const task = ctx.activeTask;
     return {
-      status: !ctx.running
-        ? OrchestratorStatus.Stopping
-        : task
-          ? OrchestratorStatus.Working
-          : OrchestratorStatus.Idle,
+      status: !ctx.running ? OrchestratorStatus.Stopping : task ? OrchestratorStatus.Working : OrchestratorStatus.Idle,
       currentIssue: task
         ? {
             key: task.workItem.id,
@@ -89,18 +92,14 @@ export class OrchestratorObserver {
     const lastCompleted = this.completedToday.at(-1);
     return {
       agentId: this.agentId,
-      status: (!ctx.running ? HeartbeatStatus.Stopped : task ? HeartbeatStatus.Working : HeartbeatStatus.Polling),
+      status: !ctx.running ? HeartbeatStatus.Stopped : task ? HeartbeatStatus.Working : HeartbeatStatus.Polling,
       queueSize: ctx.pendingOps.length,
       currentTask: task?.workItem.id ?? null,
-      currentTaskStartedAt: task
-        ? new Date(task.startedAt).toISOString()
-        : null,
+      currentTaskStartedAt: task ? new Date(task.startedAt).toISOString() : null,
       profileId: task?.profile.id ?? null,
       totalProcessed: this.completedToday.length,
       lastCompletedTask: lastCompleted?.key ?? null,
-      lastCompletedAt: lastCompleted?.completedAt
-        ? new Date(lastCompleted.completedAt).toISOString()
-        : null,
+      lastCompletedAt: lastCompleted?.completedAt ? new Date(lastCompleted.completedAt).toISOString() : null,
     };
   }
 }

@@ -20,10 +20,7 @@ export class TaskResourceManager implements IResourceManager {
   /** Retry options — settable for test injection (not part of the DI cradle). */
   retryOptions?: RetryOptions;
 
-  constructor({ connectors, logger }: {
-    connectors: ReadonlyMap<string, IDataSourceConnector>;
-    logger: Logger;
-  }) {
+  constructor({ connectors, logger }: { connectors: ReadonlyMap<string, IDataSourceConnector>; logger: Logger }) {
     this.connectors = connectors;
     this.logger = logger;
   }
@@ -44,17 +41,13 @@ export class TaskResourceManager implements IResourceManager {
   async fetchComments(source: string, workItemId: string): Promise<string[]> {
     const connector = this.resolveConnector(source);
     const comments = await connector.getComments(workItemId).catch((err) => {
-      this.logger.warn(
-        `Failed to fetch comments for ${workItemId}: ${toErrorMessage(err)}`
-      );
+      this.logger.warn(`Failed to fetch comments for ${workItemId}: ${toErrorMessage(err)}`);
       return [];
     });
 
     return comments
       .filter((c) => !c.body.trimStart().startsWith("[Ralph-Orchestrator]"))
-      .map((c) =>
-        `[${c.created}] ${c.authorName}:\n${c.body.trim()}`
-      );
+      .map((c) => `[${c.created}] ${c.authorName}:\n${c.body.trim()}`);
   }
 
   async fetchHandoff(source: string, workItemId: string): Promise<string | null> {
@@ -62,9 +55,7 @@ export class TaskResourceManager implements IResourceManager {
     if (!attachments) return null;
 
     const attachmentList = await attachments.getAttachments(workItemId).catch((err) => {
-      this.logger.warn(
-        `Failed to fetch attachments for ${workItemId}: ${toErrorMessage(err)}`
-      );
+      this.logger.warn(`Failed to fetch attachments for ${workItemId}: ${toErrorMessage(err)}`);
       return [];
     });
 
@@ -75,14 +66,9 @@ export class TaskResourceManager implements IResourceManager {
     if (handoffAttachments.length === 0) return null;
 
     try {
-      return await attachments.downloadAttachment(
-        workItemId,
-        handoffAttachments[0].id,
-      );
+      return await attachments.downloadAttachment(workItemId, handoffAttachments[0].id);
     } catch (err) {
-      this.logger.warn(
-        `Failed to download handoff for ${workItemId}: ${toErrorMessage(err)}`
-      );
+      this.logger.warn(`Failed to download handoff for ${workItemId}: ${toErrorMessage(err)}`);
       return null;
     }
   }
@@ -107,9 +93,7 @@ export class TaskResourceManager implements IResourceManager {
       );
       this.logger.info(`Session transcript attached to ${workItemId}`);
     } catch (err) {
-      this.logger.warn(
-        `Failed to attach transcript to ${workItemId}: ${toErrorMessage(err)}`
-      );
+      this.logger.warn(`Failed to attach transcript to ${workItemId}: ${toErrorMessage(err)}`);
     }
   }
 }

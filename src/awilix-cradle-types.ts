@@ -1,4 +1,12 @@
-import type { IDataSourceConfig, IOutputConfig, IDashboardConfig, ISecretsConfig, IPromptAuditConfig, IRalphchivesConfig, IAgentProfile } from "./config/types.js";
+import type {
+  IDataSourceConfig,
+  IOutputConfig,
+  IDashboardConfig,
+  ISecretsConfig,
+  IPromptAuditConfig,
+  IRalphchivesConfig,
+  IAgentProfile,
+} from "./config/types.js";
 import type { IActivityLog } from "./services/activity-log.js";
 import type { Logger } from "./logger.js";
 import type { IOperationLedger } from "./services/operation-ledger.js";

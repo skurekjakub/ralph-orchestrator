@@ -19,16 +19,16 @@ Typical log size: **10K–40K lines**. Never read the entire file at once — us
 
 The cli-debug.log is a timestamped debug stream. Key event types:
 
-| Event pattern | What it marks |
-|---|---|
-| `subagent_started` | Beginning of a subagent invocation span |
-| `subagent_completed` | End of a subagent invocation span |
-| `getOrCreateAgent.*final model` | Model resolved for a subagent |
-| `tool_call_executed` | A tool was invoked (within the active span) |
-| `assistant_usage` | LLM turn completed — contains token counts |
-| `CompactionProcessor` | Context window compaction — shows `used/max (pct%)` |
-| `falling back to session model` | Model fallback occurred |
-| `"function"` | Function/tool name in a tool call (extractable for sequencing) |
+| Event pattern                   | What it marks                                                  |
+| ------------------------------- | -------------------------------------------------------------- |
+| `subagent_started`              | Beginning of a subagent invocation span                        |
+| `subagent_completed`            | End of a subagent invocation span                              |
+| `getOrCreateAgent.*final model` | Model resolved for a subagent                                  |
+| `tool_call_executed`            | A tool was invoked (within the active span)                    |
+| `assistant_usage`               | LLM turn completed — contains token counts                     |
+| `CompactionProcessor`           | Context window compaction — shows `used/max (pct%)`            |
+| `falling back to session model` | Model fallback occurred                                        |
+| `"function"`                    | Function/tool name in a tool call (extractable for sequencing) |
 
 ## Extraction Recipes
 
@@ -113,17 +113,18 @@ Cross-reference with span boundaries to identify which tool calls belong to the 
 
 After extracting a subagent's tool sequence (recipe 2), evaluate:
 
-| Dimension | What to look for |
-|---|---|
-| Tool selection | Right tool for the role? (researchers: search/read, writers: create/edit, reviewers: diff/read) |
-| Efficiency | Redundant reads, excessive retries, unnecessary searches |
-| Error recovery | Did it detect and recover from failures? |
-| Duration proportionality | Tool calls × complexity should be proportional to role |
-| MCP utilization | Available MCP tools used vs. ignored |
+| Dimension                | What to look for                                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| Tool selection           | Right tool for the role? (researchers: search/read, writers: create/edit, reviewers: diff/read) |
+| Efficiency               | Redundant reads, excessive retries, unnecessary searches                                        |
+| Error recovery           | Did it detect and recover from failures?                                                        |
+| Duration proportionality | Tool calls × complexity should be proportional to role                                          |
+| MCP utilization          | Available MCP tools used vs. ignored                                                            |
 
 ### Context pressure assessment
 
 After extracting compaction events (recipe 6):
+
 - Map each event to its active subagent span
 - Flag subagents with >80% context utilization
 - Note any compaction that interrupted mid-task work
@@ -131,6 +132,7 @@ After extracting compaction events (recipe 6):
 ### Cross-subagent analysis
 
 After mapping all spans (recipe 1):
+
 - Compare tool call counts across subagents — are they proportional to role complexity?
 - Identify duplicated work (same search terms in different subagent spans)
 - Check dispatch order matches the expected workflow phases

@@ -44,11 +44,11 @@ All outbound network traffic is blocked by default via a forward proxy (Squid or
 
 **Whitelisted endpoints:**
 
-| Destination | Purpose |
-|---|---|
-| `api.anthropic.com` | LLM API access |
-| MCP server (localhost or internal URL) | All external side effects |
-| Package registries (npm, pip, etc.) | Dependency installation if needed |
+| Destination                            | Purpose                           |
+| -------------------------------------- | --------------------------------- |
+| `api.anthropic.com`                    | LLM API access                    |
+| MCP server (localhost or internal URL) | All external side effects         |
+| Package registries (npm, pip, etc.)    | Dependency installation if needed |
 
 **Blocked:**
 
@@ -122,9 +122,9 @@ git fetch reference
 
 The workspace has two remotes:
 
-| Remote | Purpose | Agent Access |
-|---|---|---|
-| `origin` | Working repo — where changes are pushed | Push via MCP tool only |
+| Remote      | Purpose                                   | Agent Access               |
+| ----------- | ----------------------------------------- | -------------------------- |
+| `origin`    | Working repo — where changes are pushed   | Push via MCP tool only     |
 | `reference` | Source of truth for diffs and comparisons | Read-only, local refs only |
 
 After the orchestrator fetches both remotes, all data is local. The agent uses standard git ref prefixes (`origin/`, `reference/`) to differentiate:
@@ -153,8 +153,8 @@ The MCP server is **stateless per tool call**. No in-memory state, no session tr
 The MCP server is rooted at the repo root on the shared volume and runs all git commands from there:
 
 ```javascript
-const REPO_ROOT = '/workspace/repo'  // shared volume mount
-const TASK_BRANCH = process.env.TASK_BRANCH  // set by orchestrator
+const REPO_ROOT = "/workspace/repo"; // shared volume mount
+const TASK_BRANCH = process.env.TASK_BRANCH; // set by orchestrator
 ```
 
 ### Task Context
@@ -164,11 +164,11 @@ Set once by the orchestrator as environment variables before the MCP server star
 ```javascript
 // Environment variables set by orchestrator
 const taskContext = {
-  TASK_BRANCH: process.env.TASK_BRANCH,       // "agent/task-1234"
-  JIRA_ISSUE: process.env.JIRA_ISSUE,         // "PROJ-1234"
-  SLACK_CHANNEL: process.env.SLACK_CHANNEL,    // "#agent-updates"
-  REPO_ROOT: process.env.REPO_ROOT,            // "/workspace/repo"
-}
+  TASK_BRANCH: process.env.TASK_BRANCH, // "agent/task-1234"
+  JIRA_ISSUE: process.env.JIRA_ISSUE, // "PROJ-1234"
+  SLACK_CHANNEL: process.env.SLACK_CHANNEL, // "#agent-updates"
+  REPO_ROOT: process.env.REPO_ROOT, // "/workspace/repo"
+};
 ```
 
 ### Tool Definitions
@@ -181,34 +181,32 @@ Fetches latest changes from both remotes. Does not modify the agent's working tr
 // No parameters. Agent cannot control what is fetched or from where.
 
 function handleSyncRemote() {
-  const cwd = REPO_ROOT
+  const cwd = REPO_ROOT;
   const gitEnv = {
     ...process.env,
-    GIT_ASKPASS: '/path/to/credential-helper',
-    GIT_TERMINAL_PROMPT: '0'
-  }
+    GIT_ASKPASS: "/path/to/credential-helper",
+    GIT_TERMINAL_PROMPT: "0",
+  };
 
   // Fetch both remotes
-  execSync(`git fetch origin`, { cwd, env: gitEnv, timeout: 60000 })
-  execSync(`git fetch reference`, { cwd, env: gitEnv, timeout: 60000 })
+  execSync(`git fetch origin`, { cwd, env: gitEnv, timeout: 60000 });
+  execSync(`git fetch reference`, { cwd, env: gitEnv, timeout: 60000 });
 
   // Return context so the agent knows where it stands
-  const status = execSync(
-    `git rev-list --left-right --count HEAD...origin/main`,
-    { cwd }
-  ).toString().trim()
+  const status = execSync(`git rev-list --left-right --count HEAD...origin/main`, { cwd }).toString().trim();
 
-  const [behind, ahead] = status.split('\t')
+  const [behind, ahead] = status.split("\t");
 
   return {
     synced: true,
-    current_branch: execSync('git rev-parse --abbrev-ref HEAD', { cwd }).toString().trim(),
+    current_branch: execSync("git rev-parse --abbrev-ref HEAD", { cwd }).toString().trim(),
     commits_ahead_of_main: parseInt(ahead),
     commits_behind_main: parseInt(behind),
-    hint: behind > 0
-      ? "You're behind origin/main. Consider rebasing with: git rebase origin/main"
-      : "You're up to date with origin/main"
-  }
+    hint:
+      behind > 0
+        ? "You're behind origin/main. Consider rebasing with: git rebase origin/main"
+        : "You're up to date with origin/main",
+  };
 }
 ```
 
@@ -220,24 +218,21 @@ Saves the agent's current work-in-progress to the remote. Always pushes to the a
 // No parameters. Branch is determined by task context.
 
 function handlePushProgress() {
-  execSync(
-    `git push origin HEAD:refs/heads/${TASK_BRANCH}`,
-    {
-      cwd: REPO_ROOT,
-      env: {
-        ...process.env,
-        GIT_ASKPASS: '/path/to/credential-helper',
-        GIT_TERMINAL_PROMPT: '0'
-      },
-      timeout: 60000
-    }
-  )
+  execSync(`git push origin HEAD:refs/heads/${TASK_BRANCH}`, {
+    cwd: REPO_ROOT,
+    env: {
+      ...process.env,
+      GIT_ASKPASS: "/path/to/credential-helper",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+    timeout: 60000,
+  });
 
   return {
     pushed: true,
     branch: TASK_BRANCH,
-    commit: execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim()
-  }
+    commit: execSync("git rev-parse HEAD", { cwd: REPO_ROOT }).toString().trim(),
+  };
 }
 ```
 
@@ -372,17 +367,17 @@ You cannot push directly. Do not attempt to.
 
 ## 7. Security Summary
 
-| Layer | What It Prevents |
-|---|---|
-| **Squid proxy (egress block)** | Agent reaching any external service directly |
-| **No credentials in agent container** | Agent authenticating with any remote service |
-| **Credential helper isolated to MCP container** | Agent reading credentials off disk |
-| **MCP tool destination scoping** | Agent pushing to wrong branches, commenting on wrong issues |
-| **Stateless MCP tools** | State leakage or confusion between tool calls |
-| **Ephemeral containers** | State leaking between tasks, credential accumulation |
-| **Git refspec control (`HEAD:refs/heads/<branch>`)** | Agent controlling where code is pushed on the remote |
-| **Pre-cloned workspace with `--reference` cache** | Agent needing clone credentials; fast startup without persistence |
-| **CLI wrapper guardrails (prompt-level)** | Defense in depth — reduces likelihood of agent going off-script, but not relied upon as the security boundary |
+| Layer                                                | What It Prevents                                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Squid proxy (egress block)**                       | Agent reaching any external service directly                                                                  |
+| **No credentials in agent container**                | Agent authenticating with any remote service                                                                  |
+| **Credential helper isolated to MCP container**      | Agent reading credentials off disk                                                                            |
+| **MCP tool destination scoping**                     | Agent pushing to wrong branches, commenting on wrong issues                                                   |
+| **Stateless MCP tools**                              | State leakage or confusion between tool calls                                                                 |
+| **Ephemeral containers**                             | State leaking between tasks, credential accumulation                                                          |
+| **Git refspec control (`HEAD:refs/heads/<branch>`)** | Agent controlling where code is pushed on the remote                                                          |
+| **Pre-cloned workspace with `--reference` cache**    | Agent needing clone credentials; fast startup without persistence                                             |
+| **CLI wrapper guardrails (prompt-level)**            | Defense in depth — reduces likelihood of agent going off-script, but not relied upon as the security boundary |
 
 The fundamental principle: **local freedom, controlled egress**. The agent can do whatever it needs inside its sandbox. Every action that crosses the sandbox boundary goes through a stateless tool where you control the destination.
 

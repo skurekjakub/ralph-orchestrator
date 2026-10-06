@@ -28,11 +28,11 @@ This affected all three custom MCP servers (ADO, JIRA, Discord) since they all s
 
 Three sidecar logs were compared:
 
-| Run | Servers | Playwright? | ADO crash? |
-|-----|---------|-------------|-----------|
-| local-run-...937543 | jira, ado | No | No |
-| DOC-3143-...443908 | jira, ado, playwright | Yes | Yes — SIGABRT |
-| DOC-3143-...798148 | jira, ado, playwright | Yes | Yes — SIGABRT |
+| Run                 | Servers               | Playwright? | ADO crash?    |
+| ------------------- | --------------------- | ----------- | ------------- |
+| local-run-...937543 | jira, ado             | No          | No            |
+| DOC-3143-...443908  | jira, ado, playwright | Yes         | Yes — SIGABRT |
+| DOC-3143-...798148  | jira, ado, playwright | Yes         | Yes — SIGABRT |
 
 In both Playwright runs, ADO crashes at the **exact same point**: immediately after Playwright's massive `tools/list` response passes through supergateway. ADO is completely idle at this point — no tool calls, no HTTP connections, just an `http.createServer()` in the event loop.
 
@@ -42,15 +42,15 @@ The sidecar's Docker `pids` limit was set to **100**. Linux cgroup PID limits co
 
 During Playwright initialization via `npx`:
 
-| Component | Processes | Est. threads |
-|-----------|-----------|-------------|
-| gateway | 1 | ~8 |
-| jira-kentico | 1 | ~8 |
-| ado | 1 | ~8 |
-| supergateway | 1 | ~8 |
-| npx (npm resolution) | 1-2 | ~10 |
-| @playwright/mcp | 1 | ~8 |
-| **Total** | **6-8** | **~50-60 baseline** |
+| Component            | Processes | Est. threads        |
+| -------------------- | --------- | ------------------- |
+| gateway              | 1         | ~8                  |
+| jira-kentico         | 1         | ~8                  |
+| ado                  | 1         | ~8                  |
+| supergateway         | 1         | ~8                  |
+| npx (npm resolution) | 1-2       | ~10                 |
+| @playwright/mcp      | 1         | ~8                  |
+| **Total**            | **6-8**   | **~50-60 baseline** |
 
 During `npx` startup/resolution, thread counts spike as npm resolves packages and spawns subprocesses. If total threads hit 100, any `clone()` syscall in the container returns `EAGAIN`. If the ADO process's V8 GC or libuv needs to create a thread (or even if a libuv assertion fires on unexpected EAGAIN), it calls `abort()` → SIGABRT.
 
@@ -71,6 +71,7 @@ After the gateway restarted the ADO process, the new instance had `_initialized 
 2. Checks `Mcp-Session-Id` header — if missing or unknown, returns `400 "Bad Request"`
 
 The MCP client (Copilot CLI) had established a session with the original process. On restart:
+
 - The new process had no sessions registered
 - The client sent requests with the old session ID
 - The server rejected every request with `400`
@@ -93,11 +94,14 @@ await mcpServer.connect(transport);
 // Single transport handles all requests, tracks sessions
 
 // After (stateless — survives restarts)
-const mcpServer = createMcpServer();  // Fresh per request
+const mcpServer = createMcpServer(); // Fresh per request
 const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined,       // Disables session validation
+  sessionIdGenerator: undefined, // Disables session validation
 });
-res.on("close", () => { transport.close(); mcpServer.close(); });
+res.on("close", () => {
+  transport.close();
+  mcpServer.close();
+});
 await mcpServer.connect(transport);
 await transport.handleRequest(req, res, body);
 ```
@@ -105,6 +109,7 @@ await transport.handleRequest(req, res, body);
 With `sessionIdGenerator: undefined`, the MCP SDK's `validateSession()` skips all checks — no `_initialized` gate, no session ID matching. Each HTTP request creates a fresh server + transport, so there's no state to lose across restarts.
 
 **Files changed:**
+
 - `shared/mcp-servers/ado/src/index.ts`
 - `shared/mcp-servers/jira-kentico/src/index.ts`
 - `shared/mcp-servers/discord-hitl/src/index.ts`

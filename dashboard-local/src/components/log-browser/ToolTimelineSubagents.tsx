@@ -35,9 +35,7 @@ export function SubagentOverview({ spans }: { spans: SubagentSpan[] }) {
 
               return (
                 <div key={span.name} className="flex items-center gap-2 h-5">
-                  <span className="w-36 text-[10px] font-mono text-cyan-400 truncate shrink-0">
-                    {span.name}
-                  </span>
+                  <span className="w-36 text-[10px] font-mono text-cyan-400 truncate shrink-0">{span.name}</span>
                   <div className="flex-1 h-3 rounded-sm bg-border/20 relative overflow-hidden">
                     <div
                       className="absolute top-0 h-full rounded-sm"
@@ -52,9 +50,7 @@ export function SubagentOverview({ spans }: { spans: SubagentSpan[] }) {
                   <span className="w-20 text-[10px] font-mono text-dim text-right shrink-0">
                     {formatMs(span.durationMs ?? 0)}
                   </span>
-                  <span className="w-12 text-[10px] text-dim text-right shrink-0">
-                    {span.toolCallCount} tc
-                  </span>
+                  <span className="w-12 text-[10px] text-dim text-right shrink-0">{span.toolCallCount} tc</span>
                 </div>
               );
             })}
@@ -103,17 +99,11 @@ export function SubagentInnerTimeline({ span }: { span: SubagentSpan }) {
         <span className="text-[11px] font-semibold" style={{ color: "#22d3ee" }}>
           {span.name}
         </span>
-        <span className="text-[10px] font-mono text-dim">
-          {span.resolvedModel}
-        </span>
+        <span className="text-[10px] font-mono text-dim">{span.resolvedModel}</span>
         {span.didFallback && span.definitionModel && (
-          <span className="text-[9px] px-1 py-px rounded bg-warn/20 text-warn">
-            wanted {span.definitionModel}
-          </span>
+          <span className="text-[9px] px-1 py-px rounded bg-warn/20 text-warn">wanted {span.definitionModel}</span>
         )}
-        <span className="text-[10px] text-dim">
-          {formatMs(span.durationMs ?? 0)}
-        </span>
+        <span className="text-[10px] text-dim">{formatMs(span.durationMs ?? 0)}</span>
         <span className="text-[10px] text-dim">
           {span.toolCallCount} tool calls · {span.modelCallCount} LLM turns
         </span>
@@ -121,10 +111,16 @@ export function SubagentInnerTimeline({ span }: { span: SubagentSpan }) {
 
       <div className="flex gap-3 text-[10px] text-dim">
         <span>
-          Start: <span className="text-text font-mono">{span.startTs ? new Date(span.startTs).toLocaleTimeString("en-GB", { hour12: false }) : "?"}</span>
+          Start:{" "}
+          <span className="text-text font-mono">
+            {span.startTs ? new Date(span.startTs).toLocaleTimeString("en-GB", { hour12: false }) : "?"}
+          </span>
         </span>
         <span>
-          End: <span className="text-text font-mono">{span.endTs ? new Date(span.endTs).toLocaleTimeString("en-GB", { hour12: false }) : "?"}</span>
+          End:{" "}
+          <span className="text-text font-mono">
+            {span.endTs ? new Date(span.endTs).toLocaleTimeString("en-GB", { hour12: false }) : "?"}
+          </span>
         </span>
       </div>
 
@@ -148,7 +144,10 @@ export function SubagentInnerTimeline({ span }: { span: SubagentSpan }) {
                 return (
                   <div key={tool} className="flex items-center gap-2 h-4">
                     <span className="w-44 text-[10px] font-mono truncate shrink-0" style={{ color: CAT_HEX[category] }}>
-                      <span className="w-2 h-2 rounded-sm inline-block mr-1" style={{ backgroundColor: CAT_HEX[category] }} />
+                      <span
+                        className="w-2 h-2 rounded-sm inline-block mr-1"
+                        style={{ backgroundColor: CAT_HEX[category] }}
+                      />
                       {tool}
                     </span>
                     <div className="flex-1 h-2 rounded-sm bg-border/20 overflow-hidden">
@@ -177,9 +176,7 @@ export function SubagentInnerTimeline({ span }: { span: SubagentSpan }) {
             {showCalls ? "Hide" : "Show"} {span.toolCalls.length} tool calls
           </button>
 
-          {showCalls && (
-            <SubagentCallTable toolCalls={span.toolCalls} spanStartMs={span.startMs} />
-          )}
+          {showCalls && <SubagentCallTable toolCalls={span.toolCalls} spanStartMs={span.startMs} />}
         </div>
       )}
     </div>
@@ -216,7 +213,10 @@ function SubagentCallTable({ toolCalls, spanStartMs }: { toolCalls: SubagentSpan
               <span className="w-14 text-[10px] font-mono text-dim">
                 {toolCall.ts ? new Date(toolCall.ts).toLocaleTimeString("en-GB", { hour12: false }) : "—"}
               </span>
-              <span className="flex-1 text-[10px] font-mono flex items-center gap-1.5" style={{ color: CAT_HEX[category] }}>
+              <span
+                className="flex-1 text-[10px] font-mono flex items-center gap-1.5"
+                style={{ color: CAT_HEX[category] }}
+              >
                 <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
                 {toolCall.tool}
               </span>
@@ -225,12 +225,8 @@ function SubagentCallTable({ toolCalls, spanStartMs }: { toolCalls: SubagentSpan
 
             {isExpanded && hasDetails && (
               <div className="px-4 py-2 bg-bg-panel/40 border-t border-border/20 space-y-2">
-                {toolCall.argsJson && (
-                  <ToolCallDetailBlock title="Args" content={toolCall.argsJson} />
-                )}
-                {toolCall.returnValue && (
-                  <ToolCallDetailBlock title="Return Value" content={toolCall.returnValue} />
-                )}
+                {toolCall.argsJson && <ToolCallDetailBlock title="Args" content={toolCall.argsJson} />}
+                {toolCall.returnValue && <ToolCallDetailBlock title="Return Value" content={toolCall.returnValue} />}
               </div>
             )}
           </div>

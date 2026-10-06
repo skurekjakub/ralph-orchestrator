@@ -21,7 +21,11 @@ function makeResponse() {
     },
   };
 
-  return response as unknown as ServerResponse<IncomingMessage> & { body: string; headers: Record<string, string>; statusCode: number };
+  return response as unknown as ServerResponse<IncomingMessage> & {
+    body: string;
+    headers: Record<string, string>;
+    statusCode: number;
+  };
 }
 
 const tempDirs: string[] = [];
@@ -43,7 +47,10 @@ describe("logApiPlugin", () => {
     const logDir = makeTempLogDir();
     const taskDir = join(logDir, "DOC-3141-1772871646745");
     mkdirSync(taskDir, { recursive: true });
-    writeFileSync(join(taskDir, "DOC-3141-1772871646745-1772872987628-summary.json"), JSON.stringify({ status: "completed", durationMs: 125000 }));
+    writeFileSync(
+      join(taskDir, "DOC-3141-1772871646745-1772872987628-summary.json"),
+      JSON.stringify({ status: "completed", durationMs: 125000 }),
+    );
     writeFileSync(join(taskDir, "DOC-3141-1772871646745-1772872987628-pre-tool.log"), "pretool");
     writeFileSync(join(taskDir, "DOC-3141-1772871646745-1772872987628-cli-debug.log"), "debug");
 
@@ -52,7 +59,10 @@ describe("logApiPlugin", () => {
 
     middleware({ url: "/api/logs" } as IncomingMessage & { url?: string }, res, () => {});
 
-    const body = JSON.parse(res.body) as Array<{ files: { preTool?: string; cliDebug?: string }; summary?: { status?: string } }>;
+    const body = JSON.parse(res.body) as Array<{
+      files: { preTool?: string; cliDebug?: string };
+      summary?: { status?: string };
+    }>;
     expect(res.statusCode).toBe(200);
     expect(body).toHaveLength(1);
     expect(body[0].files.preTool).toContain("pre-tool.log");

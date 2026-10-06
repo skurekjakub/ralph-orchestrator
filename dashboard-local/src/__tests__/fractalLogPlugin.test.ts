@@ -9,9 +9,9 @@ function makeLine(ts: string, content: string) {
 
 function makeSubagentBlock(startTs: string, endTs: string, agentName: string) {
   return [
-    makeLine(startTs, '[DEBUG] kind: subagent_started'),
+    makeLine(startTs, "[DEBUG] kind: subagent_started"),
     makeLine(startTs, `[DEBUG] Agent "${agentName}" getOrCreateAgent: final model="m"`),
-    makeLine(endTs, '[DEBUG] kind: subagent_completed'),
+    makeLine(endTs, "[DEBUG] kind: subagent_completed"),
   ].join("\n");
 }
 

@@ -78,23 +78,21 @@ describe("AgentSessionRunner", () => {
 
     await runner.run(executor, makeWorkItem("DF-500"), context, { maxContinuations: 0, enableContinuation: false });
 
-    expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "DF-500" }),
-      context,
-    );
+    expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(expect.objectContaining({ id: "DF-500" }), context);
   });
 
   it("parses result block from combined stdout", async () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-      combinedStdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
+      combinedStdout:
+        "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
       combinedStderr: "",
     });
 
-    const result = await runner.run(
-      createMockExecutor(), makeWorkItem("DF-300"), undefined,
-      { maxContinuations: 0, enableContinuation: false },
-    );
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-300"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
 
     expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
     expect(result.status).toBe(TaskStatus.Completed);
@@ -103,14 +101,15 @@ describe("AgentSessionRunner", () => {
   it("returns RalphResult with status, prUrl, and duration", async () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: { exitCode: 0, stdout: "", stderr: "", timedOut: false },
-      combinedStdout: "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/2\nSTATUS: partial\n===RALPH_RESULT_END===",
+      combinedStdout:
+        "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/2\nSTATUS: partial\n===RALPH_RESULT_END===",
       combinedStderr: "some warning",
     });
 
-    const result = await runner.run(
-      createMockExecutor(), makeWorkItem("DF-400"), undefined,
-      { maxContinuations: 0, enableContinuation: false },
-    );
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-400"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
 
     expect(result.taskId).toBe("DF-400");
     expect(result.status).toBe(TaskStatus.Partial);
@@ -121,25 +120,21 @@ describe("AgentSessionRunner", () => {
   });
 
   it("passes 0 continuations when enableContinuation is false", async () => {
-    await runner.run(
-      createMockExecutor(), makeWorkItem("DF-600"), undefined,
-      { maxContinuations: 5, enableContinuation: false },
-    );
+    await runner.run(createMockExecutor(), makeWorkItem("DF-600"), undefined, {
+      maxContinuations: 5,
+      enableContinuation: false,
+    });
 
-    expect(continuationRunner.run).toHaveBeenCalledWith(
-      expect.anything(), expect.anything(), expect.anything(), 0,
-    );
+    expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 0);
   });
 
   it("passes maxContinuations when enableContinuation is true", async () => {
-    await runner.run(
-      createMockExecutor(), makeWorkItem("DF-601"), undefined,
-      { maxContinuations: 3, enableContinuation: true },
-    );
+    await runner.run(createMockExecutor(), makeWorkItem("DF-601"), undefined, {
+      maxContinuations: 3,
+      enableContinuation: true,
+    });
 
-    expect(continuationRunner.run).toHaveBeenCalledWith(
-      expect.anything(), expect.anything(), expect.anything(), 3,
-    );
+    expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 3);
   });
 
   it("resolves error status when exit code is non-zero", async () => {
@@ -149,10 +144,10 @@ describe("AgentSessionRunner", () => {
       combinedStderr: "fail",
     });
 
-    const result = await runner.run(
-      createMockExecutor(), makeWorkItem("DF-700"), undefined,
-      { maxContinuations: 0, enableContinuation: false },
-    );
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-700"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
 
     expect(result.status).toBe(TaskStatus.Error);
     expect(result.exitCode).toBe(1);
@@ -165,10 +160,10 @@ describe("AgentSessionRunner", () => {
       combinedStderr: "",
     });
 
-    const result = await runner.run(
-      createMockExecutor(), makeWorkItem("DF-800"), undefined,
-      { maxContinuations: 0, enableContinuation: false },
-    );
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-800"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
 
     expect(result.status).toBe(TaskStatus.Partial);
   });

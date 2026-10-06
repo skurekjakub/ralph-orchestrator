@@ -39,9 +39,7 @@ export function App() {
       >
         {/* Header */}
         <header className="flex items-center gap-4 px-4 py-2 bg-bg-header border-b border-border shrink-0">
-          <h1 className="text-[15px] font-semibold tracking-wide">
-            Ralph Orchestrator
-          </h1>
+          <h1 className="text-[15px] font-semibold tracking-wide">Ralph Orchestrator</h1>
 
           {/* Tabs */}
           <nav className="flex gap-1 ml-4">
@@ -105,20 +103,13 @@ export function App() {
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 {/* Main column */}
                 <div className="flex flex-col min-h-0 flex-2 border-r border-border">
-                  <LogPanel
-                    title="Container Output"
-                    logs={state.containerLogs}
-                    className="flex-2"
-                  />
+                  <LogPanel title="Container Output" logs={state.containerLogs} className="flex-2" />
                   <ToolOutputPanel lines={toolOutput} />
                 </div>
 
                 {/* Side column */}
                 <div className="flex flex-col min-h-0 flex-1 min-w-80">
-                  <LogPanel
-                    title="Orchestrator Log"
-                    logs={state.orchestratorLogs}
-                  />
+                  <LogPanel title="Orchestrator Log" logs={state.orchestratorLogs} />
                   <QueuePanel items={state.queueItems} />
                   <HistoryPanel tasks={state.completedToday} />
                 </div>

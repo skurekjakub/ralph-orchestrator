@@ -36,9 +36,14 @@ export class ProfileRouter implements IProfileRouter {
   private profiles: readonly IAgentProfile[];
   private fetchComments?: CommentFetcher;
 
-  constructor({ profiles }: {
-    profiles: readonly IAgentProfile[];
-  }, fetchComments?: CommentFetcher) {
+  constructor(
+    {
+      profiles,
+    }: {
+      profiles: readonly IAgentProfile[];
+    },
+    fetchComments?: CommentFetcher,
+  ) {
     this.profiles = profiles;
     this.fetchComments = fetchComments;
   }
@@ -63,8 +68,7 @@ export class ProfileRouter implements IProfileRouter {
       if (!profile.match.projects.includes(issueProject)) continue;
 
       const statuses = profile.match.statuses ?? [];
-      const statusesMatch = statuses.length > 0 &&
-        statuses.some((s) => s.toLowerCase() === issueStatus);
+      const statusesMatch = statuses.length > 0 && statuses.some((s) => s.toLowerCase() === issueStatus);
       const noStatusFilter = statuses.length === 0;
 
       if (!statusesMatch && !noStatusFilter) continue;

@@ -28,7 +28,12 @@ describe("initCategoryId", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ categories: [{ cid: 5, name: "ralph-docs" }, { cid: 6, name: "ralph-vscode" }] }),
+        JSON.stringify({
+          categories: [
+            { cid: 5, name: "ralph-docs" },
+            { cid: 6, name: "ralph-vscode" },
+          ],
+        }),
         { status: 200 },
       ),
     );
@@ -83,10 +88,7 @@ describe("initCategoryId", () => {
     process.env.NODEBB_CATEGORY_NAME = "nonexistent";
 
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({ categories: [{ cid: 5, name: "ralph-docs" }] }),
-        { status: 200 },
-      ),
+      new Response(JSON.stringify({ categories: [{ cid: 5, name: "ralph-docs" }] }), { status: 200 }),
     );
 
     const shared = await import("../src/shared.js");

@@ -38,9 +38,7 @@ describe("OrchestratorObserver", () => {
 
     it("returns working when an active task exists", () => {
       const task = makeActiveTask(42000);
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ activeTask: task })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ activeTask: task }));
       const state = observer.getState();
       expect(state.status).toBe(OrchestratorStatus.Working);
       expect(state.currentIssue).toEqual({ key: "DOC-100", summary: "Test issue" });
@@ -49,9 +47,7 @@ describe("OrchestratorObserver", () => {
     });
 
     it("returns stopping when not running", () => {
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ running: false })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ running: false }));
       expect(observer.getState().status).toBe(OrchestratorStatus.Stopping);
     });
 
@@ -62,7 +58,7 @@ describe("OrchestratorObserver", () => {
             { taskId: "DOC-1", variant: "tech-writer" },
             { taskId: "DOC-2", variant: "reviewer" },
           ],
-        })
+        }),
       );
       const state = observer.getState();
       expect(state.queueSize).toBe(2);
@@ -78,9 +74,7 @@ describe("OrchestratorObserver", () => {
         { timestamp: 2, level: LogLevel.Info, message: "Building...", source: LogSource.Container },
         { timestamp: 3, level: LogLevel.Warn, message: "Slow", source: LogSource.Orchestrator },
       ];
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ logEntries: logs })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ logEntries: logs }));
       const state = observer.getState();
       expect(state.logs).toHaveLength(3);
       expect(state.orchestratorLogs).toHaveLength(2);
@@ -88,9 +82,7 @@ describe("OrchestratorObserver", () => {
     });
 
     it("includes profileIds from context", () => {
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ profileIds: [PID, "ralph-vscode"] })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ profileIds: [PID, "ralph-vscode"] }));
       expect(observer.getState().profileIds).toEqual([PID, "ralph-vscode"]);
     });
 
@@ -156,9 +148,7 @@ describe("OrchestratorObserver", () => {
 
     it("returns working status with active task details", () => {
       const task = makeActiveTask(1700000000000);
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ activeTask: task })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ activeTask: task }));
       const payload = observer.getHeartbeatPayload();
       expect(payload.status).toBe(HeartbeatStatus.Working);
       expect(payload.currentTask).toBe("DOC-100");
@@ -167,9 +157,7 @@ describe("OrchestratorObserver", () => {
     });
 
     it("returns stopped when not running", () => {
-      const observer = new OrchestratorObserver(() =>
-        makeContext({ running: false })
-      );
+      const observer = new OrchestratorObserver(() => makeContext({ running: false }));
       expect(observer.getHeartbeatPayload().status).toBe(HeartbeatStatus.Stopped);
     });
 
@@ -191,7 +179,7 @@ describe("OrchestratorObserver", () => {
             { taskId: "DOC-2", variant: "v2" },
             { taskId: "DOC-3", variant: "v3" },
           ],
-        })
+        }),
       );
       expect(observer.getHeartbeatPayload().queueSize).toBe(3);
     });
@@ -199,9 +187,7 @@ describe("OrchestratorObserver", () => {
     it("generates a stable agentId per instance", () => {
       const observer = new OrchestratorObserver(() => makeContext());
       expect(observer.agentId).toBe(observer.agentId);
-      expect(observer.agentId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(observer.agentId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it("generates different agentIds across instances", () => {

@@ -5,7 +5,14 @@
  * with sensible defaults and optional overrides.
  */
 
-import { StageMode, type IAppConfig, type IAgentProfile, type IDataSourceConfig, type IProfileMatch, VcsProvider } from "../../src/config/types.js";
+import {
+  StageMode,
+  type IAppConfig,
+  type IAgentProfile,
+  type IDataSourceConfig,
+  type IProfileMatch,
+  VcsProvider,
+} from "../../src/config/types.js";
 import { CliType, TaskStatus, type RalphResult } from "../../src/container/types.js";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
@@ -56,9 +63,10 @@ export function makeWorkItem(
   status = "New",
   updated?: string,
 ): WorkItem {
-  const overrides = typeof summaryOrOverrides === "string"
-    ? { title: summaryOrOverrides, status, ...(updated !== undefined ? { updated } : {}) }
-    : summaryOrOverrides;
+  const overrides =
+    typeof summaryOrOverrides === "string"
+      ? { title: summaryOrOverrides, status, ...(updated !== undefined ? { updated } : {}) }
+      : summaryOrOverrides;
   return {
     id,
     source: "jira",
@@ -85,9 +93,8 @@ export function makeWorkItemComment(
   createdOrOverrides: string | Partial<WorkItemComment> = {},
   accountId = "test-account-id",
 ): WorkItemComment {
-  const overrides = typeof createdOrOverrides === "string"
-    ? { created: createdOrOverrides, authorId: accountId }
-    : createdOrOverrides;
+  const overrides =
+    typeof createdOrOverrides === "string" ? { created: createdOrOverrides, authorId: accountId } : createdOrOverrides;
   return {
     id,
     authorName: "Test User",
@@ -101,10 +108,7 @@ export function makeWorkItemComment(
 // ── Container data ───────────────────────────────────────────────────────────
 
 /** Create a mock RalphResult with sensible defaults. */
-export function makeResult(
-  taskId: string,
-  overrides: Partial<RalphResult> = {},
-): RalphResult {
+export function makeResult(taskId: string, overrides: Partial<RalphResult> = {}): RalphResult {
   return {
     taskId,
     status: TaskStatus.Completed,
@@ -190,9 +194,11 @@ export function makeProfile(
     ...overrides,
     match,
     // Re-derive variantKey after overrides are applied
-    ...(overrides.variantKey ? {} : {
-      variantKey: `${overrides.id ?? id}:${overrides.agentName ?? agentName}:${match.commentTrigger}`,
-    }),
+    ...(overrides.variantKey
+      ? {}
+      : {
+          variantKey: `${overrides.id ?? id}:${overrides.agentName ?? agentName}:${match.commentTrigger}`,
+        }),
   };
 }
 
@@ -236,10 +242,7 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
 // ── Orchestrator data ────────────────────────────────────────────────────────
 
 /** Create a minimal CompletedTask for testing. */
-export function makeCompletion(
-  key: string,
-  overrides: Partial<CompletedTask> = {},
-): CompletedTask {
+export function makeCompletion(key: string, overrides: Partial<CompletedTask> = {}): CompletedTask {
   return {
     key,
     summary: `Test issue ${key}`,

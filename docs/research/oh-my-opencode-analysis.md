@@ -13,6 +13,7 @@
 The system uses a **prompt-engineered delegation model** — Sisyphus (the orchestrator agent) decides what to delegate based on dynamic system prompt content, not programmatic routing logic. At startup, the system introspects all available agents, tools, skills, and categories, then generates prompt sections (delegation tables, key triggers, category guides) that teach Sisyphus when and how to delegate.
 
 **Delegation flow:**
+
 1. Sisyphus receives a user request and follows a phased prompt: Phase 0 (Intent Gate — key trigger matching), Phase 1 (Codebase Assessment), Phase 2A (Exploration via explore/librarian sub-agents), Phase 2B (Implementation via category+skills delegation), Phase 2C (Failure Recovery), Phase 3 (Completion).
 2. When delegating, Sisyphus calls the `task()` tool with either a `category` (mapped to a model, e.g. `visual-engineering` → `gemini-3-pro`) or a `subagent_type` (named agent like `oracle`).
 3. The `task()` tool resolves the target model via a priority chain: user override → sisyphus-junior default → category default → fallback. It then creates an OpenCode session via `client.session.create()` and sends the prompt via `client.session.promptAsync()`.
@@ -20,20 +21,21 @@ The system uses a **prompt-engineered delegation model** — Sisyphus (the orche
 
 **Category → Model mapping** (from constants.ts):
 
-| Category | Default Model |
-|---|---|
-| visual-engineering | gemini-3-pro |
-| ultrabrain | gpt-5.3-codex (xhigh) |
-| deep | gpt-5.3-codex (medium) |
-| artistry | gemini-3-pro |
-| quick | claude-haiku-4-5 |
-| unspecified-low | claude-sonnet-4-6 |
-| unspecified-high | claude-opus-4-6 (max) |
-| writing | kimi-for-coding / k2p5 |
+| Category           | Default Model          |
+| ------------------ | ---------------------- |
+| visual-engineering | gemini-3-pro           |
+| ultrabrain         | gpt-5.3-codex (xhigh)  |
+| deep               | gpt-5.3-codex (medium) |
+| artistry           | gemini-3-pro           |
+| quick              | claude-haiku-4-5       |
+| unspecified-low    | claude-sonnet-4-6      |
+| unspecified-high   | claude-opus-4-6 (max)  |
+| writing            | kimi-for-coding / k2p5 |
 
 Each category also has `CATEGORY_PROMPT_APPENDS` — domain-specific system prompt sections injected into the sub-agent.
 
 **Agent roles:**
+
 - **Sisyphus**: Primary orchestrator. Generates dynamic prompts from available agent metadata. Thinking budget: 32K (Claude), reasoningEffort "medium" (GPT).
 - **Hephaestus**: Autonomous deep worker. Key difference: "MUST keep going until task is completely resolved." Has `<turn_end_self_check>` section. Mode = "primary", designed for GPT Codex models.
 - **Oracle**: Read-only consultation. DENIES write/edit/apply_patch/task. Has effort estimates (Quick/Short/Medium/Large).
@@ -44,19 +46,19 @@ Each category also has `CATEGORY_PROMPT_APPENDS` — domain-specific system prom
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `src/agents/sisyphus.ts` | ~500 lines. Main orchestrator agent factory. Builds dynamic system prompt. |
-| `src/agents/hephaestus.ts` | ~400 lines. Autonomous deep worker agent. |
-| `src/agents/oracle.ts` | Read-only consultation agent. |
-| `src/agents/explore.ts` | Codebase grep specialist. |
-| `src/agents/librarian.ts` | External documentation/OSS search agent. |
-| `src/agents/dynamic-agent-prompt-builder.ts` | Core prompt assembly — builds delegation tables, key triggers, tool selection, category guides from agent metadata. |
-| `src/agents/types.ts` | `AgentMode`, `AgentCategory`, `AgentCost`, `AgentPromptMetadata`, `BuiltinAgentName`. |
-| `src/tools/delegate-task/tools.ts` | The `task()` tool implementation. Routes to sync/background/continuation/unstable execution paths. |
-| `src/tools/delegate-task/category-resolver.ts` | Resolves category → model, detects unstable agents. |
-| `src/tools/delegate-task/constants.ts` | `DEFAULT_CATEGORIES`, `CATEGORY_PROMPT_APPENDS`, `CATEGORY_DESCRIPTIONS`. |
-| `src/tools/call-omo-agent/tools.ts` | Restricted delegation tool for sub-agents (explore/librarian only). |
+| File                                           | Role                                                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `src/agents/sisyphus.ts`                       | ~500 lines. Main orchestrator agent factory. Builds dynamic system prompt.                                          |
+| `src/agents/hephaestus.ts`                     | ~400 lines. Autonomous deep worker agent.                                                                           |
+| `src/agents/oracle.ts`                         | Read-only consultation agent.                                                                                       |
+| `src/agents/explore.ts`                        | Codebase grep specialist.                                                                                           |
+| `src/agents/librarian.ts`                      | External documentation/OSS search agent.                                                                            |
+| `src/agents/dynamic-agent-prompt-builder.ts`   | Core prompt assembly — builds delegation tables, key triggers, tool selection, category guides from agent metadata. |
+| `src/agents/types.ts`                          | `AgentMode`, `AgentCategory`, `AgentCost`, `AgentPromptMetadata`, `BuiltinAgentName`.                               |
+| `src/tools/delegate-task/tools.ts`             | The `task()` tool implementation. Routes to sync/background/continuation/unstable execution paths.                  |
+| `src/tools/delegate-task/category-resolver.ts` | Resolves category → model, detects unstable agents.                                                                 |
+| `src/tools/delegate-task/constants.ts`         | `DEFAULT_CATEGORIES`, `CATEGORY_PROMPT_APPENDS`, `CATEGORY_DESCRIPTIONS`.                                           |
+| `src/tools/call-omo-agent/tools.ts`            | Restricted delegation tool for sub-agents (explore/librarian only).                                                 |
 
 ### Patterns Worth Noting
 
@@ -86,6 +88,7 @@ Hashline is a **content-addressed line editing system**. Each line in a file get
 **Hash computation:** `computeLineHash(lineNumber, content)` strips whitespace from the content, creates input `${lineNumber}:${stripped}`, hashes with `Bun.hash.xxHash32`, then maps the hash to a 2-character code using `HASHLINE_DICT` — a 256-entry lookup table built from characters `ZPMQVRWSNKTXJBYH`.
 
 **Edit flow:**
+
 1. Agent reads a file → `hashline-read-enhancer` hook transforms output from `LINE: content` to `LINE#HASH:content` format.
 2. Agent calls `hashline_edit()` with operations referencing `LINE#HASH` identifiers.
 3. System validates ALL line references upfront by recomputing hashes from current file content.
@@ -98,14 +101,14 @@ Hashline is a **content-addressed line editing system**. Each line in a file get
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `src/tools/hashline-edit/hash-computation.ts` | xxHash32 computation, 2-char hash encoding via HASHLINE_DICT. |
-| `src/tools/hashline-edit/validation.ts` | `parseLineRef()`, `validateLineRef()`, `validateLineRefs()` — batch validation before editing. |
-| `src/tools/hashline-edit/edit-operations.ts` | `applyHashlineEdits()` — sorts bottom-to-top, applies operations. Smart prefix stripping. |
-| `src/tools/hashline-edit/tools.ts` | `createHashlineEditTool()` — tool definition, generates diff, writes file. |
-| `src/hooks/hashline-read-enhancer/hook.ts` | `tool.execute.after` hook — transforms `read` output to add `LINE#HASH` format. |
-| `src/hooks/hashline-edit-diff-enhancer/hook.ts` | Captures before/after content on `write` tool, generates unified diff for TUI display. |
+| File                                            | Role                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `src/tools/hashline-edit/hash-computation.ts`   | xxHash32 computation, 2-char hash encoding via HASHLINE_DICT.                                  |
+| `src/tools/hashline-edit/validation.ts`         | `parseLineRef()`, `validateLineRef()`, `validateLineRefs()` — batch validation before editing. |
+| `src/tools/hashline-edit/edit-operations.ts`    | `applyHashlineEdits()` — sorts bottom-to-top, applies operations. Smart prefix stripping.      |
+| `src/tools/hashline-edit/tools.ts`              | `createHashlineEditTool()` — tool definition, generates diff, writes file.                     |
+| `src/hooks/hashline-read-enhancer/hook.ts`      | `tool.execute.after` hook — transforms `read` output to add `LINE#HASH` format.                |
+| `src/hooks/hashline-edit-diff-enhancer/hook.ts` | Captures before/after content on `write` tool, generates unified diff for TUI display.         |
 
 ### Patterns Worth Noting
 
@@ -131,6 +134,7 @@ Hashline is a **content-addressed line editing system**. Each line in a file get
 Ralph Loop is an **iterative task completion system** with two complementary components:
 
 **A. Ralph Loop (explicit loop):**
+
 1. User starts a loop with a prompt, max iterations, and a `completion_promise` string.
 2. The system sends the prompt to an agent session.
 3. On `session.idle`, the system checks if the agent output the completion promise (pattern: `<promise>COMPLETION_TEXT</promise>`).
@@ -141,6 +145,7 @@ Ralph Loop is an **iterative task completion system** with two complementary com
 6. Continuation prompt template: `[SYSTEM REMINDER - RALPH LOOP X/Y] Your previous attempt did not output the completion promise. Continue working... When FULLY complete, output: <promise>PROMISE</promise>. Original task: PROMPT`.
 
 **B. Todo Continuation Enforcer (implicit loop):**
+
 1. On `session.idle`, checks if the agent has incomplete todos (via OpenCode's todo API).
 2. If incomplete todos exist and various guards pass (cooldown, not recovering, not recently aborted, no background tasks running):
    - Starts a countdown (user can cancel).
@@ -153,6 +158,7 @@ Ralph Loop is an **iterative task completion system** with two complementary com
 A cross-cutting concern — maintains a `stoppedSessions` Set. When a user stops a session, both Ralph Loop and Todo Continuation Enforcer check this set and skip continuation. Cleared on new user message (`chat.message` hook).
 
 **Completion detection** uses two methods:
+
 1. `detectCompletionInTranscript()` — reads JSONL transcript file, searches for promise pattern.
 2. `detectCompletionInSessionMessages()` — uses OpenCode API to check last 3 assistant messages.
 
@@ -160,18 +166,18 @@ State is persisted to disk, enabling crash recovery.
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `src/hooks/ralph-loop/ralph-loop-hook.ts` | Main hook factory — composes state controller + session recovery + event handler. |
-| `src/hooks/ralph-loop/ralph-loop-event-handler.ts` | Listens for session.idle/deleted/error. Detects completion, increments iterations. |
-| `src/hooks/ralph-loop/completion-promise-detector.ts` | Searches for `<promise>COMPLETION_PROMISE</promise>` in transcripts and API messages. |
-| `src/hooks/ralph-loop/loop-state-controller.ts` | State management: active, iteration, max_iterations, strategy, prompt, session_id. Persists to disk. |
-| `src/hooks/ralph-loop/iteration-continuation.ts` | "reset" and "continue" strategy implementations. |
-| `src/hooks/ralph-loop/continuation-prompt-builder.ts` | Builds `[SYSTEM REMINDER - RALPH LOOP X/Y]` messages. |
-| `src/hooks/todo-continuation-enforcer/handler.ts` | Session.idle handler for todo-based continuation. |
-| `src/hooks/todo-continuation-enforcer/idle-event.ts` | Guard checks: cooldown, abort detection, background task check, model resolution. |
-| `src/hooks/todo-continuation-enforcer/continuation-injection.ts` | Builds todo-list prompt and injects continuation. Exponential backoff. |
-| `src/hooks/stop-continuation-guard/hook.ts` | Cross-cutting stop mechanism. Set-based tracking, cleared on new user message. |
+| File                                                             | Role                                                                                                 |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/hooks/ralph-loop/ralph-loop-hook.ts`                        | Main hook factory — composes state controller + session recovery + event handler.                    |
+| `src/hooks/ralph-loop/ralph-loop-event-handler.ts`               | Listens for session.idle/deleted/error. Detects completion, increments iterations.                   |
+| `src/hooks/ralph-loop/completion-promise-detector.ts`            | Searches for `<promise>COMPLETION_PROMISE</promise>` in transcripts and API messages.                |
+| `src/hooks/ralph-loop/loop-state-controller.ts`                  | State management: active, iteration, max_iterations, strategy, prompt, session_id. Persists to disk. |
+| `src/hooks/ralph-loop/iteration-continuation.ts`                 | "reset" and "continue" strategy implementations.                                                     |
+| `src/hooks/ralph-loop/continuation-prompt-builder.ts`            | Builds `[SYSTEM REMINDER - RALPH LOOP X/Y]` messages.                                                |
+| `src/hooks/todo-continuation-enforcer/handler.ts`                | Session.idle handler for todo-based continuation.                                                    |
+| `src/hooks/todo-continuation-enforcer/idle-event.ts`             | Guard checks: cooldown, abort detection, background task check, model resolution.                    |
+| `src/hooks/todo-continuation-enforcer/continuation-injection.ts` | Builds todo-list prompt and injects continuation. Exponential backoff.                               |
+| `src/hooks/stop-continuation-guard/hook.ts`                      | Cross-cutting stop mechanism. Set-based tracking, cleared on new user message.                       |
 
 ### Patterns Worth Noting
 
@@ -197,27 +203,33 @@ State is persisted to disk, enabling crash recovery.
 Background agents are **separate OpenCode sessions** spawned via the OpenCode API — not OS-level process forking. The `BackgroundManager` class (~2000 lines) handles the full lifecycle:
 
 **Launch flow:**
+
 1. Parent agent calls `task(run_in_background=true, ...)`.
 2. `BackgroundManager.launch()` creates a task with `pending` status, adds to concurrency queue.
 3. `processKey()` acquires a concurrency slot from `ConcurrencyManager`, calls `startTask()`.
 4. `startTask()` creates an OpenCode session via `client.session.create()`, optionally spawns a tmux pane for visual monitoring, sends prompt via `promptWithModelSuggestionRetry` (fire-and-forget).
 
 **Event-driven progress tracking:**
+
 - `handleEvent()` processes OpenCode events: `message.updated`, `message.part.updated/delta` (tracks tool calls, last tool used, last update time), `session.idle` (completion check), `session.error` (fallback retry), `session.deleted`/`session.status`.
 
 **Completion detection on idle:**
+
 - Validates output existence and checks for incomplete todos.
 - Atomically marks task complete, releases concurrency slot, notifies parent.
 
 **Parent notification:**
+
 - `notifyParentSession()` sends `<system-reminder>` to parent session with task results.
 - Batches notifications: when all background tasks for a parent complete, sends an "ALL COMPLETE" summary.
 
 **Failure recovery:**
+
 - `tryFallbackRetry()` selects next model from the task's `fallbackChain`, checks provider connectivity, re-queues with new model.
 - Crash recovery: polls running tasks on interval, prunes stale tasks (30min TTL), validates session status via API.
 
 **Concurrency management:**
+
 - `ConcurrencyManager` enforces per-model, per-provider, and default concurrency limits.
 - Default limit: 5 concurrent tasks.
 - Promise-based queue: `acquire(key)` returns a promise that resolves when a slot is available, along with a `release()` function.
@@ -225,14 +237,14 @@ Background agents are **separate OpenCode sessions** spawned via the OpenCode AP
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `src/features/background-agent/manager.ts` | ~2000 lines. Full lifecycle: launch, event handling, completion, fallback, polling, parent notification. |
-| `src/features/background-agent/concurrency.ts` | `ConcurrencyManager` — per-model/provider limits, promise-based queue. |
-| `src/features/background-agent/spawner.ts` | `createTask()` + `startTask()` — older code path for task creation. |
-| `src/features/background-agent/types.ts` | `BackgroundTask`, `TaskProgress`, `LaunchInput`, `ResumeInput`. Status enum: pending/running/completed/error/cancelled/interrupt. |
-| `src/tools/delegate-task/tools.ts` | Entry point — dispatches to sync/background/continuation paths. |
-| `src/tools/background-task/` | `background_output()` and `background_cancel()` tools for parent agent. |
+| File                                           | Role                                                                                                                              |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `src/features/background-agent/manager.ts`     | ~2000 lines. Full lifecycle: launch, event handling, completion, fallback, polling, parent notification.                          |
+| `src/features/background-agent/concurrency.ts` | `ConcurrencyManager` — per-model/provider limits, promise-based queue.                                                            |
+| `src/features/background-agent/spawner.ts`     | `createTask()` + `startTask()` — older code path for task creation.                                                               |
+| `src/features/background-agent/types.ts`       | `BackgroundTask`, `TaskProgress`, `LaunchInput`, `ResumeInput`. Status enum: pending/running/completed/error/cancelled/interrupt. |
+| `src/tools/delegate-task/tools.ts`             | Entry point — dispatches to sync/background/continuation paths.                                                                   |
+| `src/tools/background-task/`                   | `background_output()` and `background_cancel()` tools for parent agent.                                                           |
 
 ### Patterns Worth Noting
 
@@ -260,6 +272,7 @@ Background agents are **separate OpenCode sessions** spawned via the OpenCode AP
 Skills are **markdown files** (SKILL.md) with YAML frontmatter that can declare embedded MCP server configurations. When an agent loads a skill, any declared MCP servers become available through the `skill_mcp()` tool.
 
 **Skill discovery** (`discoverAllSkills`): Loads from 6 locations in priority order:
+
 1. opencode-project (highest)
 2. opencode-global
 3. project (.claude directory)
@@ -270,6 +283,7 @@ Skills are **markdown files** (SKILL.md) with YAML frontmatter that can declare 
 Deduplicates by name — higher-priority locations win.
 
 **Skill structure:**
+
 ```yaml
 ---
 name: dev-browser
@@ -284,6 +298,7 @@ mcp:
 ```
 
 **MCP client management** (`SkillMcpManager`):
+
 - Clients are keyed per-session: `${sessionID}:${skillName}:${serverName}`.
 - Supports **stdio** (local process) and **HTTP** (remote) transports.
 - Lazy connection: clients created on first tool call, not at skill load time.
@@ -292,6 +307,7 @@ mcp:
 - OAuth step-up handling for authenticated HTTP MCP servers.
 
 **Tool flow:**
+
 1. Agent calls `skill_mcp(mcp_name="browser-server", tool_name="navigate", arguments={url: "..."})`.
 2. Tool finds the matching MCP server by searching loaded skills for `mcp_name`.
 3. Gets or creates client via `SkillMcpManager.getOrCreateClient()`.
@@ -300,15 +316,15 @@ mcp:
 
 ### Key Files
 
-| File | Role |
-|---|---|
-| `src/features/opencode-skill-loader/loader.ts` | `discoverAllSkills()` — multi-location discovery with priority dedup. |
-| `src/features/opencode-skill-loader/types.ts` | `LoadedSkill`, `SkillMetadata` — skill data model, YAML frontmatter schema. |
-| `src/features/skill-mcp-manager/manager.ts` | `SkillMcpManager` — MCP client lifecycle, retry, idle timeout, session scoping. |
-| `src/features/skill-mcp-manager/types.ts` | `SkillMcpConfig`, `ManagedClient` — config and client types. |
-| `src/tools/skill-mcp/tools.ts` | `skill_mcp()` tool — routes to correct MCP server, delegates to manager. |
-| `builtin-skills/dev-browser/SKILL.md` | Example: browser automation with stdio MCP server. |
-| `builtin-skills/git-master/SKILL.md` | Example: git operations expert (no MCP, pure instruction skill). |
+| File                                           | Role                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| `src/features/opencode-skill-loader/loader.ts` | `discoverAllSkills()` — multi-location discovery with priority dedup.           |
+| `src/features/opencode-skill-loader/types.ts`  | `LoadedSkill`, `SkillMetadata` — skill data model, YAML frontmatter schema.     |
+| `src/features/skill-mcp-manager/manager.ts`    | `SkillMcpManager` — MCP client lifecycle, retry, idle timeout, session scoping. |
+| `src/features/skill-mcp-manager/types.ts`      | `SkillMcpConfig`, `ManagedClient` — config and client types.                    |
+| `src/tools/skill-mcp/tools.ts`                 | `skill_mcp()` tool — routes to correct MCP server, delegates to manager.        |
+| `builtin-skills/dev-browser/SKILL.md`          | Example: browser automation with stdio MCP server.                              |
+| `builtin-skills/git-master/SKILL.md`           | Example: git operations expert (no MCP, pure instruction skill).                |
 
 ### Patterns Worth Noting
 

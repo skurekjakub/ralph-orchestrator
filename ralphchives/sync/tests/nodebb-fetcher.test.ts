@@ -31,9 +31,7 @@ describe("NodeBBFetcher", () => {
     });
 
     it("returns empty array when categories is null", async () => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-        new Response(JSON.stringify({}), { status: 200 }),
-      );
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }));
 
       const result = await fetcher.fetchCategories();
       expect(result).toEqual([]);
@@ -56,10 +54,7 @@ describe("NodeBBFetcher", () => {
 
       await fetcher.fetchTopicsInCategory(5, 3);
 
-      expect(fetch).toHaveBeenCalledWith(
-        new URL("/api/category/5?page=3", BASE_URL),
-        expect.anything(),
-      );
+      expect(fetch).toHaveBeenCalledWith(new URL("/api/category/5?page=3", BASE_URL), expect.anything());
     });
 
     it("defaults to page 1", async () => {
@@ -69,31 +64,22 @@ describe("NodeBBFetcher", () => {
 
       await fetcher.fetchTopicsInCategory(2);
 
-      expect(fetch).toHaveBeenCalledWith(
-        new URL("/api/category/2?page=1", BASE_URL),
-        expect.anything(),
-      );
+      expect(fetch).toHaveBeenCalledWith(new URL("/api/category/2?page=1", BASE_URL), expect.anything());
     });
   });
 
   describe("fetchRecentTopics", () => {
     it("paginates until topics are older than the cutoff", async () => {
-      const page1Topics: NodeBBTopic[] = [
-        makeTopic(1, 5000),
-        makeTopic(2, 4000),
-      ];
+      const page1Topics: NodeBBTopic[] = [makeTopic(1, 5000), makeTopic(2, 4000)];
       const page2Topics: NodeBBTopic[] = [
         makeTopic(3, 3000),
         makeTopic(4, 1000), // older than cutoff of 2000
       ];
 
-      const fetchSpy = vi.spyOn(globalThis, "fetch")
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify({ topics: page1Topics, nextStart: 2 }), { status: 200 }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify({ topics: page2Topics, nextStart: 4 }), { status: 200 }),
-        );
+      const fetchSpy = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(new Response(JSON.stringify({ topics: page1Topics, nextStart: 2 }), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ topics: page2Topics, nextStart: 4 }), { status: 200 }));
 
       const result = await fetcher.fetchRecentTopics(2000);
 
@@ -108,9 +94,7 @@ describe("NodeBBFetcher", () => {
         .mockResolvedValueOnce(
           new Response(JSON.stringify({ topics: [makeTopic(1, 5000)], nextStart: 1 }), { status: 200 }),
         )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify({ topics: [], nextStart: 0 }), { status: 200 }),
-        );
+        .mockResolvedValueOnce(new Response(JSON.stringify({ topics: [], nextStart: 0 }), { status: 200 }));
 
       const result = await fetcher.fetchRecentTopics(0);
       expect(result).toHaveLength(1);

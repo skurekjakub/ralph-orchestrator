@@ -30,15 +30,17 @@ export const tool: ToolDefinition = {
       });
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            postId: post.pid,
-            topicId: post.tid,
-            message: "Reply posted to Ralphchives topic",
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              success: true,
+              postId: post.pid,
+              topicId: post.tid,
+              message: "Reply posted to Ralphchives topic",
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

@@ -194,13 +194,8 @@ export type StageOverrides = {
  * Called by {@link TaskRunner} before rendering so all data is available
  * as Liquid variables without re-reading `profile.json` from disk.
  */
-export function buildTemplateContext(
-  ctx: TaskContext,
-  stageOverrides?: StageOverrides,
-): TemplateContext {
-  const resolvedParams = Array.isArray(ctx.triggerParams)
-    ? buildTriggerParams(ctx.triggerParams)
-    : ctx.triggerParams;
+export function buildTemplateContext(ctx: TaskContext, stageOverrides?: StageOverrides): TemplateContext {
+  const resolvedParams = Array.isArray(ctx.triggerParams) ? buildTriggerParams(ctx.triggerParams) : ctx.triggerParams;
 
   return {
     profileId: ctx.profile.id,

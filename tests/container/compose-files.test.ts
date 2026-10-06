@@ -33,10 +33,7 @@ describe("ComposeFileResolver", () => {
   });
 
   it("includes overlay when it exists", () => {
-    writeFileSync(
-      join(TMP, "profiles/test-profile/.build/docker-compose.overlay.yml"),
-      "",
-    );
+    writeFileSync(join(TMP, "profiles/test-profile/.build/docker-compose.overlay.yml"), "");
 
     const resolver = new ComposeFileResolver(TMP);
     const profile = makeProfile({

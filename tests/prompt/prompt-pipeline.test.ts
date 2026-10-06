@@ -50,9 +50,7 @@ describe("Prompt pipeline integration", () => {
 
     if (!existsSync(snapFile)) {
       writeFileSync(snapFile, text, "utf-8");
-      throw new Error(
-        `Snapshot file created at ${snapFile}. Review the content and re-run the test.`,
-      );
+      throw new Error(`Snapshot file created at ${snapFile}. Review the content and re-run the test.`);
     }
 
     const expected = readFileSync(snapFile, "utf-8");

@@ -13,8 +13,14 @@ const TRIGGER = "@ralph";
 describe("Orchestrator core integration", () => {
   describe("profile routing pipeline", () => {
     it("routes issues to the correct profile by project", async () => {
-      const docsProfile = makeProfile({ id: "ralph-docs", match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" } });
-      const vscodeProfile = makeProfile({ id: "ralph-vscode", match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" } });
+      const docsProfile = makeProfile({
+        id: "ralph-docs",
+        match: { projects: ["DF"], statuses: [], commentTrigger: "@docs" },
+      });
+      const vscodeProfile = makeProfile({
+        id: "ralph-vscode",
+        match: { projects: ["DOC"], statuses: [], commentTrigger: "@vscode" },
+      });
       const router = new ProfileRouter({ profiles: [docsProfile, vscodeProfile] });
 
       const issue1 = makeWorkItem("DF-100", "Update docs for API");
@@ -60,14 +66,24 @@ describe("Orchestrator core integration", () => {
 
   describe("state derivation", () => {
     it("derives IDLE when running but not busy", () => {
-      const running = true, busy = false;
-      const status = !running ? OrchestratorStatus.Stopping : busy ? OrchestratorStatus.Working : OrchestratorStatus.Idle;
+      const running = true,
+        busy = false;
+      const status = !running
+        ? OrchestratorStatus.Stopping
+        : busy
+          ? OrchestratorStatus.Working
+          : OrchestratorStatus.Idle;
       expect(status).toBe(OrchestratorStatus.Idle);
     });
 
     it("derives WORKING when running and busy", () => {
-      const running = true, busy = true;
-      const status = !running ? OrchestratorStatus.Stopping : busy ? OrchestratorStatus.Working : OrchestratorStatus.Idle;
+      const running = true,
+        busy = true;
+      const status = !running
+        ? OrchestratorStatus.Stopping
+        : busy
+          ? OrchestratorStatus.Working
+          : OrchestratorStatus.Idle;
       expect(status).toBe(OrchestratorStatus.Working);
     });
 

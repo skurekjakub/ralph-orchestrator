@@ -50,14 +50,8 @@ export function SubagentContextChart({ slice }: { slice: AgentWindowSlice }) {
       {/* Header */}
       <div className="flex items-baseline gap-2">
         <span className="text-[10px] font-semibold text-text">{slice.name}</span>
-        {slice.model && (
-          <span className="text-[9px] text-dim">{slice.model}</span>
-        )}
-        {stats && (
-          <span className="text-[9px] text-dim">
-            peak: {stats.peak.toFixed(1)}%
-          </span>
-        )}
+        {slice.model && <span className="text-[9px] text-dim">{slice.model}</span>}
+        {stats && <span className="text-[9px] text-dim">peak: {stats.peak.toFixed(1)}%</span>}
         {tokenTotals.turns > 0 && (
           <span className="text-[9px] text-dim">
             {tokenTotals.turns} turns, {formatTokens(tokenTotals.total)} tokens
@@ -66,9 +60,7 @@ export function SubagentContextChart({ slice }: { slice: AgentWindowSlice }) {
       </div>
 
       {/* Utilization mini-chart */}
-      {hasEntries && (
-        <UtilizationMini entries={entries} hoverIndex={hoverIndex} onHover={setHoverIndex} />
-      )}
+      {hasEntries && <UtilizationMini entries={entries} hoverIndex={hoverIndex} onHover={setHoverIndex} />}
 
       {/* Token cost bars */}
       {hasUsage && (
@@ -134,9 +126,12 @@ function UtilizationMini({
         {[0, 50, 100].map((pct) => (
           <g key={pct}>
             <line
-              x1={CHART_PADDING.left} x2={CHART_WIDTH - CHART_PADDING.right}
-              y1={toY(pct)} y2={toY(pct)}
-              stroke="#30363d" strokeWidth={0.5}
+              x1={CHART_PADDING.left}
+              x2={CHART_WIDTH - CHART_PADDING.right}
+              y1={toY(pct)}
+              y2={toY(pct)}
+              stroke="#30363d"
+              strokeWidth={0.5}
             />
             <text x={CHART_PADDING.left - 4} y={toY(pct) + 3} textAnchor="end" fill="#7d8590" fontSize={7}>
               {pct}%
@@ -146,9 +141,14 @@ function UtilizationMini({
 
         {/* Threshold */}
         <line
-          x1={CHART_PADDING.left} x2={CHART_WIDTH - CHART_PADDING.right}
-          y1={thresholdY} y2={thresholdY}
-          stroke={COLOR_RED} strokeWidth={0.6} strokeDasharray="3 2" opacity={0.4}
+          x1={CHART_PADDING.left}
+          x2={CHART_WIDTH - CHART_PADDING.right}
+          y1={thresholdY}
+          y2={thresholdY}
+          stroke={COLOR_RED}
+          strokeWidth={0.6}
+          strokeDasharray="3 2"
+          opacity={0.4}
         />
 
         <path d={areaPath} fill={`url(#sub-area-grad-${entries[0].tsMs})`} />
@@ -161,16 +161,25 @@ function UtilizationMini({
           const hitW = Math.max(nextX - x, 3);
           return (
             <rect
-              key={i} x={x - hitW / 2} y={CHART_PADDING.top} width={hitW} height={plotH}
-              fill="transparent" onMouseEnter={() => onHover(i)}
+              key={i}
+              x={x - hitW / 2}
+              y={CHART_PADDING.top}
+              width={hitW}
+              height={plotH}
+              fill="transparent"
+              onMouseEnter={() => onHover(i)}
             />
           );
         })}
 
         {hoverEntry && hoverIndex !== null && (
           <circle
-            cx={toX(hoverEntry.tsMs)} cy={toY(hoverEntry.utilization)} r={2.5}
-            fill={utilizationColor(hoverEntry.utilization)} stroke="#0d1117" strokeWidth={1}
+            cx={toX(hoverEntry.tsMs)}
+            cy={toY(hoverEntry.utilization)}
+            r={2.5}
+            fill={utilizationColor(hoverEntry.utilization)}
+            stroke="#0d1117"
+            strokeWidth={1}
           />
         )}
       </svg>
@@ -181,7 +190,8 @@ function UtilizationMini({
           style={{ left: `${(toX(hoverEntry.tsMs) / CHART_WIDTH) * 100}%`, top: 0, transform: "translateX(-50%)" }}
         >
           <div className="font-mono text-text">
-            {hoverEntry.utilization.toFixed(1)}% — {formatTokens(hoverEntry.usedTokens)} / {formatTokens(hoverEntry.maxTokens)}
+            {hoverEntry.utilization.toFixed(1)}% — {formatTokens(hoverEntry.usedTokens)} /{" "}
+            {formatTokens(hoverEntry.maxTokens)}
           </div>
         </div>
       )}
@@ -228,21 +238,33 @@ function TokenCostMini({
           return (
             <g key={i} onMouseEnter={() => onHover(i)}>
               <rect
-                x={x - barW / 2} y={BAR_HEIGHT - promptSeg - completionH - cachedH}
-                width={barW} height={Math.max(promptSeg, 0)}
-                fill={COLOR_PROMPT} opacity={hoverTurn === i ? 1 : 0.6} rx={0.5}
+                x={x - barW / 2}
+                y={BAR_HEIGHT - promptSeg - completionH - cachedH}
+                width={barW}
+                height={Math.max(promptSeg, 0)}
+                fill={COLOR_PROMPT}
+                opacity={hoverTurn === i ? 1 : 0.6}
+                rx={0.5}
               />
               {cachedH > 0 && (
                 <rect
-                  x={x - barW / 2} y={BAR_HEIGHT - completionH - cachedH}
-                  width={barW} height={cachedH}
-                  fill={COLOR_CACHED} opacity={hoverTurn === i ? 1 : 0.4} rx={0.5}
+                  x={x - barW / 2}
+                  y={BAR_HEIGHT - completionH - cachedH}
+                  width={barW}
+                  height={cachedH}
+                  fill={COLOR_CACHED}
+                  opacity={hoverTurn === i ? 1 : 0.4}
+                  rx={0.5}
                 />
               )}
               <rect
-                x={x - barW / 2} y={BAR_HEIGHT - completionH}
-                width={barW} height={completionH}
-                fill={COLOR_GREEN} opacity={hoverTurn === i ? 1 : 0.6} rx={0.5}
+                x={x - barW / 2}
+                y={BAR_HEIGHT - completionH}
+                width={barW}
+                height={completionH}
+                fill={COLOR_GREEN}
+                opacity={hoverTurn === i ? 1 : 0.6}
+                rx={0.5}
               />
             </g>
           );

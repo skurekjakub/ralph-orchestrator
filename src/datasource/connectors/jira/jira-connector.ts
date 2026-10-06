@@ -47,7 +47,13 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
   private readonly allowedUsers: readonly string[];
   private readonly logger?: Logger;
 
-  constructor(sourceKey: string, client: IJiraClient, excludeFields: string[] = [], allowedUsers: readonly string[] = [], logger?: Logger) {
+  constructor(
+    sourceKey: string,
+    client: IJiraClient,
+    excludeFields: string[] = [],
+    allowedUsers: readonly string[] = [],
+    logger?: Logger,
+  ) {
     this.sourceKey = sourceKey;
     this.client = client;
     this.excludeFields = excludeFields;
@@ -73,7 +79,7 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
         if (allStatuses.length === 1) {
           clauses.push(`status = "${allStatuses[0]}"`);
         } else if (allStatuses.length > 1) {
-          const list = allStatuses.map(s => `"${s}"`).join(", ");
+          const list = allStatuses.map((s) => `"${s}"`).join(", ");
           clauses.push(`status IN (${list})`);
         }
 
@@ -86,7 +92,7 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
 
   async searchWorkItems(query: SourceQuery, pageSize?: number): Promise<WorkItem[]> {
     const issues = await this.client.searchIssues(query, pageSize);
-    return issues.map(i => mapIssueToWorkItem(i, this.sourceKey, this.excludeFields));
+    return issues.map((i) => mapIssueToWorkItem(i, this.sourceKey, this.excludeFields));
   }
 
   async refreshWorkItem(workItemId: string): Promise<WorkItem> {
@@ -134,7 +140,7 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
 
   async downloadAttachment(workItemId: string, attachmentId: string): Promise<string> {
     const attachments = await this.client.getAttachments(workItemId);
-    const att = attachments.find(a => a.id === attachmentId);
+    const att = attachments.find((a) => a.id === attachmentId);
     if (!att) {
       throw new Error(`Attachment ${attachmentId} not found on ${workItemId}`);
     }

@@ -7,9 +7,6 @@
   "containerPath": "/opt/mcp/servers/jira-kentico",
   "sidecarPort": 9100,
   "requiredEnv": ["JIRA_PAT_KENTICO_JIRA", "JIRA_EMAIL_KENTICO_JIRA"],
-  "tools": [
-    "jira_add_comment",
-    "jira_add_attachment"
-  ],
+  "tools": ["jira_add_comment", "jira_add_attachment"],
   "requiredConfig": ["JIRA_ISSUE_KEY"]
 }

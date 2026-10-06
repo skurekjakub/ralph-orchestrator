@@ -9,6 +9,7 @@
 ## Files Audited
 
 ### Orchestrator & Subagent Prompts
+
 - `profiles/ralph-docs/agents/ralph.stacky.agent.md`
 - `profiles/ralph-docs/agents/ralph.stacky-analyst.agent.md`
 - `profiles/ralph-docs/agents/ralph.stacky-coder.agent.md`
@@ -18,6 +19,7 @@
 - `profiles/ralph-docs/agents/ralph.stacky-bug-auditor.agent.md`
 
 ### Workflow Skill & References
+
 - `shared/skills/workflow/docs/devralph-workflow/SKILL.md`
 - `shared/skills/workflow/docs/devralph-workflow/references/1-setup.md`
 - `shared/skills/workflow/docs/devralph-workflow/references/2-research.md`
@@ -34,16 +36,19 @@
 - `shared/skills/workflow/docs/devralph-workflow/references/r4-handoff.md`
 
 ### Agent Includes
+
 - `shared/agent-includes/ralph-docs/devralph-standard-workflow.md`
 - `shared/agent-includes/ralph-docs/devralph-revision-workflow.md`
 - `shared/agent-includes/agent-as-function-contract.md`
 
 ### Infrastructure
+
 - `profiles/ralph-docs/profile.json`
 - `src/container/result-parser.ts`
 - `tests/container/container-result-parser.test.ts`
 
 ### Domain Skills (mounted on Stacky variant)
+
 - `shared/skills/domain/devralph-ruby-gems/SKILL.md`
 - `shared/skills/domain/devralph-gulp-pipeline/SKILL.md`
 - `shared/skills/domain/devralph-frontend/SKILL.md`
@@ -56,15 +61,15 @@
 
 ## Ownership Map
 
-| Agent | Role | Reads | Writes | Result codes |
-|---|---|---|---|---|
-| **stacky** (orchestrator) | Pure router + admin | `status.json` only | commit, push, PR, JIRA, handoff, exit block | N/A |
-| **stacky-analyst** | Analysis | repo code, ralphchives | `output.md`, `status.json`, `manifest.json` | `analyzed`, `blocked` |
-| **stacky-coder** | Implementation | analyst `output.md`, reviewer/bug-auditor `output.md` (iter 2+) | `output-v{N}.md`, `status.json`, `manifest.json` | `implemented`, `partial` |
-| **stacky-test-writer** | Unit/integration tests | code diff, spec/ directory | `output.md`, test spec files, `status.json`, `manifest.json` | `tests-written`, `no-tests-needed` |
-| **stacky-e2e-playwright** | E2E tests | code changes description | `output.md`, test files, `status.json`, `manifest.json` | `tests-written`, `no-tests-needed` |
-| **stacky-reviewer** | Code review | git diff | `output.md`, `status.json`, `manifest.json` | `pass`, `critical`, `suggested` |
-| **stacky-bug-auditor** | Bug/regression audit | git diff | `output.md`, `status.json`, `manifest.json` | `pass`, `concerns`, `block` |
+| Agent                     | Role                   | Reads                                                           | Writes                                                       | Result codes                       |
+| ------------------------- | ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------- |
+| **stacky** (orchestrator) | Pure router + admin    | `status.json` only                                              | commit, push, PR, JIRA, handoff, exit block                  | N/A                                |
+| **stacky-analyst**        | Analysis               | repo code, ralphchives                                          | `output.md`, `status.json`, `manifest.json`                  | `analyzed`, `blocked`              |
+| **stacky-coder**          | Implementation         | analyst `output.md`, reviewer/bug-auditor `output.md` (iter 2+) | `output-v{N}.md`, `status.json`, `manifest.json`             | `implemented`, `partial`           |
+| **stacky-test-writer**    | Unit/integration tests | code diff, spec/ directory                                      | `output.md`, test spec files, `status.json`, `manifest.json` | `tests-written`, `no-tests-needed` |
+| **stacky-e2e-playwright** | E2E tests              | code changes description                                        | `output.md`, test files, `status.json`, `manifest.json`      | `tests-written`, `no-tests-needed` |
+| **stacky-reviewer**       | Code review            | git diff                                                        | `output.md`, `status.json`, `manifest.json`                  | `pass`, `critical`, `suggested`    |
+| **stacky-bug-auditor**    | Bug/regression audit   | git diff                                                        | `output.md`, `status.json`, `manifest.json`                  | `pass`, `concerns`, `block`        |
 
 ---
 

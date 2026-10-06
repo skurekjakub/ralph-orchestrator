@@ -89,7 +89,7 @@ Every subagent writes this before exiting. This is the **only** file the orchest
 | `status`    | enum     | `completed` · `failed` · `blocked` — did the agent finish?                               |
 | `result`    | string   | Task-specific outcome. Agent-defined. Used by orchestrator for routing.                  |
 | `summary`   | string   | One-line description, max ~100 tokens. Enough for a routing decision. Not a report.      |
-| `artifacts` | string[] | File paths relative to the artifact root (`{{ artifactDir }}`)                                      |
+| `artifacts` | string[] | File paths relative to the artifact root (`{{ artifactDir }}`)                           |
 | `next_hint` | string?  | Suggested next subagent. Orchestrator can override.                                      |
 | `iteration` | number   | How many times this agent has run for this task. Orchestrator uses this to detect loops. |
 
@@ -175,12 +175,12 @@ The subagent's conversational return to the orchestrator is one line. The orches
 
 This is the key design principle: **subagents read each other's artifacts directly.** The orchestrator never relays data.
 
-| Consumer             | Reads from                                                    | Why                               |
-| -------------------- | ------------------------------------------------------------- | --------------------------------- |
-| coder (iteration 1)  | `ralph-analyst/output.md`                                     | Implementation plan               |
-| coder (iteration 2+) | `ralph-analyst/output.md` + `ralph-reviewer/output-v{N-1}.md` | Original plan + reviewer feedback |
-| reviewer             | `ralph-coder/output-v{N}.md` + actual changed files in repo   | Change summary + real code        |
-| agent-improver       | `run-analyzer/<target-subagent>/output.md` (path given by the scientist)      | Execution analysis                |
+| Consumer             | Reads from                                                               | Why                               |
+| -------------------- | ------------------------------------------------------------------------ | --------------------------------- |
+| coder (iteration 1)  | `ralph-analyst/output.md`                                                | Implementation plan               |
+| coder (iteration 2+) | `ralph-analyst/output.md` + `ralph-reviewer/output-v{N-1}.md`            | Original plan + reviewer feedback |
+| reviewer             | `ralph-coder/output-v{N}.md` + actual changed files in repo              | Change summary + real code        |
+| agent-improver       | `run-analyzer/<target-subagent>/output.md` (path given by the scientist) | Execution analysis                |
 
 On **revisions** (fixing a previously-reviewed PR), the orchestrator dispatches the analyst with the revision context (task-id only). The analyst reads the PR feedback, prior handoff, and reviewer comments from the filesystem/MCP tools itself, then produces a fresh `output.md` scoped to "what needs fixing." The coder reads that artifact — same flow as a fresh task.
 

@@ -23,20 +23,26 @@ export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
       {/* Header */}
       <div>
         {/* Breadcrumb */}
-        {ancestorChain.length > 0 && (
-          <div className="text-[10px] text-dim mb-1">
-            {ancestorChain.join(" → ")}
-          </div>
-        )}
+        {ancestorChain.length > 0 && <div className="text-[10px] text-dim mb-1">{ancestorChain.join(" → ")}</div>}
         <h2 className="text-base font-semibold">{label}</h2>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-dim">
           <span>Depth: {node.depth}</span>
-          <span>Model: <span className="text-fg-primary">{node.resolvedModel}</span></span>
-          <span>Duration: <span className="text-fg-primary">{formatDuration(node.durationMs)}</span></span>
-          <span>Tool calls: <span className="text-fg-primary">{node.toolCallCount}</span></span>
-          <span>Model calls: <span className="text-fg-primary">{node.modelCallCount}</span></span>
+          <span>
+            Model: <span className="text-fg-primary">{node.resolvedModel}</span>
+          </span>
+          <span>
+            Duration: <span className="text-fg-primary">{formatDuration(node.durationMs)}</span>
+          </span>
+          <span>
+            Tool calls: <span className="text-fg-primary">{node.toolCallCount}</span>
+          </span>
+          <span>
+            Model calls: <span className="text-fg-primary">{node.modelCallCount}</span>
+          </span>
           {node.children.length > 0 && (
-            <span>Subagents: <span className="text-fg-primary">{node.children.length}</span></span>
+            <span>
+              Subagents: <span className="text-fg-primary">{node.children.length}</span>
+            </span>
           )}
         </div>
       </div>
@@ -58,9 +64,7 @@ export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
       )}
 
       {/* Compaction events */}
-      {node.contextWindowEntries.length > 0 && (
-        <CompactionEventList entries={node.contextWindowEntries} />
-      )}
+      {node.contextWindowEntries.length > 0 && <CompactionEventList entries={node.contextWindowEntries} />}
     </div>
   );
 }

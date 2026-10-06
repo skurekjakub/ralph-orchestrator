@@ -85,9 +85,7 @@ export class LogCollector implements ILogCollector {
     const path = join(issueDir, filename);
     const stderrSnippet = result.stderr ? result.stderr.slice(0, 5000) : undefined;
     const stdoutSnippet = result.status !== "completed" && result.stdout ? result.stdout.slice(0, 5000) : undefined;
-    const failureCategory = result.status !== "completed"
-      ? classifyFailure(result)
-      : undefined;
+    const failureCategory = result.status !== "completed" ? classifyFailure(result) : undefined;
     writeFileSync(
       path,
       JSON.stringify(
@@ -105,8 +103,8 @@ export class LogCollector implements ILogCollector {
           timestamp: new Date().toISOString(),
         },
         null,
-        2
-      )
+        2,
+      ),
     );
     return path;
   }

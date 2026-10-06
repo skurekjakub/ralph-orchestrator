@@ -4,12 +4,7 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
-import type {
-  NodeBBCategory,
-  NodeBBTopic,
-  NodeBBPost,
-  NodeBBUser,
-} from "./nodebb-fetcher.js";
+import type { NodeBBCategory, NodeBBTopic, NodeBBPost, NodeBBUser } from "./nodebb-fetcher.js";
 
 const BATCH_SIZE = 500;
 
@@ -29,7 +24,9 @@ export class GraphWriter {
   }
 
   async mergeCategories(categories: NodeBBCategory[]): Promise<number> {
-    return this.batchMerge(categories, `
+    return this.batchMerge(
+      categories,
+      `
       UNWIND $batch AS c
       MERGE (cat:Category {cid: c.cid})
       SET cat.name = c.name,
@@ -40,22 +37,28 @@ export class GraphWriter {
       WHERE c.parentCid > 0
       MATCH (parent:Category {cid: c.parentCid})
       MERGE (cat)-[:CHILD_OF]->(parent)
-    `);
+    `,
+    );
   }
 
   async mergeUsers(users: NodeBBUser[]): Promise<number> {
-    return this.batchMerge(users, `
+    return this.batchMerge(
+      users,
+      `
       UNWIND $batch AS u
       MERGE (user:User {uid: u.uid})
       SET user.username = u.username,
           user.reputation = u.reputation,
           user.joinDate = u.joindate,
           user.groupTitle = u.groupTitle
-    `);
+    `,
+    );
   }
 
   async mergeTopics(topics: NodeBBTopic[]): Promise<number> {
-    return this.batchMerge(topics, `
+    return this.batchMerge(
+      topics,
+      `
       UNWIND $batch AS t
       MERGE (topic:Topic {tid: t.tid})
       SET topic.title = t.title,
@@ -68,27 +71,31 @@ export class GraphWriter {
       WITH topic, t
       MATCH (author:User {uid: t.uid})
       MERGE (author)-[:CREATED]->(topic)
-    `);
+    `,
+    );
   }
 
   async mergeTopicTags(topics: NodeBBTopic[]): Promise<number> {
     // Flatten topics into tag rows
-    const tagRows = topics.flatMap((t) =>
-      (t.tags ?? []).map((tag) => ({ tid: t.tid, tagName: tag.value })),
-    );
+    const tagRows = topics.flatMap((t) => (t.tags ?? []).map((tag) => ({ tid: t.tid, tagName: tag.value })));
     if (tagRows.length === 0) return 0;
 
-    return this.batchMerge(tagRows, `
+    return this.batchMerge(
+      tagRows,
+      `
       UNWIND $batch AS row
       MERGE (tag:Tag {name: row.tagName})
       WITH tag, row
       MATCH (topic:Topic {tid: row.tid})
       MERGE (topic)-[:TAGGED]->(tag)
-    `);
+    `,
+    );
   }
 
   async mergePosts(posts: NodeBBPost[]): Promise<number> {
-    return this.batchMerge(posts, `
+    return this.batchMerge(
+      posts,
+      `
       UNWIND $batch AS p
       MERGE (post:Post {pid: p.pid})
       SET post.content = p.content,
@@ -104,7 +111,8 @@ export class GraphWriter {
       WHERE p.toPid IS NOT NULL
       MATCH (parent:Post {pid: p.toPid})
       MERGE (post)-[:REPLIES_TO]->(parent)
-    `);
+    `,
+    );
   }
 
   // ---- Sync state tracking ----
@@ -112,10 +120,7 @@ export class GraphWriter {
   async getSyncState(key: string): Promise<number> {
     const session = this.driver.session();
     try {
-      const result = await session.run(
-        `MATCH (s:SyncState {key: $key}) RETURN s.value AS value`,
-        { key },
-      );
+      const result = await session.run(`MATCH (s:SyncState {key: $key}) RETURN s.value AS value`, { key });
       if (result.records.length === 0) return 0;
       const val = result.records[0].get("value");
       return typeof val === "number" ? val : Number(val);
@@ -127,10 +132,7 @@ export class GraphWriter {
   async setSyncState(key: string, value: number): Promise<void> {
     const session = this.driver.session();
     try {
-      await session.run(
-        `MERGE (s:SyncState {key: $key}) SET s.value = $value`,
-        { key, value },
-      );
+      await session.run(`MERGE (s:SyncState {key: $key}) SET s.value = $value`, { key, value });
     } finally {
       await session.close();
     }

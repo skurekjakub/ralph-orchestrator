@@ -52,10 +52,27 @@ describe("RepoSyncHook", () => {
     await new RepoSyncHook().execute(container, taskCtx, logger);
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
-    expect(calls[0]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader=Authorization: Basic"), "fetch", "origin", "main"]);
+    expect(calls[0]).toEqual([
+      "-C",
+      profile.repoPath,
+      "-c",
+      expect.stringContaining("http.extraHeader=Authorization: Basic"),
+      "fetch",
+      "origin",
+      "main",
+    ]);
     expect(calls[1]).toEqual(["-C", profile.repoPath, "checkout", "main"]);
     expect(calls[2]).toEqual(["-C", profile.repoPath, "reset", "--hard", "origin/main"]);
-    expect(calls[3]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader=Authorization: Basic"), "ls-remote", "--heads", "origin", expectedBranch]);
+    expect(calls[3]).toEqual([
+      "-C",
+      profile.repoPath,
+      "-c",
+      expect.stringContaining("http.extraHeader=Authorization: Basic"),
+      "ls-remote",
+      "--heads",
+      "origin",
+      expectedBranch,
+    ]);
     expect(calls[4]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch]);
   });
 
@@ -135,9 +152,26 @@ describe("RepoSyncHook", () => {
 
     const calls = mockExeca.mock.calls.map((c) => c[1]);
     // ls-remote with auth
-    expect(calls[3]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader"), "ls-remote", "--heads", "origin", expectedBranch]);
+    expect(calls[3]).toEqual([
+      "-C",
+      profile.repoPath,
+      "-c",
+      expect.stringContaining("http.extraHeader"),
+      "ls-remote",
+      "--heads",
+      "origin",
+      expectedBranch,
+    ]);
     // fetch the task branch
-    expect(calls[4]).toEqual(["-C", profile.repoPath, "-c", expect.stringContaining("http.extraHeader"), "fetch", "origin", expectedBranch]);
+    expect(calls[4]).toEqual([
+      "-C",
+      profile.repoPath,
+      "-c",
+      expect.stringContaining("http.extraHeader"),
+      "fetch",
+      "origin",
+      expectedBranch,
+    ]);
     // checkout -B with remote tracking point
     expect(calls[5]).toEqual(["-C", profile.repoPath, "checkout", "-B", expectedBranch, `origin/${expectedBranch}`]);
   });
@@ -147,26 +181,27 @@ describe("RepoSyncHook", () => {
 
     await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
 
-    expect(mockMkdirSync).toHaveBeenCalledWith(
-      expect.stringContaining(`.ralph/tasks/${workItem.id}`),
-      { recursive: true },
-    );
+    expect(mockMkdirSync).toHaveBeenCalledWith(expect.stringContaining(`.ralph/tasks/${workItem.id}`), {
+      recursive: true,
+    });
   });
 
   it("throws when repoPat env var is not set", async () => {
     vi.unstubAllEnvs();
     const { container } = createMockContainer();
 
-    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger()))
-      .rejects.toThrow('ADO_PAT must be set for repo-sync hook (profile "ralph-docs")');
+    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger())).rejects.toThrow(
+      'ADO_PAT must be set for repo-sync hook (profile "ralph-docs")',
+    );
   });
 
   it("propagates git errors", async () => {
     mockExeca.mockRejectedValueOnce(new Error("git fetch failed"));
     const { container } = createMockContainer();
 
-    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger()))
-      .rejects.toThrow("git fetch failed");
+    await expect(new RepoSyncHook().execute(container, taskCtx, createMockLogger())).rejects.toThrow(
+      "git fetch failed",
+    );
   });
 
   it("switches to existing branch on revision without creating a new one", async () => {
@@ -189,9 +224,7 @@ describe("RepoSyncHook", () => {
 
     await new RepoSyncHook().execute(container, taskCtx, createMockLogger());
 
-    const excludeWrite = mockWriteFileSync.mock.calls.find(
-      (call) => String(call[0]).includes(".git/info/exclude"),
-    );
+    const excludeWrite = mockWriteFileSync.mock.calls.find((call) => String(call[0]).includes(".git/info/exclude"));
     expect(excludeWrite).toBeDefined();
     const content = excludeWrite![1] as string;
     expect(content).toContain(".ralph/");
@@ -262,10 +295,7 @@ describe("ensureGitExclude", () => {
 
     ensureGitExclude("/repo");
 
-    expect(mockMkdirSync).toHaveBeenCalledWith(
-      expect.stringContaining(".git/info"),
-      { recursive: true },
-    );
+    expect(mockMkdirSync).toHaveBeenCalledWith(expect.stringContaining(".git/info"), { recursive: true });
   });
 
   it("handles empty exclude file gracefully", () => {
@@ -279,12 +309,7 @@ describe("ensureGitExclude", () => {
   });
 
   it("strips orphaned start marker before appending fresh block", () => {
-    const corrupted = [
-      "*.log",
-      "# >>>ralph-orchestrator (managed — do not edit)",
-      ".ralph/",
-      "build/",
-    ].join("\n");
+    const corrupted = ["*.log", "# >>>ralph-orchestrator (managed — do not edit)", ".ralph/", "build/"].join("\n");
     mockReadFileSync.mockReturnValue(corrupted);
 
     ensureGitExclude("/repo");
@@ -310,7 +335,8 @@ describe("ensureGitExclude", () => {
   });
 
   it("does not produce duplicate newlines when replacing block with trailing newline", () => {
-    const existing = "*.log\n# >>>ralph-orchestrator (managed — do not edit)\n.ralph/\n# <<<ralph-orchestrator\nbuild/\n";
+    const existing =
+      "*.log\n# >>>ralph-orchestrator (managed — do not edit)\n.ralph/\n# <<<ralph-orchestrator\nbuild/\n";
     mockReadFileSync.mockReturnValue(existing);
 
     ensureGitExclude("/repo");

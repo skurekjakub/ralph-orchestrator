@@ -101,10 +101,7 @@ Add the server to the `mcpServers` array in `profiles/<id>/profile.json`. You ca
 
 ```json
 {
-  "mcpServers": [
-    { "name": "my-server" },
-    { "name": "my-server", "env": { "PROJECT_KEY": "$task.project" } }
-  ]
+  "mcpServers": [{ "name": "my-server" }, { "name": "my-server", "env": { "PROJECT_KEY": "$task.project" } }]
 }
 ```
 

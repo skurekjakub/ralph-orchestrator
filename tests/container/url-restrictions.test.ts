@@ -30,11 +30,7 @@ describe("URL Restrictions", () => {
         "http_access allow allowed_domains",
       ].join("\n");
 
-      expect(parseSquidDomains(conf)).toEqual([
-        ".github.com",
-        "api.atlassian.com",
-        ".dev.azure.com",
-      ]);
+      expect(parseSquidDomains(conf)).toEqual([".github.com", "api.atlassian.com", ".dev.azure.com"]);
     });
 
     it("returns empty array for empty input", () => {
@@ -64,10 +60,7 @@ describe("URL Restrictions", () => {
     });
 
     it("deduplicates ports across multiple lines", () => {
-      const conf = [
-        "acl host_loopback_ports port 4500",
-        "acl host_loopback_ports port 4500 8080",
-      ].join("\n");
+      const conf = ["acl host_loopback_ports port 4500", "acl host_loopback_ports port 4500 8080"].join("\n");
       const ports = parseSquidHostLoopbackPorts(conf);
       expect(ports).toContain(4500);
       expect(ports).toContain(8080);
@@ -93,10 +86,7 @@ describe("URL Restrictions", () => {
     it("deduplicates and sorts the output", () => {
       const urls = generateAllowedUrls([".github.com", ".github.com", "api.github.com"]);
 
-      expect(urls).toEqual([
-        "https://*.github.com",
-        "https://api.github.com",
-      ]);
+      expect(urls).toEqual(["https://*.github.com", "https://api.github.com"]);
     });
 
     it("returns empty array for empty inputs", () => {

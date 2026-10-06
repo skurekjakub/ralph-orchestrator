@@ -38,20 +38,12 @@ function makeSubagentSpan(): SubagentSpan {
 
 describe("ContextWindowChart", () => {
   it("renders nothing when both entries and usage are empty", () => {
-    const { container } = render(
-      <ContextWindowChart entries={[]} usageEntries={[]} subagentSpans={[]} />,
-    );
+    const { container } = render(<ContextWindowChart entries={[]} usageEntries={[]} subagentSpans={[]} />);
     expect(container.innerHTML).toBe("");
   });
 
   it("renders the header with peak utilization and max tokens", () => {
-    render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={[]}
-        subagentSpans={[]}
-      />,
-    );
+    render(<ContextWindowChart entries={makeEntries()} usageEntries={[]} subagentSpans={[]} />);
 
     expect(screen.getByText(/Context Window/)).toBeDefined();
     expect(screen.getByText(/peak: 28.5%/)).toBeDefined();
@@ -59,74 +51,38 @@ describe("ContextWindowChart", () => {
   });
 
   it("renders cumulative token info in header when usage entries present", () => {
-    render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={makeUsageEntries()}
-        subagentSpans={[]}
-      />,
-    );
+    render(<ContextWindowChart entries={makeEntries()} usageEntries={makeUsageEntries()} subagentSpans={[]} />);
 
     expect(screen.getByText(/total tokens/)).toBeDefined();
   });
 
   it("renders the SVG chart with utilization entries", () => {
-    const { container } = render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={[]}
-        subagentSpans={[]}
-      />,
-    );
+    const { container } = render(<ContextWindowChart entries={makeEntries()} usageEntries={[]} subagentSpans={[]} />);
 
     const svgs = container.querySelectorAll("svg");
     expect(svgs.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders subagent markers when spans are present", () => {
-    render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={[]}
-        subagentSpans={[makeSubagentSpan()]}
-      />,
-    );
+    render(<ContextWindowChart entries={makeEntries()} usageEntries={[]} subagentSpans={[makeSubagentSpan()]} />);
 
     expect(screen.getAllByText("malph-scout").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders per-turn token usage section", () => {
-    render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={makeUsageEntries()}
-        subagentSpans={[]}
-      />,
-    );
+    render(<ContextWindowChart entries={makeEntries()} usageEntries={makeUsageEntries()} subagentSpans={[]} />);
 
     expect(screen.getByText(/Per-Turn Token Usage/)).toBeDefined();
   });
 
   it("renders cumulative token tracker", () => {
-    render(
-      <ContextWindowChart
-        entries={makeEntries()}
-        usageEntries={makeUsageEntries()}
-        subagentSpans={[]}
-      />,
-    );
+    render(<ContextWindowChart entries={makeEntries()} usageEntries={makeUsageEntries()} subagentSpans={[]} />);
 
     expect(screen.getByText(/Cumulative Token Spend/)).toBeDefined();
   });
 
   it("renders only usage sections when no context entries", () => {
-    render(
-      <ContextWindowChart
-        entries={[]}
-        usageEntries={makeUsageEntries()}
-        subagentSpans={[]}
-      />,
-    );
+    render(<ContextWindowChart entries={[]} usageEntries={makeUsageEntries()} subagentSpans={[]} />);
 
     expect(screen.getByText(/Per-Turn Token Usage/)).toBeDefined();
     expect(screen.getByText(/Cumulative Token Spend/)).toBeDefined();
@@ -138,13 +94,7 @@ describe("ContextWindowChart", () => {
     const entries = makeEntries();
     const usageEntries = makeUsageEntries();
 
-    render(
-      <ContextWindowChart
-        entries={entries}
-        usageEntries={usageEntries}
-        subagentSpans={[span]}
-      />,
-    );
+    render(<ContextWindowChart entries={entries} usageEntries={usageEntries} subagentSpans={[span]} />);
 
     expect(screen.getByText(/Subagent Context Windows/)).toBeDefined();
   });

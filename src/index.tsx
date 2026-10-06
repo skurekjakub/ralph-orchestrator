@@ -14,10 +14,7 @@ async function main(): Promise<void> {
   const orchestrator = new Orchestrator(cradle);
 
   // Start the local WebSocket dashboard server
-  const dashboardServer = new DashboardServer(
-    orchestrator.observer,
-    cradle.logger,
-  );
+  const dashboardServer = new DashboardServer(orchestrator.observer, cradle.logger);
   dashboardServer.start();
 
   // Wire real-time tool output streaming to the dashboard
@@ -26,9 +23,7 @@ async function main(): Promise<void> {
     onPreToolUse: (line) => dashboardServer.pushPreToolUse(line),
   });
 
-  const { unmount } = render(
-    React.createElement(App, { observer: orchestrator.observer })
-  );
+  const { unmount } = render(React.createElement(App, { observer: orchestrator.observer }));
 
   // Handle graceful shutdown (Ctrl+C or SIGTERM)
   const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -44,7 +39,7 @@ async function main(): Promise<void> {
     await Promise.race([
       orchestrator.shutdown(),
       new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error("Shutdown timed out after 30s")), SHUTDOWN_TIMEOUT_MS)
+        setTimeout(() => reject(new Error("Shutdown timed out after 30s")), SHUTDOWN_TIMEOUT_MS),
       ),
     ]);
     unmount();

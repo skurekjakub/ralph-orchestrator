@@ -74,7 +74,10 @@ function startHttpTransport(port: number): void {
 
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, body);
   });

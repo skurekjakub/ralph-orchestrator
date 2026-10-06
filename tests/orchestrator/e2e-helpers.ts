@@ -8,7 +8,16 @@ import { ProfileRouter } from "../../src/services/profile-router.js";
 import { TriggerScanner } from "../../src/services/trigger-scanner.js";
 import { ActivityLog } from "../../src/services/activity-log.js";
 import { makeProfile, makeConfig, makeResult } from "../helpers/factories.js";
-import { createMockLogger, createMockIssueManager, createMockResources, createMockPoller, createMockTaskRunner, createMockConnector, createMockVcsSourceClient, type Mocked } from "../helpers/mocks.js";
+import {
+  createMockLogger,
+  createMockIssueManager,
+  createMockResources,
+  createMockPoller,
+  createMockTaskRunner,
+  createMockConnector,
+  createMockVcsSourceClient,
+  type Mocked,
+} from "../helpers/mocks.js";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types.js";
 import type { IDataSourceConnector } from "../../src/datasource/connector.js";
 import type { IAgentProfile } from "../../src/config/types.js";
@@ -93,9 +102,7 @@ export function buildMockDeps(
   const taskRunner = createMockTaskRunner({
     run: options.taskError
       ? vi.fn().mockRejectedValue(options.taskError)
-      : vi.fn().mockImplementation(async (ctx: any) =>
-          makeResult(ctx.workItem.id, options.taskResult)
-        ),
+      : vi.fn().mockImplementation(async (ctx: any) => makeResult(ctx.workItem.id, options.taskResult)),
   });
 
   const triggerScanner = new TriggerScanner({
@@ -134,7 +141,7 @@ export function buildMockDeps(
       enabled: false,
       neo4jUri: "",
       neo4jUser: "",
-      nodebbApiUrl: ""
+      nodebbApiUrl: "",
     },
     ledger,
     heartbeat: null,
@@ -149,11 +156,7 @@ export function buildMockDeps(
  * The loop is event-driven (no timers). We observe state changes and
  * call `stop()` once the condition is satisfied or `maxMs` elapses.
  */
-export async function runUntil(
-  orchestrator: Orchestrator,
-  stopCondition: () => boolean,
-  maxMs = 5000,
-): Promise<void> {
+export async function runUntil(orchestrator: Orchestrator, stopCondition: () => boolean, maxMs = 5000): Promise<void> {
   const timeout = setTimeout(() => orchestrator.stop(), maxMs);
 
   orchestrator.observer.onStateChange(() => {
@@ -216,7 +219,7 @@ export function buildBaseDeps(
       enabled: false,
       neo4jUri: "",
       neo4jUser: "",
-      nodebbApiUrl: ""
+      nodebbApiUrl: "",
     },
     triggerScanner: scanner,
     ledger,

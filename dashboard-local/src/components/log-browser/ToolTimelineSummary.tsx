@@ -3,13 +3,7 @@ import { getToolCategory } from "./tool-timeline-categories";
 import type { ToolCallEntry } from "./tool-timeline-types";
 import { CAT_HEX } from "./tool-timeline-shared";
 
-export function ToolTimelineSummary({
-  timeline,
-  totalDuration,
-}: {
-  timeline: ToolCallEntry[];
-  totalDuration: number;
-}) {
+export function ToolTimelineSummary({ timeline, totalDuration }: { timeline: ToolCallEntry[]; totalDuration: number }) {
   return (
     <>
       <TimelineHeader timeline={timeline} totalDuration={totalDuration} />
@@ -30,18 +24,14 @@ function TimelineHeader({ timeline, totalDuration }: { timeline: ToolCallEntry[]
 
   return (
     <div className="flex items-baseline gap-3 flex-wrap">
-      <span className="font-semibold text-[12px] uppercase tracking-wider text-dim">
-        Tool Timeline
-      </span>
+      <span className="font-semibold text-[12px] uppercase tracking-wider text-dim">Tool Timeline</span>
       <span className="text-[11px] text-dim">
         {startTime} → {endTime}
       </span>
       <span className="text-[11px] text-dim">
         {durationMin}m {durationSec}s
       </span>
-      <span className="text-[11px] text-text">
-        {timeline.length} calls
-      </span>
+      <span className="text-[11px] text-text">{timeline.length} calls</span>
       {skillCount > 0 && (
         <span className="text-[11px] text-purple-400 font-medium">
           {skillCount} skill{skillCount !== 1 ? "s" : ""}

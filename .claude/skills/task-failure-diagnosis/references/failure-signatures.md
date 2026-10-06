@@ -7,6 +7,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 1. Silent CLI Death (Exit 1, No Output)
 
 **Signature:**
+
 - `summary.json`: `status: "error"`, `exitCode: 1`, `durationMs` < 10s, `failureCategory: "infra"`
 - Per-task `.log`: only `[build]`/`[setup]` lines, no `[copilot]` lines
 - Session-state export missing from `collectedLogs`
@@ -15,6 +16,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 **Root cause:** The CLI process crashed immediately on launch. Its stderr is in `summary.json` `stderr` and in the `CLI exited with code N — stderr:` warning from `executeCliCommand()`. Summaries written before stderr capture was added lack the field; for those, only the logs remain.
 
 **Common underlying causes:**
+
 - Invalid `--config-dir` path (Copilot CLI)
 - MCP config JSON syntax error
 - Missing environment variable referenced in CLI flags
@@ -28,6 +30,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 2. OOM Kill (Exit 137)
 
 **Signature:**
+
 - `summary.json`: `exitCode: 137`
 - Container log may show sudden stop mid-output
 - `docker inspect` on the container shows `OOMKilled: true` (containers are removed at teardown, so inspect during a run)
@@ -41,6 +44,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 3. Stage Timeout (status partial)
 
 **Signature:**
+
 - `summary.json`: `status: "partial"` (unless the agent had already printed a `STATUS:`), `durationMs` close to the stage timeout
 - Per-task log shows CLI output that stops mid-work; with continuations enabled, the activity log shows `CLI session timed out — skipping continuation`
 
@@ -53,6 +57,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 4. MCP Server Startup Failure
 
 **Signature:**
+
 - Sidecar log shows `[gateway] <name> exited ...` and eventually `exceeded max restarts (3), giving up`
 - Sidecar log may contain `Error: Cannot find module` or `EADDRINUSE`
 - Agent tool calls to that server fail or the tools are missing
@@ -66,6 +71,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 5. Squid Proxy Domain Denial
 
 **Signature:**
+
 - Proxy log contains `TCP_DENIED` for a domain the CLI or agent needs
 - CLI may hang or error when trying to reach the blocked domain
 - Often manifests as npm/pip install failures or API call timeouts
@@ -79,6 +85,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 6. Git Checkout Failure (RepoSyncHook)
 
 **Signature:**
+
 - Activity log shows errors during `RepoSyncHook`
 - Error mentions "modified files" or "untracked files" blocking checkout
 - The CLI may run but on the wrong branch
@@ -92,6 +99,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 7. Continuation Loop Exhaustion
 
 **Signature:**
+
 - Activity log: `No result block found — continuation k/N` repeated, then `All N continuation(s) exhausted without a result block`
 - `summary.json`: `exitCode: 0` and `status: "completed"` (no agent `STATUS:` → exit-code resolution), no `prUrl`
 - No `===RALPH_RESULT_START===` block in output
@@ -105,12 +113,14 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 ## 8. Docker Build Failure
 
 **Signature:**
+
 - Per-task log ends in `[build]` lines with a Docker build error; `summary.json` has `durationMs: 0` and the error text in `stderr`
 - Common in first run after Dockerfile changes
 
 **Root cause:** The profile's Dockerfile has a syntax error, a missing base image, or a build step that fails.
 
 **Fix:** Rebuild with the same three-file merge the orchestrator uses, so the full build output is visible:
+
 ```bash
 docker compose -f profiles/<id>/docker-compose.yml \
   -f shared/security/docker-compose.security.yml \
@@ -122,6 +132,7 @@ docker compose -f profiles/<id>/docker-compose.yml \
 ## 9. Empty StreamCapture (Line Buffer Not Flushed)
 
 **Signature:**
+
 - Per-task log has output that ends mid-word or is missing the last few lines
 - The container log shows the same truncation
 
@@ -134,6 +145,7 @@ docker compose -f profiles/<id>/docker-compose.yml \
 ## Adding New Signatures
 
 When you discover a new failure pattern, add it here with:
+
 1. **Signature** — What the logs show (be specific about which files and what values)
 2. **Root cause** — Why it happens
 3. **Fix** — How to resolve it

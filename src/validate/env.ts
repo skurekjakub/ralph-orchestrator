@@ -8,8 +8,8 @@ export function validateEnvFile({ errors, warnings }: ValidationCollector): void
   if (!existsSync(envPath)) {
     errors.push(
       `.env file not found at ${envPath}\n` +
-      `  Copy .env.example to .env and fill in the required values:\n` +
-      `  cp .env.example .env`
+        `  Copy .env.example to .env and fill in the required values:\n` +
+        `  cp .env.example .env`,
     );
     return;
   }
@@ -54,7 +54,10 @@ function parseEnvFile(content: string): Record<string, string> {
     const eqIndex = trimmed.indexOf("=");
     if (eqIndex === -1) continue;
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+    const value = trimmed
+      .slice(eqIndex + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (key && value) vars[key] = value;
   }
   return vars;

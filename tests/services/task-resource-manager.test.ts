@@ -20,7 +20,10 @@ describe("TaskResourceManager", () => {
   beforeEach(() => {
     connector = createMockConnector();
     logger = createMockLogger();
-    resources = new TaskResourceManager({ connectors: new Map<string, IDataSourceConnector>([[DS, connector]]), logger });
+    resources = new TaskResourceManager({
+      connectors: new Map<string, IDataSourceConnector>([[DS, connector]]),
+      logger,
+    });
     resources.retryOptions = { delayMs: 1 };
   });
 
@@ -39,9 +42,7 @@ describe("TaskResourceManager", () => {
     });
 
     it("returns plain-text comment body directly", async () => {
-      connector.getComments.mockResolvedValue([
-        makeWorkItemComment("1", "Plain text content", "2026-01-15T10:00:00Z"),
-      ]);
+      connector.getComments.mockResolvedValue([makeWorkItemComment("1", "Plain text content", "2026-01-15T10:00:00Z")]);
 
       const result = await resources.fetchComments(DS, KEY);
 
@@ -54,16 +55,22 @@ describe("TaskResourceManager", () => {
       const result = await resources.fetchComments(DS, KEY);
 
       expect(result).toEqual([]);
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to fetch comments"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to fetch comments"));
     });
 
     it("filters out orchestrator infrastructure comments", async () => {
       connector.getComments.mockResolvedValue([
-        makeWorkItemComment("1", "[Ralph-Orchestrator] 🤖 Got it! Queueing Ralph for this issue...", "2026-01-15T09:00:00Z"),
+        makeWorkItemComment(
+          "1",
+          "[Ralph-Orchestrator] 🤖 Got it! Queueing Ralph for this issue...",
+          "2026-01-15T09:00:00Z",
+        ),
         makeWorkItemComment("2", "@Ralph please update the docs", "2026-01-15T09:30:00Z"),
-        makeWorkItemComment("3", "[Ralph-Orchestrator] 🤖 Ralph is starting work on this issue.", "2026-01-15T10:00:00Z"),
+        makeWorkItemComment(
+          "3",
+          "[Ralph-Orchestrator] 🤖 Ralph is starting work on this issue.",
+          "2026-01-15T10:00:00Z",
+        ),
         makeWorkItemComment("4", "Looks good, approved!", "2026-01-15T11:00:00Z"),
       ]);
 
@@ -103,9 +110,7 @@ describe("TaskResourceManager", () => {
     });
 
     it("returns null when no handoff.md exists", async () => {
-      connector.getAttachments.mockResolvedValue([
-        { id: "1", filename: "other.txt", created: "2026-01-10T00:00:00Z" },
-      ]);
+      connector.getAttachments.mockResolvedValue([{ id: "1", filename: "other.txt", created: "2026-01-10T00:00:00Z" }]);
 
       const result = await resources.fetchHandoff(DS, KEY);
 
@@ -119,9 +124,7 @@ describe("TaskResourceManager", () => {
       const result = await resources.fetchHandoff(DS, KEY);
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to fetch attachments"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to fetch attachments"));
     });
 
     it("returns null when download fails", async () => {
@@ -133,9 +136,7 @@ describe("TaskResourceManager", () => {
       const result = await resources.fetchHandoff(DS, KEY);
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to download handoff"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to download handoff"));
     });
   });
 
@@ -156,9 +157,7 @@ describe("TaskResourceManager", () => {
         "session-transcript-ralph-15-03-2026.md",
         "transcript content",
       );
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Session transcript attached"),
-      );
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Session transcript attached"));
     });
 
     it("logs warning when attachment fails", async () => {
@@ -168,20 +167,18 @@ describe("TaskResourceManager", () => {
 
       await resources.attachTranscript(DS, KEY, "/tmp/transcript.md", "ralph");
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to attach transcript"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to attach transcript"));
     });
 
     it("logs warning when file read fails", async () => {
       const { readFileSync } = await import("node:fs");
-      vi.mocked(readFileSync).mockImplementation(() => { throw new Error("ENOENT"); });
+      vi.mocked(readFileSync).mockImplementation(() => {
+        throw new Error("ENOENT");
+      });
 
       await resources.attachTranscript(DS, KEY, "/tmp/missing.md", "ralph");
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to attach transcript"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to attach transcript"));
     });
   });
 });

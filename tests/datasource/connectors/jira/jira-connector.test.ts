@@ -24,21 +24,15 @@ describe("JiraConnector", () => {
 
   describe("buildQueries", () => {
     it("generates JQL from profile match rules", () => {
-      const profiles = [
-        { match: { projects: [PROJECT], statuses: ["New", "To Do"] } },
-      ];
+      const profiles = [{ match: { projects: [PROJECT], statuses: ["New", "To Do"] } }];
       const queries = connector.buildQueries(profiles);
 
       expect(queries).toHaveLength(1);
-      expect(queries[0]).toBe(
-        'project = "DF" AND status IN ("New", "To Do") ORDER BY created ASC',
-      );
+      expect(queries[0]).toBe('project = "DF" AND status IN ("New", "To Do") ORDER BY created ASC');
     });
 
     it("generates catch-all JQL when statuses are empty", () => {
-      const profiles = [
-        { match: { projects: ["DOC"], statuses: [] } },
-      ];
+      const profiles = [{ match: { projects: ["DOC"], statuses: [] } }];
       const queries = connector.buildQueries(profiles);
 
       expect(queries[0]).toBe('project = "DOC" ORDER BY created ASC');
@@ -55,9 +49,7 @@ describe("JiraConnector", () => {
     });
 
     it("generates one query per project", () => {
-      const profiles = [
-        { match: { projects: [PROJECT, "DOC"] } },
-      ];
+      const profiles = [{ match: { projects: [PROJECT, "DOC"] } }];
       const queries = connector.buildQueries(profiles);
 
       expect(queries).toHaveLength(2);
@@ -101,9 +93,7 @@ describe("JiraConnector", () => {
     it("throws when issue not found", async () => {
       client.searchIssues.mockResolvedValue([]);
 
-      await expect(connector.refreshWorkItem("DF-999")).rejects.toThrow(
-        "Work item DF-999 not found in JIRA",
-      );
+      await expect(connector.refreshWorkItem("DF-999")).rejects.toThrow("Work item DF-999 not found in JIRA");
     });
   });
 
@@ -151,9 +141,7 @@ describe("JiraConnector", () => {
 
   describe("getTransitions", () => {
     it("maps JIRA transitions to WorkItemTransitions", async () => {
-      client.getTransitions.mockResolvedValue([
-        { id: "31", name: "Start", to: { name: "In Progress" } },
-      ]);
+      client.getTransitions.mockResolvedValue([{ id: "31", name: "Start", to: { name: "In Progress" } }]);
 
       const transitions = await connector.getTransitions(KEY);
 
@@ -175,9 +163,9 @@ describe("JiraConnector", () => {
     it("throws when no matching transition exists", async () => {
       client.findTransitionId.mockResolvedValue(undefined);
 
-      await expect(
-        connector.transitionWorkItem(KEY, "Nonexistent"),
-      ).rejects.toThrow('No transition to "Nonexistent" available for DF-100');
+      await expect(connector.transitionWorkItem(KEY, "Nonexistent")).rejects.toThrow(
+        'No transition to "Nonexistent" available for DF-100',
+      );
     });
   });
 
@@ -186,7 +174,12 @@ describe("JiraConnector", () => {
   describe("getAttachments", () => {
     it("maps JIRA attachments to WorkItemAttachments", async () => {
       client.getAttachments.mockResolvedValue([
-        { id: "att-1", filename: "handoff.md", content: "https://jira.example.com/att-1", created: "2026-01-01T00:00:00Z" },
+        {
+          id: "att-1",
+          filename: "handoff.md",
+          content: "https://jira.example.com/att-1",
+          created: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       const attachments = await connector.getAttachments(KEY);
@@ -200,7 +193,12 @@ describe("JiraConnector", () => {
   describe("downloadAttachment", () => {
     it("looks up content URL from attachment list and downloads", async () => {
       client.getAttachments.mockResolvedValue([
-        { id: "att-1", filename: "handoff.md", content: "https://jira.example.com/att-1", created: "2026-01-01T00:00:00Z" },
+        {
+          id: "att-1",
+          filename: "handoff.md",
+          content: "https://jira.example.com/att-1",
+          created: "2026-01-01T00:00:00Z",
+        },
       ]);
       client.downloadAttachment.mockResolvedValue("# Handoff content");
 
@@ -213,9 +211,9 @@ describe("JiraConnector", () => {
     it("throws when attachment ID not found", async () => {
       client.getAttachments.mockResolvedValue([]);
 
-      await expect(
-        connector.downloadAttachment(KEY, "missing"),
-      ).rejects.toThrow("Attachment missing not found on DF-100");
+      await expect(connector.downloadAttachment(KEY, "missing")).rejects.toThrow(
+        "Attachment missing not found on DF-100",
+      );
     });
   });
 

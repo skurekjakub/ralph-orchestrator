@@ -41,10 +41,9 @@ describe("Copilot output persistence", () => {
   it("combines stdout and stderr into single log file", () => {
     const stdout = "RALPH_RESULT: completed";
     const stderr = "Warning: something";
-    const fullOutput = [
-      stdout ? `=== STDOUT ===\n${stdout}` : "",
-      stderr ? `\n=== STDERR ===\n${stderr}` : "",
-    ].join("");
+    const fullOutput = [stdout ? `=== STDOUT ===\n${stdout}` : "", stderr ? `\n=== STDERR ===\n${stderr}` : ""].join(
+      "",
+    );
 
     expect(fullOutput).toContain("=== STDOUT ===");
     expect(fullOutput).toContain("RALPH_RESULT: completed");
@@ -125,7 +124,7 @@ describe("Poller logging", () => {
     const { resolve } = await import("node:path");
     const source = readFileSync(
       resolve(import.meta.dirname, "../../src/datasource/connectors/jira/jira-poller.ts"),
-      "utf-8"
+      "utf-8",
     );
 
     expect(source).toContain("Polling");

@@ -59,24 +59,24 @@ At startup, the orchestrator:
 
 ### Profile-Level Fields
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `repo` | `string` | — (required) | Path to target repository. Supports `~` expansion |
-| `dataSource` | `string` | — (required) | Key from `config.json` `dataSources` |
-| `vcsProvider` | `"ado"` &#124; `"github"` | `"ado"` | VCS platform. Controls git auth header format |
-| `repoPat` | `string` | `"ADO_PAT"` or `"GH_TOKEN"` | Env var name holding the git PAT. Default depends on `vcsProvider` |
-| `cli` | `"copilot"` &#124; `"claude"` | `"copilot"` | Which AI CLI to run inside the container |
-| `model` | `string` | *(optional)* | Model override for all variants |
-| `timeoutMs` | `number` | `1800000` (30 min) | Max execution time in milliseconds |
-| `setupScript` | `string` | `"/usr/local/bin/setup.sh"` | Absolute path to setup script inside container |
-| `auditLogPath` | `string` | `"/workspace/.ralph/logs/audit.jsonl"` | Audit log path inside container |
-| `composeProjectLabel` | `string` | `"ralph-sandbox"` | Docker Compose project label |
-| `cleanPaths` | `string[]` | `[]` | Absolute container paths deleted (`rm -rf`) before each agent run (once before the first stage, not per-stage) |
-| `maxContinuations` | `number` | `0` | Max auto-retry attempts (0–10) when agent doesn't produce a result block. Uses exponential backoff (5s base, 30s cap). Also requires `enableContinuation: true` in `config.json` |
-| `mcpServers` | `array` | `[]` | MCP servers to deploy. Entries can be plain strings or objects with `env` (task-scoped macros) and `sidecarEnv` (container-level env). See [MCP Servers](mcp-servers.md) |
-| `githubMcpTools` | `false` &#124; `string[]` | `false` | Copilot's built-in GitHub MCP server. `false` disables it, array enables specific tools only. No effect on `cli: "claude"` |
-| `resources` | `object` | *(optional)* | Resource auto-mount config. See [Resources](#resources) |
-| `skills` | `string[]` | `[]` | Skill folder names from `shared/skills/` to mount at `.github/skills/` |
+| Field                 | Type                          | Default                                | Description                                                                                                                                                                      |
+| --------------------- | ----------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `repo`                | `string`                      | — (required)                           | Path to target repository. Supports `~` expansion                                                                                                                                |
+| `dataSource`          | `string`                      | — (required)                           | Key from `config.json` `dataSources`                                                                                                                                             |
+| `vcsProvider`         | `"ado"` &#124; `"github"`     | `"ado"`                                | VCS platform. Controls git auth header format                                                                                                                                    |
+| `repoPat`             | `string`                      | `"ADO_PAT"` or `"GH_TOKEN"`            | Env var name holding the git PAT. Default depends on `vcsProvider`                                                                                                               |
+| `cli`                 | `"copilot"` &#124; `"claude"` | `"copilot"`                            | Which AI CLI to run inside the container                                                                                                                                         |
+| `model`               | `string`                      | _(optional)_                           | Model override for all variants                                                                                                                                                  |
+| `timeoutMs`           | `number`                      | `1800000` (30 min)                     | Max execution time in milliseconds                                                                                                                                               |
+| `setupScript`         | `string`                      | `"/usr/local/bin/setup.sh"`            | Absolute path to setup script inside container                                                                                                                                   |
+| `auditLogPath`        | `string`                      | `"/workspace/.ralph/logs/audit.jsonl"` | Audit log path inside container                                                                                                                                                  |
+| `composeProjectLabel` | `string`                      | `"ralph-sandbox"`                      | Docker Compose project label                                                                                                                                                     |
+| `cleanPaths`          | `string[]`                    | `[]`                                   | Absolute container paths deleted (`rm -rf`) before each agent run (once before the first stage, not per-stage)                                                                   |
+| `maxContinuations`    | `number`                      | `0`                                    | Max auto-retry attempts (0–10) when agent doesn't produce a result block. Uses exponential backoff (5s base, 30s cap). Also requires `enableContinuation: true` in `config.json` |
+| `mcpServers`          | `array`                       | `[]`                                   | MCP servers to deploy. Entries can be plain strings or objects with `env` (task-scoped macros) and `sidecarEnv` (container-level env). See [MCP Servers](mcp-servers.md)         |
+| `githubMcpTools`      | `false` &#124; `string[]`     | `false`                                | Copilot's built-in GitHub MCP server. `false` disables it, array enables specific tools only. No effect on `cli: "claude"`                                                       |
+| `resources`           | `object`                      | _(optional)_                           | Resource auto-mount config. See [Resources](#resources)                                                                                                                          |
+| `skills`              | `string[]`                    | `[]`                                   | Skill folder names from `shared/skills/` to mount at `.github/skills/`                                                                                                           |
 
 ### Variants
 
@@ -95,9 +95,7 @@ Each profile has a `variants` array. Each variant is an independent trigger targ
       },
       "beforeAgent": { "targetStatus": "In Progress" },
       "afterAgent": { "targetStatus": "Ready for Review" },
-      "stages": [
-        { "agent": "ralph.ralph", "role": "primary", "mode": "container" }
-      ]
+      "stages": [{ "agent": "ralph.ralph", "role": "primary", "mode": "container" }]
     }
   ]
 }
@@ -105,34 +103,34 @@ Each profile has a `variants` array. Each variant is an independent trigger targ
 
 #### Variant Fields
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `description` | `string` | *(optional)* | Human-readable description |
-| `model` | `string` | *(optional)* | Model override for this variant (overrides profile-level) |
-| `match` | `object` | — (required) | Match rules (see below) |
-| `beforeAgent` | `object` | *(optional)* | Pre-execution JIRA transitions |
-| `afterAgent` | `object` | *(optional)* | Post-execution JIRA transitions |
-| `stages` | `IStageConfig[]` | — (required, min 1) | Sequential agent pipeline |
-| `mcpServers` | `array` | `[]` | Additional MCP servers for this variant. Merged with profile-level (effective set = union). Same syntax as profile-level `mcpServers` — supports string or object with `env`/`sidecarEnv` |
-| `preflight` | `string` | *(optional)* | Named preflight check. Aborts on failure |
-| `failureComment` | `string` | *(optional)* | JIRA comment posted when preflight fails |
-| `postTaskHooks` | `array` | `[]` | Post-task hook pipelines (local-only). See [Post-Task Hooks](#post-task-hooks) |
+| Field            | Type             | Default             | Description                                                                                                                                                                               |
+| ---------------- | ---------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description`    | `string`         | _(optional)_        | Human-readable description                                                                                                                                                                |
+| `model`          | `string`         | _(optional)_        | Model override for this variant (overrides profile-level)                                                                                                                                 |
+| `match`          | `object`         | — (required)        | Match rules (see below)                                                                                                                                                                   |
+| `beforeAgent`    | `object`         | _(optional)_        | Pre-execution JIRA transitions                                                                                                                                                            |
+| `afterAgent`     | `object`         | _(optional)_        | Post-execution JIRA transitions                                                                                                                                                           |
+| `stages`         | `IStageConfig[]` | — (required, min 1) | Sequential agent pipeline                                                                                                                                                                 |
+| `mcpServers`     | `array`          | `[]`                | Additional MCP servers for this variant. Merged with profile-level (effective set = union). Same syntax as profile-level `mcpServers` — supports string or object with `env`/`sidecarEnv` |
+| `preflight`      | `string`         | _(optional)_        | Named preflight check. Aborts on failure                                                                                                                                                  |
+| `failureComment` | `string`         | _(optional)_        | JIRA comment posted when preflight fails                                                                                                                                                  |
+| `postTaskHooks`  | `array`          | `[]`                | Post-task hook pipelines (local-only). See [Post-Task Hooks](#post-task-hooks)                                                                                                            |
 
 #### Match Rules
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `projects` | `string[]` | `[]` | JIRA project keys to match. Empty = match any |
-| `statuses` | `string[]` | `[]` | JIRA statuses to match (case-insensitive). Empty = match any |
-| `commentTrigger` | `string` | — (required) | Trigger string in JIRA comments. Case-insensitive word-boundary match. Supports parenthesized parameters |
-| `revisionStatuses` | `string[]` | `[]` | Statuses that set `isRevision: true` in the template context |
+| Field              | Type       | Default      | Description                                                                                              |
+| ------------------ | ---------- | ------------ | -------------------------------------------------------------------------------------------------------- |
+| `projects`         | `string[]` | `[]`         | JIRA project keys to match. Empty = match any                                                            |
+| `statuses`         | `string[]` | `[]`         | JIRA statuses to match (case-insensitive). Empty = match any                                             |
+| `commentTrigger`   | `string`   | — (required) | Trigger string in JIRA comments. Case-insensitive word-boundary match. Supports parenthesized parameters |
+| `revisionStatuses` | `string[]` | `[]`         | Statuses that set `isRevision: true` in the template context                                             |
 
 #### Lifecycle Transitions
 
-| Field | Type | Description |
-|---|---|---|
-| `beforeAgent.targetStatus` | `string` | JIRA status to transition to before running the agent |
-| `afterAgent.targetStatus` | `string` | JIRA status to transition to after successful completion |
+| Field                      | Type     | Description                                              |
+| -------------------------- | -------- | -------------------------------------------------------- |
+| `beforeAgent.targetStatus` | `string` | JIRA status to transition to before running the agent    |
+| `afterAgent.targetStatus`  | `string` | JIRA status to transition to after successful completion |
 
 ### Stages
 
@@ -147,22 +145,22 @@ Each variant has a `stages` array defining a sequential agent pipeline. Stages e
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `agent` | `string` | — (required) | Agent CLI name (e.g. `"ralph.ralph"`). Maps to `agents/<agent>.agent.md` |
-| `role` | `string` | — (required) | Unique role within the pipeline (e.g. `"primary"`, `"reviewer"`) |
-| `mode` | `"container"` &#124; `"local"` | `"container"` | `"container"` runs in Docker, `"local"` runs on the host |
-| `skills` | `string[]` | `[]` | Skill names for this stage. Overrides profile-level `skills` for template rendering |
-| `model` | `string` | *(optional)* | Model override. Precedence: stage > variant > profile |
-| `timeoutMs` | `number` | *(optional)* | Timeout override for this stage. Falls back to profile-level `timeoutMs` |
+| Field       | Type                           | Default       | Description                                                                         |
+| ----------- | ------------------------------ | ------------- | ----------------------------------------------------------------------------------- |
+| `agent`     | `string`                       | — (required)  | Agent CLI name (e.g. `"ralph.ralph"`). Maps to `agents/<agent>.agent.md`            |
+| `role`      | `string`                       | — (required)  | Unique role within the pipeline (e.g. `"primary"`, `"reviewer"`)                    |
+| `mode`      | `"container"` &#124; `"local"` | `"container"` | `"container"` runs in Docker, `"local"` runs on the host                            |
+| `skills`    | `string[]`                     | `[]`          | Skill names for this stage. Overrides profile-level `skills` for template rendering |
+| `model`     | `string`                       | _(optional)_  | Model override. Precedence: stage > variant > profile                               |
+| `timeoutMs` | `number`                       | _(optional)_  | Timeout override for this stage. Falls back to profile-level `timeoutMs`            |
 
 ### Preflight Checks
 
 Available named checks:
 
-| Name | Validates |
-|---|---|
-| `review-ready` | PR URL exists in issue comments AND handoff attachment is available |
+| Name             | Validates                                                           |
+| ---------------- | ------------------------------------------------------------------- |
+| `review-ready`   | PR URL exists in issue comments AND handoff attachment is available |
 | `revision-ready` | PR URL exists in issue comments AND handoff attachment is available |
 
 Unknown check names pass by default.
@@ -176,17 +174,15 @@ Post-task hooks run local-mode stages after the main pipeline completes. They re
   "postTaskHooks": [
     {
       "name": "run-analysis",
-      "stages": [
-        { "agent": "ralph.run-analyzer", "role": "analyzer", "mode": "local" }
-      ]
+      "stages": [{ "agent": "ralph.run-analyzer", "role": "analyzer", "mode": "local" }]
     }
   ]
 }
 ```
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | `string` | Yes | Lowercase alphanumeric + hyphens. Identifies the hook |
+| Field    | Type             | Required    | Description                                                                            |
+| -------- | ---------------- | ----------- | -------------------------------------------------------------------------------------- |
+| `name`   | `string`         | Yes         | Lowercase alphanumeric + hyphens. Identifies the hook                                  |
 | `stages` | `IStageConfig[]` | Yes (min 1) | Stage objects. **All must have `mode: "local"`**. Roles must be unique within the hook |
 
 Hook agents have access to additional template variables under `hook.*` — see [Template Variables](template-variables.md#post-task-hook-context).
@@ -203,8 +199,8 @@ Files in `profiles/<id>/resources/` are automatically mounted read-only into the
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
+| Field       | Type     | Description                                                                                             |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------- |
 | `mountBase` | `string` | Container path prefix relative to `/workspace`. Files mount at `/workspace/<mountBase>/<relative-path>` |
 
 All files in the `resources/` directory are discovered recursively and mounted individually.

@@ -34,9 +34,7 @@ export async function GET() {
 
   // Fetch all agents in parallel
   const keys = agentIds.map((id) => `ralph:agent:${id}`);
-  const results = await Promise.all(
-    keys.map((key) => redis.get<AgentStatus>(key)),
-  );
+  const results = await Promise.all(keys.map((key) => redis.get<AgentStatus>(key)));
 
   const agents: AgentStatus[] = [];
   const expiredIds: string[] = [];

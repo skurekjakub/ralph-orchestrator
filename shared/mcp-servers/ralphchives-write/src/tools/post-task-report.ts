@@ -10,7 +10,12 @@ interface TopicResponse {
 const inputSchema: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Topic title — use the JIRA issue key as prefix (e.g. 'DF-123: Migrated API docs')"),
   content: z.string().describe("Full task report in markdown — include changes made, PR links, observations"),
-  tags: z.array(z.string()).optional().describe("Tags for categorization (e.g. JIRA key, topic area). Maximum 5 tags — NodeBB rejects requests with more than 5."),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Tags for categorization (e.g. JIRA key, topic area). Maximum 5 tags — NodeBB rejects requests with more than 5.",
+    ),
 };
 
 if (!NODEBB_CATEGORY_ID) {
@@ -40,15 +45,17 @@ export const tool: ToolDefinition = {
       });
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            topicId: topic.tid,
-            slug: topic.slug,
-            message: "Task report posted to Ralphchives",
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              success: true,
+              topicId: topic.tid,
+              slug: topic.slug,
+              message: "Task report posted to Ralphchives",
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

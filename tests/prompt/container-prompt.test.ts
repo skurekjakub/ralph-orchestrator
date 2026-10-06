@@ -39,9 +39,7 @@ describe("Prompt building", () => {
 
   it("includes custom fields from map", () => {
     const issue = makeWorkItem("DF-1", {
-      customFields: new Map<string, string>([
-        ["Acceptance Criteria", "This is a long acceptance criteria string"],
-      ]),
+      customFields: new Map<string, string>([["Acceptance Criteria", "This is a long acceptance criteria string"]]),
     });
 
     const prompt = buildPrompt(issue);

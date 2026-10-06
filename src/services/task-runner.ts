@@ -15,7 +15,6 @@ import { toErrorMessage } from "../util/error.js";
 import { rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
   /** Run the full pipeline for a single issue + profile combination. */
@@ -48,7 +47,16 @@ export class TaskRunner implements ITaskRunner {
   private readonly pipelineExecutor: IAgentPipelineExecutor;
   private readonly preExecuteHooks: readonly ILifecycleHook[];
 
-  constructor({ logger, containerFactory, resources, resultWriter, issueManager, profileSetup, pipelineExecutor, preExecuteHooks = [] }: {
+  constructor({
+    logger,
+    containerFactory,
+    resources,
+    resultWriter,
+    issueManager,
+    profileSetup,
+    pipelineExecutor,
+    preExecuteHooks = [],
+  }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
     resources: IResourceManager;
@@ -80,9 +88,7 @@ export class TaskRunner implements ITaskRunner {
         await container.stop();
         return;
       } catch (err) {
-        this.logger.warn(
-          `Graceful stop failed: ${toErrorMessage(err)}`,
-        );
+        this.logger.warn(`Graceful stop failed: ${toErrorMessage(err)}`);
       }
     }
 
@@ -91,9 +97,7 @@ export class TaskRunner implements ITaskRunner {
     try {
       await this.containerFactory.forceDown(profile);
     } catch (err) {
-      this.logger.warn(
-        `Fallback teardown failed: ${toErrorMessage(err)}`,
-      );
+      this.logger.warn(`Fallback teardown failed: ${toErrorMessage(err)}`);
     }
   }
 
@@ -124,9 +128,7 @@ export class TaskRunner implements ITaskRunner {
 
       return result;
     } catch (err) {
-      this.logger.error(
-        `Error processing ${ctx.workItem.id}: ${toErrorMessage(err)}`
-      );
+      this.logger.error(`Error processing ${ctx.workItem.id}: ${toErrorMessage(err)}`);
 
       const errorResult: RalphResult = {
         taskId: ctx.workItem.id,
@@ -153,8 +155,19 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async transitionIssue(ctx: TaskContext): Promise<void> {
-    await this.issueManager.transitionWorkItem(ctx.workItem.source, ctx.workItem.id, ctx.profile.beforeAgent?.targetStatus, TransitionPhase.BeforeAgent);
-    await this.issueManager.postStartComment(ctx.workItem.source, ctx.workItem.id, ctx.profile.displayName, ctx.profile.id, ctx.triggerParams);
+    await this.issueManager.transitionWorkItem(
+      ctx.workItem.source,
+      ctx.workItem.id,
+      ctx.profile.beforeAgent?.targetStatus,
+      TransitionPhase.BeforeAgent,
+    );
+    await this.issueManager.postStartComment(
+      ctx.workItem.source,
+      ctx.workItem.id,
+      ctx.profile.displayName,
+      ctx.profile.id,
+      ctx.triggerParams,
+    );
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
@@ -202,9 +215,7 @@ export class TaskRunner implements ITaskRunner {
     if (ctx.isRevision) {
       this.logger.info(`Issue is in revision status ("${ctx.workItem.status}") — fetching handoff...`);
       handoffContent = await this.resources.fetchHandoff(ctx.workItem.source, ctx.workItem.id);
-      this.logger.info(
-        `Handoff context: ${handoffContent ? "found" : "not found"}`
-      );
+      this.logger.info(`Handoff context: ${handoffContent ? "found" : "not found"}`);
     }
 
     const issueContext: IssueContext = {
@@ -239,7 +250,9 @@ export class TaskRunner implements ITaskRunner {
       const hookOutputDir = join(ctx.outputDir, "hooks", hook.name);
       mkdirSync(hookOutputDir, { recursive: true });
 
-      this.logger.info(`[hook:${hook.name}] Starting (${hook.stages.length} stage${hook.stages.length > 1 ? "s" : ""})`);
+      this.logger.info(
+        `[hook:${hook.name}] Starting (${hook.stages.length} stage${hook.stages.length > 1 ? "s" : ""})`,
+      );
       const completedRoles: string[] = [];
 
       try {
@@ -265,10 +278,15 @@ export class TaskRunner implements ITaskRunner {
           const { executor, sessionRunner } = this.containerFactory.createLocalSession(ctx.profile, stage);
 
           this.logger.info(`${stageLabel} Executing ${stage.agent}...`);
-          const stageResult = await sessionRunner.run(executor, ctx.workItem, { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams }, {
-            maxContinuations: 0,
-            enableContinuation: false,
-          });
+          const stageResult = await sessionRunner.run(
+            executor,
+            ctx.workItem,
+            { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams },
+            {
+              maxContinuations: 0,
+              enableContinuation: false,
+            },
+          );
 
           if (stageResult.status !== TaskStatus.Completed) {
             this.logger.warn(`${stageLabel} Failed (${stageResult.status}) — skipping remaining stages in this hook`);

@@ -18,6 +18,7 @@ Every mounted skill costs context, because the agent reads each `SKILL.md`. One 
    ```
 
    Use the mirror (`{%- if isRevision %}`) for revision-only files. Shared files get no guard. Keep the inner conditionals.
+
 5. **profile.json**: replace the N names with the router name in every variant.
 6. **Workflow tables** in `shared/agent-includes/<profile>/`: point rows at `references/<file>` of the router.
 7. **Tests**: update fixtures that list the old names, and assert on content absence (`not.toContain("# Phase 1")`) rather than empty output, because guarded files render the HTML comment.

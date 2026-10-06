@@ -22,11 +22,7 @@ export function logApiPlugin(): Plugin {
 }
 
 export function createLogApiMiddleware(logDir: string) {
-  return (
-    req: import("node:http").IncomingMessage,
-    res: import("node:http").ServerResponse,
-    next: () => void,
-  ) => {
+  return (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, next: () => void) => {
     const url = new URL(req.url ?? "/", "http://localhost");
 
     if (url.pathname === "/api/logs") {
@@ -89,9 +85,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
       const dirTaskId = dirMatch ? dirMatch[1] : entry;
       const dirTimestamp = dirMatch ? Number(dirMatch[2]) : undefined;
 
-      const files = readdirSync(entryPath).filter(
-        (f) => statSync(join(entryPath, f)).isFile(),
-      );
+      const files = readdirSync(entryPath).filter((f) => statSync(join(entryPath, f)).isFile());
 
       for (const file of files) {
         const relPath = `${entry}/${file}`;
@@ -120,17 +114,15 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
       }
     }
 
-    const groups = [...taskMap.values()].sort(
-      (a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)
-    );
+    const groups = [...taskMap.values()].sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 
     for (const group of groups) {
       if (group.files.summary) {
         try {
-          group.summary = JSON.parse(
-            readFileSync(join(logDir, group.files.summary), "utf-8")
-          );
-        } catch { /* skip */ }
+          group.summary = JSON.parse(readFileSync(join(logDir, group.files.summary), "utf-8"));
+        } catch {
+          /* skip */
+        }
       }
     }
 
@@ -141,11 +133,7 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
   }
 }
 
-function handleLogFile(
-  logDir: string,
-  filename: string,
-  res: import("node:http").ServerResponse,
-) {
+function handleLogFile(logDir: string, filename: string, res: import("node:http").ServerResponse) {
   if (filename.includes("..") || filename.startsWith("/")) {
     res.writeHead(400);
     res.end("Invalid filename");
@@ -156,10 +144,13 @@ function handleLogFile(
     const content = readFileSync(join(logDir, filename), "utf-8");
     const ext = filename.split(".").pop();
     const contentType =
-      ext === "json" ? "application/json" :
-      ext === "jsonl" ? "application/x-ndjson" :
-      ext === "md" ? "text/markdown" :
-      "text/plain";
+      ext === "json"
+        ? "application/json"
+        : ext === "jsonl"
+          ? "application/x-ndjson"
+          : ext === "md"
+            ? "text/markdown"
+            : "text/plain";
 
     res.writeHead(200, { "Content-Type": `${contentType}; charset=utf-8` });
     res.end(content);
@@ -216,11 +207,7 @@ function handleHistoryList(logDir: string, res: import("node:http").ServerRespon
 }
 
 /** Serve one ledger addressed as `<dataSource>/<issueKey>`. */
-function handleHistoryFile(
-  logDir: string,
-  ledgerRef: string,
-  res: import("node:http").ServerResponse,
-) {
+function handleHistoryFile(logDir: string, ledgerRef: string, res: import("node:http").ServerResponse) {
   const segments = ledgerRef.split("/");
   if (segments.length !== 2 || !segments.every((s) => SAFE_SEGMENT_RE.test(s))) {
     res.writeHead(400);

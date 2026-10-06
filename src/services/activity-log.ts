@@ -53,9 +53,14 @@ export class ActivityLog implements IActivityLog {
    * @param opts.outputConfig Output config (reads `logDir`).
    * @param opts.maxLines Ring buffer size (default 500).
    */
-  constructor({ outputConfig }: {
-    outputConfig: IOutputConfig;
-  }, maxLines = 500) {
+  constructor(
+    {
+      outputConfig,
+    }: {
+      outputConfig: IOutputConfig;
+    },
+    maxLines = 500,
+  ) {
     this.maxLines = maxLines;
     this.logDir = resolve(process.cwd(), outputConfig.logDir);
     mkdirSync(this.logDir, { recursive: true });

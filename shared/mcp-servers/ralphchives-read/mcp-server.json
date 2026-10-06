@@ -8,9 +8,5 @@
   "sidecarPort": 9107,
   "requiredEnv": ["NODEBB_API_URL"],
   "requiredConfig": ["NODEBB_API_TOKEN", "NODEBB_CATEGORY_NAME"],
-  "tools": [
-    "search_ralphchives",
-    "get_topic",
-    "list_recent_topics"
-  ]
+  "tools": ["search_ralphchives", "get_topic", "list_recent_topics"]
 }

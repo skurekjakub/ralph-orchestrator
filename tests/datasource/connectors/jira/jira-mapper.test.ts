@@ -5,7 +5,12 @@ import {
   mapAttachmentToWorkItemAttachment,
   mapTransitionToWorkItemTransition,
 } from "../../../../src/datasource/connectors/jira/jira-mapper.js";
-import type { JiraIssue, JiraComment, JiraAttachment, JiraTransition } from "../../../../src/datasource/connectors/jira/jira-types.js";
+import type {
+  JiraIssue,
+  JiraComment,
+  JiraAttachment,
+  JiraTransition,
+} from "../../../../src/datasource/connectors/jira/jira-types.js";
 import { makeIssue, makeComment } from "../../../helpers/factories.js";
 
 describe("mapIssueToWorkItem", () => {
@@ -80,9 +85,7 @@ describe("mapIssueToWorkItem", () => {
         created: "2026-01-01T00:00:00.000+0000",
         description: {
           type: "doc",
-          content: [
-            { type: "paragraph", content: [{ type: "text", text: "Hello world" }] },
-          ],
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] }],
         },
       },
     };

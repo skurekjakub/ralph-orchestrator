@@ -42,7 +42,15 @@ export function NodeTokenCostChart({ entries, width = 700, height = 180 }: NodeT
                 <title>Prompt: {(entry.promptTokens - entry.cachedTokens).toLocaleString()}</title>
               </rect>
               {/* Completion (green) */}
-              <rect x={cachedW + promptW} y={0} width={Math.max(0, completionW)} height={barH} rx={2} fill="#22c55e" opacity="0.7">
+              <rect
+                x={cachedW + promptW}
+                y={0}
+                width={Math.max(0, completionW)}
+                height={barH}
+                rx={2}
+                fill="#22c55e"
+                opacity="0.7"
+              >
                 <title>Completion: {entry.completionTokens.toLocaleString()}</title>
               </rect>
               {/* Total label */}

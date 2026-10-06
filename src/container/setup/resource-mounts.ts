@@ -17,10 +17,7 @@ export interface ResourceConfig {
  * @param config Resource config with the container mount base path.
  * @returns Array of volume mount strings (YAML-ready, indented for `services.app.volumes`).
  */
-export function generateResourceVolumeMounts(
-  profileDir: string,
-  config: ResourceConfig,
-): string[] {
+export function generateResourceVolumeMounts(profileDir: string, config: ResourceConfig): string[] {
   const resourcesDir = join(profileDir, "resources");
   if (!existsSync(resourcesDir)) return [];
 

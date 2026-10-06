@@ -98,7 +98,9 @@ export class ContainerManager implements IContainerManager {
   private _running = false;
 
   /** Whether the container has been started and not yet stopped. */
-  get isRunning(): boolean { return this._running; }
+  get isRunning(): boolean {
+    return this._running;
+  }
 
   /** Per-task log collector — manages streaming and collection for all log sources. */
   readonly logs: IContainerLogCollector;
@@ -174,11 +176,15 @@ export class ContainerManager implements IContainerManager {
     // Self-terminate when the orchestrator aborts the task signal (e.g. SIGINT).
     // This removes the need for the orchestrator to hold a container reference
     // for shutdown — the signal is the single coordination mechanism.
-    signal.addEventListener("abort", () => {
-      void this.stop().catch((err) => {
-        this.logger.warn(`Abort-triggered stop failed: ${toErrorMessage(err)}`);
-      });
-    }, { once: true });
+    signal.addEventListener(
+      "abort",
+      () => {
+        void this.stop().catch((err) => {
+          this.logger.warn(`Abort-triggered stop failed: ${toErrorMessage(err)}`);
+        });
+      },
+      { once: true },
+    );
   }
 
   /**
@@ -219,11 +225,20 @@ export class ContainerManager implements IContainerManager {
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void {
     const debugLogPath = join(outputDir, `${taskId}-cli-debug-stream.log`);
 
-    this.logRegistry.registerAll(this.logs, this.profile, taskId, workItemId, {
-      onToolOutput: this.onToolOutput,
-      onPreToolUse: this.onPreToolUse,
-      onCliDebug: (line) => { appendFileSync(debugLogPath, line + "\n"); },
-    }, this.cliPaths);
+    this.logRegistry.registerAll(
+      this.logs,
+      this.profile,
+      taskId,
+      workItemId,
+      {
+        onToolOutput: this.onToolOutput,
+        onPreToolUse: this.onPreToolUse,
+        onCliDebug: (line) => {
+          appendFileSync(debugLogPath, line + "\n");
+        },
+      },
+      this.cliPaths,
+    );
   }
 
   /**

@@ -57,34 +57,55 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
   // Gradient for utilization zones
   const gradientId = "util-gradient";
 
-  const handleWheel = useCallback((e: WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const rect = svgRef.current!.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left - MARGIN.left;
-    const mouseRatio = domain[0] + (mouseX / innerW) * domainSpan;
-    const factor = e.deltaY > 0 ? 1.15 : 0.87;
-    const newSpan = Math.min(1, Math.max(0.01, domainSpan * factor));
-    let newMin = mouseRatio - (mouseRatio - domain[0]) * (newSpan / domainSpan);
-    let newMax = newMin + newSpan;
-    if (newMin < 0) { newMax -= newMin; newMin = 0; }
-    if (newMax > 1) { newMin -= newMax - 1; newMax = 1; }
-    setDomain([Math.max(0, newMin), Math.min(1, newMax)]);
-  }, [domain, domainSpan, innerW]);
+  const handleWheel = useCallback(
+    (e: WheelEvent<SVGSVGElement>) => {
+      e.preventDefault();
+      const rect = svgRef.current!.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - MARGIN.left;
+      const mouseRatio = domain[0] + (mouseX / innerW) * domainSpan;
+      const factor = e.deltaY > 0 ? 1.15 : 0.87;
+      const newSpan = Math.min(1, Math.max(0.01, domainSpan * factor));
+      let newMin = mouseRatio - (mouseRatio - domain[0]) * (newSpan / domainSpan);
+      let newMax = newMin + newSpan;
+      if (newMin < 0) {
+        newMax -= newMin;
+        newMin = 0;
+      }
+      if (newMax > 1) {
+        newMin -= newMax - 1;
+        newMax = 1;
+      }
+      setDomain([Math.max(0, newMin), Math.min(1, newMax)]);
+    },
+    [domain, domainSpan, innerW],
+  );
 
-  const handleMouseDown = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    setDragStart({ x: e.clientX, domain: [...domain] });
-  }, [domain]);
+  const handleMouseDown = useCallback(
+    (e: MouseEvent<SVGSVGElement>) => {
+      setDragStart({ x: e.clientX, domain: [...domain] });
+    },
+    [domain],
+  );
 
-  const handleMouseMove = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    if (!dragStart) return;
-    const dx = e.clientX - dragStart.x;
-    const shift = -(dx / innerW) * domainSpan;
-    let newMin = dragStart.domain[0] + shift;
-    let newMax = dragStart.domain[1] + shift;
-    if (newMin < 0) { newMax -= newMin; newMin = 0; }
-    if (newMax > 1) { newMin -= newMax - 1; newMax = 1; }
-    setDomain([Math.max(0, newMin), Math.min(1, newMax)]);
-  }, [dragStart, innerW, domainSpan]);
+  const handleMouseMove = useCallback(
+    (e: MouseEvent<SVGSVGElement>) => {
+      if (!dragStart) return;
+      const dx = e.clientX - dragStart.x;
+      const shift = -(dx / innerW) * domainSpan;
+      let newMin = dragStart.domain[0] + shift;
+      let newMax = dragStart.domain[1] + shift;
+      if (newMin < 0) {
+        newMax -= newMin;
+        newMin = 0;
+      }
+      if (newMax > 1) {
+        newMin -= newMax - 1;
+        newMax = 1;
+      }
+      setDomain([Math.max(0, newMin), Math.min(1, newMax)]);
+    },
+    [dragStart, innerW, domainSpan],
+  );
 
   const handleMouseUp = useCallback(() => setDragStart(null), []);
 
@@ -100,19 +121,25 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
   // Tooltip
   const [tooltip, setTooltip] = useState<{ x: number; y: number; entry: ContextWindowEntry } | null>(null);
 
-  const handleHover = useCallback((e: MouseEvent<SVGSVGElement>) => {
-    const rect = svgRef.current!.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left - MARGIN.left;
-    const ratio = domain[0] + (mouseX / innerW) * domainSpan;
-    const targetTs = minTs + ratio * spanMs;
-    let closest = entries[0];
-    let closestDist = Math.abs(entries[0].tsMs - targetTs);
-    for (const entry of entries) {
-      const dist = Math.abs(entry.tsMs - targetTs);
-      if (dist < closestDist) { closest = entry; closestDist = dist; }
-    }
-    setTooltip({ x: scaleX(closest.tsMs), y: scaleY(closest.utilization), entry: closest });
-  }, [entries, domain, domainSpan, innerW, minTs, spanMs]);
+  const handleHover = useCallback(
+    (e: MouseEvent<SVGSVGElement>) => {
+      const rect = svgRef.current!.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - MARGIN.left;
+      const ratio = domain[0] + (mouseX / innerW) * domainSpan;
+      const targetTs = minTs + ratio * spanMs;
+      let closest = entries[0];
+      let closestDist = Math.abs(entries[0].tsMs - targetTs);
+      for (const entry of entries) {
+        const dist = Math.abs(entry.tsMs - targetTs);
+        if (dist < closestDist) {
+          closest = entry;
+          closestDist = dist;
+        }
+      }
+      setTooltip({ x: scaleX(closest.tsMs), y: scaleY(closest.utilization), entry: closest });
+    },
+    [entries, domain, domainSpan, innerW, minTs, spanMs],
+  );
 
   return (
     <svg
@@ -122,9 +149,15 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
       className="select-none"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
-      onMouseMove={(e) => { handleMouseMove(e); handleHover(e); }}
+      onMouseMove={(e) => {
+        handleMouseMove(e);
+        handleHover(e);
+      }}
       onMouseUp={handleMouseUp}
-      onMouseLeave={() => { setDragStart(null); setTooltip(null); }}
+      onMouseLeave={() => {
+        setDragStart(null);
+        setTooltip(null);
+      }}
     >
       <defs>
         <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -142,7 +175,9 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
         {[0, 25, 50, 75, 100].map((v) => (
           <g key={v}>
             <line x1={0} x2={innerW} y1={scaleY(v)} y2={scaleY(v)} stroke="currentColor" strokeOpacity="0.1" />
-            <text x={-8} y={scaleY(v) + 3} textAnchor="end" fontSize="10" fill="currentColor" opacity="0.5">{v}%</text>
+            <text x={-8} y={scaleY(v) + 3} textAnchor="end" fontSize="10" fill="currentColor" opacity="0.5">
+              {v}%
+            </text>
           </g>
         ))}
 
@@ -175,7 +210,15 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
           {/* Tooltip crosshair */}
           {tooltip && (
             <>
-              <line x1={tooltip.x} x2={tooltip.x} y1={0} y2={innerH} stroke="#60a5fa" strokeWidth="0.5" strokeDasharray="2 2" />
+              <line
+                x1={tooltip.x}
+                x2={tooltip.x}
+                y1={0}
+                y2={innerH}
+                stroke="#60a5fa"
+                strokeWidth="0.5"
+                strokeDasharray="2 2"
+              />
               <circle cx={tooltip.x} cy={tooltip.y} r="4" fill="#60a5fa" stroke="white" strokeWidth="1" />
             </>
           )}
@@ -193,9 +236,12 @@ export function ZoomableUtilizationChart({ entries, width = 700, height = 260 }:
       {tooltip && (
         <g transform={`translate(${MARGIN.left + tooltip.x + 10},${MARGIN.top + tooltip.y - 10})`}>
           <rect x="0" y="-24" width="140" height="36" rx="4" fill="#1e293b" stroke="#334155" />
-          <text x="6" y="-10" fontSize="10" fill="#94a3b8">{formatTime(tooltip.entry.tsMs)}</text>
+          <text x="6" y="-10" fontSize="10" fill="#94a3b8">
+            {formatTime(tooltip.entry.tsMs)}
+          </text>
           <text x="6" y="4" fontSize="10" fill="#f1f5f9">
-            {tooltip.entry.utilization.toFixed(1)}% — {tooltip.entry.usedTokens.toLocaleString()}/{tooltip.entry.maxTokens.toLocaleString()}
+            {tooltip.entry.utilization.toFixed(1)}% — {tooltip.entry.usedTokens.toLocaleString()}/
+            {tooltip.entry.maxTokens.toLocaleString()}
           </text>
         </g>
       )}

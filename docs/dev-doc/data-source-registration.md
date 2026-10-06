@@ -29,14 +29,8 @@ Optionally implement additional capability interfaces:
 The orchestrator checks capabilities at runtime via type guards (`supportsTransitions()`, `supportsAttachments()`).
 
 ```ts
-import type {
-  IDataSourceConnector,
-  ISupportsTransitions,
-} from "ralph-orchestrator/datasource/connector";
-import type {
-  WorkItem,
-  WorkItemComment,
-} from "ralph-orchestrator/datasource/types";
+import type { IDataSourceConnector, ISupportsTransitions } from "ralph-orchestrator/datasource/connector";
+import type { WorkItem, WorkItemComment } from "ralph-orchestrator/datasource/types";
 
 export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
   readonly name = "My Source";
@@ -123,10 +117,7 @@ The factory module creates connector + poller from config and self-registers:
 ```ts
 import { registerDataSourceFactory } from "ralph-orchestrator/datasource/registry";
 import type { DataSourceFactory } from "ralph-orchestrator/datasource/registry";
-import type {
-  IDataSourceConfig,
-  IAgentProfile,
-} from "ralph-orchestrator/config/types";
+import type { IDataSourceConfig, IAgentProfile } from "ralph-orchestrator/config/types";
 import { MyConnector } from "./my-connector";
 import { MyPoller } from "./my-poller";
 
@@ -139,9 +130,7 @@ function createMyDataSource(
   const conn = dsConfig.connection as MyConnectionConfig;
   const connector = new MyConnector(sourceKey, conn);
   const poller = new MyPoller(connector, dsConfig.pollIntervalMs);
-  logger?.info(
-    `Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`,
-  );
+  logger?.info(`Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`);
   return { connector, poller };
 }
 

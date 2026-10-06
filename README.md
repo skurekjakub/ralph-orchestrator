@@ -11,6 +11,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 ## Setup
 
 1. Clone and install:
+
    ```bash
    git clone <repo-url> ~/projects/ralph-orchestrator
    cd ~/projects/ralph-orchestrator
@@ -18,6 +19,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    ```
 
 2. Create `config.json` and `.env` from the templates and fill in the values:
+
    ```bash
    cp config.json.sample config.json
    cp .env.example .env
@@ -28,6 +30,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    Key variables in `.env`: `GH_TOKEN` (Copilot), `ANTHROPIC_API_KEY` (Claude Code), `ADO_PAT`, and one `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` pair per JIRA data source, where `<KEY>` is the data source key from `config.json` uppercased with dashes replaced by underscores (`my-jira` → `JIRA_PAT_MY_JIRA`). Startup fails if `GH_TOKEN`, `ADO_PAT` or a data source's JIRA pair is missing. See [docs/user-guide/environment-variables.md](docs/user-guide/environment-variables.md) for the full list.
 
 3. Configure agent profiles in the `profiles/` directory. Each profile has its own `profile.json`, and its `dataSource` must name a key in `config.json` `dataSources`:
+
    ```bash
    # Example: profiles/ralph-docs/profile.json
    {
@@ -51,6 +54,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    See [docs/user-guide/](docs/user-guide/README.md) for the operator reference (configuration, environment variables, profiles, trigger parameters, template variables, MCP servers, runtime macros, skills).
 
 4. Verify JIRA transitions work for your project — the orchestrator resolves transition IDs dynamically from target status names (`beforeAgent.targetStatus`, `afterAgent.targetStatus`):
+
    ```bash
    curl -u "$JIRA_EMAIL_MY_JIRA:$JIRA_PAT_MY_JIRA" \
      "https://api.atlassian.com/ex/jira/<cloudId>/rest/api/3/issue/DF-2704/transitions"
@@ -79,6 +83,7 @@ npm run lint
 ```
 
 The Ink terminal dashboard shows real-time status including container build progress and agent output:
+
 ```
 ╭──────────────────────────────────────────────────────────╮
 │  🤖 Ralph Orchestrator                                   │
@@ -141,26 +146,26 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 
 ## Responsibility Split
 
-| Responsibility | Owner |
-|---|---|
-| Poll JIRA, queue issues, dedup | Orchestrator |
-| Route to matching profile | Orchestrator |
-| CLI selection (Copilot/Claude Code) with fallback | TaskRunner (ContainerManager) |
-| Stage pipeline execution (sequential, abort-on-fail) | TaskRunner |
-| JIRA transition to "In Progress" + start comment | TaskRunner |
-| Container lifecycle (start, exec, stop) | TaskRunner (ContainerManager) |
-| Create executor per stage (container vs local mode) | ContainerManager |
-| Manage `.git/info/exclude` for bind-mount artifacts | RepoSyncHook (lifecycle hook) |
-| Sync target repo to the base branch, check out the task branch (host-side) | RepoSyncHook (lifecycle hook) |
-| Render agent templates (JIT) + resolve MCP macros | TaskRunner (ProfileSetupService) |
-| Research, write, review, revise | Ralph and its subagents (inside container) |
-| Push branch + create ADO PR (`ado` MCP tools) | Ralph (inside container) → MCP sidecar |
-| Post completion comment on JIRA (`jira-kentico` MCP tools) | Ralph (inside container) → MCP sidecar |
-| Attach handoff.md to JIRA issue (`jira-kentico` MCP tools) | Ralph (inside container) → MCP sidecar |
-| Post-task hooks (local analysis pipelines) | TaskRunner |
-| JIRA transition to `afterAgent.targetStatus` | Orchestrator |
-| Collect audit logs, transcript, proxy access log, save to disk | TaskResultWriter |
-| Attach session transcript to JIRA issue | TaskResultWriter |
+| Responsibility                                                             | Owner                                      |
+| -------------------------------------------------------------------------- | ------------------------------------------ |
+| Poll JIRA, queue issues, dedup                                             | Orchestrator                               |
+| Route to matching profile                                                  | Orchestrator                               |
+| CLI selection (Copilot/Claude Code) with fallback                          | TaskRunner (ContainerManager)              |
+| Stage pipeline execution (sequential, abort-on-fail)                       | TaskRunner                                 |
+| JIRA transition to "In Progress" + start comment                           | TaskRunner                                 |
+| Container lifecycle (start, exec, stop)                                    | TaskRunner (ContainerManager)              |
+| Create executor per stage (container vs local mode)                        | ContainerManager                           |
+| Manage `.git/info/exclude` for bind-mount artifacts                        | RepoSyncHook (lifecycle hook)              |
+| Sync target repo to the base branch, check out the task branch (host-side) | RepoSyncHook (lifecycle hook)              |
+| Render agent templates (JIT) + resolve MCP macros                          | TaskRunner (ProfileSetupService)           |
+| Research, write, review, revise                                            | Ralph and its subagents (inside container) |
+| Push branch + create ADO PR (`ado` MCP tools)                              | Ralph (inside container) → MCP sidecar     |
+| Post completion comment on JIRA (`jira-kentico` MCP tools)                 | Ralph (inside container) → MCP sidecar     |
+| Attach handoff.md to JIRA issue (`jira-kentico` MCP tools)                 | Ralph (inside container) → MCP sidecar     |
+| Post-task hooks (local analysis pipelines)                                 | TaskRunner                                 |
+| JIRA transition to `afterAgent.targetStatus`                               | Orchestrator                               |
+| Collect audit logs, transcript, proxy access log, save to disk             | TaskResultWriter                           |
+| Attach session transcript to JIRA issue                                    | TaskResultWriter                           |
 
 ## Output
 
@@ -208,25 +213,25 @@ The ledger lives at `<output.logDir>/history/<dataSource>/<issueKey>.json` (`out
 
 ## Repository Layout
 
-| Path | Contents |
-|---|---|
-| `src/` | Orchestrator source (TypeScript, ESM) |
-| `tests/` | Vitest tests |
-| `profiles/<id>/` | Agent profiles: `profile.json`, Dockerfile, compose file, setup script, agent templates |
-| `shared/` | Security overlay, audit hooks, agent includes, skills, MCP servers, MCP sidecar |
-| `scripts/` | Operator and debugging scripts (`npm run validate`, `npm run agent`, `reset-testenv:*`, …) |
-| `dashboard-local/` | Local Vite dashboard for browsing run logs (`npm run dashboard`) |
-| `ralph-dashboard/` | Status dashboard (Next.js, receives heartbeats) |
-| `ralphchives/` | Ralphchives knowledge base stack (NodeBB, Neo4j, sync) |
-| `docs/` | User guide, design docs, research notes |
-| `containment/` | Quarantined archive of material unrelated to this project. Not part of the product. |
+| Path               | Contents                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| `src/`             | Orchestrator source (TypeScript, ESM)                                                      |
+| `tests/`           | Vitest tests                                                                               |
+| `profiles/<id>/`   | Agent profiles: `profile.json`, Dockerfile, compose file, setup script, agent templates    |
+| `shared/`          | Security overlay, audit hooks, agent includes, skills, MCP servers, MCP sidecar            |
+| `scripts/`         | Operator and debugging scripts (`npm run validate`, `npm run agent`, `reset-testenv:*`, …) |
+| `dashboard-local/` | Local Vite dashboard for browsing run logs (`npm run dashboard`)                           |
+| `ralph-dashboard/` | Status dashboard (Next.js, receives heartbeats)                                            |
+| `ralphchives/`     | Ralphchives knowledge base stack (NodeBB, Neo4j, sync)                                     |
+| `docs/`            | User guide, design docs, research notes                                                    |
+| `containment/`     | Quarantined archive of material unrelated to this project. Not part of the product.        |
 
 ## Verified JIRA API Endpoints
 
-| # | Endpoint | Verified |
-|---|---|---|
-| 1 | `GET /rest/api/3/issue/{key}` | ✅ |
-| 2 | `POST /rest/api/3/issue/{key}/comment` | ✅ |
-| 3 | `POST /rest/api/3/issue/{key}/attachments` | ✅ |
-| 4 | `GET /rest/api/3/issue/{key}/transitions` | ✅ |
-| 5 | `GET /rest/api/3/search/jql` | ✅ |
+| #   | Endpoint                                   | Verified |
+| --- | ------------------------------------------ | -------- |
+| 1   | `GET /rest/api/3/issue/{key}`              | ✅       |
+| 2   | `POST /rest/api/3/issue/{key}/comment`     | ✅       |
+| 3   | `POST /rest/api/3/issue/{key}/attachments` | ✅       |
+| 4   | `GET /rest/api/3/issue/{key}/transitions`  | ✅       |
+| 5   | `GET /rest/api/3/search/jql`               | ✅       |

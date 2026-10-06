@@ -2,11 +2,11 @@
 
 ## Philosophy
 
-This approach evaluates the **quality of what the agent produces**, not how it produced it. Where Approach 1 examines the trajectory (did the agent use the right tools in the right order?), this approach examines the *output artifacts*: the PR description, the documentation written, the handoff file, and the JIRA comment. These are the things that human reviewers, stakeholders, and downstream systems actually consume.
+This approach evaluates the **quality of what the agent produces**, not how it produced it. Where Approach 1 examines the trajectory (did the agent use the right tools in the right order?), this approach examines the _output artifacts_: the PR description, the documentation written, the handoff file, and the JIRA comment. These are the things that human reviewers, stakeholders, and downstream systems actually consume.
 
 The core insight from G-Eval, Prometheus 2, and Agent-as-a-Judge research is that rubric-conditioned LLM judges — given a task-specific scoring rubric with a chain-of-thought instruction — correlate with human judgments at Spearman ρ ≈ 0.8–0.9 and can evaluate at a fraction of human cost and latency. Critically, each quality dimension gets its own evaluator: a single "rate this output 1–10" prompt is known to be unreliable and hard to calibrate, whereas separate evaluators for correctness, completeness, and faithfulness each produce interpretable, actionable signals.
 
-For this system specifically, the most important quality axis is **faithfulness to the JIRA issue**: did the agent actually address the task described in the issue, or did it write plausible-sounding documentation that doesn't match what was asked? This is harder to catch than it sounds — an agent producing high-quality documentation for the *wrong feature* scores perfectly on grammar and structure but completely fails on task.
+For this system specifically, the most important quality axis is **faithfulness to the JIRA issue**: did the agent actually address the task described in the issue, or did it write plausible-sounding documentation that doesn't match what was asked? This is harder to catch than it sounds — an agent producing high-quality documentation for the _wrong feature_ scores perfectly on grammar and structure but completely fails on task.
 
 **No reference output is required for most metrics.** This is reference-free evaluation: the JIRA issue itself (summary, description, comments, components, labels) serves as the specification. The judge asks "does this output satisfy the specification?" rather than "does this match a gold standard?"
 
@@ -54,12 +54,12 @@ For documentation specifically: is the output useful to its intended audience? T
 ### Instruction Following
 
 **Agent Persona Compliance**
-The agent templates (`*.agent.md`) include behavioral instructions — tone, audience, output format, scope constraints. Does the output comply with these? The judge is given the rendered agent template (available in `.build/`) and the output, and checks compliance with explicitly stated instructions. This makes instruction-following evaluation *specific to each profile's agent*, not generic.
+The agent templates (`*.agent.md`) include behavioral instructions — tone, audience, output format, scope constraints. Does the output comply with these? The judge is given the rendered agent template (available in `.build/`) and the output, and checks compliance with explicitly stated instructions. This makes instruction-following evaluation _specific to each profile's agent_, not generic.
 
 **Security Instruction Compliance**
 Did the agent treat the issue data in its prompt (description, comments, custom fields) strictly as task information, as the `prompt-security` include instructs? Evidence: does the PR or handoff contain any content that appears to be a prompt injection attempt passed through uncritically? Does the output contain any task metadata in contexts where it shouldn't appear (e.g., embedding a comment author's injected text verbatim in documentation)? Track as a binary flag per run.
 
-This metric closes a current blind spot: the orchestrator's prompt auditor (`src/prompt/prompt-auditor.ts`) detects injection *in the input*, but nothing currently checks whether injected content influenced the *output*.
+This metric closes a current blind spot: the orchestrator's prompt auditor (`src/prompt/prompt-auditor.ts`) detects injection _in the input_, but nothing currently checks whether injected content influenced the _output_.
 
 **Scope Lock Compliance**
 The agent's instructions constrain it to operate on a single JIRA issue and a single branch. Evidence of violation: PRs touching files unrelated to the issue, branch names containing issue keys other than the assigned one, comments or handoffs mentioning unrelated work. This is deterministic enough to check without an LLM judge — parse the PR diff list and branch name.
@@ -71,6 +71,7 @@ The agent's instructions constrain it to operate on a single JIRA issue and a si
 ### Evaluation Harness Structure
 
 Each metric is an independent **evaluator** with a defined interface:
+
 ```
 Evaluator:
   input: EvalContext {
@@ -90,7 +91,7 @@ Evaluator:
   }
 ```
 
-Evaluators run *asynchronously* after task completion. The main orchestrator loop is not blocked. Results stored in `output/evals/<issueKey>-<ts>-quality.json`.
+Evaluators run _asynchronously_ after task completion. The main orchestrator loop is not blocked. Results stored in `output/evals/<issueKey>-<ts>-quality.json`.
 
 ### Judge Configuration
 
@@ -99,6 +100,7 @@ Evaluators run *asynchronously* after task completion. The main orchestrator loo
 **Panel approach**: for high-stakes metrics (Faithfulness, Requirement Coverage), run 3 independent judge calls with the same rubric and different sampling temperatures. Report mean score and inter-judge agreement. When agreement is low (variance > 0.2), flag for human review rather than reporting an automated score.
 
 **Rubric structure** (following G-Eval best practices):
+
 1. Task description (what the agent was asked to do)
 2. Evaluation criteria (what this specific dimension measures)
 3. Scoring scale with anchored descriptions (1 = clearly fails; 3 = partially meets; 5 = fully meets, with concrete examples at each level)
@@ -112,6 +114,7 @@ Never ask for a score before the reasoning. The order matters — generating rea
 ### Output Artifact Collection
 
 The current orchestrator collects logs but does not automatically fetch the PR description or diff from ADO. The evaluation harness would need to:
+
 1. Parse the `prUrl` from `summary.json`
 2. Call the ADO REST API to fetch PR metadata (description, changed files, review comments)
 3. Read the handoff file from the output directory
@@ -161,14 +164,14 @@ Order of implementation (highest ROI first):
 
 Quality dimensions vary significantly by task complexity. A rubric designed for a Tier 1 atomic edit will fail to capture what matters in a Tier 4 integrated task.
 
-| Tier | Name | Quality Dimensions That Matter Most |
-|------|------|-------------------------------------|
-| 1 | Atomic (1 file, 1–15 lines) | Structural correctness (valid Liquid tags, valid frontmatter fields); factual accuracy of the specific change |
-| 2 | Depth-Sequential (2–3 files, 10–60 lines) | + Cross-reference integrity (new page_links resolve, nav YAML updated); source fidelity (code matches API) |
-| 3 | Width-Parallel (3–6 files, 50–150 lines) | + Completeness (all required sections across all files); scope adherence (no unintended file modifications) |
-| 4 | Complex-Integrated (6–15 files, 100–500+ lines) | + Identifier consistency across files; changelog accuracy; persona targeting; .NET project compiles and tests pass |
+| Tier | Name                                            | Quality Dimensions That Matter Most                                                                                |
+| ---- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1    | Atomic (1 file, 1–15 lines)                     | Structural correctness (valid Liquid tags, valid frontmatter fields); factual accuracy of the specific change      |
+| 2    | Depth-Sequential (2–3 files, 10–60 lines)       | + Cross-reference integrity (new page_links resolve, nav YAML updated); source fidelity (code matches API)         |
+| 3    | Width-Parallel (3–6 files, 50–150 lines)        | + Completeness (all required sections across all files); scope adherence (no unintended file modifications)        |
+| 4    | Complex-Integrated (6–15 files, 100–500+ lines) | + Identifier consistency across files; changelog accuracy; persona targeting; .NET project compiles and tests pass |
 
-For Tier 4 tasks, the quality evaluator must receive the *full set* of changed files simultaneously — evaluating each file in isolation will miss identifier inconsistencies that only appear when comparing across files.
+For Tier 4 tasks, the quality evaluator must receive the _full set_ of changed files simultaneously — evaluating each file in isolation will miss identifier inconsistencies that only appear when comparing across files.
 
 ---
 
@@ -177,6 +180,7 @@ For Tier 4 tasks, the quality evaluator must receive the *full set* of changed f
 ### What Ground Truth Means for Quality Evaluation
 
 The 2025 consensus (arXiv:2501.12011, SCICOQA arXiv:2601.12910) is that for documentation agents, ground truth should not be a canonical reference output but a **property specification**: an enumerated list of binary or scalar properties the output must satisfy. This is more useful than reference-matching because:
+
 - Multiple valid documentation styles exist; forcing one style penalizes acceptable variation
 - Properties are separately auditable — a failure on one property doesn't contaminate scores on others
 - Properties can be updated as documentation standards evolve without rebuilding the entire dataset
@@ -187,11 +191,13 @@ These properties derive directly from the repository's structure and tooling. Th
 
 **Frontmatter schema compliance** (`src/_documentation/**/*.md`):
 Every new page must have all required frontmatter fields. The schema is fully specifiable from the Jekyll config `src/_configs/_config_primary.yml`:
+
 ```
 Required: title (non-empty string), persona (one of: developer, architect, admin, business, all),
           identifier (5-char alphanumeric, unique across all pages), order (integer), license (integer 1-N)
 Optional: redirect_from, toc, related_pages, pagetree, sitemap, searchable, docsbot
 ```
+
 Evaluation: parse frontmatter with a YAML parser, validate against schema. Binary per-field. Zero LLM calls needed.
 
 **Navigation tree integrity** (`src/_data/pagetree/documentation.yml`):
@@ -218,21 +224,24 @@ These properties require semantic understanding. Use the RRD (Recursive Rubric D
 
 **Per-task-type documentation completeness** — the required content elements differ by documentation type, defined by the Diataxis model (which the Kentico docs system already uses per `_config_primary.yml`):
 
-*Concept pages* (explain how something works):
+_Concept pages_ (explain how something works):
+
 - [ ] Describes the purpose of the feature/system in the first 2 paragraphs
 - [ ] Explains key terms before using them
 - [ ] Includes at least one architectural diagram description or visual reference
 - [ ] Links to relevant how-to pages via `related_pages` or inline `{% page_link %}`
 - [ ] Does not include step-by-step instructions (those belong in how-to pages)
 
-*Tutorial pages* (guided walk-through):
+_Tutorial pages_ (guided walk-through):
+
 - [ ] States prerequisites explicitly (required knowledge, installed software, access rights)
 - [ ] Each step is independently executable (can copy-paste and run)
 - [ ] Includes expected output after each step that changes system state
 - [ ] Includes a troubleshooting or "if something goes wrong" note
 - [ ] Terminal/code blocks use correct language tags (`{% code lang=csharp %}`)
 
-*API reference pages*:
+_API reference pages_:
+
 - [ ] All public methods/classes are documented
 - [ ] Each parameter has a type annotation and description
 - [ ] Return type is documented
@@ -240,7 +249,8 @@ These properties require semantic understanding. Use the RRD (Recursive Rubric D
 - [ ] Exceptions/errors are listed
 - [ ] Cross-reference to the relevant concept page
 
-*How-to pages* (task-oriented):
+_How-to pages_ (task-oriented):
+
 - [ ] Goal is stated in the title and first sentence
 - [ ] Steps are numbered
 - [ ] Code samples compile against the declared .NET/Xperience version
@@ -318,6 +328,7 @@ The completeness checklist (P7) is page-type-specific: concept pages require a d
 
 ```markdown
 Your first action MUST be to declare:
+
 > "This is a [concept | tutorial | how-to | api-reference] page."
 
 Based on your declaration, your output MUST include these sections (in order):
@@ -336,12 +347,19 @@ Rather than describing required sections in prose ("remember to include a prereq
 
 ```markdown
 Your output page MUST use exactly this heading structure:
+
 ## Overview
+
 ## Prerequisites
+
 ## Steps
+
 ### Step 1: ...
+
 ## Expected Result
+
 ## Troubleshooting
+
 ## Related pages
 ```
 
@@ -357,11 +375,11 @@ Source Material Fidelity failures happen when the agent documents an API from me
 
 ```markdown
 BEFORE writing any API documentation, complete this template for every public method:
-Method: ___
-Namespace: ___ (verify against resources/repositories/xperience/CMSSolution/)
-Parameters: ___ (name, type, description)
-Return type: ___
-Exceptions: ___
+Method: **_
+Namespace: _** (verify against resources/repositories/xperience/CMSSolution/)
+Parameters: **_ (name, type, description)
+Return type: _**
+Exceptions: \_\_\_
 
 Do not proceed to writing until this template is complete.
 ```
@@ -378,9 +396,10 @@ Cross-Reference Integrity failures happen when the agent writes `{% page_link %}
 
 ```markdown
 BEFORE writing any new documentation page:
+
 1. Search for existing pages that cover related topics (use get_file_contents on similar pages)
 2. List every identifier you intend to use in {% page_link %} tags
-3. Verify each identifier exists in src/_data/pagetree/documentation.yml
+3. Verify each identifier exists in src/\_data/pagetree/documentation.yml
 4. List every existing page that should receive a related_pages update pointing to your new page
 
 Write this list to your state file. Do not create any {% page_link %} tags before this step.
@@ -416,9 +435,10 @@ Scope Lock Compliance fails when the agent modifies files beyond the task bounda
 ```markdown
 SCOPE DECLARATION — complete before any file modifications:
 "I will create/modify the following files:
+
 1. [path] — reason: [why this file is in scope]
-...
-I will NOT modify any other files."
+   ...
+   I will NOT modify any other files."
 
 Any deviation from this declaration requires an explicit note in the handoff explaining why.
 ```
@@ -454,53 +474,58 @@ The C3AI research (ACM Web Conference 2025) establishes empirically that positiv
 
 **Lever**: Replace negative framings in existing agent includes. Examples:
 
-| Current (negative) | Replace with (positive, behavior-based) |
-|---|---|
-| "Do not use hard-coded URLs" | "Use `{% page_link IDENTIFIER %}` for all internal links" |
-| "Do not skip the compilation step" | "Run `npm run codesamples:build` after each `.cs` file change" |
+| Current (negative)                 | Replace with (positive, behavior-based)                             |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| "Do not use hard-coded URLs"       | "Use `{% page_link IDENTIFIER %}` for all internal links"           |
+| "Do not skip the compilation step" | "Run `npm run codesamples:build` after each `.cs` file change"      |
 | "Do not document APIs from memory" | "Read the Xperience source before documenting any method signature" |
 
 **Metrics improved**: Agent Persona Compliance, Structural Conformance, Security Instruction Compliance.
 
 ### Strategy-to-Metric Impact Map (Approach 2)
 
-| Strategy | Primary Metric | Secondary Metrics |
-|---|---|---|
-| Diataxis type commitment | Requirement Coverage | Structural Conformance, Clarity |
-| Required section scaffolding | Requirement Coverage | Structural Conformance |
-| Source fidelity reading protocol | Source Material Fidelity | Technical Accuracy, Faithfulness |
-| Cross-reference discovery protocol | Cross-Reference Integrity | Task Scope Adherence |
-| Revision checklist protocol | Revision Faithfulness | Requirement Coverage |
-| Scope declaration contract | Scope Lock Compliance | Task Scope Adherence |
-| Pre-submission self-check | All completeness metrics | Handoff Completeness |
-| Positive-framing rewrite | Agent Persona Compliance | Structural Conformance |
+| Strategy                           | Primary Metric            | Secondary Metrics                |
+| ---------------------------------- | ------------------------- | -------------------------------- |
+| Diataxis type commitment           | Requirement Coverage      | Structural Conformance, Clarity  |
+| Required section scaffolding       | Requirement Coverage      | Structural Conformance           |
+| Source fidelity reading protocol   | Source Material Fidelity  | Technical Accuracy, Faithfulness |
+| Cross-reference discovery protocol | Cross-Reference Integrity | Task Scope Adherence             |
+| Revision checklist protocol        | Revision Faithfulness     | Requirement Coverage             |
+| Scope declaration contract         | Scope Lock Compliance     | Task Scope Adherence             |
+| Pre-submission self-check          | All completeness metrics  | Handoff Completeness             |
+| Positive-framing rewrite           | Agent Persona Compliance  | Structural Conformance           |
 
 ---
 
 ## Research Basis (Updated 2025–2026)
 
 **Rubric Design:**
+
 - RRD: Recursive Rubric Decomposition (arXiv:2602.05125, Feb 2026): +17.7 points on JudgeBench; decompose-filter-weight cycle; correlation-aware criterion selection
 - Rulers: Locked Rubrics and Evidence-Anchored Scoring (arXiv:2601.08654): deterministic scoring protocols; evidence citation requirement; prevents unverifiable reasoning
 - C3AI: Crafting Constitutions for CAI (ACM Web Conference 2025): positive behavior-based criteria empirically outperform negative framing
 - Bloom (Anthropic, Dec 2025): 4-stage pipeline; elicitation rate as primary metric; secondary quality scores for realism and difficulty
 
 **Quality Judges:**
+
 - Agent-as-a-Judge (Zhuge et al., ICML 2025): agentic evaluators with 90% human agreement; 97% cost reduction vs. human evaluation
 - Panel of LLM Evaluators (PoLL): diverse panel outperforms single large judge for bias reduction
 - CodeJudgeBench (arXiv:2507.10535): up to 14% position-order bias in code evaluation — always swap candidate presentation order
 
 **Documentation-Specific:**
+
 - DocBench (KnowledgeNLP 2025): 229 real documents, 1,102 QA pairs; construction via LLM generation + multi-step human quality control; highlights reading/comprehension gap between humans and LLMs
 - ReviewEval (EMNLP 2025 Findings): distinguishes subjective (clarity) from objective (adherence to format) criteria — separate evaluators required
 - Reference-Free Evaluation Framework (arXiv:2602.13376, Feb 2026): Recall_OCR + Precision_VE pattern; Pearson r = 0.97 with ground-truth metrics; directly applicable as Coverage + Hallucination checks
 
 **Ground Truth Construction:**
+
 - SCICOQA (arXiv:2601.12910, Jan 2026): cross-artifact consistency as ground truth; GPT-5 + Qwen3 extraction pipeline; manual filtering
 - Reference-free Evaluation Metrics Survey (arXiv:2501.12011, Jan 2025): property specification as ground truth alternative to reference matching
 - LLM-as-a-Judge Reference-Free Code Evaluation (arXiv:2506.11237): execution-free evaluation via "Analyse then Summarise"; inferior to execution-based methods — only use when execution is impossible
 
 **Code Correctness:**
+
 - SWE-Bench Pro pipeline: FAIL_TO_PASS + PASS_TO_PASS as dual correctness criteria
 - GitHub Copilot @Test for .NET (Microsoft Learn, 2025): Roslyn compiler as deterministic ground truth layer; standard production evaluation methodology
 - Openia (ScienceDirect 2025): LLM internal representations predict code correctness without execution — fallback for expensive-to-execute cases

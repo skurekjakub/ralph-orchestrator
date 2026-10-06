@@ -47,10 +47,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     expect(deps.pollers.get(DS)!.start).toHaveBeenCalled();
     expect(deps.pollers.get(DS)!.stop).toHaveBeenCalled();
@@ -62,12 +59,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
         taskId: expect.stringMatching(/^DF-100-\d+$/),
       }),
     );
-    expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(
-      DS,
-      KEY,
-      undefined,
-      TransitionPhase.AfterAgent,
-    );
+    expect(deps.issueManager.transitionWorkItem).toHaveBeenCalledWith(DS, KEY, undefined, TransitionPhase.AfterAgent);
 
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
@@ -95,16 +87,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
-    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
-      DS,
-      "DF-150",
-      "No such agent: ralph",
-    );
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(DS, "DF-150", "No such agent: ralph");
     expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -133,19 +118,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     const ops = deps.ledger.getOperations(DS, "DF-151");
     expect(ops[0].status).toBe(OperationStatus.Error);
     expect(ops[0].resultStatus).toBe(TaskStatus.Blocked);
-    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
-      DS,
-      "DF-151",
-      "Missing required context",
-    );
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(DS, "DF-151", "Missing required context");
     expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -170,10 +148,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     const ops = deps.ledger.getOperations(DS, "DF-152");
     expect(ops[0].status).toBe(OperationStatus.Completed);
@@ -199,19 +174,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(1);
     expect(state.completedToday[0].status).toBe(TaskStatus.Error);
-    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(
-      DS,
-      "DF-200",
-      "Container build failed",
-    );
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(DS, "DF-200", "Container build failed");
 
     const ops = deps.ledger.getOperations(DS, "DF-200");
     expect(ops[0].status).toBe(OperationStatus.Error);
@@ -258,10 +226,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     expect(deps.taskRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -341,18 +306,12 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length >= 2,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length >= 2);
 
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(2);
     const state = orchestrator.observer.getState();
     expect(state.completedToday).toHaveLength(2);
-    expect(state.completedToday.map((c) => c.key).sort()).toEqual([
-      "DF-400",
-      "DF-401",
-    ]);
+    expect(state.completedToday.map((c) => c.key).sort()).toEqual(["DF-400", "DF-401"]);
   });
 
   it("recovers crashed operations on startup", async () => {
@@ -390,11 +349,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const recoveredOps = deps.ledger.getOperations(DS, "DF-500");
     expect(recoveredOps[0].status).toBe(OperationStatus.Error);
 
-    expect(deps.issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(
-      DS,
-      "DF-500",
-      "ralph-docs:ralph:@docs",
-    );
+    expect(deps.issueManager.postCrashRecoveryComment).toHaveBeenCalledWith(DS, "DF-500", "ralph-docs:ralph:@docs");
   });
 
   it("tracks state transitions during execution", async () => {
@@ -413,10 +368,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       states.push(state.status);
     });
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     expect(states).toContain(OrchestratorStatus.Working);
     expect(states).toContain(OrchestratorStatus.Stopping);
@@ -433,10 +385,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     const payload = orchestrator.observer.getHeartbeatPayload();
     expect(payload).toHaveProperty("agentId");
@@ -461,10 +410,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
     const orchestrator = new Orchestrator(deps);
 
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     // Despite the issue being returned on every drain, only 1 op was executed
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
@@ -521,10 +467,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     const orchestrator = new Orchestrator(deps);
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     // The orchestrator must find the DOC profile (not the DF one) and execute
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
@@ -604,9 +547,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       profiles: [profile],
       issueManager: {
         refreshWorkItem: vi.fn().mockResolvedValue(issue),
-        getComments: vi.fn().mockResolvedValue([
-          makeWorkItemComment(CID, "No PR link here"),
-        ]),
+        getComments: vi.fn().mockResolvedValue([makeWorkItemComment(CID, "No PR link here")]),
       },
       taskRunner: {
         run: vi.fn().mockResolvedValue(makeResult("DF-900")),
@@ -634,11 +575,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     expect(ops[0].status).toBe(OperationStatus.Rejected);
     expect(ops[0].reason).toContain("revision-ready");
     expect(deps.taskRunner.run).not.toHaveBeenCalled();
-    expect(deps.issueManager.postComment).toHaveBeenCalledWith(
-      DS,
-      "DF-900",
-      expect.stringContaining("can't proceed"),
-    );
+    expect(deps.issueManager.postComment).toHaveBeenCalledWith(DS, "DF-900", expect.stringContaining("can't proceed"));
   });
 
   it("allows revision task when PR URL and handoff exist", async () => {
@@ -659,9 +596,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       profiles: [profile],
       issueManager: {
         refreshWorkItem: vi.fn().mockResolvedValue(issue),
-        getComments: vi.fn().mockResolvedValue([
-          makeWorkItemComment(CID, "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42"),
-        ]),
+        getComments: vi
+          .fn()
+          .mockResolvedValue([makeWorkItemComment(CID, "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/42")]),
       },
       taskRunner: {
         run: vi.fn().mockResolvedValue(makeResult("DF-901")),
@@ -679,10 +616,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     const orchestrator = new Orchestrator(deps);
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
     const ops = deps.ledger.getOperations(DS, "DF-901");
@@ -724,10 +658,7 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     });
 
     const orchestrator = new Orchestrator(deps);
-    await runUntil(
-      orchestrator,
-      () => orchestrator.observer.getState().completedToday.length > 0,
-    );
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
 
     // Task should proceed without any preflight check
     expect(deps.taskRunner.run).toHaveBeenCalledTimes(1);
@@ -788,15 +719,25 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       const deps = buildBaseDeps(tempDir, {
         profiles: [profile],
         issueManager: {
-          refreshWorkItem: vi.fn().mockImplementation(async (_source: string, key: string) =>
-            key === "DF-1003" ? liveIssue : null,
-          ),
+          refreshWorkItem: vi
+            .fn()
+            .mockImplementation(async (_source: string, key: string) => (key === "DF-1003" ? liveIssue : null)),
         },
         logDirName: "unreachable-item-logs",
       });
 
-      deps.ledger.plan("DF-1002", { dataSource: DS, variant: profile.variantKey, triggerCommentId: CID, commentTimestamp: TS });
-      deps.ledger.plan("DF-1003", { dataSource: DS, variant: profile.variantKey, triggerCommentId: "C2", commentTimestamp: LIVE_TS });
+      deps.ledger.plan("DF-1002", {
+        dataSource: DS,
+        variant: profile.variantKey,
+        triggerCommentId: CID,
+        commentTimestamp: TS,
+      });
+      deps.ledger.plan("DF-1003", {
+        dataSource: DS,
+        variant: profile.variantKey,
+        triggerCommentId: "C2",
+        commentTimestamp: LIVE_TS,
+      });
 
       const orchestrator = new Orchestrator(deps);
       await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
@@ -819,16 +760,28 @@ describe("Orchestrator E2E loop (mock deps)", () => {
       const deps = buildBaseDeps(tempDir, {
         profiles: [profile],
         issueManager: {
-          refreshWorkItem: vi.fn().mockImplementation(async (_source: string, key: string) =>
-            key === "DF-1004" ? revisionIssue : liveIssue,
-          ),
+          refreshWorkItem: vi
+            .fn()
+            .mockImplementation(async (_source: string, key: string) =>
+              key === "DF-1004" ? revisionIssue : liveIssue,
+            ),
           getComments: vi.fn().mockRejectedValue(new Error("JIRA responded 503 Service Unavailable")),
         },
         logDirName: "preflight-throw-logs",
       });
 
-      deps.ledger.plan("DF-1004", { dataSource: DS, variant: profile.variantKey, triggerCommentId: CID, commentTimestamp: TS });
-      deps.ledger.plan("DF-1005", { dataSource: DS, variant: profile.variantKey, triggerCommentId: "C2", commentTimestamp: LIVE_TS });
+      deps.ledger.plan("DF-1004", {
+        dataSource: DS,
+        variant: profile.variantKey,
+        triggerCommentId: CID,
+        commentTimestamp: TS,
+      });
+      deps.ledger.plan("DF-1005", {
+        dataSource: DS,
+        variant: profile.variantKey,
+        triggerCommentId: "C2",
+        commentTimestamp: LIVE_TS,
+      });
 
       const orchestrator = new Orchestrator(deps);
       await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);

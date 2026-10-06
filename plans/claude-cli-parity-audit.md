@@ -18,7 +18,7 @@ Claude Code CLI support is **architecturally present but intentionally disabled*
 ```typescript
 if (p.cli === "claude") {
   errors.push(
-    `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`
+    `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`,
   );
 }
 ```
@@ -36,7 +36,7 @@ create(...): ICliExecutor {
 }
 ```
 
-`ClaudeCodeExecutor` is imported nowhere in the factory. Even if validation were bypassed, no execution path instantiates it. The constructor comment on `ICliExecutorFactory` documents the intent: *"Only Copilot CLI is currently supported — Claude Code CLI lacks the URL restriction and pre-tool hook infrastructure required for secure operation."*
+`ClaudeCodeExecutor` is imported nowhere in the factory. Even if validation were bypassed, no execution path instantiates it. The constructor comment on `ICliExecutorFactory` documents the intent: _"Only Copilot CLI is currently supported — Claude Code CLI lacks the URL restriction and pre-tool hook infrastructure required for secure operation."_
 
 ---
 
@@ -59,14 +59,15 @@ Note: Claude CLI also has an `--agent <name>` flag, but it targets Claude's own 
 Copilot writes a transcript via `--share /workspace/.ralph/logs/session-transcript.md`. Claude has no equivalent flag. The `paths.transcriptPath` field is defined in `ClaudeCodeExecutor` (same path), but nothing is ever written there during execution — the file will be empty or absent, and transcript attachment in JIRA will silently fail.
 
 **Potential mitigations:**
+
 - Use `--output-format json` to capture structured output from stdout and write a synthetic transcript post-execution
 - Accept no transcript for Claude profiles (silent degradation)
 
-| | Copilot | Claude |
-|---|---|---|
-| Executor flag | `--share <path>` | *(none)* |
-| `paths.transcriptPath` defined | ✅ | ✅ (but unused) |
-| Transcript attached to JIRA | ✅ | ❌ |
+|                                | Copilot          | Claude          |
+| ------------------------------ | ---------------- | --------------- |
+| Executor flag                  | `--share <path>` | _(none)_        |
+| `paths.transcriptPath` defined | ✅               | ✅ (but unused) |
+| Transcript attached to JIRA    | ✅               | ❌              |
 
 ### 5. URL Restrictions Not Enforced (`src/container/setup/url-restrictions.ts`)
 
@@ -76,10 +77,10 @@ The overlay always mounts `copilot-config.json` at `/workspace/.ralph/config.jso
 
 This is the explicitly cited reason for the block in the factory doc comment.
 
-| | Copilot | Claude |
-|---|---|---|
-| `copilot-config.json` generated | ✅ | ✅ (always generated, unused) |
-| Application-layer URL enforcement | ✅ | ❌ (Squid proxy only) |
+|                                   | Copilot | Claude                        |
+| --------------------------------- | ------- | ----------------------------- |
+| `copilot-config.json` generated   | ✅      | ✅ (always generated, unused) |
+| Application-layer URL enforcement | ✅      | ❌ (Squid proxy only)         |
 
 ### 6. `agentName` Field Is Semantically Copilot-Only (`src/config/types.ts:63`)
 
@@ -106,23 +107,23 @@ This is consumed by `CopilotExecutor` as `this.profile.model ?? DEFAULT_MODEL`. 
 
 ## What Is Already Correctly Implemented for Claude
 
-| Component | Status | Notes |
-|---|---|---|
-| `ClaudeCodeExecutor` class | ✅ Complete | Correct flags: `-p`, `--continue -p`, `--dangerously-skip-permissions`, `--mcp-config`, `--strict-mcp-config` |
-| `continueSession()` implementation | ✅ Correct | Uses `--continue -p <prompt>` (vs. Copilot's `--continue --prompt <prompt>`) |
-| MCP config generation | ✅ Shared | Same `mcp-config.json` HTTP URL format works for Claude |
-| `ANTHROPIC_API_KEY` env injection | ✅ Present | Injected into all containers via `BASE_CONTAINER_ENV` |
-| `CLAUDE_CODE_DISABLE_AUTOUPDATER` | ✅ Present | Prevents self-update noise in containers |
-| `CLAUDE_CODE_DISABLE_COST_WARNINGS` | ✅ Present | Suppresses cost output |
-| CLI installation in `setup.sh` | ✅ Both profiles | `npm install -g @anthropic-ai/claude-code` runs in setup for both profiles |
-| Schema accepts `"cli": "claude"` | ✅ Valid | `z.enum(["copilot", "claude"])` in `profileFileSchema` |
-| `CliType.Claude` enum value | ✅ Defined | In `src/container/types.ts` |
-| `ISecretsConfig.anthropicApiKey` | ✅ Typed | Documented as optional, only needed for Claude profiles |
-| Continuation loop | ✅ CLI-agnostic | `ContainerManager` calls `executor.continueSession()` — works for any `ICliExecutor` |
-| Result block detection | ✅ CLI-agnostic | Same `===RALPH_RESULT_START===` format expected from both CLIs |
-| Prompt injection auditor | ✅ CLI-agnostic | Runs on prompt before any executor is called |
-| `CliPaths` structure | ✅ Defined | Same paths as Copilot — no path conflicts |
-| Agent file mount path | ✅ Correct | Already at `/workspace/.github/agents/<name>.agent.md` — usable with `--system-prompt-file` |
+| Component                           | Status           | Notes                                                                                                         |
+| ----------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ClaudeCodeExecutor` class          | ✅ Complete      | Correct flags: `-p`, `--continue -p`, `--dangerously-skip-permissions`, `--mcp-config`, `--strict-mcp-config` |
+| `continueSession()` implementation  | ✅ Correct       | Uses `--continue -p <prompt>` (vs. Copilot's `--continue --prompt <prompt>`)                                  |
+| MCP config generation               | ✅ Shared        | Same `mcp-config.json` HTTP URL format works for Claude                                                       |
+| `ANTHROPIC_API_KEY` env injection   | ✅ Present       | Injected into all containers via `BASE_CONTAINER_ENV`                                                         |
+| `CLAUDE_CODE_DISABLE_AUTOUPDATER`   | ✅ Present       | Prevents self-update noise in containers                                                                      |
+| `CLAUDE_CODE_DISABLE_COST_WARNINGS` | ✅ Present       | Suppresses cost output                                                                                        |
+| CLI installation in `setup.sh`      | ✅ Both profiles | `npm install -g @anthropic-ai/claude-code` runs in setup for both profiles                                    |
+| Schema accepts `"cli": "claude"`    | ✅ Valid         | `z.enum(["copilot", "claude"])` in `profileFileSchema`                                                        |
+| `CliType.Claude` enum value         | ✅ Defined       | In `src/container/types.ts`                                                                                   |
+| `ISecretsConfig.anthropicApiKey`    | ✅ Typed         | Documented as optional, only needed for Claude profiles                                                       |
+| Continuation loop                   | ✅ CLI-agnostic  | `ContainerManager` calls `executor.continueSession()` — works for any `ICliExecutor`                          |
+| Result block detection              | ✅ CLI-agnostic  | Same `===RALPH_RESULT_START===` format expected from both CLIs                                                |
+| Prompt injection auditor            | ✅ CLI-agnostic  | Runs on prompt before any executor is called                                                                  |
+| `CliPaths` structure                | ✅ Defined       | Same paths as Copilot — no path conflicts                                                                     |
+| Agent file mount path               | ✅ Correct       | Already at `/workspace/.github/agents/<name>.agent.md` — usable with `--system-prompt-file`                   |
 
 ---
 
@@ -140,18 +141,23 @@ Replace the hard error with acceptance. Add a warning if `ANTHROPIC_API_KEY` is 
 Add a branch: when `profile.cli === CliType.Claude && secrets.anthropicApiKey`, instantiate and return `ClaudeCodeExecutor`. Add a clear error if the API key is missing.
 
 **4. Add `--system-prompt-file` to `ClaudeCodeExecutor`** (`src/container/cli-executors/claude-code-executor.ts:73–81`)
+
 ```typescript
 const args = [
-  "--user", "vscode",
+  "--user",
+  "vscode",
   "app",
   "claude",
   ...promptArgs,
   "--dangerously-skip-permissions",
-  "--mcp-config", "/workspace/.ralph/mcp-config.json",
+  "--mcp-config",
+  "/workspace/.ralph/mcp-config.json",
   "--strict-mcp-config",
-  "--system-prompt-file", `/workspace/.github/agents/${this.profile.agentName}.agent.md`,
+  "--system-prompt-file",
+  `/workspace/.github/agents/${this.profile.agentName}.agent.md`,
 ];
 ```
+
 No changes to mount paths or template renderer needed — the file is already there.
 
 **5. Resolve transcript collection**
@@ -172,7 +178,7 @@ The docs recommend `--append-system-prompt-file` for most cases, which adds to t
 
 However, this is also exactly how **subagent files** work — the docs state:
 
-> *Subagents receive only this system prompt (plus basic environment details like working directory), not the full Claude Code system prompt.*
+> _Subagents receive only this system prompt (plus basic environment details like working directory), not the full Claude Code system prompt._
 
 So full replacement is the intended pattern for self-contained agents. Since Ralph's agent templates are comprehensive and need to stand alone (like Copilot's `--agent` model), **`--system-prompt-file` is the correct mapping** — a deliberate choice to own the full system prompt rather than layer on top of Claude's defaults.
 
@@ -199,12 +205,12 @@ You are a senior code reviewer...
 
 ### Discovery and invocation
 
-| Location | Scope | Priority |
-|---|---|---|
-| `--agents` JSON flag | Session-only | 1 (highest) |
-| `.claude/agents/<name>.md` | Project-level | 2 |
-| `~/.claude/agents/<name>.md` | User-level | 3 |
-| Plugin `agents/` dir | Plugin scope | 4 |
+| Location                     | Scope         | Priority    |
+| ---------------------------- | ------------- | ----------- |
+| `--agents` JSON flag         | Session-only  | 1 (highest) |
+| `.claude/agents/<name>.md`   | Project-level | 2           |
+| `~/.claude/agents/<name>.md` | User-level    | 3           |
+| Plugin `agents/` dir         | Plugin scope  | 4           |
 
 Claude automatically delegates to a subagent when a task matches its `description` field (via the `Task` tool). The agent can also be told explicitly in the system prompt body when to use which subagent.
 
@@ -213,17 +219,20 @@ Claude automatically delegates to a subagent when a task matches its `descriptio
 Two mechanisms available from the agent template itself:
 
 **1. Instruction in the system prompt body:**
+
 ```
 When reviewing code, use the code-reviewer subagent.
 ```
 
 **2. `tools` field allowlist with `Task(name)` syntax (frontmatter):**
+
 ```yaml
 ---
 name: ralph
 tools: Task(code-reviewer, test-runner), Bash, Read, Edit
 ---
 ```
+
 This restricts spawnable subagents to only the listed names. Attempts to spawn anything else fail, and only the allowed types are visible in the agent's context.
 
 To block specific subagents while allowing all others, use `permissions.deny` with `Task(subagent-name)` in settings — but that is a settings-level concern, not controllable from the agent template.
@@ -242,29 +251,29 @@ To block specific subagents while allowing all others, use `permissions.deny` wi
 
 ## Useful Claude CLI Flags (from docs)
 
-| Flag | Description | Relevance |
-|---|---|---|
-| `--system-prompt-file <path>` | Replace entire system prompt with file contents (print mode only) | **Agent file solution** |
-| `--append-system-prompt-file <path>` | Append file contents to default system prompt (print mode only) | Alternative if keeping Claude's defaults |
-| `--output-format json` | Structured JSON output from stdout | Potential transcript solution |
-| `--max-turns <n>` | Limit agentic turns (print mode only) | Complement to `timeoutMs` |
-| `--no-session-persistence` | Don't save session to disk | Cleaner isolated task runs |
-| `--disallowedTools` | Deny specific tools | Alternative URL restriction mechanism |
-| `--strict-mcp-config` | Only use `--mcp-config` servers | Already in executor ✅ |
+| Flag                                 | Description                                                       | Relevance                                |
+| ------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------- |
+| `--system-prompt-file <path>`        | Replace entire system prompt with file contents (print mode only) | **Agent file solution**                  |
+| `--append-system-prompt-file <path>` | Append file contents to default system prompt (print mode only)   | Alternative if keeping Claude's defaults |
+| `--output-format json`               | Structured JSON output from stdout                                | Potential transcript solution            |
+| `--max-turns <n>`                    | Limit agentic turns (print mode only)                             | Complement to `timeoutMs`                |
+| `--no-session-persistence`           | Don't save session to disk                                        | Cleaner isolated task runs               |
+| `--disallowedTools`                  | Deny specific tools                                               | Alternative URL restriction mechanism    |
+| `--strict-mcp-config`                | Only use `--mcp-config` servers                                   | Already in executor ✅                   |
 
 ---
 
 ## Key File Reference
 
-| File | Relevance |
-|---|---|
+| File                                                  | Relevance                                                                           |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `src/container/cli-executors/claude-code-executor.ts` | Claude executor — complete but missing `--system-prompt-file` and agent file wiring |
-| `src/container/cli-executors/copilot-executor.ts` | Reference implementation |
-| `src/container/cli-executor-factory.ts` | **Blocking**: only creates Copilot executor |
-| `src/validate/profiles.ts:72–76` | **Blocking**: hard rejects `cli: "claude"` |
-| `src/container/setup/url-restrictions.ts` | Copilot URL enforcement — no Claude equivalent |
-| `src/container/setup/artifact-mounts.ts:22` | Agent files mounted at `/workspace/.github/agents/<name>.agent.md:ro` |
-| `src/container/setup/compose-overlay.ts:9–11` | Claude env vars already injected |
-| `src/config/types.ts:116` | `anthropicApiKey` defined in secrets |
-| `src/config/schemas.ts:107` | Schema accepts both CLI types |
-| `src/config/constants.ts:2` | `DEFAULT_MODEL` — Copilot default, misleadingly named |
+| `src/container/cli-executors/copilot-executor.ts`     | Reference implementation                                                            |
+| `src/container/cli-executor-factory.ts`               | **Blocking**: only creates Copilot executor                                         |
+| `src/validate/profiles.ts:72–76`                      | **Blocking**: hard rejects `cli: "claude"`                                          |
+| `src/container/setup/url-restrictions.ts`             | Copilot URL enforcement — no Claude equivalent                                      |
+| `src/container/setup/artifact-mounts.ts:22`           | Agent files mounted at `/workspace/.github/agents/<name>.agent.md:ro`               |
+| `src/container/setup/compose-overlay.ts:9–11`         | Claude env vars already injected                                                    |
+| `src/config/types.ts:116`                             | `anthropicApiKey` defined in secrets                                                |
+| `src/config/schemas.ts:107`                           | Schema accepts both CLI types                                                       |
+| `src/config/constants.ts:2`                           | `DEFAULT_MODEL` — Copilot default, misleadingly named                               |

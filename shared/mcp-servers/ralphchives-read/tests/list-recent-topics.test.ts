@@ -40,8 +40,12 @@ describe("list_recent_topics handler", () => {
     vi.mocked(shared.nodebbGet).mockResolvedValue({
       topics: [
         {
-          tid: 1, title: "Report", slug: "report", postcount: 3,
-          timestamp: 1700000000000, lastposttime: 1700001000000,
+          tid: 1,
+          title: "Report",
+          slug: "report",
+          postcount: 3,
+          timestamp: 1700000000000,
+          lastposttime: 1700001000000,
           user: { username: "ralph" },
           tags: [{ value: "DF-100" }],
           teaser: { content: "Latest reply preview", user: { username: "malph" } },
@@ -72,11 +76,18 @@ describe("list_recent_topics handler", () => {
 
   it("handles topics without teasers", async () => {
     vi.mocked(shared.nodebbGet).mockResolvedValue({
-      topics: [{
-        tid: 1, title: "T", slug: "t", postcount: 1,
-        timestamp: 1700000000000, lastposttime: 1700000000000,
-        user: { username: "ralph" }, tags: [],
-      }],
+      topics: [
+        {
+          tid: 1,
+          title: "T",
+          slug: "t",
+          postcount: 1,
+          timestamp: 1700000000000,
+          lastposttime: 1700000000000,
+          user: { username: "ralph" },
+          tags: [],
+        },
+      ],
       topic_count: 1,
       name: "ralph-docs",
     });

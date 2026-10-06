@@ -67,12 +67,14 @@ describe("CopilotExecutor.run", () => {
     const logger = createMockLogger();
     const profile = makeProfile(profileOverrides);
 
-    vi.mocked(compose.execWithTimeout).mockResolvedValue(fakeExecResult({
-      exitCode: 0,
-      stdout: "done",
-      stderr: "",
-      on: () => {},
-    }));
+    vi.mocked(compose.execWithTimeout).mockResolvedValue(
+      fakeExecResult({
+        exitCode: 0,
+        stdout: "done",
+        stderr: "",
+        on: () => {},
+      }),
+    );
 
     const executor = new CopilotExecutor(compose, profile, logger);
     return { executor, compose, profile };
@@ -118,9 +120,7 @@ describe("CopilotExecutor.run", () => {
     await executor.run("test prompt");
 
     expect(mkdirSync).toHaveBeenCalledWith(`${profile.repoPath}/.ralph`, { recursive: true });
-    expect(writeFileSync).toHaveBeenCalledWith(
-      `${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8",
-    );
+    expect(writeFileSync).toHaveBeenCalledWith(`${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8");
     const shellCmd = getShellCmd(compose);
     expect(shellCmd).toContain(`-p "$(cat ${CopilotExecutor.PROMPT_FILE})"`);
   });
@@ -157,12 +157,14 @@ describe("ClaudeCodeExecutor.run", () => {
     const logger = createMockLogger();
     const profile = makeProfile({ cli: CliType.Claude, ...profileOverrides });
 
-    vi.mocked(compose.execWithTimeout).mockResolvedValue(fakeExecResult({
-      exitCode: 0,
-      stdout: "done",
-      stderr: "",
-      on: () => {},
-    }));
+    vi.mocked(compose.execWithTimeout).mockResolvedValue(
+      fakeExecResult({
+        exitCode: 0,
+        stdout: "done",
+        stderr: "",
+        on: () => {},
+      }),
+    );
 
     const executor = new ClaudeCodeExecutor(compose, profile, logger);
     return { executor, compose, profile };
@@ -173,9 +175,7 @@ describe("ClaudeCodeExecutor.run", () => {
 
     await executor.run("test prompt");
 
-    expect(writeFileSync).toHaveBeenCalledWith(
-      `${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8",
-    );
+    expect(writeFileSync).toHaveBeenCalledWith(`${profile.repoPath}/.ralph/prompt.txt`, "test prompt", "utf-8");
     const shellCmd = getShellCmd(compose);
     expect(shellCmd).toContain(`-p "$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`);
   });
@@ -224,12 +224,14 @@ describe("ClaudeCodeExecutor.continueSession", () => {
     const logger = createMockLogger();
     const profile = makeProfile({ cli: CliType.Claude, ...profileOverrides });
 
-    vi.mocked(compose.execWithTimeout).mockResolvedValue(fakeExecResult({
-      exitCode: 0,
-      stdout: "done",
-      stderr: "",
-      on: () => {},
-    }));
+    vi.mocked(compose.execWithTimeout).mockResolvedValue(
+      fakeExecResult({
+        exitCode: 0,
+        stdout: "done",
+        stderr: "",
+        on: () => {},
+      }),
+    );
 
     const executor = new ClaudeCodeExecutor(compose, profile, logger);
     return { executor, compose };

@@ -50,9 +50,7 @@ describe("EntityExtractor", () => {
     it("extracts entities from posts and writes them to Neo4j", async () => {
       // findPostsWithoutEntities returns one post
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 42 : "Node.js has a bug in v22 with ESM loading") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 42 : "Node.js has a bug in v22 with ESM loading") }],
       });
 
       // LLM returns valid entities
@@ -89,9 +87,7 @@ describe("EntityExtractor", () => {
 
     it("marks post as processed even when no entities are found", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 10 : "Just a short reply: thanks!") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 10 : "Just a short reply: thanks!") }],
       });
 
       mockChat.mockResolvedValueOnce({
@@ -110,9 +106,7 @@ describe("EntityExtractor", () => {
 
     it("handles LLM returning wrapped JSON (entities key)", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "React 19 introduced server components") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "React 19 introduced server components") }],
       });
 
       // LLM returns { entities: [...] } instead of bare array
@@ -141,9 +135,7 @@ describe("EntityExtractor", () => {
 
     it("filters out entities with invalid types", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "Testing entity validation") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "Testing entity validation") }],
       });
 
       mockChat.mockResolvedValueOnce({
@@ -168,15 +160,17 @@ describe("EntityExtractor", () => {
       // Should filter out "unicorn" type, keep "concept" entities
       const mentionsCall = mockRun.mock.calls[1];
       const entities = mentionsCall[1].entities;
-      expect(entities.every((e: { type: string }) => ["concept", "product", "error", "feature", "version", "library", "person"].includes(e.type))).toBe(true);
+      expect(
+        entities.every((e: { type: string }) =>
+          ["concept", "product", "error", "feature", "version", "library", "person"].includes(e.type),
+        ),
+      ).toBe(true);
       expect(entities.find((e: { name: string }) => e.name === "invalid")).toBeUndefined();
     });
 
     it("gracefully handles LLM failure (invalid JSON)", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "Some post content here") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "Some post content here") }],
       });
 
       mockChat.mockResolvedValueOnce({
@@ -195,9 +189,7 @@ describe("EntityExtractor", () => {
 
     it("gracefully handles LLM throwing an error", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "Some post content here") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "Some post content here") }],
       });
 
       mockChat.mockRejectedValueOnce(new Error("Ollama connection refused"));
@@ -210,16 +202,12 @@ describe("EntityExtractor", () => {
 
     it("lowercases and trims entity names", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "Discussion about TypeScript") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "Discussion about TypeScript") }],
       });
 
       mockChat.mockResolvedValueOnce({
         message: {
-          content: JSON.stringify([
-            { name: "  TypeScript  ", type: "library", description: "Language" },
-          ]),
+          content: JSON.stringify([{ name: "  TypeScript  ", type: "library", description: "Language" }]),
         },
       });
 
@@ -235,16 +223,12 @@ describe("EntityExtractor", () => {
 
     it("skips RELATED_TO when only one entity extracted", async () => {
       mockRun.mockResolvedValueOnce({
-        records: [
-          { get: (k: string) => (k === "pid" ? 1 : "Just about Node.js") },
-        ],
+        records: [{ get: (k: string) => (k === "pid" ? 1 : "Just about Node.js") }],
       });
 
       mockChat.mockResolvedValueOnce({
         message: {
-          content: JSON.stringify([
-            { name: "node.js", type: "library", description: "Runtime" },
-          ]),
+          content: JSON.stringify([{ name: "node.js", type: "library", description: "Runtime" }]),
         },
       });
 

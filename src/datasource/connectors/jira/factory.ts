@@ -29,9 +29,7 @@ function resolveJiraCredentials(sourceKey: string): { email: string; apiToken: s
   const apiToken = process.env[`JIRA_PAT_${envKey}`];
   const email = process.env[`JIRA_EMAIL_${envKey}`];
   if (!apiToken || !email) {
-    throw new Error(
-      `JIRA_PAT_${envKey} and JIRA_EMAIL_${envKey} must be set in .env for data source "${sourceKey}"`,
-    );
+    throw new Error(`JIRA_PAT_${envKey} and JIRA_EMAIL_${envKey} must be set in .env for data source "${sourceKey}"`);
   }
   return { email, apiToken };
 }

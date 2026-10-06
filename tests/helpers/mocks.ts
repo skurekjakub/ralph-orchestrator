@@ -12,7 +12,12 @@ import type { IIssueManager } from "../../src/services/issue-manager.js";
 import type { IResourceManager } from "../../src/services/task-resource-manager.js";
 import type { IComposeClient } from "../../src/container/compose-client.js";
 import type { IContainerManager } from "../../src/container/manager.js";
-import type { IDataSourceConnector, IDataSourceIdentity, ISupportsAttachments, ISupportsTransitions } from "../../src/datasource/connector.js";
+import type {
+  IDataSourceConnector,
+  IDataSourceIdentity,
+  ISupportsAttachments,
+  ISupportsTransitions,
+} from "../../src/datasource/connector.js";
 import type { ILogCollector } from "../../src/logs/collector.js";
 import type { IWorkItemPoller } from "../../src/datasource/poller.js";
 import type { ITaskRunner } from "../../src/services/task-runner.js";
@@ -38,8 +43,9 @@ import { makeConfig, makeResult } from "./factories.js";
  * Use the concrete `Mocked<T>` return type for assertions (autocomplete, type-safe call checks).
  */
 export type Mocked<T> = {
-  [K in keyof T as T[K] extends (...args: any[]) => any ? K : never]:
-    T[K] extends (...args: infer A) => infer R ? Mock<(...args: A) => R> : never;
+  [K in keyof T as T[K] extends (...args: any[]) => any ? K : never]: T[K] extends (...args: infer A) => infer R
+    ? Mock<(...args: A) => R>
+    : never;
 };
 
 // ── Logger ───────────────────────────────────────────────────────────────────
@@ -129,7 +135,9 @@ export function createMockVcsSourceClient(overrides: Partial<Mocked<IVcsSourceCl
 
 /** Create a mock IDataSourceConnector with all capabilities (transitions + attachments). */
 export function createMockConnector(
-  overrides: Partial<IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>> = {},
+  overrides: Partial<
+    IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments>
+  > = {},
 ): IDataSourceIdentity & Mocked<IDataSourceConnector & ISupportsTransitions & ISupportsAttachments> {
   return {
     name: "MockConnector",
@@ -161,9 +169,7 @@ export function createMockCompose(execImpl?: (...args: any[]) => any): {
   compose: IComposeClient;
   exec: ReturnType<typeof vi.fn>;
 } {
-  const exec = execImpl
-    ? vi.fn().mockImplementation(execImpl)
-    : vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
+  const exec = execImpl ? vi.fn().mockImplementation(execImpl) : vi.fn().mockResolvedValue({ stdout: "", stderr: "" });
   const compose: IComposeClient = {
     compose: vi.fn().mockResolvedValue({ stdout: "", stderr: "" }),
     exec,
@@ -185,9 +191,7 @@ export function createMockCompose(execImpl?: (...args: any[]) => any): {
  * expect(spies.start).toHaveBeenCalled();
  * ```
  */
-export function createMockContainer(
-  executeResult?: Partial<RalphResult>,
-): {
+export function createMockContainer(executeResult?: Partial<RalphResult>): {
   container: IContainerManager;
   spies: Record<string, ReturnType<typeof vi.fn>>;
 } {
@@ -204,7 +208,12 @@ export function createMockContainer(
     execute: vi.fn().mockResolvedValue(result),
     executeWithExecutor: vi.fn().mockResolvedValue(result),
     createExecutorForStage: vi.fn().mockReturnValue({
-      paths: { configDir: "/workspace/.ralph", writableDirs: [], transcriptPath: "/workspace/.ralph/logs/session-transcript.md", logDir: "/workspace/.ralph/logs/cli-debug" },
+      paths: {
+        configDir: "/workspace/.ralph",
+        writableDirs: [],
+        transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
+        logDir: "/workspace/.ralph/logs/cli-debug",
+      },
       run: vi.fn(),
       continueSession: vi.fn(),
       killActive: vi.fn(),
@@ -275,7 +284,9 @@ export function createMockResultWriter(overrides: Partial<Mocked<ITaskResultWrit
 }
 
 /** Create a mock WorkItemPoller with all methods stubbed. */
-export function createMockPoller(overrides: Partial<Mocked<IWorkItemPoller>> & { sourceKey?: string } = {}): Mocked<IWorkItemPoller> & { sourceKey: string } {
+export function createMockPoller(
+  overrides: Partial<Mocked<IWorkItemPoller>> & { sourceKey?: string } = {},
+): Mocked<IWorkItemPoller> & { sourceKey: string } {
   return {
     sourceKey: overrides.sourceKey ?? "test-source",
     start: vi.fn(),
@@ -289,16 +300,16 @@ export function createMockPoller(overrides: Partial<Mocked<IWorkItemPoller>> & {
 /** Create a mock TaskRunner with all methods stubbed. */
 export function createMockTaskRunner(overrides: Partial<Mocked<ITaskRunner>> = {}): Mocked<ITaskRunner> {
   return {
-    run: vi.fn().mockImplementation(async (ctx: any) =>
-      makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1")
-    ),
+    run: vi.fn().mockImplementation(async (ctx: any) => makeResult(ctx.workItem?.id ?? ctx.key ?? "MOCK-1")),
     teardown: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
 /** Create a mock ProfileSetupService with all methods stubbed. */
-export function createMockProfileSetupService(overrides: Partial<Mocked<IProfileSetupService>> = {}): Mocked<IProfileSetupService> {
+export function createMockProfileSetupService(
+  overrides: Partial<Mocked<IProfileSetupService>> = {},
+): Mocked<IProfileSetupService> {
   return {
     prepareForTask: vi.fn().mockResolvedValue(undefined),
     prepareForStage: vi.fn().mockResolvedValue(undefined),
@@ -307,17 +318,19 @@ export function createMockProfileSetupService(overrides: Partial<Mocked<IProfile
 }
 
 /** Create a mock AgentPipelineExecutor with a default success result. */
-export function createMockPipelineExecutor(overrides: Partial<Mocked<IAgentPipelineExecutor>> = {}): Mocked<IAgentPipelineExecutor> {
+export function createMockPipelineExecutor(
+  overrides: Partial<Mocked<IAgentPipelineExecutor>> = {},
+): Mocked<IAgentPipelineExecutor> {
   return {
-    run: vi.fn().mockImplementation(async (ctx: any) =>
-      makeResult(ctx.workItem?.id ?? "MOCK-1")
-    ),
+    run: vi.fn().mockImplementation(async (ctx: any) => makeResult(ctx.workItem?.id ?? "MOCK-1")),
     ...overrides,
   } as Mocked<IAgentPipelineExecutor>;
 }
 
 /** Create a mock AgentTemplateRenderer with all methods stubbed. */
-export function createMockTemplateRenderer(overrides: Partial<Mocked<IAgentTemplateRenderer>> = {}): Mocked<IAgentTemplateRenderer> {
+export function createMockTemplateRenderer(
+  overrides: Partial<Mocked<IAgentTemplateRenderer>> = {},
+): Mocked<IAgentTemplateRenderer> {
   return {
     render: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -325,7 +338,9 @@ export function createMockTemplateRenderer(overrides: Partial<Mocked<IAgentTempl
 }
 
 /** Create a mock SkillTemplateRenderer with all methods stubbed. */
-export function createMockSkillRenderer(overrides: Partial<Mocked<ISkillTemplateRenderer>> = {}): Mocked<ISkillTemplateRenderer> {
+export function createMockSkillRenderer(
+  overrides: Partial<Mocked<ISkillTemplateRenderer>> = {},
+): Mocked<ISkillTemplateRenderer> {
   return {
     render: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -333,7 +348,9 @@ export function createMockSkillRenderer(overrides: Partial<Mocked<ISkillTemplate
 }
 
 /** Create a mock JitMcpConfigWriter with all methods stubbed. */
-export function createMockJitMcpConfigWriter(overrides: Partial<Mocked<IJitMcpConfigWriter>> = {}): Mocked<IJitMcpConfigWriter> {
+export function createMockJitMcpConfigWriter(
+  overrides: Partial<Mocked<IJitMcpConfigWriter>> = {},
+): Mocked<IJitMcpConfigWriter> {
   return {
     write: vi.fn(),
     ...overrides,
@@ -341,7 +358,9 @@ export function createMockJitMcpConfigWriter(overrides: Partial<Mocked<IJitMcpCo
 }
 
 /** Create a mock ComposeOverlayWriter with all methods stubbed. */
-export function createMockOverlayWriter(overrides: Partial<Mocked<IComposeOverlayWriter>> = {}): Mocked<IComposeOverlayWriter> {
+export function createMockOverlayWriter(
+  overrides: Partial<Mocked<IComposeOverlayWriter>> = {},
+): Mocked<IComposeOverlayWriter> {
   return {
     write: vi.fn(),
     ...overrides,

@@ -60,10 +60,7 @@ function squidDomainToUrlPattern(domain: string): string {
  * @param squidDomains Domains extracted from the profile's squid.conf.
  * @param hostLoopbackPorts Ports from the squid host loopback ACL.
  */
-export function generateAllowedUrls(
-  squidDomains: string[],
-  hostLoopbackPorts: number[] = [],
-): string[] {
+export function generateAllowedUrls(squidDomains: string[], hostLoopbackPorts: number[] = []): string[] {
   const urls: string[] = squidDomains.map(squidDomainToUrlPattern);
 
   for (const port of hostLoopbackPorts) {
@@ -93,9 +90,5 @@ export function writeCopilotConfig(buildDir: string): void {
   const allowedUrls = generateAllowedUrls(squidDomains, hostLoopbackPorts);
 
   const config = { allowed_urls: allowedUrls };
-  writeFileSync(
-    join(buildDir, "copilot-config.json"),
-    JSON.stringify(config, null, 2) + "\n",
-    "utf-8",
-  );
+  writeFileSync(join(buildDir, "copilot-config.json"), JSON.stringify(config, null, 2) + "\n", "utf-8");
 }

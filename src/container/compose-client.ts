@@ -48,15 +48,12 @@ export class ComposeClient implements IComposeClient {
   /** Compose file `-f` args: ["-f", "base.yml", "-f", "security.yml", "-f", "overlay.yml", ...]. */
   private readonly fileArgs: string[];
 
-  constructor(
-    composeFilePaths: string | string[],
-    envConfig: ComposeEnvConfig,
-  ) {
+  constructor(composeFilePaths: string | string[], envConfig: ComposeEnvConfig) {
     const paths = Array.isArray(composeFilePaths) ? composeFilePaths : [composeFilePaths];
     this.fileArgs = paths.flatMap((p) => ["-f", p]);
 
     this.env = {
-      ...process.env as Record<string, string>,
+      ...(process.env as Record<string, string>),
       // Computed paths — not in .env, needed for volume mount interpolation.
       TARGET_REPO_PATH: envConfig.targetRepoPath,
       SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
@@ -77,18 +74,14 @@ export class ComposeClient implements IComposeClient {
 
   /** Run `docker compose -f <file...> exec <args>`. */
   exec(args: string[]) {
-    return execa("docker", [
-      "compose", ...this.fileArgs, "exec", ...args,
-    ], {
+    return execa("docker", ["compose", ...this.fileArgs, "exec", ...args], {
       env: this.env,
     });
   }
 
   /** Run `docker compose logs` for a single service (no ANSI color, no prefix). */
   logs(service: string) {
-    return execa("docker", [
-      "compose", ...this.fileArgs, "logs", "--no-color", "--no-log-prefix", service,
-    ], {
+    return execa("docker", ["compose", ...this.fileArgs, "logs", "--no-color", "--no-log-prefix", service], {
       env: this.env,
     });
   }
@@ -99,9 +92,7 @@ export class ComposeClient implements IComposeClient {
    * Returns the raw execa result promise so callers can attach stream listeners.
    */
   execWithTimeout(args: string[], timeoutMs: number) {
-    return execa("docker", [
-      "compose", ...this.fileArgs, "exec", ...args,
-    ], {
+    return execa("docker", ["compose", ...this.fileArgs, "exec", ...args], {
       env: this.env,
       timeout: timeoutMs,
     });
@@ -112,9 +103,7 @@ export class ComposeClient implements IComposeClient {
     try {
       await execa("docker", ["info"], { stdio: "ignore" });
     } catch {
-      throw new Error(
-        "Docker is not running. Start Docker Desktop and try again."
-      );
+      throw new Error("Docker is not running. Start Docker Desktop and try again.");
     }
   }
 
@@ -122,8 +111,10 @@ export class ComposeClient implements IComposeClient {
   async getContainerName(projectLabel: string, service: string): Promise<string> {
     const result = await execa("docker", [
       "ps",
-      "--filter", `label=com.docker.compose.project=${projectLabel}`,
-      "--filter", `label=com.docker.compose.service=${service}`,
+      "--filter",
+      `label=com.docker.compose.project=${projectLabel}`,
+      "--filter",
+      `label=com.docker.compose.service=${service}`,
       "-q",
     ]);
     const id = result.stdout.trim();

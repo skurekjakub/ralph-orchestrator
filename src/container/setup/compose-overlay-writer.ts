@@ -54,7 +54,15 @@ export class ComposeOverlayWriter implements IComposeOverlayWriter {
     const extraVolumes = [...agentVolumes, ...skillVolumes, ...resourceVolumes];
     const sidecarEnv: Record<string, string> = { ...profile.mcpSidecarEnv };
     const hasPreInit = existsSync(resolve(buildDir, "pre-init.sh"));
-    const overlay = generateComposeOverlay(mcpServersDir, serverNames, buildDir, sidecarDir, extraVolumes, sidecarEnv, hasPreInit);
+    const overlay = generateComposeOverlay(
+      mcpServersDir,
+      serverNames,
+      buildDir,
+      sidecarDir,
+      extraVolumes,
+      sidecarEnv,
+      hasPreInit,
+    );
 
     writeFileSync(resolve(buildDir, "docker-compose.overlay.yml"), overlay, "utf-8");
 
@@ -67,6 +75,8 @@ export class ComposeOverlayWriter implements IComposeOverlayWriter {
     const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
     writeFileSync(resolve(buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
 
-    logger.info(`Regenerated compose overlay, mcp-config, and gateway with ${profile.skills.length} skill mount(s), ${serverNames.length} MCP server(s)`);
+    logger.info(
+      `Regenerated compose overlay, mcp-config, and gateway with ${profile.skills.length} skill mount(s), ${serverNames.length} MCP server(s)`,
+    );
   }
 }

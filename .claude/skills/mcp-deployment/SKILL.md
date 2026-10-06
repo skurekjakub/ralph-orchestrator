@@ -8,6 +8,7 @@ description: "Adds, deploys, and debugs MCP servers that Ralph exposes to agent 
 MCP servers never run in the agent container. The agent gets a URL-only `mcp-config.json`; every server runs as a child process of the gateway (`shared/mcp-sidecar/src/gateway.ts`) in the `mcp-sidecar` container, which holds the credentials and has direct internet access via `ralph-sidecar-external`. The agent container stays on `ralph-internal` behind Squid. Keep that split intact: secrets go only to the sidecar, and the agent sees only what the manifest's `tools` list allows.
 
 Detailed reference (read the relevant section rather than re-deriving it):
+
 - `docs/user-guide/deploying-mcp-servers.md` — step-by-step for npm and custom servers, initScript, troubleshooting
 - `docs/user-guide/mcp-servers.md` — manifest field table, available servers, required config/env per server
 - `MCP.md` — startup resolution, network flow, custom server HTTP transport code
@@ -17,10 +18,10 @@ Detailed reference (read the relevant section rather than re-deriving it):
 
 ## Choose the server type
 
-| Type | Use for | Code | Sidecar rebuild? |
-|---|---|---|---|
-| `custom` | Our own TypeScript server | `shared/mcp-servers/<name>/` → bundled to `dist/`, mounted read-only at `/opt/mcp/servers/<name>` | No |
-| `npm` | Third-party package | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile` | Yes |
+| Type     | Use for                   | Code                                                                                              | Sidecar rebuild? |
+| -------- | ------------------------- | ------------------------------------------------------------------------------------------------- | ---------------- |
+| `custom` | Our own TypeScript server | `shared/mcp-servers/<name>/` → bundled to `dist/`, mounted read-only at `/opt/mcp/servers/<name>` | No               |
+| `npm`    | Third-party package       | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile`                                | Yes              |
 
 The gateway launches `custom` servers as `<command> <containerPath>/<args...> --transport http --port <sidecarPort>`, so the server must parse those flags and serve Streamable HTTP on `/mcp` (copy the pattern from `shared/mcp-servers/web-fetch/src/index.ts`). `npm` servers speak stdio and are wrapped by `supergateway --stdio "<command args>" --outputTransport streamableHttp --port <sidecarPort>`.
 

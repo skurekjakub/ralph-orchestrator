@@ -1,6 +1,14 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, errorResult, reqConfig, repoUrl, sanitizeContent, TASK_PROJECT, TASK_REPO } from "../shared.js";
+import {
+  type ToolDefinition,
+  errorResult,
+  reqConfig,
+  repoUrl,
+  sanitizeContent,
+  TASK_PROJECT,
+  TASK_REPO,
+} from "../shared.js";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   pullRequestId: z.number().describe("Pull request ID"),
@@ -14,8 +22,7 @@ if (!TASK_REPO) inputSchema.repositoryId = z.string().describe("Repository name 
 export const tool: ToolDefinition = {
   name: "ado_reply_to_comment",
   config: {
-    description:
-      "Reply to an existing comment thread on a pull request.",
+    description: "Reply to an existing comment thread on a pull request.",
     inputSchema,
   },
   handler: async (args) => {
@@ -25,12 +32,18 @@ export const tool: ToolDefinition = {
     const url = repoUrl(project, repositoryId, `pullRequests/${pullRequestId}/threads/${threadId}/comments`);
 
     try {
-      const res = await axios.post(url, { content: sanitizeContent(String(content)), parentCommentId: 1, commentType: 1 }, reqConfig());
+      const res = await axios.post(
+        url,
+        { content: sanitizeContent(String(content)), parentCommentId: 1, commentType: 1 },
+        reqConfig(),
+      );
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({ success: true, commentId: res.data.id, threadId }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({ success: true, commentId: res.data.id, threadId }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

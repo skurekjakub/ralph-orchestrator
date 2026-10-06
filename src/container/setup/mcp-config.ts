@@ -98,10 +98,7 @@ export function generateGatewayConfig(
 
     // Resolve secrets for this server
     const env: Record<string, string> = {};
-    const envVars = [
-      ...(manifest.requiredEnv ?? []),
-      ...(manifest.optionalEnv ?? []),
-    ];
+    const envVars = [...(manifest.requiredEnv ?? []), ...(manifest.optionalEnv ?? [])];
     for (const v of envVars) {
       const value = secrets[v];
       if (value !== undefined) {

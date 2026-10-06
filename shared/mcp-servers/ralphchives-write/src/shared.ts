@@ -80,10 +80,7 @@ interface NodeBBApiResponse<T = unknown> {
   response: T;
 }
 
-export async function nodebbPost<T = unknown>(
-  path: string,
-  body: Record<string, unknown>,
-): Promise<T> {
+export async function nodebbPost<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
   const url = new URL(path, NODEBB_API_URL);
   const res = await fetch(url, {
     method: "POST",

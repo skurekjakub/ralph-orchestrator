@@ -56,10 +56,7 @@ function writeValidProfile(
     ],
   };
 
-  writeFileSync(
-    join(dir, "profile.json"),
-    JSON.stringify(overrides.profileJson ?? defaultJson, null, 2),
-  );
+  writeFileSync(join(dir, "profile.json"), JSON.stringify(overrides.profileJson ?? defaultJson, null, 2));
 }
 
 beforeEach(() => {
@@ -120,7 +117,9 @@ describe("validateProfiles", () => {
   it("errors when repo path is missing", () => {
     writeValidProfile("test", {
       profileJson: {
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [
+          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+        ],
       },
     });
     const c = collector();
@@ -132,7 +131,9 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: "/nonexistent/path/12345",
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [
+          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+        ],
       },
     });
     const c = collector();
@@ -145,7 +146,9 @@ describe("validateProfiles", () => {
       profileJson: {
         repo: tempDir,
         cli: "claude",
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [
+          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+        ],
       },
     });
     const c = collector();
@@ -194,13 +197,18 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{ stages: [{ agent: "nonexistent", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+        variants: [
+          {
+            stages: [{ agent: "nonexistent", role: "primary" }],
+            match: { projects: [PROJECT], commentTrigger: "@go" },
+          },
+        ],
       },
       agentFiles: ["ralph.agent.md"],
     });
     const c = collector();
     validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("agent \"nonexistent\" not found"))).toBe(true);
+    expect(c.errors.some((e) => e.includes('agent "nonexistent" not found'))).toBe(true);
     expect(c.errors.some((e) => e.includes("Available agents: ralph"))).toBe(true);
   });
 
@@ -232,35 +240,39 @@ describe("validateProfiles", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{
-          stages: [{ agent: "ralph", role: "primary" }],
-          match: {
-            projects: [PROJECT],
-            commentTrigger: "@go",
-            statuses: ["In Progress", "Review"],
-            revisionStatuses: ["Reopened"],
+        variants: [
+          {
+            stages: [{ agent: "ralph", role: "primary" }],
+            match: {
+              projects: [PROJECT],
+              commentTrigger: "@go",
+              statuses: ["In Progress", "Review"],
+              revisionStatuses: ["Reopened"],
+            },
           },
-        }],
+        ],
       },
     });
     const c = collector();
     validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("revisionStatuses value \"Reopened\" is not in statuses"))).toBe(true);
+    expect(c.errors.some((e) => e.includes('revisionStatuses value "Reopened" is not in statuses'))).toBe(true);
   });
 
   it("passes when revisionStatuses is a subset of statuses", () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
-        variants: [{
-          stages: [{ agent: "ralph", role: "primary" }],
-          match: {
-            projects: [PROJECT],
-            commentTrigger: "@go",
-            statuses: ["In Progress", "Review"],
-            revisionStatuses: ["Review"],
+        variants: [
+          {
+            stages: [{ agent: "ralph", role: "primary" }],
+            match: {
+              projects: [PROJECT],
+              commentTrigger: "@go",
+              statuses: ["In Progress", "Review"],
+              revisionStatuses: ["Review"],
+            },
           },
-        }],
+        ],
       },
     });
     const c = collector();
@@ -275,7 +287,12 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["nonexistent-skill"] }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary", skills: ["nonexistent-skill"] }],
+              match: { projects: [PROJECT], commentTrigger: "@go" },
+            },
+          ],
         },
       });
       const c = collector();
@@ -290,7 +307,12 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repo: tempDir,
-          variants: [{ stages: [{ agent: "ralph", role: "primary", skills: ["my-skill"] }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary", skills: ["my-skill"] }],
+              match: { projects: [PROJECT], commentTrigger: "@go" },
+            },
+          ],
         },
       });
       const c = collector();
@@ -307,12 +329,14 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["nonexistent-server"],
-          variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+          ],
         },
       });
       const c = collector();
       validateProfiles(c);
-      expect(c.errors.some((e) => e.includes("MCP server \"nonexistent-server\" not found"))).toBe(true);
+      expect(c.errors.some((e) => e.includes('MCP server "nonexistent-server" not found'))).toBe(true);
     });
 
     it("passes when referenced MCP server exists", () => {
@@ -324,14 +348,15 @@ describe("validateProfiles", () => {
         profileJson: {
           repo: tempDir,
           mcpServers: ["my-server"],
-          variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
+          ],
         },
       });
       const c = collector();
       validateProfiles(c);
       expect(c.errors.filter((e) => e.includes("MCP server"))).toHaveLength(0);
     });
-
   });
 
   it("errors when repoPat env var is not set", () => {

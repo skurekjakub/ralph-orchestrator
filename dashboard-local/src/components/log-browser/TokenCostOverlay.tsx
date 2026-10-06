@@ -47,7 +47,7 @@ export function TokenCostOverlay({
       >
         {usageEntries.map((entry, i) => {
           const x = toX(entry.tsMs);
-          const barW = Math.max(plotW / usageEntries.length * 0.6, 2);
+          const barW = Math.max((plotW / usageEntries.length) * 0.6, 2);
           const promptH = (entry.promptTokens / maxTotal) * BAR_HEIGHT;
           const completionH = (entry.completionTokens / maxTotal) * BAR_HEIGHT;
           const cachedH = entry.cachedTokens > 0 ? (entry.cachedTokens / maxTotal) * BAR_HEIGHT : 0;
@@ -113,7 +113,7 @@ export function TokenCostOverlay({
         <div
           className="absolute bg-surface-raised border border-border rounded px-2 py-1 text-[10px] pointer-events-none z-10 shadow-md"
           style={{
-            left: `${((toX(hoverEntry.tsMs)) / CHART_WIDTH) * 100}%`,
+            left: `${(toX(hoverEntry.tsMs) / CHART_WIDTH) * 100}%`,
             top: 0,
             transform: "translateX(-50%)",
           }}
@@ -125,9 +125,7 @@ export function TokenCostOverlay({
             prompt: {formatTokens(hoverEntry.promptTokens)}
             {hoverEntry.cachedTokens > 0 && ` (${formatTokens(hoverEntry.cachedTokens)} cached)`}
           </div>
-          <div className="text-dim">
-            completion: {formatTokens(hoverEntry.completionTokens)}
-          </div>
+          <div className="text-dim">completion: {formatTokens(hoverEntry.completionTokens)}</div>
         </div>
       )}
     </div>

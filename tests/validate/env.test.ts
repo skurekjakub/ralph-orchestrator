@@ -130,16 +130,19 @@ describe("validateEnvFile", () => {
   });
 
   it("ignores comments and blank lines in .env", () => {
-    writeFileSync(join(tempDir, ".env"), [
-      "# This is a comment",
-      "",
-      "JIRA_PAT=token",
-      "  # Another comment",
-      "JIRA_EMAIL=test@test.com",
-      "",
-      "GH_TOKEN=ghp_abc",
-      "ADO_PAT=ado_abc",
-    ].join("\n"));
+    writeFileSync(
+      join(tempDir, ".env"),
+      [
+        "# This is a comment",
+        "",
+        "JIRA_PAT=token",
+        "  # Another comment",
+        "JIRA_EMAIL=test@test.com",
+        "",
+        "GH_TOKEN=ghp_abc",
+        "ADO_PAT=ado_abc",
+      ].join("\n"),
+    );
 
     const c = collector();
     validateEnvFile(c);
@@ -147,13 +150,12 @@ describe("validateEnvFile", () => {
   });
 
   it("skips lines without = sign", () => {
-    writeFileSync(join(tempDir, ".env"), [
-      "JIRA_PAT=token",
-      "JIRA_EMAIL=test@test.com",
-      "GH_TOKEN=ghp_abc",
-      "ADO_PAT=ado_abc",
-      "MALFORMED_LINE",
-    ].join("\n"));
+    writeFileSync(
+      join(tempDir, ".env"),
+      ["JIRA_PAT=token", "JIRA_EMAIL=test@test.com", "GH_TOKEN=ghp_abc", "ADO_PAT=ado_abc", "MALFORMED_LINE"].join(
+        "\n",
+      ),
+    );
 
     const c = collector();
     validateEnvFile(c);

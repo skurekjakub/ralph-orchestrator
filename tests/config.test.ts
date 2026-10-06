@@ -132,11 +132,20 @@ describe("loadConfig", () => {
 
   it("resolves ~ in profile repo paths", () => {
     setRequiredEnv();
-    stubProfiles(JSON.stringify({
-      repo: "~/repositories/test",
-      dataSource: "test-source",
-      variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } }],
-    }));
+    stubProfiles(
+      JSON.stringify({
+        repo: "~/repositories/test",
+        dataSource: "test-source",
+        variants: [
+          {
+            stages: [{ agent: "ralph", role: "primary" }],
+            match: { projects: [PROJECT], commentTrigger: TRIGGER },
+            beforeAgent: { targetStatus: "In Progress" },
+            afterAgent: { targetStatus: "Ready for Review" },
+          },
+        ],
+      }),
+    );
 
     const config = loadConfig();
 
@@ -148,31 +157,47 @@ describe("loadConfig", () => {
 
   it("rejects variants with missing commentTrigger", () => {
     setRequiredEnv();
-    stubProfiles(JSON.stringify({
-      repo: "/tmp/test",
-      dataSource: "test-source",
-      variants: [{
-        stages: [{ agent: "ralph", role: "primary" }],
-        match: {
-          projects: [PROJECT],
-          statuses: ["New"],
-        },
-      }],
-    }));
+    stubProfiles(
+      JSON.stringify({
+        repo: "/tmp/test",
+        dataSource: "test-source",
+        variants: [
+          {
+            stages: [{ agent: "ralph", role: "primary" }],
+            match: {
+              projects: [PROJECT],
+              statuses: ["New"],
+            },
+          },
+        ],
+      }),
+    );
 
     expect(() => loadConfig()).toThrow("commentTrigger");
   });
 
   it("explodes multiple variants into separate profiles", () => {
     setRequiredEnv();
-    stubProfiles(JSON.stringify({
-      repo: "/tmp/test",
-      dataSource: "test-source",
-      variants: [
-        { stages: [{ agent: "ralph.docs", role: "primary" }], match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@Ralph" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-      ],
-    }));
+    stubProfiles(
+      JSON.stringify({
+        repo: "/tmp/test",
+        dataSource: "test-source",
+        variants: [
+          {
+            stages: [{ agent: "ralph.docs", role: "primary" }],
+            match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" },
+            beforeAgent: { targetStatus: "In Progress" },
+            afterAgent: { targetStatus: "Ready for Review" },
+          },
+          {
+            stages: [{ agent: "ralph", role: "primary" }],
+            match: { projects: [PROJECT], commentTrigger: "@Ralph" },
+            beforeAgent: { targetStatus: "In Progress" },
+            afterAgent: { targetStatus: "Ready for Review" },
+          },
+        ],
+      }),
+    );
 
     const config = loadConfig();
 
@@ -187,14 +212,22 @@ describe("loadConfig", () => {
   describe("per-variant model override", () => {
     it("variant model overrides profile-level model", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        model: "claude-sonnet-4",
-        variants: [
-          { stages: [{ agent: "ralph", role: "primary" }], model: "claude-opus-4.6", match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        ],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          model: "claude-sonnet-4",
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary" }],
+              model: "claude-opus-4.6",
+              match: { projects: [PROJECT], commentTrigger: TRIGGER },
+              beforeAgent: { targetStatus: "In Progress" },
+              afterAgent: { targetStatus: "Ready for Review" },
+            },
+          ],
+        }),
+      );
 
       const config = loadConfig();
 
@@ -203,14 +236,21 @@ describe("loadConfig", () => {
 
     it("variant without model falls back to profile-level model", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        model: "claude-sonnet-4",
-        variants: [
-          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        ],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          model: "claude-sonnet-4",
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary" }],
+              match: { projects: [PROJECT], commentTrigger: TRIGGER },
+              beforeAgent: { targetStatus: "In Progress" },
+              afterAgent: { targetStatus: "Ready for Review" },
+            },
+          ],
+        }),
+      );
 
       const config = loadConfig();
 
@@ -219,13 +259,20 @@ describe("loadConfig", () => {
 
     it("model is undefined when both variant and profile omit it", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        variants: [
-          { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        ],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary" }],
+              match: { projects: [PROJECT], commentTrigger: TRIGGER },
+              beforeAgent: { targetStatus: "In Progress" },
+              afterAgent: { targetStatus: "Ready for Review" },
+            },
+          ],
+        }),
+      );
 
       const config = loadConfig();
 
@@ -234,15 +281,28 @@ describe("loadConfig", () => {
 
     it("multiple variants resolve model overrides independently", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        model: "claude-sonnet-4",
-        variants: [
-          { stages: [{ agent: "ralph.docs", role: "primary" }], model: "claude-opus-4.6", match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-          { stages: [{ agent: "ralph.probe", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@McpProbe" }, beforeAgent: { targetStatus: "In Progress" }, afterAgent: { targetStatus: "Ready for Review" } },
-        ],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          model: "claude-sonnet-4",
+          variants: [
+            {
+              stages: [{ agent: "ralph.docs", role: "primary" }],
+              model: "claude-opus-4.6",
+              match: { projects: ["DOCS"], commentTrigger: "@RalphDocs" },
+              beforeAgent: { targetStatus: "In Progress" },
+              afterAgent: { targetStatus: "Ready for Review" },
+            },
+            {
+              stages: [{ agent: "ralph.probe", role: "primary" }],
+              match: { projects: [PROJECT], commentTrigger: "@McpProbe" },
+              beforeAgent: { targetStatus: "In Progress" },
+              afterAgent: { targetStatus: "Ready for Review" },
+            },
+          ],
+        }),
+      );
 
       const config = loadConfig();
 
@@ -254,12 +314,16 @@ describe("loadConfig", () => {
   describe("mcpServers schema", () => {
     it("accepts string-only mcpServers (backward compat)", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        mcpServers: ["jira-kentico", "ado"],
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          mcpServers: ["jira-kentico", "ado"],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "ado"]);
       expect(config.profiles[0].mcpServerConfigs).toEqual({});
@@ -267,43 +331,55 @@ describe("loadConfig", () => {
 
     it("accepts object entries in mcpServers", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        mcpServers: [
-          { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$task.id" } },
-          "playwright",
-          { name: "ado", env: { ADO_PROJECT: "Proj" } },
-        ],
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          mcpServers: [
+            { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$task.id" } },
+            "playwright",
+            { name: "ado", env: { ADO_PROJECT: "Proj" } },
+          ],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["jira-kentico", "playwright", "ado"]);
       expect(config.profiles[0].mcpServerConfigs).toEqual({
         "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" },
-        "ado": { ADO_PROJECT: "Proj" },
+        ado: { ADO_PROJECT: "Proj" },
       });
     });
 
     it("rejects object mcpServers entry without name", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        mcpServers: [{ env: { FOO: "bar" } }],
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          mcpServers: [{ env: { FOO: "bar" } }],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       expect(() => loadConfig()).toThrow();
     });
 
     it("ignores object entry with empty env", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        mcpServers: [{ name: "ado", env: {} }],
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          mcpServers: [{ name: "ado", env: {} }],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       const config = loadConfig();
       expect(config.profiles[0].mcpServers).toEqual(["ado"]);
       expect(config.profiles[0].mcpServerConfigs).toEqual({});
@@ -311,12 +387,16 @@ describe("loadConfig", () => {
 
     it("rejects duplicate MCP server names in mcpServers", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       expect(() => loadConfig()).toThrow("duplicate MCP server(s): ado");
     });
   });
@@ -331,12 +411,16 @@ describe("loadConfig", () => {
 
     it("defaults repoPat to 'GH_TOKEN' when vcsProvider is 'github'", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        vcsProvider: "github",
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          vcsProvider: "github",
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       const config = loadConfig();
       expect(config.profiles[0].vcsProvider).toBe("github");
       expect(config.profiles[0].repoPat).toBe("GH_TOKEN");
@@ -344,13 +428,17 @@ describe("loadConfig", () => {
 
     it("uses explicit repoPat when provided", () => {
       setRequiredEnv();
-      stubProfiles(JSON.stringify({
-        repo: "/tmp/test",
-        dataSource: "test-source",
-        vcsProvider: "ado",
-        repoPat: "CUSTOM_ADO_PAT",
-        variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } }],
-      }));
+      stubProfiles(
+        JSON.stringify({
+          repo: "/tmp/test",
+          dataSource: "test-source",
+          vcsProvider: "ado",
+          repoPat: "CUSTOM_ADO_PAT",
+          variants: [
+            { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: TRIGGER } },
+          ],
+        }),
+      );
       const config = loadConfig();
       expect(config.profiles[0].repoPat).toBe("CUSTOM_ADO_PAT");
     });

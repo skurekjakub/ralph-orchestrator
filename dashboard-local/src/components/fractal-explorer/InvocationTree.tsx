@@ -29,9 +29,12 @@ export function InvocationTree({ root, selectedNodeId, onSelectNode }: Invocatio
     });
   }, []);
 
-  const handleSelect = useCallback((id: string) => {
-    onSelectNode(id === selectedNodeId ? null : id);
-  }, [onSelectNode, selectedNodeId]);
+  const handleSelect = useCallback(
+    (id: string) => {
+      onSelectNode(id === selectedNodeId ? null : id);
+    },
+    [onSelectNode, selectedNodeId],
+  );
 
   return (
     <div className="py-1">

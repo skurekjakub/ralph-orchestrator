@@ -19,15 +19,15 @@ describe("ToolTimeline", () => {
       "done",
     ].join("\n");
     const cliDebug = [
-      '2026-03-07T08:23:52.073Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_started)',
+      "2026-03-07T08:23:52.073Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_started)",
       '2026-03-07T08:23:52.075Z [DEBUG] Agent "ralph.malph-scout": definitionModel="claude-sonnet-4.5", sessionModel="claude-opus-4.6", availableModels=[claude-opus-4.6]',
       '2026-03-07T08:23:52.075Z [DEBUG] Agent "ralph.malph-scout" getOrCreateAgent: final model="claude-opus-4.6" (from resolveDefinitionModel)',
       '2026-03-07T08:23:59.900Z [DEBUG]         "function": {',
       '              "name": "report_intent",',
       '              "arguments": "{\"intent\":\"Scouting\"}"',
-      '            }',
-      '2026-03-07T08:23:59.960Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: tool_call_executed)',
-      '2026-03-07T08:26:35.033Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_completed)',
+      "            }",
+      "2026-03-07T08:23:59.960Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: tool_call_executed)",
+      "2026-03-07T08:26:35.033Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_completed)",
     ].join("\n");
 
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
@@ -43,7 +43,7 @@ describe("ToolTimeline", () => {
         preToolFile="run/pre-tool.log"
         toolOutputFile="run/tool-output.log"
         cliDebugFile="run/cli-debug.log"
-      />
+      />,
     );
 
     await waitFor(() => {

@@ -18,23 +18,38 @@ const KEY = "DF-1";
 
 /** Stub global fetch with an OK JSON response. */
 function stubFetchJson(data: unknown, status = 200) {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true, status, json: () => Promise.resolve(data),
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status,
+      json: () => Promise.resolve(data),
+    }),
+  );
 }
 
 /** Stub global fetch with an OK text response. */
 function stubFetchText(text: string) {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true, text: () => Promise.resolve(text),
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(text),
+    }),
+  );
 }
 
 /** Stub global fetch with an error response. */
 function stubFetchError(status: number, statusText: string, body = "") {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: false, status, statusText, text: () => Promise.resolve(body),
-  }));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      statusText,
+      text: () => Promise.resolve(body),
+    }),
+  );
 }
 
 describe("JiraClient", () => {
@@ -58,7 +73,7 @@ describe("JiraClient", () => {
         isLast: true,
       });
 
-      const issues = await client.searchIssues('project = DF');
+      const issues = await client.searchIssues("project = DF");
 
       expect(fetch).toHaveBeenCalledOnce();
       const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
@@ -88,7 +103,8 @@ describe("JiraClient", () => {
 
       vi.stubGlobal(
         "fetch",
-        vi.fn()
+        vi
+          .fn()
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) }),
       );
@@ -106,9 +122,7 @@ describe("JiraClient", () => {
       stubFetchError(401, "Unauthorized", "Bad token");
 
       const retryClient = new JiraClient({ connection: mockConnection, logger: mockLogger }, { delayMs: 1 });
-      await expect(retryClient.searchIssues("project = DF")).rejects.toThrow(
-        "401"
-      );
+      await expect(retryClient.searchIssues("project = DF")).rejects.toThrow("401");
     });
 
     it("retries on transient fetch failure", async () => {
@@ -122,7 +136,8 @@ describe("JiraClient", () => {
 
       vi.stubGlobal(
         "fetch",
-        vi.fn()
+        vi
+          .fn()
           .mockRejectedValueOnce(new TypeError("fetch failed"))
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(mockResponse) }),
       );
@@ -175,10 +190,7 @@ describe("JiraClient", () => {
         startAt: 0,
         maxResults: 100,
         total: 2,
-        comments: [
-          makeComment("1", "first"),
-          makeComment("2", "second", "2026-01-02T00:00:00Z"),
-        ],
+        comments: [makeComment("1", "first"), makeComment("2", "second", "2026-01-02T00:00:00Z")],
       });
 
       const comments = await client.getComments(KEY);
@@ -204,7 +216,8 @@ describe("JiraClient", () => {
 
       vi.stubGlobal(
         "fetch",
-        vi.fn()
+        vi
+          .fn()
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) }),
       );
@@ -255,9 +268,7 @@ describe("JiraClient", () => {
 
     it("returns undefined when no matching transition exists", async () => {
       stubFetchJson({
-        transitions: [
-          { id: "51", name: "Start progress", to: { name: "In progress" } },
-        ],
+        transitions: [{ id: "51", name: "Start progress", to: { name: "In progress" } }],
       });
 
       const id = await client.findTransitionId(KEY, "Done");
@@ -308,8 +319,7 @@ describe("JiraClient", () => {
     it("throws on download failure", async () => {
       stubFetchError(404, "Not Found");
 
-      await expect(client.downloadAttachment("https://jira.atlassian.net/att/gone"))
-        .rejects.toThrow("404");
+      await expect(client.downloadAttachment("https://jira.atlassian.net/att/gone")).rejects.toThrow("404");
     });
   });
 
@@ -330,8 +340,7 @@ describe("JiraClient", () => {
     it("throws on upload failure", async () => {
       stubFetchError(413, "Request Entity Too Large", "File too big");
 
-      await expect(client.addAttachment(KEY, "big.bin", "x".repeat(1000)))
-        .rejects.toThrow("413");
+      await expect(client.addAttachment(KEY, "big.bin", "x".repeat(1000))).rejects.toThrow("413");
     });
   });
 });

@@ -63,7 +63,8 @@ export function ContextWindowChart({ entries, usageEntries, subagentSpans }: Con
             Context Window — max: {maxTokensLabel}, peak: {peakLabel}
             {cumulativeUsage.turns > 0 && (
               <span className="ml-2 normal-case text-text font-normal">
-                {cumulativeUsage.turns} turns, {formatTokens(cumulativeUsage.totalPrompt + cumulativeUsage.totalCompletion)} total tokens
+                {cumulativeUsage.turns} turns,{" "}
+                {formatTokens(cumulativeUsage.totalPrompt + cumulativeUsage.totalCompletion)} total tokens
               </span>
             )}
           </span>
@@ -112,7 +113,10 @@ export function ContextWindowChart({ entries, usageEntries, subagentSpans }: Con
               {showSubagents && (
                 <div className="flex flex-col gap-1.5 ml-2">
                   {subagentSlices.map((slice) => (
-                    <SubagentContextChart key={`${slice.fullName}-${slice.entries[0]?.tsMs ?? slice.usageEntries[0]?.tsMs}`} slice={slice} />
+                    <SubagentContextChart
+                      key={`${slice.fullName}-${slice.entries[0]?.tsMs ?? slice.usageEntries[0]?.tsMs}`}
+                      slice={slice}
+                    />
                   ))}
                 </div>
               )}
@@ -133,26 +137,30 @@ function ChartInfoTooltip({ onClose }: { onClose: () => void }) {
         <div className="font-semibold text-text mb-1.5">Context Window Chart</div>
         <div className="text-dim space-y-1.5">
           <p>
-            <span className="text-text font-medium">Scope: main orchestrator agent only.</span>{" "}
-            Subagents run in separate context windows — their utilization and token usage are shown in the collapsible section below.
+            <span className="text-text font-medium">Scope: main orchestrator agent only.</span> Subagents run in
+            separate context windows — their utilization and token usage are shown in the collapsible section below.
           </p>
           <p>
-            <span className="text-text font-medium">Utilization chart</span> — shows what % of the context window is filled over time.
-            The <span style={{ color: "#3fb950" }}>green area</span> is current utilization.
-            The <span style={{ color: "#f85149" }}>red dashed line</span> at 80% marks the compaction threshold — when exceeded, the CLI compresses the conversation history.
+            <span className="text-text font-medium">Utilization chart</span> — shows what % of the context window is
+            filled over time. The <span style={{ color: "#3fb950" }}>green area</span> is current utilization. The{" "}
+            <span style={{ color: "#f85149" }}>red dashed line</span> at 80% marks the compaction threshold — when
+            exceeded, the CLI compresses the conversation history.
           </p>
           <p>
-            <span className="text-text font-medium">Sawtooth pattern</span> — utilization climbs as the agent works, then drops sharply when a subagent is dispatched (context is freed for the tool call). It rises again when the subagent result is ingested.
+            <span className="text-text font-medium">Sawtooth pattern</span> — utilization climbs as the agent works,
+            then drops sharply when a subagent is dispatched (context is freed for the tool call). It rises again when
+            the subagent result is ingested.
             <span style={{ color: "#22d3ee" }}> Cyan dashed lines</span> mark subagent dispatch points.
           </p>
           <p>
-            <span className="text-text font-medium">Per-turn token usage</span> — stacked bars per API call:
-            {" "}<span style={{ color: "#58a6ff" }}>blue</span> = prompt tokens (new),
-            {" "}<span style={{ color: "#7d8590" }}>gray</span> = cached prompt tokens,
-            {" "}<span style={{ color: "#3fb950" }}>green</span> = completion tokens.
+            <span className="text-text font-medium">Per-turn token usage</span> — stacked bars per API call:{" "}
+            <span style={{ color: "#58a6ff" }}>blue</span> = prompt tokens (new),{" "}
+            <span style={{ color: "#7d8590" }}>gray</span> = cached prompt tokens,{" "}
+            <span style={{ color: "#3fb950" }}>green</span> = completion tokens.
           </p>
           <p>
-            <span className="text-text font-medium">Cumulative token spend</span> — running total of all tokens consumed across all API turns by the main agent.
+            <span className="text-text font-medium">Cumulative token spend</span> — running total of all tokens consumed
+            across all API turns by the main agent.
           </p>
         </div>
       </div>

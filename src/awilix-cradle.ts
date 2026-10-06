@@ -37,9 +37,7 @@ import { AgentSessionRunner } from "./container/agent-session-runner.js";
 function buildComposeClient(profile: IAgentProfile): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
   const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-  const squidConfPath = existsSync(profileSquid)
-    ? profileSquid
-    : resolve(process.cwd(), "shared/security/squid.conf");
+  const squidConfPath = existsSync(profileSquid) ? profileSquid : resolve(process.cwd(), "shared/security/squid.conf");
   return new ComposeClient(composeFiles, {
     targetRepoPath: profile.repoPath,
     squidConfPath,
@@ -59,7 +57,10 @@ function buildContainerFactory({
   promptBuilder,
   logger,
   containerLogger,
-}: Pick<OrchestratorCradle, "outputConfig" | "enableContinuation" | "executorFactory" | "promptBuilder" | "logger" | "containerLogger">): ContainerManagerFactory {
+}: Pick<
+  OrchestratorCradle,
+  "outputConfig" | "enableContinuation" | "executorFactory" | "promptBuilder" | "logger" | "containerLogger"
+>): ContainerManagerFactory {
   return {
     create: (profile) => {
       const compose = buildComposeClient(profile);
@@ -70,8 +71,16 @@ function buildContainerFactory({
       const continuationRunner = new ContinuationRunner({ logger });
       const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return new ContainerManager({
-        profile, compose, executor, executorFactory, logs, cleaner,
-        logRegistry, sessionRunner, logger, containerLogger,
+        profile,
+        compose,
+        executor,
+        executorFactory,
+        logs,
+        cleaner,
+        logRegistry,
+        sessionRunner,
+        logger,
+        containerLogger,
         enableContinuation,
       });
     },
@@ -106,45 +115,43 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
 
   container.register({
     // ── Config slices ─────────────────────────────────────────────────────────
-    dataSources:       asValue(config.dataSources),
-    outputConfig:      asValue(config.output),
-    dashboardConfig:   asValue(config.dashboard),
-    secrets:           asValue(config.secrets),
-    profiles:          asValue(config.profiles),
+    dataSources: asValue(config.dataSources),
+    outputConfig: asValue(config.output),
+    dashboardConfig: asValue(config.dashboard),
+    secrets: asValue(config.secrets),
+    profiles: asValue(config.profiles),
     promptAuditConfig: asValue(config.promptAudit),
     ralphchivesConfig: asValue(config.ralphchives),
     enableContinuation: asValue(config.enableContinuation),
-    preExecuteHooks:   asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
+    preExecuteHooks: asValue([new RepoSyncHook()] as readonly ILifecycleHook[]),
 
     // ── Infrastructure ────────────────────────────────────────────────────────
-    activityLog:     asClass(ActivityLog).singleton(),
-    logger:          asFunction(({ activityLog }) =>
-                       activityLog.createLogger()).singleton(),
-    containerLogger: asFunction(({ activityLog }) =>
-                       activityLog.createContainerLogger()).singleton(),
+    activityLog: asClass(ActivityLog).singleton(),
+    logger: asFunction(({ activityLog }) => activityLog.createLogger()).singleton(),
+    containerLogger: asFunction(({ activityLog }) => activityLog.createContainerLogger()).singleton(),
 
     // ── Data sources ──────────────────────────────────────────────────────────
-    connectors:    asValue(connectors),
-    pollers:       asValue(pollers),
-    issueManager:  asClass(IssueManager).singleton(),
-    resources:     asClass(TaskResourceManager).singleton(),
+    connectors: asValue(connectors),
+    pollers: asValue(pollers),
+    issueManager: asClass(IssueManager).singleton(),
+    resources: asClass(TaskResourceManager).singleton(),
     vcsSourceClient: asFunction(() => new VcsSourceClient()).singleton(),
 
     // ── Orchestration ─────────────────────────────────────────────────────────
-    ledger:         asClass(OperationLedger).singleton(),
-    router:         asClass(ProfileRouter).singleton(),
+    ledger: asClass(OperationLedger).singleton(),
+    router: asClass(ProfileRouter).singleton(),
     triggerScanner: asClass(TriggerScanner).singleton(),
 
     // ── Execution infrastructure ──────────────────────────────────────────────
-    logCollector:     asClass(LogCollector).singleton(),
-    promptBuilder:    asClass(PromptBuilder).singleton(),
-    executorFactory:  asClass(CliExecutorFactory).singleton(),
+    logCollector: asClass(LogCollector).singleton(),
+    promptBuilder: asClass(PromptBuilder).singleton(),
+    executorFactory: asClass(CliExecutorFactory).singleton(),
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
-    skillRenderer:    asClass(SkillTemplateRenderer).singleton(),
-    jitMcpConfig:     asClass(JitMcpConfigWriter).singleton(),
-    overlayWriter:    asClass(ComposeOverlayWriter).singleton(),
+    skillRenderer: asClass(SkillTemplateRenderer).singleton(),
+    jitMcpConfig: asClass(JitMcpConfigWriter).singleton(),
+    overlayWriter: asClass(ComposeOverlayWriter).singleton(),
     containerFactory: asFunction(buildContainerFactory).singleton(),
-    profileSetup:     asClass(ProfileSetupService).singleton(),
+    profileSetup: asClass(ProfileSetupService).singleton(),
     pipelineExecutor: asClass(AgentPipelineExecutor).singleton(),
 
     // ── Task runner ───────────────────────────────────────────────────────────
@@ -153,9 +160,8 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
 
     // ── Optional ──────────────────────────────────────────────────────────────
     heartbeat: asFunction(({ dashboardConfig, logger }) =>
-                 dashboardConfig.enabled
-                   ? new HeartbeatSender({ dashboardConfig, logger })
-                   : null).singleton(),
+      dashboardConfig.enabled ? new HeartbeatSender({ dashboardConfig, logger }) : null,
+    ).singleton(),
   });
 
   return container.cradle;

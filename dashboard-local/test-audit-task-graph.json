@@ -1,32 +1,73 @@
 {
   "title": "Dashboard-local test rewrite — skill compliance audit",
-  "skills": [
-    "behavior-testing",
-    "test-mocking-strategy",
-    "test-structure-patterns"
-  ],
+  "skills": ["behavior-testing", "test-mocking-strategy", "test-structure-patterns"],
   "auditSummary": {
     "totalFiles": 20,
     "compliant": 17,
     "needsRewrite": 3
   },
   "compliantFiles": [
-    { "file": "src/useDashboard.test.tsx", "reason": "Uses MockWebSocket fake at boundary, behavior-named tests, asserts on hook return values" },
-    { "file": "src/useZoom.test.tsx", "reason": "Tests via rendered components (public API), asserts on DOM + cookie output" },
-    { "file": "src/components/Button.test.tsx", "reason": "Tests rendered behavior, vi.fn() for callback boundary, behavior-named" },
-    { "file": "src/components/dashboard-panels.test.tsx", "reason": "Pure prop-in/DOM-out tests, vi.useFakeTimers for clock boundary only" },
-    { "file": "src/components/log-browser/ToolTimelineSummary.test.tsx", "reason": "No mocks, tests rendered output from real data" },
-    { "file": "src/components/log-browser/ToolTimeline.test.tsx", "reason": "Mocks fetch at HTTP boundary, asserts on rendered output" },
-    { "file": "src/components/log-browser/ToolTimelineSubagents.test.tsx", "reason": "No mocks, tests expand/collapse behavior via user interaction" },
+    {
+      "file": "src/useDashboard.test.tsx",
+      "reason": "Uses MockWebSocket fake at boundary, behavior-named tests, asserts on hook return values"
+    },
+    {
+      "file": "src/useZoom.test.tsx",
+      "reason": "Tests via rendered components (public API), asserts on DOM + cookie output"
+    },
+    {
+      "file": "src/components/Button.test.tsx",
+      "reason": "Tests rendered behavior, vi.fn() for callback boundary, behavior-named"
+    },
+    {
+      "file": "src/components/dashboard-panels.test.tsx",
+      "reason": "Pure prop-in/DOM-out tests, vi.useFakeTimers for clock boundary only"
+    },
+    {
+      "file": "src/components/log-browser/ToolTimelineSummary.test.tsx",
+      "reason": "No mocks, tests rendered output from real data"
+    },
+    {
+      "file": "src/components/log-browser/ToolTimeline.test.tsx",
+      "reason": "Mocks fetch at HTTP boundary, asserts on rendered output"
+    },
+    {
+      "file": "src/components/log-browser/ToolTimelineSubagents.test.tsx",
+      "reason": "No mocks, tests expand/collapse behavior via user interaction"
+    },
     { "file": "src/components/log-browser/ToolTimelineCallList.test.tsx", "reason": "No mocks, tests rendered output" },
-    { "file": "src/components/log-browser/SubagentContextChart.test.tsx", "reason": "No mocks, 6 behavior tests on rendered output" },
-    { "file": "src/components/log-browser/ContextWindowChart.test.tsx", "reason": "No mocks, 7+ behavior tests on rendered output" },
-    { "file": "src/components/log-browser/log-browser-leaf-components.test.tsx", "reason": "vi.fn() for callback boundaries only, tests rendered output" },
-    { "file": "src/components/log-browser/cli-debug-subagent-parser.test.ts", "reason": "Pure function tests, no mocks, asserts on return values" },
-    { "file": "src/components/log-browser/tool-log-timeline-parser.test.ts", "reason": "Pure function tests, no mocks" },
-    { "file": "src/components/log-browser/context-window-parser.test.ts", "reason": "13 pure function tests, thorough behavioral coverage" },
-    { "file": "src/components/log-browser/__tests__/cli-debug-subagent-parser.test.ts", "reason": "12 behavior tests, clear Given/When/Then, no mocks" },
-    { "file": "src/logApiPlugin.test.ts", "reason": "Uses real filesystem (tmpdir) + fake ServerResponse at boundary, excellent pattern" },
+    {
+      "file": "src/components/log-browser/SubagentContextChart.test.tsx",
+      "reason": "No mocks, 6 behavior tests on rendered output"
+    },
+    {
+      "file": "src/components/log-browser/ContextWindowChart.test.tsx",
+      "reason": "No mocks, 7+ behavior tests on rendered output"
+    },
+    {
+      "file": "src/components/log-browser/log-browser-leaf-components.test.tsx",
+      "reason": "vi.fn() for callback boundaries only, tests rendered output"
+    },
+    {
+      "file": "src/components/log-browser/cli-debug-subagent-parser.test.ts",
+      "reason": "Pure function tests, no mocks, asserts on return values"
+    },
+    {
+      "file": "src/components/log-browser/tool-log-timeline-parser.test.ts",
+      "reason": "Pure function tests, no mocks"
+    },
+    {
+      "file": "src/components/log-browser/context-window-parser.test.ts",
+      "reason": "13 pure function tests, thorough behavioral coverage"
+    },
+    {
+      "file": "src/components/log-browser/__tests__/cli-debug-subagent-parser.test.ts",
+      "reason": "12 behavior tests, clear Given/When/Then, no mocks"
+    },
+    {
+      "file": "src/logApiPlugin.test.ts",
+      "reason": "Uses real filesystem (tmpdir) + fake ServerResponse at boundary, excellent pattern"
+    },
     { "file": "src/__tests__/fractalLogPlugin.test.ts", "reason": "5 behavior tests with real parser, no mocks" }
   ],
   "tasks": [

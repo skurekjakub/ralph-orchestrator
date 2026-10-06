@@ -39,8 +39,7 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   const manifestPath = join(mcpServersDir, serverName, "mcp-server.json");
   if (!existsSync(manifestPath)) {
     throw new Error(
-      `MCP server manifest not found: ${manifestPath}\n` +
-      `  Create shared/mcp-servers/${serverName}/mcp-server.json`
+      `MCP server manifest not found: ${manifestPath}\n` + `  Create shared/mcp-servers/${serverName}/mcp-server.json`,
     );
   }
 
@@ -48,13 +47,23 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   if (!raw.name || !raw.command) {
     throw new Error(`Invalid MCP server manifest at ${manifestPath}: name and command are required`);
   }
-  if (typeof raw.sidecarPort !== "number" || !Number.isInteger(raw.sidecarPort) || raw.sidecarPort < 1 || raw.sidecarPort > 65535) {
-    throw new Error(`Invalid MCP server manifest at ${manifestPath}: sidecarPort must be an integer between 1 and 65535`);
+  if (
+    typeof raw.sidecarPort !== "number" ||
+    !Number.isInteger(raw.sidecarPort) ||
+    raw.sidecarPort < 1 ||
+    raw.sidecarPort > 65535
+  ) {
+    throw new Error(
+      `Invalid MCP server manifest at ${manifestPath}: sidecarPort must be an integer between 1 and 65535`,
+    );
   }
 
   if (raw.requiredConfig !== undefined) {
-    if (!Array.isArray(raw.requiredConfig) || raw.requiredConfig.length === 0 ||
-        raw.requiredConfig.some((v: unknown) => typeof v !== "string" || v === "")) {
+    if (
+      !Array.isArray(raw.requiredConfig) ||
+      raw.requiredConfig.length === 0 ||
+      raw.requiredConfig.some((v: unknown) => typeof v !== "string" || v === "")
+    ) {
       throw new Error(
         `Invalid MCP server manifest at ${manifestPath}: requiredConfig must be a non-empty array of non-empty strings`,
       );
@@ -66,7 +75,9 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
       throw new Error(`Invalid MCP server manifest at ${manifestPath}: initScript must be a non-empty string`);
     }
     if (raw.initScript.includes("..") || raw.initScript.startsWith("/")) {
-      throw new Error(`Invalid MCP server manifest at ${manifestPath}: initScript must be a relative path within the server directory`);
+      throw new Error(
+        `Invalid MCP server manifest at ${manifestPath}: initScript must be a relative path within the server directory`,
+      );
     }
     const initPath = join(mcpServersDir, serverName, raw.initScript);
     if (!existsSync(initPath)) {

@@ -1,0 +1,43 @@
+# Generated / vendored / lockfiles
+dist/
+output/
+node_modules/
+**/.build/
+**/package-lock.json
+skills-lock.json
+
+# Liquid-rendered runtime templates: Markdown reflow and escaping would change
+# rendered prompts, so these are formatted by hand.
+profiles/**/agents/
+shared/agent-includes/
+shared/skills/
+
+# Third-party skills installed by `npx skills` (pinned by hash in skills-lock.json)
+.claude/skills/agent-browser/
+.claude/skills/vercel-composition-patterns/
+.claude/skills/vercel-react-best-practices/
+.claude/skills/vitest/
+.claude/skills/web-design-guidelines/
+
+# Vendored Anthropic skills kept byte-identical to upstream
+.claude/skills/skill-creator/
+.claude/skills/mcp-builder/
+
+# Quarantined, unrelated material
+containment/
+
+# Rendered by setup-ai and tracked by content hash in .claude/setup-ai.json;
+# reformatting them would turn every template update into a conflict.
+.claude/setup-ai.json
+.claude/agents/rubber-duk-*.md
+.claude/skills/codebase-analysis/
+.claude/skills/codebase-refactoring/
+.claude/skills/feature-development/
+.claude/skills/project-bugfixing/
+.claude/skills/file-github-issue/
+.ai/
+docs/conventions/
+docs/gotchas.md
+
+# Rewritten by the orchestrator on every poll
+cache/

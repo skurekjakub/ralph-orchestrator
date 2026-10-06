@@ -18,9 +18,7 @@ export function parseResultBlock(stdout: string): {
   prUrl: string | undefined;
   agentStatus: string | undefined;
 } {
-  const resultBlock = stdout.match(
-    /===RALPH_RESULT_START===([\s\S]*?)===RALPH_RESULT_END===/
-  );
+  const resultBlock = stdout.match(/===RALPH_RESULT_START===([\s\S]*?)===RALPH_RESULT_END===/);
 
   let prUrl: string | undefined;
   let agentStatus: string | undefined;
@@ -36,9 +34,7 @@ export function parseResultBlock(stdout: string): {
     }
   } else {
     // Fallback: look for a loose PR URL
-    const prUrlMatch = stdout.match(
-      /Pull Request:\s*(https?:\/\/\S+)/i
-    );
+    const prUrlMatch = stdout.match(/Pull Request:\s*(https?:\/\/\S+)/i);
     prUrl = prUrlMatch?.[1];
   }
 
@@ -69,7 +65,7 @@ export function resolveStatus(
     }
     logger?.warn(
       `Agent reported unrecognized status "${agentStatus}" — falling back to exit-code resolution. ` +
-      `Valid values: ${[...RECOGNIZED_STATUSES].join(", ")}`,
+        `Valid values: ${[...RECOGNIZED_STATUSES].join(", ")}`,
     );
   }
 

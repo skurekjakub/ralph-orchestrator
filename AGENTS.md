@@ -41,13 +41,13 @@ npm run dashboard    # dashboard-local Vite dev server on :3101 (reads output/lo
 
 Side-effecting. Run these only when the user asks:
 
-| Command | Effect |
-|---|---|
-| `npm run dev`, `npm start` | The real orchestrator. It polls live JIRA, posts comments, transitions issues, rebuilds custom MCP servers, starts Docker stacks, runs `git fetch/checkout/reset --hard` in target repos, lets agents push branches and open PRs, and writes `cache/trigger-cache.json` and `output/`. `start` runs validate + build first. |
-| `npm run agent <trigger> "<prompt>"` | `scripts/run-agent.ts`: runs one variant in the full container stack with live MCP credentials. |
-| `npx tsx scripts/run-hooks.ts <outputDir>` | Replays post-task hooks from `hook-manifest.json` with the host `copilot` CLI. |
-| `npm run reset-testenv[:medium\|:hard\|…]` | `scripts/reset-issue.ts`: deletes the JIRA issue's comments and attachments, resets fields, transitions it to To Do, deletes local **and remote** `ralph/<KEY>*` branches in the ralph-docs repo, and clears containers, logs and the trigger-cache entry. |
-| `npm run ralphchives:backup-db`, `:restore-db` | NodeBB backup and restore (`ralphchives/scripts/*.sh`). |
+| Command                                        | Effect                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`, `npm start`                     | The real orchestrator. It polls live JIRA, posts comments, transitions issues, rebuilds custom MCP servers, starts Docker stacks, runs `git fetch/checkout/reset --hard` in target repos, lets agents push branches and open PRs, and writes `cache/trigger-cache.json` and `output/`. `start` runs validate + build first. |
+| `npm run agent <trigger> "<prompt>"`           | `scripts/run-agent.ts`: runs one variant in the full container stack with live MCP credentials.                                                                                                                                                                                                                             |
+| `npx tsx scripts/run-hooks.ts <outputDir>`     | Replays post-task hooks from `hook-manifest.json` with the host `copilot` CLI.                                                                                                                                                                                                                                              |
+| `npm run reset-testenv[:medium\|:hard\|…]`     | `scripts/reset-issue.ts`: deletes the JIRA issue's comments and attachments, resets fields, transitions it to To Do, deletes local **and remote** `ralph/<KEY>*` branches in the ralph-docs repo, and clears containers, logs and the trigger-cache entry.                                                                  |
+| `npm run ralphchives:backup-db`, `:restore-db` | NodeBB backup and restore (`ralphchives/scripts/*.sh`).                                                                                                                                                                                                                                                                     |
 
 `scripts/` is neither type-checked (outside both tsconfigs) nor linted (eslint-ignored), so a broken script only fails when it runs.
 
@@ -81,20 +81,20 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 
 ## Source map
 
-| Path | Contents |
-|---|---|
-| `src/` | `index.tsx` entry, `app-startup.ts`, `orchestrator.ts` (+ `-observer`, `-types` enums), `awilix-cradle.ts` + `awilix-cradle-types.ts`, `logger.ts`, `retry.ts` |
-| `src/config/` | zod `schemas.ts`, `types.ts`, `loader.ts`, `constants.ts` (`DEFAULT_MODEL`) |
-| `src/datasource/` | `WorkItem` types, `IDataSourceConnector` + optional capabilities and type guards (`connector.ts`), `IWorkItemPoller`, plugin `registry.ts` |
-| `src/datasource/connectors/jira/` | REST v3 client (native `fetch`), JQL builder, ADF converter, mapper, poller, self-registering `factory.ts` |
-| `src/services/` | trigger scanner, operation ledger, profile router, task runner, `agent-pipeline-executor.ts`, `profile-setup-service.ts`, result writer, issue/resource managers, `preflight.ts`, VCS PR lookup, activity log, heartbeat, dashboard WebSocket server, comment templates |
-| `src/container/` | `manager.ts`, `compose-client.ts`, `lifecycle.ts` (RepoSyncHook), `agent-session-runner.ts`, `continuation-runner.ts`, log collector + source registry, workspace cleaner, stream capture, result parser, `cli-executor-factory.ts`, `types.ts` (`deriveStageProfile`) |
-| `src/container/cli-executors/` | `copilot-executor.ts` (container), `local-copilot-executor.ts` (host), `claude-code-executor.ts` (unreachable), `shared-exec.ts` |
-| `src/container/setup/` | `.build/` generation: agent and skill templates, Liquid tags, MCP manifest/config/build, JIT params, compose files + overlay, squid config, URL restrictions, mounts, `profile-setup.ts` |
-| `src/prompt/` | prompt assembly (`prompt.ts`, `prompt-builder.ts`), `normalizer.ts`, `prompt-auditor.ts` |
-| `src/logs/`, `src/validate/`, `src/cli-dashboard/`, `src/util/` | execution summary + failure classification; startup validation; Ink TUI; branch slug / error message / `~` path helpers |
-| `profiles/<id>/` | `profile.json`, `Dockerfile`, `docker-compose.yml`, `setup.sh` (installs the CLI), `agents/*.agent.md`, optional `resources/`, generated `.build/` |
-| `shared/` | `security/` (Squid + compose overlay), `hooks/` (container audit hooks), `agent-includes/` (Liquid partials), `mcp-servers/<name>/`, `mcp-sidecar/`, `skills/` |
+| Path                                                            | Contents                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/`                                                          | `index.tsx` entry, `app-startup.ts`, `orchestrator.ts` (+ `-observer`, `-types` enums), `awilix-cradle.ts` + `awilix-cradle-types.ts`, `logger.ts`, `retry.ts`                                                                                                          |
+| `src/config/`                                                   | zod `schemas.ts`, `types.ts`, `loader.ts`, `constants.ts` (`DEFAULT_MODEL`)                                                                                                                                                                                             |
+| `src/datasource/`                                               | `WorkItem` types, `IDataSourceConnector` + optional capabilities and type guards (`connector.ts`), `IWorkItemPoller`, plugin `registry.ts`                                                                                                                              |
+| `src/datasource/connectors/jira/`                               | REST v3 client (native `fetch`), JQL builder, ADF converter, mapper, poller, self-registering `factory.ts`                                                                                                                                                              |
+| `src/services/`                                                 | trigger scanner, operation ledger, profile router, task runner, `agent-pipeline-executor.ts`, `profile-setup-service.ts`, result writer, issue/resource managers, `preflight.ts`, VCS PR lookup, activity log, heartbeat, dashboard WebSocket server, comment templates |
+| `src/container/`                                                | `manager.ts`, `compose-client.ts`, `lifecycle.ts` (RepoSyncHook), `agent-session-runner.ts`, `continuation-runner.ts`, log collector + source registry, workspace cleaner, stream capture, result parser, `cli-executor-factory.ts`, `types.ts` (`deriveStageProfile`)  |
+| `src/container/cli-executors/`                                  | `copilot-executor.ts` (container), `local-copilot-executor.ts` (host), `claude-code-executor.ts` (unreachable), `shared-exec.ts`                                                                                                                                        |
+| `src/container/setup/`                                          | `.build/` generation: agent and skill templates, Liquid tags, MCP manifest/config/build, JIT params, compose files + overlay, squid config, URL restrictions, mounts, `profile-setup.ts`                                                                                |
+| `src/prompt/`                                                   | prompt assembly (`prompt.ts`, `prompt-builder.ts`), `normalizer.ts`, `prompt-auditor.ts`                                                                                                                                                                                |
+| `src/logs/`, `src/validate/`, `src/cli-dashboard/`, `src/util/` | execution summary + failure classification; startup validation; Ink TUI; branch slug / error message / `~` path helpers                                                                                                                                                 |
+| `profiles/<id>/`                                                | `profile.json`, `Dockerfile`, `docker-compose.yml`, `setup.sh` (installs the CLI), `agents/*.agent.md`, optional `resources/`, generated `.build/`                                                                                                                      |
+| `shared/`                                                       | `security/` (Squid + compose overlay), `hooks/` (container audit hooks), `agent-includes/` (Liquid partials), `mcp-servers/<name>/`, `mcp-sidecar/`, `skills/`                                                                                                          |
 
 ## Adding a DI service
 
@@ -106,6 +106,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `preExecuteHooks`.
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
+
 - `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
 - Per-task objects (compose client, executors, `ContainerManager`, session runners) are built in `buildContainerFactory`.
 - Data-source plugin factories build their own connector and poller.
@@ -153,7 +154,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - `_`-prefix for unused args, vars and caught errors.
   - `no-duplicate-imports`.
   - `any` is an error in `src/` but allowed in `tests/`.
-- **JSDoc** on public interfaces, types, classes and methods. Comments explain *why*. Don't restate the code, write history notes, or add section-separator comments.
+- **JSDoc** on public interfaces, types, classes and methods. Comments explain _why_. Don't restate the code, write history notes, or add section-separator comments.
 
 ## Testing
 
@@ -169,13 +170,13 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 Each has its own `package.json` and `npm ci`. Root `npm run lint` and `npm test` skip them, except that root eslint does lint `ralphchives/**`. `.github/workflows/pr-validation.yml` covers all of them.
 
-| Path | Stack | Commands |
-|---|---|---|
+| Path                        | Stack                                                          | Commands                                                                                                                                              |
+| --------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `shared/mcp-servers/<name>` | custom TS MCP servers (webpack; `discord-hitl`: tsc + esbuild) | `lint` (tsc), `build`, `test` (vitest) in ado, jira-kentico, ralphchives-read/-write. `playwright` and `codegraphcontext` are npm-type, manifest only |
-| `shared/mcp-sidecar` | gateway process manager | `lint`, `build` (no tests) |
-| `dashboard-local` | Vite + React 19 + Tailwind log/graph UI | `dev`, `lint`, `test`, `test:watch`, `build`; see `dashboard-local/AGENTS.md` |
-| `ralph-dashboard` | Next.js status dashboard (Vercel + Upstash Redis) | `dev`, `lint`, `build`; `deploy` pushes to Vercel production (side-effecting) |
-| `ralphchives/sync` | NodeBB → Neo4j sync pipeline | `build`, `test`, `dev`, `sync:full` (writes to live stores) |
+| `shared/mcp-sidecar`        | gateway process manager                                        | `lint`, `build` (no tests)                                                                                                                            |
+| `dashboard-local`           | Vite + React 19 + Tailwind log/graph UI                        | `dev`, `lint`, `test`, `test:watch`, `build`; see `dashboard-local/AGENTS.md`                                                                         |
+| `ralph-dashboard`           | Next.js status dashboard (Vercel + Upstash Redis)              | `dev`, `lint`, `build`; `deploy` pushes to Vercel production (side-effecting)                                                                         |
+| `ralphchives/sync`          | NodeBB → Neo4j sync pipeline                                   | `build`, `test`, `dev`, `sync:full` (writes to live stores)                                                                                           |
 
 ## Dev tooling vs runtime artifacts
 

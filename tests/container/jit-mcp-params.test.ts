@@ -178,9 +178,7 @@ describe("JitMcpConfigWriter", () => {
       mcpServers: ["jira-kentico"],
       mcpServerConfigs: { "jira-kentico": { JIRA_ISSUE_KEY: "$task.id" } },
     });
-    const gateway = makeGateway([
-      makeGatewayServer("jira-kentico", { JIRA_PAT: "token123", JIRA_EMAIL: "a@b.com" }),
-    ]);
+    const gateway = makeGateway([makeGatewayServer("jira-kentico", { JIRA_PAT: "token123", JIRA_EMAIL: "a@b.com" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
     writer.write(profile, issue, createSilentLogger());

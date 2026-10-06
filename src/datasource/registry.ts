@@ -66,7 +66,7 @@ export function buildDataSourceMaps(
     if (!factory) {
       throw new Error(
         `No factory registered for data source type "${ds.type}". ` +
-        `Call registerDataSourceFactory("${ds.type}", factory) before startup.`,
+          `Call registerDataSourceFactory("${ds.type}", factory) before startup.`,
       );
     }
 

@@ -53,9 +53,7 @@ async function apiPost(path, body) {
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(
-      `POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`
-    );
+    throw new Error(`POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`);
   }
   return data.response;
 }
@@ -101,7 +99,7 @@ const SEED_TOPICS = [
   ],
   [
     "DOC-3200: Add migration guide for v14 to v15 API breaking changes",
-    "What Was Done\nDocumented all breaking changes between API v14 and v15 with migration steps.\n\nBreaking Changes\n- Pagination cursor format changed from offset to keyset\n- Content item response schema flattened (nested \"system\" object removed)\n- Webhook payload v2 now includes content type codename\n- Rate limiting headers renamed from X-RateLimit to RateLimit (RFC 9110)\n\nMigration Steps\n- Step 1: Update pagination logic\n- Step 2: Adjust response parsing\n- Step 3: Update webhook handlers\n- Step 4: Test with sandbox environment",
+    'What Was Done\nDocumented all breaking changes between API v14 and v15 with migration steps.\n\nBreaking Changes\n- Pagination cursor format changed from offset to keyset\n- Content item response schema flattened (nested "system" object removed)\n- Webhook payload v2 now includes content type codename\n- Rate limiting headers renamed from X-RateLimit to RateLimit (RFC 9110)\n\nMigration Steps\n- Step 1: Update pagination logic\n- Step 2: Adjust response parsing\n- Step 3: Update webhook handlers\n- Step 4: Test with sandbox environment',
   ],
   [
     "DOC-500: Improve search functionality documentation",

@@ -16,10 +16,7 @@ const BASE_CONTAINER_ENV: Record<string, string> = {
  * Ensures the container process runs as the same UID/GID as the host user so
  * it can write to bind-mounted directories.
  */
-const HOST_BUILD_ARGS = [
-  '        HOST_UID: "${HOST_UID}"',
-  '        HOST_GID: "${HOST_GID}"',
-];
+const HOST_BUILD_ARGS = ['        HOST_UID: "${HOST_UID}"', '        HOST_GID: "${HOST_GID}"'];
 
 /**
  * Generate a Docker Compose overlay YAML that injects environment variables,

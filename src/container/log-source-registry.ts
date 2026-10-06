@@ -110,7 +110,11 @@ export class LogSourceRegistry implements ILogSourceRegistry {
       extension: "log",
       mode: callbacks.onCliDebug ? CaptureMode.Stream : CaptureMode.Collect,
       collectArgs: ["sh", "-c", `cat ${cliPaths.logDir}/*.log 2>/dev/null`],
-      streamArgs: ["sh", "-c", `while ! ls ${cliPaths.logDir}/*.log >/dev/null 2>&1; do sleep 1; done; exec tail -n 0 -F ${cliPaths.logDir}/*.log`],
+      streamArgs: [
+        "sh",
+        "-c",
+        `while ! ls ${cliPaths.logDir}/*.log >/dev/null 2>&1; do sleep 1; done; exec tail -n 0 -F ${cliPaths.logDir}/*.log`,
+      ],
       onLine: callbacks.onCliDebug,
     });
 

@@ -15,12 +15,12 @@ export function generateAgentVolumeMounts(profileDir: string): string[] {
   const agentsDir = join(profileDir, "agents");
   if (!existsSync(agentsDir)) return [];
 
-  const agentFiles = readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md")).sort();
+  const agentFiles = readdirSync(agentsDir)
+    .filter((f) => f.endsWith(".agent.md"))
+    .sort();
   const buildDir = join(profileDir, ".build");
 
-  return agentFiles.map((file) =>
-    `      - ${join(buildDir, file)}:/workspace/.github/agents/${file}:ro`,
-  );
+  return agentFiles.map((file) => `      - ${join(buildDir, file)}:/workspace/.github/agents/${file}:ro`);
 }
 
 /**
@@ -34,12 +34,7 @@ export function generateAgentVolumeMounts(profileDir: string): string[] {
  * @param skillNames List of skill names declared by the profile.
  * @returns Array of volume mount strings (YAML-ready, indented for `services.app.volumes`).
  */
-export function generateSkillVolumeMounts(
-  skillsDir: string,
-  skillNames: string[],
-): string[] {
+export function generateSkillVolumeMounts(skillsDir: string, skillNames: string[]): string[] {
   const buildDir = join(skillsDir, ".build");
-  return skillNames.map((name) =>
-    `      - ${join(buildDir, name)}:/workspace/.github/skills/${name}:ro`,
-  );
+  return skillNames.map((name) => `      - ${join(buildDir, name)}:/workspace/.github/skills/${name}:ro`);
 }

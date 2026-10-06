@@ -82,9 +82,7 @@ describe("TriggerScanner", () => {
     });
     const variant = profile.variantKey;
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@RalphDocs handle this"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@RalphDocs handle this")]);
 
     ledger.plan(KEY, { dataSource: DS, variant, triggerCommentId: CID, commentTimestamp: TS });
 
@@ -118,16 +116,12 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@docs(codesamples, branch=xyz) review"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@docs(codesamples, branch=xyz) review")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     await scanner.scan([makeWorkItem(KEY)], [profile]);
 
-    expect(mgr.postAckComment).toHaveBeenCalledWith(
-      DS, KEY, "ralph", ["codesamples", "branch=xyz"],
-    );
+    expect(mgr.postAckComment).toHaveBeenCalledWith(DS, KEY, "ralph", ["codesamples", "branch=xyz"]);
   });
 
   it("passes empty trigger params array to ack when no params in trigger", async () => {
@@ -136,16 +130,12 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@docs please review"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@docs please review")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     await scanner.scan([makeWorkItem(KEY)], [profile]);
 
-    expect(mgr.postAckComment).toHaveBeenCalledWith(
-      DS, KEY, "ralph", [],
-    );
+    expect(mgr.postAckComment).toHaveBeenCalledWith(DS, KEY, "ralph", []);
   });
 
   it("skips profiles that don't match the issue project", async () => {
@@ -235,9 +225,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@docs please handle this"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@docs please handle this")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -250,9 +238,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@RalphDocs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@ralphdocs please handle"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@ralphdocs please handle")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -266,9 +252,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@docs(codesamples, verbose) please review"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@docs(codesamples, verbose) please review")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -285,9 +269,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@docs" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@docs please review"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@docs please review")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -318,10 +300,7 @@ describe("TriggerScanner", () => {
       .mockResolvedValueOnce([makeWorkItemComment("C2", "@go issue 2")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
-    const planned = await scanner.scan(
-      [makeWorkItem(KEY), makeWorkItem("DF-200")],
-      [profile],
-    );
+    const planned = await scanner.scan([makeWorkItem(KEY), makeWorkItem("DF-200")], [profile]);
 
     expect(planned).toBe(2);
     expect(mgr.getComments).toHaveBeenCalledTimes(2);
@@ -332,17 +311,13 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "@go now"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go now")]);
     const logger = createMockLogger();
     const scanner = makeScanner(mgr, router, ledger, logger);
 
     await scanner.scan([makeWorkItem(KEY)], [profile]);
 
-    const summaryCall = vi.mocked(logger.info).mock.calls.find((c: any[]) =>
-      c[0].startsWith("Trigger scan:")
-    );
+    const summaryCall = vi.mocked(logger.info).mock.calls.find((c: any[]) => c[0].startsWith("Trigger scan:"));
     expect(summaryCall).toBeDefined();
     expect(summaryCall![0]).toContain("1 issues");
     expect(summaryCall![0]).toContain("1 scanned");
@@ -356,9 +331,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "no trigger here"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "no trigger here")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     const issueV1 = makeWorkItem(KEY, "Test", "New", "2026-02-15T10:00:00Z");
@@ -379,25 +352,17 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "nothing relevant"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "nothing relevant")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
-    await scanner.scan(
-      [makeWorkItem(KEY, "Test", "New", "2026-02-15T10:00:00Z")],
-      [profile],
-    );
+    await scanner.scan([makeWorkItem(KEY, "Test", "New", "2026-02-15T10:00:00Z")], [profile]);
     expect(mgr.getComments).toHaveBeenCalledTimes(1);
 
     mgr.getComments.mockClear();
     mgr.getComments.mockResolvedValue([makeWorkItemComment("C2", "@go now")]);
 
     // Issue updated (new comment added in JIRA)
-    await scanner.scan(
-      [makeWorkItem(KEY, "Test", "New", "2026-02-15T10:05:00Z")],
-      [profile],
-    );
+    await scanner.scan([makeWorkItem(KEY, "Test", "New", "2026-02-15T10:05:00Z")], [profile]);
     expect(mgr.getComments).toHaveBeenCalledTimes(1);
   });
 
@@ -406,9 +371,7 @@ describe("TriggerScanner", () => {
       match: makeMatch({ commentTrigger: "@go" }),
     });
     const router = new ProfileRouter({ profiles: [profile] });
-    const mgr = makeMockIssueManager([
-      makeWorkItemComment(CID, "no trigger"),
-    ]);
+    const mgr = makeMockIssueManager([makeWorkItemComment(CID, "no trigger")]);
     const scanner = makeScanner(mgr, router, ledger, silentLogger);
 
     const issueNoUpdated = makeWorkItem(KEY);
@@ -475,9 +438,7 @@ describe("TriggerScanner", () => {
         match: makeMatch({ commentTrigger: "@go" }),
       });
       const router = new ProfileRouter({ profiles: [profile] });
-      const mgr = makeMockIssueManager([
-        makeWorkItemComment(CID, "@go please", TS, "blocked-user"),
-      ]);
+      const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go please", TS, "blocked-user")]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -497,9 +458,7 @@ describe("TriggerScanner", () => {
         match: makeMatch({ commentTrigger: "@go" }),
       });
       const router = new ProfileRouter({ profiles: [profile] });
-      const mgr = makeMockIssueManager([
-        makeWorkItemComment(CID, "@go please", TS, "blocked-user"),
-      ]);
+      const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go please", TS, "blocked-user")]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -516,9 +475,7 @@ describe("TriggerScanner", () => {
         match: makeMatch({ commentTrigger: "@go" }),
       });
       const router = new ProfileRouter({ profiles: [profile] });
-      const mgr = makeMockIssueManager([
-        makeWorkItemComment(CID, "@go please", TS, "blocked-user"),
-      ]);
+      const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go please", TS, "blocked-user")]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -537,9 +494,7 @@ describe("TriggerScanner", () => {
         match: makeMatch({ commentTrigger: "@go" }),
       });
       const router = new ProfileRouter({ profiles: [profile] });
-      const mgr = makeMockIssueManager([
-        makeWorkItemComment(CID, "@go please", TS, "allowed-user"),
-      ]);
+      const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go please", TS, "allowed-user")]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: ["allowed-user"] });
 
       const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -552,9 +507,7 @@ describe("TriggerScanner", () => {
         match: makeMatch({ commentTrigger: "@go" }),
       });
       const router = new ProfileRouter({ profiles: [profile] });
-      const mgr = makeMockIssueManager([
-        makeWorkItemComment(CID, "@go please", TS, "any-random-user"),
-      ]);
+      const mgr = makeMockIssueManager([makeWorkItemComment(CID, "@go please", TS, "any-random-user")]);
       const scanner = makeScanner(mgr, router, ledger, silentLogger, { allowedUsers: [] });
 
       const planned = await scanner.scan([makeWorkItem(KEY)], [profile]);
@@ -578,7 +531,7 @@ describe("TriggerScanner", () => {
 
       expect(planned).toBe(2);
       // user-b should be rejected
-      const rejected = ledger.getOperations(DS, KEY).filter(op => op.status === "rejected");
+      const rejected = ledger.getOperations(DS, KEY).filter((op) => op.status === "rejected");
       expect(rejected).toHaveLength(1);
       expect(rejected[0].reason).toContain("user-b");
     });

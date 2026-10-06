@@ -25,6 +25,7 @@ DOC-3000: Document custom modules (epic/story)
 ```
 
 Each subtask has:
+
 - Clear scope (specific files, APIs, or concepts)
 - Estimated complexity label
 - Dependencies on other subtasks (if any)
@@ -47,6 +48,7 @@ Start with Option B (planning document), then graduate to Option A once confiden
 ### Over-Ralph Template Refinement
 
 The `ralph.overralph.agent.md` template needs:
+
 - A structured output format for the implementation plan (not freeform prose)
 - Research phase that explores both the codebase AND existing documentation coverage gaps
 - Dependency analysis: which pieces must come before others
@@ -56,6 +58,7 @@ The `ralph.overralph.agent.md` template needs:
 ### JIRA Subtask Creation (Option A)
 
 If subtasks are created via MCP:
+
 - The `jira-kentico` MCP server needs a `create_subtask` tool (or the existing `jira_create_issue` tool with `parent` field support)
 - The orchestrator needs to handle subtask triggers — currently it scans for `commentTrigger` on issues. Subtasks would need their own triggers or auto-processing.
 - Over-Ralph needs permission/tooling to set issue fields (summary, description, labels, components) on new subtasks

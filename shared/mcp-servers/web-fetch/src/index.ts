@@ -56,20 +56,24 @@ function createMcpServer(): McpServer {
         response = await fetch(url);
       } catch (err) {
         return {
-          content: [{
-            type: "text" as const,
-            text: `Network error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`,
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: `Network error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
           isError: true,
         };
       }
 
       if (!response.ok) {
         return {
-          content: [{
-            type: "text" as const,
-            text: `HTTP ${response.status} ${response.statusText} — ${url}`,
-          }],
+          content: [
+            {
+              type: "text" as const,
+              text: `HTTP ${response.status} ${response.statusText} — ${url}`,
+            },
+          ],
           isError: true,
         };
       }
@@ -79,9 +83,7 @@ function createMcpServer(): McpServer {
       const text = isHtml(contentType) ? turndown.turndown(raw) : raw;
       const truncated = text.length > maxLength;
       const content = truncated ? text.slice(0, maxLength) : text;
-      const suffix = truncated
-        ? `\n\n[Content truncated: returned ${maxLength} of ${text.length} characters]`
-        : "";
+      const suffix = truncated ? `\n\n[Content truncated: returned ${maxLength} of ${text.length} characters]` : "";
 
       return {
         content: [{ type: "text" as const, text: content + suffix }],
@@ -121,7 +123,10 @@ function startHttpTransport(port: number): void {
 
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, body);
   });

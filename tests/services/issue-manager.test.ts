@@ -25,9 +25,7 @@ describe("IssueManager", () => {
       await manager.transitionWorkItem(DS, KEY, "In Progress", TransitionPhase.BeforeAgent);
 
       expect(connector.transitionWorkItem).toHaveBeenCalledWith(KEY, "In Progress");
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('transitioned (beforeAgent → "In Progress")'),
-      );
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('transitioned (beforeAgent → "In Progress")'));
     });
 
     it("skips when targetStatus is undefined", async () => {
@@ -37,27 +35,18 @@ describe("IssueManager", () => {
     });
 
     it("posts failure comment when connector throws", async () => {
-      connector.transitionWorkItem.mockRejectedValue(
-        new Error('No transition to "Done" available for DF-100'),
-      );
+      connector.transitionWorkItem.mockRejectedValue(new Error('No transition to "Done" available for DF-100'));
 
       await manager.transitionWorkItem(DS, KEY, "Done", TransitionPhase.AfterAgent);
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to transition"),
-      );
-      expect(connector.addComment).toHaveBeenCalledWith(
-        KEY,
-        expect.stringContaining("Done"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to transition"));
+      expect(connector.addComment).toHaveBeenCalledWith(KEY, expect.stringContaining("Done"));
     });
 
     it("uses phase label in log messages", async () => {
       await manager.transitionWorkItem(DS, KEY, "Ready for Review", TransitionPhase.AfterAgent);
 
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("afterAgent"),
-      );
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("afterAgent"));
     });
   });
 
@@ -66,9 +55,7 @@ describe("IssueManager", () => {
       await manager.postStartComment(DS, KEY, "ralph", "ralph-docs");
 
       expect(connector.addComment).toHaveBeenCalledWith(KEY, expect.any(String));
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Start comment posted"),
-      );
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Start comment posted"));
     });
 
     it("logs warning when comment fails", async () => {
@@ -76,9 +63,7 @@ describe("IssueManager", () => {
 
       await manager.postStartComment(DS, KEY, "ralph", "ralph-docs");
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to comment"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to comment"));
     });
   });
 
@@ -86,13 +71,8 @@ describe("IssueManager", () => {
     it("posts formatted error comment", async () => {
       await manager.postErrorComment(DS, KEY, "Connection refused");
 
-      expect(connector.addComment).toHaveBeenCalledWith(
-        KEY,
-        expect.stringContaining("Connection refused"),
-      );
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining("Error comment posted"),
-      );
+      expect(connector.addComment).toHaveBeenCalledWith(KEY, expect.stringContaining("Connection refused"));
+      expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Error comment posted"));
     });
 
     it("logs warning when comment fails", async () => {
@@ -100,9 +80,7 @@ describe("IssueManager", () => {
 
       await manager.postErrorComment(DS, KEY, "some error");
 
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to post error comment"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to post error comment"));
     });
   });
 
@@ -131,9 +109,7 @@ describe("IssueManager", () => {
       const result = await manager.refreshWorkItem(DS, "DF-200");
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to refresh"),
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to refresh"));
     });
   });
 

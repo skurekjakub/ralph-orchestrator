@@ -6,7 +6,6 @@ import { resolveAgentIncludes, type TemplateContext } from "../../src/container/
 import { resolveSkillIncludes } from "../../src/container/setup/skill-includes.js";
 import { makeTemplateContext } from "../helpers/factories.js";
 
-
 /**
  * Integration tests that render real agent templates, shared includes,
  * and skills against fake task data. These catch Liquid syntax errors,
@@ -32,12 +31,8 @@ function stripCodeBlocks(content: string): string {
 /** Check that rendered output has no unresolved Liquid tags (outside code blocks). */
 function expectNoUnresolvedTags(rendered: string, label: string): void {
   const stripped = stripCodeBlocks(rendered);
-  expect(stripped, `${label} should not contain unresolved render tags`).not.toMatch(
-    /\{%\s*render\b/,
-  );
-  expect(stripped, `${label} should not contain unresolved section tags`).not.toMatch(
-    /\{%\s*section\b/,
-  );
+  expect(stripped, `${label} should not contain unresolved render tags`).not.toMatch(/\{%\s*render\b/);
+  expect(stripped, `${label} should not contain unresolved section tags`).not.toMatch(/\{%\s*section\b/);
 }
 
 /** Profiles with agent templates to test. */
@@ -92,11 +87,7 @@ function standardContext(profileId: string): TemplateContext {
     prUrl: "",
     ralphchivesEnabled: true,
     mcpServers: ["jira-kentico", "ado", "web-fetch"],
-    skills: [
-      "ralph-ado-pr-workflow",
-      "ralph-ralphchives",
-      "ralph-workflow",
-    ],
+    skills: ["ralph-ado-pr-workflow", "ralph-ralphchives", "ralph-workflow"],
     stageRole: "primary",
     stageMode: "container",
     stageIndex: 0,
@@ -114,10 +105,7 @@ function revisionContext(profileId: string): TemplateContext {
     taskStatus: "Defect Found",
     isRevision: true,
     prUrl: "https://dev.azure.com/org/project/_git/repo/pullrequest/42",
-    skills: [
-      "ralph-ado-pr-workflow",
-      "ralph-workflow",
-    ],
+    skills: ["ralph-ado-pr-workflow", "ralph-workflow"],
   });
 }
 
@@ -230,9 +218,7 @@ describe("agent template rendering (real files)", () => {
         await resolveAgentIncludes(agentDir, INCLUDES_DIR, ctx);
 
         // The main agent template should contain the interpolated taskId
-        const mainAgent = (await listAgentTemplates(profileId)).find((f) =>
-          f.includes("ralph.ralph.agent.md"),
-        );
+        const mainAgent = (await listAgentTemplates(profileId)).find((f) => f.includes("ralph.ralph.agent.md"));
         if (mainAgent) {
           const rendered = await readRendered(profileId, mainAgent);
           expect(rendered).toContain("DOC-100");
@@ -242,9 +228,7 @@ describe("agent template rendering (real files)", () => {
 
       it("renders isRevision conditional content only in revision context", async () => {
         const agentDir = join(ROOT, "profiles", profileId, "agents");
-        const mainAgent = (await listAgentTemplates(profileId)).find((f) =>
-          f.includes("ralph.ralph.agent.md"),
-        );
+        const mainAgent = (await listAgentTemplates(profileId)).find((f) => f.includes("ralph.ralph.agent.md"));
         if (!mainAgent) return;
 
         // Standard — no revision content
@@ -267,9 +251,7 @@ describe("agent template rendering (real files)", () => {
         const ctx = standardContext(profileId);
         await resolveAgentIncludes(agentDir, INCLUDES_DIR, ctx);
 
-        const mainAgent = (await listAgentTemplates(profileId)).find((f) =>
-          f.includes("ralph.ralph.agent.md"),
-        );
+        const mainAgent = (await listAgentTemplates(profileId)).find((f) => f.includes("ralph.ralph.agent.md"));
         if (!mainAgent) return;
 
         const rendered = await readRendered(profileId, mainAgent);
@@ -282,9 +264,7 @@ describe("agent template rendering (real files)", () => {
 
       it("renders trigger param conditionals correctly", async () => {
         const agentDir = join(ROOT, "profiles", profileId, "agents");
-        const mainAgent = (await listAgentTemplates(profileId)).find((f) =>
-          f.includes("ralph.ralph.agent.md"),
-        );
+        const mainAgent = (await listAgentTemplates(profileId)).find((f) => f.includes("ralph.ralph.agent.md"));
         if (!mainAgent) return;
 
         // Without codesamples param
@@ -313,9 +293,7 @@ describe("agent template rendering (real files)", () => {
 
         for (const file of hookTemplates) {
           const rendered = await readRendered(profileId, file);
-          expect(rendered, `${file} should interpolate artifactDir`).toContain(
-            ".ralph/tasks/DOC-100/artifacts",
-          );
+          expect(rendered, `${file} should interpolate artifactDir`).toContain(".ralph/tasks/DOC-100/artifacts");
           expect(rendered, `${file} should interpolate taskId`).toContain("DOC-100");
         }
       });
@@ -329,9 +307,7 @@ describe("agent template rendering (real files)", () => {
 async function collectAllSkillNames(): Promise<string[]> {
   const skills = new Set<string>();
   for (const profileId of PROFILES) {
-    const profileJson = JSON.parse(
-      await readFile(join(ROOT, "profiles", profileId, "profile.json"), "utf-8"),
-    );
+    const profileJson = JSON.parse(await readFile(join(ROOT, "profiles", profileId, "profile.json"), "utf-8"));
     for (const variant of profileJson.variants ?? []) {
       for (const stage of variant.stages ?? []) {
         for (const skill of stage.skills ?? []) {
@@ -400,9 +376,7 @@ describe("skill template rendering (real files)", () => {
       const rendered = await readFile(join(SKILLS_DIR, ".build", skill, "SKILL.md"), "utf-8");
       // {% raw %} tags should be consumed by Liquid, their content output as-is
       expect(rendered, `${skill} should not contain raw tags in output`).not.toContain("{% raw %}");
-      expect(rendered, `${skill} should not contain endraw tags in output`).not.toContain(
-        "{% endraw %}",
-      );
+      expect(rendered, `${skill} should not contain endraw tags in output`).not.toContain("{% endraw %}");
       // The content inside {% raw %} should appear as literal text (e.g. Jekyll tags)
       expect(rendered.length).toBeGreaterThan(50);
     }
@@ -432,14 +406,9 @@ describe("skill template rendering (real files)", () => {
 
 describe("shared agent includes (real files)", () => {
   /** Render a single include as if it were an agent template. */
-  async function renderInclude(
-    includeName: string,
-    ctx: TemplateContext,
-  ): Promise<string> {
+  async function renderInclude(includeName: string, ctx: TemplateContext): Promise<string> {
     const { Liquid } = await import("liquidjs");
-    const { registerCustomTags } = await import(
-      "../../src/container/setup/liquid-tags.js"
-    );
+    const { registerCustomTags } = await import("../../src/container/setup/liquid-tags.js");
     const engine = new Liquid({
       root: [INCLUDES_DIR],
       extname: ".md",

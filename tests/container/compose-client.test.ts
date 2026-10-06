@@ -92,10 +92,7 @@ describe("ComposeClient", () => {
 
     const [cmd, args] = mockExeca.mock.calls[0];
     expect(cmd).toBe("docker");
-    expect(args).toEqual([
-      "compose", "-f", "/fake/compose.yml",
-      "logs", "--no-color", "--no-log-prefix", SVC_SIDECAR,
-    ]);
+    expect(args).toEqual(["compose", "-f", "/fake/compose.yml", "logs", "--no-color", "--no-log-prefix", SVC_SIDECAR]);
   });
 
   it("logs uses same env as compose and exec", () => {

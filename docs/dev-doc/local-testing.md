@@ -4,13 +4,13 @@ Tools for testing agent profiles, validating configuration, and debugging locall
 
 ## Quick Reference
 
-| Command | Purpose |
-|---|---|
-| `npm run agent <trigger> "<prompt>"` | Run a single agent variant with a direct prompt |
-| `npm run dev` | Start the full orchestrator (polls JIRA, processes triggers) |
-| `npm run validate` | Validate env vars, config, profiles, Docker, security |
-| `npm test` | Type-check + build + run all Vitest tests |
-| `npx tsx scripts/reset-issue.ts [KEY]` | Reset a JIRA issue to clean "To Do" state |
+| Command                                | Purpose                                                      |
+| -------------------------------------- | ------------------------------------------------------------ |
+| `npm run agent <trigger> "<prompt>"`   | Run a single agent variant with a direct prompt              |
+| `npm run dev`                          | Start the full orchestrator (polls JIRA, processes triggers) |
+| `npm run validate`                     | Validate env vars, config, profiles, Docker, security        |
+| `npm test`                             | Type-check + build + run all Vitest tests                    |
+| `npx tsx scripts/reset-issue.ts [KEY]` | Reset a JIRA issue to clean "To Do" state                    |
 
 ## Run Agent Locally
 
@@ -23,6 +23,7 @@ npm run agent @MalphAutocomplete "Review the latest changes"
 ```
 
 **What it does:**
+
 1. Runs the startup pipeline (validates prerequisites, builds MCP servers, generates per-profile configs)
 2. Finds the variant matching the trigger string (case-insensitive)
 3. Starts the full Docker stack (`docker compose up -d --build`)
@@ -35,6 +36,7 @@ npm run agent @MalphAutocomplete "Review the latest changes"
 **Requirements:** Same as the full orchestrator — Docker running, `.env` configured, target repo cloned.
 
 **Tips:**
+
 - Use `@McpProbe` with a simple prompt for quick infrastructure validation (sidecar health, MCP tool availability)
 - The `mcp-probe` variant uses `claude-sonnet-4` to avoid consuming premium requests
 - All logs (local and JIRA) are saved in timestamped folders: `output/logs/<key>-<timestamp>/`
@@ -60,6 +62,7 @@ npx tsx scripts/reset-issue.ts DOC-3122  # resets a specific issue
 ```
 
 **What it cleans:**
+
 - JIRA: deletes all comments and attachments, resets fields, transitions to "To Do"
 - Local: clears operation ledger for the issue, trigger cache, log files
 - Git: deletes `ralph-*` branches in the target repo

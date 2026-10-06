@@ -11,9 +11,7 @@ import { resolve } from "node:path";
  * Built-in plugin modules loaded before any user-specified plugins.
  * Each module self-registers via `registerDataSourceFactory()` on import.
  */
-const BUILTIN_PLUGINS: readonly string[] = [
-  "./datasource/connectors/jira/factory.js",
-];
+const BUILTIN_PLUGINS: readonly string[] = ["./datasource/connectors/jira/factory.js"];
 
 /** Injectable hooks for the startup pipeline steps. */
 export interface AppStartupDeps {

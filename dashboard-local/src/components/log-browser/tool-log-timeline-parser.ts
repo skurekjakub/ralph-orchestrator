@@ -100,9 +100,7 @@ export function buildTimeline(preToolContent: string, toolOutputContent: string 
     const isSkill = preEntry.tool === "skill";
     const skillName = isSkill ? String(parsedArgs.skill ?? "") : undefined;
     const isSubagent = preEntry.tool === "task";
-    const subagentName = isSubagent
-      ? String(parsedArgs.agent_type ?? "").replace(/^[^.]+\./, "")
-      : undefined;
+    const subagentName = isSubagent ? String(parsedArgs.agent_type ?? "").replace(/^[^.]+\./, "") : undefined;
 
     const counter = toolCounters.get(preEntry.tool) ?? 0;
     toolCounters.set(preEntry.tool, counter + 1);

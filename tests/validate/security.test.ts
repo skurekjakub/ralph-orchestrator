@@ -63,12 +63,7 @@ describe("validateSecurityInfra", () => {
 
   it("passes when both security files exist and no profiles violate rules", () => {
     writeSecurityFiles();
-    writeProfile("ralph-docs", [
-      "services:",
-      "  app:",
-      "    networks:",
-      "      - ralph-internal",
-    ].join("\n"));
+    writeProfile("ralph-docs", ["services:", "  app:", "    networks:", "      - ralph-internal"].join("\n"));
 
     const c = collector();
     validateSecurityInfra(c);
@@ -77,11 +72,7 @@ describe("validateSecurityInfra", () => {
 
   it("errors when profile compose is missing ralph-internal network", () => {
     writeSecurityFiles();
-    writeProfile("ralph-docs", [
-      "services:",
-      "  app:",
-      "    image: node:20",
-    ].join("\n"));
+    writeProfile("ralph-docs", ["services:", "  app:", "    image: node:20"].join("\n"));
 
     const c = collector();
     validateSecurityInfra(c);
@@ -90,14 +81,17 @@ describe("validateSecurityInfra", () => {
 
   it("errors when profile compose mounts Docker socket", () => {
     writeSecurityFiles();
-    writeProfile("ralph-docs", [
-      "services:",
-      "  app:",
-      "    networks:",
-      "      - ralph-internal",
-      "    volumes:",
-      "      - /var/run/docker.sock:/var/run/docker.sock",
-    ].join("\n"));
+    writeProfile(
+      "ralph-docs",
+      [
+        "services:",
+        "  app:",
+        "    networks:",
+        "      - ralph-internal",
+        "    volumes:",
+        "      - /var/run/docker.sock:/var/run/docker.sock",
+      ].join("\n"),
+    );
 
     const c = collector();
     validateSecurityInfra(c);
@@ -106,17 +100,8 @@ describe("validateSecurityInfra", () => {
 
   it("checks multiple profiles independently", () => {
     writeSecurityFiles();
-    writeProfile("good-profile", [
-      "services:",
-      "  app:",
-      "    networks:",
-      "      - ralph-internal",
-    ].join("\n"));
-    writeProfile("bad-profile", [
-      "services:",
-      "  app:",
-      "    image: node:20",
-    ].join("\n"));
+    writeProfile("good-profile", ["services:", "  app:", "    networks:", "      - ralph-internal"].join("\n"));
+    writeProfile("bad-profile", ["services:", "  app:", "    image: node:20"].join("\n"));
 
     const c = collector();
     validateSecurityInfra(c);

@@ -72,9 +72,7 @@ async function runSync(
     topics.forEach((t) => userIds.add(t.uid));
 
     // Fetch and merge users
-    const users = (
-      await Promise.all([...userIds].map((uid) => fetcher.fetchUser(uid)))
-    ).filter((u) => u !== null);
+    const users = (await Promise.all([...userIds].map((uid) => fetcher.fetchUser(uid)))).filter((u) => u !== null);
     await writer.mergeUsers(users);
     log(`Merged ${users.length} users`);
 
@@ -93,11 +91,9 @@ async function runSync(
     }
 
     // Merge any new users discovered from posts
-    const additionalUsers = (
-      await Promise.all(
-        [...userIds].map((uid) => fetcher.fetchUser(uid)),
-      )
-    ).filter((u) => u !== null);
+    const additionalUsers = (await Promise.all([...userIds].map((uid) => fetcher.fetchUser(uid)))).filter(
+      (u) => u !== null,
+    );
     await writer.mergeUsers(additionalUsers);
 
     log(`Merged ${totalPosts} posts`);

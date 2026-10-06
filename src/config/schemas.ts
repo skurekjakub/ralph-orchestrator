@@ -20,33 +20,40 @@ export const dataSourceConfigSchema = z.object({
   maxResults: z.number().positive().default(100),
 });
 
-export const rawOutputSchema = z.object({
-  logDir: z.string().default("./output/logs"),
-  handoffDir: z.string().default("./output/handoffs"),
-}).optional();
+export const rawOutputSchema = z
+  .object({
+    logDir: z.string().default("./output/logs"),
+    handoffDir: z.string().default("./output/handoffs"),
+  })
+  .optional();
 
-export const rawDashboardSchema = z.object({
-  enabled: z.boolean().default(true),
-  intervalMs: z.number().positive().default(30_000),
-}).optional();
+export const rawDashboardSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    intervalMs: z.number().positive().default(30_000),
+  })
+  .optional();
 
-export const rawPromptAuditSchema = z.object({
-  /** How the auditor handles findings: "block" rejects critical findings, "warn" logs only, "off" skips. */
-  mode: z.enum(["block", "warn", "off"]).default("warn"),
-}).optional();
+export const rawPromptAuditSchema = z
+  .object({
+    /** How the auditor handles findings: "block" rejects critical findings, "warn" logs only, "off" skips. */
+    mode: z.enum(["block", "warn", "off"]).default("warn"),
+  })
+  .optional();
 
-export const rawRalphchivesSchema = z.object({
-  enabled: z.boolean().default(false),
-  nodebbApiUrl: z.url().default("http://localhost:4567"),
-  neo4jUri: z.string().default("bolt://localhost:7687"),
-  neo4jUser: z.string().default("neo4j"),
-}).optional();
+export const rawRalphchivesSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    nodebbApiUrl: z.url().default("http://localhost:4567"),
+    neo4jUri: z.string().default("bolt://localhost:7687"),
+    neo4jUser: z.string().default("neo4j"),
+  })
+  .optional();
 
 export const configFileSchema = z.object({
-  dataSources: z.record(z.string(), dataSourceConfigSchema).refine(
-    (ds) => Object.keys(ds).length > 0,
-    "At least one data source must be defined",
-  ),
+  dataSources: z
+    .record(z.string(), dataSourceConfigSchema)
+    .refine((ds) => Object.keys(ds).length > 0, "At least one data source must be defined"),
   /** Module specifiers loaded before the DI container is created. Each module should self-register (e.g. call registerDataSourceFactory). */
   plugins: z.array(z.string()).default([]),
   output: rawOutputSchema,
@@ -68,9 +75,11 @@ export const profileMatchSchema = z.object({
   revisionStatuses: z.array(z.string()).default([]),
 });
 
-export const agentTransitionSchema = z.object({
-  targetStatus: z.string().optional(),
-}).default({});
+export const agentTransitionSchema = z
+  .object({
+    targetStatus: z.string().optional(),
+  })
+  .default({});
 
 export const stageSchema = z.object({
   /** Agent CLI name (e.g. `ralph.ralph`). */
@@ -89,16 +98,17 @@ export const stageSchema = z.object({
 
 export const postTaskHookSchema = z.object({
   /** Hook identifier — lowercase alphanumeric with hyphens. */
-  name: z.string().min(1).regex(/^[a-z0-9-]+$/, "Hook name must be lowercase alphanumeric with hyphens"),
+  name: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, "Hook name must be lowercase alphanumeric with hyphens"),
   /** Sequential local-only stages within this hook. */
-  stages: z.array(stageSchema)
+  stages: z
+    .array(stageSchema)
     .min(1, "Post-task hook must have at least one stage")
+    .refine((stages) => stages.every((s) => s.mode === "local"), "Post-task hook stages must be mode: 'local'")
     .refine(
-      (stages) => stages.every(s => s.mode === "local"),
-      "Post-task hook stages must be mode: 'local'",
-    )
-    .refine(
-      (stages) => new Set(stages.map(s => s.role)).size === stages.length,
+      (stages) => new Set(stages.map((s) => s.role)).size === stages.length,
       "Stage roles must be unique within a hook",
     ),
 });
@@ -115,23 +125,24 @@ export const mcpServerEntrySchema = z.union([
 
 export const variantSchema = z.object({
   description: z.string().optional(),
-  stages: z.array(stageSchema).min(1, "At least one stage is required").refine(
-    (stages) => {
+  stages: z
+    .array(stageSchema)
+    .min(1, "At least one stage is required")
+    .refine((stages) => {
       const roles = stages.map((s) => s.role);
       return new Set(roles).size === roles.length;
-    },
-    "Stage roles must be unique within a variant",
-  ),
+    }, "Stage roles must be unique within a variant"),
   model: z.string().optional(),
   match: profileMatchSchema,
   beforeAgent: agentTransitionSchema,
   afterAgent: agentTransitionSchema,
   preflight: z.string().optional(),
   failureComment: z.string().optional(),
-  postTaskHooks: z.array(postTaskHookSchema)
+  postTaskHooks: z
+    .array(postTaskHookSchema)
     .default([])
     .refine(
-      (hooks) => new Set(hooks.map(h => h.name)).size === hooks.length,
+      (hooks) => new Set(hooks.map((h) => h.name)).size === hooks.length,
       "Post-task hook names must be unique within a variant",
     ),
   /** Additional MCP servers for this variant (merged with profile-level mcpServers). */
@@ -139,10 +150,12 @@ export const variantSchema = z.object({
 });
 
 /** Resource mount config — auto-discovers files in the profile's resources/ directory. */
-export const resourcesSchema = z.object({
-  /** Container path prefix (relative to /workspace) where resource files are mounted. */
-  mountBase: z.string().min(1),
-}).optional();
+export const resourcesSchema = z
+  .object({
+    /** Container path prefix (relative to /workspace) where resource files are mounted. */
+    mountBase: z.string().min(1),
+  })
+  .optional();
 
 export const profileFileSchema = z.object({
   repo: z.string().min(1, "Profile repo path must not be empty"),
@@ -171,10 +184,12 @@ export const profileFileSchema = z.object({
    * - `false` (default): server disabled (`--disable-builtin-mcps`)
    * - `["get_file_contents", ...]`: enable only the listed tools (`--add-github-mcp-tool`)
    */
-  githubMcpTools: z.union([
-    z.literal(false),
-    z.array(z.string()).refine((a) => a.length > 0, "githubMcpTools must list at least one tool when enabled"),
-  ]).default(false),
+  githubMcpTools: z
+    .union([
+      z.literal(false),
+      z.array(z.string()).refine((a) => a.length > 0, "githubMcpTools must list at least one tool when enabled"),
+    ])
+    .default(false),
   /** Resource files auto-discovered from the profile's resources/ directory and mounted into the container. */
   resources: resourcesSchema,
   variants: z.array(variantSchema).min(1, "At least one variant must be defined"),

@@ -24,7 +24,7 @@ No `env` block is needed.
 
 Fetch the content of a URL and return it as text.
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `url` | string | yes | URL to fetch |
-| `maxLength` | number | no | Maximum characters to return, 1–500,000 (default: 100,000) |
+| Parameter   | Type   | Required | Description                                                |
+| ----------- | ------ | -------- | ---------------------------------------------------------- |
+| `url`       | string | yes      | URL to fetch                                               |
+| `maxLength` | number | no       | Maximum characters to return, 1–500,000 (default: 100,000) |

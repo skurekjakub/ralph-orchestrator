@@ -42,9 +42,7 @@ export class DashboardServer {
     });
 
     this.wss.on("error", (err) => {
-      this.logger.warn(
-        `Dashboard server error: ${toErrorMessage(err)}`
-      );
+      this.logger.warn(`Dashboard server error: ${toErrorMessage(err)}`);
     });
 
     this.observer.onStateChange((state) => {

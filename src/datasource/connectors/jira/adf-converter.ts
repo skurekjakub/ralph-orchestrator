@@ -66,11 +66,13 @@ function convertNode(this: AdfNode | void, node: AdfNode): string {
     case "bulletList":
     case "orderedList": {
       const parent = { ...node, attrs: { ...node.attrs, order: Number(node.attrs?.order) || 1 } };
-      return content.map((sub) => {
-        const converted = convertNode.call(parent, sub);
-        if (node.type === "orderedList") parent.attrs.order++;
-        return converted;
-      }).join("\n");
+      return content
+        .map((sub) => {
+          const converted = convertNode.call(parent, sub);
+          if (node.type === "orderedList") parent.attrs.order++;
+          return converted;
+        })
+        .join("\n");
     }
 
     case "listItem": {
@@ -97,10 +99,12 @@ function convertNode(this: AdfNode | void, node: AdfNode): string {
     case "tableRow": {
       let output = "|";
       let thCount = 0;
-      output += content.map((sub) => {
-        thCount += sub.type === "tableHeader" ? 1 : 0;
-        return convertNode(sub);
-      }).join("");
+      output += content
+        .map((sub) => {
+          thCount += sub.type === "tableHeader" ? 1 : 0;
+          return convertNode(sub);
+        })
+        .join("");
       output += thCount ? `\n${"|:-:".repeat(thCount)}|\n` : "\n";
       return output;
     }

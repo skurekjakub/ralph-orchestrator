@@ -40,7 +40,10 @@ export function useFractalExplorer(): UseFractalExplorerResult {
 
     fetch(`/api/fractal-log?path=${encodeURIComponent(path)}`, { signal: controller.signal })
       .then((r) => {
-        if (!r.ok) return r.json().then((d: { error: string }) => { throw new Error(d.error); });
+        if (!r.ok)
+          return r.json().then((d: { error: string }) => {
+            throw new Error(d.error);
+          });
         return r.json() as Promise<FractalLogResponse>;
       })
       .then((data) => {

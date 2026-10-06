@@ -170,18 +170,12 @@ export class ContainerLogCollector implements IContainerLogCollector {
     const labelSegment = stageLabel ? `-${stageLabel}` : "";
 
     for (const source of this.sources) {
-      const localPath = join(
-        issueDir,
-        `${this.taskId}-${timestamp}${labelSegment}-${source.id}.${source.extension}`,
-      );
+      const localPath = join(issueDir, `${this.taskId}-${timestamp}${labelSegment}-${source.id}.${source.extension}`);
 
       try {
         const result = source.useComposeLogs
           ? await this.compose.logs(source.service)
-          : await this.compose.exec([
-              "-T", source.service,
-              ...(source.collectArgs ?? ["cat", source.containerPath]),
-            ]);
+          : await this.compose.exec(["-T", source.service, ...(source.collectArgs ?? ["cat", source.containerPath])]);
 
         const content = String(result.stdout);
         if (!content.trim()) {
@@ -202,9 +196,7 @@ export class ContainerLogCollector implements IContainerLogCollector {
     for (const folder of this.exports) {
       const localDir = join(issueDir, `${this.taskId}-${timestamp}${labelSegment}-${folder.id}`);
       try {
-        await this.compose.compose([
-          "cp", `${folder.service}:${folder.containerPath}`, localDir,
-        ]);
+        await this.compose.compose(["cp", `${folder.service}:${folder.containerPath}`, localDir]);
         this.logger.info(`${folder.id} export saved: ${localDir}`);
         results.push({ id: folder.id, path: localDir });
       } catch {
@@ -224,18 +216,19 @@ export class ContainerLogCollector implements IContainerLogCollector {
    * stages so the next stage starts with fresh log files.
    */
   async clearCollectSources(): Promise<void> {
-    const fileSources = this.sources.filter(
-      (s) => !s.useComposeLogs && s.containerPath,
-    );
+    const fileSources = this.sources.filter((s) => !s.useComposeLogs && s.containerPath);
     for (const source of fileSources) {
       const truncatePath = source.collectArgs
-        ? undefined  // Custom collect commands (e.g. glob) — skip, not a single file
+        ? undefined // Custom collect commands (e.g. glob) — skip, not a single file
         : source.containerPath;
       if (!truncatePath) continue;
       try {
         await this.compose.exec([
-          "-T", source.service,
-          "sh", "-c", `truncate -s 0 ${truncatePath} 2>/dev/null || true`,
+          "-T",
+          source.service,
+          "sh",
+          "-c",
+          `truncate -s 0 ${truncatePath} 2>/dev/null || true`,
         ]);
       } catch {
         this.logger.warn(`Failed to clear ${source.id} log in container`);
@@ -264,7 +257,9 @@ export class ContainerLogCollector implements IContainerLogCollector {
       const proc = source.useComposeLogs
         ? this.compose.compose(["logs", "-f", "--no-color", "--no-log-prefix", source.service])
         : this.compose.exec([
-            "--user", "vscode", source.service,
+            "--user",
+            "vscode",
+            source.service,
             ...(source.streamArgs ?? ["tail", "-n", "0", "-F", source.containerPath]),
           ]);
 

@@ -21,7 +21,7 @@ export function mapIssueToWorkItem(issue: JiraIssue, source: string, excludeFiel
     type: issue.fields.issuetype?.name ?? "",
     priority: issue.fields.priority?.name ?? "",
     labels: issue.fields.labels ?? [],
-    components: (issue.fields.components ?? []).map(c => c.name),
+    components: (issue.fields.components ?? []).map((c) => c.name),
     created: issue.fields.created,
     updated: issue.fields.updated ?? "",
     customFields: extractCustomFields(issue, excludeFields),

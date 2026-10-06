@@ -185,9 +185,7 @@ export class Orchestrator {
 
     const recovered = this.ledger.recoverActiveOperations();
     for (const { issueKey, operation } of recovered) {
-      this.warn(
-        `Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`,
-      );
+      this.warn(`Recovered crashed operation on ${issueKey} (variant: ${operation.variant}) — marked as error`);
       await this.issueManager.postCrashRecoveryComment(operation.dataSource, issueKey, operation.variant);
     }
 
@@ -200,10 +198,7 @@ export class Orchestrator {
         discovered.push(...poller.drain());
       }
       if (discovered.length > 0) {
-        const planned = await this.triggerScanner.scan(
-          discovered,
-          this.profiles,
-        );
+        const planned = await this.triggerScanner.scan(discovered, this.profiles);
         if (planned > 0) this.emitState();
       }
 
@@ -269,10 +264,7 @@ export class Orchestrator {
    * Abort paths handle their own ledger transitions, comments, and state emission.
    * An exception thrown before activation is recorded as `pending → error`.
    */
-  private async executeOperation(
-    issueKey: string,
-    operation: Operation,
-  ): Promise<void> {
+  private async executeOperation(issueKey: string, operation: Operation): Promise<void> {
     let prepared: PreparedOperation | null;
     try {
       prepared = await this.prepareOperation(issueKey, operation);
@@ -291,10 +283,7 @@ export class Orchestrator {
    * Run every pre-activation phase for a pending operation.
    * Returns `null` when a phase has already recorded a terminal ledger state.
    */
-  private async prepareOperation(
-    issueKey: string,
-    operation: Operation,
-  ): Promise<PreparedOperation | null> {
+  private async prepareOperation(issueKey: string, operation: Operation): Promise<PreparedOperation | null> {
     const profile = this.resolveProfile(issueKey, operation);
     if (!profile) return null;
 
@@ -304,15 +293,13 @@ export class Orchestrator {
     if (!this.validateStatusMatch(workItem, profile, operation)) return null;
 
     if (profile.preflight) {
-      if (!await this.runPreflight(workItem, profile, operation)) return null;
+      if (!(await this.runPreflight(workItem, profile, operation))) return null;
     }
 
     // Auto-preflight for revision tasks — requires an existing PR and handoff.
     const revisionStatuses = profile.match.revisionStatuses ?? [];
     const itemStatus = workItem.status.toLowerCase();
-    const isRevision = revisionStatuses.some(
-      (s) => s.toLowerCase() === itemStatus,
-    );
+    const isRevision = revisionStatuses.some((s) => s.toLowerCase() === itemStatus);
     let revisionPreflightCtx: PreflightContext | null = null;
     if (isRevision) {
       revisionPreflightCtx = await this.runPreflight(workItem, profile, operation, "revision-ready");
@@ -334,9 +321,7 @@ export class Orchestrator {
 
   /** Look up the profile for an operation's variant. Returns `null` if the profile no longer exists. */
   private resolveProfile(issueKey: string, operation: Operation): IAgentProfile | null {
-    const profile = this.profiles.find(
-      (p) => p.variantKey === operation.variant,
-    );
+    const profile = this.profiles.find((p) => p.variantKey === operation.variant);
     if (!profile) {
       this.failPendingOperation(issueKey, operation, `Profile ${operation.variant} no longer exists`);
       return null;
@@ -357,14 +342,11 @@ export class Orchestrator {
   /** Verify the work item's current status still matches the profile. Returns `false` if rejected. */
   private validateStatusMatch(workItem: WorkItem, profile: IAgentProfile, operation: Operation): boolean {
     if (this.router.matchesProjectAndStatus(workItem, profile)) return true;
-    this.log(
-      `Rejected ${workItem.id}: status "${workItem.status}" no longer matches profile ${profile.displayName}`,
-    );
+    this.log(`Rejected ${workItem.id}: status "${workItem.status}" no longer matches profile ${profile.displayName}`);
     this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Rejected, {
       reason: `Issue status "${workItem.status}" no longer matches profile`,
     });
-    this.issueManager
-      .postStaleStatusComment(workItem.source, workItem.id, profile.displayName, workItem.status);
+    this.issueManager.postStaleStatusComment(workItem.source, workItem.id, profile.displayName, workItem.status);
     this.emitState();
     return false;
   }
@@ -377,8 +359,7 @@ export class Orchestrator {
     checkName?: string,
   ): Promise<PreflightContext | null> {
     const name = checkName ?? profile.preflight!;
-    const { buildPreflightContext, runPreflight } =
-      await import("./services/preflight.js");
+    const { buildPreflightContext, runPreflight } = await import("./services/preflight.js");
     const comments = await this.issueManager.getComments(workItem.source, workItem.id);
     const ctx = await buildPreflightContext(
       this.resources,
@@ -393,19 +374,12 @@ export class Orchestrator {
     if (result.ok) return ctx;
 
     const comment =
-      profile.failureComment ??
-      `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
-    this.ledger.transition(
-      operation.dataSource,
-      workItem.id,
-      operation.id,
-      OperationStatus.Rejected,
-      { reason: `preflight:${name} — ${result.reason}` },
-    );
+      profile.failureComment ?? `[Ralph-Orchestrator] ${profile.displayName} can't proceed: ${result.reason}`;
+    this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Rejected, {
+      reason: `preflight:${name} — ${result.reason}`,
+    });
     await this.issueManager.postComment(workItem.source, workItem.id, comment);
-    this.log(
-      `Preflight failed for ${workItem.id} (${name}): ${result.reason}`,
-    );
+    this.log(`Preflight failed for ${workItem.id} (${name}): ${result.reason}`);
     return null;
   }
 
@@ -422,9 +396,7 @@ export class Orchestrator {
       startedAt: Date.now(),
     };
 
-    this.log(
-      `Picked up ${workItem.id}: ${workItem.title} (${operation.variant})`,
-    );
+    this.log(`Picked up ${workItem.id}: ${workItem.title} (${operation.variant})`);
     this.ledger.transition(operation.dataSource, workItem.id, operation.id, OperationStatus.Active);
 
     const taskId = `${workItem.id}-${this.activeTask.startedAt}`;
@@ -432,7 +404,10 @@ export class Orchestrator {
     try {
       this.activityLog.startTaskLog(taskId);
       const ctx = buildTaskContext(
-        workItem, profile, taskId, this.ralphchivesConfig,
+        workItem,
+        profile,
+        taskId,
+        this.ralphchivesConfig,
         operation.triggerParams,
         preflightCtx?.prUrl,
         preflightCtx?.prBranches ?? null,
@@ -453,9 +428,7 @@ export class Orchestrator {
         completedAt: Date.now(),
       });
 
-      this.log(
-        `Done ${workItem.id}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`,
-      );
+      this.log(`Done ${workItem.id}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`);
 
       const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
 
@@ -471,7 +444,12 @@ export class Orchestrator {
       );
 
       if (isSuccess) {
-        await this.issueManager.transitionWorkItem(workItem.source, workItem.id, profile.afterAgent?.targetStatus, TransitionPhase.AfterAgent);
+        await this.issueManager.transitionWorkItem(
+          workItem.source,
+          workItem.id,
+          profile.afterAgent?.targetStatus,
+          TransitionPhase.AfterAgent,
+        );
       } else {
         await this.issueManager.postErrorComment(
           workItem.source,

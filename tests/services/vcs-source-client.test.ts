@@ -84,11 +84,7 @@ describe("VcsSourceClient", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const branches = await client.resolvePullRequestBranches(
-      profile,
-      "https://github.com/org/repo/pull/42",
-      logger,
-    );
+    const branches = await client.resolvePullRequestBranches(profile, "https://github.com/org/repo/pull/42", logger);
 
     expect(branches).toEqual({
       sourceBranch: "feature/from-github",
@@ -101,11 +97,7 @@ describe("VcsSourceClient", () => {
     const profile = makeProfile({ vcsProvider: VcsProvider.GitHub, repoPat: "GH_TOKEN" });
     const logger = createMockLogger();
 
-    const branches = await client.resolvePullRequestBranches(
-      profile,
-      "https://github.com/org/repo/issues/42",
-      logger,
-    );
+    const branches = await client.resolvePullRequestBranches(profile, "https://github.com/org/repo/issues/42", logger);
 
     expect(branches).toBeNull();
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("unsupported GitHub PR URL format"));

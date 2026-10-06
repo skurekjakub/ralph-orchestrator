@@ -49,21 +49,13 @@ export function CumulativeTokenTracker({ usageEntries }: { usageEntries: Assista
   return (
     <div>
       <div className="flex items-baseline gap-2 px-1 mb-0.5">
-        <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">
-          Cumulative Token Spend
-        </span>
-        <span className="text-[10px] text-text font-mono">
-          {formatTokens(finalTotal)} total
-        </span>
+        <span className="text-[10px] text-dim uppercase tracking-wider font-semibold">Cumulative Token Spend</span>
+        <span className="text-[10px] text-text font-mono">{formatTokens(finalTotal)} total</span>
         <span className="text-[10px] text-dim font-mono">
           ({formatTokens(finalPrompt)} prompt + {formatTokens(finalCompletion)} completion)
         </span>
       </div>
-      <svg
-        viewBox={`0 0 ${CHART_WIDTH} ${HEIGHT}`}
-        className="w-full"
-        style={{ maxHeight: HEIGHT }}
-      >
+      <svg viewBox={`0 0 ${CHART_WIDTH} ${HEIGHT}`} className="w-full" style={{ maxHeight: HEIGHT }}>
         {/* Y-axis labels */}
         {[0, 0.5, 1].map((frac) => {
           const val = frac * maxTotal;

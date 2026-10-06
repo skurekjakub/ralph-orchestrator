@@ -5,8 +5,8 @@ import type { AssistantUsageEntry, ContextWindowEntry, SubagentSpan } from "./to
 describe("parseContextWindowEntries", () => {
   it("parses CompactionProcessor lines", () => {
     const content = [
-      '2026-03-07T08:22:33.874Z [INFO] CompactionProcessor: Utilization 17.6% (22534/128000 tokens) below threshold 80%',
-      '2026-03-07T08:22:42.643Z [INFO] CompactionProcessor: Utilization 18.4% (23612/128000 tokens) below threshold 80%',
+      "2026-03-07T08:22:33.874Z [INFO] CompactionProcessor: Utilization 17.6% (22534/128000 tokens) below threshold 80%",
+      "2026-03-07T08:22:42.643Z [INFO] CompactionProcessor: Utilization 18.4% (23612/128000 tokens) below threshold 80%",
     ].join("\n");
 
     const entries = parseContextWindowEntries(content);
@@ -32,9 +32,9 @@ describe("parseContextWindowEntries", () => {
 
   it("ignores non-matching lines", () => {
     const content = [
-      '2026-03-07T08:22:30.289Z [INFO] Starting Copilot CLI: 1.0.2',
-      '2026-03-07T08:22:33.874Z [INFO] CompactionProcessor: Utilization 17.6% (22534/128000 tokens) below threshold 80%',
-      '2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)',
+      "2026-03-07T08:22:30.289Z [INFO] Starting Copilot CLI: 1.0.2",
+      "2026-03-07T08:22:33.874Z [INFO] CompactionProcessor: Utilization 17.6% (22534/128000 tokens) below threshold 80%",
+      "2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)",
     ].join("\n");
 
     const entries = parseContextWindowEntries(content);
@@ -44,8 +44,8 @@ describe("parseContextWindowEntries", () => {
 
   it("sorts entries by timestamp", () => {
     const content = [
-      '2026-03-07T08:30:00.000Z [INFO] CompactionProcessor: Utilization 40.0% (51200/128000 tokens) below threshold 80%',
-      '2026-03-07T08:22:00.000Z [INFO] CompactionProcessor: Utilization 10.0% (12800/128000 tokens) below threshold 80%',
+      "2026-03-07T08:30:00.000Z [INFO] CompactionProcessor: Utilization 40.0% (51200/128000 tokens) below threshold 80%",
+      "2026-03-07T08:22:00.000Z [INFO] CompactionProcessor: Utilization 10.0% (12800/128000 tokens) below threshold 80%",
     ].join("\n");
 
     const entries = parseContextWindowEntries(content);
@@ -55,9 +55,9 @@ describe("parseContextWindowEntries", () => {
 
   it("detects context drops after subagent dispatch", () => {
     const content = [
-      '2026-03-07T08:23:37.501Z [INFO] CompactionProcessor: Utilization 21.9% (28049/128000 tokens) below threshold 80%',
-      '2026-03-07T08:23:52.378Z [INFO] CompactionProcessor: Utilization 11.9% (15193/128000 tokens) below threshold 80%',
-      '2026-03-07T08:24:09.870Z [INFO] CompactionProcessor: Utilization 20.3% (25952/128000 tokens) below threshold 80%',
+      "2026-03-07T08:23:37.501Z [INFO] CompactionProcessor: Utilization 21.9% (28049/128000 tokens) below threshold 80%",
+      "2026-03-07T08:23:52.378Z [INFO] CompactionProcessor: Utilization 11.9% (15193/128000 tokens) below threshold 80%",
+      "2026-03-07T08:24:09.870Z [INFO] CompactionProcessor: Utilization 20.3% (25952/128000 tokens) below threshold 80%",
     ].join("\n");
 
     const entries = parseContextWindowEntries(content);
@@ -72,22 +72,22 @@ describe("parseContextWindowEntries", () => {
 describe("parseAssistantUsageEntries", () => {
   it("parses assistant_usage blocks with usage JSON", () => {
     const content = [
-      '2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)',
-      '2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.model_call',
-      '2026-03-07T08:22:42.209Z [DEBUG] Sending telemetry event: copilot-cli/request.sent',
-      '2026-03-07T08:22:42.209Z [DEBUG] response (Request-ID 00000-7e69c354):',
-      '2026-03-07T08:22:42.209Z [DEBUG] data:',
-      '2026-03-07T08:22:42.210Z [DEBUG] {',
+      "2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)",
+      "2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.model_call",
+      "2026-03-07T08:22:42.209Z [DEBUG] Sending telemetry event: copilot-cli/request.sent",
+      "2026-03-07T08:22:42.209Z [DEBUG] response (Request-ID 00000-7e69c354):",
+      "2026-03-07T08:22:42.209Z [DEBUG] data:",
+      "2026-03-07T08:22:42.210Z [DEBUG] {",
       '2026-03-07T08:22:42.210Z [DEBUG]   "usage": {',
       '2026-03-07T08:22:42.210Z [DEBUG]     "completion_tokens": 277,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "prompt_tokens": 26542,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "prompt_tokens_details": {',
       '2026-03-07T08:22:42.210Z [DEBUG]       "cached_tokens": 5000',
-      '2026-03-07T08:22:42.210Z [DEBUG]     },',
+      "2026-03-07T08:22:42.210Z [DEBUG]     },",
       '2026-03-07T08:22:42.210Z [DEBUG]     "total_tokens": 26819',
-      '2026-03-07T08:22:42.210Z [DEBUG]   },',
+      "2026-03-07T08:22:42.210Z [DEBUG]   },",
       '2026-03-07T08:22:42.210Z [DEBUG]   "id": "msg_vrtx_abc123"',
-      '2026-03-07T08:22:42.210Z [DEBUG] }',
+      "2026-03-07T08:22:42.210Z [DEBUG] }",
     ].join("\n");
 
     const entries = parseAssistantUsageEntries(content);
@@ -108,25 +108,25 @@ describe("parseAssistantUsageEntries", () => {
 
   it("parses multiple usage blocks", () => {
     const content = [
-      '2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)',
-      '2026-03-07T08:22:42.210Z [DEBUG] {',
+      "2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)",
+      "2026-03-07T08:22:42.210Z [DEBUG] {",
       '2026-03-07T08:22:42.210Z [DEBUG]   "usage": {',
       '2026-03-07T08:22:42.210Z [DEBUG]     "completion_tokens": 100,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "prompt_tokens": 20000,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "prompt_tokens_details": { "cached_tokens": 0 },',
       '2026-03-07T08:22:42.210Z [DEBUG]     "total_tokens": 20100',
-      '2026-03-07T08:22:42.210Z [DEBUG]   }',
-      '2026-03-07T08:22:42.210Z [DEBUG] }',
-      '',
-      '2026-03-07T08:23:10.000Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)',
-      '2026-03-07T08:23:10.001Z [DEBUG] {',
+      "2026-03-07T08:22:42.210Z [DEBUG]   }",
+      "2026-03-07T08:22:42.210Z [DEBUG] }",
+      "",
+      "2026-03-07T08:23:10.000Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)",
+      "2026-03-07T08:23:10.001Z [DEBUG] {",
       '2026-03-07T08:23:10.001Z [DEBUG]   "usage": {',
       '2026-03-07T08:23:10.001Z [DEBUG]     "completion_tokens": 500,',
       '2026-03-07T08:23:10.001Z [DEBUG]     "prompt_tokens": 30000,',
       '2026-03-07T08:23:10.001Z [DEBUG]     "prompt_tokens_details": { "cached_tokens": 15000 },',
       '2026-03-07T08:23:10.001Z [DEBUG]     "total_tokens": 30500',
-      '2026-03-07T08:23:10.001Z [DEBUG]   }',
-      '2026-03-07T08:23:10.001Z [DEBUG] }',
+      "2026-03-07T08:23:10.001Z [DEBUG]   }",
+      "2026-03-07T08:23:10.001Z [DEBUG] }",
     ].join("\n");
 
     const entries = parseAssistantUsageEntries(content);
@@ -138,14 +138,14 @@ describe("parseAssistantUsageEntries", () => {
 
   it("handles missing cached_tokens gracefully", () => {
     const content = [
-      '2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)',
-      '2026-03-07T08:22:42.210Z [DEBUG] {',
+      "2026-03-07T08:22:42.208Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: assistant_usage)",
+      "2026-03-07T08:22:42.210Z [DEBUG] {",
       '2026-03-07T08:22:42.210Z [DEBUG]   "usage": {',
       '2026-03-07T08:22:42.210Z [DEBUG]     "completion_tokens": 100,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "prompt_tokens": 20000,',
       '2026-03-07T08:22:42.210Z [DEBUG]     "total_tokens": 20100',
-      '2026-03-07T08:22:42.210Z [DEBUG]   }',
-      '2026-03-07T08:22:42.210Z [DEBUG] }',
+      "2026-03-07T08:22:42.210Z [DEBUG]   }",
+      "2026-03-07T08:22:42.210Z [DEBUG] }",
     ].join("\n");
 
     const entries = parseAssistantUsageEntries(content);
@@ -174,7 +174,9 @@ function makeSpan(overrides: Partial<SubagentSpan> = {}): SubagentSpan {
 describe("splitEntriesByAgent", () => {
   it("returns empty when no subagent spans", () => {
     const entries: ContextWindowEntry[] = [{ tsMs: 1000, usedTokens: 10000, maxTokens: 128000, utilization: 7.8 }];
-    const usage: AssistantUsageEntry[] = [{ tsMs: 1000, promptTokens: 10000, completionTokens: 200, cachedTokens: 0, totalTokens: 10200 }];
+    const usage: AssistantUsageEntry[] = [
+      { tsMs: 1000, promptTokens: 10000, completionTokens: 200, cachedTokens: 0, totalTokens: 10200 },
+    ];
 
     const slices = splitEntriesByAgent(entries, usage, []);
     expect(slices).toHaveLength(0);
@@ -233,9 +235,7 @@ describe("splitEntriesByAgent", () => {
   });
 
   it("skips subagents with no data", () => {
-    const entries: ContextWindowEntry[] = [
-      { tsMs: 1000, usedTokens: 20000, maxTokens: 128000, utilization: 15.6 },
-    ];
+    const entries: ContextWindowEntry[] = [{ tsMs: 1000, usedTokens: 20000, maxTokens: 128000, utilization: 15.6 }];
     const span = makeSpan({ startMs: 5000, endMs: 6000 });
 
     const slices = splitEntriesByAgent(entries, [], [span]);

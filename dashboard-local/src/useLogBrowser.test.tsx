@@ -9,7 +9,8 @@ describe("useLogBrowser", () => {
   });
 
   it("loads log groups and refreshes them on demand", async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(new Response(JSON.stringify([makeTaskLogGroup()])))
       .mockResolvedValueOnce(new Response(JSON.stringify([])));
     vi.stubGlobal("fetch", fetchMock);

@@ -15,12 +15,21 @@ export interface IVcsSourceClient {
    * Returns `null` when the URL shape is unsupported, the provider is not
    * implemented, or required credentials are missing.
    */
-  resolvePullRequestBranches(profile: IAgentProfile, prUrl: string, logger: Logger): Promise<PullRequestBranchInfo | null>;
+  resolvePullRequestBranches(
+    profile: IAgentProfile,
+    prUrl: string,
+    logger: Logger,
+  ): Promise<PullRequestBranchInfo | null>;
 }
 
 interface IVcsSourceProviderClient {
   readonly provider: VcsProvider;
-  resolvePullRequestBranches(profile: IAgentProfile, prUrl: string, pat: string, logger: Logger): Promise<PullRequestBranchInfo | null>;
+  resolvePullRequestBranches(
+    profile: IAgentProfile,
+    prUrl: string,
+    pat: string,
+    logger: Logger,
+  ): Promise<PullRequestBranchInfo | null>;
 }
 
 type AdoPullRequestResponse = {
@@ -62,7 +71,12 @@ function buildAuthHeaders(provider: VcsProvider, pat: string): Record<string, st
 class AdoVcsSourceProviderClient implements IVcsSourceProviderClient {
   readonly provider = VcsProvider.Ado;
 
-  async resolvePullRequestBranches(_profile: IAgentProfile, prUrl: string, pat: string, logger: Logger): Promise<PullRequestBranchInfo | null> {
+  async resolvePullRequestBranches(
+    _profile: IAgentProfile,
+    prUrl: string,
+    pat: string,
+    logger: Logger,
+  ): Promise<PullRequestBranchInfo | null> {
     const match = prUrl.match(ADO_PR_URL);
     if (!match) {
       logger.warn(`Skipping PR branch resolution — unsupported ADO PR URL format: ${prUrl}`);
@@ -85,7 +99,7 @@ class AdoVcsSourceProviderClient implements IVcsSourceProviderClient {
       throw new Error(`Failed to fetch Azure DevOps pull request metadata (${response.status} ${response.statusText})`);
     }
 
-    const data = await response.json() as AdoPullRequestResponse;
+    const data = (await response.json()) as AdoPullRequestResponse;
     return {
       sourceBranch: stripRefPrefix(data.sourceRefName),
       targetBranch: stripRefPrefix(data.targetRefName),
@@ -96,7 +110,12 @@ class AdoVcsSourceProviderClient implements IVcsSourceProviderClient {
 class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
   readonly provider = VcsProvider.GitHub;
 
-  async resolvePullRequestBranches(_profile: IAgentProfile, prUrl: string, pat: string, logger: Logger): Promise<PullRequestBranchInfo | null> {
+  async resolvePullRequestBranches(
+    _profile: IAgentProfile,
+    prUrl: string,
+    pat: string,
+    logger: Logger,
+  ): Promise<PullRequestBranchInfo | null> {
     const match = prUrl.match(GITHUB_PR_URL);
     if (!match) {
       logger.warn(`Skipping PR branch resolution — unsupported GitHub PR URL format: ${prUrl}`);
@@ -115,7 +134,7 @@ class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
       throw new Error(`Failed to fetch GitHub pull request metadata (${response.status} ${response.statusText})`);
     }
 
-    const data = await response.json() as GitHubPullRequestResponse;
+    const data = (await response.json()) as GitHubPullRequestResponse;
     return {
       sourceBranch: data.head.ref,
       targetBranch: data.base.ref,
@@ -132,18 +151,26 @@ class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
 export class VcsSourceClient implements IVcsSourceClient {
   private readonly clients: ReadonlyMap<VcsProvider, IVcsSourceProviderClient>;
 
-  constructor(clients: readonly IVcsSourceProviderClient[] = [
-    new AdoVcsSourceProviderClient(),
-    new GitHubVcsSourceProviderClient(),
-  ]) {
+  constructor(
+    clients: readonly IVcsSourceProviderClient[] = [
+      new AdoVcsSourceProviderClient(),
+      new GitHubVcsSourceProviderClient(),
+    ],
+  ) {
     this.clients = new Map(clients.map((client) => [client.provider, client]));
   }
 
   /** Resolve branches using the implementation registered for `profile.vcsProvider`. */
-  async resolvePullRequestBranches(profile: IAgentProfile, prUrl: string, logger: Logger): Promise<PullRequestBranchInfo | null> {
+  async resolvePullRequestBranches(
+    profile: IAgentProfile,
+    prUrl: string,
+    logger: Logger,
+  ): Promise<PullRequestBranchInfo | null> {
     const client = this.clients.get(profile.vcsProvider);
     if (!client) {
-      logger.warn(`Skipping PR branch resolution — no implementation registered for vcsProvider=${profile.vcsProvider}`);
+      logger.warn(
+        `Skipping PR branch resolution — no implementation registered for vcsProvider=${profile.vcsProvider}`,
+      );
       return null;
     }
 

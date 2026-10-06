@@ -34,9 +34,7 @@ function createMockExecutor(): ICliExecutor {
   };
 }
 
-function createMockContainer(
-  executeResult?: Partial<ReturnType<typeof makeResult>>,
-): IContainerManager {
+function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResult>>): IContainerManager {
   return {
     isRunning: true,
     checkPrerequisites: vi.fn(),
@@ -46,9 +44,7 @@ function createMockContainer(
     execInSidecar: vi.fn(),
     registerLogSources: vi.fn(),
     execute: vi.fn(),
-    executeWithExecutor: vi.fn().mockResolvedValue(
-      makeResult("DF-100", executeResult),
-    ),
+    executeWithExecutor: vi.fn().mockResolvedValue(makeResult("DF-100", executeResult)),
     createExecutorForStage: vi.fn().mockReturnValue(createMockExecutor()),
     stop: vi.fn().mockResolvedValue(undefined),
     logs: {
@@ -79,9 +75,11 @@ const issueContext: IssueContext = {
 
 // ── Harness ───────────────────────────────────────────────────────────────────
 
-function createExecutor(overrides: {
-  executeResult?: Partial<ReturnType<typeof makeResult>>;
-} = {}) {
+function createExecutor(
+  overrides: {
+    executeResult?: Partial<ReturnType<typeof makeResult>>;
+  } = {},
+) {
   const profileSetup = createMockProfileSetupService();
   const pipeline = new AgentPipelineExecutor({
     logger: createSilentLogger(),
@@ -230,7 +228,7 @@ describe("AgentPipelineExecutor", () => {
       const result = await pipeline.run(ctx, container, issueContext);
 
       expect(result.status).toBe(TaskStatus.Error);
-      expect((container.executeWithExecutor as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+      expect(container.executeWithExecutor as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
     });
 
     it("stops after the first stage when aborted mid-pipeline", async () => {

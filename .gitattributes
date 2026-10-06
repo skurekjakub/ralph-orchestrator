@@ -1,2 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.drawio text eol=lf
 # setup-ai hooks are bash scripts; CRLF breaks them.
 .claude/hooks/* text eol=lf

@@ -19,7 +19,10 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) setSortAsc(!sortAsc);
-    else { setSortKey(key); setSortAsc(false); }
+    else {
+      setSortKey(key);
+      setSortAsc(false);
+    }
   };
 
   const sorted = [...summary.agentBreakdown].sort((a, b) => {
@@ -41,8 +44,7 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
     { label: "Compactions", value: summary.compactionCount },
   ];
 
-  const sortArrow = (key: SortKey) =>
-    sortKey === key ? (sortAsc ? " ▴" : " ▾") : "";
+  const sortArrow = (key: SortKey) => (sortKey === key ? (sortAsc ? " ▴" : " ▾") : "");
 
   return (
     <div className="space-y-6">
@@ -62,20 +64,23 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
         <table className="w-full text-xs">
           <thead>
             <tr className="text-dim border-b border-border">
-              {([
-                ["name", "Agent"],
-                ["count", "Count"],
-                ["totalDurationMs", "Duration"],
-                ["totalTokens", "Tokens"],
-                ["compactionCount", "Compactions"],
-                ["maxDepth", "Max Depth"],
-              ] as const).map(([key, label]) => (
+              {(
+                [
+                  ["name", "Agent"],
+                  ["count", "Count"],
+                  ["totalDurationMs", "Duration"],
+                  ["totalTokens", "Tokens"],
+                  ["compactionCount", "Compactions"],
+                  ["maxDepth", "Max Depth"],
+                ] as const
+              ).map(([key, label]) => (
                 <th
                   key={key}
                   onClick={() => handleSort(key)}
                   className="text-left py-1 px-2 cursor-pointer hover:text-fg-primary select-none"
                 >
-                  {label}{sortArrow(key)}
+                  {label}
+                  {sortArrow(key)}
                 </th>
               ))}
             </tr>

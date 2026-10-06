@@ -87,7 +87,10 @@ export function TokenSankey({ allNodes, width = 800, height = 400 }: TokenSankey
     const generator = sankey<SNode, SLink>()
       .nodeWidth(16)
       .nodePadding(12)
-      .extent([[1, 1], [width - 1, height - 20]]);
+      .extent([
+        [1, 1],
+        [width - 1, height - 20],
+      ]);
 
     const data = generator({
       nodes: sNodes.map((d) => ({ ...d })),
@@ -118,7 +121,8 @@ export function TokenSankey({ allNodes, width = 800, height = 400 }: TokenSankey
             strokeWidth={Math.max(1, (link as unknown as { width: number }).width)}
           >
             <title>
-              {sourceNode.name} → {(link.target as unknown as { name: string }).name}: {(link.value as number).toLocaleString()} tokens
+              {sourceNode.name} → {(link.target as unknown as { name: string }).name}:{" "}
+              {(link.value as number).toLocaleString()} tokens
             </title>
           </path>
         );

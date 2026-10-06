@@ -11,16 +11,16 @@ vi.mock("../../../src/container/stream-capture.js", () => ({
   },
 }));
 
-const { executeCliCommand, killActiveProcess } = await import(
-  "../../../src/container/cli-executors/shared-exec.js"
-);
+const { executeCliCommand, killActiveProcess } = await import("../../../src/container/cli-executors/shared-exec.js");
 
-function makeExecaError(overrides: {
-  exitCode?: number;
-  stdout?: string;
-  stderr?: string;
-  timedOut?: boolean;
-} = {}): ExecaError {
+function makeExecaError(
+  overrides: {
+    exitCode?: number;
+    stdout?: string;
+    stderr?: string;
+    timedOut?: boolean;
+  } = {},
+): ExecaError {
   const err = Object.create(ExecaError.prototype) as ExecaError & Record<string, unknown>;
   err.message = "Command failed";
   err.exitCode = overrides.exitCode ?? 1;
@@ -43,7 +43,12 @@ describe("executeCliCommand", () => {
     );
 
     const result = await executeCliCommand(
-      compose, ["--user", "vscode", "app", "test"], 60000, logger, "test", tracker,
+      compose,
+      ["--user", "vscode", "app", "test"],
+      60000,
+      logger,
+      "test",
+      tracker,
     );
 
     expect(result).toEqual({
@@ -60,13 +65,9 @@ describe("executeCliCommand", () => {
     const tracker = { activeProcess: null as ResultPromise | null };
     const error = makeExecaError({ exitCode: 42, timedOut: true });
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(
-      Promise.reject(error) as unknown as ResultPromise,
-    );
+    vi.mocked(compose.execWithTimeout).mockReturnValue(Promise.reject(error) as unknown as ResultPromise);
 
-    const result = await executeCliCommand(
-      compose, ["arg"], 60000, logger, "test", tracker,
-    );
+    const result = await executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker);
 
     expect(result.exitCode).toBe(42);
     expect(result.timedOut).toBe(true);
@@ -81,9 +82,9 @@ describe("executeCliCommand", () => {
       Promise.reject(new Error("network failure")) as unknown as ResultPromise,
     );
 
-    await expect(
-      executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker),
-    ).rejects.toThrow("network failure");
+    await expect(executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker)).rejects.toThrow(
+      "network failure",
+    );
   });
 
   it("clears activeProcess after success", async () => {
@@ -105,9 +106,7 @@ describe("executeCliCommand", () => {
     const logger = createMockLogger();
     const tracker = { activeProcess: null as ResultPromise | null };
 
-    vi.mocked(compose.execWithTimeout).mockReturnValue(
-      Promise.reject(makeExecaError()) as unknown as ResultPromise,
-    );
+    vi.mocked(compose.execWithTimeout).mockReturnValue(Promise.reject(makeExecaError()) as unknown as ResultPromise);
 
     await executeCliCommand(compose, ["arg"], 60000, logger, "test", tracker);
 
@@ -138,7 +137,9 @@ describe("killActiveProcess", () => {
 
   it("handles already-terminated process gracefully", () => {
     const mockProcess = {
-      kill: vi.fn().mockImplementation(() => { throw new Error("Process already terminated"); }),
+      kill: vi.fn().mockImplementation(() => {
+        throw new Error("Process already terminated");
+      }),
     } as unknown as ResultPromise;
     const tracker = { activeProcess: mockProcess };
 

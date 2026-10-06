@@ -150,7 +150,7 @@ describe("ADO MCP Server git tools", () => {
 
   it("sanitizes ADO_PAT from error messages in gitExec", () => {
     const source = readAllSources();
-    expect(source).toContain('.replaceAll(ADO_PAT');
+    expect(source).toContain(".replaceAll(ADO_PAT");
   });
 });
 

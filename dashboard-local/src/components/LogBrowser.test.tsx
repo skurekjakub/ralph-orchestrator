@@ -21,16 +21,14 @@ function makeFetchForGroups(groups: TaskLogGroup[]) {
       );
     }
     if (url.includes("tool-output.log")) {
-      return new Response(
-        "── 09:23:51 task (success) ──\nargs: {}\ndone",
-      );
+      return new Response("── 09:23:51 task (success) ──\nargs: {}\ndone");
     }
     if (url.includes("cli-debug.log")) {
       return new Response(
         [
-          '2026-03-07T08:23:52.073Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_started)',
+          "2026-03-07T08:23:52.073Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_started)",
           '2026-03-07T08:23:52.075Z [DEBUG] Agent "ralph.malph-scout" getOrCreateAgent: final model="claude-opus-4.6" (from resolveDefinitionModel)',
-          '2026-03-07T08:26:35.033Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_completed)',
+          "2026-03-07T08:26:35.033Z [DEBUG] Sending telemetry event: copilot-cli/cli.telemetry (kind: subagent_completed)",
         ].join("\n"),
       );
     }
@@ -66,7 +64,10 @@ describe("LogBrowser", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(
-        () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve;
+          }),
       ),
     );
 

@@ -17,9 +17,7 @@ export const tool: ToolDefinition = {
     const branch = TASK_BRANCH;
 
     if (!branch) {
-      return errorResult(new Error(
-        "ado_push_progress requires TASK_BRANCH env var to be set"
-      ));
+      return errorResult(new Error("ado_push_progress requires TASK_BRANCH env var to be set"));
     }
 
     const { message } = args;
@@ -28,15 +26,17 @@ export const tool: ToolDefinition = {
       const { stdout, stderr } = await gitStageCommitPush(String(message), branch);
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            branch,
-            message: String(message),
-            output: (stdout + stderr).trim().replaceAll(ADO_PAT ?? "", "***"),
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              success: true,
+              branch,
+              message: String(message),
+              output: (stdout + stderr).trim().replaceAll(ADO_PAT ?? "", "***"),
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

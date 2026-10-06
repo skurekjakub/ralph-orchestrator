@@ -69,8 +69,8 @@ export class ContinuationRunner implements IContinuationRunner {
         if (prUrl !== undefined || agentStatus !== undefined) {
           this.logger.info(
             `Result block found after ${attempt} continuation(s)` +
-            (prUrl ? ` — PR: ${prUrl}` : "") +
-            (agentStatus ? ` — status: ${agentStatus}` : ""),
+              (prUrl ? ` — PR: ${prUrl}` : "") +
+              (agentStatus ? ` — status: ${agentStatus}` : ""),
           );
           break;
         }
@@ -96,9 +96,7 @@ export class ContinuationRunner implements IContinuationRunner {
       if (attempt >= maxContinuations) {
         const { prUrl, agentStatus } = parseResultBlock(combinedStdout);
         if (prUrl === undefined && agentStatus === undefined) {
-          this.logger.warn(
-            `All ${maxContinuations} continuation(s) exhausted without a result block`,
-          );
+          this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result block`);
         }
       }
     }

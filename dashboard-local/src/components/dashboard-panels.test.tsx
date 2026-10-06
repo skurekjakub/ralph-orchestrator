@@ -41,9 +41,13 @@ describe("HistoryPanel", () => {
       <HistoryPanel
         tasks={[
           makeCompletedTask({ key: "DOC-1000", completedAt: new Date("2026-03-07T09:10:00.000Z").getTime() }),
-          makeCompletedTask({ key: "DOC-2000", completedAt: new Date("2026-03-07T09:20:00.000Z").getTime(), prUrl: "https://example.test/pr/2" }),
+          makeCompletedTask({
+            key: "DOC-2000",
+            completedAt: new Date("2026-03-07T09:20:00.000Z").getTime(),
+            prUrl: "https://example.test/pr/2",
+          }),
         ]}
-      />
+      />,
     );
 
     const taskKeys = screen.getAllByText(/DOC-/).map((node) => node.textContent);
@@ -72,7 +76,7 @@ describe("LogPanel", () => {
           makeLogEntry({ level: "info", message: "started" }),
           makeLogEntry({ level: "error", message: "failed" }),
         ]}
-      />
+      />,
     );
 
     expect(screen.queryByText("Orchestrator Log")).not.toBeNull();

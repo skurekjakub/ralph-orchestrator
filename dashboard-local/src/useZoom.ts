@@ -52,10 +52,7 @@ export function useZoomState(): ZoomState {
   }, []);
 
   const zoomIn = useCallback(() => {
-    setZoom(
-      ZOOM_STEPS[Math.min(ZOOM_STEPS.indexOf(zoom) + 1, ZOOM_STEPS.length - 1)] ??
-        zoom
-    );
+    setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.indexOf(zoom) + 1, ZOOM_STEPS.length - 1)] ?? zoom);
   }, [zoom, setZoom]);
 
   const zoomOut = useCallback(() => {

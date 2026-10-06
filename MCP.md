@@ -45,17 +45,17 @@ shared/mcp-sidecar/
 
 ### Current Servers
 
-| Server | Type | Port | Tools (manifest `tools`) |
-|---|---|---|---|
-| `ado` | custom | 9101 | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment`, `ado_push_progress` |
-| `jira-kentico` | custom | 9100 | `jira_add_comment`, `jira_add_attachment` |
-| `discord-hitl` | custom | 9102 | `discord_ask` |
-| `playwright` | npm | 9103 | `browser_navigate`, `browser_navigate_back`, `browser_take_screenshot`, `browser_network_requests`, `browser_click`, `browser_fill_form`, `browser_evaluate`, `browser_press_key` |
-| `web-fetch` | custom | 9104 | `web_fetch` |
-| `microsoft-docs` | custom | 9105 | `microsoft_docs_search` |
-| `ralphchives-write` | custom | 9106 | `post_task_report`, `post_observation`, `reply_to_thread` |
-| `ralphchives-read` | custom | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics` |
-| `codegraphcontext` | npm | 9108 | `add_code_to_graph`, `find_code`, `analyze_code_relationships`, `find_dead_code`, `find_most_complex_functions`, `execute_cypher_query`, and more |
+| Server              | Type   | Port | Tools (manifest `tools`)                                                                                                                                                          |
+| ------------------- | ------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ado`               | custom | 9101 | `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment`, `ado_push_progress`               |
+| `jira-kentico`      | custom | 9100 | `jira_add_comment`, `jira_add_attachment`                                                                                                                                         |
+| `discord-hitl`      | custom | 9102 | `discord_ask`                                                                                                                                                                     |
+| `playwright`        | npm    | 9103 | `browser_navigate`, `browser_navigate_back`, `browser_take_screenshot`, `browser_network_requests`, `browser_click`, `browser_fill_form`, `browser_evaluate`, `browser_press_key` |
+| `web-fetch`         | custom | 9104 | `web_fetch`                                                                                                                                                                       |
+| `microsoft-docs`    | custom | 9105 | `microsoft_docs_search`                                                                                                                                                           |
+| `ralphchives-write` | custom | 9106 | `post_task_report`, `post_observation`, `reply_to_thread`                                                                                                                         |
+| `ralphchives-read`  | custom | 9107 | `search_ralphchives`, `get_topic`, `list_recent_topics`                                                                                                                           |
+| `codegraphcontext`  | npm    | 9108 | `add_code_to_graph`, `find_code`, `analyze_code_relationships`, `find_dead_code`, `find_most_complex_functions`, `execute_cypher_query`, and more                                 |
 
 ## Server Types
 
@@ -95,20 +95,20 @@ Custom servers support both stdio and HTTP transport modes. In sidecar mode, the
 
 ## Manifest Schema
 
-| Field | Description | Required |
-|---|---|---|
-| `name` | Server identifier (must match directory name) | Yes |
-| `description` | Human-readable description | No |
-| `type` | `"npm"` or `"custom"` | Yes |
-| `command` | Executable (`node`, `playwright-mcp`, etc.) | Yes |
-| `args` | Command arguments | Yes |
-| `sidecarPort` | Fixed port the server listens on inside the MCP sidecar container (1–65535, must be unique) | Yes |
-| `containerPath` | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`) | Custom only |
-| `requiredEnv` | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container | No |
-| `optionalEnv` | Optional env vars the server supports (embedded in gateway.json when set) | No |
-| `tools` | Tool names. Written into the agent's `mcp-config.json` as the server's `tools` allowlist; the sidecar does not filter | No |
-| `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error. | No |
-| `initScript` | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No |
+| Field            | Description                                                                                                                                                     | Required    |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `name`           | Server identifier (must match directory name)                                                                                                                   | Yes         |
+| `description`    | Human-readable description                                                                                                                                      | No          |
+| `type`           | `"npm"` or `"custom"`                                                                                                                                           | Yes         |
+| `command`        | Executable (`node`, `playwright-mcp`, etc.)                                                                                                                     | Yes         |
+| `args`           | Command arguments                                                                                                                                               | Yes         |
+| `sidecarPort`    | Fixed port the server listens on inside the MCP sidecar container (1–65535, must be unique)                                                                     | Yes         |
+| `containerPath`  | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`)                                                 | Custom only |
+| `requiredEnv`    | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container                                             | No          |
+| `optionalEnv`    | Optional env vars the server supports (embedded in gateway.json when set)                                                                                       | No          |
+| `tools`          | Tool names. Written into the agent's `mcp-config.json` as the server's `tools` allowlist; the sidecar does not filter                                           | No          |
+| `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error.                  | No          |
+| `initScript`     | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No          |
 
 ## Task-Scoped Parameters (JIT)
 
@@ -117,6 +117,7 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 ### How it works
 
 1. **Profile declaration** — Per-server env in `profile.json` (profile-level or variant-level):
+
    ```json
    {
      "mcpServers": [
@@ -148,14 +149,14 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
 ### Available macros
 
-| Macro | Resolves to | Example |
-|---|---|---|
-| `$task.id` | JIRA issue key | `DOC-3143` |
-| `$task.project` | Project key derived from issue key | `DOC` |
-| `$task.branch` | Resolved task branch: the branch from preflight/PR metadata, else the `branch` trigger parameter, else `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started` |
-| `$task.title` | JIRA issue summary | `Update getting started guide` |
-| `$trigger.<key>` | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing) | `$trigger.branch` → `feature-xyz` |
-| `$variantEnv.<PREFIX>` | Value of the env var `<PREFIX>_<PROFILEID>_<DISPLAYNAME>` (uppercase; `-`, `.`, `/` → `_`) | `$variantEnv.NODEBB_TOKEN` → value of `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
+| Macro                  | Resolves to                                                                                                                 | Example                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `$task.id`             | JIRA issue key                                                                                                              | `DOC-3143`                                                            |
+| `$task.project`        | Project key derived from issue key                                                                                          | `DOC`                                                                 |
+| `$task.branch`         | Resolved task branch: the branch from preflight/PR metadata, else the `branch` trigger parameter, else `ralph/<key>-<slug>` | `ralph/DOC-3143-update-getting-started`                               |
+| `$task.title`          | JIRA issue summary                                                                                                          | `Update getting started guide`                                        |
+| `$trigger.<key>`       | Value of trigger parameter `<key>` from the JIRA comment (returns empty string if missing)                                  | `$trigger.branch` → `feature-xyz`                                     |
+| `$variantEnv.<PREFIX>` | Value of the env var `<PREFIX>_<PROFILEID>_<DISPLAYNAME>` (uppercase; `-`, `.`, `/` → `_`)                                  | `$variantEnv.NODEBB_TOKEN` → value of `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
 
 ### Manifest `requiredConfig`
 
@@ -205,6 +206,7 @@ At startup, `generatePreInitScript()` collects all init scripts from active serv
 4. Init scripts can read `sidecarEnv` variables (they run in the same container)
 
 **Constraints:**
+
 - Path must be relative (no `..` or leading `/`) and the file must exist in the server directory
 - Scripts should be idempotent — they may run on every container start
 - Keep scripts fast — they block gateway startup
@@ -266,6 +268,7 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 ### `docker-compose.overlay.yml`
 
 Compose overlay merged as the third file. Generates:
+
 - **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`), read-only mounts for `mcp-config.json`, `copilot-config.json`, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
 - **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the target repo at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
 
@@ -316,18 +319,34 @@ import { createServer } from "node:http";
 
 function startHttpTransport(createMcpServer: () => McpServer, port: number): void {
   const httpServer = createServer(async (req, res) => {
-    if (req.url === "/health") { res.writeHead(200); res.end('{"status":"ok"}'); return; }
-    if (req.url !== "/mcp") { res.writeHead(404); res.end(); return; }
+    if (req.url === "/health") {
+      res.writeHead(200);
+      res.end('{"status":"ok"}');
+      return;
+    }
+    if (req.url !== "/mcp") {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
     let body;
     if (req.method === "POST") {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      try { body = JSON.parse(Buffer.concat(chunks).toString()); }
-      catch { res.writeHead(400); res.end('{"error":"Invalid JSON"}'); return; }
+      try {
+        body = JSON.parse(Buffer.concat(chunks).toString());
+      } catch {
+        res.writeHead(400);
+        res.end('{"error":"Invalid JSON"}');
+        return;
+      }
     }
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, body);
   });
@@ -340,6 +359,7 @@ The `main()` function should check for `--transport http` and fall back to stdio
 ## Agent Include Files
 
 Agent templates reference MCP tools via `shared/agent-includes/`:
+
 - `ado-api.md` — Documents `ado_create_pull_request`, `ado_list_pull_requests`, `ado_list_pull_request_threads`, `ado_create_pull_request_thread`, `ado_reply_to_comment` tools
 
 These files live in `shared/agent-includes/` but are no longer inlined into all agent prompts — tool descriptions registered via MCP provide the same information. Agent templates reference specific tools by name at the relevant workflow phase instead.

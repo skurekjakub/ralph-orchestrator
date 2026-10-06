@@ -30,16 +30,26 @@ class StubConnector implements IDataSourceConnector {
     this.items = items;
   }
 
-  getAllowedUsers() { return []; }
-  buildQueries() { return ["stub-query"]; }
-  async searchWorkItems() { return this.items; }
+  getAllowedUsers() {
+    return [];
+  }
+  buildQueries() {
+    return ["stub-query"];
+  }
+  async searchWorkItems() {
+    return this.items;
+  }
   async refreshWorkItem(id: string) {
     const item = this.items.find((i) => i.id === id);
     if (!item) throw new Error(`Not found: ${id}`);
     return item;
   }
-  isValidItemId() { return true; }
-  async getComments(): Promise<WorkItemComment[]> { return []; }
+  isValidItemId() {
+    return true;
+  }
+  async getComments(): Promise<WorkItemComment[]> {
+    return [];
+  }
   async addComment() {}
 }
 
@@ -53,9 +63,13 @@ class StubPoller implements IWorkItemPoller {
     this.items = items;
   }
 
-  start() { this.callback?.(); }
+  start() {
+    this.callback?.();
+  }
   stop() {}
-  onItems(cb: () => void) { this.callback = cb; }
+  onItems(cb: () => void) {
+    this.callback = cb;
+  }
   drain() {
     const out = [...this.items];
     this.items = [];
@@ -94,10 +108,7 @@ describe("Multi-source integration", () => {
       registerDataSourceFactory(typeA, factoryA);
       registerDataSourceFactory(typeB, factoryB);
 
-      const config = makeConfig([
-        makeProfile({ dataSource: "first" }),
-        makeProfile({ dataSource: "second" }),
-      ]);
+      const config = makeConfig([makeProfile({ dataSource: "first" }), makeProfile({ dataSource: "second" })]);
       (config as any).dataSources = {
         first: { ...makeDataSourceConfig(), type: typeA },
         second: { ...makeDataSourceConfig(), type: typeB },
@@ -164,9 +175,7 @@ describe("Multi-source integration", () => {
 
       registerDataSourceFactory(type, factory);
 
-      expect(() => registerDataSourceFactory(type, factory)).toThrow(
-        /already registered/,
-      );
+      expect(() => registerDataSourceFactory(type, factory)).toThrow(/already registered/);
     });
   });
 

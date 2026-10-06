@@ -57,13 +57,18 @@ export function ToolTimelineCallList({
                   />
                 </div>
               </span>
-              <span className="flex-1 text-[11px] font-mono flex items-center gap-1.5" style={{ color: CAT_HEX[category] }}>
+              <span
+                className="flex-1 text-[11px] font-mono flex items-center gap-1.5"
+                style={{ color: CAT_HEX[category] }}
+              >
                 <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
                 {displayName}
               </span>
               <span className="w-16 text-center">
                 {entry.status && (
-                  <span className={`text-[9px] px-1 py-px rounded ${entry.status === "success" ? "bg-success/15 text-success" : "bg-error/15 text-error"}`}>
+                  <span
+                    className={`text-[9px] px-1 py-px rounded ${entry.status === "success" ? "bg-success/15 text-success" : "bg-error/15 text-error"}`}
+                  >
                     {entry.status}
                   </span>
                 )}
@@ -92,7 +97,10 @@ function ExpandedDetail({ entry, subagentSpan }: { entry: ToolCallEntry; subagen
     <div className="px-4 py-2 bg-bg-panel/50 border-t border-border/20 space-y-2">
       <div className="flex gap-2 flex-wrap text-[10px] text-dim">
         <span>
-          Time: <span className="text-text font-mono">{new Date(entry.ts).toLocaleTimeString("en-GB", { hour12: false })}</span>
+          Time:{" "}
+          <span className="text-text font-mono">
+            {new Date(entry.ts).toLocaleTimeString("en-GB", { hour12: false })}
+          </span>
         </span>
         {entry.durationMs != null && entry.durationMs > 0 && (
           <span>

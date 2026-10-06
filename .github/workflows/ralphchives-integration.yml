@@ -15,7 +15,7 @@ jobs:
       - name: Use Node.js 24.x
         uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
+          node-version: "24.x"
 
       # The runner must already provide Docker + the compose plugin; CI never mutates the host.
       - name: Require Docker

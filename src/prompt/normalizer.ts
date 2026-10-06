@@ -13,7 +13,8 @@
  * Includes zero-width characters, bidirectional overrides, and other invisible
  * formatting characters that could hide adversarial content.
  */
-const INVISIBLE_CHARS = /[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u202A\u202B\u202C\u202D\u202E\u00AD]/g;
+const INVISIBLE_CHARS =
+  /[\u200B\u200C\u200D\u200E\u200F\uFEFF\u2060\u2061\u2062\u2063\u2064\u2066\u2067\u2068\u2069\u202A\u202B\u202C\u202D\u202E\u00AD]/g;
 
 /** HTML comments that could contain hidden instructions. */
 const HTML_COMMENTS = /<!--[\s\S]*?-->/g;

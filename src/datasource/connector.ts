@@ -10,12 +10,7 @@
  * whether a connector supports optional operations before calling them.
  */
 
-import type {
-  WorkItem,
-  WorkItemAttachment,
-  WorkItemComment,
-  WorkItemTransition,
-} from "./types.js";
+import type { WorkItem, WorkItemAttachment, WorkItemComment, WorkItemTransition } from "./types.js";
 
 /**
  * A query string or object understood by the source system.
@@ -148,24 +143,25 @@ export interface IDataSourceConnector extends IWorkItemSource, IWorkItemComments
 const TRANSITION_METHODS = ["getTransitions", "transitionWorkItem"] as const;
 
 export function supportsTransitions(
-  connector: IDataSourceConnector
+  connector: IDataSourceConnector,
 ): connector is IDataSourceConnector & ISupportsTransitions {
-  return TRANSITION_METHODS.every(method => method in connector);
+  return TRANSITION_METHODS.every((method) => method in connector);
 }
 
 // Define required keys as a runtime tuple
 const ATTACHMENT_METHODS = ["getAttachments", "downloadAttachment", "addAttachment"] as const;
 
 /** Check whether a connector supports file attachments. */
-export function supportsAttachments(connector: IDataSourceConnector):
-  connector is IDataSourceConnector & ISupportsAttachments {
-    return ATTACHMENT_METHODS.every(method => method in connector);
+export function supportsAttachments(
+  connector: IDataSourceConnector,
+): connector is IDataSourceConnector & ISupportsAttachments {
+  return ATTACHMENT_METHODS.every((method) => method in connector);
 }
 
 export function assertSupportsAttachments(
-  connector: IDataSourceConnector
+  connector: IDataSourceConnector,
 ): asserts connector is IDataSourceConnector & ISupportsAttachments {
-  const missing = ATTACHMENT_METHODS.filter(m => !(m in connector));
+  const missing = ATTACHMENT_METHODS.filter((m) => !(m in connector));
   if (missing.length > 0) {
     throw new Error(`Connector "${connector.name}" is missing attachment methods: ${missing.join(", ")}`);
   }

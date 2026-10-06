@@ -49,10 +49,7 @@ lVr = {
   execute: async (t, e) => {
     let n = e.join(" ").trim();
     // Simply sends the fleet prompt + optional user request into the conversation
-    return (
-      await t.session.instance.fleet.start({ prompt: n || void 0 }),
-      { kind: "noop" }
-    );
+    return (await t.session.instance.fleet.start({ prompt: n || void 0 }), { kind: "noop" });
   },
 };
 ```
@@ -63,15 +60,11 @@ lVr = {
 function svr(t) {
   return {
     async start(e) {
-      let n = e?.prompt
-        ? `${FLEET_SYSTEM_PROMPT}\n\nUser request: ${e.prompt}`
-        : FLEET_SYSTEM_PROMPT;
+      let n = e?.prompt ? `${FLEET_SYSTEM_PROMPT}\n\nUser request: ${e.prompt}` : FLEET_SYSTEM_PROMPT;
       return (
         await t.send({
           prompt: n,
-          displayPrompt: e?.prompt
-            ? `Fleet deployed: ${e.prompt}`
-            : "Fleet deployed",
+          displayPrompt: e?.prompt ? `Fleet deployed: ${e.prompt}` : "Fleet deployed",
         }),
         { started: true }
       );
@@ -219,13 +212,9 @@ class VGe {
 
     // Race the agent's promise against a timeout
     let promise = this.pendingPromises.get(agentId);
-    let result = await Promise.race([
-      promise,
-      new Promise((resolve) => setTimeout(() => resolve("timeout"), timeout)),
-    ]);
+    let result = await Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve("timeout"), timeout))]);
 
-    if (result === "timeout")
-      return { agent: this.agents.get(agentId), timedOut: true };
+    if (result === "timeout") return { agent: this.agents.get(agentId), timedOut: true };
     return { agent: this.agents.get(agentId), result: agent.result };
   }
 
@@ -244,12 +233,8 @@ this.backgroundAgentRegistry = new VGe();
 this.detachedShellRegistry = new fVe();
 
 // Both notify the UI when tasks change
-this.backgroundAgentRegistry.setOnChangeCallback(() =>
-  this.notifyBackgroundTaskChange(),
-);
-this.detachedShellRegistry.setOnChangeCallback(() =>
-  this.notifyBackgroundTaskChange(),
-);
+this.backgroundAgentRegistry.setOnChangeCallback(() => this.notifyBackgroundTaskChange());
+this.detachedShellRegistry.setOnChangeCallback(() => this.notifyBackgroundTaskChange());
 ```
 
 ### Sub-agent callback chain
@@ -258,26 +243,13 @@ this.detachedShellRegistry.setOnChangeCallback(() =>
 // When a sub-agent is invoked via the task tool:
 async function invokeSubAgent(agentDef, context) {
   let callback =
-    toolCallId && context.createSubAgentCallback
-      ? context.createSubAgentCallback(toolCallId)
-      : defaultCallback;
+    toolCallId && context.createSubAgentCallback ? context.createSubAgentCallback(toolCallId) : defaultCallback;
 
   // Signal session boundary (start)
-  await h6(
-    callback,
-    "start",
-    agentDef.name,
-    toolCallId,
-    agentDef.displayName,
-    agentDef.description,
-  );
+  await h6(callback, "start", agentDef.name, toolCallId, agentDef.displayName, agentDef.description);
 
   // Get or create the agent instance
-  let { agent, tools } = await context.getOrCreateAgent(
-    callback,
-    toolCallId,
-    modelOverride,
-  );
+  let { agent, tools } = await context.getOrCreateAgent(callback, toolCallId, modelOverride);
 
   // Run the agent loop (prompt → LLM → tool calls → repeat)
   // This is the Promise that backgroundAgentRegistry tracks

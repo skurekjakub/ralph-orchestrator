@@ -31,12 +31,20 @@ export function agentGraphPlugin(): Plugin {
         } else if (url.pathname.startsWith("/api/agent-graph/")) {
           const rest = decodeURIComponent(url.pathname.slice("/api/agent-graph/".length));
           const slashIdx = rest.indexOf("/");
-          if (slashIdx === -1) { res.statusCode = 400; res.end("Bad request"); return; }
+          if (slashIdx === -1) {
+            res.statusCode = 400;
+            res.end("Bad request");
+            return;
+          }
           const profile = rest.slice(0, slashIdx);
           const agentName = rest.slice(slashIdx + 1);
 
           const agentFile = resolveAgent(profilesDir, profile, agentName);
-          if (!agentFile) { res.statusCode = 404; res.end("Agent not found"); return; }
+          if (!agentFile) {
+            res.statusCode = 404;
+            res.end("Agent not found");
+            return;
+          }
 
           const skillCatalog = discoverSkills(skillsDir);
           const includeCatalog = discoverIncludes(includesDir);
@@ -202,9 +210,7 @@ function extractRefs(content: string, skillNames: string[]): NodeRef[] {
       const key = `skill:${skillName}`;
       if (seen.has(key)) continue;
       const esc = escapeRegex(skillName);
-      const pattern = new RegExp(
-        `(?:\\*\\*${esc}\\*\\*|\`${esc}\`|\\|\\s*${esc}\\s*\\||"${esc}")`,
-      );
+      const pattern = new RegExp(`(?:\\*\\*${esc}\\*\\*|\`${esc}\`|\\|\\s*${esc}\\s*\\||"${esc}")`);
       if (pattern.test(lines[i])) {
         seen.add(key);
         refs.push({ type: "skill", target: skillName, condition: activeCondition?.label });
@@ -352,9 +358,7 @@ function graphToJson(graph: Map<string, GraphNode>): GraphNodeJson[] {
             targetId = `skill:${ref.target}`;
             break;
         }
-        return graph.has(targetId)
-          ? { type: ref.type, targetId, condition: ref.condition }
-          : null;
+        return graph.has(targetId) ? { type: ref.type, targetId, condition: ref.condition } : null;
       })
       .filter((r): r is NonNullable<typeof r> => r !== null),
   }));

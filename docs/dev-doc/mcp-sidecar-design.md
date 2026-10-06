@@ -49,6 +49,7 @@ Replace stdio-based MCP server invocation with HTTP-based (Streamable HTTP trans
 The [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) replaces the deprecated HTTP+SSE transport. A server exposes a single endpoint (e.g., `/mcp`) supporting POST (for JSON-RPC messages) and GET (for server-initiated SSE streams).
 
 Both CLIs support remote MCP servers:
+
 - **Copilot CLI**: `"type": "http", "url": "http://mcp-sidecar:PORT/mcp"` in `--additional-mcp-config`
 - **Claude Code CLI**: `"url": "http://mcp-sidecar:PORT/mcp"` in `--mcp-config`
 
@@ -56,15 +57,15 @@ The MCP SDK v1.x (currently used by our custom servers at `^1.26.0`) includes `S
 
 ### What Changes
 
-| Component | Before (stdio) | After (HTTP sidecar) |
-|---|---|---|
-| MCP server process | Spawned by CLI as stdio child | Runs in sidecar container |
-| MCP server user | `vscode` (same as agent) | `mcp` (dedicated, non-root) |
+| Component                | Before (stdio)                            | After (HTTP sidecar)                                   |
+| ------------------------ | ----------------------------------------- | ------------------------------------------------------ |
+| MCP server process       | Spawned by CLI as stdio child             | Runs in sidecar container                              |
+| MCP server user          | `vscode` (same as agent)                  | `mcp` (dedicated, non-root)                            |
 | Server binaries location | `/workspace/.ralph/mcp-servers/` in agent | `/opt/mcp/servers/` in sidecar (inaccessible to agent) |
-| Secrets storage | Plaintext in `mcp-config.json` in agent | Env vars in sidecar only |
-| `mcp-config.json` format | `{ command, args, env }` | `{ type, url }` |
-| Agent container mounts | Server code + config with secrets | Config with URLs only |
-| Network requirement | None (stdio pipes) | Internal network (already exists) |
+| Secrets storage          | Plaintext in `mcp-config.json` in agent   | Env vars in sidecar only                               |
+| `mcp-config.json` format | `{ command, args, env }`                  | `{ type, url }`                                        |
+| Agent container mounts   | Server code + config with secrets         | Config with URLs only                                  |
+| Network requirement      | None (stdio pipes)                        | Internal network (already exists)                      |
 
 ### What Stays the Same
 
@@ -98,6 +99,7 @@ No `npx -y` at runtime. The `@playwright/mcp` package is installed during the Do
 ### 4. Process Management: Restart on crash
 
 The gateway acts as a lightweight process manager. If an MCP server process exits unexpectedly:
+
 1. Log the crash with server name, exit code, and stderr
 2. Wait 1 second (backoff)
 3. Respawn the process (up to 3 retries per task)
@@ -135,7 +137,10 @@ if (process.argv.includes("--transport") && process.argv[process.argv.indexOf("-
     // Stateless per-request pattern — crash resilient
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res);
   });
@@ -163,6 +168,7 @@ shared/mcp-sidecar/
 ```
 
 The gateway:
+
 1. Reads `/opt/mcp/config/gateway.json` (list of servers to start)
 2. Spawns each server as a child process with its env vars
 3. Custom servers: `node /opt/mcp/servers/<name>/dist/bundle.js --transport http --port <PORT>`
@@ -260,7 +266,7 @@ services:
       - ${MCP_GATEWAY_CONFIG_PATH}:/opt/mcp/config/gateway.json:ro
     networks:
       ralph-internal:
-      ralph-sidecar-external:  # Direct internet access (not through Squid)
+      ralph-sidecar-external: # Direct internet access (not through Squid)
     security_opt:
       - "no-new-privileges:true"
     cap_drop:
@@ -282,6 +288,7 @@ services:
 #### Overlay changes
 
 The generated `docker-compose.overlay.yml`:
+
 - **Remove**: MCP server directory mount from `app.volumes`
 - **Replace**: `mcp-config.json` in `app` — now contains only `{ type, url }` entries (no secrets)
 - **Add**: `mcp-sidecar` service with server mounts and gateway config
@@ -339,14 +346,14 @@ Note: `containerPath` changes from `/workspace/.ralph/mcp-servers/<name>` to `/o
 
 ## Security Improvements
 
-| Vector | Before | After |
-|---|---|---|
-| Agent reads MCP secrets | ✅ Can `cat /workspace/.ralph/mcp-config.json` | ❌ File contains URLs only, no secrets |
-| Agent reads server code | ✅ Can browse `/workspace/.ralph/mcp-servers/` | ❌ Server code is in a different container |
-| Agent modifies MCP servers | ❌ Mount is `:ro` | ❌ Code is in a different container |
-| Agent environment leaks | ❌ Secrets not in env (current) | ❌ Secrets not in env (unchanged) |
-| Agent impersonates MCP server | ✅ Could start a fake server on same port | ❌ Sidecar owns the ports, agent can't bind them |
-| Agent calls MCP tools via HTTP | N/A | ⚠️ Can `curl http://mcp-sidecar:PORT/mcp` — acceptable risk (see below) |
+| Vector                         | Before                                         | After                                                                   |
+| ------------------------------ | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| Agent reads MCP secrets        | ✅ Can `cat /workspace/.ralph/mcp-config.json` | ❌ File contains URLs only, no secrets                                  |
+| Agent reads server code        | ✅ Can browse `/workspace/.ralph/mcp-servers/` | ❌ Server code is in a different container                              |
+| Agent modifies MCP servers     | ❌ Mount is `:ro`                              | ❌ Code is in a different container                                     |
+| Agent environment leaks        | ❌ Secrets not in env (current)                | ❌ Secrets not in env (unchanged)                                       |
+| Agent impersonates MCP server  | ✅ Could start a fake server on same port      | ❌ Sidecar owns the ports, agent can't bind them                        |
+| Agent calls MCP tools via HTTP | N/A                                            | ⚠️ Can `curl http://mcp-sidecar:PORT/mcp` — acceptable risk (see below) |
 
 ### Residual Risks
 
@@ -363,20 +370,20 @@ Note: `containerPath` changes from `/workspace/.ralph/mcp-servers/<name>` to `/o
 
 ## Files to Change
 
-| File | Change |
-|---|---|
-| `shared/mcp-sidecar/` (new) | Gateway process, Dockerfile, package.json, tsconfig.json |
-| `shared/mcp-servers/jira-kentico/src/index.ts` | Add Streamable HTTP transport mode |
-| `shared/mcp-servers/ado/src/index.ts` | Add Streamable HTTP transport mode |
-| `shared/mcp-servers/discord-hitl/src/index.ts` | Add Streamable HTTP transport mode |
-| `shared/mcp-servers/*/mcp-server.json` | Add `sidecarPort`, update `containerPath` |
-| `shared/mcp-servers/*/package.json` | No new deps needed (`@modelcontextprotocol/sdk` already present) |
-| `src/container/setup/compose-overlay.ts` | Remove MCP mounts from app, add sidecar service |
-| `src/container/setup/mcp-config.ts` | New `generateGatewayConfig()`, update `generateMcpConfig()` for URL mode |
-| `src/container/setup/mcp-manifest.ts` | Add `sidecarPort` to `McpServerManifest` interface |
-| `src/container/setup/profile-setup.ts` | Generate gateway config, write to `.build/` |
-| `src/container/manager.ts` | Sidecar health wait (if not handled by compose depends_on) |
-| `shared/security/docker-compose.security.yml` | Possibly add sidecar base config |
-| `tests/container/compose-overlay.test.ts` | Update mount expectations, add sidecar tests |
-| `tests/container/mcp-config.test.ts` | Add URL-mode + gateway config tests |
-| Docs: `MCP.md`, `SECURITY.md`, `ARCHITECTURE.md` | Update diagrams and descriptions |
+| File                                             | Change                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| `shared/mcp-sidecar/` (new)                      | Gateway process, Dockerfile, package.json, tsconfig.json                 |
+| `shared/mcp-servers/jira-kentico/src/index.ts`   | Add Streamable HTTP transport mode                                       |
+| `shared/mcp-servers/ado/src/index.ts`            | Add Streamable HTTP transport mode                                       |
+| `shared/mcp-servers/discord-hitl/src/index.ts`   | Add Streamable HTTP transport mode                                       |
+| `shared/mcp-servers/*/mcp-server.json`           | Add `sidecarPort`, update `containerPath`                                |
+| `shared/mcp-servers/*/package.json`              | No new deps needed (`@modelcontextprotocol/sdk` already present)         |
+| `src/container/setup/compose-overlay.ts`         | Remove MCP mounts from app, add sidecar service                          |
+| `src/container/setup/mcp-config.ts`              | New `generateGatewayConfig()`, update `generateMcpConfig()` for URL mode |
+| `src/container/setup/mcp-manifest.ts`            | Add `sidecarPort` to `McpServerManifest` interface                       |
+| `src/container/setup/profile-setup.ts`           | Generate gateway config, write to `.build/`                              |
+| `src/container/manager.ts`                       | Sidecar health wait (if not handled by compose depends_on)               |
+| `shared/security/docker-compose.security.yml`    | Possibly add sidecar base config                                         |
+| `tests/container/compose-overlay.test.ts`        | Update mount expectations, add sidecar tests                             |
+| `tests/container/mcp-config.test.ts`             | Add URL-mode + gateway config tests                                      |
+| Docs: `MCP.md`, `SECURITY.md`, `ARCHITECTURE.md` | Update diagrams and descriptions                                         |

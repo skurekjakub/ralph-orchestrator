@@ -5,7 +5,5 @@ import { resolve } from "node:path";
  */
 export function resolvePath(rawPath: string): string {
   const cleaned = rawPath.replace(/^["']|["']$/g, "");
-  return cleaned.startsWith("~/")
-    ? resolve(process.env.HOME ?? "/root", cleaned.slice(2))
-    : resolve(cleaned);
+  return cleaned.startsWith("~/") ? resolve(process.env.HOME ?? "/root", cleaned.slice(2)) : resolve(cleaned);
 }

@@ -28,7 +28,12 @@ describe("initCategoryId", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ categories: [{ cid: 5, name: "ralph-docs" }, { cid: 6, name: "ralph-vscode" }] }),
+        JSON.stringify({
+          categories: [
+            { cid: 5, name: "ralph-docs" },
+            { cid: 6, name: "ralph-vscode" },
+          ],
+        }),
         { status: 200 },
       ),
     );
@@ -124,9 +129,7 @@ describe("nodebbGet", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ topics: [{ tid: 1 }] }), { status: 200 }),
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ topics: [{ tid: 1 }] }), { status: 200 }));
 
     const shared = await import("../src/shared.js");
     const result = await shared.nodebbGet<{ topics: { tid: number }[] }>("/api/category/5");

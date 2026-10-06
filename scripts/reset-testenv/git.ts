@@ -23,12 +23,17 @@ export function cleanBranches(ctx: ResetContext) {
   }
 
   const pattern = `ralph/${ctx.issueKey}`;
-  const opts = { cwd: repoPath, encoding: "utf-8" as const, stdio: ["pipe", "pipe", "pipe"] as ["pipe", "pipe", "pipe"] };
+  const opts = {
+    cwd: repoPath,
+    encoding: "utf-8" as const,
+    stdio: ["pipe", "pipe", "pipe"] as ["pipe", "pipe", "pipe"],
+  };
 
   // Local branches
   try {
     const locals = execSync(`git branch --list "${pattern}*"`, opts)
-      .trim().split("\n")
+      .trim()
+      .split("\n")
       .map((b) => b.trim().replace(/^\* /, ""))
       .filter(Boolean);
 
@@ -48,7 +53,8 @@ export function cleanBranches(ctx: ResetContext) {
   // Remote branches
   try {
     const remotes = execSync(`git branch -r --list "origin/${pattern}*"`, opts)
-      .trim().split("\n")
+      .trim()
+      .split("\n")
       .map((b) => b.trim().replace("origin/", ""))
       .filter(Boolean);
 

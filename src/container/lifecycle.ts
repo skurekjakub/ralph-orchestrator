@@ -37,11 +37,7 @@ const EXCLUDE_MARKER_START = "# >>>ralph-orchestrator (managed — do not edit)"
 const EXCLUDE_MARKER_END = "# <<<ralph-orchestrator";
 
 /** Patterns the orchestrator mounts into the container workspace via Docker bind mounts. */
-const ORCHESTRATOR_EXCLUDE_PATTERNS = [
-  ".ralph/",
-  ".github/skills/",
-  ".github/agents/",
-];
+const ORCHESTRATOR_EXCLUDE_PATTERNS = [".ralph/", ".github/skills/", ".github/agents/"];
 
 /**
  * Write orchestrator-managed exclusion patterns to `.git/info/exclude`.
@@ -62,11 +58,7 @@ export function ensureGitExclude(repoPath: string): void {
     mkdirSync(infoDir, { recursive: true });
   }
 
-  const managedBlock = [
-    EXCLUDE_MARKER_START,
-    ...ORCHESTRATOR_EXCLUDE_PATTERNS,
-    EXCLUDE_MARKER_END,
-  ].join("\n");
+  const managedBlock = [EXCLUDE_MARKER_START, ...ORCHESTRATOR_EXCLUDE_PATTERNS, EXCLUDE_MARKER_END].join("\n");
 
   let content = "";
   if (existsSync(excludePath)) {
@@ -137,8 +129,7 @@ export class RepoSyncHook implements ILifecycleHook {
 
     const authHeader = buildAuthHeader(vcsProvider, pat);
     const git = (args: string[]) => execa("git", ["-C", repoPath, ...args]);
-    const authGit = (args: string[]) =>
-      git(["-c", `http.extraHeader=Authorization: ${authHeader}`, ...args]);
+    const authGit = (args: string[]) => git(["-c", `http.extraHeader=Authorization: ${authHeader}`, ...args]);
 
     logger.info(`Syncing repo to ${defaultBranch}...`);
     await authGit(["fetch", "origin", defaultBranch]);

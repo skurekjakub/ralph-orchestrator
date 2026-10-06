@@ -8,7 +8,5 @@
   "sidecarPort": 9102,
   "requiredEnv": ["DISCORD_BOT_TOKEN", "DISCORD_CHANNEL_ID"],
   "optionalEnv": ["DISCORD_TASK_CONTEXT"],
-  "tools": [
-    "discord_ask"
-  ]
+  "tools": ["discord_ask"]
 }

@@ -86,13 +86,7 @@ export function UtilizationChart({
               stroke="#30363d"
               strokeWidth={0.5}
             />
-            <text
-              x={CHART_PADDING.left - 4}
-              y={toY(pct) + 3}
-              textAnchor="end"
-              fill="#7d8590"
-              fontSize={8}
-            >
+            <text x={CHART_PADDING.left - 4} y={toY(pct) + 3} textAnchor="end" fill="#7d8590" fontSize={8}>
               {pct}%
             </text>
           </g>
@@ -109,13 +103,7 @@ export function UtilizationChart({
           strokeDasharray="4 3"
           opacity={0.5}
         />
-        <text
-          x={CHART_WIDTH - CHART_PADDING.right + 2}
-          y={thresholdY + 3}
-          fill={COLOR_RED}
-          fontSize={7}
-          opacity={0.7}
-        >
+        <text x={CHART_WIDTH - CHART_PADDING.right + 2} y={thresholdY + 3} fill={COLOR_RED} fontSize={7} opacity={0.7}>
           80%
         </text>
 
@@ -141,13 +129,7 @@ export function UtilizationChart({
                 strokeDasharray="2 2"
                 opacity={0.5}
               />
-              <text
-                x={x + 2}
-                y={CHART_PADDING.top + 8}
-                fill={COLOR_SUBAGENT}
-                fontSize={7}
-                opacity={0.7}
-              >
+              <text x={x + 2} y={CHART_PADDING.top + 8} fill={COLOR_SUBAGENT} fontSize={7} opacity={0.7}>
                 {span.name}
               </text>
             </g>
@@ -199,16 +181,14 @@ export function UtilizationChart({
         {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
           const ts = tMin + frac * tRange;
           const x = toX(ts);
-          const label = new Date(ts).toLocaleTimeString("en-GB", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          const label = new Date(ts).toLocaleTimeString("en-GB", {
+            hour12: false,
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
           return (
-            <text
-              key={frac}
-              x={x}
-              y={CHART_HEIGHT - 4}
-              textAnchor="middle"
-              fill="#7d8590"
-              fontSize={8}
-            >
+            <text key={frac} x={x} y={CHART_HEIGHT - 4} textAnchor="middle" fill="#7d8590" fontSize={8}>
               {label}
             </text>
           );
@@ -220,17 +200,16 @@ export function UtilizationChart({
         <div
           className="absolute bg-surface-raised border border-border rounded px-2 py-1 text-[10px] pointer-events-none z-10 shadow-md"
           style={{
-            left: `${((toX(hoverEntry.tsMs)) / CHART_WIDTH) * 100}%`,
+            left: `${(toX(hoverEntry.tsMs) / CHART_WIDTH) * 100}%`,
             top: 0,
             transform: "translateX(-50%)",
           }}
         >
           <div className="font-mono text-text">
-            {hoverEntry.utilization.toFixed(1)}% — {formatTokens(hoverEntry.usedTokens)} / {formatTokens(hoverEntry.maxTokens)}
+            {hoverEntry.utilization.toFixed(1)}% — {formatTokens(hoverEntry.usedTokens)} /{" "}
+            {formatTokens(hoverEntry.maxTokens)}
           </div>
-          <div className="text-dim">
-            {new Date(hoverEntry.tsMs).toLocaleTimeString("en-GB", { hour12: false })}
-          </div>
+          <div className="text-dim">{new Date(hoverEntry.tsMs).toLocaleTimeString("en-GB", { hour12: false })}</div>
         </div>
       )}
     </div>

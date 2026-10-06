@@ -14,15 +14,11 @@ describe("buildJqlFromProfiles", () => {
     ];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(1);
-    expect(queries[0]).toBe(
-      'project = "DF" AND status IN ("New", "To Do") ORDER BY created ASC'
-    );
+    expect(queries[0]).toBe('project = "DF" AND status IN ("New", "To Do") ORDER BY created ASC');
   });
 
   it("builds catch-all JQL when statuses are empty", () => {
-    const profiles = [
-      makeProfile({ match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER } }),
-    ];
+    const profiles = [makeProfile({ match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER } })];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries[0]).toBe('project = "DF" ORDER BY created ASC');
   });
@@ -34,9 +30,7 @@ describe("buildJqlFromProfiles", () => {
       }),
     ];
     const queries = buildJqlFromProfiles(profiles);
-    expect(queries[0]).toBe(
-      'project = "DOC" AND status = "TODO" ORDER BY created ASC'
-    );
+    expect(queries[0]).toBe('project = "DOC" AND status = "TODO" ORDER BY created ASC');
   });
 
   it("generates multiple queries for multiple profiles", () => {
@@ -52,12 +46,8 @@ describe("buildJqlFromProfiles", () => {
     ];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(2);
-    expect(queries).toContain(
-      'project = "DF" AND status = "New" ORDER BY created ASC'
-    );
-    expect(queries).toContain(
-      'project = "DOC" AND status = "TODO" ORDER BY created ASC'
-    );
+    expect(queries).toContain('project = "DF" AND status = "New" ORDER BY created ASC');
+    expect(queries).toContain('project = "DOC" AND status = "TODO" ORDER BY created ASC');
   });
 
   it("deduplicates identical queries from overlapping profiles", () => {
@@ -83,12 +73,8 @@ describe("buildJqlFromProfiles", () => {
     ];
     const queries = buildJqlFromProfiles(profiles);
     expect(queries).toHaveLength(2);
-    expect(queries).toContain(
-      'project = "DF" ORDER BY created ASC'
-    );
-    expect(queries).toContain(
-      'project = "DOC" ORDER BY created ASC'
-    );
+    expect(queries).toContain('project = "DF" ORDER BY created ASC');
+    expect(queries).toContain('project = "DOC" ORDER BY created ASC');
   });
 
   it("returns empty array for no profiles", () => {

@@ -2,11 +2,11 @@
 
 ## Philosophy
 
-This approach treats a completed agent run not as a pass/fail event, but as a **trajectory** — an ordered sequence of tool invocations, reasoning steps, and environmental state changes — and evaluates quality at each step. The insight, drawn from Process Reward Model (PRM) research and Anthropic's own distinction between *transcript graders* and *outcome graders*, is that two runs with identical final outcomes may differ dramatically in quality: one may have reached a correct PR through a principled plan, the other through lucky guessing after a dozen retries.
+This approach treats a completed agent run not as a pass/fail event, but as a **trajectory** — an ordered sequence of tool invocations, reasoning steps, and environmental state changes — and evaluates quality at each step. The insight, drawn from Process Reward Model (PRM) research and Anthropic's own distinction between _transcript graders_ and _outcome graders_, is that two runs with identical final outcomes may differ dramatically in quality: one may have reached a correct PR through a principled plan, the other through lucky guessing after a dozen retries.
 
-The orchestrator already captures everything needed: `audit.jsonl` records every tool invocation with timestamps, `tool-output.log` records what came back, and `transcript.md` (Copilot) or equivalent captures the full reasoning trace. This approach turns those raw artifacts into structured quality signals *offline*, after each task completes, without requiring any changes to the agent's container or prompt.
+The orchestrator already captures everything needed: `audit.jsonl` records every tool invocation with timestamps, `tool-output.log` records what came back, and `transcript.md` (Copilot) or equivalent captures the full reasoning trace. This approach turns those raw artifacts into structured quality signals _offline_, after each task completes, without requiring any changes to the agent's container or prompt.
 
-**Ground truth**: a human-authored or LLM-generated *reference trajectory* for each golden task — specifying which tools should be called, in which order, with what general intent, and what an acceptable result at each step looks like. Strict order matching is too brittle; the right model is *semantic intent matching at step level*, similar to LangChain AgentEvals' subset mode.
+**Ground truth**: a human-authored or LLM-generated _reference trajectory_ for each golden task — specifying which tools should be called, in which order, with what general intent, and what an acceptable result at each step looks like. Strict order matching is too brittle; the right model is _semantic intent matching at step level_, similar to LangChain AgentEvals' subset mode.
 
 ---
 
@@ -15,7 +15,7 @@ The orchestrator already captures everything needed: `audit.jsonl` records every
 ### Tool Execution Quality
 
 **Tool Selection Accuracy**
-For each tool call in the trajectory, does it match the expected tool call at that step? Measured as the fraction of tool invocations that select the intended tool from the available MCP set. Misselection is more diagnostic than total failure because it reveals *reasoning errors*, not just environmental problems.
+For each tool call in the trajectory, does it match the expected tool call at that step? Measured as the fraction of tool invocations that select the intended tool from the available MCP set. Misselection is more diagnostic than total failure because it reveals _reasoning errors_, not just environmental problems.
 
 **Argument Correctness**
 The correct tool called with wrong parameters is as harmful as selecting the wrong tool. Each invocation's arguments are evaluated by an LLM rubric against the expected argument intent (not exact match, since file paths and issue IDs vary). Score: correct / total invocations. Tracked separately per MCP server (`jira-kentico`, `ado`, `playwright`, etc.) to diagnose server-specific failure patterns.
@@ -35,7 +35,7 @@ Fraction of runs where the agent calls a tool, receives an error or empty result
 For CLIs that emit a visible plan (e.g. "I will: 1. Fetch the issue, 2. Read source files, 3. Write documentation…"), does the agent follow through on stated steps? Measured by matching transcript plan declarations against subsequent tool calls. Divergence rate = fraction of stated plan steps that are skipped or replaced with something else. High divergence correlates with instruction-following degradation.
 
 **Failure Localization Score**
-When a task ends in `partial`, `blocked`, or `error` status, at which step in the trajectory did the first incorrect action occur? Operationalized as: re-run the trajectory through a trajectory grader and label each step correct/incorrect. The localization score is the fraction of failed tasks where the first error step can be identified with >80% confidence. This metric measures *debuggability* — a trajectory that's easy to localize enables fast iteration; one that isn't wastes engineer time.
+When a task ends in `partial`, `blocked`, or `error` status, at which step in the trajectory did the first incorrect action occur? Operationalized as: re-run the trajectory through a trajectory grader and label each step correct/incorrect. The localization score is the fraction of failed tasks where the first error step can be identified with >80% confidence. This metric measures _debuggability_ — a trajectory that's easy to localize enables fast iteration; one that isn't wastes engineer time.
 
 **Context Utilization**
 Does the agent demonstrably use the information provided in the prompt? Measured by checking whether JIRA fields present in the prompt (issue type, labels, components, description) appear in subsequent tool call arguments or reasoning. An agent that ignores `issueComponents` despite it being clearly relevant is wasting the context window and the orchestrator's ADF-to-text conversion work.
@@ -73,6 +73,7 @@ AggregationDashboard computes per-variant, per-profile, per-period aggregates
 ### Trajectory Extraction
 
 The `audit.jsonl` format already captures pre-tool and post-tool events. The extractor:
+
 1. Groups events into (invocation, result) pairs by tool call ID
 2. Annotates each pair with: tool name, MCP server, latency, success/error flag, result length
 3. Computes inter-step gaps (idle time between tool calls — long gaps suggest the agent is stuck)
@@ -81,6 +82,7 @@ The `audit.jsonl` format already captures pre-tool and post-tool events. The ext
 ### Reference Trajectory Construction
 
 Three sources, in decreasing priority:
+
 1. **Expert-authored**: a human engineer writes the expected tool call sequence for a canonical version of each task type. Sparse but high quality.
 2. **Best-run extraction**: from all historical runs of a given task type, extract the trajectory of the run with the best outcome and fewest steps. Use as reference after human review.
 3. **LLM-generated**: given the task prompt and available tools, ask a capable model (Claude Opus, not the production model) to generate the expected trajectory. Cheapest to produce; requires validation.
@@ -90,6 +92,7 @@ References are stored versioned alongside prompt/profile versions. A reference f
 ### Metric Computation
 
 Each metric runs as an independent evaluator function:
+
 - **Deterministic evaluators** (retry rate, step count, invocation count): pure functions over the `Trajectory` struct. No LLM calls. Fast and cheap.
 - **Rubric evaluators** (argument correctness, plan adherence, context utilization): LLM-as-judge calls with calibrated rubrics. Batched to minimize cost. Use a smaller, cheaper model (Sonnet rather than Opus) since inputs are structured and rubrics are well-defined.
 - **Structural evaluators** (failure localization, coverage): hybrid — heuristic pre-filtering + LLM confirmation for ambiguous cases.
@@ -97,11 +100,13 @@ Each metric runs as an independent evaluator function:
 ### Aggregation & Alerting
 
 Aggregate metrics along three axes:
+
 - **Per-variant** (`ralph.ralph`, `ralph.malph`, etc.): expose which variant is underperforming
 - **Per-profile** (`ralph-docs`, `ralph-vscode`): expose infrastructure-level issues (MCP server problems show up here)
 - **Per-time-window** (7-day rolling average): expose regressions after prompt or model updates
 
 Alert thresholds (starting points, calibrated after 30 days of data):
+
 - Step efficiency drops >20% week-over-week
 - Retry rate exceeds 15% on any variant
 - Dead-end detection rate exceeds 5%
@@ -115,7 +120,7 @@ Alert thresholds (starting points, calibrated after 30 days of data):
 
 **Calibration gap**: reference trajectories are expensive to create at scale. Start with the 5 most common task types per profile. Use the reference-free metrics (step count, retry rate, dead-ends) first since they require no reference and already provide significant signal.
 
-**Trajectory matching strictness**: never require exact tool call sequence matching. The right granularity is *intent matching at each step* — "the agent should query the JIRA issue early in the trajectory" not "the agent should call `get_issue` as step 2 with exactly these fields". Strict matching has false positive rates exceeding 50% in practice (WebArena experience).
+**Trajectory matching strictness**: never require exact tool call sequence matching. The right granularity is _intent matching at each step_ — "the agent should query the JIRA issue early in the trajectory" not "the agent should call `get_issue` as step 2 with exactly these fields". Strict matching has false positive rates exceeding 50% in practice (WebArena experience).
 
 **Integration point**: the orchestrator's `TaskRunner` already has access to the `summary.json` and collected logs. A post-run hook (called after `collectLogs`) can trigger the trajectory evaluator asynchronously without blocking the main loop.
 
@@ -125,16 +130,17 @@ Alert thresholds (starting points, calibrated after 30 days of data):
 
 Drawn from TaskCraft's structural taxonomy (arXiv:2506.10055) and SWE-bench Pro's quantitative complexity filters, adapted to the Kentico docs repository structure. Task difficulty is measured before evaluation, not inferred post-hoc from pass rate.
 
-| Tier | Name | Files | Lines changed | Dependencies | Example |
-|------|------|-------|---------------|--------------|---------|
-| 1 | Atomic | 1 | 1–15 | None | Fix a broken `{% page_link %}` identifier; add a `{% note %}` to one page; update `order` in frontmatter |
-| 2 | Depth-Sequential | 2–3 | 10–60 | Each file depends on the previous | New documentation page (`.md` + `_data/pagetree/documentation.yml` entry + `related_pages` on sibling pages) |
-| 3 | Width-Parallel | 3–6 | 50–150 | Parallel changes that converge in the PR | New feature docs: concept page + how-to page + nav update + one code sample `.cs` file |
-| 4 | Complex-Integrated | 6–15 | 100–500+ | Multi-phase with cross-file memory requirements | Major feature launch: 4–6 new pages + nav hierarchy + code sample project + changelog entry + related-page cross-references on 5+ existing pages |
+| Tier | Name               | Files | Lines changed | Dependencies                                    | Example                                                                                                                                          |
+| ---- | ------------------ | ----- | ------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Atomic             | 1     | 1–15          | None                                            | Fix a broken `{% page_link %}` identifier; add a `{% note %}` to one page; update `order` in frontmatter                                         |
+| 2    | Depth-Sequential   | 2–3   | 10–60         | Each file depends on the previous               | New documentation page (`.md` + `_data/pagetree/documentation.yml` entry + `related_pages` on sibling pages)                                     |
+| 3    | Width-Parallel     | 3–6   | 50–150        | Parallel changes that converge in the PR        | New feature docs: concept page + how-to page + nav update + one code sample `.cs` file                                                           |
+| 4    | Complex-Integrated | 6–15  | 100–500+      | Multi-phase with cross-file memory requirements | Major feature launch: 4–6 new pages + nav hierarchy + code sample project + changelog entry + related-page cross-references on 5+ existing pages |
 
 **Trajectory implications by tier:**
+
 - Tier 1: 3–8 expected tool calls. Deviation of >15 calls is a strong signal of confusion.
-- Tier 2: 8–20 calls. The critical structural dependency is that the agent reads `documentation.yml` *before* writing the new page (to determine correct parent identifier and `order` value).
+- Tier 2: 8–20 calls. The critical structural dependency is that the agent reads `documentation.yml` _before_ writing the new page (to determine correct parent identifier and `order` value).
 - Tier 3: 20–50 calls. The ordering constraint loosens — research can happen in any order — but the PR must combine all changes atomically.
 - Tier 4: 50–150 calls. The most valuable test of cross-file memory: changes made in step 1 (new identifier generated for page A) must be referenced correctly in step 15 (cross-reference from page B). Agents that regenerate a different identifier partway through produce broken links.
 
@@ -144,10 +150,11 @@ Drawn from TaskCraft's structural taxonomy (arXiv:2506.10055) and SWE-bench Pro'
 
 ### What Ground Truth Means for Trajectory Evaluation
 
-For trajectory evaluation, ground truth is a **reference trajectory**: a specification of which tool calls should appear, in which semantic order, with what intent at each step. It is not an exact call sequence — the right model is *intent matching at step level* (ToolPRMBench, arXiv:2601.12294), where each step is classified as a binary correct/incorrect decision based on whether it advances the task toward the goal, not whether it matches a specific function call.
+For trajectory evaluation, ground truth is a **reference trajectory**: a specification of which tool calls should appear, in which semantic order, with what intent at each step. It is not an exact call sequence — the right model is _intent matching at step level_ (ToolPRMBench, arXiv:2601.12294), where each step is classified as a binary correct/incorrect decision based on whether it advances the task toward the goal, not whether it matches a specific function call.
 
 Ground truth for trajectories has two components:
-1. **Structural ground truth** — deterministic facts about what the agent *must* interact with: which files must be read, which API tools must be called, which files must be created or modified
+
+1. **Structural ground truth** — deterministic facts about what the agent _must_ interact with: which files must be read, which API tools must be called, which files must be created or modified
 2. **Behavioral ground truth** — the expected semantic intent at each step: "agent should inspect the navigation tree before creating a new page" rather than "agent should call `get_file_contents` with path `src/_data/pagetree/documentation.yml` as step 4"
 
 ### Structural Ground Truth from the Repository
@@ -169,18 +176,21 @@ The Kentico docs repository provides several deterministic ground truth anchors 
 The kentico-docs-jekyll repository's git history is the primary source for reference trajectories. Each merged commit represents a completed documentation change that passed human review — the highest-quality ground truth available.
 
 **Mining procedure:**
+
 1. Run `git log --oneline -- src/_documentation/` to list commits touching documentation
 2. For each commit, extract the change set with `git diff --name-only <parent>..<commit>`
 3. Classify into the complexity tier based on file count and line delta
-4. For each Tier 2–4 commit, reconstruct the *expected agent trajectory* by working backwards: given these output files, what sequence of read operations would a well-functioning agent need to perform?
+4. For each Tier 2–4 commit, reconstruct the _expected agent trajectory_ by working backwards: given these output files, what sequence of read operations would a well-functioning agent need to perform?
 
 **Trajectory reconstruction heuristics:**
+
 - If a new `.md` file was created → the agent must have read `documentation.yml` to determine the parent and order (step must appear in reference trajectory)
 - If `related_pages` arrays were updated on existing pages → the agent must have read each of those pages before modifying them
 - If a new `.cs` file was added → the agent must have read the corresponding Xperience source at `resources/repositories/xperience/CMSSolution/` to understand the API surface
 - If the changelog was updated → the agent must have read the existing changelog format from a sibling entry
 
 **Anchor steps** (mandatory, always in reference trajectory):
+
 1. Read the JIRA issue early (first 3 steps)
 2. Read `documentation.yml` before creating any new page
 3. Read at least one sibling page for format reference before writing new content
@@ -188,6 +198,7 @@ The kentico-docs-jekyll repository's git history is the primary source for refer
 5. Compile code samples before committing (verified by `dotnet build` call or equivalent)
 
 **Optional steps** (present in reference for complex tasks, absence is acceptable for simpler tasks):
+
 - Reading the changelog format before updating it
 - Reading `_configs/_config_primary.yml` to understand collection structure
 - Checking for existing `related_pages` on affected pages before adding cross-references
@@ -196,15 +207,15 @@ The kentico-docs-jekyll repository's git history is the primary source for refer
 
 Derived from analysis of git history commits classified by tier. These are starting estimates, to be calibrated after 30 days of production data:
 
-| Task Type | Expected Steps (p50) | Expected Steps (p95) | Critical Anchor Steps |
-|-----------|---------------------|---------------------|----------------------|
-| Fix broken page_link | 4–6 | 12 | Read the referring page, verify identifier exists |
-| New documentation page | 12–18 | 35 | Read nav YAML, read 2 sibling pages, update nav YAML |
-| API reference page | 20–35 | 60 | Read source code, read nav YAML, compile code sample |
-| Revision (feedback) | 10–20 | 40 | Read original page + review comments, targeted edits |
-| Multi-page feature docs | 40–80 | 150 | Read nav YAML early; consistent identifier use across all pages |
-| .NET code sample update | 15–25 | 50 | Read Xperience source, read existing sample, `dotnet build` |
-| Changelog + metadata | 8–15 | 30 | Read existing changelog format, read version data files |
+| Task Type               | Expected Steps (p50) | Expected Steps (p95) | Critical Anchor Steps                                           |
+| ----------------------- | -------------------- | -------------------- | --------------------------------------------------------------- |
+| Fix broken page_link    | 4–6                  | 12                   | Read the referring page, verify identifier exists               |
+| New documentation page  | 12–18                | 35                   | Read nav YAML, read 2 sibling pages, update nav YAML            |
+| API reference page      | 20–35                | 60                   | Read source code, read nav YAML, compile code sample            |
+| Revision (feedback)     | 10–20                | 40                   | Read original page + review comments, targeted edits            |
+| Multi-page feature docs | 40–80                | 150                  | Read nav YAML early; consistent identifier use across all pages |
+| .NET code sample update | 15–25                | 50                   | Read Xperience source, read existing sample, `dotnet build`     |
+| Changelog + metadata    | 8–15                 | 30                   | Read existing changelog format, read version data files         |
 
 ---
 
@@ -260,6 +271,7 @@ The reference trajectories define anchor steps (read nav YAML before creating pa
 
 ```markdown
 ## Ordering Constraints (NEVER violate)
+
 - You MUST read `src/_data/pagetree/documentation.yml` BEFORE writing any new `.md` file
 - You MUST read at least 1 sibling page in the same nav section BEFORE writing content
 - You MUST run `npm run build` AFTER every file creation/modification, BEFORE committing
@@ -295,6 +307,7 @@ Rather than waiting for the eval pipeline to identify failure patterns post-hoc,
 
 ```markdown
 ## Known Failure Patterns — DO NOT REPEAT
+
 - Creating a new page without adding its `identifier` to `documentation.yml` → page unreachable
 - Writing `{% page_link IDENTIFIER %}` without verifying the identifier exists → broken link
 - Reading Xperience source from the wrong namespace path (missing `CMS.` prefix) → hallucinated API claims
@@ -309,6 +322,7 @@ Sub-agent handoffs (researcher → main agent → reviewer) currently use free-t
 
 ```markdown
 The researcher MUST return a report with these sections:
+
 1. **Existing Coverage**: file paths of all related existing doc pages
 2. **Source Findings**: exact class names, method signatures, file paths in Xperience source
 3. **Recommended Changes**: specific files to create/modify with rationale
@@ -323,15 +337,17 @@ Inline verification at critical decision points catches errors before they compo
 
 ```markdown
 After reading `documentation.yml`:
+
 - Confirm the correct parent section and note the highest sibling `order` value
 - If the parent section cannot be determined, STOP and document in the handoff
 
 After writing a new page:
+
 - Verify every `{% page_link %}` references an identifier confirmed to exist
 - Verify every `{% anchor %}` has a corresponding `{% inpage_link %}`
 ```
 
-These map directly to the structural ground truth anchors (navigation integrity, page_link validity, anchor consistency). Embedding the verification that eval checks *after the fact* into the prompt *before the fact* shortens the feedback loop from eval-time to execution-time.
+These map directly to the structural ground truth anchors (navigation integrity, page*link validity, anchor consistency). Embedding the verification that eval checks \_after the fact* into the prompt _before the fact_ shortens the feedback loop from eval-time to execution-time.
 
 ### Context Window Pressure Management
 
@@ -349,10 +365,12 @@ With 20+ MCP tools available, phase-specific tool hints narrow the action space:
 
 ```markdown
 ### Phase 2: Research
+
 Primary tools: `get_file_contents` (source code), `search_code` (find relevant files)
 Do NOT use Playwright for source code research — use the local repo clone.
 
 ### Phase 7: Create PR
+
 Primary tool: ADO REST API via `fetch` (see API reference)
 Do NOT attempt git CLI for PR creation.
 ```
@@ -372,23 +390,24 @@ Reference trajectories must be stored versioned alongside prompt versions. A ref
 
 ### Strategy-to-Metric Impact Map
 
-| Strategy | Primary Metric | Secondary Metrics |
-|---|---|---|
-| Anchor step constraints | Plan adherence, dead-end detection | Step efficiency |
-| Task-type workflow branches | Tool selection accuracy, step efficiency | Retry rate |
-| Step budget hints | Step efficiency, retry rate | — |
-| Anti-pattern encoding | Dead-end detection, argument correctness | Failure localization |
-| Intermediate output contracts | Context utilization, handoff completeness | Task decomposition coverage |
-| Self-verification checkpoints | Argument correctness, handoff completeness | Dead-end detection |
-| Context window management | Plan adherence (late trajectory) | Argument correctness |
-| Tool selection guidance | Tool selection accuracy | Step efficiency |
-| Prompt versioning | All metrics (meta-strategy) | — |
+| Strategy                      | Primary Metric                             | Secondary Metrics           |
+| ----------------------------- | ------------------------------------------ | --------------------------- |
+| Anchor step constraints       | Plan adherence, dead-end detection         | Step efficiency             |
+| Task-type workflow branches   | Tool selection accuracy, step efficiency   | Retry rate                  |
+| Step budget hints             | Step efficiency, retry rate                | —                           |
+| Anti-pattern encoding         | Dead-end detection, argument correctness   | Failure localization        |
+| Intermediate output contracts | Context utilization, handoff completeness  | Task decomposition coverage |
+| Self-verification checkpoints | Argument correctness, handoff completeness | Dead-end detection          |
+| Context window management     | Plan adherence (late trajectory)           | Argument correctness        |
+| Tool selection guidance       | Tool selection accuracy                    | Step efficiency             |
+| Prompt versioning             | All metrics (meta-strategy)                | —                           |
 
 ---
 
 ## Research Basis (Updated 2025–2026)
 
 **Trajectory and Process Evaluation:**
+
 - LangChain AgentEvals trajectory match evaluators (strict/subset mode), 2025
 - Anthropic Engineering: "Demystifying Evals for AI Agents" — outcome vs. transcript graders distinction
 - ToolPRMBench (arXiv:2601.12294, Jan 2026): process reward models for tool-using agents; offline vs. online step-level sampling; direct methodology for converting agent trajectories into step-level test cases
@@ -397,16 +416,19 @@ Reference trajectories must be stored versioned alongside prompt versions. A ref
 - Beyond Task Completion (arXiv:2512.12791): tool orchestration has the highest failure rate in complex scenarios; standard binary metrics miss failure modes entirely
 
 **Task Complexity:**
+
 - TaskCraft (arXiv:2506.10055, June 2025): atomic / depth-based / width-based taxonomy; generating atomic tasks using tool context yields 43% vs. 18.5% pass rate vs. direct prompting
 - SWE-bench Pro (arXiv:2509.16941): quantitative complexity thresholds (10 lines minimum, 107.4 lines average across 4.1 files) as concrete baselines
 - AI Agents vs. Agentic AI (arXiv:2505.10468): cross-file memory and planning as the key capability axes for multi-file sequential tasks
 
 **Ground Truth Construction:**
+
 - SCICOQA (arXiv:2601.12910, Jan 2026): cross-artifact consistency evaluation; ground truth as consistency constraints between artifacts, not a fixed reference text
 - Reference-free Evaluation (arXiv:2501.12011, Jan 2025): property-based verification when multiple valid outputs exist
 - Anthropic Engineering, 2025: "two domain experts should independently reach the same pass/fail verdict" as the ground truth validity test
 - Towards a Science of Scaling Agent Systems (arXiv:2512.08296): sequential interdependence as the core requirement for true agentic benchmarks
 
 **Benchmark Validity:**
+
 - Agentic Benchmark Checklist / ABC (arXiv:2507.02825, NeurIPS 2025): benchmark overestimation up to 100%; provenance and versioning requirements
 - CLEAR (arXiv:2511.14136): step efficiency as a primary metric; 35-point gap between single-run and multi-run evaluation

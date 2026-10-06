@@ -106,9 +106,7 @@ export default function Dashboard() {
       <div className="w-full max-w-3xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-100">
-            Ralph Status
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-100">Ralph Status</h1>
           <span className="text-xs text-gray-600">
             {agents.length} agent{agents.length !== 1 ? "s" : ""}
           </span>
@@ -116,9 +114,7 @@ export default function Dashboard() {
 
         {agents.length === 0 && (
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-            <p className="text-gray-500 text-sm">
-              No agents connected. Start a Ralph orchestrator to begin.
-            </p>
+            <p className="text-gray-500 text-sm">No agents connected. Start a Ralph orchestrator to begin.</p>
           </div>
         )}
 
@@ -128,23 +124,17 @@ export default function Dashboard() {
         ))}
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-gray-700 pt-4">
-          Auto-refreshes every 15s
-        </p>
+        <p className="text-center text-[11px] text-gray-700 pt-4">Auto-refreshes every 15s</p>
       </div>
     </main>
   );
 }
 
 function AgentCard({ agent }: { agent: AgentStatus }) {
-  const heartbeatAge = agent.lastHeartbeat
-    ? Date.now() - new Date(agent.lastHeartbeat).getTime()
-    : null;
+  const heartbeatAge = agent.lastHeartbeat ? Date.now() - new Date(agent.lastHeartbeat).getTime() : null;
   const heartbeatStale = heartbeatAge !== null && heartbeatAge > 5 * 60 * 1000;
 
-  const workingFor = agent.currentTaskStartedAt
-    ? Date.now() - new Date(agent.currentTaskStartedAt).getTime()
-    : null;
+  const workingFor = agent.currentTaskStartedAt ? Date.now() - new Date(agent.currentTaskStartedAt).getTime() : null;
 
   const shortId = agent.agentId.slice(0, 8);
 
@@ -157,9 +147,7 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
             className={`w-3.5 h-3.5 rounded-full ${STATUS_COLORS[agent.status] ?? "bg-gray-600"} shadow-lg ${STATUS_GLOW[agent.status] ?? ""} ${agent.status === "working" || agent.status === "building" ? "animate-pulse" : ""}`}
           />
           <div>
-            <p className="text-sm font-semibold capitalize text-gray-100">
-              {agent.status}
-            </p>
+            <p className="text-sm font-semibold capitalize text-gray-100">{agent.status}</p>
             <p className="text-[11px] text-gray-600 font-mono">{shortId}</p>
           </div>
         </div>
@@ -167,9 +155,7 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
           <span
             className={`inline-block w-1.5 h-1.5 rounded-full ${heartbeatStale ? "bg-yellow-500 animate-pulse" : "bg-gray-600"}`}
           />
-          {agent.lastHeartbeat
-            ? formatTimeAgo(agent.lastHeartbeat)
-            : "no heartbeat"}
+          {agent.lastHeartbeat ? formatTimeAgo(agent.lastHeartbeat) : "no heartbeat"}
         </div>
       </div>
 
@@ -177,12 +163,8 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
       {agent.currentTask && (
         <div className="pt-2 border-t border-gray-800 space-y-1.5">
           <Row label="Working on" value={agent.currentTask} highlight />
-          {agent.profileId && (
-            <Row label="Profile" value={agent.profileId} />
-          )}
-          {workingFor !== null && workingFor > 0 && (
-            <Row label="Duration" value={formatDuration(workingFor)} />
-          )}
+          {agent.profileId && <Row label="Profile" value={agent.profileId} />}
+          {workingFor !== null && workingFor > 0 && <Row label="Duration" value={formatDuration(workingFor)} />}
         </div>
       )}
 
@@ -203,31 +185,18 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
       {/* Stale warning */}
       {heartbeatStale && (
         <div className="bg-yellow-950/40 border border-yellow-800/60 rounded-lg px-3 py-2 text-yellow-400 text-[11px]">
-          Last heartbeat {formatTimeAgo(agent.lastHeartbeat)} — agent may be
-          offline
+          Last heartbeat {formatTimeAgo(agent.lastHeartbeat)} — agent may be offline
         </div>
       )}
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
+function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-baseline justify-between text-sm">
       <span className="text-gray-500">{label}</span>
-      <span
-        className={highlight ? "text-white font-semibold" : "text-gray-300"}
-      >
-        {value}
-      </span>
+      <span className={highlight ? "text-white font-semibold" : "text-gray-300"}>{value}</span>
     </div>
   );
 }

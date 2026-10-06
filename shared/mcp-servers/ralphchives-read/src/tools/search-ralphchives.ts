@@ -114,8 +114,9 @@ export const tool: ToolDefinition = {
       // Fetch from NodeBB search (exact/stem) and category listing (for fuzzy corpus) in parallel.
       // If the exact search fails (e.g. search plugin issue), continue with just the category topics.
       const [searchData, categoryTopics] = await Promise.all([
-        nodebbGet<SearchResponse>(`/api/search?${params.toString()}`)
-          .catch(() => ({ posts: [], matchCount: 0 }) as SearchResponse),
+        nodebbGet<SearchResponse>(`/api/search?${params.toString()}`).catch(
+          () => ({ posts: [], matchCount: 0 }) as SearchResponse,
+        ),
         fetchCategoryTopics(cid),
       ]);
 
@@ -172,14 +173,16 @@ export const tool: ToolDefinition = {
       }));
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            matchCount: searchData.matchCount,
-            returned: results.length,
-            results,
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              matchCount: searchData.matchCount,
+              returned: results.length,
+              results,
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

@@ -67,9 +67,13 @@ export async function executeCliCommand(
     if (err instanceof ExecaError) {
       const stderr = capture?.stderr || err.stderr || "";
       if (stderr) {
-        logger.warn(`${prefix}: CLI exited with code ${err.exitCode ?? 1} — stderr: ${stderr.length > 2000 ? stderr.slice(0, 2000) + "…" : stderr}`);
+        logger.warn(
+          `${prefix}: CLI exited with code ${err.exitCode ?? 1} — stderr: ${stderr.length > 2000 ? stderr.slice(0, 2000) + "…" : stderr}`,
+        );
       } else {
-        logger.warn(`${prefix}: CLI exited with code ${err.exitCode ?? 1} — no stderr captured (message: ${err.shortMessage})`);
+        logger.warn(
+          `${prefix}: CLI exited with code ${err.exitCode ?? 1} — no stderr captured (message: ${err.shortMessage})`,
+        );
       }
       return {
         exitCode: err.exitCode ?? 1,
@@ -86,9 +90,7 @@ export async function executeCliCommand(
 /**
  * Kill an active CLI process if one is running.
  */
-export function killActiveProcess(
-  processTracker: ProcessTracker,
-): void {
+export function killActiveProcess(processTracker: ProcessTracker): void {
   if (processTracker.activeProcess) {
     try {
       processTracker.activeProcess.kill("SIGTERM");

@@ -36,7 +36,8 @@ describe.skipIf(!hasLiveNodeBB)("ralphchives-write — live NodeBB integration",
     const result = await postTaskReport.handler(
       {
         title: "CI-TEST-001: Integration test task report",
-        content: "## What Was Done\nThis is an automated integration test.\n\n## Changes\n- Verified post_task_report works end-to-end",
+        content:
+          "## What Was Done\nThis is an automated integration test.\n\n## Changes\n- Verified post_task_report works end-to-end",
         tags: ["ci-test", "integration"],
       },
       {} as never,
@@ -108,10 +109,7 @@ describe.skipIf(!hasLiveNodeBB)("ralphchives-write — live NodeBB integration",
   });
 
   it("reply_to_thread fails gracefully for non-existent topic", async () => {
-    const result = await replyToThread.handler(
-      { topicId: 999999, content: "This should fail." },
-      {} as never,
-    );
+    const result = await replyToThread.handler({ topicId: 999999, content: "This should fail." }, {} as never);
 
     expect(result.isError).toBe(true);
     const body = JSON.parse(textContent(result));

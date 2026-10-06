@@ -56,12 +56,11 @@ export function buildTaskContext(
 ): TaskContext {
   const issueStatus = workItem.status.toLowerCase();
   const revisionStatuses = profile.match.revisionStatuses ?? [];
-  const isRevision = revisionStatuses.some(
-    (s) => s.toLowerCase() === issueStatus,
-  );
+  const isRevision = revisionStatuses.some((s) => s.toLowerCase() === issueStatus);
   const resolvedTriggerParams = buildTriggerParams(triggerParams ?? []);
   const sourceBranch = resolvedTriggerParams["source_branch"] ?? prBranches?.targetBranch ?? "main";
-  const taskBranch = resolvedTriggerParams["branch"] ?? prBranches?.sourceBranch ?? slugifyBranchName(workItem.id, workItem.title);
+  const taskBranch =
+    resolvedTriggerParams["branch"] ?? prBranches?.sourceBranch ?? slugifyBranchName(workItem.id, workItem.title);
 
   return {
     workItem,

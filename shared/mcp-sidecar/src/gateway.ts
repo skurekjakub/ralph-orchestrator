@@ -88,7 +88,7 @@ function spawnServer(managed: ManagedServer): void {
   managed.status = ServerStatus.Starting;
 
   const env: Record<string, string> = {
-    ...process.env as Record<string, string>,
+    ...(process.env as Record<string, string>),
     ...config.env,
   };
 
@@ -102,9 +102,12 @@ function spawnServer(managed: ManagedServer): void {
     // npm servers: use supergateway to bridge stdio → Streamable HTTP
     command = "supergateway";
     args = [
-      "--stdio", [config.command, ...config.args].join(" "),
-      "--outputTransport", "streamableHttp",
-      "--port", String(config.port),
+      "--stdio",
+      [config.command, ...config.args].join(" "),
+      "--outputTransport",
+      "streamableHttp",
+      "--port",
+      String(config.port),
     ];
   }
 
@@ -149,7 +152,9 @@ function spawnServer(managed: ManagedServer): void {
   child.on("close", (code, signal) => {
     if (managed.status === ServerStatus.Stopped) return; // intentional stop
 
-    logErr(`[gateway] ${config.name} exited (pid=${child.pid}, code=${code}, signal=${signal}, lastError=${managed.lastError ?? "none"})`);
+    logErr(
+      `[gateway] ${config.name} exited (pid=${child.pid}, code=${code}, signal=${signal}, lastError=${managed.lastError ?? "none"})`,
+    );
     managed.status = ServerStatus.Crashed;
     managed.process = null;
     scheduleRestart(managed);
@@ -170,7 +175,9 @@ function scheduleRestart(managed: ManagedServer): void {
   }
 
   managed.restarts++;
-  log(`[gateway] Restarting ${managed.config.name} in ${RESTART_DELAY_MS}ms (attempt ${managed.restarts}/${MAX_RESTARTS})`);
+  log(
+    `[gateway] Restarting ${managed.config.name} in ${RESTART_DELAY_MS}ms (attempt ${managed.restarts}/${MAX_RESTARTS})`,
+  );
 
   setTimeout(() => {
     if (managed.status !== ServerStatus.Stopped) {
@@ -186,7 +193,10 @@ function scheduleRestart(managed: ManagedServer): void {
 function startHealthServer(): void {
   const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     if (req.url === "/health" && req.method === "GET") {
-      const serverStatuses: Record<string, { status: string; port: number; restarts: number; lastError: string | null }> = {};
+      const serverStatuses: Record<
+        string,
+        { status: string; port: number; restarts: number; lastError: string | null }
+      > = {};
       let allHealthy = true;
 
       for (const [name, managed] of servers) {

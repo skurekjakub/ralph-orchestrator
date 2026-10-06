@@ -115,30 +115,32 @@ export class CopilotExecutor implements ICliExecutor {
     this.writePromptFile(prompt);
 
     const shellCmd = [
-      "exec", "copilot",
-      "--config-dir", CopilotExecutor.CONFIG_DIR,
-      "--additional-mcp-config", `@${CopilotExecutor.MCP_CONFIG_PATH}`,
-      "--agent", this.profile.agentName,
-      "--model", this.profile.model ?? DEFAULT_MODEL,
+      "exec",
+      "copilot",
+      "--config-dir",
+      CopilotExecutor.CONFIG_DIR,
+      "--additional-mcp-config",
+      `@${CopilotExecutor.MCP_CONFIG_PATH}`,
+      "--agent",
+      this.profile.agentName,
+      "--model",
+      this.profile.model ?? DEFAULT_MODEL,
       ...this.githubMcpFlags(),
-      "--log-level", "debug",
-      "--log-dir", CopilotExecutor.LOG_DIR,
+      "--log-level",
+      "debug",
+      "--log-dir",
+      CopilotExecutor.LOG_DIR,
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
-      "--share", CopilotExecutor.TRANSCRIPT_PATH,
+      "--share",
+      CopilotExecutor.TRANSCRIPT_PATH,
       ...promptFlags,
       `"$(cat ${CopilotExecutor.PROMPT_FILE})"`,
     ].join(" ");
 
-    const args = [
-      "--user", "vscode",
-      "app",
-      "sh", "-c", shellCmd,
-    ];
+    const args = ["--user", "vscode", "app", "sh", "-c", shellCmd];
 
-    return executeCliCommand(
-      this.compose, args, this.profile.timeoutMs, this.containerLogger, "copilot", this,
-    );
+    return executeCliCommand(this.compose, args, this.profile.timeoutMs, this.containerLogger, "copilot", this);
   }
 }

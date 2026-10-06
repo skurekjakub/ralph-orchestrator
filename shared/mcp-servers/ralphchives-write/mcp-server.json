@@ -8,9 +8,5 @@
   "sidecarPort": 9106,
   "requiredEnv": ["NODEBB_API_URL"],
   "requiredConfig": ["NODEBB_API_TOKEN", "NODEBB_CATEGORY_NAME"],
-  "tools": [
-    "post_task_report",
-    "post_observation",
-    "reply_to_thread"
-  ]
+  "tools": ["post_task_report", "post_observation", "reply_to_thread"]
 }

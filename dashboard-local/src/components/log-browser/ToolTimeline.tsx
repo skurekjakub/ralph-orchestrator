@@ -21,11 +21,12 @@ export function ToolTimeline({
   cliDebugFile?: string;
 }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const { loading, timeline, subagentSpans, subagentByName, contextWindowEntries, assistantUsageEntries } = useToolTimelineData({
-    preToolFile,
-    toolOutputFile,
-    cliDebugFile,
-  });
+  const { loading, timeline, subagentSpans, subagentByName, contextWindowEntries, assistantUsageEntries } =
+    useToolTimelineData({
+      preToolFile,
+      toolOutputFile,
+      cliDebugFile,
+    });
 
   const toggleExpand = useCallback((index: number) => {
     setExpandedIndex((prev) => (prev === index ? null : index));
@@ -45,9 +46,7 @@ export function ToolTimeline({
     <div className="flex flex-col min-h-0 h-full">
       <div className="flex flex-col gap-2 p-3 pb-2 shrink-0">
         <ToolTimelineSummary timeline={timeline} totalDuration={totalDuration} />
-        {subagentSpans.length > 0 && (
-          <SubagentOverview spans={subagentSpans} />
-        )}
+        {subagentSpans.length > 0 && <SubagentOverview spans={subagentSpans} />}
         <ContextWindowChart
           entries={contextWindowEntries}
           usageEntries={assistantUsageEntries}

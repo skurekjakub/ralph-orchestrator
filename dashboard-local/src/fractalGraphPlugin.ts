@@ -25,11 +25,19 @@ export function fractalGraphPlugin(): Plugin {
         } else if (url.pathname.startsWith("/api/fractal-graph/")) {
           const rest = decodeURIComponent(url.pathname.slice("/api/fractal-graph/".length));
           const slashIdx = rest.lastIndexOf("/");
-          if (slashIdx === -1) { res.statusCode = 400; res.end("Bad request"); return; }
+          if (slashIdx === -1) {
+            res.statusCode = 400;
+            res.end("Bad request");
+            return;
+          }
           const dir = rest.slice(0, slashIdx);
           const family = rest.slice(slashIdx + 1);
           const graph = buildFractalGraph(root, dir, family);
-          if (!graph) { res.statusCode = 404; res.end("Family not found"); return; }
+          if (!graph) {
+            res.statusCode = 404;
+            res.end("Family not found");
+            return;
+          }
           sendJson(res, graph);
         } else {
           next();
@@ -95,9 +103,7 @@ export interface FractalGraphData {
 
 function discoverFamilies(root: string): FractalFamily[] {
   const families: FractalFamily[] = [];
-  const searchDirs = [
-    { dir: ".github/agents", abs: join(root, ".github", "agents") },
-  ];
+  const searchDirs = [{ dir: ".github/agents", abs: join(root, ".github", "agents") }];
 
   const profilesDir = join(root, "profiles");
   if (existsSync(profilesDir)) {
@@ -290,9 +296,7 @@ function extractPass(content: string, name: string, family: string): { number: n
   if (passKeyMatch) {
     const rawNum = passKeyMatch[1];
     // "65" → 6.5, "1" → 1
-    const num = rawNum.length > 1 && rawNum.endsWith("5")
-      ? parseInt(rawNum.slice(0, -1)) + 0.5
-      : parseInt(rawNum);
+    const num = rawNum.length > 1 && rawNum.endsWith("5") ? parseInt(rawNum.slice(0, -1)) + 0.5 : parseInt(rawNum);
     const suffix = name.replace(family + "-", "");
     return { number: num * 10, label: `Pass ${num}: ${suffix}` };
   }
@@ -430,10 +434,7 @@ function extractResultValuesForAgent(filePath: string): string[] {
   return extractResultValues(readFileSync(filePath, "utf-8"));
 }
 
-function extractPipelineConditions(
-  content: string,
-  passes: Map<number, PipelinePass>,
-): void {
+function extractPipelineConditions(content: string, passes: Map<number, PipelinePass>): void {
   // Extract routing table conditions: `passN_name` not done → dispatch
   const condPattern = /`(pass\d+(?:5)?_\w+)`\s+(.*?)\s*\|/g;
   let m;
@@ -442,9 +443,8 @@ function extractPipelineConditions(
     const condition = m[2].trim();
     const rawNum = passKey.match(/pass(\d+(?:5)?)/)?.[1];
     if (!rawNum) continue;
-    const num = rawNum.length > 1 && rawNum.endsWith("5")
-      ? (parseInt(rawNum.slice(0, -1)) + 0.5) * 10
-      : parseInt(rawNum) * 10;
+    const num =
+      rawNum.length > 1 && rawNum.endsWith("5") ? (parseInt(rawNum.slice(0, -1)) + 0.5) * 10 : parseInt(rawNum) * 10;
     const pass = passes.get(num);
     if (pass && condition && !pass.conditions.includes(condition)) {
       pass.conditions.push(condition);

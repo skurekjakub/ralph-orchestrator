@@ -39,6 +39,7 @@ A new MCP server (lives in `shared/mcp-servers/ralphchives/`) exposed to agents 
 ### RAG Pipeline
 
 The archive needs an embedding index that's rebuilt periodically or on write. Options:
+
 - **Lightweight**: Embed at write time using the same LLM API the agents use. Store vectors alongside the JSON files. Search does cosine similarity locally.
 - **Heavier**: Use a vector DB (Qdrant, ChromaDB) running as another sidecar. More capable but adds infrastructure.
 
@@ -55,6 +56,7 @@ Given the "portable with the repo" requirement, the lightweight approach (JSON +
 ### Task Runner Integration
 
 The `TaskRunner` or the orchestrator's post-task flow needs to create the thread after each successful (or failed) run. This could be:
+
 - Automatic: orchestrator calls the MCP server directly after collecting results, doesn't rely on the agent doing it
 - Agent-initiated: the agent template instructions include "post to ralphchives" in the exit phase
 

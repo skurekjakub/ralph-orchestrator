@@ -25,7 +25,6 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-
 describe("Comment-driven orchestration flow", () => {
   describe("trigger discovery", () => {
     it("discovers unconsumed trigger comments", () => {

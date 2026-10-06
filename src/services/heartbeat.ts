@@ -50,10 +50,7 @@ export class HeartbeatSender implements IHeartbeatSender {
   private intervalMs: number;
   private logger?: Logger;
 
-  constructor({ dashboardConfig, logger }: {
-    dashboardConfig: IDashboardConfig;
-    logger?: Logger;
-  }) {
+  constructor({ dashboardConfig, logger }: { dashboardConfig: IDashboardConfig; logger?: Logger }) {
     this.dashboardUrl = dashboardConfig.url;
     this.secret = dashboardConfig.secret;
     this.intervalMs = dashboardConfig.intervalMs;

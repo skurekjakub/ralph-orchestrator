@@ -31,22 +31,22 @@ export function HistoryPanel({ completed }: HistoryPanelProps): React.ReactEleme
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text bold>
-        Completed today: {completed.length}
-      </Text>
+      <Text bold>Completed today: {completed.length}</Text>
       {completed.length === 0 ? (
-        <Text dimColor>  (none yet)</Text>
+        <Text dimColor> (none yet)</Text>
       ) : (
-        [...completed].reverse().slice(0, 5).map((task, i) => (
-          <Box key={`${task.key}-${task.completedAt}-${i}`}>
-            <Text>
-              {"  "}
-              {statusIcon(task.status)} {task.key} — {task.summary} (
-              {formatDuration(task.durationMs)})
-              {task.profileId ? ` [${task.profileId}]` : ""}
-            </Text>
-          </Box>
-        ))
+        [...completed]
+          .reverse()
+          .slice(0, 5)
+          .map((task, i) => (
+            <Box key={`${task.key}-${task.completedAt}-${i}`}>
+              <Text>
+                {"  "}
+                {statusIcon(task.status)} {task.key} — {task.summary} ({formatDuration(task.durationMs)})
+                {task.profileId ? ` [${task.profileId}]` : ""}
+              </Text>
+            </Box>
+          ))
       )}
     </Box>
   );

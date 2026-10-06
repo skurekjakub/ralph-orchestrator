@@ -41,10 +41,7 @@ export interface PromptWithSections {
  *
  * @see buildPrompt — convenience wrapper that returns only the string.
  */
-export function buildPromptWithSections(
-  workItem: WorkItem,
-  context?: IssueContext,
-): PromptWithSections {
+export function buildPromptWithSections(workItem: WorkItem, context?: IssueContext): PromptWithSections {
   const parts: string[] = [];
   const sections: PromptSection[] = [];
 
@@ -54,16 +51,11 @@ export function buildPromptWithSections(
     if (context.handoffContent) {
       const normalized = normalizeContent(context.handoffContent);
       sections.push({ source: PromptSectionSource.Handoff, fieldName: "handoff", content: normalized });
-      parts.push(
-        `Previous Handoff File:\n${"=".repeat(40)}\n${normalized}\n${"=".repeat(40)}`,
-      );
+      parts.push(`Previous Handoff File:\n${"=".repeat(40)}\n${normalized}\n${"=".repeat(40)}`);
     }
   }
 
-  parts.push(
-    `JIRA Issue: ${workItem.id}`,
-    `Title: ${workItem.title}`,
-  );
+  parts.push(`JIRA Issue: ${workItem.id}`, `Title: ${workItem.title}`);
 
   const dataParts: string[] = [];
 
@@ -78,9 +70,7 @@ export function buildPromptWithSections(
   }
 
   if (workItem.components.length > 0) {
-    dataParts.push(
-      `Components: ${workItem.components.join(", ")}`
-    );
+    dataParts.push(`Components: ${workItem.components.join(", ")}`);
   }
 
   if (workItem.priority) {
@@ -138,10 +128,7 @@ const TRIGGER_NUDGES: Record<string, (taskId: string, params?: Record<string, st
  * Only returns nudges for params that have a registered mapping in
  * {@link TRIGGER_NUDGES} and are truthy in the provided params record.
  */
-function buildTriggerNudges(
-  triggerParams: Record<string, string> | undefined,
-  taskId: string,
-): string[] {
+function buildTriggerNudges(triggerParams: Record<string, string> | undefined, taskId: string): string[] {
   if (!triggerParams) return [];
 
   const nudges: string[] = [];

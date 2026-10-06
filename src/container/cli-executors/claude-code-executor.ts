@@ -28,11 +28,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
   /** Filesystem paths specific to the Claude Code CLI. */
   readonly paths: CliPaths = {
     configDir: "/workspace/.ralph",
-    writableDirs: [
-      "/workspace/.ralph/logs",
-      "/workspace/.ralph/logs/cli-debug",
-      "/workspace/.ralph/session-state",
-    ],
+    writableDirs: ["/workspace/.ralph/logs", "/workspace/.ralph/logs/cli-debug", "/workspace/.ralph/session-state"],
     transcriptPath: "/workspace/.ralph/logs/session-transcript.md",
     logDir: "/workspace/.ralph/logs/cli-debug",
   };
@@ -96,7 +92,8 @@ export class ClaudeCodeExecutor implements ICliExecutor {
       ...promptFlags,
       `"$(cat ${ClaudeCodeExecutor.PROMPT_FILE})"`,
       "--dangerously-skip-permissions",
-      "--mcp-config", "/workspace/.ralph/mcp-config.json",
+      "--mcp-config",
+      "/workspace/.ralph/mcp-config.json",
       "--strict-mcp-config",
     ];
 
@@ -106,14 +103,8 @@ export class ClaudeCodeExecutor implements ICliExecutor {
 
     const shellCmd = `exec ${cliArgs.join(" ")}`;
 
-    const args = [
-      "--user", "vscode",
-      "app",
-      "sh", "-c", shellCmd,
-    ];
+    const args = ["--user", "vscode", "app", "sh", "-c", shellCmd];
 
-    return executeCliCommand(
-      this.compose, args, this.profile.timeoutMs, this.containerLogger, "claude", this,
-    );
+    return executeCliCommand(this.compose, args, this.profile.timeoutMs, this.containerLogger, "claude", this);
   }
 }

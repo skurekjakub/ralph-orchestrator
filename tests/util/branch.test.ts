@@ -3,28 +3,23 @@ import { slugifyBranchName } from "../../src/util/branch.js";
 
 describe("slugifyBranchName", () => {
   it("builds branch name from key and summary", () => {
-    expect(slugifyBranchName("DOC-3143", "Update API docs for v2"))
-      .toBe("ralph/DOC-3143-update-api-docs-for-v2");
+    expect(slugifyBranchName("DOC-3143", "Update API docs for v2")).toBe("ralph/DOC-3143-update-api-docs-for-v2");
   });
 
   it("strips special characters", () => {
-    expect(slugifyBranchName("DF-100", "Fix: handle (edge) case [#1]"))
-      .toBe("ralph/DF-100-fix-handle-edge-case-1");
+    expect(slugifyBranchName("DF-100", "Fix: handle (edge) case [#1]")).toBe("ralph/DF-100-fix-handle-edge-case-1");
   });
 
   it("collapses consecutive hyphens", () => {
-    expect(slugifyBranchName("DF-100", "a---b   c"))
-      .toBe("ralph/DF-100-a-b-c");
+    expect(slugifyBranchName("DF-100", "a---b   c")).toBe("ralph/DF-100-a-b-c");
   });
 
   it("handles empty summary", () => {
-    expect(slugifyBranchName("DF-100", ""))
-      .toBe("ralph/DF-100");
+    expect(slugifyBranchName("DF-100", "")).toBe("ralph/DF-100");
   });
 
   it("lowercases everything in slug", () => {
-    expect(slugifyBranchName("DOC-42", "Update README And CHANGELOG"))
-      .toBe("ralph/DOC-42-update-readme-and-changelog");
+    expect(slugifyBranchName("DOC-42", "Update README And CHANGELOG")).toBe("ralph/DOC-42-update-readme-and-changelog");
   });
 
   it("preserves issue key casing", () => {
@@ -40,8 +35,7 @@ describe("slugifyBranchName", () => {
   });
 
   it("handles summary with only special characters", () => {
-    expect(slugifyBranchName("DF-100", "!@#$%^&*()"))
-      .toBe("ralph/DF-100");
+    expect(slugifyBranchName("DF-100", "!@#$%^&*()")).toBe("ralph/DF-100");
   });
 
   it("handles unicode characters in summary", () => {

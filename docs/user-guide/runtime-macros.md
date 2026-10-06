@@ -17,16 +17,16 @@ MCP server `env` blocks in `profile.json` support runtime macros — values star
 
 Static values (no `$` prefix) pass through unchanged. All macro values resolve to strings.
 
-## $task.* — Work Item Macros
+## $task.\* — Work Item Macros
 
 Resolved from the current JIRA issue.
 
-| Macro | Returns | Example |
-|---|---|---|
-| `$task.id` | Issue key | `"DOC-3143"` |
-| `$task.project` | Project key | `"DOC"` |
-| `$task.branch` | Task branch name | `"ralph/DOC-3143-document-custom-modules"` |
-| `$task.title` | Issue summary | `"Document custom modules"` |
+| Macro           | Returns          | Example                                    |
+| --------------- | ---------------- | ------------------------------------------ |
+| `$task.id`      | Issue key        | `"DOC-3143"`                               |
+| `$task.project` | Project key      | `"DOC"`                                    |
+| `$task.branch`  | Task branch name | `"ralph/DOC-3143-document-custom-modules"` |
+| `$task.title`   | Issue summary    | `"Document custom modules"`                |
 
 ### $task.branch Details
 
@@ -38,11 +38,11 @@ If the `branch` trigger parameter is set (e.g. `@Ralph(branch=code/my-branch)`),
 
 Resolved from the JIRA comment trigger parameters.
 
-| Macro | Trigger Comment | Resolves To |
-|---|---|---|
-| `$trigger.branch` | `@Ralph(branch=feature-xyz)` | `"feature-xyz"` |
-| `$trigger.source_branch` | `@Ralph(source_branch=release/30)` | `"release/30"` |
-| `$trigger.anything` | `@Ralph` (param not provided) | `""` (empty string) |
+| Macro                    | Trigger Comment                    | Resolves To         |
+| ------------------------ | ---------------------------------- | ------------------- |
+| `$trigger.branch`        | `@Ralph(branch=feature-xyz)`       | `"feature-xyz"`     |
+| `$trigger.source_branch` | `@Ralph(source_branch=release/30)` | `"release/30"`      |
+| `$trigger.anything`      | `@Ralph` (param not provided)      | `""` (empty string) |
 
 Returns empty string when the parameter is missing or when no trigger params were provided.
 
@@ -56,11 +56,11 @@ Resolves an environment variable using a naming convention scoped to the profile
 
 All uppercase, dashes/dots/slashes converted to underscores.
 
-| Macro | Profile | Display Name | Env Var Resolved |
-|---|---|---|---|
-| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `ralph` | `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
-| `$variantEnv.NODEBB_TOKEN` | `ralph-docs` | `malph` | `NODEBB_TOKEN_RALPH_DOCS_MALPH` |
-| `$variantEnv.API_KEY` | `ralph-vscode` | `ralph` | `API_KEY_RALPH_VSCODE_RALPH` |
+| Macro                      | Profile        | Display Name | Env Var Resolved                |
+| -------------------------- | -------------- | ------------ | ------------------------------- |
+| `$variantEnv.NODEBB_TOKEN` | `ralph-docs`   | `ralph`      | `NODEBB_TOKEN_RALPH_DOCS_RALPH` |
+| `$variantEnv.NODEBB_TOKEN` | `ralph-docs`   | `malph`      | `NODEBB_TOKEN_RALPH_DOCS_MALPH` |
+| `$variantEnv.API_KEY`      | `ralph-vscode` | `ralph`      | `API_KEY_RALPH_VSCODE_RALPH`    |
 
 Throws an error at task start if the resolved env var is not set in `.env` or the environment.
 

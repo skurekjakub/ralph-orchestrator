@@ -20,14 +20,14 @@ export function validateSecurityInfra({ errors }: ValidationCollector): void {
   if (!existsSync(overlayPath)) {
     errors.push(
       `shared/security/docker-compose.security.yml not found\n` +
-      `  The security overlay is required for network isolation (Squid proxy + internal network)`
+        `  The security overlay is required for network isolation (Squid proxy + internal network)`,
     );
   }
 
   if (!existsSync(squidConfPath)) {
     errors.push(
       `shared/security/squid.conf not found\n` +
-      `  The Squid proxy allowlist config is required by the security overlay`
+        `  The Squid proxy allowlist config is required by the security overlay`,
     );
   }
 
@@ -61,14 +61,14 @@ export function validateSecurityInfra({ errors }: ValidationCollector): void {
     if (!content.includes("ralph-internal")) {
       errors.push(
         `${prefix}/docker-compose.yml: missing ralph-internal network\n` +
-        `  The app service must use the ralph-internal network for security overlay compatibility`
+          `  The app service must use the ralph-internal network for security overlay compatibility`,
       );
     }
 
     if (content.includes("docker.sock")) {
       errors.push(
         `${prefix}/docker-compose.yml: Docker socket mount detected\n` +
-        `  Remove /var/run/docker.sock — the agent does not need host Docker access`
+          `  Remove /var/run/docker.sock — the agent does not need host Docker access`,
       );
     }
   }

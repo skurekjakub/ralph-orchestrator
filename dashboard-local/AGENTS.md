@@ -1,6 +1,7 @@
 # Dashboard-Local Agent Instructions
 
 Local Vite + React 19 + Tailwind UI for inspecting orchestrator runs.
+
 - Live status comes from the orchestrator's WebSocket server at `ws://localhost:3100` (`src/useDashboard.ts`).
 - Logs, agent graphs and fractal graphs come from Vite middleware plugins (`src/*Plugin.ts`) that read the parent repo. For example, `logApiPlugin.ts` serves `../output/logs/`, and `agentGraphPlugin.ts` reads `profiles/`, `shared/agent-includes/` and `shared/skills/`.
 

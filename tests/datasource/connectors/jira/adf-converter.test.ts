@@ -40,25 +40,24 @@ describe("extractAdfText", () => {
   });
 
   it("converts headings with proper level", () => {
-    const result = extractAdfText(doc(
-      { type: "heading", attrs: { level: 2 }, content: [text("Title")] },
-    ));
+    const result = extractAdfText(doc({ type: "heading", attrs: { level: 2 }, content: [text("Title")] }));
     expect(result).toBe("## Title");
   });
 
   it("renders inline cards as markdown links", () => {
-    const result = extractAdfText(doc(p(
-      text("See "),
-      { type: "inlineCard", attrs: { url: "https://jira.example.com/browse/DOC-123" } },
-    )));
+    const result = extractAdfText(
+      doc(p(text("See "), { type: "inlineCard", attrs: { url: "https://jira.example.com/browse/DOC-123" } })),
+    );
     expect(result).toBe("See [https://jira.example.com/browse/DOC-123](https://jira.example.com/browse/DOC-123)");
   });
 
   it("renders blockCard and embedCard as links", () => {
-    const result = extractAdfText(doc(
-      { type: "blockCard", attrs: { url: "https://example.com" } },
-      { type: "embedCard", attrs: { url: "https://embed.com" } },
-    ));
+    const result = extractAdfText(
+      doc(
+        { type: "blockCard", attrs: { url: "https://example.com" } },
+        { type: "embedCard", attrs: { url: "https://embed.com" } },
+      ),
+    );
     expect(result).toBe("[https://example.com](https://example.com)\n\n[https://embed.com](https://embed.com)");
   });
 
@@ -83,64 +82,72 @@ describe("extractAdfText", () => {
   });
 
   it("renders link marks as markdown links", () => {
-    const result = extractAdfText(doc(p(
-      text("click here", [{ type: "link", attrs: { href: "https://example.com" } }]),
-    )));
+    const result = extractAdfText(
+      doc(p(text("click here", [{ type: "link", attrs: { href: "https://example.com" } }]))),
+    );
     expect(result).toBe("[click here](https://example.com)");
   });
 
   it("stacks multiple marks on the same text", () => {
-    const result = extractAdfText(doc(p(
-      text("important", [{ type: "strong" }, { type: "em" }]),
-    )));
+    const result = extractAdfText(doc(p(text("important", [{ type: "strong" }, { type: "em" }]))));
     expect(result).toBe("_**important**_");
   });
 
   it("renders bullet lists", () => {
-    const result = extractAdfText(doc({
-      type: "bulletList",
-      content: [
-        { type: "listItem", content: [p(text("Item A"))] },
-        { type: "listItem", content: [p(text("Item B"))] },
-      ],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "bulletList",
+        content: [
+          { type: "listItem", content: [p(text("Item A"))] },
+          { type: "listItem", content: [p(text("Item B"))] },
+        ],
+      }),
+    );
     expect(result).toBe("  * Item A\n  * Item B");
   });
 
   it("renders ordered lists with correct numbering", () => {
-    const result = extractAdfText(doc({
-      type: "orderedList",
-      content: [
-        { type: "listItem", content: [p(text("First"))] },
-        { type: "listItem", content: [p(text("Second"))] },
-        { type: "listItem", content: [p(text("Third"))] },
-      ],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "orderedList",
+        content: [
+          { type: "listItem", content: [p(text("First"))] },
+          { type: "listItem", content: [p(text("Second"))] },
+          { type: "listItem", content: [p(text("Third"))] },
+        ],
+      }),
+    );
     expect(result).toBe("  1. First\n  2. Second\n  3. Third");
   });
 
   it("renders code blocks with language", () => {
-    const result = extractAdfText(doc({
-      type: "codeBlock",
-      attrs: { language: "typescript" },
-      content: [text("const x = 1;")],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "codeBlock",
+        attrs: { language: "typescript" },
+        content: [text("const x = 1;")],
+      }),
+    );
     expect(result).toBe("``` typescript\nconst x = 1;\n```");
   });
 
   it("renders code blocks without language", () => {
-    const result = extractAdfText(doc({
-      type: "codeBlock",
-      content: [text("plain code")],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "codeBlock",
+        content: [text("plain code")],
+      }),
+    );
     expect(result).toBe("```\nplain code\n```");
   });
 
   it("renders blockquotes", () => {
-    const result = extractAdfText(doc({
-      type: "blockquote",
-      content: [p(text("A quote"))],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "blockquote",
+        content: [p(text("A quote"))],
+      }),
+    );
     expect(result).toBe("> A quote");
   });
 
@@ -150,42 +157,37 @@ describe("extractAdfText", () => {
   });
 
   it("renders emojis by shortName", () => {
-    const result = extractAdfText(doc(p(
-      text("Hello "),
-      { type: "emoji", attrs: { shortName: ":wave:" } },
-    )));
+    const result = extractAdfText(doc(p(text("Hello "), { type: "emoji", attrs: { shortName: ":wave:" } })));
     expect(result).toBe("Hello :wave:");
   });
 
   it("renders hard breaks as newlines", () => {
-    const result = extractAdfText(doc(p(
-      text("Line 1"),
-      { type: "hardBreak" },
-      text("Line 2"),
-    )));
+    const result = extractAdfText(doc(p(text("Line 1"), { type: "hardBreak" }, text("Line 2"))));
     expect(result).toBe("Line 1\nLine 2");
   });
 
   it("renders tables with headers", () => {
-    const result = extractAdfText(doc({
-      type: "table",
-      content: [
-        {
-          type: "tableRow",
-          content: [
-            { type: "tableHeader", content: [p(text("Name"))] },
-            { type: "tableHeader", content: [p(text("Value"))] },
-          ],
-        },
-        {
-          type: "tableRow",
-          content: [
-            { type: "tableCell", content: [p(text("foo"))] },
-            { type: "tableCell", content: [p(text("bar"))] },
-          ],
-        },
-      ],
-    }));
+    const result = extractAdfText(
+      doc({
+        type: "table",
+        content: [
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableHeader", content: [p(text("Name"))] },
+              { type: "tableHeader", content: [p(text("Value"))] },
+            ],
+          },
+          {
+            type: "tableRow",
+            content: [
+              { type: "tableCell", content: [p(text("foo"))] },
+              { type: "tableCell", content: [p(text("bar"))] },
+            ],
+          },
+        ],
+      }),
+    );
     expect(result).toContain("|Name|Value|");
     expect(result).toContain("|foo|bar|");
   });
@@ -195,24 +197,14 @@ describe("extractAdfText", () => {
   });
 
   it("skips unknown node types gracefully", () => {
-    const result = extractAdfText(doc(
-      p(text("Hello")),
-      { type: "unknownCustomNode", content: [] },
-      p(text("World")),
-    ));
+    const result = extractAdfText(doc(p(text("Hello")), { type: "unknownCustomNode", content: [] }, p(text("World"))));
     expect(result).toBe("Hello\n\n\n\nWorld");
   });
 
   it("handles a realistic JIRA description", () => {
     const adf = doc(
-      p(
-        { type: "inlineCard", attrs: { url: "https://jira.example.com/browse/KX-123" } },
-      ),
-      p(
-        text("The full changes can be found under "),
-        text("fe3797f", [{ type: "code" }]),
-        text(" in the repo."),
-      ),
+      p({ type: "inlineCard", attrs: { url: "https://jira.example.com/browse/KX-123" } }),
+      p(text("The full changes can be found under "), text("fe3797f", [{ type: "code" }]), text(" in the repo.")),
       p(text("Notes")),
       {
         type: "bulletList",

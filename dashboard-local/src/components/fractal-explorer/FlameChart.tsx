@@ -113,13 +113,7 @@ export function FlameChart({ root, allNodes, onSelectNode }: FlameChartProps) {
               >
                 <rect x={x} y={y} width={w} height={ROW_HEIGHT} rx={3} fill={color} opacity="0.8" />
                 {w > 40 && (
-                  <text
-                    x={x + 4}
-                    y={y + ROW_HEIGHT / 2 + 3}
-                    fontSize="9"
-                    fill="white"
-                    className="pointer-events-none"
-                  >
+                  <text x={x + 4} y={y + ROW_HEIGHT / 2 + 3} fontSize="9" fill="white" className="pointer-events-none">
                     {node.name}
                   </text>
                 )}
@@ -135,7 +129,9 @@ export function FlameChart({ root, allNodes, onSelectNode }: FlameChartProps) {
           className="fixed z-50 px-2 py-1.5 rounded bg-[#1e293b] border border-[#334155] text-xs text-white pointer-events-none"
           style={{ left: tooltip.x + 12, top: tooltip.y - 40 }}
         >
-          <div className="font-medium">{tooltip.node.name} #{tooltip.node.invocationIndex}</div>
+          <div className="font-medium">
+            {tooltip.node.name} #{tooltip.node.invocationIndex}
+          </div>
           <div className="text-[#94a3b8]">
             Depth {tooltip.node.depth} · {formatDuration(tooltip.node.durationMs)} · {tooltip.node.toolCallCount} tools
           </div>

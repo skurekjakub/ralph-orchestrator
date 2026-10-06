@@ -36,13 +36,13 @@ Add the name to the `skills` array of the stage whose agent (or its subagents) w
 
 Choose the lightest pattern that works. Each has a live example:
 
-| Pattern | Use for | Example |
-|---|---|---|
-| **Skills table** (`## Skills` + `\| Skill \| What it covers \|`) | Knowledge the subagent always needs | `profiles/ralph-docs/agents/ralph.ralph-researcher.agent.md` |
-| **Two-tier table** (always load / load when relevant, conditional rows gated by `{%- if triggerParams.x %}`) | Many optional skills where loading all of them wastes context | `profiles/ralph-docs/agents/ralph.ralph-planner.agent.md` |
-| **Authoritative reference** ("read cover to cover; if a rule isn't in these skills it isn't a finding") | Reviewers whose acceptance criteria are the skills | `shared/agent-includes/ralph-docs/ralph-reviewer-style-body.md` |
-| **Inline bold at a step** ("2. READ **test-behavior-testing**, …") | Guidance needed at one precise step | `profiles/ralph-vscode/agents/ralph.ralph-coder.agent.md` |
-| **Conditional section** (whole block inside `{%- if triggerParams.codesamples %}`) | Feature-gated work (`@RalphDf(codesamples)`) | `shared/agent-includes/ralph-docs/ralph-standard-workflow.md` |
+| Pattern                                                                                                      | Use for                                                       | Example                                                         |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Skills table** (`## Skills` + `\| Skill \| What it covers \|`)                                             | Knowledge the subagent always needs                           | `profiles/ralph-docs/agents/ralph.ralph-researcher.agent.md`    |
+| **Two-tier table** (always load / load when relevant, conditional rows gated by `{%- if triggerParams.x %}`) | Many optional skills where loading all of them wastes context | `profiles/ralph-docs/agents/ralph.ralph-planner.agent.md`       |
+| **Authoritative reference** ("read cover to cover; if a rule isn't in these skills it isn't a finding")      | Reviewers whose acceptance criteria are the skills            | `shared/agent-includes/ralph-docs/ralph-reviewer-style-body.md` |
+| **Inline bold at a step** ("2. READ **test-behavior-testing**, …")                                           | Guidance needed at one precise step                           | `profiles/ralph-vscode/agents/ralph.ralph-coder.agent.md`       |
+| **Conditional section** (whole block inside `{%- if triggerParams.codesamples %}`)                           | Feature-gated work (`@RalphDf(codesamples)`)                  | `shared/agent-includes/ralph-docs/ralph-standard-workflow.md`   |
 
 Anti-patterns: skills in the orchestrator prompt (except its workflow router), skill content pasted into the template, a mandatory skill behind a conditional, the same skill on every subagent "just in case", referencing a skill the stage doesn't register.
 

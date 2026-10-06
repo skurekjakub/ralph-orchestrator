@@ -80,9 +80,7 @@ export class NodeBBFetcher {
     const maxPages = 50; // safety limit
 
     while (page <= maxPages) {
-      const data = await this.get<{ topics: NodeBBTopic[]; nextStart: number }>(
-        `/api/recent?page=${page}`,
-      );
+      const data = await this.get<{ topics: NodeBBTopic[]; nextStart: number }>(`/api/recent?page=${page}`);
       const batch = data.topics ?? [];
       if (batch.length === 0) break;
 

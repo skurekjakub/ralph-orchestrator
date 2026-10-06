@@ -1,6 +1,15 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, API_VERSION, apiBase, errorResult, reqConfig, TASK_PROJECT, TASK_REPO, TASK_BRANCH } from "../shared.js";
+import {
+  type ToolDefinition,
+  API_VERSION,
+  apiBase,
+  errorResult,
+  reqConfig,
+  TASK_PROJECT,
+  TASK_REPO,
+  TASK_BRANCH,
+} from "../shared.js";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   status: z.enum(["active", "completed", "abandoned", "all"]).optional().describe("PR status filter (default: active)"),
@@ -10,7 +19,8 @@ const inputSchema: Record<string, z.ZodTypeAny> = {
 
 if (!TASK_PROJECT) inputSchema.project = z.string().describe("ADO project name");
 if (!TASK_REPO) inputSchema.repositoryId = z.string().describe("Repository name or GUID");
-if (!TASK_BRANCH) inputSchema.sourceRefName = z.string().optional().describe("Filter by source branch (e.g. refs/heads/feature)");
+if (!TASK_BRANCH)
+  inputSchema.sourceRefName = z.string().optional().describe("Filter by source branch (e.g. refs/heads/feature)");
 
 export const tool: ToolDefinition = {
   name: "ado_list_pull_requests",
@@ -23,7 +33,11 @@ export const tool: ToolDefinition = {
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);
     const repositoryId = TASK_REPO ?? String(args.repositoryId);
-    const sourceRefName = TASK_BRANCH ? `refs/heads/${TASK_BRANCH}` : args.sourceRefName ? String(args.sourceRefName) : undefined;
+    const sourceRefName = TASK_BRANCH
+      ? `refs/heads/${TASK_BRANCH}`
+      : args.sourceRefName
+        ? String(args.sourceRefName)
+        : undefined;
     const { status, targetRefName, top } = args;
 
     const params = new URLSearchParams({ "api-version": API_VERSION });
@@ -46,7 +60,9 @@ export const tool: ToolDefinition = {
         isDraft: pr.isDraft,
       }));
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ success: true, count: prs.length, pullRequests: prs }) }],
+        content: [
+          { type: "text" as const, text: JSON.stringify({ success: true, count: prs.length, pullRequests: prs }) },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

@@ -21,9 +21,7 @@ export function generateProfileSquidConf(baselineSquidPath: string, profileDomai
     return baseline.replace(PROFILE_DOMAINS_MARKER, "# (no profile-specific domains)");
   }
 
-  const domainLines = profileDomains
-    .map((d) => `acl allowed_domains dstdomain ${d}`)
-    .join("\n");
+  const domainLines = profileDomains.map((d) => `acl allowed_domains dstdomain ${d}`).join("\n");
   const block = `# Profile-specific domains\n${domainLines}`;
 
   return baseline.replace(PROFILE_DOMAINS_MARKER, block);

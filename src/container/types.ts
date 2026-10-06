@@ -38,7 +38,10 @@ export interface ContainerManagerFactory {
   /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
   forceDown(profile: IAgentProfile): Promise<void>;
   /** Create a local executor + session runner pair for a hook stage (no container needed). */
-  createLocalSession(profile: IAgentProfile, stage: IStageConfig): { executor: ICliExecutor; sessionRunner: IAgentSessionRunner };
+  createLocalSession(
+    profile: IAgentProfile,
+    stage: IStageConfig,
+  ): { executor: ICliExecutor; sessionRunner: IAgentSessionRunner };
 }
 
 /** Final task status — from the agent's structured output or inferred from exit code. */

@@ -43,6 +43,7 @@ The Copilot CLI docs may reveal flags or configuration options relevant to headl
 ### Codebase Impact
 
 Findings would primarily affect:
+
 - `CopilotExecutor.run()` — additional flags in the command array
 - `profile-setup.ts` — new config file generation if config-based settings are needed
 - `config.ts` — new profile-level options if settings vary per profile
@@ -56,7 +57,7 @@ The `CliExecutorFactory` currently blocks Claude Code:
 
 ```typescript
 // src/container/cli-executor-factory.ts
-"GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env"
+"GH_TOKEN is required — Copilot CLI is the only supported CLI. Set GH_TOKEN in .env";
 ```
 
 The Claude Code executor exists (`claude-code-executor.ts`) and structurally works, but was disabled because:
@@ -70,21 +71,25 @@ The Claude Code executor exists (`claude-code-executor.ts`) and structurally wor
 ### What Hardening Means
 
 **Network layer** (already in place):
+
 - Squid proxy blocks all non-allowlisted domains
 - Internal-only Docker network prevents direct egress
 - This is the same for both CLIs — Claude Code benefits equally
 
 **Filesystem layer** (needs work):
+
 - Read-only mounts for agent templates and configs (already done via compose)
 - `cleanPaths` wipe between runs (already done)
 - Consider: mount the target repo as a separate volume with restricted write paths
 
 **Audit layer** (needs work):
+
 - Parse Claude Code's stdout output for tool-use patterns (function calls, file writes, shell commands)
 - Build an equivalent audit trail from parsed output since hooks aren't available
 - The `StreamCapture` already captures all output — add a parsing layer on top
 
 **MCP layer** (already in place):
+
 - `--mcp-config` + `--strict-mcp-config` controls which MCP servers are available
 - Same `mcp-config.json` generation pipeline as Copilot
 - Gateway runs in the sidecar — credentials isolated from agent container

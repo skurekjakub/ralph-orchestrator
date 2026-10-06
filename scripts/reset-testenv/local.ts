@@ -12,7 +12,9 @@ import type { ResetContext } from "./types.js";
 export function clearLedger(ctx: ResetContext) {
   const historyDir = resolve(ctx.rootDir, "output/logs/history");
   const dataSources = existsSync(historyDir)
-    ? readdirSync(historyDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)
+    ? readdirSync(historyDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
     : [];
 
   let deleted = 0;
@@ -50,9 +52,7 @@ export function clearLogFiles(ctx: ResetContext) {
   const logDir = resolve(ctx.rootDir, "output/logs");
   if (!existsSync(logDir)) return;
 
-  const entries = readdirSync(logDir).filter(
-    (f) => f.startsWith(`${ctx.issueKey}-`),
-  );
+  const entries = readdirSync(logDir).filter((f) => f.startsWith(`${ctx.issueKey}-`));
   if (entries.length > 0) {
     for (const f of entries) {
       const fullPath = resolve(logDir, f);

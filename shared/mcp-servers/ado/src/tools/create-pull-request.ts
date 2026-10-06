@@ -1,6 +1,18 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, apiBase, errorResult, reqConfig, repoUrl, sanitizeContent, TASK_PROJECT, TASK_REPO, TASK_BRANCH, TARGET_BRANCH, SOURCE_BRANCH } from "../shared.js";
+import {
+  type ToolDefinition,
+  apiBase,
+  errorResult,
+  reqConfig,
+  repoUrl,
+  sanitizeContent,
+  TASK_PROJECT,
+  TASK_REPO,
+  TASK_BRANCH,
+  TARGET_BRANCH,
+  SOURCE_BRANCH,
+} from "../shared.js";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Pull request title"),
@@ -42,15 +54,17 @@ export const tool: ToolDefinition = {
       const res = await axios.post(url, body, reqConfig());
       const pr = res.data;
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            success: true,
-            pullRequestId: pr.pullRequestId,
-            status: pr.status,
-            url: `${apiBase}/${encodeURIComponent(project)}/_git/${encodeURIComponent(repositoryId)}/pullrequest/${pr.pullRequestId}`,
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              success: true,
+              pullRequestId: pr.pullRequestId,
+              status: pr.status,
+              url: `${apiBase}/${encodeURIComponent(project)}/_git/${encodeURIComponent(repositoryId)}/pullrequest/${pr.pullRequestId}`,
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

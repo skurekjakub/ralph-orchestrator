@@ -15,9 +15,7 @@
     ".pypi.org",
     ".pythonhosted.org"
   ],
-  "cleanPaths": [
-    "/workspace/.ralph/tasks"
-  ],
+  "cleanPaths": ["/workspace/.ralph/tasks"],
   "maxContinuations": 3,
   "mcpServers": [
     {
@@ -57,27 +55,17 @@
       }
     }
   ],
-  "githubMcpTools": [
-    "get_file_contents"
-  ],
+  "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "./ralph/ralph-resources"
   },
   "variants": [
     {
       "match": {
-        "projects": [
-          "DOC",
-          "DF"
-        ],
-        "statuses": [
-          "To Do",
-          "Defect Found"
-        ],
+        "projects": ["DOC", "DF"],
+        "statuses": ["To Do", "Defect Found"],
         "commentTrigger": "@Ralph",
-        "revisionStatuses": [
-          "Defect Found"
-        ]
+        "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": {
         "targetStatus": "In Progress"
@@ -85,8 +73,7 @@
       "afterAgent": {
         "targetStatus": "Ready for Review"
       },
-      "mcpServers": [
-      ],
+      "mcpServers": [],
       "stages": [
         {
           "agent": "ralph.ralph",
@@ -128,17 +115,11 @@
     },
     {
       "match": {
-        "projects": [
-          "DF",
-          "DOC"
-        ],
-        "statuses": [
-          "Ready for Review"
-        ],
+        "projects": ["DF", "DOC"],
+        "statuses": ["Ready for Review"],
         "commentTrigger": "@Malph"
       },
-      "mcpServers": [
-      ],
+      "mcpServers": [],
       "stages": [
         {
           "agent": "ralph.malph",
@@ -175,18 +156,10 @@
     {
       "description": "Fullstack developer agent for documentation platform infrastructure — Ruby gems, Gulp pipeline, frontend JS, CSS, Jekyll templates.",
       "match": {
-        "projects": [
-          "DOC",
-          "DF"
-        ],
-        "statuses": [
-          "To Do",
-          "Defect Found"
-        ],
+        "projects": ["DOC", "DF"],
+        "statuses": ["To Do", "Defect Found"],
         "commentTrigger": "@RalphDev",
-        "revisionStatuses": [
-          "Defect Found"
-        ]
+        "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": {
         "targetStatus": "In Progress"

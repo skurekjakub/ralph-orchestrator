@@ -1,7 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { Orchestrator } from "../../src/orchestrator.js";
 import { makeProfile, makeWorkItem, makeDataSourceConfig } from "../helpers/factories.js";
-import { createMockIssueManager, createMockTaskRunner, createMockPoller, createMockResources, createMockVcsSourceClient, createSilentLogger } from "../helpers/mocks.js";
+import {
+  createMockIssueManager,
+  createMockTaskRunner,
+  createMockPoller,
+  createMockResources,
+  createMockVcsSourceClient,
+  createSilentLogger,
+} from "../helpers/mocks.js";
 import type { IActivityLog } from "../../src/services/activity-log.js";
 import { OperationStatus, type IOperationLedger, type Operation } from "../../src/services/operation-ledger.js";
 import type { IProfileRouter } from "../../src/services/profile-router.js";
@@ -83,10 +90,12 @@ interface OrchestratorTestHarness {
   profile: ReturnType<typeof makeProfile>;
 }
 
-function createOrchestrator(opts: {
-  pendingOps?: Array<{ issueKey: string; operation: Operation }>;
-  taskRunnerRun?: (...args: any[]) => Promise<any>;
-} = {}): OrchestratorTestHarness {
+function createOrchestrator(
+  opts: {
+    pendingOps?: Array<{ issueKey: string; operation: Operation }>;
+    taskRunnerRun?: (...args: any[]) => Promise<any>;
+  } = {},
+): OrchestratorTestHarness {
   const profile = makeProfile({
     id: "ralph-docs",
     match: { projects: ["DF"], statuses: [], commentTrigger: TRIGGER },
@@ -131,22 +140,26 @@ describe("Orchestrator shutdown", () => {
       taskRunnerRun: (ctx: TaskContext) =>
         new Promise((resolve) => {
           // Wait for abort signal, then resolve after a brief cleanup delay
-          ctx.signal.addEventListener("abort", () => {
-            teardownOrder.push("task-aborted");
-            // Simulate container teardown delay
-            setTimeout(() => {
-              teardownOrder.push("task-cleanup-done");
-              resolve({
-                taskId: ctx.workItem.id,
-                status: TaskStatus.Error,
-                durationMs: 0,
-                exitCode: 1,
-                stdout: "",
-                stderr: "aborted",
-                collectedLogs: {},
-              });
-            }, 50);
-          }, { once: true });
+          ctx.signal.addEventListener(
+            "abort",
+            () => {
+              teardownOrder.push("task-aborted");
+              // Simulate container teardown delay
+              setTimeout(() => {
+                teardownOrder.push("task-cleanup-done");
+                resolve({
+                  taskId: ctx.workItem.id,
+                  status: TaskStatus.Error,
+                  durationMs: 0,
+                  exitCode: 1,
+                  stdout: "",
+                  stderr: "aborted",
+                  collectedLogs: {},
+                });
+              }, 50);
+            },
+            { once: true },
+          );
         }),
     });
 
@@ -160,11 +173,7 @@ describe("Orchestrator shutdown", () => {
     await orchestrator.shutdown();
     teardownOrder.push("shutdown-resolved");
 
-    expect(teardownOrder).toEqual([
-      "task-aborted",
-      "task-cleanup-done",
-      "shutdown-resolved",
-    ]);
+    expect(teardownOrder).toEqual(["task-aborted", "task-cleanup-done", "shutdown-resolved"]);
 
     // Verify teardown was called
     expect(taskRunner.teardown).toHaveBeenCalled();
@@ -196,9 +205,13 @@ describe("Orchestrator shutdown", () => {
     const { orchestrator } = createOrchestrator({
       taskRunnerRun: (ctx: TaskContext) =>
         new Promise((_, reject) => {
-          ctx.signal.addEventListener("abort", () => {
-            reject(new Error("Container crashed"));
-          }, { once: true });
+          ctx.signal.addEventListener(
+            "abort",
+            () => {
+              reject(new Error("Container crashed"));
+            },
+            { once: true },
+          );
         }),
     });
 

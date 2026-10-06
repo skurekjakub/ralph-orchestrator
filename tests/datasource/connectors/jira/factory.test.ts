@@ -24,9 +24,7 @@ describe("createJiraDataSource", () => {
     delete process.env.JIRA_EMAIL_TEST_SOURCE;
     const ds = makeDataSourceConfig();
 
-    expect(() => createJiraDataSource("test-source", ds, [makeProfile()])).toThrow(
-      "JIRA_PAT_TEST_SOURCE",
-    );
+    expect(() => createJiraDataSource("test-source", ds, [makeProfile()])).toThrow("JIRA_PAT_TEST_SOURCE");
   });
 
   it("rejects invalid baseUrl in connection config", () => {

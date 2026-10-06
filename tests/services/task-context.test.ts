@@ -26,10 +26,10 @@ describe("buildTaskContext", () => {
   });
 
   it("converts string[] triggerParams to Record", () => {
-    const ctx = buildTaskContext(
-      makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig,
-      ["codesamples", "branch=develop"],
-    );
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig, [
+      "codesamples",
+      "branch=develop",
+    ]);
 
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch: "develop" });
     expect(ctx.taskBranch).toBe("develop");

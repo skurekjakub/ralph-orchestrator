@@ -9,8 +9,8 @@ export function validateConfigFile(collector: ValidationCollector): void {
   if (!existsSync(configPath)) {
     collector.errors.push(
       `config.json not found at ${configPath}\n` +
-      `  Copy config.json.sample to config.json and adjust as needed:\n` +
-      `  cp config.json.sample config.json`
+        `  Copy config.json.sample to config.json and adjust as needed:\n` +
+        `  cp config.json.sample config.json`,
     );
     return;
   }

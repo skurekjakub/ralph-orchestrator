@@ -12,7 +12,7 @@ function createMockSource(items: ReturnType<typeof makeWorkItem>[] = []): IWorkI
     searchWorkItems: vi.fn().mockResolvedValue(items),
     refreshWorkItem: vi.fn(),
     isValidItemId: vi.fn().mockReturnValue(true),
-    getAllowedUsers: vi.fn().mockReturnValue([])
+    getAllowedUsers: vi.fn().mockReturnValue([]),
   };
 }
 
@@ -135,9 +135,7 @@ describe("JiraWorkItemPoller", () => {
     const newer = makeWorkItem("DF-2", { created: "2026-02-01T00:00:00Z" });
 
     // Return newer first
-    vi.mocked(source.searchWorkItems)
-      .mockResolvedValueOnce([newer])
-      .mockResolvedValueOnce([older]);
+    vi.mocked(source.searchWorkItems).mockResolvedValueOnce([newer]).mockResolvedValueOnce([older]);
 
     poller.start();
     await vi.runOnlyPendingTimersAsync();

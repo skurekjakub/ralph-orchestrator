@@ -1,6 +1,10 @@
 import type { Logger } from "../logger.js";
 import type { TaskContext } from "./task-context.js";
-import { buildTemplateContext, type StageOverrides, type IAgentTemplateRenderer } from "../container/setup/agent-includes.js";
+import {
+  buildTemplateContext,
+  type StageOverrides,
+  type IAgentTemplateRenderer,
+} from "../container/setup/agent-includes.js";
 import type { ISkillTemplateRenderer } from "../container/setup/skill-includes.js";
 import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params.js";
 import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer.js";
@@ -34,7 +38,13 @@ export class ProfileSetupService implements IProfileSetupService {
   private readonly overlayWriter: IComposeOverlayWriter;
   private readonly jitMcpConfig: IJitMcpConfigWriter;
 
-  constructor({ logger, templateRenderer, skillRenderer, overlayWriter, jitMcpConfig }: {
+  constructor({
+    logger,
+    templateRenderer,
+    skillRenderer,
+    overlayWriter,
+    jitMcpConfig,
+  }: {
     logger: Logger;
     templateRenderer: IAgentTemplateRenderer;
     skillRenderer: ISkillTemplateRenderer;

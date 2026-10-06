@@ -15,7 +15,7 @@ async function collectMdFiles(dir: string): Promise<string[]> {
   for (const entry of entries) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
-      results.push(...await collectMdFiles(full));
+      results.push(...(await collectMdFiles(full)));
     } else if (entry.name.endsWith(".md")) {
       results.push(full);
     }

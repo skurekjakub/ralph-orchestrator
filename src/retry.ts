@@ -30,9 +30,7 @@ export async function withRetry<T>(
     } catch (err) {
       if (i === attempts) throw err;
       const wait = delayMs * i;
-      logger?.warn?.(
-        `${label} failed (attempt ${i}/${attempts}), retrying in ${wait}ms...`,
-      );
+      logger?.warn?.(`${label} failed (attempt ${i}/${attempts}), retrying in ${wait}ms...`);
       await sleep(wait);
     }
   }

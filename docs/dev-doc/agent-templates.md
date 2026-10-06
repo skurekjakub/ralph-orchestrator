@@ -45,56 +45,56 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 
 ### Profile Metadata
 
-| Variable | Type | Example | Description |
-|---|---|---|---|
-| `profileId` | `string` | `"ralph-docs"` | Profile directory name |
-| `repo` | `string` | `"/home/user/repositories/kentico-docs-jekyll"` | Absolute path to the target repo on the host |
-| `targetRepoPath` | `string` | *(same as `repo`)* | Alias for `repo` |
-| `cli` | `string` | `"copilot"` | CLI type (`copilot` or `claude`) |
-| `model` | `string` | `"claude-opus-4.6"` | Model override, empty string for CLI default |
-| `agentName` | `string` | `"ralph.ralph"` | Raw CLI agent name |
-| `displayName` | `string` | `"ralph"` | Human-friendly name (prefix stripped) |
-| `mcpServers` | `string[]` | `["jira-kentico", "ado"]` | MCP servers available to this profile |
+| Variable         | Type       | Example                                         | Description                                  |
+| ---------------- | ---------- | ----------------------------------------------- | -------------------------------------------- |
+| `profileId`      | `string`   | `"ralph-docs"`                                  | Profile directory name                       |
+| `repo`           | `string`   | `"/home/user/repositories/kentico-docs-jekyll"` | Absolute path to the target repo on the host |
+| `targetRepoPath` | `string`   | _(same as `repo`)_                              | Alias for `repo`                             |
+| `cli`            | `string`   | `"copilot"`                                     | CLI type (`copilot` or `claude`)             |
+| `model`          | `string`   | `"claude-opus-4.6"`                             | Model override, empty string for CLI default |
+| `agentName`      | `string`   | `"ralph.ralph"`                                 | Raw CLI agent name                           |
+| `displayName`    | `string`   | `"ralph"`                                       | Human-friendly name (prefix stripped)        |
+| `mcpServers`     | `string[]` | `["jira-kentico", "ado"]`                       | MCP servers available to this profile        |
 
 ### Task Data
 
-| Variable | Type | Example | Description |
-|---|---|---|---|
-| `taskId` | `string` | `"DOC-3143"` | JIRA issue key |
-| `taskTitle` | `string` | `"Document custom modules"` | Issue title |
-| `taskStatus` | `string` | `"To Do"` | Current JIRA workflow status |
-| `taskType` | `string` | `"Task"` | Issue type, or empty string |
-| `taskPriority` | `string` | `"High"` | Priority, or empty string |
-| `taskLabels` | `string[]` | `["xperience", "migration"]` | Labels attached to the issue |
-| `taskComponents` | `string[]` | `["Documentation"]` | Component names |
-| `taskProject` | `string` | `"DOC"` | Project key (derived from issue key) |
-| `taskDescription` | `string` | *(normalized text)* | Plain-text description (untrusted content) |
-| `taskCreated` | `string` | `"2026-01-15T10:30:00.000+0000"` | ISO-8601 creation timestamp |
-| `taskUpdated` | `string` | `"2026-02-20T14:00:00.000+0000"` | ISO-8601 last-updated timestamp |
+| Variable          | Type       | Example                          | Description                                |
+| ----------------- | ---------- | -------------------------------- | ------------------------------------------ |
+| `taskId`          | `string`   | `"DOC-3143"`                     | JIRA issue key                             |
+| `taskTitle`       | `string`   | `"Document custom modules"`      | Issue title                                |
+| `taskStatus`      | `string`   | `"To Do"`                        | Current JIRA workflow status               |
+| `taskType`        | `string`   | `"Task"`                         | Issue type, or empty string                |
+| `taskPriority`    | `string`   | `"High"`                         | Priority, or empty string                  |
+| `taskLabels`      | `string[]` | `["xperience", "migration"]`     | Labels attached to the issue               |
+| `taskComponents`  | `string[]` | `["Documentation"]`              | Component names                            |
+| `taskProject`     | `string`   | `"DOC"`                          | Project key (derived from issue key)       |
+| `taskDescription` | `string`   | _(normalized text)_              | Plain-text description (untrusted content) |
+| `taskCreated`     | `string`   | `"2026-01-15T10:30:00.000+0000"` | ISO-8601 creation timestamp                |
+| `taskUpdated`     | `string`   | `"2026-02-20T14:00:00.000+0000"` | ISO-8601 last-updated timestamp            |
 
 ### Trigger Metadata
 
-| Variable | Type | Example | Description |
-|---|---|---|---|
-| `commentTrigger` | `string` | `"@Ralph"` | The trigger string that matched this variant |
-| `triggerParams` | `Record<string, string>` | `{ codesamples: "true", branch_name: "xyz" }` | Parsed key-value map (see below) |
+| Variable         | Type                     | Example                                       | Description                                  |
+| ---------------- | ------------------------ | --------------------------------------------- | -------------------------------------------- |
+| `commentTrigger` | `string`                 | `"@Ralph"`                                    | The trigger string that matched this variant |
+| `triggerParams`  | `Record<string, string>` | `{ codesamples: "true", branch_name: "xyz" }` | Parsed key-value map (see below)             |
 
 ### Runtime Flags
 
-| Variable | Type | Description |
-|---|---|---|
-| `isRevision` | `boolean` | `true` when the issue status matches `revisionStatuses` in the variant config |
-| `ralphchivesEnabled` | `boolean` | `ralphchives.enabled` from `config.json` |
-| `prUrl` | `string` | PR URL from a previous run, extracted from comments; empty string if none |
+| Variable             | Type      | Description                                                                   |
+| -------------------- | --------- | ----------------------------------------------------------------------------- |
+| `isRevision`         | `boolean` | `true` when the issue status matches `revisionStatuses` in the variant config |
+| `ralphchivesEnabled` | `boolean` | `ralphchives.enabled` from `config.json`                                      |
+| `prUrl`              | `string`  | PR URL from a previous run, extracted from comments; empty string if none     |
 
 ### Skills, Artifacts, Stages and Hooks
 
-| Variable | Type | Description |
-|---|---|---|
-| `skills` | `string[]` | Skill names for the current stage |
-| `artifactDir` | `string` | `.ralph/tasks/<taskId>/artifacts` (relative; see [agent-as-function.md](agent-as-function.md)) |
-| `stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles` | — | Pipeline stage context (see [multistage-pipelines.md](multistage-pipelines.md)) |
-| `hook.taskOutputDir`, `hook.collectedLogs`, `hook.name`, `hook.outputDir` | — | Post-task hook context; empty for main pipeline stages |
+| Variable                                                                                                  | Type       | Description                                                                                    |
+| --------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| `skills`                                                                                                  | `string[]` | Skill names for the current stage                                                              |
+| `artifactDir`                                                                                             | `string`   | `.ralph/tasks/<taskId>/artifacts` (relative; see [agent-as-function.md](agent-as-function.md)) |
+| `stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles` | —          | Pipeline stage context (see [multistage-pipelines.md](multistage-pipelines.md))                |
+| `hook.taskOutputDir`, `hook.collectedLogs`, `hook.name`, `hook.outputDir`                                 | —          | Post-task hook context; empty for main pipeline stages                                         |
 
 ## Trigger Parameters
 
@@ -141,13 +141,13 @@ Trigger params are open-ended — any param can be passed in any callsign. If a 
 
 The bundled callsigns are:
 
-| Callsign | Agent | Profile |
-|---|---|---|
-| `@Ralph` | `ralph.ralph` | ralph-docs (DOC, DF) |
-| `@Malph` | `ralph.malph` | ralph-docs (DOC, DF) |
-| `@RalphDev` | `ralph.stacky` | ralph-docs (DOC, DF) |
-| `@RalphAutocomplete` | `ralph.ralph` | ralph-vscode (DOC) |
-| `@MalphAutocomplete` | `ralph.malph` | ralph-vscode (DOC) |
+| Callsign             | Agent          | Profile              |
+| -------------------- | -------------- | -------------------- |
+| `@Ralph`             | `ralph.ralph`  | ralph-docs (DOC, DF) |
+| `@Malph`             | `ralph.malph`  | ralph-docs (DOC, DF) |
+| `@RalphDev`          | `ralph.stacky` | ralph-docs (DOC, DF) |
+| `@RalphAutocomplete` | `ralph.ralph`  | ralph-vscode (DOC)   |
+| `@MalphAutocomplete` | `ralph.malph`  | ralph-vscode (DOC)   |
 
 Orchestrator-level params (`source_branch`, `branch`, `skip_hooks`) and the params each agent recognizes (`codesamples`, `xpversion`, `adminui`, `branch_name`, `release_notes`, `scope`, `skip_planner`, …) are listed in [docs/user-guide/trigger-parameters.md](../user-guide/trigger-parameters.md).
 
@@ -179,6 +179,7 @@ Wraps content in XML boundary tags: `<name>...</name>`. Gives the LLM clear stru
 ```
 
 Rendered output:
+
 ```xml
 <security>
 [rendered prompt-security content]

@@ -13,15 +13,15 @@ Every node carries metadata: `name`, `path`, `line_number`, `end_line`, `args`, 
 
 ## When to Use CGC vs. Text Search
 
-| Use CGC | Use text search |
-|---|---|
-| Call chains: "what calls `processPayment`?" | String literals, comments, log messages |
-| Dead code detection across the whole codebase | Finding TODO/FIXME annotations |
-| Class hierarchy traversal | Matching text patterns across file types |
-| Complexity hotspot analysis | Files CGC doesn't index (YAML, Markdown, JSON) |
-| Cross-module dependency understanding | Quick filename lookups |
+| Use CGC                                       | Use text search                                |
+| --------------------------------------------- | ---------------------------------------------- |
+| Call chains: "what calls `processPayment`?"   | String literals, comments, log messages        |
+| Dead code detection across the whole codebase | Finding TODO/FIXME annotations                 |
+| Class hierarchy traversal                     | Matching text patterns across file types       |
+| Complexity hotspot analysis                   | Files CGC doesn't index (YAML, Markdown, JSON) |
+| Cross-module dependency understanding         | Quick filename lookups                         |
 
-**Rule of thumb:** if the question is about *structure* (calls, inheritance, containment, imports), use CGC. If it's about *content* (strings, patterns, comments), use text search.
+**Rule of thumb:** if the question is about _structure_ (calls, inheritance, containment, imports), use CGC. If it's about _content_ (strings, patterns, comments), use text search.
 
 ## Indexing
 
@@ -61,15 +61,15 @@ Always exclude: build output, vendored code, generated files, test fixtures (unl
 
 Key settings (set via `cgc config set <key> <value>`):
 
-| Setting | Default | Recommendation |
-|---|---|---|
-| `DEFAULT_BACKEND` | `falkordb` | Keep for repos <100k LOC. Use `neo4j` for larger. |
-| `PARALLEL_WORKERS` | `4` | Increase for large repos on beefy machines |
-| `MAX_FILE_SIZE_MB` | `5` | Increase only if you have large generated files worth indexing |
-| `IGNORE_TESTS` | `false` | Set `true` to skip test directories |
-| `INDEX_VARIABLES` | `true` | Keep `true` for full variable tracking |
-| `CACHE_ENABLED` | `true` | Keep `true` — skips unchanged files on re-index |
-| `ENABLE_AUTO_WATCH` | `false` | Set `true` for long-running dev sessions |
+| Setting             | Default    | Recommendation                                                 |
+| ------------------- | ---------- | -------------------------------------------------------------- |
+| `DEFAULT_BACKEND`   | `falkordb` | Keep for repos <100k LOC. Use `neo4j` for larger.              |
+| `PARALLEL_WORKERS`  | `4`        | Increase for large repos on beefy machines                     |
+| `MAX_FILE_SIZE_MB`  | `5`        | Increase only if you have large generated files worth indexing |
+| `IGNORE_TESTS`      | `false`    | Set `true` to skip test directories                            |
+| `INDEX_VARIABLES`   | `true`     | Keep `true` for full variable tracking                         |
+| `CACHE_ENABLED`     | `true`     | Keep `true` — skips unchanged files on re-index                |
+| `ENABLE_AUTO_WATCH` | `false`    | Set `true` for long-running dev sessions                       |
 
 ### Database Backend
 
@@ -80,30 +80,30 @@ Key settings (set via `cgc config set <key> <value>`):
 
 ### High-Value Tools
 
-| Tool | When to Use |
-|---|---|
-| `find_code` | Find any symbol by name — functions, classes, modules |
-| `analyze_code_relationships` | Call chains, callers, callees, importers, class hierarchy |
-| `find_dead_code` | Unused function detection (use `exclude_decorated_with` for API endpoints) |
-| `find_most_complex_functions` | Complexity hotspots — great for refactoring prioritization |
-| `execute_cypher_query` | Custom graph queries when built-in tools aren't enough |
-| `add_code_to_graph` | Index a directory on demand (triggers async indexing job) |
-| `monitor_directory` | Watch a directory for changes — keeps graph fresh |
+| Tool                          | When to Use                                                                |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `find_code`                   | Find any symbol by name — functions, classes, modules                      |
+| `analyze_code_relationships`  | Call chains, callers, callees, importers, class hierarchy                  |
+| `find_dead_code`              | Unused function detection (use `exclude_decorated_with` for API endpoints) |
+| `find_most_complex_functions` | Complexity hotspots — great for refactoring prioritization                 |
+| `execute_cypher_query`        | Custom graph queries when built-in tools aren't enough                     |
+| `add_code_to_graph`           | Index a directory on demand (triggers async indexing job)                  |
+| `monitor_directory`           | Watch a directory for changes — keeps graph fresh                          |
 
 ### analyze_code_relationships query types
 
-| `query_type` | Target Format | Example |
-|---|---|---|
-| `find_callers` | function name | Who calls `helper`? |
-| `find_callees` | function name | What does `foo` call? |
-| `find_all_callers` | function name | Transitive callers of `helper` |
-| `find_all_callees` | function name | Transitive callees of `foo` |
-| `call_chain` | `source->target` | Path from `wrapper` to `helper` |
-| `find_importers` | module name | Who imports `math`? |
-| `class_hierarchy` | class name | Methods + child classes of `Base` |
-| `find_functions_by_decorator` | decorator name | All `@app.route` functions |
-| `find_functions_by_argument` | argument name | All functions taking `request` |
-| `overrides` | function name | All overriding implementations |
+| `query_type`                  | Target Format    | Example                           |
+| ----------------------------- | ---------------- | --------------------------------- |
+| `find_callers`                | function name    | Who calls `helper`?               |
+| `find_callees`                | function name    | What does `foo` call?             |
+| `find_all_callers`            | function name    | Transitive callers of `helper`    |
+| `find_all_callees`            | function name    | Transitive callees of `foo`       |
+| `call_chain`                  | `source->target` | Path from `wrapper` to `helper`   |
+| `find_importers`              | module name      | Who imports `math`?               |
+| `class_hierarchy`             | class name       | Methods + child classes of `Base` |
+| `find_functions_by_decorator` | decorator name   | All `@app.route` functions        |
+| `find_functions_by_argument`  | argument name    | All functions taking `request`    |
+| `overrides`                   | function name    | All overriding implementations    |
 
 ### find_dead_code
 

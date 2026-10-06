@@ -52,7 +52,7 @@ export function LogPanel({ logs, title = "Activity Log", maxLines = 15 }: LogPan
     >
       <Text bold>{title}</Text>
       {visible.length === 0 ? (
-        <Text dimColor>  Waiting for activity...</Text>
+        <Text dimColor> Waiting for activity...</Text>
       ) : (
         visible.map((entry, i) => (
           <Box key={i}>

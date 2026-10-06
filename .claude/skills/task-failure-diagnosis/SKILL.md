@@ -60,5 +60,5 @@ Read `references/failure-signatures.md`.
 ## Related skills
 
 - `cli-debug-log-analysis` — subagent spans, tool calls, tokens inside the CLI debug log.
-- `agent-eval` — quality of a run that *succeeded* but produced poor output.
+- `agent-eval` — quality of a run that _succeeded_ but produced poor output.
 - `mcp-deployment` — MCP server and sidecar problems.

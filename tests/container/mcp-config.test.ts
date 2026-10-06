@@ -66,10 +66,7 @@ describe("MCP Config", () => {
       });
 
       const config = generateMcpConfig(tempDir, ["ado"]);
-      expect(config.mcpServers.ado.tools).toEqual([
-        "ado_create_pull_request",
-        "ado_list_pull_requests",
-      ]);
+      expect(config.mcpServers.ado.tools).toEqual(["ado_create_pull_request", "ado_list_pull_requests"]);
     });
 
     it("omits tools field when manifest has no tools", () => {
@@ -167,12 +164,22 @@ describe("MCP Config", () => {
 
     it("generates gateway config with multiple servers", () => {
       writeManifest(tempDir, "jira", {
-        name: "jira", type: "custom", command: "node", args: ["dist/bundle.js"],
-        containerPath: "/opt/mcp/servers/jira", sidecarPort: 9100, requiredEnv: ["JIRA_PAT"],
+        name: "jira",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/jira",
+        sidecarPort: 9100,
+        requiredEnv: ["JIRA_PAT"],
       });
       writeManifest(tempDir, "ado", {
-        name: "ado", type: "custom", command: "node", args: ["dist/bundle.js"],
-        containerPath: "/opt/mcp/servers/ado", sidecarPort: 9101, requiredEnv: ["ADO_PAT"],
+        name: "ado",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/ado",
+        sidecarPort: 9101,
+        requiredEnv: ["ADO_PAT"],
       });
 
       const secrets = { JIRA_PAT: "j-pat", ADO_PAT: "a-pat" };
@@ -186,8 +193,12 @@ describe("MCP Config", () => {
 
     it("omits secrets not present in env", () => {
       writeManifest(tempDir, "discord", {
-        name: "discord", type: "custom", command: "node", args: ["dist/bundle.mjs"],
-        containerPath: "/opt/mcp/servers/discord", sidecarPort: 9102,
+        name: "discord",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.mjs"],
+        containerPath: "/opt/mcp/servers/discord",
+        sidecarPort: 9102,
         requiredEnv: ["DISCORD_BOT_TOKEN", "DISCORD_CHANNEL_ID"],
         optionalEnv: ["DISCORD_TASK_CONTEXT"],
       });
@@ -204,13 +215,25 @@ describe("MCP Config", () => {
 
     it("excludes manifests on disk that are not in the requested server list", () => {
       writeManifest(tempDir, "server-a", {
-        name: "server-a", type: "npm", command: "npx", args: ["-y", "a"], sidecarPort: 9100,
+        name: "server-a",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "a"],
+        sidecarPort: 9100,
       });
       writeManifest(tempDir, "server-b", {
-        name: "server-b", type: "npm", command: "npx", args: ["-y", "b"], sidecarPort: 9101,
+        name: "server-b",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "b"],
+        sidecarPort: 9101,
       });
       writeManifest(tempDir, "server-c", {
-        name: "server-c", type: "npm", command: "npx", args: ["-y", "c"], sidecarPort: 9102,
+        name: "server-c",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "c"],
+        sidecarPort: 9102,
       });
 
       const config = generateGatewayConfig(tempDir, ["server-b"]);

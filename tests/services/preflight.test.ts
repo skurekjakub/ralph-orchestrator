@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  buildPreflightContext,
-  runPreflight,
-} from "../../src/services/preflight.js";
+import { buildPreflightContext, runPreflight } from "../../src/services/preflight.js";
 import { makeProfile, makeWorkItem, makeWorkItemComment } from "../helpers/factories.js";
-import { createMockLogger, createMockResources, createMockVcsSourceClient, createSilentLogger } from "../helpers/mocks.js";
+import {
+  createMockLogger,
+  createMockResources,
+  createMockVcsSourceClient,
+  createSilentLogger,
+} from "../helpers/mocks.js";
 const KEY = "DF-1";
 
 describe("runPreflight", () => {
@@ -98,9 +100,7 @@ describe("buildPreflightContext", () => {
   });
 
   it("extracts PR URL from plain-text comments", async () => {
-    const comments = [
-      makeWorkItemComment("1", "Please review https://github.com/org/repo/pull/42"),
-    ];
+    const comments = [makeWorkItemComment("1", "Please review https://github.com/org/repo/pull/42")];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
     const ctx = await buildPreflightContext(
@@ -123,14 +123,30 @@ describe("buildPreflightContext", () => {
     ];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      comments,
+    );
     expect(ctx.prUrl).toBe("https://github.com/org/repo/pull/42");
   });
 
   it("downloads handoff attachment", async () => {
     mockResources.fetchHandoff.mockResolvedValue("## Handoff content");
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, []);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      [],
+    );
     expect(ctx.handoffContent).toBe("## Handoff content");
     expect(mockResources.fetchHandoff).toHaveBeenCalledWith(DS, KEY);
   });
@@ -138,42 +154,68 @@ describe("buildPreflightContext", () => {
   it("returns null handoff when fetchHandoff returns null", async () => {
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, []);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      [],
+    );
     expect(ctx.handoffContent).toBeNull();
     expect(ctx.prUrl).toBeNull();
   });
 
   it("recognizes Azure DevOps PR URLs", async () => {
-    const comments = [
-      makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
-    ];
+    const comments = [makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99")];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      comments,
+    );
     expect(ctx.prUrl).toBe("https://dev.azure.com/org/proj/_git/repo/pullrequest/99");
   });
 
   it("recognizes Bitbucket PR URLs", async () => {
-    const comments = [
-      makeWorkItemComment("1", "See https://bitbucket.org/org/repo/pull-requests/5"),
-    ];
+    const comments = [makeWorkItemComment("1", "See https://bitbucket.org/org/repo/pull-requests/5")];
     mockResources.fetchHandoff.mockResolvedValue(null);
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      comments,
+    );
     expect(ctx.prUrl).toContain("bitbucket.org");
   });
 
   it("resolves PR branch metadata when the VCS source client returns it", async () => {
-    const comments = [
-      makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
-    ];
+    const comments = [makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99")];
     mockResources.fetchHandoff.mockResolvedValue(null);
     mockVcsSourceClient.resolvePullRequestBranches.mockResolvedValue({
       sourceBranch: "feature/revision-fix",
       targetBranch: "main",
     });
 
-    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, createSilentLogger(), DS, KEY, comments);
+    const ctx = await buildPreflightContext(
+      mockResources,
+      mockVcsSourceClient,
+      profile,
+      createSilentLogger(),
+      DS,
+      KEY,
+      comments,
+    );
 
     expect(ctx.prBranches).toEqual({
       sourceBranch: "feature/revision-fix",
@@ -182,22 +224,12 @@ describe("buildPreflightContext", () => {
   });
 
   it("falls back to null PR branch metadata when branch resolution throws", async () => {
-    const comments = [
-      makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99"),
-    ];
+    const comments = [makeWorkItemComment("1", "PR: https://dev.azure.com/org/proj/_git/repo/pullrequest/99")];
     mockResources.fetchHandoff.mockResolvedValue(null);
     mockVcsSourceClient.resolvePullRequestBranches.mockRejectedValue(new Error("ado unavailable"));
     const logger = createMockLogger();
 
-    const ctx = await buildPreflightContext(
-      mockResources,
-      mockVcsSourceClient,
-      profile,
-      logger,
-      DS,
-      KEY,
-      comments,
-    );
+    const ctx = await buildPreflightContext(mockResources, mockVcsSourceClient, profile, logger, DS, KEY, comments);
 
     expect(ctx.prBranches).toBeNull();
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to resolve PR branch metadata"));

@@ -14,6 +14,7 @@ docker compose \
 Profile-specific infrastructure: build instructions, workspace volume mount, sidecar services, profile-specific env vars.
 
 **Responsibilities:**
+
 - `build:` context and Dockerfile reference
 - Target repo volume mount (`${TARGET_REPO_PATH}:/workspace`)
 - Agent `.md` file mounts (resolved from `.build/`)
@@ -28,6 +29,7 @@ Profile-specific infrastructure: build instructions, workspace volume mount, sid
 Shared across all profiles. Adds the egress proxy sidecar and container hardening.
 
 **Responsibilities:**
+
 - Squid forward proxy sidecar (`egress-proxy` service) with domain allowlist
 - Proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`) on the `app` service
 - Audit hook + config volume mounts (`${SHARED_HOOKS_PATH}`)
@@ -40,6 +42,7 @@ Shared across all profiles. Adds the egress proxy sidecar and container hardenin
 Auto-generated at startup by `generateComposeOverlay()`. Injects environment variables, MCP sidecar service, and volume mounts.
 
 **Agent container (`app`) responsibilities:**
+
 - **Base env vars** (always present): `GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_AUTOUPDATER`, `CLAUDE_CODE_DISABLE_COST_WARNINGS`
 - MCP config mount (`mcp-config.json` → `/workspace/.ralph/mcp-config.json:ro`) — contains only HTTP URLs, no secrets
 - Copilot CLI config mount (`copilot-config.json` → `/workspace/.ralph/config.json:ro`)
@@ -47,6 +50,7 @@ Auto-generated at startup by `generateComposeOverlay()`. Injects environment var
 - `depends_on: mcp-sidecar` (when MCP servers are declared)
 
 **MCP sidecar container (`mcp-sidecar`)** — only generated when `mcpServers` is non-empty:
+
 - Builds from `shared/mcp-sidecar/Dockerfile`
 - MCP server code mount (`shared/mcp-servers/` → `/opt/mcp/servers:ro`)
 - Gateway compiled code mount (`shared/mcp-sidecar/dist/` → `/opt/mcp/gateway/dist:ro`)
@@ -79,11 +83,11 @@ Container environment  (only vars declared in `environment:` blocks across the 3
 
 The compose process env is `process.env` plus three computed values that don't exist in `.env`:
 
-| Variable | Source | Used in |
-|---|---|---|
-| `TARGET_REPO_PATH` | `profile.repoPath` | Base compose — workspace volume mount |
-| `SHARED_HOOKS_PATH` | `path.resolve("shared/hooks")` | Security overlay — audit hook mounts |
-| `SQUID_CONF_PATH` | Profile `.build/squid.conf` path | Security overlay — proxy config mount |
+| Variable            | Source                           | Used in                               |
+| ------------------- | -------------------------------- | ------------------------------------- |
+| `TARGET_REPO_PATH`  | `profile.repoPath`               | Base compose — workspace volume mount |
+| `SHARED_HOOKS_PATH` | `path.resolve("shared/hooks")`   | Security overlay — audit hook mounts  |
+| `SQUID_CONF_PATH`   | Profile `.build/squid.conf` path | Security overlay — proxy config mount |
 
 All other env vars (secrets, MCP tokens, API keys) flow through `process.env` from dotenv. The overlay declares them in `environment:` blocks using `${VAR}` interpolation syntax, which Docker Compose resolves from the process env.
 

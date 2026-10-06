@@ -4,11 +4,7 @@ import type { JiraIssue } from "./jira-types.js";
  * Patterns that identify boilerplate JIRA field content — form templates,
  * placeholder text, and empty field scaffolds that provide no value to agents.
  */
-const BOILERPLATE_PATTERNS: RegExp[] = [
-  /please copy and use this template/i,
-  /\{color:grey\}/i,
-  /^-{3,}\s*$/m,
-];
+const BOILERPLATE_PATTERNS: RegExp[] = [/please copy and use this template/i, /\{color:grey\}/i, /^-{3,}\s*$/m];
 
 /**
  * Pre-processes JIRA issues before they reach the prompt builder.

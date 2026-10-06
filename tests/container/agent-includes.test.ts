@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile, readFile, rm, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveAgentIncludes, AgentTemplateRenderer, buildTemplateContext, buildTriggerParams } from "../../src/container/setup/agent-includes.js";
+import {
+  resolveAgentIncludes,
+  AgentTemplateRenderer,
+  buildTemplateContext,
+  buildTriggerParams,
+} from "../../src/container/setup/agent-includes.js";
 import { registerCustomTags } from "../../src/container/setup/liquid-tags.js";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks.js";
@@ -31,10 +36,7 @@ describe("resolveAgentIncludes", () => {
     await mkdir(includesDir, { recursive: true });
 
     await writeFile(join(includesDir, "greeting.md"), "Hello from the include");
-    await writeFile(
-      join(agentDir, "test.agent.md"),
-      "# Agent\n\n{% render 'greeting' %}\n\nEnd.",
-    );
+    await writeFile(join(agentDir, "test.agent.md"), "# Agent\n\n{% render 'greeting' %}\n\nEnd.");
 
     await resolveAgentIncludes(agentDir, includesDir, {});
 
@@ -96,10 +98,7 @@ describe("resolveAgentIncludes", () => {
     await mkdir(agentDir, { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(agentDir, "broken.agent.md"),
-      "{% render 'nonexistent' %}",
-    );
+    await writeFile(join(agentDir, "broken.agent.md"), "{% render 'nonexistent' %}");
 
     await expect(resolveAgentIncludes(agentDir, includesDir, {})).rejects.toThrow();
   });
@@ -115,9 +114,7 @@ describe("resolveAgentIncludes", () => {
 
     await resolveAgentIncludes(agentDir, includesDir, {}, logger);
 
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining("test.agent.md"),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("test.agent.md"));
   });
 
   it("passes profile config as Liquid context", async () => {
@@ -126,10 +123,7 @@ describe("resolveAgentIncludes", () => {
     await mkdir(agentDir, { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(agentDir, "test.agent.md"),
-      "Repo: {{ repo }}\nCLI: {{ cli }}",
-    );
+    await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}\nCLI: {{ cli }}");
 
     await resolveAgentIncludes(agentDir, includesDir, { repo: "/my/repo", cli: "copilot" });
 
@@ -145,10 +139,7 @@ describe("resolveAgentIncludes", () => {
 
     await writeFile(join(includesDir, "header.md"), "# Header");
     await writeFile(join(includesDir, "footer.md"), "---\nEnd of file");
-    await writeFile(
-      join(agentDir, "full.agent.md"),
-      "{% render 'header' %}\n\nBody\n\n{% render 'footer' %}",
-    );
+    await writeFile(join(agentDir, "full.agent.md"), "{% render 'header' %}\n\nBody\n\n{% render 'footer' %}");
 
     await resolveAgentIncludes(agentDir, includesDir, {});
 
@@ -171,12 +162,15 @@ describe("AgentTemplateRenderer", () => {
     await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}");
 
     const renderer = new AgentTemplateRenderer();
-    await renderer.render("my-profile", makeTemplateContext({
-      profileId: "my-profile",
-      repo: "/my/repo",
-      isRevision: true,
-      taskId: "DF-123",
-    }));
+    await renderer.render(
+      "my-profile",
+      makeTemplateContext({
+        profileId: "my-profile",
+        repo: "/my/repo",
+        isRevision: true,
+        taskId: "DF-123",
+      }),
+    );
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
     expect(output).toBe("Repo: /my/repo, Revision: true, Key: DF-123");
@@ -190,15 +184,21 @@ describe("AgentTemplateRenderer", () => {
     await mkdir(includesDir, { recursive: true });
     await mkdir(agentDir, { recursive: true });
 
-    await writeFile(join(agentDir, "test.agent.md"), "Project: {{ taskProject }}, Status: {{ taskStatus }}, Summary: {{ taskTitle }}");
+    await writeFile(
+      join(agentDir, "test.agent.md"),
+      "Project: {{ taskProject }}, Status: {{ taskStatus }}, Summary: {{ taskTitle }}",
+    );
 
     const renderer = new AgentTemplateRenderer();
-    await renderer.render("test-profile", makeTemplateContext({
-      profileId: "test-profile",
-      taskProject: "DOC",
-      taskStatus: "To Do",
-      taskTitle: "Add widget docs",
-    }));
+    await renderer.render(
+      "test-profile",
+      makeTemplateContext({
+        profileId: "test-profile",
+        taskProject: "DOC",
+        taskStatus: "To Do",
+        taskTitle: "Add widget docs",
+      }),
+    );
 
     const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
     expect(output).toBe("Project: DOC, Status: To Do, Summary: Add widget docs");
@@ -210,9 +210,7 @@ describe("AgentTemplateRenderer", () => {
 
     await renderer.render("nonexistent", makeTemplateContext(), logger);
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("not found"),
-    );
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
   });
 
   it("warns when agents directory is missing", async () => {
@@ -225,9 +223,7 @@ describe("AgentTemplateRenderer", () => {
 
     await renderer.render("empty-profile", makeTemplateContext(), logger);
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("No agents directory"),
-    );
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("No agents directory"));
   });
 
   it("resolves shared includes alongside context", async () => {
@@ -263,9 +259,7 @@ describe("AgentTemplateRenderer", () => {
     const renderer = new AgentTemplateRenderer();
     await renderer.render("test-profile", makeTemplateContext(), logger);
 
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining("test-profile"),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("test-profile"));
   });
 });
 
@@ -371,7 +365,9 @@ describe("buildTemplateContext", () => {
   });
 
   it("builds triggerParams from key=value params", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: { codesamples: "true", branch_name: "feature-xyz" } }));
+    const ctx = buildTemplateContext(
+      makeTaskContext({ triggerParams: { codesamples: "true", branch_name: "feature-xyz" } }),
+    );
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch_name: "feature-xyz" });
   });
 
@@ -405,10 +401,13 @@ describe("buildTemplateContext", () => {
         { agent: "ralph.editor", role: "editor", mode: StageMode.Container, skills: [] },
       ],
     });
-    const ctx = buildTemplateContext(
-      makeTaskContext({ profile }),
-      { stageIndex: 1, stageCount: 3, stageRole: "reviewer", stageMode: "container", previousStageRoles: ["writer"] },
-    );
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), {
+      stageIndex: 1,
+      stageCount: 3,
+      stageRole: "reviewer",
+      stageMode: "container",
+      previousStageRoles: ["writer"],
+    });
     expect(ctx.stageRole).toBe("reviewer");
     expect(ctx.stageIndex).toBe(1);
     expect(ctx.stageCount).toBe(3);
@@ -418,10 +417,13 @@ describe("buildTemplateContext", () => {
   });
 
   it("computes isLastStage correctly from stageOverrides", () => {
-    const ctx = buildTemplateContext(
-      makeTaskContext(),
-      { stageIndex: 2, stageCount: 3, stageRole: "editor", stageMode: "container", previousStageRoles: ["writer", "reviewer"] },
-    );
+    const ctx = buildTemplateContext(makeTaskContext(), {
+      stageIndex: 2,
+      stageCount: 3,
+      stageRole: "editor",
+      stageMode: "container",
+      previousStageRoles: ["writer", "reviewer"],
+    });
     expect(ctx.isLastStage).toBe(true);
     expect(ctx.isFirstStage).toBe(false);
   });
@@ -470,7 +472,7 @@ describe("buildTriggerParams", () => {
 describe("triggerParams in Liquid templates", () => {
   it("renders conditional block when bare param is present", async () => {
     const engine = new Liquid({ root: [tmpDir], extname: ".md" });
-    const tpl = '{%- if triggerParams.codesamples %}CODE SAMPLES ACTIVE{%- endif %}';
+    const tpl = "{%- if triggerParams.codesamples %}CODE SAMPLES ACTIVE{%- endif %}";
     const result = await engine.parseAndRender(tpl, {
       triggerParams: { codesamples: "true" },
     });
@@ -479,7 +481,7 @@ describe("triggerParams in Liquid templates", () => {
 
   it("skips conditional block when bare param is absent", async () => {
     const engine = new Liquid({ root: [tmpDir], extname: ".md" });
-    const tpl = 'before{%- if triggerParams.codesamples %} CODE{%- endif %} after';
+    const tpl = "before{%- if triggerParams.codesamples %} CODE{%- endif %} after";
     const result = await engine.parseAndRender(tpl, {
       triggerParams: {},
     });
@@ -488,7 +490,7 @@ describe("triggerParams in Liquid templates", () => {
 
   it("interpolates key=value param in output", async () => {
     const engine = new Liquid({ root: [tmpDir], extname: ".md" });
-    const tpl = 'Branch: {{ triggerParams.branch_name }}';
+    const tpl = "Branch: {{ triggerParams.branch_name }}";
     const result = await engine.parseAndRender(tpl, {
       triggerParams: { branch_name: "feature/new-api" },
     });
@@ -497,7 +499,7 @@ describe("triggerParams in Liquid templates", () => {
 
   it("treats empty string value as truthy in conditionals (Liquid behavior)", async () => {
     const engine = new Liquid({ root: [tmpDir], extname: ".md" });
-    const tpl = '{%- if triggerParams.key %}YES{%- else %}NO{%- endif %}';
+    const tpl = "{%- if triggerParams.key %}YES{%- else %}NO{%- endif %}";
     const result = await engine.parseAndRender(tpl, {
       triggerParams: { key: "" },
     });
@@ -513,18 +515,15 @@ describe("SectionTag", () => {
   }
 
   it("wraps content in XML boundary tags", async () => {
-    const result = await engine().parseAndRender(
-      '{% section "security" %}## Rules\nBe safe.{% endsection %}',
-    );
+    const result = await engine().parseAndRender('{% section "security" %}## Rules\nBe safe.{% endsection %}');
 
     expect(result).toBe("<security>\n## Rules\nBe safe.\n</security>");
   });
 
   it("interpolates Liquid variables inside section", async () => {
-    const result = await engine().parseAndRender(
-      '{% section "identity" %}Agent: {{ name }}{% endsection %}',
-      { name: "Ralph" },
-    );
+    const result = await engine().parseAndRender('{% section "identity" %}Agent: {{ name }}{% endsection %}', {
+      name: "Ralph",
+    });
 
     expect(result).toBe("<identity>\nAgent: Ralph\n</identity>");
   });
@@ -535,9 +534,7 @@ describe("SectionTag", () => {
 
     await writeFile(join(tmpDir, "partial.md"), "Included content");
 
-    const result = await e.parseAndRender(
-      '{% section "api-reference" %}{% render "partial" %}{% endsection %}',
-    );
+    const result = await e.parseAndRender('{% section "api-reference" %}{% render "partial" %}{% endsection %}');
 
     expect(result).toBe("<api-reference>\nIncluded content\n</api-reference>");
   });
@@ -551,9 +548,9 @@ describe("SectionTag", () => {
   });
 
   it("throws on unclosed section", async () => {
-    await expect(
-      engine().parseAndRender('{% section "oops" %}No end tag here'),
-    ).rejects.toThrow('{% section "oops" %} not closed');
+    await expect(engine().parseAndRender('{% section "oops" %}No end tag here')).rejects.toThrow(
+      '{% section "oops" %} not closed',
+    );
   });
 
   it("works in full agent template rendering pipeline", async () => {
@@ -565,10 +562,7 @@ describe("SectionTag", () => {
     await mkdir(agentDir, { recursive: true });
 
     await writeFile(join(includesDir, "rules.md"), "Rule: {{ taskId }}");
-    await writeFile(
-      join(agentDir, "test.agent.md"),
-      '{% section "security" %}{% render "rules" %}{% endsection %}',
-    );
+    await writeFile(join(agentDir, "test.agent.md"), '{% section "security" %}{% render "rules" %}{% endsection %}');
 
     const renderer = new AgentTemplateRenderer();
     await renderer.render("sec-profile", makeTemplateContext({ taskId: "DOC-99" }));

@@ -36,7 +36,10 @@ function parseTriggerParams(text: string, trigger: string): string[] {
   const re = new RegExp(`(?:^|\\s|\\b)${escapeTrigger(trigger)}\\(([^)]+)\\)`, "i");
   const match = re.exec(text);
   if (!match) return [];
-  return match[1].split(",").map((p) => p.trim()).filter(Boolean);
+  return match[1]
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
 }
 
 export { matchesTrigger, parseTriggerParams };
@@ -85,7 +88,13 @@ export class TriggerScanner implements ITriggerScanner {
   private logger: Logger;
   private connectors: ReadonlyMap<string, IDataSourceConnector>;
 
-  constructor({ issueManager, router, ledger, logger, connectors }: {
+  constructor({
+    issueManager,
+    router,
+    ledger,
+    logger,
+    connectors,
+  }: {
     issueManager: IIssueManager;
     router: IProfileRouter;
     ledger: IOperationLedger;
@@ -141,9 +150,7 @@ export class TriggerScanner implements ITriggerScanner {
             comments = await this.issueManager.getComments(item.source, item.id);
             commentsFetched++;
           } catch (err) {
-            this.logger.warn(
-              `Failed to fetch comments for ${item.id}: ${toErrorMessage(err)}`
-            );
+            this.logger.warn(`Failed to fetch comments for ${item.id}: ${toErrorMessage(err)}`);
             comments = [];
           }
         }
@@ -174,13 +181,15 @@ export class TriggerScanner implements ITriggerScanner {
               reason,
             });
 
-            await this.issueManager.postComment(
-              item.source,
-              item.id,
-              OrchestratorComments.userNotAllowed(profile.displayName, comment.authorName),
-            ).catch((err) => {
-              this.logger.warn(`Failed to post rejection comment on ${item.id}: ${toErrorMessage(err)}`);
-            });
+            await this.issueManager
+              .postComment(
+                item.source,
+                item.id,
+                OrchestratorComments.userNotAllowed(profile.displayName, comment.authorName),
+              )
+              .catch((err) => {
+                this.logger.warn(`Failed to post rejection comment on ${item.id}: ${toErrorMessage(err)}`);
+              });
 
             continue;
           }
@@ -197,24 +206,19 @@ export class TriggerScanner implements ITriggerScanner {
 
           planned++;
           itemTriggerCount++;
-          this.logger.info(
-            `Planned ${variant} on ${item.id} (trigger comment ${comment.id})`
-          );
+          this.logger.info(`Planned ${variant} on ${item.id} (trigger comment ${comment.id})`);
 
-          await this.issueManager.postAckComment(
-            item.source,
-            item.id,
-            profile.displayName,
-            triggerParams,
-          ).catch((err) => {
-            this.logger.warn(`Failed to post ack comment on ${item.id}: ${toErrorMessage(err)}`);
-          });
+          await this.issueManager
+            .postAckComment(item.source, item.id, profile.displayName, triggerParams)
+            .catch((err) => {
+              this.logger.warn(`Failed to post ack comment on ${item.id}: ${toErrorMessage(err)}`);
+            });
         }
       }
 
       if (itemMatchedAnyProfile) {
         this.logger.info(
-          `  ${item.id} [${item.status}]: ${comments?.length ?? 0} comments, ${itemTriggerCount} triggers, ${itemConsumedCount} consumed (${matchedVariants.join(", ")})`
+          `  ${item.id} [${item.status}]: ${comments?.length ?? 0} comments, ${itemTriggerCount} triggers, ${itemConsumedCount} consumed (${matchedVariants.join(", ")})`,
         );
       }
 
@@ -226,7 +230,7 @@ export class TriggerScanner implements ITriggerScanner {
     const elapsedMs = Date.now() - startMs;
     const scanned = items.length - skipped;
     this.logger.info(
-      `Trigger scan: ${items.length} issues (${scanned} scanned, ${skipped} unchanged) → ${planned} planned, ${alreadyConsumed} consumed, ${commentsFetched} API calls [${elapsedMs}ms]`
+      `Trigger scan: ${items.length} issues (${scanned} scanned, ${skipped} unchanged) → ${planned} planned, ${alreadyConsumed} consumed, ${commentsFetched} API calls [${elapsedMs}ms]`,
     );
 
     if (scanned > 0) this.persistCache();

@@ -12,6 +12,7 @@ This repository has two different dashboard surfaces with different responsibili
 ### `dashboard-local/` — Vite local dashboard
 
 Use this when the request is about:
+
 - the `Logs` tab
 - log browsing
 - tool timelines
@@ -20,6 +21,7 @@ Use this when the request is about:
 - the local-only debugging UI
 
 Key facts:
+
 - React + Vite app
 - Reads historical logs directly from `output/logs/`
 - Local API is implemented in `src/logApiPlugin.ts`
@@ -42,6 +44,7 @@ npm run build
 ### `ralph-dashboard/` — Next.js status dashboard
 
 Use this when the request is about:
+
 - agent status cards
 - `/api/heartbeat`
 - `/api/status`
@@ -50,6 +53,7 @@ Use this when the request is about:
 - the public read-only monitoring dashboard
 
 Key facts:
+
 - Next.js App Router app
 - Thin web layer over Redis-backed orchestrator heartbeats
 - Main page is `app/page.tsx`

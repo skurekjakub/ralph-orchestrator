@@ -68,106 +68,138 @@ function createMcpServer(): McpServer {
   // jira_add_comment
   // ---------------------------------------------------------------------------
 
-  server.registerTool("jira_add_comment", {
-    description:
-      `Add a comment to a JIRA issue ${JIRA_ISSUE_KEY}. The comment body uses JIRA wiki markup ` +
-      "(h3. for headings, {{code}} for inline code, {code:lang}...{code} for blocks, " +
-      "bq. for blockquotes, regular markdown for the rest). " +
-      "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
-    inputSchema: JIRA_ISSUE_KEY
-      ? { body: z.string().describe("Comment body in JIRA wiki markup") }
-      : {
-          issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
-          body: z.string().describe("Comment body in JIRA wiki markup"),
-        },
-  }, async (args: Record<string, unknown>) => {
-    const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
-    const body = String(args.body);
-    const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/comment`;
-    const sanitized = sanitizeWikiMarkup(body);
+  server.registerTool(
+    "jira_add_comment",
+    {
+      description:
+        `Add a comment to a JIRA issue ${JIRA_ISSUE_KEY}. The comment body uses JIRA wiki markup ` +
+        "(h3. for headings, {{code}} for inline code, {code:lang}...{code} for blocks, " +
+        "bq. for blockquotes, regular markdown for the rest). " +
+        "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
+      inputSchema: JIRA_ISSUE_KEY
+        ? { body: z.string().describe("Comment body in JIRA wiki markup") }
+        : {
+            issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
+            body: z.string().describe("Comment body in JIRA wiki markup"),
+          },
+    },
+    async (args: Record<string, unknown>) => {
+      const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
+      const body = String(args.body);
+      const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/comment`;
+      const sanitized = sanitizeWikiMarkup(body);
 
-    try {
-      const res = await axios.post(url, { body: sanitized }, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authHeader,
-        },
-      });
+      try {
+        const res = await axios.post(
+          url,
+          { body: sanitized },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: authHeader,
+            },
+          },
+        );
 
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ success: true, commentId: res.data.id }) }],
-      };
-    } catch (err: unknown) {
-      const status = axios.isAxiosError(err) ? err.response?.status ?? 0 : 0;
-      const message = axios.isAxiosError(err) ? err.response?.data ?? err.message : String(err);
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: true, status, message }) }],
-        isError: true,
-      };
-    }
-  });
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ success: true, commentId: res.data.id }) }],
+        };
+      } catch (err: unknown) {
+        const status = axios.isAxiosError(err) ? (err.response?.status ?? 0) : 0;
+        const message = axios.isAxiosError(err) ? (err.response?.data ?? err.message) : String(err);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: true, status, message }) }],
+          isError: true,
+        };
+      }
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // jira_add_attachment
   // ---------------------------------------------------------------------------
 
-  server.registerTool("jira_add_attachment", {
-    description:
-      `Attach a file to a JIRA issue ${JIRA_ISSUE_KEY}. The file must be placed in /tmp/mcp-attachments/`,
-    inputSchema: JIRA_ISSUE_KEY
-      ? { fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") }
-      : {
-          issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
-          fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)"),
-        },
-  }, async (args: Record<string, unknown>) => {
-    const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
-    const fileName = String(args.fileName);
-    const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/attachments`;
+  server.registerTool(
+    "jira_add_attachment",
+    {
+      description: `Attach a file to a JIRA issue ${JIRA_ISSUE_KEY}. The file must be placed in /tmp/mcp-attachments/`,
+      inputSchema: JIRA_ISSUE_KEY
+        ? { fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") }
+        : {
+            issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
+            fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)"),
+          },
+    },
+    async (args: Record<string, unknown>) => {
+      const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
+      const fileName = String(args.fileName);
+      const url = `${apiBase}/issue/${encodeURIComponent(issueKey)}/attachments`;
 
-    // Validate the resolved path stays within the attachments directory
-    const resolvedPath = resolve(ATTACHMENTS_DIR, fileName);
-    if (!resolvedPath.startsWith(ATTACHMENTS_DIR + "/")) {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: true, message: "File path must be within /tmp/mcp-attachments/" }) }],
-        isError: true,
-      };
-    }
+      // Validate the resolved path stays within the attachments directory
+      const resolvedPath = resolve(ATTACHMENTS_DIR, fileName);
+      if (!resolvedPath.startsWith(ATTACHMENTS_DIR + "/")) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({ error: true, message: "File path must be within /tmp/mcp-attachments/" }),
+            },
+          ],
+          isError: true,
+        };
+      }
 
-    let fileContent: Buffer;
-    try {
-      fileContent = readFileSync(resolvedPath);
-    } catch {
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: true, message: `File not found: ${fileName}. Copy the file to /tmp/mcp-attachments/ first.` }) }],
-        isError: true,
-      };
-    }
+      let fileContent: Buffer;
+      try {
+        fileContent = readFileSync(resolvedPath);
+      } catch {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: true,
+                message: `File not found: ${fileName}. Copy the file to /tmp/mcp-attachments/ first.`,
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
 
-    const formData = new FormData();
-    formData.append("file", new Blob([new Uint8Array(fileContent)]), fileName);
+      const formData = new FormData();
+      formData.append("file", new Blob([new Uint8Array(fileContent)]), fileName);
 
-    try {
-      const res = await axios.post(url, formData, {
-        headers: {
-          Authorization: authHeader,
-          "X-Atlassian-Token": "no-check",
-        },
-      });
+      try {
+        const res = await axios.post(url, formData, {
+          headers: {
+            Authorization: authHeader,
+            "X-Atlassian-Token": "no-check",
+          },
+        });
 
-      const data = res.data as Array<{ id: string; filename: string }>;
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ success: true, attachments: data.map((a) => ({ id: a.id, filename: a.filename })) }) }],
-      };
-    } catch (err: unknown) {
-      const status = axios.isAxiosError(err) ? err.response?.status ?? 0 : 0;
-      const message = axios.isAxiosError(err) ? err.response?.data ?? err.message : String(err);
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify({ error: true, status, message }) }],
-        isError: true,
-      };
-    }
-  });
+        const data = res.data as Array<{ id: string; filename: string }>;
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                success: true,
+                attachments: data.map((a) => ({ id: a.id, filename: a.filename })),
+              }),
+            },
+          ],
+        };
+      } catch (err: unknown) {
+        const status = axios.isAxiosError(err) ? (err.response?.status ?? 0) : 0;
+        const message = axios.isAxiosError(err) ? (err.response?.data ?? err.message) : String(err);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: true, status, message }) }],
+          isError: true,
+        };
+      }
+    },
+  );
 
   return server;
 }
@@ -210,7 +242,10 @@ function startHttpTransport(port: number): void {
 
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => { transport.close(); mcpServer.close(); });
+    res.on("close", () => {
+      transport.close();
+      mcpServer.close();
+    });
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, body);
   });

@@ -45,20 +45,22 @@ export const tool: ToolDefinition = {
       }));
 
       return {
-        content: [{
-          type: "text" as const,
-          text: JSON.stringify({
-            topicId: topic.tid,
-            title: topic.title,
-            slug: topic.slug,
-            category: topic.category.name,
-            tags: topic.tags.map((t) => t.value),
-            postCount: topic.postcount,
-            created: new Date(topic.timestamp).toISOString(),
-            lastPost: new Date(topic.lastposttime).toISOString(),
-            posts,
-          }),
-        }],
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              topicId: topic.tid,
+              title: topic.title,
+              slug: topic.slug,
+              category: topic.category.name,
+              tags: topic.tags.map((t) => t.value),
+              postCount: topic.postcount,
+              created: new Date(topic.timestamp).toISOString(),
+              lastPost: new Date(topic.lastposttime).toISOString(),
+              posts,
+            }),
+          },
+        ],
       };
     } catch (err: unknown) {
       return errorResult(err);

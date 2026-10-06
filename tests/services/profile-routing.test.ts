@@ -7,10 +7,7 @@ const PID = "ralph-docs";
 const TRIGGER = "@ralph";
 
 /** Convenience wrapper — matches a single issue against a list of profiles. */
-function matchProfile(
-  issue: ReturnType<typeof makeWorkItem>,
-  profiles: ReturnType<typeof makeProfile>[],
-) {
+function matchProfile(issue: ReturnType<typeof makeWorkItem>, profiles: ReturnType<typeof makeProfile>[]) {
   return new ProfileRouter({ profiles }).match(issue);
 }
 
@@ -25,9 +22,7 @@ describe("Profile routing", () => {
   });
 
   it("returns null when no profile matches project", async () => {
-    const profiles = [
-      makeProfile({ id: PID, match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER } }),
-    ];
+    const profiles = [makeProfile({ id: PID, match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER } })];
     const issue = makeWorkItem("XP-100", "wrong project");
     expect(await matchProfile(issue, profiles)).toBeNull();
   });
@@ -53,10 +48,7 @@ describe("Profile routing", () => {
   });
 
   it("includes profileIds in config", () => {
-    const profiles = [
-      makeProfile({ id: PID }),
-      makeProfile({ id: "ralph-vscode" }),
-    ];
+    const profiles = [makeProfile({ id: PID }), makeProfile({ id: "ralph-vscode" })];
     expect(profiles.map((p) => p.id)).toEqual([PID, "ralph-vscode"]);
   });
 });
@@ -155,11 +147,10 @@ describe("Comment trigger matching", () => {
         match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER },
       }),
     ];
-    const result = await matchWithComments(
-      makeWorkItem(KEY, "Some issue"),
-      profiles,
-      ["Please fix this", "@ralph please handle this"],
-    );
+    const result = await matchWithComments(makeWorkItem(KEY, "Some issue"), profiles, [
+      "Please fix this",
+      "@ralph please handle this",
+    ]);
     expect(result?.profile.id).toBe("ralph-triggered");
   });
 
@@ -170,11 +161,10 @@ describe("Comment trigger matching", () => {
         match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER },
       }),
     ];
-    const result = await matchWithComments(
-      makeWorkItem(KEY, "Some issue"),
-      profiles,
-      ["Just a regular comment", "Nothing special here"],
-    );
+    const result = await matchWithComments(makeWorkItem(KEY, "Some issue"), profiles, [
+      "Just a regular comment",
+      "Nothing special here",
+    ]);
     expect(result).toBeNull();
   });
 
@@ -185,11 +175,7 @@ describe("Comment trigger matching", () => {
         match: { projects: [PROJECT], statuses: [], commentTrigger: "@Ralph" },
       }),
     ];
-    const result = await matchWithComments(
-      makeWorkItem(KEY, "Some issue"),
-      profiles,
-      ["hey @RALPH do this"],
-    );
+    const result = await matchWithComments(makeWorkItem(KEY, "Some issue"), profiles, ["hey @RALPH do this"]);
     expect(result?.profile.id).toBe("ralph-triggered");
   });
 
@@ -204,11 +190,7 @@ describe("Comment trigger matching", () => {
         match: { projects: [PROJECT], statuses: [], commentTrigger: "@catchall" },
       }),
     ];
-    const result = await matchWithComments(
-      makeWorkItem(KEY, "Some issue"),
-      profiles,
-      ["@catchall handle this"],
-    );
+    const result = await matchWithComments(makeWorkItem(KEY, "Some issue"), profiles, ["@catchall handle this"]);
     expect(result?.profile.id).toBe("ralph-catchall");
   });
 
@@ -239,9 +221,7 @@ describe("Comment trigger matching", () => {
         match: { projects: [PROJECT], statuses: [], commentTrigger: TRIGGER },
       }),
     ];
-    const result = await new ProfileRouter({ profiles }, fetcher).match(
-      makeWorkItem(KEY, "Some issue"),
-    );
+    const result = await new ProfileRouter({ profiles }, fetcher).match(makeWorkItem(KEY, "Some issue"));
     expect(result?.profile.id).toBe("ralph-b");
     expect(fetchCount).toBe(1);
   });
@@ -257,25 +237,13 @@ describe("Comment trigger matching", () => {
         },
       }),
     ];
-    const result = await matchWithComments(
-      makeWorkItem(KEY, "Update docs", "New"),
-      profiles,
-      ["@ralph go"],
-    );
+    const result = await matchWithComments(makeWorkItem(KEY, "Update docs", "New"), profiles, ["@ralph go"]);
     expect(result?.profile.id).toBe("ralph-full");
 
-    const noTrigger = await matchWithComments(
-      makeWorkItem("DF-2", "Update docs", "New"),
-      profiles,
-      ["no trigger"],
-    );
+    const noTrigger = await matchWithComments(makeWorkItem("DF-2", "Update docs", "New"), profiles, ["no trigger"]);
     expect(noTrigger).toBeNull();
 
-    const wrongStatus = await matchWithComments(
-      makeWorkItem("DF-3", "Update docs", "Done"),
-      profiles,
-      ["@ralph go"],
-    );
+    const wrongStatus = await matchWithComments(makeWorkItem("DF-3", "Update docs", "Done"), profiles, ["@ralph go"]);
     expect(wrongStatus).toBeNull();
   });
 });

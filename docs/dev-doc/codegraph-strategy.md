@@ -47,6 +47,7 @@ For Ralph's use case, FalkorDB Lite with per-task indexing is the pragmatic choi
 Index the target repo at the start of each task, before the agent begins work. This happens inside the sidecar container where CGC runs.
 
 **Flow:**
+
 ```
 Task start → sidecar receives gateway.json with CGC config
            → CGC MCP server starts (cgc mcp start)
@@ -76,11 +77,13 @@ A CodeGraphContext MCP server is available. Before using structural queries
 Move indexing into the sidecar startup, so the graph is ready before the agent starts.
 
 **Approach:** Add a startup script in the sidecar that:
+
 1. Checks if `/workspace` is mounted
 2. Runs `cgc index /workspace` before launching the gateway process
 3. Optionally starts `cgc watch /workspace` for live updates during the task
 
 **Sidecar entrypoint change:**
+
 ```bash
 #!/bin/bash
 # Index workspace if present
@@ -99,6 +102,7 @@ exec node /opt/mcp/gateway/dist/gateway.js /opt/mcp/config/gateway.json
 For repos that don't change frequently, pre-build graph bundles and restore them at startup.
 
 **Approach:**
+
 1. CI pipeline runs `cgc index` and exports the FalkorDB data directory
 2. Artifact stored as a tarball (per-branch or per-commit)
 3. Sidecar startup restores the cached index, then does incremental update for any new changes
@@ -123,6 +127,7 @@ When CGC runs inside the MCP sidecar, configure via environment variables in the
 ```
 
 Notes:
+
 - `CACHE_ENABLED=false` — no point caching in ephemeral containers
 - `IGNORE_TESTS=true` — reduces indexing time, focuses on production code structure
 - `PARALLEL_WORKERS=2` — conservative for container resource limits (4 CPU cap)
@@ -143,25 +148,26 @@ docs/
 ```
 
 This can be:
+
 - Committed to the target repo (preferred — repo owner controls it)
 - Injected by the sidecar at startup (write to `/workspace/.cgcignore` from a template)
 
 ## Resource Impact
 
-| Metric | Value (250-file TS repo) |
-|---|---|
-| Indexing time | ~90 seconds |
-| Memory (FalkorDB Lite) | ~200-400 MB |
-| Disk | Minimal (in-memory) |
+| Metric                 | Value (250-file TS repo) |
+| ---------------------- | ------------------------ |
+| Indexing time          | ~90 seconds              |
+| Memory (FalkorDB Lite) | ~200-400 MB              |
+| Disk                   | Minimal (in-memory)      |
 
 Within Ralph's container limits (8G memory, 4 CPU). The MCP sidecar has no explicit resource cap, so memory is not a concern for the sidecar.
 
 ## Decision Summary
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Database backend | FalkorDB Lite | Zero-config, ephemeral matches container lifecycle |
-| Index timing | Per-task, agent-initiated (Phase 1) | Simplest, no sidecar changes needed |
-| Persistence | None (re-index each task) | Avoids stale data from prior tasks |
-| .cgcignore | In target repo | Repo owner controls exclusions |
-| Future path | Sidecar auto-index (Phase 2) | When CGC is proven and startup cost matters |
+| Decision         | Choice                              | Rationale                                          |
+| ---------------- | ----------------------------------- | -------------------------------------------------- |
+| Database backend | FalkorDB Lite                       | Zero-config, ephemeral matches container lifecycle |
+| Index timing     | Per-task, agent-initiated (Phase 1) | Simplest, no sidecar changes needed                |
+| Persistence      | None (re-index each task)           | Avoids stale data from prior tasks                 |
+| .cgcignore       | In target repo                      | Repo owner controls exclusions                     |
+| Future path      | Sidecar auto-index (Phase 2)        | When CGC is proven and startup cost matters        |

@@ -24,8 +24,8 @@ No `env` block is needed.
 
 Search Microsoft Learn documentation. Returns titles, URLs, and descriptions. Use the `web_fetch` tool to retrieve the full content of a result page.
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `query` | string | yes | Search query |
-| `locale` | string | no | Locale for results (default: `en-us`) |
-| `maxResults` | number | no | Maximum results to return, 1–50 (default: 10) |
+| Parameter    | Type   | Required | Description                                   |
+| ------------ | ------ | -------- | --------------------------------------------- |
+| `query`      | string | yes      | Search query                                  |
+| `locale`     | string | no       | Locale for results (default: `en-us`)         |
+| `maxResults` | number | no       | Maximum results to return, 1–50 (default: 10) |

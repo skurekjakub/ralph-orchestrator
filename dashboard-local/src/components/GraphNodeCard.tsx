@@ -51,10 +51,7 @@ export function GraphNodeCard({ data }: NodeProps) {
         <span className="text-[13px] leading-none">{style.icon}</span>
         <span className="truncate">{d.label}</span>
         {catLabel && (
-          <span
-            className="text-[9px] opacity-70 ml-auto pl-1.5"
-            style={{ fontWeight: 400 }}
-          >
+          <span className="text-[9px] opacity-70 ml-auto pl-1.5" style={{ fontWeight: 400 }}>
             {catLabel}
           </span>
         )}

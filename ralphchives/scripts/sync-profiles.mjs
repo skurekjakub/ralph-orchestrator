@@ -64,10 +64,7 @@ async function apiPost(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok)
-    throw new Error(
-      `POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`
-    );
+  if (!res.ok) throw new Error(`POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`);
   return data.response;
 }
 
@@ -82,10 +79,7 @@ async function apiPut(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok)
-    throw new Error(
-      `PUT ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`
-    );
+  if (!res.ok) throw new Error(`PUT ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`);
   return data.response;
 }
 
@@ -105,9 +99,7 @@ async function discoverProfiles() {
         const displayName = (v.agent || "").replace(/^ralph\./, "");
         return { agent: v.agent, displayName };
       });
-      const uniqueVariants = [
-        ...new Map(variants.map((v) => [v.displayName, v])).values(),
-      ];
+      const uniqueVariants = [...new Map(variants.map((v) => [v.displayName, v])).values()];
       profiles.push({ id: entry.name, variants: uniqueVariants });
     } catch {
       // No profile.json or parse error — skip

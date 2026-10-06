@@ -5,7 +5,7 @@ description: "Writes and reviews Vitest tests for the Ralph Orchestrator codebas
 
 # Testing the orchestrator
 
-Vitest runs in ESM mode. `vitest.config.ts` includes only `tests/**/*.test.ts` and excludes `shared/mcp-servers`, the dashboards and `ralphchives` (each of those has its own tests). The runtime copies under `shared/skills/domain/test-*` are for container agents working on *other* repos. Don't edit them for orchestrator conventions.
+Vitest runs in ESM mode. `vitest.config.ts` includes only `tests/**/*.test.ts` and excludes `shared/mcp-servers`, the dashboards and `ralphchives` (each of those has its own tests). The runtime copies under `shared/skills/domain/test-*` are for container agents working on _other_ repos. Don't edit them for orchestrator conventions.
 
 ```bash
 npx vitest run tests/services/task-runner.test.ts   # one file while iterating

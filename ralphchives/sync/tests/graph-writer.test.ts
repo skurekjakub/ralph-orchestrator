@@ -25,7 +25,7 @@ vi.mock("neo4j-driver", () => {
 
 // Access mock internals
 async function getMockSession() {
-  const mod = await import("neo4j-driver") as Record<string, unknown>;
+  const mod = (await import("neo4j-driver")) as Record<string, unknown>;
   return mod.__mockSession as {
     run: ReturnType<typeof vi.fn>;
     close: ReturnType<typeof vi.fn>;
@@ -100,7 +100,17 @@ describe("GraphWriter", () => {
     it("flattens topics into tag rows", async () => {
       const session = await getMockSession();
       const topics = [
-        { tid: 1, uid: 1, cid: 1, title: "T1", timestamp: 1000, slug: "t1", tags: [{ value: "js" }, { value: "ts" }], mainPid: 1, postcount: 1 },
+        {
+          tid: 1,
+          uid: 1,
+          cid: 1,
+          title: "T1",
+          timestamp: 1000,
+          slug: "t1",
+          tags: [{ value: "js" }, { value: "ts" }],
+          mainPid: 1,
+          postcount: 1,
+        },
         { tid: 2, uid: 1, cid: 1, title: "T2", timestamp: 2000, slug: "t2", tags: [], mainPid: 2, postcount: 1 },
       ];
 
@@ -128,7 +138,11 @@ describe("GraphWriter", () => {
       const session = await getMockSession();
       // Create 1200 categories — should produce 3 batches (500 + 500 + 200)
       const categories = Array.from({ length: 1200 }, (_, i) => ({
-        cid: i + 1, name: `Cat ${i}`, description: "", parentCid: 0, slug: `cat-${i}`,
+        cid: i + 1,
+        name: `Cat ${i}`,
+        description: "",
+        parentCid: 0,
+        slug: `cat-${i}`,
       }));
 
       const count = await writer.mergeCategories(categories);

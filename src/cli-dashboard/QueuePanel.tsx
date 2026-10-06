@@ -10,15 +10,13 @@ interface QueuePanelProps {
 export function QueuePanel({ state }: QueuePanelProps): React.ReactElement {
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text bold>
-        Queue ({state.queueSize}):
-      </Text>
+      <Text bold>Queue ({state.queueSize}):</Text>
       {state.queueItems.length === 0 ? (
-        <Text dimColor>  (empty)</Text>
+        <Text dimColor> (empty)</Text>
       ) : (
         state.queueItems.map((item, i) => (
           <Box key={`${item.key}-${i}`}>
-            <Text dimColor>  {i + 1}. </Text>
+            <Text dimColor> {i + 1}. </Text>
             <Text color="cyan">{item.key}</Text>
             <Text> — {item.summary}</Text>
           </Box>

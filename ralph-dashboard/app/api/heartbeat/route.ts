@@ -33,10 +33,7 @@ interface HeartbeatPayload {
 export async function POST(request: NextRequest) {
   const secret = process.env.DASHBOARD_SECRET;
   if (!secret) {
-    return NextResponse.json(
-      { error: "Server misconfigured: DASHBOARD_SECRET not set" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Server misconfigured: DASHBOARD_SECRET not set" }, { status: 500 });
   }
 
   const auth = request.headers.get("authorization");
@@ -52,10 +49,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!body.agentId || typeof body.agentId !== "string") {
-    return NextResponse.json(
-      { error: "Missing required field: agentId" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing required field: agentId" }, { status: 400 });
   }
 
   const key = `ralph:agent:${body.agentId}`;

@@ -17,13 +17,13 @@ Copy this template and fill in for each evaluation.
 
 ## Grading Scale
 
-| Grade | Meaning |
-|---|---|
-| **5** | Optimal — couldn't meaningfully improve |
-| **4** | Strong — minor non-impactful issues |
+| Grade | Meaning                                                        |
+| ----- | -------------------------------------------------------------- |
+| **5** | Optimal — couldn't meaningfully improve                        |
+| **4** | Strong — minor non-impactful issues                            |
 | **3** | Adequate — functional but with clear improvement opportunities |
-| **2** | Below expectations — significant issues affecting quality |
-| **1** | Failure — dimension not satisfied |
+| **2** | Below expectations — significant issues affecting quality      |
+| **1** | Failure — dimension not satisfied                              |
 
 ---
 
@@ -31,15 +31,16 @@ Copy this template and fill in for each evaluation.
 
 **Tool sequence:** `tool1` → `tool2` ✅ → `tool3` ❌ → `tool4` ✅
 
-| Dim | Score | Evidence |
-|---|---|---|
-| D1 Tool Selection | | |
-| D2 Ordering | | |
-| ... | | |
+| Dim               | Score | Evidence |
+| ----------------- | ----- | -------- |
+| D1 Tool Selection |       |          |
+| D2 Ordering       |       |          |
+| ...               |       |          |
 
 **T1 Average: X.X**
 
 ### T1 Findings
+
 - **F1.1** (dimension, severity): Description
 - **F1.2** (dimension, positive): Description
 
@@ -49,22 +50,22 @@ Copy this template and fill in for each evaluation.
 
 ## Scoring Matrix
 
-| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9a | D9b | D9c | D9d | D9e | D10 | Avg |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| T1 | | | | | | — | — | | — | — | — | — | — | — | **X.X** |
-| ... | | | | | | | | | | | | | | | |
+| Task | D1  | D2  | D3  | D4  | D5  | D6  | D7  | D8  | D9a | D9b | D9c | D9d | D9e | D10 | Avg     |
+| ---- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ------- |
+| T1   |     |     |     |     |     | —   | —   |     | —   | —   | —   | —   | —   | —   | **X.X** |
+| ...  |     |     |     |     |     |     |     |     |     |     |     |     |     |     |         |
 
 ### Dimension Averages
 
-| Dimension | Scores | Average |
-|---|---|---|
-| D1 Tool Selection | x, y, z | **X.X** |
-| D9a Artifact Contract | x, y | **X.X** |
-| D9b Orchestrator Purity | x, y | **X.X** |
-| D9c Data Flow | x, y | **X.X** |
-| D9d Subagent Prompt Quality | x, y | **X.X** |
-| D9e Routing Table Compliance | x, y | **X.X** |
-| ... | | |
+| Dimension                    | Scores  | Average |
+| ---------------------------- | ------- | ------- |
+| D1 Tool Selection            | x, y, z | **X.X** |
+| D9a Artifact Contract        | x, y    | **X.X** |
+| D9b Orchestrator Purity      | x, y    | **X.X** |
+| D9c Data Flow                | x, y    | **X.X** |
+| D9d Subagent Prompt Quality  | x, y    | **X.X** |
+| D9e Routing Table Compliance | x, y    | **X.X** |
+| ...                          |         |         |
 
 ### Overall Score
 
@@ -84,8 +85,8 @@ Copy this template and fill in for each evaluation.
 
 ## Actionable Improvement Areas
 
-| Priority | Area | Recommendation |
-|---|---|---|
-| **High** | ... | ... |
-| **Medium** | ... | ... |
-| **Low** | ... | ... |
+| Priority   | Area | Recommendation |
+| ---------- | ---- | -------------- |
+| **High**   | ...  | ...            |
+| **Medium** | ...  | ...            |
+| **Low**    | ...  | ...            |

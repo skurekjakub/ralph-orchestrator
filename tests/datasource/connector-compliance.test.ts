@@ -53,9 +53,7 @@ function runConnectorComplianceTests(
 
     it("buildQueries returns an array of queries", () => {
       const connector = createConnector();
-      const queries = connector.buildQueries([
-        { match: { projects: ["TEST"], statuses: ["Open"] } },
-      ]);
+      const queries = connector.buildQueries([{ match: { projects: ["TEST"], statuses: ["Open"] } }]);
       expect(Array.isArray(queries)).toBe(true);
     });
 
@@ -79,9 +77,7 @@ function runConnectorComplianceTests(
       setup.seedSearchResults([item]);
 
       const connector = createConnector();
-      const queries = connector.buildQueries([
-        { match: { projects: ["TEST"], statuses: ["Open"] } },
-      ]);
+      const queries = connector.buildQueries([{ match: { projects: ["TEST"], statuses: ["Open"] } }]);
       const results = await connector.searchWorkItems(queries[0]!);
 
       expect(results.length).toBeGreaterThan(0);
@@ -175,9 +171,7 @@ describe("Connector compliance", () => {
 
   runConnectorComplianceTests("JIRA", createJiraConnector, {
     seedSearchResults: (items) => {
-      const jiraIssues = items.map((item) =>
-        makeIssue(item.id, item.title, item.status),
-      );
+      const jiraIssues = items.map((item) => makeIssue(item.id, item.title, item.status));
       client.searchIssues.mockResolvedValue(jiraIssues);
     },
     seedComments: (comments) => {

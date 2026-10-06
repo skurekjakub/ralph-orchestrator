@@ -74,14 +74,14 @@ Stages are declared in the `stages` array inside a variant in `profile.json`:
 
 ### Stage fields
 
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `agent` | `string` | Yes | — | CLI agent name (e.g. `ralph.ralph`). Must match a `.agent.md` file in `profiles/<id>/agents/`. |
-| `role` | `string` | Yes | — | Unique identifier within the pipeline (e.g. `primary`, `reviewer`). Must be unique across stages in the same variant. |
-| `mode` | `"container"` \| `"local"` | No | `"container"` | Where the agent runs. `container` = inside Docker; `local` = on the host. |
-| `skills` | `string[]` | No | `[]` | Skill folder names for this stage. Overrides profile-level `skills`. |
-| `model` | `string` | No | variant/profile default | LLM model override for this stage. |
-| `timeoutMs` | `number` | No | profile-level `timeoutMs` | Execution timeout in milliseconds. |
+| Field       | Type                       | Required | Default                   | Description                                                                                                           |
+| ----------- | -------------------------- | -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `agent`     | `string`                   | Yes      | —                         | CLI agent name (e.g. `ralph.ralph`). Must match a `.agent.md` file in `profiles/<id>/agents/`.                        |
+| `role`      | `string`                   | Yes      | —                         | Unique identifier within the pipeline (e.g. `primary`, `reviewer`). Must be unique across stages in the same variant. |
+| `mode`      | `"container"` \| `"local"` | No       | `"container"`             | Where the agent runs. `container` = inside Docker; `local` = on the host.                                             |
+| `skills`    | `string[]`                 | No       | `[]`                      | Skill folder names for this stage. Overrides profile-level `skills`.                                                  |
+| `model`     | `string`                   | No       | variant/profile default   | LLM model override for this stage.                                                                                    |
+| `timeoutMs` | `number`                   | No       | profile-level `timeoutMs` | Execution timeout in milliseconds.                                                                                    |
 
 ### Validation rules
 
@@ -132,16 +132,16 @@ Templates are re-rendered before each stage with stage-specific context. This en
 
 These template variables change per-stage:
 
-| Variable | Type | Description |
-|---|---|---|
-| `stageRole` | `string` | Current stage's role (e.g. `researcher`, `writer`). |
-| `stageMode` | `string` | `"container"` or `"local"`. |
-| `stageIndex` | `number` | 0-based index of the current stage. |
-| `stageCount` | `number` | Total number of stages in the pipeline. |
-| `isFirstStage` | `boolean` | Whether this is the first stage (`stageIndex === 0`). |
-| `isLastStage` | `boolean` | Whether this is the last stage. |
-| `previousStageRoles` | `string[]` | Roles of all completed stages (empty on first). |
-| `skills` | `string[]` | Skill folder names for this specific stage. |
+| Variable             | Type       | Description                                           |
+| -------------------- | ---------- | ----------------------------------------------------- |
+| `stageRole`          | `string`   | Current stage's role (e.g. `researcher`, `writer`).   |
+| `stageMode`          | `string`   | `"container"` or `"local"`.                           |
+| `stageIndex`         | `number`   | 0-based index of the current stage.                   |
+| `stageCount`         | `number`   | Total number of stages in the pipeline.               |
+| `isFirstStage`       | `boolean`  | Whether this is the first stage (`stageIndex === 0`). |
+| `isLastStage`        | `boolean`  | Whether this is the last stage.                       |
+| `previousStageRoles` | `string[]` | Roles of all completed stages (empty on first).       |
+| `skills`             | `string[]` | Skill folder names for this specific stage.           |
 
 ### Template example
 
@@ -194,8 +194,8 @@ Each stage produces a `StageResult`:
 
 ```typescript
 interface StageResult {
-  role: string;        // e.g. "researcher"
-  status: TaskStatus;  // Completed | Partial | Error
+  role: string; // e.g. "researcher"
+  status: TaskStatus; // Completed | Partial | Error
   durationMs: number;
   exitCode: number;
   collectedLogs: Record<string, string>;
@@ -214,11 +214,11 @@ Stages share the container workspace at `/workspace`. Stage 1 can write files th
 
 **Common patterns:**
 
-| Pattern | Stage 1 writes | Stage 2 reads |
-|---|---|---|
-| Research notes | `/workspace/research/findings.md` | Agent template references the file path |
-| Task decomposition | `/workspace/tasks.jsonl` | Agent template loads structured tasks |
-| Quality metrics | `/workspace/eval/metrics.json` | Reviewer agent reads evaluation data |
+| Pattern            | Stage 1 writes                    | Stage 2 reads                           |
+| ------------------ | --------------------------------- | --------------------------------------- |
+| Research notes     | `/workspace/research/findings.md` | Agent template references the file path |
+| Task decomposition | `/workspace/tasks.jsonl`          | Agent template loads structured tasks   |
+| Quality metrics    | `/workspace/eval/metrics.json`    | Reviewer agent reads evaluation data    |
 
 For cross-container/host handoff (container → local stages), bind-mounted directories provide the bridge. The target repo at `{{ targetRepoPath }}` on the host corresponds to `/workspace` inside the container.
 
@@ -317,9 +317,7 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 ```json
 {
-  "stages": [
-    { "agent": "ralph.ralph", "role": "primary", "mode": "container" }
-  ],
+  "stages": [{ "agent": "ralph.ralph", "role": "primary", "mode": "container" }],
   "postTaskHooks": [
     {
       "name": "run-analysis",
@@ -334,10 +332,10 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 ### Hook fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | `string` | Yes | Unique identifier. Lowercase alphanumeric with hyphens (`^[a-z0-9-]+$`). |
-| `stages` | `IStageConfig[]` | Yes | Sequential local-only stages. Same schema as variant stages, but `mode` must be `"local"`. |
+| Field    | Type             | Required | Description                                                                                |
+| -------- | ---------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `name`   | `string`         | Yes      | Unique identifier. Lowercase alphanumeric with hyphens (`^[a-z0-9-]+$`).                   |
+| `stages` | `IStageConfig[]` | Yes      | Sequential local-only stages. Same schema as variant stages, but `mode` must be `"local"`. |
 
 ### Validation rules
 
@@ -351,12 +349,12 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 Hook stages receive the `hook` object in addition to the standard stage context (empty values for main pipeline stages):
 
-| Variable | Type | Description |
-|---|---|---|
-| `hook.taskOutputDir` | `string` | Absolute path to the task's log directory (`<output.logDir>/<taskId>`) |
-| `hook.collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline |
-| `hook.name` | `string` | Name of the current hook (e.g. `"run-analysis"`) |
-| `hook.outputDir` | `string` | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs |
+| Variable             | Type                     | Description                                                            |
+| -------------------- | ------------------------ | ---------------------------------------------------------------------- |
+| `hook.taskOutputDir` | `string`                 | Absolute path to the task's log directory (`<output.logDir>/<taskId>`) |
+| `hook.collectedLogs` | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline             |
+| `hook.name`          | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                       |
+| `hook.outputDir`     | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs     |
 
 `artifactDir` stays `.ralph/tasks/<id>/artifacts`. Hook stages run with the orchestrator repo root as cwd, so subagent artifacts written there land in `<orchestrator-repo>/.ralph/tasks/<id>/artifacts/`, not in `hook.outputDir`.
 

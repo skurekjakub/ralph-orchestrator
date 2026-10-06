@@ -22,11 +22,7 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
   }, [state.status]);
 
   const statusColor =
-    state.status === OrchestratorStatus.Working
-      ? "yellow"
-      : state.status === OrchestratorStatus.Idle
-        ? "green"
-        : "red";
+    state.status === OrchestratorStatus.Working ? "yellow" : state.status === OrchestratorStatus.Idle ? "green" : "red";
 
   const statusLabel =
     state.status === OrchestratorStatus.Working
@@ -35,12 +31,8 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
         ? "● IDLE"
         : "■ STOPPING";
 
-  const elapsed = state.startedAt
-    ? Math.floor((Date.now() - state.startedAt) / 1000)
-    : 0;
-  const elapsedStr = elapsed
-    ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
-    : "";
+  const elapsed = state.startedAt ? Math.floor((Date.now() - state.startedAt) / 1000) : 0;
+  const elapsedStr = elapsed ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : "";
 
   return (
     <Box flexDirection="column">
@@ -55,9 +47,7 @@ export function StatusPanel({ state }: StatusPanelProps): React.ReactElement {
         <Box flexDirection="column" marginTop={1}>
           <Box>
             <Text bold>Current: </Text>
-            <Text color="cyan">
-              {state.currentIssue.key}
-            </Text>
+            <Text color="cyan">{state.currentIssue.key}</Text>
             <Text> — {state.currentIssue.summary}</Text>
           </Box>
           {state.currentProfile && (

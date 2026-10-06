@@ -9,15 +9,7 @@ import type { Driver } from "neo4j-driver";
 const MODEL = "gemma3:8b";
 const BATCH_SIZE = 10;
 
-const ENTITY_TYPES = [
-  "concept",
-  "product",
-  "error",
-  "feature",
-  "version",
-  "library",
-  "person",
-] as const;
+const ENTITY_TYPES = ["concept", "product", "error", "feature", "version", "library", "person"] as const;
 
 type EntityType = (typeof ENTITY_TYPES)[number];
 
@@ -89,7 +81,7 @@ export class EntityExtractor {
       const entities: ExtractedEntity[] = [];
 
       // Validate each extracted entity
-      const items = Array.isArray(parsed) ? parsed : parsed.entities ?? [];
+      const items = Array.isArray(parsed) ? parsed : (parsed.entities ?? []);
       for (const item of items) {
         if (
           typeof item.name === "string" &&
@@ -149,10 +141,7 @@ export class EntityExtractor {
   private async markProcessed(pid: number): Promise<void> {
     const session = this.driver.session();
     try {
-      await session.run(
-        `MATCH (p:Post {pid: $pid}) SET p.entitiesExtracted = true`,
-        { pid },
-      );
+      await session.run(`MATCH (p:Post {pid: $pid}) SET p.entitiesExtracted = true`, { pid });
     } finally {
       await session.close();
     }

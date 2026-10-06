@@ -39,30 +39,30 @@ export class JiraClient implements IJiraClient {
   private logger?: Logger;
   private retryOptions?: RetryOptions;
 
-  constructor({ connection, logger }: {
-    connection: IJiraConnectionConfig;
-    logger?: Logger;
-  }, retryOptions?: RetryOptions) {
+  constructor(
+    {
+      connection,
+      logger,
+    }: {
+      connection: IJiraConnectionConfig;
+      logger?: Logger;
+    },
+    retryOptions?: RetryOptions,
+  ) {
     this.email = connection.email;
     this.apiToken = connection.apiToken;
     this.logger = logger;
     this.retryOptions = retryOptions;
     const base = connection.baseUrl.replace(/\/+$/, "");
     this.baseUrl = `${base}/${connection.cloudId}`;
-    this.authHeader =
-      "Basic " +
-      Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
+    this.authHeader = "Basic " + Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
   }
 
   /**
    * Send a request to the JIRA REST API.
    * @throws Error if the response status is not 2xx.
    */
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown
-  ): Promise<T> {
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const res = await fetch(url, {
       method,
@@ -76,9 +76,7 @@ export class JiraClient implements IJiraClient {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(
-        `JIRA API ${method} ${path} failed: ${res.status} ${res.statusText} — ${text}`
-      );
+      throw new Error(`JIRA API ${method} ${path} failed: ${res.status} ${res.statusText} — ${text}`);
     }
 
     // Some endpoints return 204 with no body
@@ -145,10 +143,7 @@ export class JiraClient implements IJiraClient {
 
   /** Fetch available transitions for an issue in its current workflow status. */
   async getTransitions(key: string): Promise<JiraTransition[]> {
-    const data = await this.request<JiraTransitionsResponse>(
-      "GET",
-      `/rest/api/3/issue/${key}/transitions`,
-    );
+    const data = await this.request<JiraTransitionsResponse>("GET", `/rest/api/3/issue/${key}/transitions`);
     return data.transitions;
   }
 
@@ -179,7 +174,7 @@ export class JiraClient implements IJiraClient {
     do {
       const data = await this.request<JiraCommentResponse>(
         "GET",
-        `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=${pageSize}&startAt=${startAt}`
+        `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=${pageSize}&startAt=${startAt}`,
       );
       allComments.push(...data.comments);
       total = data.total;
@@ -193,7 +188,7 @@ export class JiraClient implements IJiraClient {
   async getAttachments(key: string): Promise<JiraAttachment[]> {
     const data = await this.request<{ fields: { attachment: JiraAttachment[] } }>(
       "GET",
-      `/rest/api/3/issue/${key}?fields=attachment`
+      `/rest/api/3/issue/${key}?fields=attachment`,
     );
     return data.fields.attachment ?? [];
   }
@@ -209,9 +204,7 @@ export class JiraClient implements IJiraClient {
       headers: { Authorization: this.authHeader },
     });
     if (!res.ok) {
-      throw new Error(
-        `Failed to download attachment: ${res.status} ${res.statusText}`
-      );
+      throw new Error(`Failed to download attachment: ${res.status} ${res.statusText}`);
     }
     return res.text();
   }
@@ -241,9 +234,7 @@ export class JiraClient implements IJiraClient {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(
-        `Failed to upload attachment: ${res.status} ${res.statusText} — ${text}`
-      );
+      throw new Error(`Failed to upload attachment: ${res.status} ${res.statusText} — ${text}`);
     }
   }
 }

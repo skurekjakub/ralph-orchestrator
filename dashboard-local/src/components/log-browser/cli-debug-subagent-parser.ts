@@ -261,9 +261,7 @@ function reparentUnclosedSpans(tree: ParsedTree, unclosedIds: Set<string>): void
   for (const node of tree.allNodes) nodeMap.set(node.id, node);
 
   // Process shallowest-first so cascading unclosed chains resolve correctly
-  const unclosed = tree.allNodes
-    .filter((n) => unclosedIds.has(n.id))
-    .sort((a, b) => a.depth - b.depth);
+  const unclosed = tree.allNodes.filter((n) => unclosedIds.has(n.id)).sort((a, b) => a.depth - b.depth);
 
   for (const node of unclosed) {
     if (node.children.length === 0) continue;
@@ -425,7 +423,10 @@ function parseArgumentsLine(line: string): string | null {
   const markerIndex = line.indexOf(marker);
   if (markerIndex === -1) return null;
 
-  const rawValue = line.slice(markerIndex + marker.length).trim().replace(/,$/, "");
+  const rawValue = line
+    .slice(markerIndex + marker.length)
+    .trim()
+    .replace(/,$/, "");
   try {
     const parsed = JSON.parse(rawValue) as string;
     return unwrapJsonString(parsed);

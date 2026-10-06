@@ -21,11 +21,7 @@ function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
 }
 
 /** Stub both /api/search and /api/category responses in one call. */
-function mockSources(
-  searchPosts: unknown[] = [],
-  categoryTopics: unknown[] = [],
-  matchCount = searchPosts.length,
-) {
+function mockSources(searchPosts: unknown[] = [], categoryTopics: unknown[] = [], matchCount = searchPosts.length) {
   vi.mocked(shared.nodebbGet).mockImplementation(async (path: string) => {
     if (String(path).startsWith("/api/search")) {
       return { posts: searchPosts, matchCount };
@@ -37,7 +33,9 @@ function mockSources(
 
 function makePost(tid: number, title: string, content: string, pid = tid * 10) {
   return {
-    pid, tid, content,
+    pid,
+    tid,
+    content,
     user: { username: "ralph" },
     topic: { title, slug: `${tid}/${title.toLowerCase().replace(/ /g, "-")}` },
     timestamp: Date.now(),
@@ -46,7 +44,9 @@ function makePost(tid: number, title: string, content: string, pid = tid * 10) {
 
 function makeTopic(tid: number, title: string, teaser = "") {
   return {
-    tid, title, slug: `${tid}/${title.toLowerCase().replace(/ /g, "-")}`,
+    tid,
+    title,
+    slug: `${tid}/${title.toLowerCase().replace(/ /g, "-")}`,
     mainPid: tid * 10,
     teaser: { content: teaser, pid: tid * 10, user: { username: "ralph" } },
     user: { username: "ralph" },
@@ -131,9 +131,7 @@ describe("search_ralphchives handler", () => {
   });
 
   it("respects limit parameter", async () => {
-    const topics = Array.from({ length: 20 }, (_, i) =>
-      makeTopic(i + 1, `Topic ${i + 1}`, `content ${i + 1}`),
-    );
+    const topics = Array.from({ length: 20 }, (_, i) => makeTopic(i + 1, `Topic ${i + 1}`, `content ${i + 1}`));
     mockSources([], topics);
 
     const result = await tool.handler({ query: "Topic" }, {} as never);

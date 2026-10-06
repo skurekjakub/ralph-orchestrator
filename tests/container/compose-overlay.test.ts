@@ -11,15 +11,17 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       mkdirSync(sidecarDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const buildDir = join(mcpDir, ".build");
       mkdirSync(buildDir, { recursive: true });
 
-      const extraVolumes = [
-        "      - ./resources/data.md:/workspace/res/data.md:ro",
-      ];
+      const extraVolumes = ["      - ./resources/data.md:/workspace/res/data.md:ro"];
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, extraVolumes);
 
@@ -34,9 +36,7 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
 
-      const extraVolumes = [
-        "      - ./resources/guide.md:/workspace/res/guide.md:ro",
-      ];
+      const extraVolumes = ["      - ./resources/guide.md:/workspace/res/guide.md:ro"];
 
       const overlay = generateComposeOverlay(mcpDir, [], mcpDir, sidecarDir, extraVolumes);
 
@@ -101,7 +101,10 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "jira", {
-        name: "jira", command: "node", args: [], sidecarPort: 9100,
+        name: "jira",
+        command: "node",
+        args: [],
+        sidecarPort: 9100,
         requiredEnv: ["JIRA_PAT", "JIRA_EMAIL"],
       });
 
@@ -120,7 +123,10 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "special", {
-        name: "special", command: "node", args: [], sidecarPort: 9100,
+        name: "special",
+        command: "node",
+        args: [],
+        sidecarPort: 9100,
         requiredEnv: ["GH_TOKEN", "CUSTOM_VAR"],
       });
 
@@ -139,7 +145,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const buildDir = join(mcpDir, ".build");
@@ -177,7 +187,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -193,8 +207,12 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "custom", command: "node", args: ["dist/bundle.js"],
-        containerPath: "/opt/mcp/servers/test-server", sidecarPort: 9100,
+        name: "test-server",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/test-server",
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -211,7 +229,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -244,7 +266,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -260,7 +286,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -277,7 +307,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -296,7 +330,11 @@ describe("Compose Overlay", () => {
       const mcpDir = createTempDir();
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], mcpDir, sidecarDir);
@@ -315,7 +353,11 @@ describe("Compose Overlay", () => {
       const buildDir = join(mcpDir, ".build");
       mkdirSync(buildDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir, [], {}, true);
@@ -333,7 +375,11 @@ describe("Compose Overlay", () => {
       const buildDir = join(mcpDir, ".build");
       mkdirSync(buildDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
-        name: "test-server", type: "npm", command: "npx", args: ["-y", "test"], sidecarPort: 9100,
+        name: "test-server",
+        type: "npm",
+        command: "npx",
+        args: ["-y", "test"],
+        sidecarPort: 9100,
       });
 
       const overlay = generateComposeOverlay(mcpDir, ["test-server"], buildDir, sidecarDir);

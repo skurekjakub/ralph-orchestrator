@@ -75,10 +75,7 @@ async function apiPost(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok)
-    throw new Error(
-      `POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`
-    );
+  if (!res.ok) throw new Error(`POST ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`);
   return data.response;
 }
 
@@ -101,10 +98,7 @@ async function apiPut(path, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok)
-    throw new Error(
-      `PUT ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`
-    );
+  if (!res.ok) throw new Error(`PUT ${path} → ${res.status}: ${data?.status?.message || JSON.stringify(data)}`);
   return data.response;
 }
 
@@ -125,9 +119,7 @@ async function discoverProfiles() {
         return { agent: v.agent, displayName };
       });
       // Deduplicate by displayName within a profile
-      const uniqueVariants = [
-        ...new Map(variants.map((v) => [v.displayName, v])).values(),
-      ];
+      const uniqueVariants = [...new Map(variants.map((v) => [v.displayName, v])).values()];
 
       profiles.push({
         id: entry.name,
@@ -205,12 +197,8 @@ async function createVariantUsers(profiles) {
         if (err.message.includes("taken") || err.message.includes("exists")) {
           console.log(`  ⏭ User "${username}" already exists`);
           // Find existing uid
-          const searchRes = await apiGet(
-            `/api/v3/users?query=${encodeURIComponent(username)}`
-          );
-          const match = (searchRes?.users || searchRes || []).find(
-            (u) => u.username === username
-          );
+          const searchRes = await apiGet(`/api/v3/users?query=${encodeURIComponent(username)}`);
+          const match = (searchRes?.users || searchRes || []).find((u) => u.username === username);
           if (match) {
             created.push({
               profileId: profile.id,
@@ -269,9 +257,7 @@ async function createUserTokens(users) {
 
 async function cleanupDuplicateAdminTokens(existingTokens) {
   // Keep only one "Ralphchives Master" token, delete duplicates
-  const masterTokens = existingTokens.filter(
-    (t) => t.description === "Ralphchives Master"
-  );
+  const masterTokens = existingTokens.filter((t) => t.description === "Ralphchives Master");
   if (masterTokens.length > 1) {
     for (let i = 1; i < masterTokens.length; i++) {
       await apiDelete(`/api/v3/admin/tokens/${masterTokens[i].token}`);
@@ -327,9 +313,7 @@ async function main() {
   console.log("\n── Discovering profiles ──");
   const profiles = await discoverProfiles();
   for (const p of profiles) {
-    console.log(
-      `  ${p.id}: ${p.variants.map((v) => v.displayName).join(", ")}`
-    );
+    console.log(`  ${p.id}: ${p.variants.map((v) => v.displayName).join(", ")}`);
   }
 
   // Clean up existing tokens
@@ -362,14 +346,10 @@ async function main() {
   // Create a master admin token if none exists
   console.log("\n── Ensuring admin master token ──");
   const updatedTokens = await getExistingTokens();
-  const hasMaster = updatedTokens.some(
-    (t) => t.description === "Ralphchives Master"
-  );
+  const hasMaster = updatedTokens.some((t) => t.description === "Ralphchives Master");
   let masterToken;
   if (hasMaster) {
-    masterToken = updatedTokens.find(
-      (t) => t.description === "Ralphchives Master"
-    ).token;
+    masterToken = updatedTokens.find((t) => t.description === "Ralphchives Master").token;
     console.log(`  ⏭ Master token exists: ${masterToken}`);
   } else {
     const t = await apiPost("/api/v3/admin/tokens", {
@@ -398,9 +378,7 @@ async function main() {
     console.log(`  ${t.username} (uid: ${t.uid}) → ${t.token}`);
   }
 
-  console.log(
-    "\n── Add to ralphchives/.env ──"
-  );
+  console.log("\n── Add to ralphchives/.env ──");
   console.log(`NODEBB_MASTER_TOKEN=${masterToken}`);
   for (const t of tokens) {
     const envKey = `NODEBB_TOKEN_${t.username.toUpperCase().replace(/-/g, "_")}`;
@@ -412,7 +390,7 @@ async function main() {
   writeTokensToEnv(tokens);
 
   console.log("\n── Category mapping (for sync config) ──");
-  console.log(JSON.stringify(Object.fromEntries(categories.map(c => [c.profileId, c.cid])), null, 2));
+  console.log(JSON.stringify(Object.fromEntries(categories.map((c) => [c.profileId, c.cid])), null, 2));
 }
 
 main().catch((err) => {

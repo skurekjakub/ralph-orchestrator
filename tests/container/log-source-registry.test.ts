@@ -14,7 +14,12 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { LogSourceRegistry } from "../../src/container/log-source-registry.js";
-import { CaptureMode, type LogSourceDef, type FolderExportDef, type IContainerLogCollector } from "../../src/container/log-collector.js";
+import {
+  CaptureMode,
+  type LogSourceDef,
+  type FolderExportDef,
+  type IContainerLogCollector,
+} from "../../src/container/log-collector.js";
 import type { CliPaths } from "../../src/container/types.js";
 import { makeProfile } from "../helpers/factories.js";
 
@@ -43,10 +48,18 @@ function createFakeCollector(): FakeCollector {
     sources: [],
     exports: [],
     attached: false,
-    setTaskId(key) { this.taskId = key; },
-    addSource(source) { this.sources.push(source); },
-    addExport(folder) { this.exports.push(folder); },
-    attach() { this.attached = true; },
+    setTaskId(key) {
+      this.taskId = key;
+    },
+    addSource(source) {
+      this.sources.push(source);
+    },
+    addExport(folder) {
+      this.exports.push(folder);
+    },
+    attach() {
+      this.attached = true;
+    },
     detach: vi.fn(),
     collectAll: vi.fn().mockResolvedValue([]),
     clearCollectSources: vi.fn().mockResolvedValue(undefined),
@@ -54,11 +67,11 @@ function createFakeCollector(): FakeCollector {
 }
 
 function source(collector: FakeCollector, id: string): LogSourceDef | undefined {
-  return collector.sources.find(s => s.id === id);
+  return collector.sources.find((s) => s.id === id);
 }
 
 function folder(collector: FakeCollector, id: string): FolderExportDef | undefined {
-  return collector.exports.find(e => e.id === id);
+  return collector.exports.find((e) => e.id === id);
 }
 
 describe("LogSourceRegistry", () => {
@@ -71,7 +84,7 @@ describe("LogSourceRegistry", () => {
 
       registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, cliPaths);
 
-      const sourceIds = collector.sources.map(s => s.id);
+      const sourceIds = collector.sources.map((s) => s.id);
       expect(sourceIds).toContain("audit");
       expect(sourceIds).toContain("transcript");
       expect(sourceIds).toContain("pre-tool");
@@ -81,7 +94,7 @@ describe("LogSourceRegistry", () => {
       expect(sourceIds).toContain("sidecar");
       expect(sourceIds).toContain("state");
 
-      const exportIds = collector.exports.map(e => e.id);
+      const exportIds = collector.exports.map((e) => e.id);
       expect(exportIds).toContain("session-state");
       expect(exportIds).toContain("artifacts");
     });

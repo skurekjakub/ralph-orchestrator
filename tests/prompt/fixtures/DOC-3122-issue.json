@@ -26,14 +26,15 @@
         {
           "type": "paragraph",
           "content": [
-            { "type": "text", "text": "The linked issue introduces a new UI page that shows the assignments between reusable field schemas and content types." }
+            {
+              "type": "text",
+              "text": "The linked issue introduces a new UI page that shows the assignments between reusable field schemas and content types."
+            }
           ]
         },
         {
           "type": "paragraph",
-          "content": [
-            { "type": "text", "text": "Typical use case:" }
-          ]
+          "content": [{ "type": "text", "text": "Typical use case:" }]
         },
         {
           "type": "bulletList",
@@ -41,16 +42,22 @@
             {
               "type": "listItem",
               "content": [
-                { "type": "paragraph", "content": [{ "type": "text", "text": "An administrator wants to see all content types consuming a specific reusable field schema" }] }
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "An administrator wants to see all content types consuming a specific reusable field schema"
+                    }
+                  ]
+                }
               ]
             }
           ]
         },
         {
           "type": "paragraph",
-          "content": [
-            { "type": "text", "text": "Notes" }
-          ]
+          "content": [{ "type": "text", "text": "Notes" }]
         },
         {
           "type": "bulletList",
@@ -58,19 +65,40 @@
             {
               "type": "listItem",
               "content": [
-                { "type": "paragraph", "content": [{ "type": "text", "text": "verify the exact labels/location/functionality in the xperience source code" }] }
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "verify the exact labels/location/functionality in the xperience source code"
+                    }
+                  ]
+                }
               ]
             },
             {
               "type": "listItem",
               "content": [
-                { "type": "paragraph", "content": [{ "type": "text", "text": "draft a short release note and post it as part of the JIRA issue comment" }] }
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "draft a short release note and post it as part of the JIRA issue comment"
+                    }
+                  ]
+                }
               ]
             },
             {
               "type": "listItem",
               "content": [
-                { "type": "paragraph", "content": [{ "type": "text", "text": "also draft a short post to the training team about the feature" }] }
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "also draft a short post to the training team about the feature" }
+                  ]
+                }
               ]
             }
           ]
@@ -86,7 +114,10 @@
       "type": "doc",
       "version": 1,
       "content": [
-        { "type": "paragraph", "content": [{ "type": "text", "text": "Navigation is confusing when trying to find schema usage." }] }
+        {
+          "type": "paragraph",
+          "content": [{ "type": "text", "text": "Navigation is confusing when trying to find schema usage." }]
+        }
       ]
     },
     "customfield_19181": "*Please copy and use this template in the description:*\n\n----\n\nh3. Activity\n\n{color:grey}What's the main activity?{color}\n\nh3. Contact person\n\n{color:grey}Who should we contact?{color}\n\n----",

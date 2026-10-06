@@ -2,13 +2,7 @@ import { describe, it, expect } from "vitest";
 import { assertValidIssueKey } from "../../../../src/datasource/connectors/jira/jira-connector.js";
 
 describe("assertValidIssueKey", () => {
-  it.each([
-    "DF-1",
-    "DF-123",
-    "DOC-4567",
-    "ABC-99",
-    "A1B2-100",
-  ])("accepts valid key %s", (key) => {
+  it.each(["DF-1", "DF-123", "DOC-4567", "ABC-99", "A1B2-100"])("accepts valid key %s", (key) => {
     expect(() => assertValidIssueKey(key)).not.toThrow();
   });
 

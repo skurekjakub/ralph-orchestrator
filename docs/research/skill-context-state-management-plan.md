@@ -5,6 +5,7 @@
 Long-running autonomous agents suffer from **context rot** — as the conversation grows, earlier instructions fade from the model's effective attention window. Ralph's agents run multi-phase workflows (8+ phases, multiple sub-agent delegations) that span thousands of tokens. By the time the agent reaches Phase 7, the instructions from Phase 1 are diluted by accumulated tool output, file contents, and intermediate reasoning.
 
 Today, Ralph addresses this partially:
+
 - **Agent templates** (`*.agent.md`) embed the full workflow inline via Liquid `{% render %}`, loaded into the system prompt at session start
 - **`state.md` scratchpad** — created in Phase 1 at `resources/chats/{{ taskId }}/state.md`, re-read before each phase to maintain consistency
 - **Skills** — 11 shared skills in `shared/skills/` referenced by textual instruction ("consult the **ralph-code-samples** skill") but never auto-loaded or enforced
@@ -83,27 +84,29 @@ Instead of loading the entire workflow upfront, **load only the current phase's 
 ```markdown
 ## Workflow
 
-Execute the following phases **in order**. Before each phase, read the corresponding 
+Execute the following phases **in order**. Before each phase, read the corresponding
 skill file to get your detailed instructions:
 
-| Phase | Skill | Summary |
-|-------|-------|---------|
-| 1. Setup | `.github/skills/ralph-workflow-setup/SKILL.md` | Branch, scratchpad, ralphchives |
-| 2. Research | `.github/skills/ralph-workflow-research/SKILL.md` | Delegate to researcher sub-agent |
-| 3. Write | `.github/skills/ralph-workflow-write/SKILL.md` | Implement documentation changes |
-| 4. Review | `.github/skills/ralph-workflow-review/SKILL.md` | Delegate to reviewer sub-agent |
-| 5. Revise | `.github/skills/ralph-workflow-revise/SKILL.md` | Fix reviewer feedback (max 2 cycles) |
-| 6. Commit | `.github/skills/ralph-workflow-commit/SKILL.md` | Pre-commit checks, commit, push |
-| 7. PR | `.github/skills/ralph-workflow-pr/SKILL.md` | Create ADO pull request |
-| 8. Handoff | `.github/skills/ralph-workflow-handoff/SKILL.md` | Write handoff, report to JIRA, exit |
+| Phase       | Skill                                             | Summary                              |
+| ----------- | ------------------------------------------------- | ------------------------------------ |
+| 1. Setup    | `.github/skills/ralph-workflow-setup/SKILL.md`    | Branch, scratchpad, ralphchives      |
+| 2. Research | `.github/skills/ralph-workflow-research/SKILL.md` | Delegate to researcher sub-agent     |
+| 3. Write    | `.github/skills/ralph-workflow-write/SKILL.md`    | Implement documentation changes      |
+| 4. Review   | `.github/skills/ralph-workflow-review/SKILL.md`   | Delegate to reviewer sub-agent       |
+| 5. Revise   | `.github/skills/ralph-workflow-revise/SKILL.md`   | Fix reviewer feedback (max 2 cycles) |
+| 6. Commit   | `.github/skills/ralph-workflow-commit/SKILL.md`   | Pre-commit checks, commit, push      |
+| 7. PR       | `.github/skills/ralph-workflow-pr/SKILL.md`       | Create ADO pull request              |
+| 8. Handoff  | `.github/skills/ralph-workflow-handoff/SKILL.md`  | Write handoff, report to JIRA, exit  |
 
 **Before entering each phase:**
+
 1. Read your `state.md` scratchpad
-2. Read the phase's skill file  
+2. Read the phase's skill file
 3. Update `state.md` with the current phase and any new context
 ```
 
 **Benefits:**
+
 - The agent's system prompt shrinks from ~500 lines to ~50 lines (skeleton + constraints + identity)
 - Each phase's instructions are fresh in context when the agent reads them — no competing with 5 phases of accumulated tool output
 - Phase skills can be updated independently without touching the agent template
@@ -119,35 +122,43 @@ Replace the freeform `state.md` with a structured format that serves double duty
 # Task State: {{ taskId }}
 
 ## Current Phase
+
 Phase 3: Write
 
 ### Skills for this phase
+
 - `.github/skills/ralph-workflow-write/SKILL.md` — phase instructions
 - `.github/skills/ralph-style-guide-review/SKILL.md` — style checklist
 - `.github/skills/ralph-new-page-creation/SKILL.md` — new page workflow
 - `.github/skills/ralph-documentation-syntax/SKILL.md` — Liquid/Jekyll syntax
 
 ## Completed Phases
+
 - [x] Phase 1: Setup — branch: ralph/DF-456-content-types, created 2025-01-15
 - [x] Phase 2: Research — researcher found 5 existing pages, 3 source classes
 
 ## Key Decisions
+
 - New page at `src/_documentation/content-types/reusable-field-schemas.md`
 - Using identifier `reusable-field-schemas` (from frontmatter)
 - Source branch: main (no triggerParam override)
 
 ## Tracked Identifiers
+
 - Page identifier: `reusable-field-schemas`
 - PR branch: `ralph/DF-456-reusable-field-schemas`
 
 ## Source References
+
 - `ReusableFieldSchemaValidator.cs:L45` — ValidateNesting() throws if parent is already an RFS
 - `FieldSchemaManager.cs:L120-135` — PropagateChanges() iterates all referencing types
 
 ## Ralphchives Findings
+
 - DF-440 had similar RFS work — used `reusable_field_schema` naming pattern (not kebab-case)
 
 ## Notes
+
 - Build fails if code_link references nonexistent file — validate before commit
 ```
 
@@ -166,6 +177,7 @@ This creates a **self-sustaining cycle**: the agent doesn't need to remember sys
 **Will the agent actually read state.md before every phase?** Since the instruction "read state.md before this phase" is repeated at the top of every phase skill, the reinforcement compounds. The agent sees it 8 times across a task. Even if attention to the original system prompt degrades, the most recently read phase skill (which told it to update state.md for the _next_ phase) is still fresh in context. It's the closest we can get to guaranteeing compliance without a tool-based enforcement mechanism.
 
 **Key additions over current freeform state.md:**
+
 - **Current Phase** — explicit phase marker the agent updates on each transition
 - **Skills for this phase** — the agent lists the skill files it needs to read for the current phase, turning state.md into a JIT context manifest
 - **Completed Phases** — checklist of what's done with key outcomes
@@ -174,46 +186,56 @@ This creates a **self-sustaining cycle**: the agent doesn't need to remember sys
 
 The agent template should include a **state.md template** in the Setup phase skill. The template seeds the skill-manifest pattern from the very first phase:
 
-```markdown
+````markdown
 ### Phase 1 Instructions
 
 Create the state file at `resources/chats/{{ taskId }}/state.md` using this template:
 
 \```markdown
+
 # Task State: {{ taskId }} — {{ taskTitle }}
 
 ## Current Phase
+
 Phase 1: Setup
 
 ### Skills for this phase
+
 - `.github/skills/ralph-workflow-setup/SKILL.md` — phase instructions
 
 ## Completed Phases
+
 (none yet)
 
 ## Key Decisions
+
 (record each decision and its rationale)
 
 ## Tracked Identifiers
+
 (page identifiers, branch names, PR IDs)
 
 ## Source References
+
 (exact source locations backing documentation claims)
 
 ## Ralphchives Findings
+
 (prior work from archived task reports)
 
 ## Notes
+
 (anything else)
 \```
 
 Before moving to Phase 2, update state.md:
+
 - Set "Current Phase" to `Phase 2: Research`
 - Set "Skills for this phase" to:
   - `.github/skills/ralph-workflow-research/SKILL.md` — phase instructions
   - `.github/skills/ralph-ralphchives/SKILL.md` — knowledge base search
 - Add Phase 1 to "Completed Phases" with branch name and setup outcomes
-```
+````
 
 ### 3. Phase-Entry Ritual
 
@@ -251,11 +273,12 @@ Phase skills can reference other skills inline, creating a two-level JIT hierarc
 ## Phase 3: Write
 
 ### Before you begin
+
 [standard ritual]
 
 ### Instructions
 
-1. **Read the style guides** and consult `.github/skills/ralph-style-guide-review/SKILL.md` 
+1. **Read the style guides** and consult `.github/skills/ralph-style-guide-review/SKILL.md`
    for a quick-reference checklist
 2. For new pages, read `.github/skills/ralph-new-page-creation/SKILL.md`
 3. For code samples, read `.github/skills/ralph-code-samples/SKILL.md`
@@ -270,9 +293,9 @@ For Ralph's sub-agents (researcher, reviewer), skills can be preloaded via the `
 
 ```yaml
 ---
-name: 'ralph-researcher'
+name: "ralph-researcher"
 model: claude-opus-4.6
-skills: ['ralph-ralphchives', 'ralph-source-references']
+skills: ["ralph-ralphchives", "ralph-source-references"]
 ---
 ```
 
@@ -287,11 +310,12 @@ This injects the full skill content into the sub-agent's system prompt at startu
 Not every task needs every phase. The workflow skeleton should support conditional phases via Liquid:
 
 ```markdown
-| Phase | Skill | Summary |
-|-------|-------|---------|
-| 1. Setup | `ralph-workflow-setup` | Branch, scratchpad, ralphchives |
-| 2. Research | `ralph-workflow-research` | Delegate to researcher |
-| 3. Write | `ralph-workflow-write` | Implement changes |
+| Phase       | Skill                     | Summary                         |
+| ----------- | ------------------------- | ------------------------------- |
+| 1. Setup    | `ralph-workflow-setup`    | Branch, scratchpad, ralphchives |
+| 2. Research | `ralph-workflow-research` | Delegate to researcher          |
+| 3. Write    | `ralph-workflow-write`    | Implement changes               |
+
 {%- unless triggerParams.skip_review %}
 | 4. Review | `ralph-workflow-review` | Delegate to reviewer |
 | 5. Revise | `ralph-workflow-revise` | Fix feedback (max 2 cycles) |
@@ -309,13 +333,16 @@ Currently, "Known Failure Patterns" are embedded in the agent template's system 
 
 ```markdown
 {% section "known-failure-patterns" %}
+
 ## Known Failure Patterns — DO NOT REPEAT
+
 - **Uncommitted build failure** — skipping `npm run build`...
 - **Hallucinated API signatures** — Always read the source file...
-{% endsection %}
+  {% endsection %}
 ```
 
 These should become a standalone skill (`ralph-known-failure-patterns`) that is:
+
 - Referenced in the agent template's always-loaded section (it's short enough)
 - Also referenced in specific phase skills where failures are most likely (e.g., the Write phase references the "hallucinated API signatures" pattern, the Commit phase references the "uncommitted build failure" pattern)
 
@@ -329,10 +356,10 @@ The multi-agent execution plan (`plans/multi-agent-execution-plan.md`, no longer
 
 The multi-agent plan proposes `BLACKBOARD.md` for inter-agent communication. This is complementary to `state.md`:
 
-| File | Scope | Purpose |
-|------|-------|---------|
-| `state.md` | Per-agent | Private working memory for a single agent's decisions and progress |
-| `BLACKBOARD.md` | Shared | Inter-agent communication channel for coordinating work |
+| File            | Scope     | Purpose                                                            |
+| --------------- | --------- | ------------------------------------------------------------------ |
+| `state.md`      | Per-agent | Private working memory for a single agent's decisions and progress |
+| `BLACKBOARD.md` | Shared    | Inter-agent communication channel for coordinating work            |
 
 In a multi-agent scenario, each agent maintains its own `state.md` (or a per-agent section of a shared state file), while `BLACKBOARD.md` handles coordination signals.
 
@@ -392,6 +419,7 @@ Ralph mounts skills and agent files into the target repo's `.github/skills/` and
 - **`copilot-instructions.md`**: If the target repo has its own `copilot-instructions.md`, it may conflict with or override Ralph's agent template conventions.
 
 **Recommendation:** Structure the target repo's instruction files rather than relying on Ralph-injected artifacts to avoid collisions. Ralph's context injection should flow through:
+
 1. **Agent template** (system prompt) — always-loaded identity and workflow skeleton
 2. **Skills** (`.github/skills/ralph-*/`) — JIT phase instructions and domain knowledge
 3. **`state.md`** (workspace file) — dynamic working memory
@@ -408,7 +436,7 @@ This is the core risk. The agent is already told to read skills and sometimes do
 
 ### Does splitting the workflow hurt coherence?
 
-The monolithic workflow gives the agent a complete picture of all phases upfront. Splitting it risks the agent not understanding the overall flow. 
+The monolithic workflow gives the agent a complete picture of all phases upfront. Splitting it risks the agent not understanding the overall flow.
 
 **Mitigation:** The skeleton table in the agent template preserves the high-level flow. Each phase skill includes a "Before moving to Phase N+1" section that connects phases.
 
@@ -432,11 +460,11 @@ The recommendations above rely on the agent voluntarily reading `state.md` and p
 
 Claude Code (2026) supports hooks at every point in the agent lifecycle. The three most relevant for context reinforcement:
 
-| Hook Event | Fires When | Context Injection |
-|---|---|---|
-| `PostToolUse` (matcher: `Read`) | Agent reads any file | `additionalContext` field injected into Claude's context |
-| `PreToolUse` (matcher: `Read`) | Agent is about to read a file | `additionalContext` injected before the read happens |
-| `Stop` | Agent finishes responding | Can block stopping with `decision: "block"` + reason |
+| Hook Event                      | Fires When                    | Context Injection                                        |
+| ------------------------------- | ----------------------------- | -------------------------------------------------------- |
+| `PostToolUse` (matcher: `Read`) | Agent reads any file          | `additionalContext` field injected into Claude's context |
+| `PreToolUse` (matcher: `Read`)  | Agent is about to read a file | `additionalContext` injected before the read happens     |
+| `Stop`                          | Agent finishes responding     | Can block stopping with `decision: "block"` + reason     |
 
 ### Pattern 1: Phase Skill Read → Inject State Reminder
 
@@ -517,7 +545,7 @@ if echo "$LAST_MSG" | grep -q "===RALPH_RESULT_START==="; then
 fi
 
 # Block stopping — agent hasn't produced its result
-echo '{"decision": "block", "reason": "You have not printed the ===RALPH_RESULT_START=== block. Check state.md and complete remaining phases before stopping."}' 
+echo '{"decision": "block", "reason": "You have not printed the ===RALPH_RESULT_START=== block. Check state.md and complete remaining phases before stopping."}'
 ```
 
 **What this achieves:** The agent cannot finish without printing the result block. If context rot causes it to forget the exit protocol, the hook catches it and provides corrective feedback. This is equivalent to Ralph's existing continuation loop but handled at the CLI level.
@@ -611,17 +639,17 @@ hooks:
 
 Ralph runs agents inside Docker containers via CLI (`copilot --agent` or `claude -p`). Both CLIs support hooks, but with significantly different capabilities for context injection:
 
-| Feature | Claude Code CLI | Copilot CLI |
-|---|---|---|
-| Hook events | `SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`, `SubagentStart/Stop`, `PreCompact`, + more | `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `preToolUse`, `postToolUse`, `errorOccurred` |
-| `PreToolUse` — block/allow | `permissionDecision: allow/deny/ask` | `permissionDecision: deny` only (allow/ask not processed) |
-| `PostToolUse` — inject context | `additionalContext` field injected into Claude's context | **Output ignored** — no context injection |
-| `Stop` — prevent premature exit | `decision: "block"` with reason fed back to model | **Not available** |
-| `SubagentStart` — inject context | `additionalContext` injected into sub-agent | **Not available** |
-| Prompt/agent hook types | `type: "prompt"` (LLM) and `type: "agent"` (multi-turn) | `type: "command"` only |
-| Skill-scoped hooks | Frontmatter `hooks:` in SKILL.md | Not available |
-| Async hooks | `async: true` for background execution | Not available |
-| Hook location | `.claude/settings.json`, skill/agent frontmatter | `.github/hooks/hooks.json` |
+| Feature                          | Claude Code CLI                                                                                 | Copilot CLI                                                                                       |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Hook events                      | `SessionStart`, `PreToolUse`, `PostToolUse`, `Stop`, `SubagentStart/Stop`, `PreCompact`, + more | `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `preToolUse`, `postToolUse`, `errorOccurred` |
+| `PreToolUse` — block/allow       | `permissionDecision: allow/deny/ask`                                                            | `permissionDecision: deny` only (allow/ask not processed)                                         |
+| `PostToolUse` — inject context   | `additionalContext` field injected into Claude's context                                        | **Output ignored** — no context injection                                                         |
+| `Stop` — prevent premature exit  | `decision: "block"` with reason fed back to model                                               | **Not available**                                                                                 |
+| `SubagentStart` — inject context | `additionalContext` injected into sub-agent                                                     | **Not available**                                                                                 |
+| Prompt/agent hook types          | `type: "prompt"` (LLM) and `type: "agent"` (multi-turn)                                         | `type: "command"` only                                                                            |
+| Skill-scoped hooks               | Frontmatter `hooks:` in SKILL.md                                                                | Not available                                                                                     |
+| Async hooks                      | `async: true` for background execution                                                          | Not available                                                                                     |
+| Hook location                    | `.claude/settings.json`, skill/agent frontmatter                                                | `.github/hooks/hooks.json`                                                                        |
 
 **Key limitation:** Copilot CLI's `postToolUse` output is ignored — the most impactful pattern (injecting context after a skill read) simply doesn't work. Copilot hooks are designed for **logging and blocking**, not context reinforcement. The `preToolUse` hook can deny operations but can't inject `additionalContext` to guide the agent.
 
@@ -631,24 +659,24 @@ Ralph runs agents inside Docker containers via CLI (`copilot --agent` or `claude
 
 ### Cost-Benefit Analysis
 
-| Pattern | Context Cost | Implementation Effort | Reinforcement Strength |
-|---|---|---|---|
-| Phase skill read → state reminder | ~50 tokens per phase | Low (one shell script) | Medium — reminder, not enforcement |
-| Stop → verify completion | ~30 tokens on stop | Low (one shell script) | High — blocks premature exit |
-| Prompt-based phase verify | ~100 tokens + Haiku call | Medium (prompt engineering) | High — catches malformed output |
-| SubagentStart → inject state | Varies (state.md size) | Low (one shell script) | High — automated context transfer |
-| Skill-scoped build check | ~50 tokens per write | Medium (async hook + script) | Medium — automated build validation |
+| Pattern                           | Context Cost             | Implementation Effort        | Reinforcement Strength              |
+| --------------------------------- | ------------------------ | ---------------------------- | ----------------------------------- |
+| Phase skill read → state reminder | ~50 tokens per phase     | Low (one shell script)       | Medium — reminder, not enforcement  |
+| Stop → verify completion          | ~30 tokens on stop       | Low (one shell script)       | High — blocks premature exit        |
+| Prompt-based phase verify         | ~100 tokens + Haiku call | Medium (prompt engineering)  | High — catches malformed output     |
+| SubagentStart → inject state      | Varies (state.md size)   | Low (one shell script)       | High — automated context transfer   |
+| Skill-scoped build check          | ~50 tokens per write     | Medium (async hook + script) | Medium — automated build validation |
 
 The most impactful pattern is the **Stop hook** — it's cheap, simple, and catches the most common failure mode (agent stopping without producing the result block). The **state reminder on skill read** provides incremental reinforcement at low cost. The **prompt-based verification** adds a safety net but has a per-invocation cost (one Haiku call per stop).
 
 ## Appendix B: Comparison with Claude Code Memory System
 
-| Feature | Claude Code | Ralph (Current) | Ralph (Proposed) |
-|---------|-------------|------------------|-------------------|
-| Always-loaded context | CLAUDE.md (200 lines max) | Agent template (500+ lines) | Agent template (50 lines) + skeleton |
-| JIT context | Skills (on-demand) | Skills (textual reference, not enforced) | Phase skills (explicit read per phase) |
-| Working memory | MEMORY.md (auto-written) | `state.md` (freeform) | `state.md` (structured template) |
-| Cross-session memory | Auto-memory topic files | Ralphchives (MCP) | Ralphchives (MCP) — no change |
-| Sub-agent context | `skills` frontmatter preload | Manual delegation prompt | `skills` frontmatter preload |
-| Context compaction | Auto-compaction on fill | None (continuation loop restarts) | None — continuation loop is the mechanism |
-| Phase awareness | None (general conversation) | Implicit (sequential workflow text) | Explicit (phase field in `state.md`) |
+| Feature               | Claude Code                  | Ralph (Current)                          | Ralph (Proposed)                          |
+| --------------------- | ---------------------------- | ---------------------------------------- | ----------------------------------------- |
+| Always-loaded context | CLAUDE.md (200 lines max)    | Agent template (500+ lines)              | Agent template (50 lines) + skeleton      |
+| JIT context           | Skills (on-demand)           | Skills (textual reference, not enforced) | Phase skills (explicit read per phase)    |
+| Working memory        | MEMORY.md (auto-written)     | `state.md` (freeform)                    | `state.md` (structured template)          |
+| Cross-session memory  | Auto-memory topic files      | Ralphchives (MCP)                        | Ralphchives (MCP) — no change             |
+| Sub-agent context     | `skills` frontmatter preload | Manual delegation prompt                 | `skills` frontmatter preload              |
+| Context compaction    | Auto-compaction on fill      | None (continuation loop restarts)        | None — continuation loop is the mechanism |
+| Phase awareness       | None (general conversation)  | Implicit (sequential workflow text)      | Explicit (phase field in `state.md`)      |

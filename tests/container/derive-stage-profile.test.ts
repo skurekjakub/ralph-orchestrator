@@ -34,7 +34,13 @@ describe("deriveStageProfile", () => {
   });
 
   it("overrides model from stage when provided", () => {
-    const stage = { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [], model: "stage-model" };
+    const stage = {
+      agent: "ralph.reviewer",
+      role: "reviewer",
+      mode: StageMode.Container,
+      skills: [],
+      model: "stage-model",
+    };
     const derived = deriveStageProfile(base, stage);
     expect(derived.model).toBe("stage-model");
   });
@@ -46,7 +52,13 @@ describe("deriveStageProfile", () => {
   });
 
   it("overrides timeoutMs from stage when provided", () => {
-    const stage = { agent: "ralph.reviewer", role: "reviewer", mode: StageMode.Container, skills: [], timeoutMs: 120000 };
+    const stage = {
+      agent: "ralph.reviewer",
+      role: "reviewer",
+      mode: StageMode.Container,
+      skills: [],
+      timeoutMs: 120000,
+    };
     const derived = deriveStageProfile(base, stage);
     expect(derived.timeoutMs).toBe(120000);
   });

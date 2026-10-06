@@ -17,17 +17,18 @@ Copy this template and fill in for each evaluation.
 
 ## Task Decomposition
 
-| ID | Task | Required Outcome |
-|---|---|---|
-| T1 | **Setup** | <what needs to happen> |
-| T2 | **Research** | <what needs to happen> |
-| ... | ... | ... |
+| ID  | Task         | Required Outcome       |
+| --- | ------------ | ---------------------- |
+| T1  | **Setup**    | <what needs to happen> |
+| T2  | **Research** | <what needs to happen> |
+| ... | ...          | ...                    |
 
 ---
 
 ## Evaluation Checklist
 
 ### T1: <Task Name>
+
 - [ ] D1 — Tool selection
 - [ ] D2 — Ordering
 - [ ] D3 — Arguments
@@ -36,6 +37,7 @@ Copy this template and fill in for each evaluation.
 - [ ] D8 — Workflow compliance
 
 ### T2: <Task Name>
+
 - [ ] D1 — Tool selection
 - [ ] D2 — Ordering
 - [ ] D3 — Arguments
@@ -61,10 +63,10 @@ Copy this template and fill in for each evaluation.
 
 ## Scoring Matrix (to be filled during evaluation)
 
-| Task | D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8 | D9a | D9b | D9c | D9d | D9e | D10 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| T1 | | | | | | — | — | | — | — | — | — | — | — |
-| ... | | | | | | | | | | | | | | |
+| Task | D1  | D2  | D3  | D4  | D5  | D6  | D7  | D8  | D9a | D9b | D9c | D9d | D9e | D10 |
+| ---- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| T1   |     |     |     |     |     | —   | —   |     | —   | —   | —   | —   | —   | —   |
+| ...  |     |     |     |     |     |     |     |     |     |     |     |     |     |     |
 
 `—` = not applicable for this task
 

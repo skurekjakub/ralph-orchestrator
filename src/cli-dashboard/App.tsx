@@ -17,9 +17,7 @@ interface AppProps {
  * and renders the terminal dashboard (status, queue, history, activity log).
  */
 export function App({ observer }: AppProps): React.ReactElement {
-  const [state, setState] = useState<OrchestratorState>(
-    observer.getState()
-  );
+  const [state, setState] = useState<OrchestratorState>(observer.getState());
 
   useEffect(() => {
     observer.onStateChange(setState);
@@ -33,13 +31,7 @@ export function App({ observer }: AppProps): React.ReactElement {
   }, [observer]);
 
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="blue"
-      paddingX={2}
-      paddingY={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor="blue" paddingX={2} paddingY={1}>
       <Text bold color="blue">
         🤖 Ralph Orchestrator
       </Text>
@@ -50,20 +42,18 @@ export function App({ observer }: AppProps): React.ReactElement {
       <LogPanel title="Orchestrator Log" logs={state.orchestratorLogs} maxLines={6} />
 
       <Box marginTop={1}>
-        <Text dimColor>{'─'.repeat(50)}</Text>
+        <Text dimColor>{"─".repeat(50)}</Text>
       </Box>
 
       <QueuePanel state={state} />
       <HistoryPanel completed={state.completedToday} />
 
       <Box marginTop={1}>
-        <Text dimColor>{'─'.repeat(50)}</Text>
+        <Text dimColor>{"─".repeat(50)}</Text>
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>
-          Output: ./output/logs/ │ Press Ctrl+C to stop
-        </Text>
+        <Text dimColor>Output: ./output/logs/ │ Press Ctrl+C to stop</Text>
       </Box>
     </Box>
   );

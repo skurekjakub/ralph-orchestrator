@@ -117,7 +117,9 @@ describe("StreamCapture", () => {
     const capture = new StreamCapture(proc, createMockLogger(), "test");
 
     let resolved = false;
-    capture.resultBlockDetected.then(() => { resolved = true; });
+    capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
 
     stdout.emit("data", "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n");
 
@@ -131,7 +133,9 @@ describe("StreamCapture", () => {
     const capture = new StreamCapture(proc, createMockLogger(), "test");
 
     let resolved = false;
-    capture.resultBlockDetected.then(() => { resolved = true; });
+    capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
 
     stdout.emit("data", "```\n===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n```\n");
 
@@ -144,7 +148,9 @@ describe("StreamCapture", () => {
     const capture = new StreamCapture(proc, createMockLogger(), "test");
 
     let resolved = false;
-    capture.resultBlockDetected.then(() => { resolved = true; });
+    capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
 
     stdout.emit("data", "some normal output\nno result block here\n");
 
@@ -157,7 +163,9 @@ describe("StreamCapture", () => {
     const capture = new StreamCapture(proc, createMockLogger(), "test");
 
     let resolveCount = 0;
-    capture.resultBlockDetected.then(() => { resolveCount++; });
+    capture.resultBlockDetected.then(() => {
+      resolveCount++;
+    });
 
     stdout.emit("data", "===RALPH_RESULT_END===\n");
     stdout.emit("data", "===RALPH_RESULT_END===\n");

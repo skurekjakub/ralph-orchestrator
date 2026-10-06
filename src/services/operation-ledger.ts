@@ -71,8 +71,8 @@ export interface Operation {
  * up again on every iteration and every restart.
  */
 const VALID_TRANSITIONS = new Map<OperationStatus, ReadonlySet<OperationStatus>>([
-  [OperationStatus.Pending,  new Set([OperationStatus.Active, OperationStatus.Rejected, OperationStatus.Error])],
-  [OperationStatus.Active,   new Set([OperationStatus.Completed, OperationStatus.Error])],
+  [OperationStatus.Pending, new Set([OperationStatus.Active, OperationStatus.Rejected, OperationStatus.Error])],
+  [OperationStatus.Active, new Set([OperationStatus.Completed, OperationStatus.Error])],
 ]);
 
 /** On-disk structure for a single issue's operation history. */
@@ -85,11 +85,29 @@ export interface IOperationLedger {
   /** Register a callback invoked whenever a new pending operation is planned. */
   onPending(callback: () => void): void;
   /** Plan a new operation (record as `pending`). Returns the operation ID. */
-  plan(issueKey: string, opts: { dataSource: string; variant: string; triggerCommentId: string; commentTimestamp: string; triggerParams?: string[] }): string;
+  plan(
+    issueKey: string,
+    opts: {
+      dataSource: string;
+      variant: string;
+      triggerCommentId: string;
+      commentTimestamp: string;
+      triggerParams?: string[];
+    },
+  ): string;
   /** Reject a trigger comment immediately (no agent invocation). */
-  reject(issueKey: string, opts: { dataSource: string; variant: string; triggerCommentId: string; commentTimestamp: string; reason: string }): void;
+  reject(
+    issueKey: string,
+    opts: { dataSource: string; variant: string; triggerCommentId: string; commentTimestamp: string; reason: string },
+  ): void;
   /** Transition an operation to a new status. */
-  transition(dataSource: string, issueKey: string, operationId: string, to: OperationStatus, extra?: { reason?: string; resultStatus?: TaskStatus }): void;
+  transition(
+    dataSource: string,
+    issueKey: string,
+    operationId: string,
+    to: OperationStatus,
+    extra?: { reason?: string; resultStatus?: TaskStatus },
+  ): void;
   /** Get all operations recorded for an issue. */
   getOperations(dataSource: string, issueKey: string): readonly Operation[];
   /** Get all pending operations for an issue, sorted by comment timestamp. */
@@ -224,17 +242,11 @@ export class OperationLedger implements IOperationLedger {
 
     const allowed = VALID_TRANSITIONS.get(op.status);
     if (!allowed?.has(to)) {
-      throw new Error(
-        `Invalid operation state transition: ${op.status} → ${to} (operation ${operationId})`,
-      );
+      throw new Error(`Invalid operation state transition: ${op.status} → ${to} (operation ${operationId})`);
     }
 
     op.status = to;
-    if (
-      to === OperationStatus.Completed ||
-      to === OperationStatus.Error ||
-      to === OperationStatus.Rejected
-    ) {
+    if (to === OperationStatus.Completed || to === OperationStatus.Error || to === OperationStatus.Rejected) {
       op.completedAt = new Date().toISOString();
     }
     if (extra?.reason) op.reason = extra.reason;
@@ -256,21 +268,13 @@ export class OperationLedger implements IOperationLedger {
 
   /** Get the active operation for an issue (at most one). */
   getActive(dataSource: string, issueKey: string): Operation | undefined {
-    return this.read(dataSource, issueKey).operations.find(
-      (op) => op.status === OperationStatus.Active,
-    );
+    return this.read(dataSource, issueKey).operations.find((op) => op.status === OperationStatus.Active);
   }
 
   /** Check if a specific trigger comment has already been consumed by a variant. */
-  isConsumed(
-    dataSource: string,
-    issueKey: string,
-    variant: string,
-    triggerCommentId: string,
-  ): boolean {
+  isConsumed(dataSource: string, issueKey: string, variant: string, triggerCommentId: string): boolean {
     return this.read(dataSource, issueKey).operations.some(
-      (op) =>
-        op.variant === variant && op.triggerCommentId === triggerCommentId,
+      (op) => op.variant === variant && op.triggerCommentId === triggerCommentId,
     );
   }
 
@@ -288,9 +292,7 @@ export class OperationLedger implements IOperationLedger {
   /** Check if any operation on this issue is active or pending. */
   hasPendingOrActive(dataSource: string, issueKey: string): boolean {
     return this.read(dataSource, issueKey).operations.some(
-      (op) =>
-        op.status === OperationStatus.Pending ||
-        op.status === OperationStatus.Active,
+      (op) => op.status === OperationStatus.Pending || op.status === OperationStatus.Active,
     );
   }
 
@@ -338,9 +340,7 @@ export class OperationLedger implements IOperationLedger {
       }
     }
 
-    return pending.sort((a, b) =>
-      a.operation.commentTimestamp.localeCompare(b.operation.commentTimestamp),
-    );
+    return pending.sort((a, b) => a.operation.commentTimestamp.localeCompare(b.operation.commentTimestamp));
   }
 
   private filePath(dataSource: string, issueKey: string): string {

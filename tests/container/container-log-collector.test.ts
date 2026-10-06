@@ -136,9 +136,9 @@ describe("ContainerLogCollector", () => {
       const results = await collector.collectAll();
 
       expect(results).toHaveLength(3);
-      expect(readFileSync(results.find(r => r.id === "audit")!.path!, "utf-8")).toContain("edit");
-      expect(readFileSync(results.find(r => r.id === "transcript")!.path!, "utf-8")).toContain("Session");
-      expect(readFileSync(results.find(r => r.id === "proxy")!.path!, "utf-8")).toContain("TCP_DENIED");
+      expect(readFileSync(results.find((r) => r.id === "audit")!.path!, "utf-8")).toContain("edit");
+      expect(readFileSync(results.find((r) => r.id === "transcript")!.path!, "utf-8")).toContain("Session");
+      expect(readFileSync(results.find((r) => r.id === "proxy")!.path!, "utf-8")).toContain("TCP_DENIED");
     });
 
     it("collects via compose logs when useComposeLogs is set", async () => {
@@ -325,8 +325,8 @@ describe("ContainerLogCollector", () => {
 
       const results = await collector.collectAll();
 
-      expect(results.find(r => r.id === "proxy")?.path).toBeTruthy();
-      expect(results.find(r => r.id === "audit")?.path).toBeNull();
+      expect(results.find((r) => r.id === "proxy")?.path).toBeTruthy();
+      expect(results.find((r) => r.id === "audit")?.path).toBeNull();
     });
   });
 
@@ -368,8 +368,20 @@ describe("ContainerLogCollector", () => {
       const collector = createCollector(compose);
 
       collector.setTaskId("DOC-500");
-      collector.addSource({ id: "a", service: SVC_APP, containerPath: "/path/a.log", extension: "log", mode: CaptureMode.Collect });
-      collector.addSource({ id: "b", service: SVC_APP, containerPath: "/path/b.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "a",
+        service: SVC_APP,
+        containerPath: "/path/a.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "b",
+        service: SVC_APP,
+        containerPath: "/path/b.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
 
       const results = await collector.collectAll();
 
@@ -386,8 +398,20 @@ describe("ContainerLogCollector", () => {
       const collector = createCollector(compose);
 
       collector.setTaskId("DOC-1400");
-      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
-      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
 
       const results = await collector.collectAll("researcher");
 
@@ -400,7 +424,13 @@ describe("ContainerLogCollector", () => {
       const collector = createCollector(compose);
 
       collector.setTaskId("DOC-1500");
-      collector.addSource({ id: "source-a", service: SVC_APP, containerPath: "/path/a.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "source-a",
+        service: SVC_APP,
+        containerPath: "/path/a.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
 
       const results = await collector.collectAll();
 
@@ -431,18 +461,36 @@ describe("ContainerLogCollector", () => {
       const { compose } = createMockCompose();
       const collector = createCollector(compose);
 
-      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
-      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
 
       await collector.clearCollectSources();
 
       expect(compose.exec).toHaveBeenCalledWith([
-        "-T", SVC_APP,
-        "sh", "-c", "truncate -s 0 /workspace/.ralph/logs/audit.jsonl 2>/dev/null || true",
+        "-T",
+        SVC_APP,
+        "sh",
+        "-c",
+        "truncate -s 0 /workspace/.ralph/logs/audit.jsonl 2>/dev/null || true",
       ]);
       expect(compose.exec).toHaveBeenCalledWith([
-        "-T", "egress-proxy",
-        "sh", "-c", "truncate -s 0 /var/log/squid/access.log 2>/dev/null || true",
+        "-T",
+        "egress-proxy",
+        "sh",
+        "-c",
+        "truncate -s 0 /var/log/squid/access.log 2>/dev/null || true",
       ]);
     });
 
@@ -450,8 +498,22 @@ describe("ContainerLogCollector", () => {
       const { compose } = createMockCompose();
       const collector = createCollector(compose);
 
-      collector.addSource({ id: "sidecar", service: SVC_SIDECAR, containerPath: "", extension: "log", mode: CaptureMode.Collect, useComposeLogs: true });
-      collector.addSource({ id: "cli-debug", service: SVC_APP, containerPath: "/workspace/.ralph/logs/cli-debug", extension: "log", mode: CaptureMode.Collect, collectArgs: ["sh", "-c", "cat /workspace/.ralph/logs/cli-debug/*.log 2>/dev/null"] });
+      collector.addSource({
+        id: "sidecar",
+        service: SVC_SIDECAR,
+        containerPath: "",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        useComposeLogs: true,
+      });
+      collector.addSource({
+        id: "cli-debug",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/cli-debug",
+        extension: "log",
+        mode: CaptureMode.Collect,
+        collectArgs: ["sh", "-c", "cat /workspace/.ralph/logs/cli-debug/*.log 2>/dev/null"],
+      });
 
       await collector.clearCollectSources();
 
@@ -463,7 +525,13 @@ describe("ContainerLogCollector", () => {
       vi.mocked(compose.exec).mockRejectedValue(new Error("container not running"));
       const collector = createCollector(compose);
 
-      collector.addSource({ id: "audit", service: SVC_APP, containerPath: "/workspace/.ralph/logs/audit.jsonl", extension: "jsonl", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "audit",
+        service: SVC_APP,
+        containerPath: "/workspace/.ralph/logs/audit.jsonl",
+        extension: "jsonl",
+        mode: CaptureMode.Collect,
+      });
 
       await expect(collector.clearCollectSources()).resolves.toBeUndefined();
     });
@@ -474,7 +542,13 @@ describe("ContainerLogCollector", () => {
       const compose = makeMockCompose({});
       const collector = createCollector(compose);
 
-      collector.addSource({ id: "proxy", service: "egress-proxy", containerPath: "/var/log/squid/access.log", extension: "log", mode: CaptureMode.Collect });
+      collector.addSource({
+        id: "proxy",
+        service: "egress-proxy",
+        containerPath: "/var/log/squid/access.log",
+        extension: "log",
+        mode: CaptureMode.Collect,
+      });
 
       await expect(collector.collectAll()).rejects.toThrow("Task ID not set");
     });

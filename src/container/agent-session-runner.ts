@@ -52,7 +52,11 @@ export class AgentSessionRunner implements IAgentSessionRunner {
   private readonly promptBuilder: PromptBuilder;
   private readonly logger: Logger;
 
-  constructor({ continuationRunner, promptBuilder, logger }: {
+  constructor({
+    continuationRunner,
+    promptBuilder,
+    logger,
+  }: {
     continuationRunner: IContinuationRunner;
     promptBuilder: PromptBuilder;
     logger: Logger;
@@ -72,13 +76,12 @@ export class AgentSessionRunner implements IAgentSessionRunner {
 
     const startTime = Date.now();
 
-    const { lastResult, combinedStdout, combinedStderr } =
-      await this.continuationRunner.run(
-        executor,
-        prompt,
-        workItem,
-        opts.enableContinuation ? opts.maxContinuations : 0,
-      );
+    const { lastResult, combinedStdout, combinedStderr } = await this.continuationRunner.run(
+      executor,
+      prompt,
+      workItem,
+      opts.enableContinuation ? opts.maxContinuations : 0,
+    );
 
     const durationMs = Date.now() - startTime;
 

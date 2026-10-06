@@ -31,21 +31,12 @@ export function LogPanel({ title, logs, className }: Props) {
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-1 font-mono text-[11.5px]">
         {logs.map((entry, i) => (
-          <div
-            key={i}
-            className="flex gap-2 px-1 py-px rounded-sm hover:bg-white/[0.03]"
-          >
-            <span className="text-dim shrink-0 text-[10.5px]">
-              {formatTime(entry.timestamp)}
-            </span>
-            <span
-              className={`shrink-0 w-9 text-[10px] font-semibold ${levelColor[entry.level]}`}
-            >
+          <div key={i} className="flex gap-2 px-1 py-px rounded-sm hover:bg-white/[0.03]">
+            <span className="text-dim shrink-0 text-[10.5px]">{formatTime(entry.timestamp)}</span>
+            <span className={`shrink-0 w-9 text-[10px] font-semibold ${levelColor[entry.level]}`}>
               {entry.level.toUpperCase()}
             </span>
-            <span className="whitespace-pre-wrap break-words">
-              {entry.message}
-            </span>
+            <span className="whitespace-pre-wrap break-words">{entry.message}</span>
           </div>
         ))}
         <div ref={bottomRef} />

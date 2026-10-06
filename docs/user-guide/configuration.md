@@ -26,21 +26,21 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 
 ### Data Source Fields
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `type` | `string` | — | Registered data source type. Built-in: `"jira"` |
-| `connection` | `object` | — | Type-specific connection config (see below) |
-| `pollIntervalMs` | `number` | `60000` | Poll interval in milliseconds |
-| `maxResults` | `number` | `100` | Maximum results per poll cycle |
+| Field            | Type     | Default | Description                                     |
+| ---------------- | -------- | ------- | ----------------------------------------------- |
+| `type`           | `string` | —       | Registered data source type. Built-in: `"jira"` |
+| `connection`     | `object` | —       | Type-specific connection config (see below)     |
+| `pollIntervalMs` | `number` | `60000` | Poll interval in milliseconds                   |
+| `maxResults`     | `number` | `100`   | Maximum results per poll cycle                  |
 
 ### JIRA Connection Fields
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `baseUrl` | `string` | Yes | JIRA REST API base URL |
-| `cloudId` | `string` | Yes | Atlassian Cloud ID (find at `https://<site>.atlassian.net/_edge/tenant_info`) |
-| `excludeFields` | `string[]` | No | Custom field IDs to exclude from agent prompts |
-| `allowedUsers` | `string[]` | No | Atlassian account IDs allowed to trigger invocations. Empty = unrestricted |
+| Field           | Type       | Required | Description                                                                   |
+| --------------- | ---------- | -------- | ----------------------------------------------------------------------------- |
+| `baseUrl`       | `string`   | Yes      | JIRA REST API base URL                                                        |
+| `cloudId`       | `string`   | Yes      | Atlassian Cloud ID (find at `https://<site>.atlassian.net/_edge/tenant_info`) |
+| `excludeFields` | `string[]` | No       | Custom field IDs to exclude from agent prompts                                |
+| `allowedUsers`  | `string[]` | No       | Atlassian account IDs allowed to trigger invocations. Empty = unrestricted    |
 
 ## Plugins
 
@@ -50,9 +50,9 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `plugins` | `string[]` | `[]` | Module specifiers loaded at startup. Each must call `registerDataSourceFactory()` on import |
+| Field     | Type       | Default | Description                                                                                 |
+| --------- | ---------- | ------- | ------------------------------------------------------------------------------------------- |
+| `plugins` | `string[]` | `[]`    | Module specifiers loaded at startup. Each must call `registerDataSourceFactory()` on import |
 
 Built-in plugins (JIRA) are loaded automatically.
 
@@ -67,9 +67,9 @@ Built-in plugins (JIRA) are loaded automatically.
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `logDir` | `string` | `"./output/logs"` | Per-task log directory |
+| Field        | Type     | Default               | Description                |
+| ------------ | -------- | --------------------- | -------------------------- |
+| `logDir`     | `string` | `"./output/logs"`     | Per-task log directory     |
 | `handoffDir` | `string` | `"./output/handoffs"` | Handoff artifact directory |
 
 ## Dashboard
@@ -83,10 +83,10 @@ Built-in plugins (JIRA) are loaded automatically.
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | `boolean` | `true` | Enable dashboard heartbeat. Also requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env` |
-| `intervalMs` | `number` | `30000` | Heartbeat interval in milliseconds |
+| Field        | Type      | Default | Description                                                                                |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------ |
+| `enabled`    | `boolean` | `true`  | Enable dashboard heartbeat. Also requires `DASHBOARD_URL` and `DASHBOARD_SECRET` in `.env` |
+| `intervalMs` | `number`  | `30000` | Heartbeat interval in milliseconds                                                         |
 
 ## Prompt Audit
 
@@ -98,8 +98,8 @@ Built-in plugins (JIRA) are loaded automatically.
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
+| Field  | Type                                     | Default  | Description                                                                                         |
+| ------ | ---------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
 | `mode` | `"block"` &#124; `"warn"` &#124; `"off"` | `"warn"` | `"block"` rejects critical prompt injection findings, `"warn"` logs only, `"off"` disables auditing |
 
 ## Ralphchives
@@ -115,15 +115,15 @@ Built-in plugins (JIRA) are loaded automatically.
 }
 ```
 
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `enabled` | `boolean` | `false` | Enable Ralphchives knowledge base |
-| `nodebbApiUrl` | `string` | `"http://localhost:4567"` | NodeBB API endpoint |
-| `neo4jUri` | `string` | `"bolt://localhost:7687"` | Neo4j Bolt URI |
-| `neo4jUser` | `string` | `"neo4j"` | Neo4j username |
+| Field          | Type      | Default                   | Description                       |
+| -------------- | --------- | ------------------------- | --------------------------------- |
+| `enabled`      | `boolean` | `false`                   | Enable Ralphchives knowledge base |
+| `nodebbApiUrl` | `string`  | `"http://localhost:4567"` | NodeBB API endpoint               |
+| `neo4jUri`     | `string`  | `"bolt://localhost:7687"` | Neo4j Bolt URI                    |
+| `neo4jUser`    | `string`  | `"neo4j"`                 | Neo4j username                    |
 
 ## Global Options
 
-| Field | Type | Default | Description |
-|---|---|---|---|
+| Field                | Type      | Default | Description                                                                                                                                                                                                                                                    |
+| -------------------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `enableContinuation` | `boolean` | `false` | Global toggle for continuation retries. When `true`, profiles with `maxContinuations > 0` will auto-retry via `--continue` when the agent doesn't produce a result block. Both this flag and the profile's `maxContinuations` must be set for retries to occur |

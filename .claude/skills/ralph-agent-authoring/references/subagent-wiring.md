@@ -8,13 +8,13 @@ Promote work into a subagent when the orchestrator (or another agent) is doing s
 
 Answer these before editing: Who calls it, the orchestrator or another subagent? Which artifacts does it read and write? What are its result codes? Which prompt sections become stale? Does it create or change a retry loop?
 
-| Role | Shape | Typical result codes | Usually changes |
-|---|---|---|---|
-| Phase owner (researcher, writer/coder, scribe) | Owns a pipeline step | `researched`/`implemented`/`partial`/`composed` | Orchestrator roster, routing, ordering; downstream readers |
-| Reviewer | Approval-style verdict, may loop | `approved`/`needs-revision` (or `pass`/`fail`) | Review gate, loop cap, writer reads its findings on later iterations, scribe includes verdicts |
-| Scout / analyst | Gathers context for a downstream owner | `scouted`/`analyzed`/`blocked` | Writer/reviewer read its artifact |
-| Helper / validator | Called by another subagent, not the orchestrator | helper-specific | Parent subagent's `agents:` list and prompt only |
-| Scribe / aggregator | Composes handoff from upstream artifacts | `composed`/`partial` | Remove inline handoff composition from the orchestrator |
+| Role                                           | Shape                                            | Typical result codes                            | Usually changes                                                                                |
+| ---------------------------------------------- | ------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Phase owner (researcher, writer/coder, scribe) | Owns a pipeline step                             | `researched`/`implemented`/`partial`/`composed` | Orchestrator roster, routing, ordering; downstream readers                                     |
+| Reviewer                                       | Approval-style verdict, may loop                 | `approved`/`needs-revision` (or `pass`/`fail`)  | Review gate, loop cap, writer reads its findings on later iterations, scribe includes verdicts |
+| Scout / analyst                                | Gathers context for a downstream owner           | `scouted`/`analyzed`/`blocked`                  | Writer/reviewer read its artifact                                                              |
+| Helper / validator                             | Called by another subagent, not the orchestrator | helper-specific                                 | Parent subagent's `agents:` list and prompt only                                               |
+| Scribe / aggregator                            | Composes handoff from upstream artifacts         | `composed`/`partial`                            | Remove inline handoff composition from the orchestrator                                        |
 
 Model new prompts on the live families: `profiles/ralph-docs/agents/` (ralph, malph) and `profiles/ralph-vscode/agents/` (ralph, malph, robinson/vasco explorers).
 

@@ -60,26 +60,26 @@ grep -oP '.{0,60}flagVariable.{0,60}' index.js | head -10
 
 These are verified findings — use them as starting points, not as stable API:
 
-| Concept | Details |
-|---|---|
-| Config dir resolver | `ad(settings, type)` — uses `settings?.configDir` when set, else XDG/homedir |
-| MCP config loading | `LL.load()` in `kj()` — does NOT pass settings, so `--config-dir` is ignored for MCP. Use `--additional-mcp-config @<path>` instead |
-| MCP tool ID format | `${clientName}-${toolName}` via `getToolIdFromClientAndToolName` |
-| MCP tool filtering | `loadToolsFromProvider`: `if(!e.tools.includes("*")&&!e.tools.includes(s.name))` — per-server `tools` array in mcp-config.json |
-| Per-server tools | `mcp-config.json` entries support a `tools: string[]` field (defaults to `["*"]`). Uses raw tool names (not prefixed) |
-| `--available-tools` | Global filter across ALL tools (built-in + MCP). Requires listing built-in tools too. Prefer per-server `tools` in mcp-config.json |
-| Log file naming | `process-${Date.now()}-${process.pid}.log` in the log directory |
+| Concept             | Details                                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Config dir resolver | `ad(settings, type)` — uses `settings?.configDir` when set, else XDG/homedir                                                        |
+| MCP config loading  | `LL.load()` in `kj()` — does NOT pass settings, so `--config-dir` is ignored for MCP. Use `--additional-mcp-config @<path>` instead |
+| MCP tool ID format  | `${clientName}-${toolName}` via `getToolIdFromClientAndToolName`                                                                    |
+| MCP tool filtering  | `loadToolsFromProvider`: `if(!e.tools.includes("*")&&!e.tools.includes(s.name))` — per-server `tools` array in mcp-config.json      |
+| Per-server tools    | `mcp-config.json` entries support a `tools: string[]` field (defaults to `["*"]`). Uses raw tool names (not prefixed)               |
+| `--available-tools` | Global filter across ALL tools (built-in + MCP). Requires listing built-in tools too. Prefer per-server `tools` in mcp-config.json  |
+| Log file naming     | `process-${Date.now()}-${process.pid}.log` in the log directory                                                                     |
 
 ## Undocumented Environment Variables
 
 Found in source but not in `copilot help environment`:
 
-| Variable | Purpose |
-|---|---|
-| `CPD_SAVE_TRAJECTORY_OUTPUT` | Save full model trajectory to file |
-| `COPILOT_EVENTS_LOG_DIRECTORY` | Directory for structured event logs |
-| `COPILOT_AGENT_ONLINE_EVALUATION_DISABLED` | Disable online eval |
-| `COPILOT_SNIPPY_BLOCKING_MODE` | Internal blocking mode flag |
+| Variable                                   | Purpose                             |
+| ------------------------------------------ | ----------------------------------- |
+| `CPD_SAVE_TRAJECTORY_OUTPUT`               | Save full model trajectory to file  |
+| `COPILOT_EVENTS_LOG_DIRECTORY`             | Directory for structured event logs |
+| `COPILOT_AGENT_ONLINE_EVALUATION_DISABLED` | Disable online eval                 |
+| `COPILOT_SNIPPY_BLOCKING_MODE`             | Internal blocking mode flag         |
 
 ## Debugging with `--log-level debug`
 
@@ -88,6 +88,7 @@ copilot --log-level debug --log-dir ./logs -p "test prompt"
 ```
 
 Debug output includes:
+
 - Full model request/response JSON
 - MCP server connect/disconnect events
 - `Adding tool: <name>` for each registered tool

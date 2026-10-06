@@ -45,9 +45,7 @@ async function main() {
   const config = await new AppStartup().run(logger);
 
   // 2. Find matching variant
-  const profile = config.profiles.find(
-    (p) => p.match.commentTrigger.toLowerCase() === trigger.toLowerCase(),
-  );
+  const profile = config.profiles.find((p) => p.match.commentTrigger.toLowerCase() === trigger.toLowerCase());
 
   if (!profile) {
     const available = config.profiles.map((p) => p.match.commentTrigger).join(", ");
@@ -61,9 +59,7 @@ async function main() {
   // 3. Create compose client
   const composeFiles = new ComposeFileResolver().resolve(profile);
   const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-  const squidConfPath = existsSync(profileSquid)
-    ? profileSquid
-    : resolve(process.cwd(), "shared/security/squid.conf");
+  const squidConfPath = existsSync(profileSquid) ? profileSquid : resolve(process.cwd(), "shared/security/squid.conf");
 
   const compose = new ComposeClient(composeFiles, {
     targetRepoPath: profile.repoPath,

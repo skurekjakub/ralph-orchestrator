@@ -11,7 +11,7 @@ describe("Button", () => {
     render(
       <Button onClick={handleClick} variant={ButtonVariant.Subtle} size={ButtonSize.XS}>
         Refresh
-      </Button>
+      </Button>,
     );
 
     await user.click(screen.getByRole("button", { name: "Refresh" }));
@@ -26,7 +26,7 @@ describe("Button", () => {
     render(
       <Button onClick={handleClick} disabled title="Disabled button">
         Disabled
-      </Button>
+      </Button>,
     );
 
     await user.click(screen.getByRole("button", { name: "Disabled" }));

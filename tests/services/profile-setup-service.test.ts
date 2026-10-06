@@ -78,13 +78,10 @@ describe("ProfileSetupService", () => {
 
       await service.prepareForTask(ctx);
 
-      expect(jitMcpConfig.write).toHaveBeenCalledWith(
-        ctx.profile,
-        ctx.workItem,
-        expect.anything(),
-        ctx.triggerParams,
-        { sourceBranch: ctx.sourceBranch, taskBranch: ctx.taskBranch },
-      );
+      expect(jitMcpConfig.write).toHaveBeenCalledWith(ctx.profile, ctx.workItem, expect.anything(), ctx.triggerParams, {
+        sourceBranch: ctx.sourceBranch,
+        taskBranch: ctx.taskBranch,
+      });
     });
   });
 

@@ -9,8 +9,7 @@ import { TokenSankey } from "./fractal-explorer/TokenSankey";
 type SubView = "detail" | "flame" | "summary" | "sankey";
 
 export function FractalExplorer() {
-  const { tree, allNodes, summary, loading, error, selectedNodeId, setSelectedNodeId, loadLog } =
-    useFractalExplorer();
+  const { tree, allNodes, summary, loading, error, selectedNodeId, setSelectedNodeId, loadLog } = useFractalExplorer();
   const [pathInput, setPathInput] = useState("");
   const [subView, setSubView] = useState<SubView>("detail");
 
@@ -19,7 +18,7 @@ export function FractalExplorer() {
     if (pathInput.trim()) loadLog(pathInput.trim());
   };
 
-  const selectedNode = selectedNodeId ? allNodes.find((n) => n.id === selectedNodeId) ?? null : null;
+  const selectedNode = selectedNodeId ? (allNodes.find((n) => n.id === selectedNodeId) ?? null) : null;
 
   const nodeMap = new Map(allNodes.map((n) => [n.id, n]));
   const ancestorChain = (nodeId: string | null): string[] => {
@@ -35,7 +34,10 @@ export function FractalExplorer() {
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Path input bar */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-2 bg-bg-sidebar border-b border-border shrink-0">
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 px-4 py-2 bg-bg-sidebar border-b border-border shrink-0"
+      >
         <label className="text-xs text-dim font-medium">Log path:</label>
         <input
           type="text"
@@ -54,11 +56,7 @@ export function FractalExplorer() {
       </form>
 
       {/* Error */}
-      {error && (
-        <div className="px-4 py-2 text-xs text-error bg-error/10 border-b border-error/20">
-          {error}
-        </div>
-      )}
+      {error && <div className="px-4 py-2 text-xs text-error bg-error/10 border-b border-error/20">{error}</div>}
 
       {/* Empty state */}
       {!tree && !loading && !error && (
@@ -68,22 +66,14 @@ export function FractalExplorer() {
       )}
 
       {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center flex-1 text-dim text-sm">
-          Parsing log file…
-        </div>
-      )}
+      {loading && <div className="flex items-center justify-center flex-1 text-dim text-sm">Parsing log file…</div>}
 
       {/* Loaded content */}
       {tree && !loading && (
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Sidebar: invocation tree */}
           <div className="w-72 min-w-60 border-r border-border overflow-y-auto bg-bg-sidebar shrink-0">
-            <InvocationTree
-              root={tree}
-              selectedNodeId={selectedNodeId}
-              onSelectNode={setSelectedNodeId}
-            />
+            <InvocationTree root={tree} selectedNodeId={selectedNodeId} onSelectNode={setSelectedNodeId} />
           </div>
 
           {/* Main area */}
@@ -98,29 +88,30 @@ export function FractalExplorer() {
                     subView === v ? "bg-info/15 text-info" : "text-dim hover:text-fg-primary"
                   }`}
                 >
-                  {v === "detail" ? "Node Detail" : v === "flame" ? "Flame Chart" : v === "summary" ? "Summary" : "Token Flow"}
+                  {v === "detail"
+                    ? "Node Detail"
+                    : v === "flame"
+                      ? "Flame Chart"
+                      : v === "summary"
+                        ? "Summary"
+                        : "Token Flow"}
                 </button>
               ))}
             </nav>
 
             {/* View content */}
             <div className="flex-1 min-h-0 overflow-auto p-4">
-              {subView === "detail" && (
-                selectedNode ? (
+              {subView === "detail" &&
+                (selectedNode ? (
                   <NodeDetailPanel node={selectedNode} ancestorChain={ancestorChain(selectedNodeId)} />
                 ) : (
                   <div className="text-dim text-sm">Select a node in the sidebar</div>
-                )
-              )}
+                ))}
               {subView === "flame" && summary && (
                 <FlameChart root={tree} allNodes={allNodes} onSelectNode={setSelectedNodeId} />
               )}
-              {subView === "summary" && summary && (
-                <RunSummaryPanel summary={summary} />
-              )}
-              {subView === "sankey" && summary && (
-                <TokenSankey allNodes={allNodes} />
-              )}
+              {subView === "summary" && summary && <RunSummaryPanel summary={summary} />}
+              {subView === "sankey" && summary && <TokenSankey allNodes={allNodes} />}
             </div>
           </div>
         </div>

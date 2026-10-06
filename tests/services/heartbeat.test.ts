@@ -46,9 +46,11 @@ describe("HeartbeatSender", () => {
     const [url, opts] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe("https://dashboard.test/api/heartbeat");
     expect(opts?.method).toBe("POST");
-    expect(opts?.headers).toEqual(expect.objectContaining({
-      Authorization: "Bearer secret",
-    }));
+    expect(opts?.headers).toEqual(
+      expect.objectContaining({
+        Authorization: "Bearer secret",
+      }),
+    );
 
     sender.stop();
   });
@@ -114,9 +116,7 @@ describe("HeartbeatSender", () => {
 
   it("logs new error when error message changes", async () => {
     const logger = createMockLogger();
-    vi.mocked(fetch)
-      .mockRejectedValueOnce(new Error("Timeout"))
-      .mockRejectedValueOnce(new Error("DNS failure"));
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("Timeout")).mockRejectedValueOnce(new Error("DNS failure"));
 
     const sender = makeHeartbeat("https://dashboard.test", "secret", 5000, logger);
     sender.start(() => makePayload());

@@ -12,13 +12,14 @@ export interface BranchResolutionContext {
 }
 
 /** Known runtime macros resolved from the current work item context. */
-const MACROS: Record<string, (workItem: WorkItem, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext) => string> = {
+const MACROS: Record<
+  string,
+  (workItem: WorkItem, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext) => string
+> = {
   "$task.id": (workItem) => workItem.id,
   "$task.project": (workItem) => workItem.project,
   "$task.branch": (workItem, triggerParams, branchContext) =>
-    branchContext?.taskBranch
-    ?? triggerParams?.["branch"]
-    ?? slugifyBranchName(workItem.id, workItem.title),
+    branchContext?.taskBranch ?? triggerParams?.["branch"] ?? slugifyBranchName(workItem.id, workItem.title),
   "$task.title": (workItem) => workItem.title,
 };
 
@@ -63,8 +64,7 @@ function resolveEnvValue(
     const envValue = process.env[envVarName];
     if (envValue === undefined) {
       throw new Error(
-        `Missing env var "${envVarName}" for ${value} macro. ` +
-        `Add it to .env or run the Ralphchives setup scripts.`,
+        `Missing env var "${envVarName}" for ${value} macro. ` + `Add it to .env or run the Ralphchives setup scripts.`,
       );
     }
     return envValue;
@@ -73,7 +73,9 @@ function resolveEnvValue(
   const resolver = MACROS[value];
   if (!resolver) {
     const known = Object.keys(MACROS).join(", ");
-    throw new Error(`Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`);
+    throw new Error(
+      `Unknown macro "${value}" in MCP server config. Known macros: ${known}, $trigger.<key>, $variantEnv.<PREFIX>`,
+    );
   }
   return resolver(workItem, triggerParams, branchContext);
 }
@@ -92,7 +94,13 @@ export interface IJitMcpConfigWriter {
    * No-ops silently when the profile has no MCP servers, no server configs, or
    * `gateway.json` does not exist.
    */
-  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext): void;
+  write(
+    profile: IAgentProfile,
+    workItem: WorkItem,
+    logger: Logger,
+    triggerParams?: Record<string, string>,
+    branchContext?: BranchResolutionContext,
+  ): void;
 }
 
 /**
@@ -106,7 +114,13 @@ export interface IJitMcpConfigWriter {
  * must be written before the container starts in the same tick.
  */
 export class JitMcpConfigWriter implements IJitMcpConfigWriter {
-  write(profile: IAgentProfile, workItem: WorkItem, logger: Logger, triggerParams?: Record<string, string>, branchContext?: BranchResolutionContext): void {
+  write(
+    profile: IAgentProfile,
+    workItem: WorkItem,
+    logger: Logger,
+    triggerParams?: Record<string, string>,
+    branchContext?: BranchResolutionContext,
+  ): void {
     if (profile.mcpServers.length === 0) return;
     if (!profile.mcpServerConfigs || Object.keys(profile.mcpServerConfigs).length === 0) return;
 

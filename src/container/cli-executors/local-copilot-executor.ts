@@ -74,11 +74,15 @@ export class LocalCopilotExecutor implements ICliExecutor {
     this.deployAgents();
 
     const args = [
-      "--agent", this.profile.agentName,
-      "--model", this.profile.model ?? DEFAULT_MODEL,
+      "--agent",
+      this.profile.agentName,
+      "--model",
+      this.profile.model ?? DEFAULT_MODEL,
       ...this.githubMcpFlags(),
-      "--log-level", "debug",
-      "--log-dir", this.paths.logDir,
+      "--log-level",
+      "debug",
+      "--log-dir",
+      this.paths.logDir,
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",

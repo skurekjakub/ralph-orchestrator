@@ -44,26 +44,17 @@
       }
     }
   ],
-  "githubMcpTools": [
-    "get_file_contents"
-  ],
+  "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "./ralph/ralph-resources"
   },
   "variants": [
     {
       "match": {
-        "projects": [
-          "DOC"
-        ],
-        "statuses": [
-          "To Do",
-          "Defect Found"
-        ],
+        "projects": ["DOC"],
+        "statuses": ["To Do", "Defect Found"],
         "commentTrigger": "@RalphAutocomplete",
-        "revisionStatuses": [
-          "Defect Found"
-        ]
+        "revisionStatuses": ["Defect Found"]
       },
       "beforeAgent": {
         "targetStatus": "In Progress"
@@ -104,12 +95,8 @@
     },
     {
       "match": {
-        "projects": [
-          "DOC"
-        ],
-        "statuses": [
-          "Ready for Review"
-        ],
+        "projects": ["DOC"],
+        "statuses": ["Ready for Review"],
         "commentTrigger": "@MalphAutocomplete"
       },
       "stages": [

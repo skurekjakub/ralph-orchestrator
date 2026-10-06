@@ -29,27 +29,27 @@ Sources are registered in `LogSourceRegistry.registerAll()` (`src/container/log-
 
 ## Global logs
 
-| File | Written by | Contains |
-|---|---|---|
-| `output/logs/activity-YYYY-MM-DD.log` | `ActivityLog` (`src/services/activity-log.ts`) | Orchestrator events (JSONL) |
-| `output/logs/container-YYYY-MM-DD.log` | `ActivityLog.createContainerLogger()` | All container-tagged lines (JSONL) |
+| File                                                   | Written by                                             | Contains                                       |
+| ------------------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------- |
+| `output/logs/activity-YYYY-MM-DD.log`                  | `ActivityLog` (`src/services/activity-log.ts`)         | Orchestrator events (JSONL)                    |
+| `output/logs/container-YYYY-MM-DD.log`                 | `ActivityLog.createContainerLogger()`                  | All container-tagged lines (JSONL)             |
 | `<output.logDir>/history/<dataSource>/<issueKey>.json` | `OperationLedger` (`src/services/operation-ledger.ts`) | Operation state machine incl. failure `reason` |
 
 ## Summary fields
 
 ```jsonc
 {
-  "taskId": "DOC-3189",            // work item id (result.taskId), not the folder name
-  "status": "error",               // completed | partial | blocked | error
-  "durationMs": 2281,              // sum of stage durations; 0 when TaskRunner caught a thrown error
+  "taskId": "DOC-3189", // work item id (result.taskId), not the folder name
+  "status": "error", // completed | partial | blocked | error
+  "durationMs": 2281, // sum of stage durations; 0 when TaskRunner caught a thrown error
   "exitCode": 1,
   "prUrl": null,
-  "collectedLogs": { "audit": "...", "proxy": "..." },  // id → local path; a missing id means collection failed
-  "failureCategory": "infra",      // only when status != completed
-  "stderr": "...",                 // first 5000 chars, only when non-empty
-  "stdout": "...",                 // first 5000 chars, only when status != completed
+  "collectedLogs": { "audit": "...", "proxy": "..." }, // id → local path; a missing id means collection failed
+  "failureCategory": "infra", // only when status != completed
+  "stderr": "...", // first 5000 chars, only when non-empty
+  "stdout": "...", // first 5000 chars, only when status != completed
   "activityLogPath": "...",
-  "timestamp": "2026-03-12T..."
+  "timestamp": "2026-03-12T...",
 }
 ```
 
@@ -68,6 +68,7 @@ If both the per-task log and the container log lack CLI lines, the CLI never spa
 ## Collection failures
 
 `collectAll()` drops an entry from `collectedLogs` when the source is missing:
+
 - Session-state / transcript missing: the CLI crashed before creating session files.
 - Sidecar log missing: the sidecar never started (overlay or image problem).
 - Proxy log missing: the egress proxy wasn't part of the stack (security overlay not merged).

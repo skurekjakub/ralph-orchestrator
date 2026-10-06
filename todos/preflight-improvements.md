@@ -24,6 +24,7 @@ const PREFLIGHT_CHECKS: Record<string, PreflightCheck> = {
 A variant declares `preflight: "review-ready"` in its `profile.json` config. The orchestrator calls `buildPreflightContext()` to gather comments + handoff content + PR URL, then runs the named check. Failure → reject operation with reason.
 
 The `PreflightContext` currently contains:
+
 - `comments: JiraComment[]` — All issue comments (already fetched during trigger scanning)
 - `handoffContent: string | null` — Latest handoff.md attachment content
 - `prUrl: string | null` — PR URL extracted from comments (most recent first)
@@ -52,6 +53,7 @@ The `PreflightContext` currently contains:
 ### The Need
 
 When the orchestrator picks up a revision task (issue in a `revisionStatuses` status), the agent needs:
+
 - The previous handoff document (what was done in the first pass)
 - The PR URL (what code was produced)
 - Review feedback (comments on the PR, or JIRA comments describing defects)
@@ -61,6 +63,7 @@ Currently, the standard Ralph variants have no preflight — they run unconditio
 ### Expected Check: `revision-ready`
 
 A new preflight that ensures:
+
 1. A handoff document exists (the first-pass agent produced output)
 2. A PR URL exists (there's code to revise)
 3. Review feedback exists (there's something to act on — could be a Malph review comment, or a human defect description)

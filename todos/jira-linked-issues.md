@@ -3,6 +3,7 @@
 ## What This Is
 
 Make the orchestrator and agents aware of JIRA issue links (blocks, is blocked by, relates to, is caused by) so that:
+
 1. Agents receive context from related issues in their prompts
 2. The orchestrator can respect dependency ordering (don't start a task that depends on an incomplete prerequisite)
 3. Agents can build on top of work from linked issues (e.g., check out a branch from a prerequisite PR)
@@ -18,6 +19,7 @@ Currently, agents have zero visibility into linked issues. They see only the sin
 ### Link Extraction
 
 The JIRA REST API returns issue links via `fields.issuelinks`. Each link has:
+
 - `type.name`: "Blocks", "Relates", "Dependency", etc.
 - `inwardIssue` / `outwardIssue`: The linked issue key, status, summary
 
@@ -26,6 +28,7 @@ The `JiraClient` or a new service needs to fetch link data when polling or when 
 ### Dependency Ordering
 
 For "blocks"/"is blocked by" links:
+
 - If issue A blocks issue B, and B is triggered, the orchestrator should check if A is completed
 - If A is not completed: either reject/defer the operation (with a JIRA comment explaining the block), or proceed but include A's context as "prerequisite in progress"
 - If A is completed: include A's handoff/PR details so B's agent can build on top of A's work
@@ -35,6 +38,7 @@ This adds a new preflight check — `preflight: "dependency-check"` — that que
 ### Context Enrichment
 
 For "relates to" and other non-blocking links:
+
 - Include a summary of related issues in the prompt: key, summary, status, and (if completed) the PR URL and handoff summary
 - Don't block execution — just provide context
 
@@ -49,6 +53,7 @@ New method to fetch issue links: `getIssueLinks(issueKey: string): Promise<JiraI
 ### TemplateContext
 
 New field:
+
 ```typescript
 linkedIssues: {
   key: string;
@@ -64,6 +69,7 @@ linkedIssues: {
 ### Agent Templates
 
 A new optional prompt section rendered when linked issues exist:
+
 ```liquid
 {%- if linkedIssues.size > 0 %}
 {% section "related-issues" %}
@@ -79,6 +85,7 @@ A new optional prompt section rendered when linked issues exist:
 ### Preflight Check
 
 A new named preflight `"dependency-check"` that:
+
 1. Fetches linked issues with "blocks" relationship
 2. Checks if all blocking issues are in a completed status
 3. If not, rejects the operation with a JIRA comment listing the blockers

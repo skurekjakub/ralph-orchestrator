@@ -75,7 +75,9 @@ describe("ActivityLog", () => {
   it("calls onChange callback on every push", () => {
     const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
     let callCount = 0;
-    log.onLogChange(() => { callCount++; });
+    log.onLogChange(() => {
+      callCount++;
+    });
     log.push(LogLevel.Info, "a");
     log.push(LogLevel.Warn, "b");
     expect(callCount).toBe(2);
@@ -88,8 +90,8 @@ describe("ActivityLog", () => {
     logger.warn("warn-msg");
     logger.error("error-msg");
     expect(log.entries).toHaveLength(3);
-    expect(log.entries.every(e => e.source === LogSource.Orchestrator)).toBe(true);
-    expect(log.entries.map(e => e.level)).toEqual([LogLevel.Info, LogLevel.Warn, LogLevel.Error]);
+    expect(log.entries.every((e) => e.source === LogSource.Orchestrator)).toBe(true);
+    expect(log.entries.map((e) => e.level)).toEqual([LogLevel.Info, LogLevel.Warn, LogLevel.Error]);
   });
 
   it("creates container logger facade that routes to container source", () => {

@@ -33,10 +33,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
   private readonly logger: Logger;
   private readonly profileSetup: IProfileSetupService;
 
-  constructor({ logger, profileSetup }: {
-    logger: Logger;
-    profileSetup: IProfileSetupService;
-  }) {
+  constructor({ logger, profileSetup }: { logger: Logger; profileSetup: IProfileSetupService }) {
     this.logger = logger;
     this.profileSetup = profileSetup;
   }
@@ -65,7 +62,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
           stageCount: stages.length,
           stageRole: stage.role,
           stageMode: stage.mode,
-          previousStageRoles: stageResults.map(r => r.role),
+          previousStageRoles: stageResults.map((r) => r.role),
           skills: stage.skills,
         });
       }
@@ -73,13 +70,11 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       const executor = container.createExecutorForStage(stage);
 
       const timeoutSec = Math.round((stage.timeoutMs ?? ctx.profile.timeoutMs) / 1000);
-      this.logger.info(
-        `${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`
-      );
+      this.logger.info(`${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`);
 
       const result = await container.executeWithExecutor(executor, ctx.workItem, issueContext);
       this.logger.info(
-        `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`
+        `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`,
       );
 
       if (ctx.signal.aborted) {
@@ -133,9 +128,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       }
 
       if (result.status === TaskStatus.Partial) {
-        this.logger.warn(
-          `${ctx.workItem.id} completed with partial status — check handoff for details`
-        );
+        this.logger.warn(`${ctx.workItem.id} completed with partial status — check handoff for details`);
       }
     }
 

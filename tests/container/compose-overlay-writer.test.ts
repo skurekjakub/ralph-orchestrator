@@ -90,9 +90,11 @@ describe("ComposeOverlayWriter", () => {
       const path = String(p);
       return path.includes("profile.json") || path.includes("/resources");
     });
-    vi.mocked(readFileSync).mockReturnValue(JSON.stringify({
-      resources: { mountBase: "res" },
-    }));
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        resources: { mountBase: "res" },
+      }),
+    );
     vi.mocked(readdirSync).mockImplementation((p, _opts) => {
       if (String(p).includes("/resources")) {
         return [{ name: "guide.md", isDirectory: () => false }] as unknown as ReturnType<typeof readdirSync>;
@@ -146,7 +148,13 @@ describe("ComposeOverlayWriter", () => {
     vi.mocked(readFileSync).mockImplementation((p) => {
       const path = String(p);
       if (path.includes("mcp-server.json")) {
-        return JSON.stringify({ name: "test", type: "custom", command: "node", args: ["server.js"], sidecarPort: 9100 });
+        return JSON.stringify({
+          name: "test",
+          type: "custom",
+          command: "node",
+          args: ["server.js"],
+          sidecarPort: 9100,
+        });
       }
       return "{}";
     });
@@ -173,7 +181,9 @@ describe("ComposeOverlayWriter", () => {
 
     writer.write(profile, logger);
 
-    expect(logger.info).toHaveBeenCalledWith("Regenerated compose overlay, mcp-config, and gateway with 3 skill mount(s), 0 MCP server(s)");
+    expect(logger.info).toHaveBeenCalledWith(
+      "Regenerated compose overlay, mcp-config, and gateway with 3 skill mount(s), 0 MCP server(s)",
+    );
   });
 
   it("produces a valid overlay even with zero skills and zero servers", () => {

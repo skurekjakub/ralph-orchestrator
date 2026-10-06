@@ -53,9 +53,7 @@ export function CompactionEventList({ entries }: CompactionEventListProps) {
           <span className="text-dim">
             {c.beforeTokens.toLocaleString()} → {c.afterTokens.toLocaleString()} tokens
           </span>
-          <span className="text-dim">
-            (−{(c.beforeTokens - c.afterTokens).toLocaleString()})
-          </span>
+          <span className="text-dim">(−{(c.beforeTokens - c.afterTokens).toLocaleString()})</span>
         </div>
       ))}
     </div>

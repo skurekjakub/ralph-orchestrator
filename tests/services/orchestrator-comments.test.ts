@@ -59,7 +59,9 @@ describe("OrchestratorComments", () => {
 
   it("transitionFailed includes phase, target status, and error", () => {
     const msg = OrchestratorComments.transitionFailed(
-      TransitionPhase.BeforeAgent, "In Progress", "No matching transition",
+      TransitionPhase.BeforeAgent,
+      "In Progress",
+      "No matching transition",
     );
     expect(msg).toContain("beforeAgent");
     expect(msg).toContain("In Progress");

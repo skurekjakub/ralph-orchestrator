@@ -3,7 +3,13 @@ import { resolve, isAbsolute } from "node:path";
 import type { Plugin } from "vite";
 import { parseCliDebugTree, attributeEntriesToTree } from "./components/log-browser/cli-debug-subagent-parser";
 import { parseContextWindowEntries, parseAssistantUsageEntries } from "./components/log-browser/context-window-parser";
-import type { ContextWindowEntry, ParsedTree, RunSummary, AgentBreakdownEntry, SubagentTreeNode } from "./components/log-browser/tool-timeline-types";
+import type {
+  ContextWindowEntry,
+  ParsedTree,
+  RunSummary,
+  AgentBreakdownEntry,
+  SubagentTreeNode,
+} from "./components/log-browser/tool-timeline-types";
 
 /**
  * Vite plugin serving GET /api/fractal-log?path=<abs-path>.
@@ -71,33 +77,39 @@ export function fractalLogPlugin(): Plugin {
  * lacking CompactionProcessor coverage. Uses promptTokens as context size.
  */
 function synthesizeContextFromUsage(tree: ParsedTree, contextEntries: ContextWindowEntry[]): void {
-  const maxTokens = contextEntries.length > 0
-    ? contextEntries[0].maxTokens
-    : 200_000;
+  const maxTokens = contextEntries.length > 0 ? contextEntries[0].maxTokens : 200_000;
 
   for (const node of tree.allNodes) {
-    if (node.assistantUsageEntries.length > 0 && node.contextWindowEntries.length < node.assistantUsageEntries.length / 2) {
+    if (
+      node.assistantUsageEntries.length > 0 &&
+      node.contextWindowEntries.length < node.assistantUsageEntries.length / 2
+    ) {
       const synthetic: ContextWindowEntry[] = node.assistantUsageEntries.map((u) => ({
         tsMs: u.tsMs,
         usedTokens: u.promptTokens,
         maxTokens,
         utilization: Math.min(100, (u.promptTokens / maxTokens) * 100),
       }));
-      node.contextWindowEntries = [...node.contextWindowEntries, ...synthetic]
-        .sort((a, b) => a.tsMs - b.tsMs);
+      node.contextWindowEntries = [...node.contextWindowEntries, ...synthetic].sort((a, b) => a.tsMs - b.tsMs);
     }
   }
 }
 
 /** Build aggregate run summary from a parsed tree. */
-export function buildRunSummary(tree: ParsedTree, contextEntries: import("./components/log-browser/tool-timeline-types").ContextWindowEntry[]): RunSummary {
+export function buildRunSummary(
+  tree: ParsedTree,
+  contextEntries: import("./components/log-browser/tool-timeline-types").ContextWindowEntry[],
+): RunSummary {
   const invocations = tree.allNodes.filter((n) => n.depth > 0);
   let maxDepth = 0;
   let totalPromptTokens = 0;
   let totalCompletionTokens = 0;
   let totalCachedTokens = 0;
 
-  const agentMap = new Map<string, { count: number; totalDurationMs: number; totalTokens: number; compactionCount: number; maxDepth: number }>();
+  const agentMap = new Map<
+    string,
+    { count: number; totalDurationMs: number; totalTokens: number; compactionCount: number; maxDepth: number }
+  >();
 
   for (const node of tree.allNodes) {
     if (node.depth > maxDepth) maxDepth = node.depth;

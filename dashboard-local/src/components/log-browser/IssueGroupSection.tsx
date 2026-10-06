@@ -24,32 +24,16 @@ export function IssueGroupSection({
         variant={ButtonVariant.Ghost}
         className="flex items-center gap-2 w-full px-2 py-2 rounded hover:bg-white/[0.03] text-left"
       >
-        <span
-          className={`text-[10px] transition-transform duration-150 ${
-            expanded ? "rotate-90" : ""
-          }`}
-        >
-          ▶
-        </span>
-        <span className="font-semibold font-mono text-[13px] text-info">
-          {group.taskId}
-        </span>
-        <span
-          className={`text-[10px] px-1.5 py-px rounded-full font-medium ${badge}`}
-        >
-          {status}
-        </span>
+        <span className={`text-[10px] transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}>▶</span>
+        <span className="font-semibold font-mono text-[13px] text-info">{group.taskId}</span>
+        <span className={`text-[10px] px-1.5 py-px rounded-full font-medium ${badge}`}>{status}</span>
         <span className="text-dim text-[10px]">
           {group.executions.length} run{group.executions.length !== 1 ? "s" : ""}
         </span>
         {latest?.summary?.durationMs && (
-          <span className="text-dim text-[10px]">
-            {formatDuration(latest.summary.durationMs)}
-          </span>
+          <span className="text-dim text-[10px]">{formatDuration(latest.summary.durationMs)}</span>
         )}
-        <span className="text-dim text-[10px] ml-auto">
-          {formatDate(group.latestTimestamp)}
-        </span>
+        <span className="text-dim text-[10px] ml-auto">{formatDate(group.latestTimestamp)}</span>
         {latest?.summary?.prUrl && (
           <a
             href={latest.summary.prUrl}
@@ -66,12 +50,7 @@ export function IssueGroupSection({
       {expanded && (
         <div className="ml-5 border-l border-border/50 pl-3 mb-2">
           {group.executions.map((exec) => (
-            <ExecutionRow
-              key={exec.id}
-              group={exec}
-              onSelectFile={onSelectFile}
-              onOpenTimeline={onOpenTimeline}
-            />
+            <ExecutionRow key={exec.id} group={exec} onSelectFile={onSelectFile} onOpenTimeline={onOpenTimeline} />
           ))}
         </div>
       )}

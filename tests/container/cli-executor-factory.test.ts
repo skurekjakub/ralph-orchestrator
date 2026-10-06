@@ -21,9 +21,7 @@ describe("CliExecutorFactory", () => {
   it("throws when GH_TOKEN is missing", () => {
     const factory = new CliExecutorFactory({ secrets: { ...makeConfig().secrets, ghToken: "" } });
 
-    expect(() => factory.create(mockCompose, makeProfile(), mockLogger)).toThrowError(
-      /GH_TOKEN is required/,
-    );
+    expect(() => factory.create(mockCompose, makeProfile(), mockLogger)).toThrowError(/GH_TOKEN is required/);
   });
 
   it("creates a LocalCopilotExecutor via createLocal when GH_TOKEN is present", () => {
@@ -38,8 +36,6 @@ describe("CliExecutorFactory", () => {
   it("throws from createLocal when GH_TOKEN is missing", () => {
     const factory = new CliExecutorFactory({ secrets: { ...makeConfig().secrets, ghToken: "" } });
 
-    expect(() => factory.createLocal(makeProfile(), "/tmp/repo", mockLogger)).toThrowError(
-      /GH_TOKEN is required/,
-    );
+    expect(() => factory.createLocal(makeProfile(), "/tmp/repo", mockLogger)).toThrowError(/GH_TOKEN is required/);
   });
 });

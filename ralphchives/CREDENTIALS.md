@@ -5,14 +5,12 @@ Email: admin@ralphchives.local
 Password: RalphAdmin123!
 URL: http://localhost:4567
 
-
 MongoDB
 
 Host: mongodb (container name) / localhost:27017 (from host)
 Username: nodebb
 Password: nodebb
 Database: nodebb
-
 
 Neo4j
 

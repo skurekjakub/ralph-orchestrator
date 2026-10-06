@@ -65,7 +65,7 @@ describe("ToolTimelineCallList", () => {
         onToggle={() => {}}
         maxDuration={162960}
         subagentByName={new Map([[span.name, span]])}
-      />
+      />,
     );
 
     expect(screen.queryByText("wanted claude-sonnet-4.5")).not.toBeNull();

@@ -39,10 +39,7 @@ const SPINE_X = 0;
  * Each spine node's includes and skills branch out to the right in columns,
  * making it immediately clear what each agent does.
  */
-function layoutGraph(
-  nodes: GraphNodeJson[],
-  rootId: string,
-): { flowNodes: Node[]; flowEdges: Edge[] } {
+function layoutGraph(nodes: GraphNodeJson[], rootId: string): { flowNodes: Node[]; flowEdges: Edge[] } {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const root = byId.get(rootId);
   if (!root) return { flowNodes: [], flowEdges: [] };
@@ -64,9 +61,7 @@ function layoutGraph(
       if (!byId.has(ref.targetId)) continue;
       const isSpineEdge = spineSet.has(n.id) && spineSet.has(ref.targetId) && ref.type === "sub-agent";
       const color = isSpineEdge ? "#06b6d4" : (edgeColors[ref.type] ?? "#4b5563");
-      const condLabel = ref.condition
-        ? ref.condition.replace(/triggerParams\./g, "").replace(/^not /, "!")
-        : undefined;
+      const condLabel = ref.condition ? ref.condition.replace(/triggerParams\./g, "").replace(/^not /, "!") : undefined;
       flowEdges.push({
         id: `${n.id}->${ref.targetId}`,
         source: n.id,
@@ -100,8 +95,12 @@ function layoutGraph(
 
     // Col 1: direct includes (render/conditional-render, non-spine)
     for (const ref of spineNode.refs) {
-      if ((ref.type === "render" || ref.type === "conditional-render")
-        && !spineSet.has(ref.targetId) && !placed.has(ref.targetId) && byId.has(ref.targetId)) {
+      if (
+        (ref.type === "render" || ref.type === "conditional-render") &&
+        !spineSet.has(ref.targetId) &&
+        !placed.has(ref.targetId) &&
+        byId.has(ref.targetId)
+      ) {
         includes.push(ref.targetId);
         placed.add(ref.targetId);
       }
@@ -196,8 +195,7 @@ function layoutGraph(
 }
 
 export function AgentGraph() {
-  const { profiles, loading, selectedProfile, selectedAgent, graph, graphLoading, selectAgent } =
-    useAgentGraph();
+  const { profiles, loading, selectedProfile, selectedAgent, graph, graphLoading, selectAgent } = useAgentGraph();
 
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!graph || !selectedProfile || !selectedAgent) return { initialNodes: [], initialEdges: [] };
@@ -230,9 +228,7 @@ export function AgentGraph() {
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-header border-b border-border shrink-0 overflow-x-auto">
-        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim shrink-0">
-          Agent Graph
-        </span>
+        <span className="font-semibold text-[11px] uppercase tracking-wider text-dim shrink-0">Agent Graph</span>
         {profiles.map((p) => (
           <div key={p.profile} className="flex items-center gap-1 shrink-0">
             <span className="text-[10px] text-dim uppercase tracking-wide ml-2">{p.profile}:</span>

@@ -11,7 +11,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
   if (!existsSync(profilesDir)) {
     errors.push(
       `profiles/ directory not found at ${profilesDir}\n` +
-      `  Create profile directories under profiles/ with a profile.json in each`
+        `  Create profile directories under profiles/ with a profile.json in each`,
     );
     return;
   }
@@ -64,23 +64,20 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
       if (!existsSync(repoPath)) {
         errors.push(
           `${prefix}: repo path does not exist: ${repoPath}\n` +
-          `  Clone the repository or update the path in profile.json`
+            `  Clone the repository or update the path in profile.json`,
         );
       }
     }
 
     if (p.cli === "claude") {
       errors.push(
-        `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`
+        `${prefix}: cli "claude" is not supported — Claude Code CLI currently lacks sufficient security hardening. Use "copilot" (default).`,
       );
     }
 
     const composePath = resolve(process.cwd(), `profiles/${dirName}/docker-compose.yml`);
     if (!existsSync(composePath)) {
-      errors.push(
-        `${prefix}: docker-compose.yml not found\n` +
-        `  Create profiles/${dirName}/docker-compose.yml`
-      );
+      errors.push(`${prefix}: docker-compose.yml not found\n` + `  Create profiles/${dirName}/docker-compose.yml`);
     }
 
     const variants = p.variants;
@@ -90,9 +87,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     }
 
     const agentsDir = join(profilesDir, dirName, "agents");
-    const agentFiles = existsSync(agentsDir)
-      ? readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md"))
-      : [];
+    const agentFiles = existsSync(agentsDir) ? readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md")) : [];
     const availableAgents = agentFiles.map((f) => f.replace(".agent.md", ""));
 
     for (let i = 0; i < variants.length; i++) {
@@ -115,8 +110,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
         } else if (agentFiles.length > 0 && !availableAgents.includes(s.agent)) {
           errors.push(
             `${sPrefix}: agent "${s.agent}" not found in ${prefix}/agents/\n` +
-            `  Available agents: ${availableAgents.join(", ")}\n` +
-            `  Agent files use the pattern: <name>.agent.md`
+              `  Available agents: ${availableAgents.join(", ")}\n` +
+              `  Agent files use the pattern: <name>.agent.md`,
           );
         }
       }
@@ -146,7 +141,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
           if (!statusesLower.has(rs.toLowerCase())) {
             errors.push(
               `${vPrefix}: revisionStatuses value "${rs}" is not in statuses [${statuses.join(", ")}]\n` +
-              `  revisionStatuses must be a subset of statuses`
+                `  revisionStatuses must be a subset of statuses`,
             );
           }
         }
@@ -159,7 +154,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): voi
     if (!process.env[repoPat]) {
       errors.push(
         `${prefix}: env var ${repoPat} is not set (required for repo-sync hook)\n` +
-        `  Set ${repoPat} in .env or change repoPat in profile.json`
+          `  Set ${repoPat} in .env or change repoPat in profile.json`,
       );
     }
 
@@ -201,8 +196,7 @@ function validateVariantSkills(
         if (typeof skill !== "string") continue;
         if (!findSkillDirSync(skillsDir, skill)) {
           errors.push(
-            `${sPrefix}: skill "${skill}" not found in shared/skills/\n` +
-            `  Create shared/skills/${skill}/`
+            `${sPrefix}: skill "${skill}" not found in shared/skills/\n` + `  Create shared/skills/${skill}/`,
           );
         }
       }
@@ -279,7 +273,7 @@ function validateMcpServers(
       if (existing) {
         errors.push(
           `MCP server "${serverName}" and "${existing}" both use sidecarPort ${manifest.sidecarPort}\n` +
-          `  Each server must have a unique sidecarPort`
+            `  Each server must have a unique sidecarPort`,
         );
       } else {
         portMap.set(manifest.sidecarPort, serverName);
@@ -293,8 +287,8 @@ function validateMcpServers(
     if (!available.includes(serverName)) {
       errors.push(
         `${prefix}: MCP server "${serverName}" not found in shared/mcp-servers/\n` +
-        `  Available servers: ${available.length > 0 ? available.join(", ") : "(none)"}\n` +
-        `  Create shared/mcp-servers/${serverName}/mcp-server.json`
+          `  Available servers: ${available.length > 0 ? available.join(", ") : "(none)"}\n` +
+          `  Create shared/mcp-servers/${serverName}/mcp-server.json`,
       );
       continue;
     }
@@ -308,8 +302,8 @@ function validateMcpServers(
         if (missing.length > 0) {
           errors.push(
             `${prefix}: MCP server "${serverName}" requires config [${missing.join(", ")}] ` +
-            `but the profile does not provide them\n` +
-            `  Add an object entry in mcpServers with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`
+              `but the profile does not provide them\n` +
+              `  Add an object entry in mcpServers with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`,
           );
         }
       }
@@ -327,10 +321,7 @@ function validateMcpServers(
  * match inside `@RalphAutocomplete`. Only exact (case-insensitive) trigger
  * collisions on overlapping projects are flagged.
  */
-export function validateTriggerUniqueness(
-  variants: readonly VariantTriggerInfo[],
-  errors: string[],
-): void {
+export function validateTriggerUniqueness(variants: readonly VariantTriggerInfo[], errors: string[]): void {
   for (let i = 0; i < variants.length; i++) {
     for (let j = i + 1; j < variants.length; j++) {
       const a = variants[i];
@@ -344,8 +335,8 @@ export function validateTriggerUniqueness(
         const bLabel = `profiles/${b.profileId}/variants[${b.variantIndex}]`;
         errors.push(
           `Ambiguous comment trigger: "${a.trigger}" (${aLabel}) and "${b.trigger}" (${bLabel}) ` +
-          `overlap on projects [${sharedProjects.join(", ")}]\n` +
-          `  A single comment would trigger both variants. Each trigger must be unique across variants that share projects`
+            `overlap on projects [${sharedProjects.join(", ")}]\n` +
+            `  A single comment would trigger both variants. Each trigger must be unique across variants that share projects`,
         );
       }
     }

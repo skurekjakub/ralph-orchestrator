@@ -15,9 +15,7 @@ export function ToolOutputPanel({ lines }: Props) {
     <div className="flex flex-col min-h-[150px] border-b border-border flex-1">
       <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-header font-semibold text-[11px] uppercase tracking-wider text-dim border-b border-border shrink-0">
         Tool Output
-        <span className="bg-border text-dim px-1.5 rounded-lg text-[10px] font-semibold">
-          {lines.length}
-        </span>
+        <span className="bg-border text-dim px-1.5 rounded-lg text-[10px] font-semibold">{lines.length}</span>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-1 font-mono text-[11px]">
         {lines.length === 0 ? (
@@ -25,9 +23,7 @@ export function ToolOutputPanel({ lines }: Props) {
             No tool output yet — starts streaming when an agent runs.
           </div>
         ) : (
-          <pre className="m-0 font-mono text-[11px] whitespace-pre-wrap break-words">
-            {lines.join("\n")}
-          </pre>
+          <pre className="m-0 font-mono text-[11px] whitespace-pre-wrap break-words">{lines.join("\n")}</pre>
         )}
         <div ref={bottomRef} />
       </div>

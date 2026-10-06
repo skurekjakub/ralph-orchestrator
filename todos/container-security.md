@@ -17,6 +17,7 @@ The `ContainerObserver` monitors streaming output from the CLI process. Currentl
 ### Expected Behavior
 
 The observer's stream parser scans for patterns indicating dangerous operations:
+
 - `rm -rf /` or `rm -rf ~` (workspace-destructive)
 - `curl ... | bash` or `wget ... | sh` (remote code execution)
 - `docker` commands (shouldn't be possible — Docker CLI is removed, but defense in depth)
@@ -27,6 +28,7 @@ The observer's stream parser scans for patterns indicating dangerous operations:
 ### Response Actions
 
 When a suspicious command is detected:
+
 1. **Log**: Record the command in the audit trail with a security flag
 2. **Pause**: Send SIGSTOP to the CLI process (if possible via exec) — gives a human time to review
 3. **Kill**: For the most dangerous patterns, kill the process immediately
@@ -46,6 +48,7 @@ When a suspicious command is detected:
 The container runs as the `vscode` user (UID 1000). Docker volumes are mounted as root-owned. The `ContainerWorkspaceCleaner` needs to delete files in these volumes between runs, which requires `DAC_OVERRIDE` and `CHOWN` capabilities — capabilities that weaken the security posture.
 
 The `docker-compose.security.yml` has:
+
 ```yaml
 cap_drop:
   - ALL
@@ -81,6 +84,7 @@ MCP tools receive parameters from the agent at call time. The agent decides whic
 ### Expected Behavior
 
 The MCP sidecar gateway pre-fills certain parameters so the agent can't override them:
+
 - `jira_add_comment`: `issueKey` always set to the current task's issue key
 - `jira_add_attachment`: `issueKey` always set to current task's issue key
 - `ado_create_pull_request`: `repositoryId` always set to the profile's target repo
@@ -94,13 +98,15 @@ The `gateway.json` already contains per-server configuration. Add a `parameterOv
 
 ```json
 {
-  "servers": [{
-    "name": "jira-kentico",
-    "parameterOverrides": {
-      "jira_add_comment": { "issueKey": "DOC-3143" },
-      "jira_add_attachment": { "issueKey": "DOC-3143" }
+  "servers": [
+    {
+      "name": "jira-kentico",
+      "parameterOverrides": {
+        "jira_add_comment": { "issueKey": "DOC-3143" },
+        "jira_add_attachment": { "issueKey": "DOC-3143" }
+      }
     }
-  }]
+  ]
 }
 ```
 

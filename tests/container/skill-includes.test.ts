@@ -29,10 +29,7 @@ describe("resolveSkillIncludes", () => {
     await mkdir(join(skillsDir, "my-skill"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(skillsDir, "my-skill", "SKILL.md"),
-      "Skill for {{ taskId }} in {{ taskProject }}",
-    );
+    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "Skill for {{ taskId }} in {{ taskProject }}");
 
     await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {
       taskId: "DOC-42",
@@ -68,10 +65,7 @@ describe("resolveSkillIncludes", () => {
     await mkdir(includesDir, { recursive: true });
 
     await writeFile(join(includesDir, "shared-rules.md"), "Shared rules content");
-    await writeFile(
-      join(skillsDir, "my-skill", "SKILL.md"),
-      "# Skill\n\n{% render 'shared-rules' %}\n\nEnd.",
-    );
+    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "# Skill\n\n{% render 'shared-rules' %}\n\nEnd.");
 
     await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {});
 
@@ -90,10 +84,7 @@ describe("resolveSkillIncludes", () => {
 
     // Skill B has a partial that skill A references
     await writeFile(join(skillsDir, "skill-b", "shared-defs.md"), "Shared definitions");
-    await writeFile(
-      join(skillsDir, "skill-a", "SKILL.md"),
-      "# Skill A\n\n{% render 'skill-b/shared-defs' %}\n\nEnd.",
-    );
+    await writeFile(join(skillsDir, "skill-a", "SKILL.md"), "# Skill A\n\n{% render 'skill-b/shared-defs' %}\n\nEnd.");
 
     await resolveSkillIncludes(skillsDir, ["skill-a"], includesDir, {});
 
@@ -152,10 +143,7 @@ describe("resolveSkillIncludes", () => {
     await mkdir(join(skillsDir, "sec-skill"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(skillsDir, "sec-skill", "SKILL.md"),
-      '{% section "rules" %}Be careful{% endsection %}',
-    );
+    await writeFile(join(skillsDir, "sec-skill", "SKILL.md"), '{% section "rules" %}Be careful{% endsection %}');
 
     await resolveSkillIncludes(skillsDir, ["sec-skill"], includesDir, {});
 
@@ -185,10 +173,7 @@ describe("resolveSkillIncludes", () => {
     await mkdir(join(skillsDir, "domain", "nested-skill"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(skillsDir, "domain", "nested-skill", "SKILL.md"),
-      "Nested skill for {{ taskId }}",
-    );
+    await writeFile(join(skillsDir, "domain", "nested-skill", "SKILL.md"), "Nested skill for {{ taskId }}");
 
     await resolveSkillIncludes(skillsDir, ["nested-skill"], includesDir, {
       taskId: "DOC-99",
@@ -206,14 +191,8 @@ describe("resolveSkillIncludes", () => {
     await mkdir(join(skillsDir, "ref-skill", "references"), { recursive: true });
     await mkdir(includesDir, { recursive: true });
 
-    await writeFile(
-      join(skillsDir, "ref-skill", "SKILL.md"),
-      "Main skill for {{ taskId }}",
-    );
-    await writeFile(
-      join(skillsDir, "ref-skill", "references", "guide.md"),
-      "Guide for {{ taskId }}",
-    );
+    await writeFile(join(skillsDir, "ref-skill", "SKILL.md"), "Main skill for {{ taskId }}");
+    await writeFile(join(skillsDir, "ref-skill", "references", "guide.md"), "Guide for {{ taskId }}");
 
     await resolveSkillIncludes(skillsDir, ["ref-skill"], includesDir, {
       taskId: "DOC-77",
@@ -237,10 +216,12 @@ describe("SkillTemplateRenderer", () => {
     await writeFile(join(skillsDir, "test-skill", "SKILL.md"), "Skill for {{ taskId }}");
 
     const renderer = new SkillTemplateRenderer();
-    await renderer.render(makeTemplateContext({
-      taskId: "DOC-55",
-      skills: ["test-skill"],
-    }));
+    await renderer.render(
+      makeTemplateContext({
+        taskId: "DOC-55",
+        skills: ["test-skill"],
+      }),
+    );
 
     const output = await readFile(join(skillsDir, ".build", "test-skill", "SKILL.md"), "utf-8");
     expect(output).toBe("Skill for DOC-55");

@@ -26,6 +26,7 @@ Download method: `downloadAttachment(url: string, destPath: string): Promise<voi
 ### Prompt Builder / Task Runner
 
 Before agent invocation:
+
 1. Fetch attachments for the issue
 2. Filter to supported image types
 3. Download to a temp directory / mount point accessible to the container
@@ -40,6 +41,7 @@ Both CLI executors need to handle image input:
 **Claude Code CLI**: The `-p` prompt flag might support image references, or images could be passed via stdin/multimodal API. Claude Code's `--image` support needs investigation.
 
 If neither CLI supports image input directly, the images could be:
+
 - Mounted into the container at a known path
 - Referenced in the agent template: "Image attachments are available at `/workspace/.ralph/attachments/`"
 - The agent uses vision tools or reads them as needed
@@ -47,6 +49,7 @@ If neither CLI supports image input directly, the images could be:
 ### Container Mount
 
 A new volume mount for downloaded attachments:
+
 ```yaml
 volumes:
   - ${ATTACHMENT_DIR}:/workspace/.ralph/attachments:ro
@@ -57,6 +60,7 @@ volumes:
 New field: `imageAttachments: { filename: string; path: string; mimeType: string }[]`
 
 Agent templates can reference them:
+
 ```liquid
 {%- if imageAttachments.size > 0 %}
 ## Attached Images

@@ -9,7 +9,7 @@ const EASY_DESCRIPTION = {
       content: [
         {
           type: "text",
-          text: 'Add a short section to the bottom of the reusable field schemas page (src/_documentation/_documentation/developers-and-admins/development/content-types/reusable-field-schemas.md). The section should mention that reusable field schemas cannot be nested inside other reusable field schemas, and that changes to a schema propagate to all content types that use it.',
+          text: "Add a short section to the bottom of the reusable field schemas page (src/_documentation/_documentation/developers-and-admins/development/content-types/reusable-field-schemas.md). The section should mention that reusable field schemas cannot be nested inside other reusable field schemas, and that changes to a schema propagate to all content types that use it.",
         },
       ],
     },
@@ -44,19 +44,59 @@ const HARD_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Explain the use case: when an editor creates multiple content types that share a reusable field schema, developers need to query all items implementing that schema regardless of their specific content type." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Explain the use case: when an editor creates multiple content types that share a reusable field schema, developers need to query all items implementing that schema regardless of their specific content type.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Show a complete code example using RetrieveContentOfReusableSchemas with parameters like filtering, ordering, and language selection." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Show a complete code example using RetrieveContentOfReusableSchemas with parameters like filtering, ordering, and language selection.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Document how schema-based retrieval handles linked items and generated classes — specifically, what type the retrieved items are when they have different content types but share the same schema." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Document how schema-based retrieval handles linked items and generated classes — specifically, what type the retrieved items are when they have different content types but share the same schema.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Include a comparison table or note explaining when to use RetrieveContent (single type) vs RetrieveContentOfContentTypes (multiple types) vs RetrieveContentOfReusableSchemas (schema-based)." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Include a comparison table or note explaining when to use RetrieveContent (single type) vs RetrieveContentOfContentTypes (multiple types) vs RetrieveContentOfReusableSchemas (schema-based).",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -109,23 +149,70 @@ const VERY_HARD_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Explain when developers need to retrieve content across multiple types — for example, a news feed that mixes Articles, PressReleases, and BlogPosts, or a search results page that returns items of any type implementing a shared schema." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Explain when developers need to retrieve content across multiple types — for example, a news feed that mixes Articles, PressReleases, and BlogPosts, or a search results page that returns items of any type implementing a shared schema.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Document the RetrieveContentOfContentTypes method: show how to query items of multiple content types in a single call, how the results are typed when the types have different fields, and how to filter/sort across types." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Document the RetrieveContentOfContentTypes method: show how to query items of multiple content types in a single call, how the results are typed when the types have different fields, and how to filter/sort across types.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Document the RetrieveContentOfReusableSchemas method: show how schema-based retrieval works, when to use it instead of multi-type retrieval, and how the returned items relate to the schema interface." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Document the RetrieveContentOfReusableSchemas method: show how schema-based retrieval works, when to use it instead of multi-type retrieval, and how the returned items relate to the schema interface.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Include a comparison section explaining the tradeoffs: RetrieveContent (strongly typed, single type) vs RetrieveContentOfContentTypes (multiple types, need to handle heterogeneous results) vs RetrieveContentOfReusableSchemas (unified interface via schema, but limited to schema fields)." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Include a comparison section explaining the tradeoffs: RetrieveContent (strongly typed, single type) vs RetrieveContentOfContentTypes (multiple types, need to handle heterogeneous results) vs RetrieveContentOfReusableSchemas (unified interface via schema, but limited to schema fields).",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Provide at least two complete code examples with different scenarios." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Provide at least two complete code examples with different scenarios." },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -152,15 +239,45 @@ const VERY_HARD_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "retrieve-content-items.md — where both methods are mentioned as bullet points, add links to the new detailed page" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "retrieve-content-items.md — where both methods are mentioned as bullet points, add links to the new detailed page",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "The parent content-retrieval.md index page — add the new page to the topic list" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "The parent content-retrieval.md index page — add the new page to the topic list",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "reusable-field-schemas.md (in the content-types section) — if it does not already mention schema-based retrieval, add a 'See also' note linking to the new page" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "reusable-field-schemas.md (in the content-types section) — if it does not already mention schema-based retrieval, add a 'See also' note linking to the new page",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -195,19 +312,59 @@ const HARD_ADMIN_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Explain the scenario: an admin form has fields that should only be visible to users with specific roles (e.g., an 'Advanced settings' section visible only to administrators). This is a condition without field dependencies — it evaluates based on the current user's role rather than other form field values." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Explain the scenario: an admin form has fields that should only be visible to users with specific roles (e.g., an 'Advanced settings' section visible only to administrators). This is a condition without field dependencies — it evaluates based on the current user's role rather than other form field values.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Show the complete back-end implementation: a C# visibility condition class inheriting from VisibilityConditionDefinition, implementing the Evaluate method, with a configurable Role property. Include the registration attribute (RegisterFormVisibilityCondition) and the condition attribute class for assigning it to properties." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Show the complete back-end implementation: a C# visibility condition class inheriting from VisibilityConditionDefinition, implementing the Evaluate method, with a configurable Role property. Include the registration attribute (RegisterFormVisibilityCondition) and the condition attribute class for assigning it to properties.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Show how to assign the condition to a model property using attribute notation, and demonstrate configuring the required role via the attribute's constructor parameters." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Show how to assign the condition to a model property using attribute notation, and demonstrate configuring the required role via the attribute's constructor parameters.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Include a note explaining when to use a contextual visibility condition (like this role-based example) vs a field-dependency visibility condition (that evaluates based on other form values), linking to the relevant sections of the visibility conditions reference page." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Include a note explaining when to use a contextual visibility condition (like this role-based example) vs a field-dependency visibility condition (that evaluates based on other form values), linking to the relevant sections of the visibility conditions reference page.",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -260,15 +417,45 @@ const HARD_CICD_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "A 'Separated fields' section explaining when and how to use the SeparatedFields property. This feature stores large field data (such as HTML content or XML configuration) in individual files instead of inline in the main XML. Show a code example using the SeparatedField class with field name and binary flag. Explain why this matters for source control (diff readability, merge conflict reduction)." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A 'Separated fields' section explaining when and how to use the SeparatedFields property. This feature stores large field data (such as HTML content or XML configuration) in individual files instead of inline in the main XML. Show a code example using the SeparatedField class with field name and binary flag. Explain why this matters for source control (diff readability, merge conflict reduction).",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "A 'Custom file name transformers' section showing how ObjectFileNameFieldTransformers works. The FileNameFieldTransformer class has a FieldName (string) and Action (Func<object, string>) — show a practical example of transforming a numeric identifier into a human-readable file name, and explain how this interacts with ObjectFileNameFields." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A 'Custom file name transformers' section showing how ObjectFileNameFieldTransformers works. The FileNameFieldTransformer class has a FieldName (string) and Action (Func<object, string>) — show a practical example of transforming a numeric identifier into a human-readable file name, and explain how this interacts with ObjectFileNameFields.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "A 'Filtered CI/CD serialization' section explaining how FilterCondition, FilterColumn, FilterDependencies, and UsesCustomFiltering work together. Give a practical scenario: an object type where only objects with a specific status or belonging to a specific parent should be serialized. Show how the filtering properties cooperate to achieve conditional serialization." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A 'Filtered CI/CD serialization' section explaining how FilterCondition, FilterColumn, FilterDependencies, and UsesCustomFiltering work together. Give a practical scenario: an object type where only objects with a specific status or belonging to a specific parent should be serialized. Show how the filtering properties cooperate to achieve conditional serialization.",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -321,23 +508,73 @@ const VERY_HARD_ADMIN_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Explain the concept: form component extenders modify the behavior of existing form components, analogous to how PageExtender<T> extends UI pages. They can override ConfigureComponent() to modify component state and define custom commands via the [FormComponentCommand] attribute." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Explain the concept: form component extenders modify the behavior of existing form components, analogous to how PageExtender<T> extends UI pages. They can override ConfigureComponent() to modify component state and define custom commands via the [FormComponentCommand] attribute.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Document the FormComponentExtender<T> base class: the generic type parameter constrained to IFormComponent, the FormComponent property for accessing the extended component, the ConfigureComponent() override for modifying component state, and ResponseFrom<T>() for returning command responses." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Document the FormComponentExtender<T> base class: the generic type parameter constrained to IFormComponent, the FormComponent property for accessing the extended component, the ConfigureComponent() override for modifying component state, and ResponseFrom<T>() for returning command responses.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Document the registration pattern: the FormComponentExtenderAttribute assembly-level attribute (from Kentico.Xperience.Admin.Base.Forms namespace). Show how to register an extender with [assembly: FormComponentExtender(typeof(MyExtender))]." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Document the registration pattern: the FormComponentExtenderAttribute assembly-level attribute (from Kentico.Xperience.Admin.Base.Forms namespace). Show how to register an extender with [assembly: FormComponentExtender(typeof(MyExtender))].",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Provide at least two code examples: (1) an extender that overrides ConfigureComponent() to modify a form component's client properties or validation, and (2) an extender with a custom [FormComponentCommand] that adds server-side logic invokable from the form component's client template." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Provide at least two code examples: (1) an extender that overrides ConfigureComponent() to modify a form component's client properties or validation, and (2) an extender with a custom [FormComponentCommand] that adds server-side logic invokable from the form component's client template.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Include a comparison note explaining when to use a FormComponentExtender (modify existing components without subclassing) vs creating a custom FormComponent (full control over new component behavior) vs using a FormComponentConfigurator (dynamic property configuration at runtime)." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Include a comparison note explaining when to use a FormComponentExtender (modify existing components without subclassing) vs creating a custom FormComponent (full control over new component behavior) vs using a FormComponentConfigurator (dynamic property configuration at runtime).",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -364,15 +601,45 @@ const VERY_HARD_ADMIN_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "editing-components.md — in the 'Configure components dynamically' section, add a note mentioning form component extenders as an alternative approach, with a link to the new page" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "editing-components.md — in the 'Configure components dynamically' section, add a note mentioning form component extenders as an alternative approach, with a link to the new page",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "configure-editing-component-state.md — add a 'See also' section or note mentioning that form component extenders offer an alternative to configurators for modifying component behavior" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "configure-editing-component-state.md — add a 'See also' section or note mentioning that form component extenders offer an alternative to configurators for modifying component behavior",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "The parent UI form components landing page (if one exists) or the admin UI model overview page — add the new page to the navigation/topic list" }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "The parent UI form components landing page (if one exists) or the admin UI model overview page — add the new page to the navigation/topic list",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -407,15 +674,45 @@ const MEDIUM_DESCRIPTION = {
       content: [
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "A new section titled 'Cache expiration strategies' (after the existing cache examples) that explains the difference between sliding and absolute expiration in IProgressiveCache. Include a code example showing how to set absolute expiration for time-sensitive data (e.g., content that should refresh every 10 minutes regardless of access patterns)." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A new section titled 'Cache expiration strategies' (after the existing cache examples) that explains the difference between sliding and absolute expiration in IProgressiveCache. Include a code example showing how to set absolute expiration for time-sensitive data (e.g., content that should refresh every 10 minutes regardless of access patterns).",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "A warning callout somewhere appropriate noting that cache keys must be unique across the entire application — if two different components use the same cache key string, they will silently share cached data, leading to type mismatches or incorrect results." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A warning callout somewhere appropriate noting that cache keys must be unique across the entire application — if two different components use the same cache key string, they will silently share cached data, leading to type mismatches or incorrect results.",
+                },
+              ],
+            },
+          ],
         },
         {
           type: "listItem",
-          content: [{ type: "paragraph", content: [{ type: "text", text: "Research the Xperience source code to verify the IProgressiveCache.LoadAsync method signature and the CacheSettings class properties. Make sure any parameter names, defaults, or configuration options mentioned in your additions match the actual source code." }] }],
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Research the Xperience source code to verify the IProgressiveCache.LoadAsync method signature and the CacheSettings class properties. Make sure any parameter names, defaults, or configuration options mentioned in your additions match the actual source code.",
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -525,7 +822,7 @@ export async function transitionToToDo(issueKey: string, env: JiraEnv) {
   if (!todo) {
     const available = data.transitions.map((t) => `${t.name} (${t.id})`).join(", ");
     console.log(`  ⚠ No "To Do" transition found. Available: ${available}`);
-    console.log("  Issue may already be in \"To Do\" or the workflow doesn't allow this transition.");
+    console.log('  Issue may already be in "To Do" or the workflow doesn\'t allow this transition.');
     return;
   }
 
