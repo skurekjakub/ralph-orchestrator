@@ -44,7 +44,7 @@ context-window-chart-shared.ts  ← shared constants, colors, formatTokens(), bu
 - **Log-browser charts are raw SVG** (`src/components/log-browser/`). Keep new timeline and context-window visualizations in raw SVG.
   - The graph views use `@xyflow/react` (`AgentGraph.tsx`, `FractalGraph.tsx`, the `*NodeCard.tsx` files).
   - The token Sankey uses `d3-sankey` (`fractal-explorer/TokenSankey.tsx`).
-  - `recharts` is declared in `package.json` but nothing in `src/` imports it. Don't add a new charting dependency without asking.
+  - Don't add a new charting dependency without asking.
 - **Tailwind classes** for layout and text styling; inline `style` only for dynamic values (positions, colors).
 - **Collapsible sections** use the ▾/▸ toggle pattern from `ToolTimelineSubagents.tsx`.
 - **Color constants** are named and centralized (`COLOR_GREEN`, `COLOR_PROMPT`, etc.), never hardcoded inline in multiple files.
