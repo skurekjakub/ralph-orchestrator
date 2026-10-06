@@ -26,6 +26,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      # The audit-hook tests run shared/hooks/*.sh, which need jq; the runner must provide it.
+      - name: Require jq
+        run: jq --version || { echo "::error::jq not found on this runner (needed by tests/hooks)"; exit 1; }
+
       - name: Run tests
         run: npx vitest run
 
