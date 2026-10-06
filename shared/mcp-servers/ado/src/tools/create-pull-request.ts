@@ -31,7 +31,7 @@ export const tool: ToolDefinition = {
       "Create a new pull request in an Azure DevOps repository. " +
       "Source branch name must include the refs/heads/ prefix. " +
       "Target branch is resolved from configuration: explicit target_branch overrides source_branch, which defaults to main.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);

@@ -23,7 +23,7 @@ export const tool: ToolDefinition = {
   name: "ado_reply_to_comment",
   config: {
     description: "Reply to an existing comment thread on a pull request.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);

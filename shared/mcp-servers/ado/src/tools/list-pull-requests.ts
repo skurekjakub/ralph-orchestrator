@@ -28,7 +28,7 @@ export const tool: ToolDefinition = {
     description:
       "List pull requests in an Azure DevOps repository. " +
       "Filter by status (active, abandoned, completed, all), source branch, or target branch.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);

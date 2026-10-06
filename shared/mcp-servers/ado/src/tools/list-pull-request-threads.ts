@@ -15,7 +15,7 @@ export const tool: ToolDefinition = {
     description:
       "List comment threads on a pull request. Returns thread status, " +
       "file context, and all comments with authors.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);

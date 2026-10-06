@@ -15,9 +15,9 @@
  *   JIRA_EMAIL     — Email for Basic auth
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import axios from "axios";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { z } from "zod";
@@ -77,11 +77,11 @@ function createMcpServer(): McpServer {
         "bq. for blockquotes, regular markdown for the rest). " +
         "Use real newlines to separate lines — do NOT use literal backslash-n escape sequences.",
       inputSchema: JIRA_ISSUE_KEY
-        ? { body: z.string().describe("Comment body in JIRA wiki markup") }
-        : {
+        ? z.object({ body: z.string().describe("Comment body in JIRA wiki markup") })
+        : z.object({
             issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
             body: z.string().describe("Comment body in JIRA wiki markup"),
-          },
+          }),
     },
     async (args: Record<string, unknown>) => {
       const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
@@ -124,11 +124,11 @@ function createMcpServer(): McpServer {
     {
       description: `Attach a file to a JIRA issue ${JIRA_ISSUE_KEY}. The file must be placed in /tmp/mcp-attachments/`,
       inputSchema: JIRA_ISSUE_KEY
-        ? { fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") }
-        : {
+        ? z.object({ fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)") })
+        : z.object({
             issueKey: z.string().describe("JIRA issue key (e.g. DOC-3143)"),
             fileName: z.string().describe("Name of the file in /tmp/mcp-attachments/ (e.g. handoff.md)"),
-          },
+          }),
     },
     async (args: Record<string, unknown>) => {
       const issueKey = JIRA_ISSUE_KEY ?? String(args.issueKey);
@@ -241,7 +241,7 @@ function startHttpTransport(port: number): void {
     }
 
     const mcpServer = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
       transport.close();
       mcpServer.close();

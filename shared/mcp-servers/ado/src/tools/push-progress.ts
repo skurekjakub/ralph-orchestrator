@@ -11,7 +11,7 @@ export const tool: ToolDefinition = {
     description:
       "Stage all changes, commit, and push to the task branch. " +
       "Use this to save work-in-progress to the remote repository.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const branch = TASK_BRANCH;

@@ -16,9 +16,9 @@
  * invoked with `--transport http --port <port>` by the gateway.
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { z } from "zod";
 
@@ -47,7 +47,7 @@ function createMcpServer(): McpServer {
         "Search Microsoft Learn documentation (learn.microsoft.com). " +
         "Returns titles, URLs, and descriptions. " +
         "Use the web_fetch tool to retrieve the full content of a result page.",
-      inputSchema: {
+      inputSchema: z.object({
         query: z.string().min(1).describe("Search query"),
         locale: z.string().optional().describe("Locale for results (default: en-us)"),
         maxResults: z
@@ -57,7 +57,7 @@ function createMcpServer(): McpServer {
           .max(50)
           .optional()
           .describe("Maximum number of results to return (default: 10)"),
-      },
+      }),
     },
     async ({ query, locale = "en-us", maxResults = 10 }) => {
       const params = new URLSearchParams({
@@ -153,7 +153,7 @@ function startHttpTransport(port: number): void {
     }
 
     const mcpServer = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
       transport.close();
       mcpServer.close();

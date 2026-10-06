@@ -31,7 +31,7 @@ export const tool: ToolDefinition = {
     description:
       "Create a new comment thread on a pull request. Can be a general comment " +
       "or a file-level comment with line context.",
-    inputSchema,
+    inputSchema: z.object(inputSchema),
   },
   handler: async (args) => {
     const project = TASK_PROJECT ?? String(args.project);

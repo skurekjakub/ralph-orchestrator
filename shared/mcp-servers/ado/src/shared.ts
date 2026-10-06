@@ -1,14 +1,17 @@
-import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { ToolCallback } from "@modelcontextprotocol/server";
 import axios from "axios";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { ZodRawShape } from "zod";
+import type { ZodObject, ZodRawShape } from "zod";
+
+/** Tool input schema: a Zod object whose fields depend on which task-scoped env vars are set. */
+type ToolInputSchema = ZodObject<ZodRawShape>;
 
 /** Tool definition returned by each tool module. */
 export interface ToolDefinition {
   name: string;
-  config: { description: string; inputSchema: ZodRawShape };
-  handler: ToolCallback<ZodRawShape>;
+  config: { description: string; inputSchema: ToolInputSchema };
+  handler: ToolCallback<ToolInputSchema>;
 }
 
 export const ORG = "KenticoCustomerSuccess";
