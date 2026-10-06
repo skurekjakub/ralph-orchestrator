@@ -20,8 +20,8 @@
     sidecar design, data-source registration, egress security,
     prompt-injection hardening), `MCP.md`, `SECURITY.md`.
   - Orchestrator (`src/`): Node.js 24 API (`engines` ≥ 24, CI runs 24.x),
-    TypeScript 5.9 with `NodeNext` modules, awilix 13 (`InjectionMode.PROXY`,
-    `strict`), execa 9, zod 4 (not the v3 API), liquidjs 10, ws 8, ink 6 +
+    TypeScript 6.0 with `NodeNext` modules, awilix 13 (`InjectionMode.PROXY`,
+    `strict`), execa 10, zod 4 (not the v3 API), liquidjs 10, ws 8, ink 8 +
     React 19 (`src/cli-dashboard/`), Docker Compose multi-file merge rules,
     Squid ACL syntax (`shared/security/squid.conf`).
   - Copilot CLI (the only runtime CLI today):

@@ -148,7 +148,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 ## Conventions
 
-- ESM only (`"type": "module"`, NodeNext); relative imports use `.js` extensions. `execa` v9 for subprocesses. Native `fetch` against JIRA REST v3, no SDK.
+- ESM only (`"type": "module"`, NodeNext); relative imports use `.js` extensions. `execa` v10 for subprocesses. Native `fetch` against JIRA REST v3, no SDK.
 - **Never re-export** (`export … from`). Update the import site to the defining module.
 - **No backward-compat wrappers, adapters or shims.** When something moves, update every call site.
 - **Enums for fixed string sets** (`OperationStatus`, `StageMode`, `AuditMode`, `VcsProvider`), not string-literal unions. Zod `z.enum` validates the raw JSON.
