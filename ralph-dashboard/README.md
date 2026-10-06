@@ -2,7 +2,7 @@
 
 Status dashboard for the Ralph AI documentation agent. Displays real-time status cards for all connected orchestrator instances, including current task, queue depth, processing history, and heartbeat health.
 
-Built with **Next.js 15** (App Router), **Tailwind CSS v4**, and **Upstash Redis** (via Vercel Marketplace integration).
+Built with **Next.js 16** (App Router), **Tailwind CSS v4**, and **Upstash Redis** (via Vercel Marketplace integration).
 
 ## Architecture
 
