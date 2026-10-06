@@ -1,11 +1,14 @@
 import { join } from "node:path";
-import { McpServerType, loadMcpManifest } from "./mcp-manifest.js";
+import { McpServerType, loadMcpManifest, resolveToolAllowlist } from "./mcp-manifest.js";
 
 /** MCP config entry for URL-based remote servers (Streamable HTTP). */
 interface McpConfigUrlEntry {
   type: "http";
   url: string;
-  /** When set, only these tools are exposed to the agent. Omit for all tools. */
+  /**
+   * Copilot CLI's own tool filter. The sidecar enforces the same list for every CLI
+   * (`GatewayServerEntry.allowedTools`). Omitted when all tools are allowed.
+   */
   tools?: string[];
 }
 
@@ -31,14 +34,12 @@ export function generateMcpConfig(
   for (const name of serverNames) {
     const manifest = loadMcpManifest(mcpServersDir, name);
 
+    const tools = resolveToolAllowlist(manifest);
     servers[name] = {
       type: "http",
       url: `http://${MCP_SIDECAR_HOST}:${manifest.sidecarPort}/mcp`,
+      ...(tools ? { tools } : {}),
     };
-
-    if (manifest.tools && manifest.tools.length > 0) {
-      servers[name].tools = manifest.tools;
-    }
   }
 
   return { mcpServers: servers };
@@ -56,6 +57,12 @@ export interface GatewayServerEntry {
   command: string;
   args: string[];
   env: Record<string, string>;
+  /**
+   * Enforced tool allowlist (the manifest's `tools`). When set, the sidecar serves `port` through its
+   * tool-filter proxy, which hides and refuses every other tool, and runs the server itself on a
+   * loopback-only port. Omitted when all tools are allowed.
+   */
+  allowedTools?: string[];
 }
 
 /** Full gateway config written to `.build/gateway.json`. */
@@ -106,6 +113,7 @@ export function generateGatewayConfig(
       }
     }
 
+    const allowedTools = resolveToolAllowlist(manifest);
     servers.push({
       name,
       type: manifest.type,
@@ -113,6 +121,7 @@ export function generateGatewayConfig(
       command,
       args,
       env,
+      ...(allowedTools ? { allowedTools } : {}),
     });
   }
 

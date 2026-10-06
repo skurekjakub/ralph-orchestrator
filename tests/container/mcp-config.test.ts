@@ -213,6 +213,81 @@ describe("MCP Config", () => {
       expect(config.servers).toEqual([]);
     });
 
+    it("carries the manifest's tools as the enforced allowlist", () => {
+      writeManifest(tempDir, "ado", {
+        name: "ado",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/ado",
+        sidecarPort: 9101,
+        requiredEnv: ["ADO_PAT"],
+        tools: ["ado_create_pull_request", "ado_list_pull_requests"],
+      });
+
+      const config = generateGatewayConfig(tempDir, ["ado"], { ADO_PAT: "pat" });
+
+      expect(config.servers[0]).toEqual({
+        name: "ado",
+        type: "custom",
+        port: 9101,
+        command: "node",
+        args: ["/opt/mcp/servers/ado/dist/bundle.js"],
+        env: { ADO_PAT: "pat" },
+        allowedTools: ["ado_create_pull_request", "ado_list_pull_requests"],
+      });
+    });
+
+    it.each([
+      ["has no tools", {}],
+      ["has an empty tools array", { tools: [] }],
+    ])("omits allowedTools when the manifest %s, leaving every tool allowed", (_label, tools) => {
+      writeManifest(tempDir, "playwright", {
+        name: "playwright",
+        type: "npm",
+        command: "playwright-mcp",
+        args: [],
+        sidecarPort: 9103,
+        ...tools,
+      });
+
+      const config = generateGatewayConfig(tempDir, ["playwright"]);
+
+      expect(config.servers[0]).not.toHaveProperty("allowedTools");
+    });
+
+    it("enforces in the sidecar exactly the allowlist Copilot receives in mcp-config.json", () => {
+      writeManifest(tempDir, "jira", {
+        name: "jira",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/jira",
+        sidecarPort: 9100,
+        tools: ["jira_add_comment", "jira_add_attachment"],
+      });
+      writeManifest(tempDir, "web-fetch", {
+        name: "web-fetch",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        containerPath: "/opt/mcp/servers/web-fetch",
+        sidecarPort: 9104,
+      });
+      const names = ["jira", "web-fetch"];
+
+      const mcpConfig = generateMcpConfig(tempDir, names);
+      const gateway = generateGatewayConfig(tempDir, names);
+
+      for (const entry of gateway.servers) {
+        expect(entry.allowedTools).toEqual(mcpConfig.mcpServers[entry.name].tools);
+      }
+      expect(gateway.servers.map((s) => s.allowedTools)).toEqual([
+        ["jira_add_comment", "jira_add_attachment"],
+        undefined,
+      ]);
+    });
+
     it("excludes manifests on disk that are not in the requested server list", () => {
       writeManifest(tempDir, "server-a", {
         name: "server-a",

@@ -1,0 +1,39 @@
+// Custom MCP server following the sidecar launch contract: `--transport http --host <host> --port <port>`,
+// stateless Streamable HTTP on /mcp. FIXTURE_TOOLS lists the tool names it registers.
+import { createServer } from "node:http";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+function arg(name) {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+}
+
+const host = arg("--host");
+const port = Number(arg("--port"));
+const tools = (process.env.FIXTURE_TOOLS ?? "").split(",").filter(Boolean);
+
+function buildServer() {
+  const server = new McpServer({ name: "fixture", version: "1.0.0" });
+  for (const name of tools) {
+    server.registerTool(name, { description: `The ${name} tool` }, async () => ({
+      content: [{ type: "text", text: `called ${name}` }],
+    }));
+  }
+  return server;
+}
+
+createServer(async (req, res) => {
+  if (req.url !== "/mcp") {
+    res.writeHead(404).end();
+    return;
+  }
+  const server = buildServer();
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  res.on("close", () => {
+    void transport.close();
+    void server.close();
+  });
+  await server.connect(transport);
+  await transport.handleRequest(req, res);
+}).listen(port, host, () => console.log(`fixture listening on ${host}:${port}`));

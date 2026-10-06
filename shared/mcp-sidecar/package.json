@@ -1,15 +1,17 @@
 {
   "name": "@ralph/mcp-sidecar",
   "version": "1.0.0",
-  "description": "MCP sidecar gateway — process manager for MCP servers with health endpoint",
+  "description": "MCP sidecar gateway — process manager for MCP servers, per-server tool-filter proxy and health endpoint",
   "type": "module",
   "main": "dist/gateway.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/gateway.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "supergateway": "^3.4.3"
   },
   "engines": {
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

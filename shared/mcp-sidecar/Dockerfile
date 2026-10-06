@@ -31,9 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Server + gateway directories
 RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway
 
-# Gateway dependencies
-COPY package.json /opt/mcp/gateway/
-RUN cd /opt/mcp/gateway && npm install --omit=dev
+# Gateway dependencies, from the lockfile so the MCP SDK the tool-filter proxy runs is the one its tests ran
+COPY package.json package-lock.json /opt/mcp/gateway/
+RUN cd /opt/mcp/gateway && npm ci --omit=dev
 
 # Transfer ownership of all app directories to the runtime user so the process
 # can write to them. Bind-mounted volumes (/workspace) work because the process

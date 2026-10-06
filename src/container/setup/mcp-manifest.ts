@@ -22,7 +22,11 @@ export interface McpServerManifest {
   requiredEnv?: string[];
   /** Optional env vars the server supports. */
   optionalEnv?: string[];
-  /** Tool names this server provides (documentation / prompt-authoring reference). */
+  /**
+   * Enforced tool allowlist: the only tools of this server an agent can list or call. The sidecar's
+   * tool-filter proxy enforces it for every CLI; Copilot also receives it as `tools` in `mcp-config.json`.
+   * Absent or empty means every tool the server exposes. Read it through {@link resolveToolAllowlist}.
+   */
   tools?: string[];
   /** Env var names that MUST be provided by profiles using this server (via mcpServers object entries). */
   requiredConfig?: string[];
@@ -70,6 +74,15 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
     }
   }
 
+  if (raw.tools !== undefined) {
+    if (!Array.isArray(raw.tools) || raw.tools.some((t: unknown) => typeof t !== "string" || t === "")) {
+      throw new Error(`Invalid MCP server manifest at ${manifestPath}: tools must be an array of non-empty strings`);
+    }
+    if (new Set(raw.tools).size !== raw.tools.length) {
+      throw new Error(`Invalid MCP server manifest at ${manifestPath}: tools must not contain duplicates`);
+    }
+  }
+
   if (raw.initScript !== undefined) {
     if (typeof raw.initScript !== "string" || raw.initScript === "") {
       throw new Error(`Invalid MCP server manifest at ${manifestPath}: initScript must be a non-empty string`);
@@ -86,6 +99,15 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   }
 
   return raw;
+}
+
+/**
+ * The tool allowlist a server's manifest declares.
+ *
+ * @returns The allowlisted tool names, or `undefined` when every tool is allowed (`tools` absent or empty).
+ */
+export function resolveToolAllowlist(manifest: McpServerManifest): string[] | undefined {
+  return manifest.tools && manifest.tools.length > 0 ? manifest.tools : undefined;
 }
 
 /**

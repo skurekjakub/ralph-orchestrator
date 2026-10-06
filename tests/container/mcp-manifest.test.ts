@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadMcpManifest, discoverMcpServers } from "../../src/container/setup/mcp-manifest.js";
+import {
+  loadMcpManifest,
+  discoverMcpServers,
+  McpServerType,
+  resolveToolAllowlist,
+} from "../../src/container/setup/mcp-manifest.js";
 import { createTempDir, writeManifest } from "../helpers/mcp-fs.js";
 
 describe("MCP Manifest", () => {
@@ -85,6 +90,29 @@ describe("MCP Manifest", () => {
       expect(() => loadMcpManifest(tempDir, "empty-config")).toThrow("requiredConfig must be a non-empty array");
     });
 
+    it("accepts a tools allowlist", () => {
+      writeManifest(tempDir, "with-tools", {
+        name: "with-tools",
+        command: "node",
+        args: [],
+        sidecarPort: 9100,
+        tools: ["a_tool", "b_tool"],
+      });
+
+      expect(loadMcpManifest(tempDir, "with-tools").tools).toEqual(["a_tool", "b_tool"]);
+    });
+
+    it.each([
+      ["is not an array", "a_tool", "tools must be an array of non-empty strings"],
+      ["names a non-string tool", ["a_tool", 7], "tools must be an array of non-empty strings"],
+      ["names an empty tool", ["a_tool", ""], "tools must be an array of non-empty strings"],
+      ["repeats a tool", ["a_tool", "a_tool"], "tools must not contain duplicates"],
+    ])("throws when tools %s", (_label, tools, message) => {
+      writeManifest(tempDir, "bad-tools", { name: "bad-tools", command: "node", args: [], sidecarPort: 9100, tools });
+
+      expect(() => loadMcpManifest(tempDir, "bad-tools")).toThrow(message);
+    });
+
     it("accepts valid initScript when file exists", () => {
       writeManifest(tempDir, "with-init", {
         name: "with-init",
@@ -141,6 +169,19 @@ describe("MCP Manifest", () => {
         initScript: "/etc/passwd",
       });
       expect(() => loadMcpManifest(tempDir, "abs-init")).toThrow("relative path within the server directory");
+    });
+  });
+
+  describe("resolveToolAllowlist", () => {
+    const base = { name: "s", description: "", type: McpServerType.Npm, command: "x", args: [], sidecarPort: 9100 };
+
+    it("returns the declared tools", () => {
+      expect(resolveToolAllowlist({ ...base, tools: ["a_tool"] })).toEqual(["a_tool"]);
+    });
+
+    it("returns undefined, allowing every tool, when tools is absent or empty", () => {
+      expect(resolveToolAllowlist(base)).toBeUndefined();
+      expect(resolveToolAllowlist({ ...base, tools: [] })).toBeUndefined();
     });
   });
 
