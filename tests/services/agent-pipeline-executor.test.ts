@@ -111,7 +111,7 @@ describe("AgentPipelineExecutor", () => {
     });
   });
 
-  describe("audit of the managed hooks", () => {
+  describe("audit of Ralph's hooks", () => {
     it("warns and flags a container stage's session whose audit log has no session_start, without failing it", async () => {
       // Arrange
       const logger = createMockLogger();

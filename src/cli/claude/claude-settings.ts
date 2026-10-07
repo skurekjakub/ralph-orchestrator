@@ -4,10 +4,8 @@ import type { ProfileBuildPaths } from "../../container/setup/build-paths";
 import type { Logger } from "../../logger";
 import { toErrorMessage } from "../../util/error";
 
-/** Claude Code managed settings for container sessions. */
-export interface ClaudeManagedSettings {
-  /** Only managed hooks run; hooks in the target repo or written by the agent are ignored. */
-  readonly allowManagedHooksOnly: true;
+/** Ralph's Claude Code settings for container sessions, passed to every session with `--settings`. */
+export interface ClaudeSessionSettings {
   /** Empty texts leave commits and PRs without Claude Code attribution. */
   readonly attribution: { readonly commit: ""; readonly pr: "" };
   /** The audit hooks and the result gate. */
@@ -19,9 +17,9 @@ export function claudeBuildDir(paths: ProfileBuildPaths): string {
   return join(paths.buildDir, "claude");
 }
 
-/** Host path of the managed settings file, mounted read-only at `/etc/claude-code/managed-settings.json`. */
-export function managedSettingsPath(paths: ProfileBuildPaths): string {
-  return join(claudeBuildDir(paths), "managed-settings.json");
+/** Host path of the session settings file, mounted read-only at `CLAUDE_SESSION_SETTINGS_PATH`. */
+export function sessionSettingsPath(paths: ProfileBuildPaths): string {
+  return join(claudeBuildDir(paths), "session-settings.json");
 }
 
 /** Host path of the empty user settings file, mounted read-only as `$CLAUDE_CONFIG_DIR/settings.json`. */
@@ -30,14 +28,13 @@ export function userSettingsPath(paths: ProfileBuildPaths): string {
 }
 
 /**
- * Managed settings for container sessions: the audit hooks and result gate are the only hooks that run,
- * and commits and PRs carry no Claude Code attribution.
+ * Settings for container sessions: Ralph's audit hooks and result gate, and no Claude Code attribution on
+ * commits and PRs.
  *
  * @param hooks The content of `shared/hooks/claude/hooks.json`, embedded unchanged.
  */
-export function buildManagedSettings(hooks: Readonly<Record<string, unknown>>): ClaudeManagedSettings {
+export function buildSessionSettings(hooks: Readonly<Record<string, unknown>>): ClaudeSessionSettings {
   return {
-    allowManagedHooksOnly: true,
     attribution: { commit: "", pr: "" },
     hooks,
   };
@@ -63,14 +60,14 @@ export function readClaudeHooks(hooksDir: string): Readonly<Record<string, unkno
 }
 
 /**
- * Writes the managed and user settings files of one task into the profile's build directory.
+ * Writes the session and user settings files of one task into the profile's build directory.
  *
  * @throws Error when `shared/hooks/claude/hooks.json` cannot be read.
  */
 export function writeClaudeSettings(paths: ProfileBuildPaths, logger: Logger): void {
-  const settings = buildManagedSettings(readClaudeHooks(paths.hooksDir));
+  const settings = buildSessionSettings(readClaudeHooks(paths.hooksDir));
   mkdirSync(claudeBuildDir(paths), { recursive: true });
-  writeFileSync(managedSettingsPath(paths), JSON.stringify(settings, null, 2) + "\n", "utf-8");
+  writeFileSync(sessionSettingsPath(paths), JSON.stringify(settings, null, 2) + "\n", "utf-8");
   writeFileSync(userSettingsPath(paths), "{}\n", "utf-8");
-  logger.info(`Wrote Claude Code managed settings: ${Object.keys(settings.hooks).length} hook events`);
+  logger.info(`Wrote Claude Code session settings: ${Object.keys(settings.hooks).length} hook events`);
 }

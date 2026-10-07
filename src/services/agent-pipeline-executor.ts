@@ -80,7 +80,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       ) {
         this.logger.warn(
           `${stageLabel}: the audit log has no session_start for ${stage.cli} session ${result.sessionId} — ` +
-            "Ralph's hooks did not run; server-managed settings may have replaced the managed settings file",
+            "Ralph's hooks did not run; server-managed settings may set allowManagedHooksOnly or disableAllHooks",
         );
         hooklessSessions.push(result.sessionId);
       }

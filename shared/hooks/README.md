@@ -5,7 +5,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 | Path                               | Role                                                                                                      |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)   |
-| `claude/hooks.json`                | Claude Code `hooks` object for managed settings                                                           |
+| `claude/hooks.json`                | Claude Code `hooks` object for Ralph's session settings                                                   |
 | `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                    |
 | `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                           |
 | `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                              |
@@ -15,7 +15,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 
 ## Contract for the Claude Code settings writer
 
-- `claude/hooks.json` is the value of the `hooks` key in `/etc/claude-code/managed-settings.json`. Embed it unchanged.
+- `claude/hooks.json` is the value of the `hooks` key in Ralph's session settings, mounted read-only at `/etc/ralph/claude-settings.json` and passed with `--settings`. Embed it unchanged.
 - Every command is an absolute container path under `/workspace/.ralph/hooks/`, so the `shared/hooks` mount must stay in place.
 - Per-exec environment read by the result gate: `RALPH_REQUIRE_RESULT_BLOCK` (`1` turns the gate on; unset or anything else allows every stop) and `RALPH_RESULT_GATE_MAX` (blocks allowed per session, default `2`, `0` never blocks).
 - `RALPH_LOG_DIR` (default `/workspace/.ralph/logs`) must be writable by the CLI user. Scripts create it when missing.

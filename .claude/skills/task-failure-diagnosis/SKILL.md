@@ -16,7 +16,7 @@ Read `references/log-map.md` first. Without the file layout you will waste time 
 - `status`: `completed` | `partial` | `blocked` | `error`. The agent's `STATUS:` line in the result block wins. Otherwise a timeout gives `partial`, exit 0 gives `completed`, and anything else gives `error` (`resolveStatus()` in `src/container/result-parser.ts`).
 - `exitCode`: 0 clean, 137 OOM kill. A signal kill of the host-side `docker compose exec` usually shows as 1.
 - `failureCategory`: heuristic `infra` / `task` / `timeout` / `unknown` (`classifyFailure()`).
-- `hooklessSessions`: Claude Code container sessions whose audit log has no `session_start`, so Ralph's managed hooks did not run (likely server-managed settings replacing `/etc/claude-code/managed-settings.json`). Present only when non-empty; the audit trail and the result gate are missing for those sessions.
+- `hooklessSessions`: Claude Code container sessions whose audit log has no `session_start`, so Ralph's hooks from `/etc/ralph/claude-settings.json` did not run (likely the organisation's server-managed settings setting `allowManagedHooksOnly` or `disableAllHooks`). Present only when non-empty; the audit trail and the result gate are missing for those sessions.
 - `stderr`: first 5000 chars, present when non-empty. `stdout`: first 5000 chars, only for non-completed runs.
 - `durationMs` under ~10 s with empty `stderr` means the CLI likely never started → Step 2.
 

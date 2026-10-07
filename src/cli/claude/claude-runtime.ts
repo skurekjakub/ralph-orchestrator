@@ -10,11 +10,11 @@ import { CLAUDE_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
 import {
   CLAUDE_CONTAINER_LAYOUT,
-  CLAUDE_MANAGED_SETTINGS_PATH,
+  CLAUDE_SESSION_SETTINGS_PATH,
   CLAUDE_SESSIONS_DIR,
   CLAUDE_USER_SETTINGS_PATH,
 } from "./claude-layout";
-import { managedSettingsPath, userSettingsPath, writeClaudeSettings } from "./claude-settings";
+import { sessionSettingsPath, userSettingsPath, writeClaudeSettings } from "./claude-settings";
 import { ClaudeStreamJsonDecoder } from "./stream-json-decoder";
 import { ClaudeAgentWriter } from "./claude-agent-writer";
 import { CLAUDE_TOOL_NAMES } from "./claude-tools";
@@ -37,8 +37,8 @@ const CLAUDE_CONTAINER_ENV: Readonly<Record<string, string>> = {
 };
 
 /**
- * Claude Code: home, agents and skills under `/workspace/.ralph/claude`, policy in managed settings, one
- * credential chosen by `claudeAuth`, stream-json output.
+ * Claude Code: home, agents and skills under `/workspace/.ralph/claude`, Ralph's hooks and attribution policy in a
+ * read-only `--settings` file, one credential chosen by `claudeAuth`, stream-json output.
  */
 export class ClaudeCodeRuntime implements ICliRuntime {
   readonly cli = CliType.Claude;
@@ -60,7 +60,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   }
 
   /**
-   * Mounts the managed and user settings files and, whole, the directories the current stage's agents and
+   * Mounts the session and user settings files and, whole, the directories the current stage's agents and
    * skills are rendered into, so a stage re-render shows up in the running container. Passes the configured
    * credential by name only; its value comes from the orchestrator's environment at compose time. The target
    * repo's CLAUDE.md files stay unloaded unless the profile sets `claude.loadRepoInstructions`.
@@ -73,7 +73,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
 
     return {
       volumes: [
-        `${managedSettingsPath(paths)}:${CLAUDE_MANAGED_SETTINGS_PATH}:ro`,
+        `${sessionSettingsPath(paths)}:${CLAUDE_SESSION_SETTINGS_PATH}:ro`,
         `${userSettingsPath(paths)}:${CLAUDE_USER_SETTINGS_PATH}:ro`,
         `${agentsBuildDir(paths, this.cli)}:${this.layout.agentsDir}:ro`,
         `${paths.skillsBuildDir}:${this.layout.skillsDir}:ro`,
@@ -83,7 +83,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   }
 
   /**
-   * Writes the managed and user settings, and creates the agents and skills directories so their bind
+   * Writes the session and user settings, and creates the agents and skills directories so their bind
    * mounts never fall back to directories Docker creates as root.
    */
   writeTaskArtifacts({ paths }: CliTaskInput, logger: Logger): void {
@@ -113,7 +113,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
     return new ClaudeStreamJsonDecoder();
   }
 
-  /** The managed `SessionStart` hook records Claude Code's own session id; unparsable lines are skipped. */
+  /** Ralph's `SessionStart` hook records Claude Code's own session id; unparsable lines are skipped. */
   sessionStartAudited(auditJsonl: string, sessionId: string): boolean {
     return auditJsonl.split("\n").some((line) => {
       try {

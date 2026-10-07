@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ResultPromise } from "execa";
+import { CLAUDE_SESSION_SETTINGS_PATH } from "../../cli/claude/claude-layout";
 import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
@@ -10,7 +11,7 @@ import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
 import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
-/** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, `--tools` cap and managed hooks are the boundary. */
+/** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, `--tools` cap and Ralph's hooks are the boundary. */
 const CONTAINER_PERMISSION_MODE = "bypassPermissions";
 
 /** Dependencies of one stage's Claude Code executor. */
@@ -33,9 +34,10 @@ export interface ClaudeCodeExecutorDeps {
  * Runs one pipeline stage with Claude Code inside the running `app` container.
  *
  * The CLI runs headless (`-p`) as the `vscode` user, takes its prompt on stdin and prints stream-json, which the runtime's decoder turns into log lines and the agent's text. Each `run`
- * starts a session with a fresh id; `continueSession` resumes that exact session. The `--tools` list caps the
+ * starts a session with a fresh id; `continueSession` resumes that exact session. Every session loads Ralph's
+ * hooks and attribution policy from the read-only `--settings` file. The `--tools` list caps the
  * built-in tools, adding `Agent` and the spawn depth only for a stage root with subagents; the agents'
- * frontmatter narrows the tools per agent. With `requireResultBlock`, the managed `Stop` hook keeps the
+ * frontmatter narrows the tools per agent. With `requireResultBlock`, Ralph's `Stop` hook keeps the
  * session going until the agent prints its result block.
  */
 export class ClaudeCodeExecutor implements ICliExecutor {
@@ -102,6 +104,8 @@ export class ClaudeCodeExecutor implements ICliExecutor {
       ...(effort === undefined ? [] : ["--effort", effort]),
       "--setting-sources",
       this.profile.claude.loadRepoInstructions ? "user,project" : "user",
+      "--settings",
+      CLAUDE_SESSION_SETTINGS_PATH,
       "--mcp-config",
       MCP_CONFIG_CONTAINER_PATH,
       "--strict-mcp-config",

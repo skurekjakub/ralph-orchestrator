@@ -101,7 +101,7 @@ describe("hook configurations", () => {
     sandbox.cleanup();
   });
 
-  describe("claude/hooks.json (managed-settings hooks fragment)", () => {
+  describe("claude/hooks.json (session settings hooks fragment)", () => {
     it.each(claudeCommands)("%s runs a command hook with a timeout", (_event, hook) => {
       // Act & Assert
       expect([hook.type, hook.timeout > 0]).toEqual(["command", true]);

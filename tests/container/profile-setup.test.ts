@@ -121,8 +121,8 @@ describe("Profile Setup", () => {
       const overlay = built("docker-compose.overlay.yml");
       expect(overlay).toContain('CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN}"');
       expect(overlay).not.toContain("GH_TOKEN");
-      expect(overlay).toContain("/etc/claude-code/managed-settings.json:ro");
-      expect(JSON.parse(built("claude/managed-settings.json")).allowManagedHooksOnly).toBe(true);
+      expect(overlay).toContain("/etc/ralph/claude-settings.json:ro");
+      expect(JSON.parse(built("claude/session-settings.json")).attribution).toEqual({ commit: "", pr: "" });
       expect(built("squid.conf")).toContain("acl allowed_domains dstdomain .anthropic.com");
       expect(existsSync(join(buildDir, "copilot-settings.json"))).toBe(false);
     });

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { ExecaError } from "execa";
 import { ClaudeCodeExecutor } from "../../../src/container/cli-executors/claude-code-executor";
+import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
+import { profileBuildPaths } from "../../../src/container/setup/build-paths";
 import {
   ClaudeAuthMode,
   CliType,
@@ -119,6 +121,8 @@ describe("ClaudeCodeExecutor", () => {
         "ralph",
         "--setting-sources",
         "user",
+        "--settings",
+        "/etc/ralph/claude-settings.json",
         "--mcp-config",
         "/workspace/.ralph/mcp-config.json",
         "--strict-mcp-config",
@@ -202,6 +206,25 @@ describe("ClaudeCodeExecutor", () => {
       // Assert
       const { args } = exec(compose);
       expect(args[args.indexOf("--setting-sources") + 1]).toBe("user,project");
+      expect(args[args.indexOf("--settings") + 1]).toBe("/etc/ralph/claude-settings.json");
+    });
+
+    it("loads Ralph's settings from the file the runtime mounts read-only", async () => {
+      // Arrange
+      const { executor, compose } = createExecutor();
+      const { volumes } = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken }).composeContribution({
+        profile: makeProfile({ stages: [makeStage({ cli: CliType.Claude })] }),
+        paths: profileBuildPaths("/repo", "docs"),
+        agents: new AgentCatalog([]),
+      });
+
+      // Act
+      await executor.run("p");
+
+      // Assert
+      const { args } = exec(compose);
+      const settingsPath = args[args.indexOf("--settings") + 1];
+      expect(volumes.filter((volume) => volume.endsWith(`:${settingsPath}:ro`))).toHaveLength(1);
     });
 
     it("returns the decoded final message, usage and session id alongside the raw stream", async () => {
@@ -300,6 +323,7 @@ describe("ClaudeCodeExecutor", () => {
       const sessionId = first[first.indexOf("--session-id") + 1];
       expect(second[second.indexOf("--resume") + 1]).toBe(sessionId);
       expect(second).not.toContain("--session-id");
+      expect(second[second.indexOf("--settings") + 1]).toBe("/etc/ralph/claude-settings.json");
       expect(exec(compose, 1).options).toEqual({ input: "keep going" });
     });
 

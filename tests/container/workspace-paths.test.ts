@@ -15,7 +15,7 @@ describe("workspaceMountTarget", () => {
     expect(workspaceMountTarget("/workspace/.ralph/claude/agents", true)).toBe(".ralph/claude/agents/");
   });
 
-  it.each(["/etc/claude-code/managed-settings.json", "/workspace", "/workspace/../etc"])(
+  it.each(["/etc/ralph/claude-settings.json", "/workspace", "/workspace/../etc"])(
     "rejects %s, which is not inside /workspace",
     (path) => {
       // Act & Assert

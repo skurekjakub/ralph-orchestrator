@@ -140,8 +140,8 @@ export interface RalphResult {
   sessionId?: string;
   /**
    * Session ids of container stages whose audit log has no `session_start` record: Ralph's hooks did not
-   * run for them, e.g. because an organisation's server-managed settings replaced Claude Code's managed
-   * settings file.
+   * run for them, e.g. because an organisation's server-managed settings set `allowManagedHooksOnly` or
+   * `disableAllHooks`.
    */
   hooklessSessions?: string[];
 }

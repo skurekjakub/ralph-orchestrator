@@ -110,13 +110,13 @@ describe("ClaudeCodeRuntime", () => {
       expect(env).not.toHaveProperty("CLAUDE_CODE_DISABLE_CLAUDE_MDS");
     });
 
-    it("mounts the settings files and, whole, the agents and skills directories", () => {
+    it("mounts the settings files read-only and, whole, the agents and skills directories", () => {
       // Act
       const { volumes } = contribution(ClaudeAuthMode.OAuthToken);
 
       // Assert
       expect(volumes).toEqual([
-        `${PATHS.buildDir}/claude/managed-settings.json:/etc/claude-code/managed-settings.json:ro`,
+        `${PATHS.buildDir}/claude/session-settings.json:/etc/ralph/claude-settings.json:ro`,
         `${PATHS.buildDir}/claude/user-settings.json:/workspace/.ralph/claude/settings.json:ro`,
         `${PATHS.buildDir}/claude/agents:/workspace/.ralph/claude/agents:ro`,
         `${PATHS.buildDir}/skills:/workspace/.ralph/claude/skills:ro`,
@@ -174,7 +174,7 @@ describe("ClaudeCodeRuntime", () => {
       runtime.writeTaskArtifacts({ profile: makeProfile({ id: "docs" }), paths, agents: AGENTS }, createSilentLogger());
 
       // Assert
-      expect(existsSync(join(paths.buildDir, "claude", "managed-settings.json"))).toBe(true);
+      expect(existsSync(join(paths.buildDir, "claude", "session-settings.json"))).toBe(true);
       expect(existsSync(join(paths.buildDir, "claude", "agents"))).toBe(true);
       expect(existsSync(paths.skillsBuildDir)).toBe(true);
     });

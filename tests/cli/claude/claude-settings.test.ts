@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildManagedSettings, readClaudeHooks, writeClaudeSettings } from "../../../src/cli/claude/claude-settings";
+import { buildSessionSettings, readClaudeHooks, writeClaudeSettings } from "../../../src/cli/claude/claude-settings";
 import { profileBuildPaths } from "../../../src/container/setup/build-paths";
 import { createTempDir } from "../../helpers/mcp-fs";
 import { createMockLogger } from "../../helpers/mocks";
@@ -10,17 +10,17 @@ const HOOKS = {
   Stop: [{ hooks: [{ type: "command", command: "/workspace/.ralph/hooks/claude/result-gate.sh", timeout: 10 }] }],
 };
 
-describe("buildManagedSettings", () => {
-  it("allows only managed hooks, hides attribution, denies no tool and embeds the hooks unchanged", () => {
+describe("buildSessionSettings", () => {
+  it("hides attribution, denies no tool and embeds the hooks unchanged", () => {
     // Act
-    const settings = buildManagedSettings(HOOKS);
+    const settings = buildSessionSettings(HOOKS);
 
     // Assert
     expect(settings).toEqual({
-      allowManagedHooksOnly: true,
       attribution: { commit: "", pr: "" },
       hooks: HOOKS,
     });
+    expect(settings.hooks).toBe(HOOKS);
   });
 });
 
@@ -79,7 +79,7 @@ describe("writeClaudeSettings", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("writes the managed settings and an empty user settings file into .build/claude", () => {
+  it("writes the session settings and an empty user settings file into .build/claude", () => {
     // Arrange
     const paths = profileBuildPaths(root, "docs");
     const logger = createMockLogger();
@@ -88,8 +88,8 @@ describe("writeClaudeSettings", () => {
     writeClaudeSettings(paths, logger);
 
     // Assert
-    const managed = JSON.parse(readFileSync(join(paths.buildDir, "claude", "managed-settings.json"), "utf-8"));
-    expect(managed).toEqual(buildManagedSettings(HOOKS));
+    const session = JSON.parse(readFileSync(join(paths.buildDir, "claude", "session-settings.json"), "utf-8"));
+    expect(session).toEqual({ attribution: { commit: "", pr: "" }, hooks: HOOKS });
     expect(readFileSync(join(paths.buildDir, "claude", "user-settings.json"), "utf-8")).toBe("{}\n");
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 hook events"));
   });

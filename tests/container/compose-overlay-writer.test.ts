@@ -115,13 +115,14 @@ describe("writeComposeArtifacts", () => {
       expect(built("docker-compose.overlay.yml")).not.toContain("CLAUDE_CODE_DISABLE_CLAUDE_MDS");
     });
 
-    it("mounts the managed and user settings and the agents and skills directories", () => {
+    it("mounts the session and user settings and the agents and skills directories", () => {
       // Act
       write(variant(CliType.Claude));
 
       // Assert
       const overlay = built("docker-compose.overlay.yml");
-      expect(overlay).toContain(`- ${buildDir}/claude/managed-settings.json:/etc/claude-code/managed-settings.json:ro`);
+      expect(overlay).toContain(`- ${buildDir}/claude/session-settings.json:/etc/ralph/claude-settings.json:ro`);
+      expect(overlay).not.toContain("managed-settings");
       expect(overlay).toContain(`- ${buildDir}/claude/user-settings.json:/workspace/.ralph/claude/settings.json:ro`);
       expect(overlay).toContain(`- ${buildDir}/claude/agents:/workspace/.ralph/claude/agents:ro`);
       expect(overlay).toContain(`- ${buildDir}/skills:/workspace/.ralph/claude/skills:ro`);
@@ -133,8 +134,8 @@ describe("writeComposeArtifacts", () => {
       write(variant(CliType.Claude));
 
       // Assert
-      const managed = JSON.parse(built("claude/managed-settings.json"));
-      expect(managed.hooks).toEqual({ Stop: [] });
+      const session = JSON.parse(built("claude/session-settings.json"));
+      expect(session.hooks).toEqual({ Stop: [] });
       expect(JSON.parse(built("claude/user-settings.json"))).toEqual({});
       expect(existsSync(join(buildDir, "claude", "agents"))).toBe(true);
       expect(existsSync(join(buildDir, "skills"))).toBe(true);

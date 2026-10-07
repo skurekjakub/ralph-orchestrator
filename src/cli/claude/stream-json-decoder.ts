@@ -173,7 +173,7 @@ export class ClaudeStreamJsonDecoder implements ICliOutputDecoder {
 
   /**
    * The agent text is the last `result` event's `result` (the session's final assistant message) when that
-   * holds a result block, otherwise all main-thread assistant text joined. The managed result gate checks the
+   * holds a result block, otherwise all main-thread assistant text joined. Ralph's result gate checks the
    * same two texts in the same order (`last_assistant_message`, then the transcript's main-thread assistant
    * text), so a stop the gate allows is one whose result block the orchestrator also finds.
    */

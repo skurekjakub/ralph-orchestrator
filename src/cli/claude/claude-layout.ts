@@ -21,7 +21,9 @@ export const CLAUDE_USER_SETTINGS_PATH = `${CLAUDE_CONFIG_DIR}/settings.json`;
 export const CLAUDE_SESSIONS_DIR = `${CLAUDE_CONFIG_DIR}/projects`;
 
 /**
- * Managed settings file Claude Code reads on Linux. It outranks user, project and flag settings, but when the
- * credential's organisation delivers server-managed settings, Claude Code uses those instead.
+ * Ralph's settings file for container sessions, passed with `--settings`. Command-line settings outrank user and
+ * project settings and apply alongside any managed settings, including the server-managed settings an
+ * organisation delivers with the credential; managed settings still win where both set a key. Mounted read-only
+ * outside the workspace and the Claude Code home, so neither the agent nor the target repo can change it.
  */
-export const CLAUDE_MANAGED_SETTINGS_PATH = "/etc/claude-code/managed-settings.json";
+export const CLAUDE_SESSION_SETTINGS_PATH = "/etc/ralph/claude-settings.json";
