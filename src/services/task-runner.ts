@@ -32,7 +32,7 @@ export interface ITaskRunner {
  * 3. Start the containers for the matched profile, with the workspace mounted at `/workspace`
  * 4. Execute the agent inside the container
  * 5. Save CLI output + collect audit logs
- * 6. Save execution summary, run post-task hooks
+ * 6. Save execution summary (also when a phase throws, with the error status and message), run post-task hooks
  * 7. Delete the workspace when the task succeeded, keep it otherwise
  *
  * Also provides lifecycle helpers called by the Orchestrator after `run()` completes:
@@ -126,12 +126,14 @@ export class TaskRunner implements ITaskRunner {
     container.onToolOutput = ctx.onToolOutput;
     container.onPreToolUse = ctx.onPreToolUse;
 
+    let resultsCollected = false;
     try {
       await this.prepareProfile(ctx);
       await this.transitionIssue(ctx);
       await this.prepareContainer(ctx, container);
       const result = await this.executeAgent(ctx, container);
       await this.resultWriter.collectResults(ctx, container, result);
+      resultsCollected = true;
 
       // Tear down the container before running hooks — hooks are local-only
       // and don't need the container. The isRunning guard in teardown() makes
@@ -155,11 +157,25 @@ export class TaskRunner implements ITaskRunner {
         collectedLogs: {},
       };
 
-      if (container) {
-        await this.resultWriter.collectLogs(container, errorResult);
+      // A failure after the results were collected (teardown, hooks) must not attach and summarise them twice.
+      if (!resultsCollected) {
+        await this.collectErrorResults(ctx, container, errorResult);
       }
 
       return errorResult;
+    }
+  }
+
+  /**
+   * Collect logs, redact transcripts and write the execution summary for a task a phase failed, so a failed
+   * task leaves the same artifacts as a finished one. A collection failure is logged and never replaces the
+   * task's own error.
+   */
+  private async collectErrorResults(ctx: TaskContext, container: IContainerManager, result: RalphResult) {
+    try {
+      await this.resultWriter.collectResults(ctx, container, result);
+    } catch (err) {
+      this.logger.error(`Collecting results of failed ${ctx.workItem.id} failed: ${toErrorMessage(err)}`);
     }
   }
 

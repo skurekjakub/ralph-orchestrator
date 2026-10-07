@@ -269,28 +269,90 @@ describe("TaskRunner", () => {
     expect(result.stderr).toContain("Docker not running");
   });
 
-  it("still collects logs on error", async () => {
-    const { container } = createMockContainer();
-    const factory = createMockFactory(container);
-    const resultWriter = createMockResultWriter();
-    const pipelineExecutor = createMockPipelineExecutor({
-      run: vi.fn().mockRejectedValue(new Error("CLI crashed")),
-    });
-    const runner = new TaskRunner({
-      workspaceManager: createMockWorkspaceManager(),
-      hookRunner: createMockHookRunner(),
-      resultWriter,
-      logger,
-      containerFactory: factory,
-      resources: createMockResources(),
-      issueManager: createMockIssueManager(),
-      profileSetup: createMockProfileSetupService(),
-      pipelineExecutor,
+  describe("when a phase throws", () => {
+    function createRunner(deps: {
+      resultWriter: ReturnType<typeof createMockResultWriter>;
+      container: IContainerManager;
+      pipelineExecutor?: ReturnType<typeof createMockPipelineExecutor>;
+      hookRunner?: ReturnType<typeof createMockHookRunner>;
+    }): TaskRunner {
+      return new TaskRunner({
+        workspaceManager: createMockWorkspaceManager(),
+        hookRunner: deps.hookRunner ?? createMockHookRunner(),
+        resultWriter: deps.resultWriter,
+        logger,
+        containerFactory: createMockFactory(deps.container),
+        resources: createMockResources(),
+        issueManager: createMockIssueManager(),
+        profileSetup: createMockProfileSetupService(),
+        pipelineExecutor:
+          deps.pipelineExecutor ??
+          createMockPipelineExecutor({ run: vi.fn().mockRejectedValue(new Error("CLI crashed")) }),
+      });
+    }
+
+    it("collects the results with the error status and the failure message", async () => {
+      // Arrange
+      const { container } = createMockContainer();
+      const resultWriter = createMockResultWriter();
+      const ctx = makeTaskContext({ workItem: issue, profile, taskId });
+
+      // Act
+      const result = await createRunner({ resultWriter, container }).run(ctx);
+
+      // Assert
+      expect(resultWriter.collectResults).toHaveBeenCalledExactlyOnceWith(
+        ctx,
+        container,
+        expect.objectContaining({ status: TaskStatus.Error, stderr: "CLI crashed" }),
+      );
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.stderr).toBe("CLI crashed");
     });
 
-    await runner.run(makeTaskContext({ workItem: issue, profile, taskId }));
+    it("returns the phase's own error when collecting the results fails too", async () => {
+      // Arrange
+      const { container } = createMockContainer();
+      const resultWriter = createMockResultWriter({
+        collectResults: vi.fn().mockRejectedValue(new Error("disk full")),
+      });
 
-    expect(resultWriter.collectLogs).toHaveBeenCalled();
+      // Act
+      const result = await createRunner({ resultWriter, container }).run(
+        makeTaskContext({ workItem: issue, profile, taskId }),
+      );
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.stderr).toBe("CLI crashed");
+      expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("disk full"));
+    });
+
+    it("does not collect a second time when the failure came after the results were collected", async () => {
+      // Arrange
+      const { container } = createMockContainer();
+      const resultWriter = createMockResultWriter();
+      const hookRunner = createMockHookRunner({ run: vi.fn().mockRejectedValue(new Error("hook runner broke")) });
+      const hookProfile = makeProfile({
+        id: PID,
+        agentName: "ralph",
+        postTaskHooks: [
+          { name: "analysis", stages: [makeStage({ agent: "ralph.analyzer", role: "a", mode: StageMode.Local })] },
+        ],
+      });
+
+      // Act
+      const result = await createRunner({
+        resultWriter,
+        container,
+        hookRunner,
+        pipelineExecutor: createMockPipelineExecutor(),
+      }).run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(resultWriter.collectResults).toHaveBeenCalledOnce();
+    });
   });
 
   it("threads onToolOutput from context into the container", async () => {

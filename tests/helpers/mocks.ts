@@ -353,7 +353,6 @@ export function createMockLogCollector(overrides: Partial<Mocked<ILogCollector>>
 /** Create a mock TaskResultWriter with all methods stubbed. */
 export function createMockResultWriter(overrides: Partial<Mocked<ITaskResultWriter>> = {}): Mocked<ITaskResultWriter> {
   return {
-    collectLogs: vi.fn().mockResolvedValue(undefined),
     collectResults: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

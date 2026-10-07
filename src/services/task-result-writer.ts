@@ -8,11 +8,10 @@ import type { TaskContext } from "./task-context";
 
 /** Collects container logs, derives transcripts and telemetry, attaches the transcript, and saves execution summaries. */
 export interface ITaskResultWriter {
-  /** Collect all container logs and record their paths on the result. */
-  collectLogs(container: IContainerManager, result: RalphResult): Promise<void>;
   /**
    * Full result collection: logs, the redacted transcript and telemetry derived from them, the transcript
-   * attachment and the execution summary.
+   * attachment and the execution summary. Also serves a task a phase failed, whose `result` then carries the
+   * error status and message.
    */
   collectResults(ctx: TaskContext, container: IContainerManager, result: RalphResult): Promise<void>;
 }

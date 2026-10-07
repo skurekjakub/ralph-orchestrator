@@ -4,6 +4,7 @@
  * Tests log collection, derived artifacts, transcript attachment, and execution summary persistence.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { TaskStatus } from "../../src/container/types";
 import { TaskResultWriter } from "../../src/services/task-result-writer";
 import type { IRunArtifactsDeriver } from "../../src/services/run-artifacts-deriver";
 import type { ILogCollector } from "../../src/logs/collector";
@@ -169,6 +170,24 @@ describe("TaskResultWriter", () => {
       // Assert
       expect(logCollector.saveExecutionSummary).toHaveBeenCalledWith(result, undefined, "DF-100-123");
       expect(summarisedLogs["claude-run-telemetry"]).toBe("/tmp/logs/telemetry.json");
+    });
+
+    it("summarises a failed task with its error status and message, and derives its transcripts", async () => {
+      // Arrange
+      const { container, spies } = createMockContainer();
+      spies.collectAll.mockResolvedValue([{ id: "transcript", path: "/tmp/logs/DF-100-transcript.md" }]);
+      const failed = makeResult(KEY, { status: TaskStatus.Error, exitCode: 1, stderr: "Docker not running" });
+
+      // Act
+      await writer.collectResults(ctx, container, failed);
+
+      // Assert
+      expect(runArtifacts.derive).toHaveBeenCalledWith(ctx, failed);
+      expect(logCollector.saveExecutionSummary).toHaveBeenCalledWith(
+        expect.objectContaining({ status: TaskStatus.Error, stderr: "Docker not running" }),
+        undefined,
+        "DF-100-123",
+      );
     });
   });
 });
