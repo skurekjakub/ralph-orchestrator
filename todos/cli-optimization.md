@@ -1,5 +1,7 @@
 # CLI Optimization — Copilot Headless Mode & Claude Code Hardening
 
+> **Superseded.** Claude Code is the default runtime CLI and Copilot CLI the secondary one; this plan describes an earlier state of the code. For the runtime as built, read `AGENTS.md` § Subsystems, `ARCHITECTURE.md` and `docs/user-guide/`.
+
 ## What This Is
 
 Two parallel efforts to improve the AI CLI layer:
