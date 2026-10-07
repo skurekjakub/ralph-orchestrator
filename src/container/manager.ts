@@ -49,9 +49,10 @@ export interface IContainerManager {
   execInSidecar(args: string[]): Promise<{ stdout: string; stderr: string }>;
   /** Register standard log sources for a task and start streaming. */
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void;
-  /** Execute the variant's first stage. */
-  execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
-  /** Execute with a specific CLI executor (for per-stage agent switching). */
+  /**
+   * Run one stage through its executor: build the prompt, run the CLI, continue a session that ended
+   * without a result block when the variant allows it, and parse the result.
+   */
   executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Create the executor of a pipeline stage's CLI. */
   createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor>;
@@ -83,7 +84,7 @@ export interface IContainerManager {
  *
  * 1. **start()** — `docker compose up -d --build`
  * 2. **setup()** — runs the profile's setup script inside the container
- * 3. **execute()** — runs the agent CLI via the selected executor
+ * 3. **executeWithExecutor()** — runs one stage's agent CLI through its executor
  * 4. **logs.collectAll()** — pulls all log sources from containers to the local filesystem
  * 5. **stop()** — `docker compose down --volumes --remove-orphans`
  */
@@ -277,23 +278,13 @@ export class ContainerManager implements IContainerManager {
   }
 
   /**
-   * Execute the variant's first stage.
+   * Run one stage through `executor` and the session runner, which builds and audits the prompt, parses
+   * the agent's `===RALPH_RESULT_START===` block and, when `maxContinuations > 0` and continuation is
+   * enabled, resumes a session that ended without one, with exponential backoff between attempts.
+   * `executor` becomes the one {@link stop} kills.
    *
-   * Delegates prompt construction and injection auditing to the {@link PromptBuilder}.
-   * Parses the agent's structured `===RALPH_RESULT_START===` block for PR URL
-   * and status. Streams stdout/stderr to the logger in real-time.
-   *
-   * When `maxContinuations > 0`, resumes the CLI session if the result block is missing, using
-   * exponential backoff between attempts.
-   *
-   * @param workItem Work item to process — used to build the prompt.
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
-   * @returns Enriched {@link RalphResult} with status, PR URL, and captured output.
    */
-  async execute(workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
-    return this.executeWithExecutor(await this.createExecutorForStage(this.profile.stages[0]), workItem, context);
-  }
-
   async executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
     this.activeExecutor = executor;
     return this.sessionRunner.run(executor, workItem, context, {

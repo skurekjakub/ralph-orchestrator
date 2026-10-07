@@ -373,22 +373,21 @@ describe("ContainerManager", () => {
     });
   });
 
-  describe("execute", () => {
-    it("runs the first stage's executor through the session runner", async () => {
+  describe("executeWithExecutor", () => {
+    it("runs the given executor through the session runner", async () => {
       // Arrange
       const { manager, sessionRunner } = createHarness(mixedProfile);
+      const executor = createMockExecutor();
       const issue = makeWorkItem("DF-200");
 
       // Act
-      await manager.execute(issue);
+      await manager.executeWithExecutor(executor, issue);
 
       // Assert
-      expect(sessionRunner.run).toHaveBeenCalledWith(
-        expect.objectContaining({ cli: CliType.Claude }),
-        issue,
-        undefined,
-        { maxContinuations: 0, enableContinuation: false },
-      );
+      expect(sessionRunner.run).toHaveBeenCalledWith(executor, issue, undefined, {
+        maxContinuations: 0,
+        enableContinuation: false,
+      });
     });
 
     it("returns the RalphResult from the session runner", async () => {
@@ -398,7 +397,7 @@ describe("ContainerManager", () => {
       const { manager } = createHarness(mixedProfile, { sessionRunner });
 
       // Act
-      const result = await manager.execute(makeWorkItem("DF-300"));
+      const result = await manager.executeWithExecutor(createMockExecutor(), makeWorkItem("DF-300"));
 
       // Assert
       expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
@@ -412,7 +411,7 @@ describe("ContainerManager", () => {
       const context = { comments: [], isRevision: false, handoffContent: null, triggerParams: {} };
 
       // Act
-      await manager.execute(makeWorkItem("DF-500"), context);
+      await manager.executeWithExecutor(createMockExecutor(), makeWorkItem("DF-500"), context);
 
       // Assert
       expect(sessionRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), context, {

@@ -122,7 +122,7 @@ describe("ContinuationRunner.continuationBackoff", () => {
 
 // ── Continuation loop integration tests ─────────────────────────────────────
 
-describe("ContainerManager.execute — continuation loop", () => {
+describe("ContainerManager.executeWithExecutor — continuation loop", () => {
   beforeEach(() => {
     vi.spyOn(ContinuationRunner, "sleep").mockResolvedValue(undefined);
   });
@@ -132,7 +132,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.run.mockResolvedValue(plainTextResult({ stdout: "no result block" }));
     const manager = buildManager(0, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.run).toHaveBeenCalledOnce();
     expect(executor.continueSession).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.run.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.run).toHaveBeenCalledOnce();
     expect(executor.continueSession).not.toHaveBeenCalled();
@@ -161,7 +161,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     const manager = buildManager(3, executor);
 
     // Act
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     // Assert
     expect(executor.continueSession).toHaveBeenCalledOnce();
@@ -174,7 +174,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.run).toHaveBeenCalledOnce();
     expect(executor.continueSession).toHaveBeenCalledOnce();
@@ -188,7 +188,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "still no block" }));
     const manager = buildManager(2, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.continueSession).toHaveBeenCalledTimes(2);
     // All attempts had exitCode=0, so resolveStatus returns completed
@@ -200,7 +200,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.run.mockResolvedValue(plainTextResult({ stdout: "partial work", timedOut: true }));
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.continueSession).not.toHaveBeenCalled();
     expect(result.status).toBe(TaskStatus.Partial);
@@ -212,7 +212,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "partial", timedOut: true }));
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.continueSession).toHaveBeenCalledOnce();
     expect(result.status).toBe(TaskStatus.Partial);
@@ -224,7 +224,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: STATUS_ONLY_BLOCK }));
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(executor.continueSession).toHaveBeenCalledOnce();
     expect(result.status).toBe(TaskStatus.Blocked);
@@ -238,7 +238,7 @@ describe("ContainerManager.execute — continuation loop", () => {
       .mockResolvedValueOnce(plainTextResult({ stdout: `part3\n${RESULT_BLOCK}`, stderr: "err3" }));
     const manager = buildManager(5, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(result.stdout).toContain("part1");
     expect(result.stdout).toContain("part2");
@@ -254,7 +254,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
-    await manager.execute(makeWorkItem("DF-200", "Fix the widget"));
+    await manager.executeWithExecutor(executor, makeWorkItem("DF-200", "Fix the widget"));
 
     const prompt: string = executor.continueSession.mock.calls[0][0];
     expect(prompt).toContain("RALPH CONTINUATION 1/3");
@@ -270,7 +270,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "still no block" }));
     const manager = buildManager(3, executor);
 
-    await manager.execute(makeWorkItem(KEY));
+    await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     const sleepCalls = vi.mocked(ContinuationRunner.sleep).mock.calls;
     expect(sleepCalls).toHaveLength(3);
@@ -288,7 +288,7 @@ describe("ContainerManager.execute — continuation loop", () => {
     );
     const manager = buildManager(3, executor);
 
-    const result = await manager.execute(makeWorkItem(KEY));
+    const result = await manager.executeWithExecutor(executor, makeWorkItem(KEY));
 
     expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
     expect(result.status).toBe(TaskStatus.Completed);

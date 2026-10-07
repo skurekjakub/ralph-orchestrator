@@ -98,7 +98,7 @@ export function deriveStageProfile(profile: IAgentProfile, stage: IStageConfig):
 }
 
 /**
- * Enriched result returned by {@link ContainerManager.execute}.
+ * Enriched result returned by {@link ContainerManager.executeWithExecutor}.
  *
  * Includes the raw exec output plus parsed metadata (PR URL, agent-reported
  * status) and paths to locally-saved log files.

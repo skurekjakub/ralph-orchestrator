@@ -27,7 +27,6 @@ function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResul
     execInApp: vi.fn(),
     execInSidecar: vi.fn(),
     registerLogSources: vi.fn(),
-    execute: vi.fn(),
     executeWithExecutor: vi.fn().mockResolvedValue(makeResult("DF-100", executeResult)),
     createExecutorForStage: vi.fn().mockResolvedValue(createMockExecutor()),
     stop: vi.fn().mockResolvedValue(undefined),
