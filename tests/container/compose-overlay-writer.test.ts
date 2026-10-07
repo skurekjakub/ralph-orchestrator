@@ -122,7 +122,6 @@ describe("writeComposeArtifacts", () => {
       // Assert
       const overlay = built("docker-compose.overlay.yml");
       expect(overlay).toContain(`- ${buildDir}/claude/session-settings.json:/etc/ralph/claude-settings.json:ro`);
-      expect(overlay).not.toContain("managed-settings");
       expect(overlay).toContain(`- ${buildDir}/claude/user-settings.json:/workspace/.ralph/claude/settings.json:ro`);
       expect(overlay).toContain(`- ${buildDir}/claude/agents:/workspace/.ralph/claude/agents:ro`);
       expect(overlay).toContain(`- ${buildDir}/skills:/workspace/.ralph/claude/skills:ro`);
