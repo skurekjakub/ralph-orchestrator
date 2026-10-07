@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { JiraClient } from "../../../../src/datasource/connectors/jira/jira-client";
+import { JiraClient, jiraApiBase } from "../../../../src/datasource/connectors/jira/jira-client";
 import { makeIssue, makeComment } from "../../../helpers/factories";
 import { createMockLogger } from "../../../helpers/mocks";
 import type { IJiraConnectionConfig } from "../../../../src/config/types";
@@ -342,5 +342,14 @@ describe("JiraClient", () => {
 
       await expect(client.addAttachment(KEY, "big.bin", "x".repeat(1000))).rejects.toThrow("413");
     });
+  });
+});
+
+describe("jiraApiBase", () => {
+  it("joins the base URL, without its trailing slashes, the cloud id and the REST API v3 path", () => {
+    // Act & Assert
+    expect(jiraApiBase({ baseUrl: "https://api.atlassian.com/ex/jira//", cloudId: "c-1" })).toBe(
+      "https://api.atlassian.com/ex/jira/c-1/rest/api/3",
+    );
   });
 });

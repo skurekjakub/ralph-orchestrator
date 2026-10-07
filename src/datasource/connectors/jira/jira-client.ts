@@ -25,13 +25,21 @@ export interface IJiraClient {
 }
 
 /**
+ * The JIRA REST API v3 base of a connection, `<baseUrl>/<cloudId>/rest/api/3`, which every endpoint path
+ * extends.
+ */
+export function jiraApiBase(connection: Pick<IJiraConnectionConfig, "baseUrl" | "cloudId">): string {
+  return `${connection.baseUrl.replace(/\/+$/, "")}/${connection.cloudId}/rest/api/3`;
+}
+
+/**
  * Lightweight JIRA REST API v3 client for Atlassian Cloud.
  *
  * Uses native `fetch` with Basic auth (`email:apiToken`). No JIRA SDK dependency.
  * Cloud endpoint: `https://api.atlassian.com/ex/jira/{cloudId}/rest/api/3/`.
  */
 export class JiraClient implements IJiraClient {
-  private baseUrl: string;
+  private apiBase: string;
   private authHeader: string;
 
   private email: string;
@@ -53,8 +61,7 @@ export class JiraClient implements IJiraClient {
     this.apiToken = connection.apiToken;
     this.logger = logger;
     this.retryOptions = retryOptions;
-    const base = connection.baseUrl.replace(/\/+$/, "");
-    this.baseUrl = `${base}/${connection.cloudId}`;
+    this.apiBase = jiraApiBase(connection);
     this.authHeader = "Basic " + Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
   }
 
@@ -63,7 +70,7 @@ export class JiraClient implements IJiraClient {
    * @throws Error if the response status is not 2xx.
    */
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
+    const url = `${this.apiBase}${path}`;
     const res = await fetch(url, {
       method,
       headers: {
@@ -106,7 +113,7 @@ export class JiraClient implements IJiraClient {
       }
 
       const data = await withRetry(
-        () => this.request<JiraSearchResponse>("GET", `/rest/api/3/search/jql?${params}`),
+        () => this.request<JiraSearchResponse>("GET", `/search/jql?${params}`),
         `JIRA search (page ${allIssues.length})`,
         this.logger,
         this.retryOptions,
@@ -120,7 +127,7 @@ export class JiraClient implements IJiraClient {
 
   /** Add a comment to an issue */
   async addComment(key: string, bodyText: string): Promise<void> {
-    await this.request("POST", `/rest/api/3/issue/${key}/comment`, {
+    await this.request("POST", `/issue/${key}/comment`, {
       body: {
         version: 1,
         type: "doc",
@@ -136,14 +143,14 @@ export class JiraClient implements IJiraClient {
 
   /** Transition an issue to a new status */
   async transitionIssue(key: string, transitionId: string): Promise<void> {
-    await this.request("POST", `/rest/api/3/issue/${key}/transitions`, {
+    await this.request("POST", `/issue/${key}/transitions`, {
       transition: { id: transitionId },
     });
   }
 
   /** Fetch available transitions for an issue in its current workflow status. */
   async getTransitions(key: string): Promise<JiraTransition[]> {
-    const data = await this.request<JiraTransitionsResponse>("GET", `/rest/api/3/issue/${key}/transitions`);
+    const data = await this.request<JiraTransitionsResponse>("GET", `/issue/${key}/transitions`);
     return data.transitions;
   }
 
@@ -174,7 +181,7 @@ export class JiraClient implements IJiraClient {
     do {
       const data = await this.request<JiraCommentResponse>(
         "GET",
-        `/rest/api/3/issue/${key}/comment?orderBy=created&maxResults=${pageSize}&startAt=${startAt}`,
+        `/issue/${key}/comment?orderBy=created&maxResults=${pageSize}&startAt=${startAt}`,
       );
       allComments.push(...data.comments);
       total = data.total;
@@ -188,7 +195,7 @@ export class JiraClient implements IJiraClient {
   async getAttachments(key: string): Promise<JiraAttachment[]> {
     const data = await this.request<{ fields: { attachment: JiraAttachment[] } }>(
       "GET",
-      `/rest/api/3/issue/${key}?fields=attachment`,
+      `/issue/${key}?fields=attachment`,
     );
     return data.fields.attachment ?? [];
   }
@@ -223,7 +230,7 @@ export class JiraClient implements IJiraClient {
     const form = new FormData();
     form.append("file", blob, filename);
 
-    const res = await fetch(`${this.baseUrl}/rest/api/3/issue/${key}/attachments`, {
+    const res = await fetch(`${this.apiBase}/issue/${key}/attachments`, {
       method: "POST",
       headers: {
         Authorization: this.authHeader,

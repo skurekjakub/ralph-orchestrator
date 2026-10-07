@@ -1,3 +1,4 @@
+import { jiraApiBase } from "../../src/datasource/connectors/jira/jira-client";
 import type { JiraEnv, TaskDifficulty } from "./types";
 
 const EASY_DESCRIPTION = {
@@ -730,7 +731,7 @@ function getDescription(difficulty: TaskDifficulty) {
 }
 
 function makeClient(env: JiraEnv) {
-  const base = `${env.baseUrl.replace(/\/+$/, "")}/${env.cloudId}/rest/api/3`;
+  const base = jiraApiBase(env);
   const auth = "Basic " + Buffer.from(`${env.email}:${env.apiToken}`).toString("base64");
 
   return async function request(method: string, path: string, body?: unknown): Promise<Response> {
