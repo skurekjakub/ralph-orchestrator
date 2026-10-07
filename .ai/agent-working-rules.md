@@ -104,14 +104,14 @@ enforced on top of it:
   explainer, then a thorough walkthrough, then a question-and-answer section
   for the user to test their understanding
   (`.ai/resources/skills/explainer-contract.md`).
-- **Deferred work is a standalone follow-up file**, never folded into a
-  spec, plan, README or commit:
-  `.ai/followups/<area>/<YYYYMMDD>-<slug>.md` in the main checkout.
+- **Deferred work goes in `todo.md`** at the root of the main checkout
+  (git-ignored), under its matching section (deferred decisions, known
+  issues, ideas). It is never folded into a spec, plan, README or commit.
+  Leave the owner's own notes in that file as they are.
 - **Follow-ups from a move wait for the new paths**, so their locators
   resolve.
-- **When a run ends with a deferred-work list, ask which shape the user
-  wants:** follow-up files or tracker issues.
-  GitHub issues are filed with the `file-github-issue` skill.
+- **A deferred item becomes a GitHub issue only when the user asks.** File it
+  with the `file-github-issue` skill.
 
 ## 8. Tooling notes
 
