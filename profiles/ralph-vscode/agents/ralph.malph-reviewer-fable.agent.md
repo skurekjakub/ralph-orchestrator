@@ -4,7 +4,7 @@ description: 'Independent PR reviewer (tests and user-facing behaviour lens, len
 model: fable
 effort: high
 copilot:
-  model: gpt-5.3-codex
+  model: gpt-6
 ---
 
 # Malph Reviewer — Tests & User-Facing Behaviour ({{ self.model }})
