@@ -61,7 +61,7 @@ export interface AgentSpan {
   readonly apiErrors: readonly { readonly ts?: number; readonly kind: string }[];
   /** Context compactions and what triggered them (`auto`, `manual`). */
   readonly compactions: readonly { readonly ts?: number; readonly trigger?: string }[];
-  /** Feedback a blocking hook gave the model, by the hook event (`Stop` for the result gate). */
+  /** Feedback a blocking hook gave the model, by the hook event. */
   readonly hookFeedback: readonly { readonly ts?: number; readonly hook: string }[];
 }
 

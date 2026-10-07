@@ -66,7 +66,7 @@ export function readProfileFile(profileJsonPath: string): ProfileFile {
  *
  * A variant's MCP servers are the profile-level servers followed by its own; a variant entry's `env`
  * replaces the profile entry's `env` for the same server. Each stage runs its own `cli`, else the
- * profile `cli`. Variant stages require a result block unless they opt out; post-task hook stages
+ * profile `cli`. Variant stages require a result unless they opt out; post-task hook stages
  * don't unless they opt in.
  *
  * @param profileId The profile's directory name under `profiles/`.

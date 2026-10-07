@@ -7,7 +7,9 @@ import { createTempDir } from "../../helpers/mcp-fs";
 import { createMockLogger } from "../../helpers/mocks";
 
 const HOOKS = {
-  Stop: [{ hooks: [{ type: "command", command: "/workspace/.ralph/hooks/claude/result-gate.sh", timeout: 10 }] }],
+  SessionEnd: [
+    { hooks: [{ type: "command", command: "/workspace/.ralph/hooks/log-session-end.sh --cli claude", timeout: 5 }] },
+  ],
 };
 
 describe("buildSessionSettings", () => {

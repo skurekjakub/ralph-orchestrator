@@ -6,7 +6,7 @@
 # one minted at sessionStart as $session. Copilot names no running agent, so
 # agent/agentId stay null.
 #
-# Arguments: $event, $session, $now (epoch ms); $hook and $extra are unused.
+# Arguments: $event, $session, $now (epoch ms); $hook is unused.
 include "record";
 
 def copilot_tool_kind:

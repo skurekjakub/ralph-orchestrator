@@ -57,7 +57,7 @@ export const configFileSchema = z.object({
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,
   ralphchives: rawRalphchivesSchema,
-  /** Allow agents to resume a session when no result block is produced (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
+  /** Allow agents to resume a session that ends without the result its stage requires (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
   enableContinuation: z.boolean().default(false),
   /** Credential Claude Code stages authenticate with: `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`. */
   claudeAuth: z.enum(ClaudeAuthMode).default(ClaudeAuthMode.OAuthToken),
@@ -95,7 +95,7 @@ export const stageSchema = z.object({
   model: z.string().optional(),
   /** Claude Code reasoning effort (`--effort`). Claude stages only. */
   effort: z.enum(ReasoningEffort).optional(),
-  /** Fail the stage when the agent ends without a result block. Defaults to true for variant stages, false for post-task hook stages. */
+  /** Fail the stage when the agent ends without a result: structured output on Claude Code, the result block on Copilot CLI. Defaults to true for variant stages, false for post-task hook stages. */
   requireResultBlock: z.boolean().optional(),
   /** Timeout override in ms for this stage. */
   timeoutMs: z.number().positive().optional(),
@@ -189,7 +189,7 @@ export const profileFileSchema = z.object({
   composeProjectLabel: z.string().default("ralph-sandbox"),
   /** Paths inside the container (absolute) to delete before each agent run. */
   cleanPaths: z.array(z.string()).default([]),
-  /** Max continuation attempts when the agent doesn't produce a result block. 0 = disabled (default). */
+  /** Max continuation attempts when the agent does not report the result its stage requires. 0 = disabled (default). */
   maxContinuations: z.number().int().min(0).max(10).default(0),
   /** MCP servers to deploy into the container (references shared/mcp-servers/<name>/). */
   mcpServers: z.array(mcpServerEntrySchema).default([]),

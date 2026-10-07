@@ -33,6 +33,7 @@ import { sessionSettingsPath, userSettingsPath, writeClaudeSettings } from "../.
 import {
   CLAUDE_BUILTIN_TOOLS,
   CLAUDE_HOST_TOOLS,
+  CLAUDE_STRUCTURED_OUTPUT_TOOL,
   ClaudeBuiltinTool,
   isClaudeSubagentTool,
 } from "../../../src/cli/claude/claude-tools";
@@ -41,6 +42,7 @@ import { AGENT_CLI_VERSIONS, CLI_PACKAGES, hostCliBinary } from "../../../src/cl
 import { hostCliEnv } from "../../../src/cli/host-env";
 import { CLAUDE_MODEL_ID, ClaudeModelAlias } from "../../../src/cli/model-catalog";
 import { ClaudeAuthMode, CliType, ReasoningEffort } from "../../../src/config/types";
+import { AGENT_RESULT_JSON_SCHEMA } from "../../../src/container/agent-result";
 import { executeCliCommand } from "../../../src/container/cli-executors/shared-exec";
 import { parseResultBlock, resolveStatus } from "../../../src/container/result-parser";
 import { renderAgents } from "../../../src/container/setup/agent-includes";
@@ -180,22 +182,16 @@ interface SessionOptions {
   readonly effort?: ReasoningEffort;
   /** `--session-id` or `--resume` arguments; a fresh session when omitted. */
   readonly sessionArgs?: readonly string[];
+  /** The `--json-schema` of a stage that requires a result. */
+  readonly resultSchema?: string;
   /** Rewrites the settings file Ralph wrote before the session reads it. */
   readonly editSettings?: (settings: JsonRecord) => JsonRecord;
   /** Arguments after the ones the executor passes. */
   readonly extraArgs?: readonly string[];
 }
 
-/** A result schema of the shape a stage that requires a result block would pass with `--json-schema`. */
-const RESULT_SCHEMA = {
-  type: "object",
-  properties: {
-    status: { type: "string", enum: [TaskStatus.Completed, TaskStatus.Partial, TaskStatus.Blocked] },
-    prUrl: { type: "string" },
-  },
-  required: ["status"],
-  additionalProperties: false,
-};
+/** Stage roots whose stage requires a result, so the agent writer grants them the structured output tool. */
+const ROOTS_RETURNING_RESULT: ReadonlySet<string> = new Set([ROOT_AGENT]);
 
 /** One CLI run: the executor's result plus the stream-json events it printed. */
 interface SessionRun {
@@ -258,7 +254,10 @@ class ContractSandbox {
     });
   }
 
-  /** Renders the fixture agents of both stage roots and the fixture skills into the Claude Code home. */
+  /**
+   * Renders the fixture agents of both stage roots and the fixture skills into the Claude Code home; only
+   * {@link ROOTS_RETURNING_RESULT} return a result.
+   */
   async renderFixtures(): Promise<void> {
     const includesDir = join(this.root, "includes");
     const skillSources = join(this.root, "skill-sources");
@@ -273,7 +272,13 @@ class ContractSandbox {
         catalog: FIXTURE_AGENTS,
         includesDir,
         context,
-        target: { cli: CliType.Claude, rootAgentFileId, outDir: this.workspace.agentsOutDir, prune: false },
+        target: {
+          cli: CliType.Claude,
+          rootAgentFileId,
+          outDir: this.workspace.agentsOutDir,
+          prune: false,
+          returnsResult: ROOTS_RETURNING_RESULT.has(rootAgentFileId),
+        },
         writer: this.runtime.agentWriter,
         mcpTools: FIXTURE_MCP_TOOLS,
       });
@@ -354,7 +359,7 @@ class ContractSandbox {
       CLAUDE_CONFIG_DIR: this.workspace.cliHomeDir,
       ...CLAUDE_HEADLESS_ENV,
       CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
-      ...claudeSessionEnv(true, subagentDepth),
+      ...claudeSessionEnv(subagentDepth),
     });
   }
 
@@ -381,13 +386,14 @@ class ContractSandbox {
   /** Runs the CLI with {@link cliEnv} through the executors' shared plumbing and the runtime's decoder. */
   private async runSession(
     options: SessionOptions,
-    session: Omit<ClaudeSessionOptions, "agentName" | "model" | "effort">,
+    session: Omit<ClaudeSessionOptions, "agentName" | "model" | "effort" | "resultSchema">,
   ): Promise<SessionRun> {
     const root = options.root ?? ROOT_AGENT;
     const agentName = options.agentName ?? FIXTURE_AGENTS.get(root).frontmatter.name;
+    const { model, effort, resultSchema } = options;
     const args = [
       ...claudeSessionArgs(
-        { ...session, agentName, model: options.model, effort: options.effort },
+        { ...session, agentName, model, effort, resultSchema },
         options.sessionArgs ?? new ClaudeSessionIds().start(),
       ),
       ...(options.extraArgs ?? []),
@@ -573,14 +579,47 @@ describe.skipIf(SKIP_REASON !== undefined)(
         );
       });
 
-      it("accepts an inline --json-schema result schema and starts the session", async () => {
+      it("accepts Ralph's result schema as --json-schema and starts the session", async () => {
         // Act
-        const run = await sandbox.runHostSession({ extraArgs: ["--json-schema", JSON.stringify(RESULT_SCHEMA)] });
+        const run = await sandbox.runHostSession({ resultSchema: AGENT_RESULT_JSON_SCHEMA });
 
         // Assert
         expect(initOf(run).session_id).toEqual(expect.any(String));
         expect(run.result.cliError?.subtype).toBe("authentication_failed");
         expect(run.result.stderr).toBe("");
+      });
+
+      it("offers a root that returns a result the StructuredOutput tool, which the --tools cap leaves in", async () => {
+        // Act
+        const init = initOf(await sandbox.runHostSession({ resultSchema: AGENT_RESULT_JSON_SCHEMA }));
+
+        // Assert
+        expect(stringsOf(init.tools)).toContain(CLAUDE_STRUCTURED_OUTPUT_TOOL);
+      });
+
+      it("drops the StructuredOutput tool from a root whose frontmatter tools do not list it", async () => {
+        // Act
+        const init = initOf(
+          await sandbox.runHostSession({ root: NARROW_ROOT_AGENT, resultSchema: AGENT_RESULT_JSON_SCHEMA }),
+        );
+
+        // Assert
+        expect(stringsOf(init.tools)).not.toContain(CLAUDE_STRUCTURED_OUTPUT_TOOL);
+      });
+
+      it("resumes a session under the same id with the result schema passed again", async () => {
+        // Arrange
+        const sessions = new ClaudeSessionIds();
+        const resultSchema = AGENT_RESULT_JSON_SCHEMA;
+        const first = initOf(await sandbox.runHostSession({ sessionArgs: sessions.start(), resultSchema }));
+
+        // Act
+        const resumed = await sandbox.runHostSession({ sessionArgs: sessions.resume(), resultSchema });
+
+        // Assert
+        expect(initOf(resumed).session_id).toBe(first.session_id);
+        expect(stringsOf(initOf(resumed).tools)).toContain(CLAUDE_STRUCTURED_OUTPUT_TOOL);
+        expect(resumed.result.stderr).toBe("");
       });
 
       it("refuses a --json-schema that is not a valid JSON Schema, before the session starts", async () => {
@@ -643,6 +682,14 @@ describe.skipIf(SKIP_REASON !== undefined)(
           expect(tools.some(isClaudeSubagentTool)).toBe(true);
           expect(init.permissionMode).toBe(ClaudePermissionMode.BypassPermissions);
           expect(init.mcp_servers).toEqual([]);
+        });
+
+        it("offers a root that returns a result the StructuredOutput tool under the container's --tools cap", async () => {
+          // Act
+          const init = initOf(await sandbox.runContainerSession({ resultSchema: AGENT_RESULT_JSON_SCHEMA }));
+
+          // Assert
+          expect(stringsOf(init.tools)).toContain(CLAUDE_STRUCTURED_OUTPUT_TOOL);
         });
 
         it("loads Ralph's session settings, whose hooks run", async () => {

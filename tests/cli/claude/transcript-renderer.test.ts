@@ -105,7 +105,7 @@ describe("renderClaudeTranscript", () => {
     );
     expect(markdown).toContain("#### Context compacted (auto) · 06:01:06");
     expect(markdown).toContain(
-      "#### Stop hook feedback · 06:01:08\n\n```text\nYou stopped before printing the Ralph result block.\n```",
+      "#### Stop hook feedback · 06:01:08\n\n```text\nRun the test suite before you stop.\n```",
     );
     expect(markdown).toContain("- Unreadable log lines skipped: 1");
   });

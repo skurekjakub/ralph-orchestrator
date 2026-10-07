@@ -68,7 +68,13 @@ async function setupAgents(
     catalog: await AgentCatalog.load(agentsDir),
     includesDir,
     context: makeTemplateContext({ cli, taskId: "DOC-7" }),
-    target: { cli, rootAgentFileId: options.root ?? "ralph.root", outDir: join(tmpDir, "out"), prune: true },
+    target: {
+      cli,
+      rootAgentFileId: options.root ?? "ralph.root",
+      outDir: join(tmpDir, "out"),
+      prune: true,
+      returnsResult: false,
+    },
     writer: RUNTIMES.get(cli).agentWriter,
     mcpTools: {},
   };
@@ -232,6 +238,25 @@ describe("renderAgents", () => {
     expect(root).toContain("Use Agent.");
   });
 
+  it("grants only the root of a stage that returns a result the Claude Code structured output tool", async () => {
+    // Arrange
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", { subagents: ["helper"] }),
+        "ralph.helper": makeAgentTemplate("helper"),
+      },
+      { cli: CliType.Claude },
+    );
+
+    // Act
+    await renderAgents({ ...input, target: { ...input.target, returnsResult: true } });
+
+    // Assert
+    const read = (file: string) => readFile(join(input.target.outDir, file), "utf-8");
+    expect(await read("root.md")).toMatch(/^tools: .*StructuredOutput/m);
+    expect(await read("helper.md")).not.toContain("StructuredOutput");
+  });
+
   it("removes agents an earlier render wrote that the new root cannot reach, keeping the directory", async () => {
     // Arrange
     const input = await setupAgents({
@@ -361,7 +386,12 @@ describe("resolveMcpToolNames", () => {
 describe("stageRenderTarget", () => {
   it("targets the stage's CLI and root agent in its workspace's agents directory", () => {
     // Arrange
-    const stage = makeStage({ agent: "ralph.scientist", cli: CliType.Claude, mode: StageMode.Local });
+    const stage = makeStage({
+      agent: "ralph.scientist",
+      cli: CliType.Claude,
+      mode: StageMode.Local,
+      requireResultBlock: false,
+    });
     const workspace = makeHostWorkspace();
 
     // Act
@@ -373,7 +403,18 @@ describe("stageRenderTarget", () => {
       rootAgentFileId: "ralph.scientist",
       outDir: workspace.agentsOutDir,
       prune: true,
+      returnsResult: false,
     });
+  });
+
+  it("has the root of a stage that requires a result return it", () => {
+    // Act
+    const target = stageRenderTarget(makeStage({ requireResultBlock: true }), makeContainerWorkspace(), {
+      prune: false,
+    });
+
+    // Assert
+    expect(target.returnsResult).toBe(true);
   });
 });
 

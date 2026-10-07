@@ -85,28 +85,24 @@ ralph_copilot_new_session() {
 }
 
 # Runs the adapter for RALPH_CLI over RALPH_INPUT and prints the result of the
-# jq filter $1 applied to the envelope. $2 = record event, $3 = extra JSON object.
+# jq filter $1 applied to the envelope. $2 = record event.
 ralph_adapt() {
-  local extra=${3:-}
-  [[ -n $extra ]] || extra='{}'
   jq -r -L "$RALPH_HOOKS_LIB" \
     --arg hook "$RALPH_HOOK_EVENT" \
     --arg event "$2" \
     --arg session "$RALPH_SESSION" \
     --argjson now "$RALPH_NOW_MS" \
-    --argjson extra "$extra" \
     "include \"record\"; include \"adapters/$RALPH_CLI\"; adapt | $1" <<<"$RALPH_INPUT"
 }
 
-# Normalises the payload for event $1 (optional extra record fields as JSON in $2),
-# scrubs credentials through lib/redact.pl and sets RALPH_RECORD, RALPH_LOG_LINE
-# and RALPH_TOOL_OUTPUT.
+# Normalises the payload for event $1, scrubs credentials through lib/redact.pl
+# and sets RALPH_RECORD, RALPH_LOG_LINE and RALPH_TOOL_OUTPUT.
 ralph_normalize() {
   local envelope assignments
   if [[ $RALPH_CLI == copilot ]]; then
     ralph_copilot_session
   fi
-  envelope=$(ralph_adapt envelope_lines "$1" "${2:-}") ||
+  envelope=$(ralph_adapt envelope_lines "$1") ||
     ralph_fail "the $RALPH_CLI adapter rejected the payload (jq exit $?)"
   [[ -n $envelope ]] || ralph_fail "empty payload"
   assignments=$(perl "$RALPH_HOOKS_LIB/redact.pl" <<<"$envelope") ||

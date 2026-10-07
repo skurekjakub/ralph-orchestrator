@@ -289,7 +289,8 @@ export function createTemplateEngine(roots: readonly string[]): Liquid {
 }
 
 /**
- * The render target of `stage`: its CLI, its root agent and its workspace's agents directory.
+ * The render target of `stage`: its CLI, its root agent, its workspace's agents directory and whether the root
+ * returns a result.
  *
  * @param options.prune Whether the render removes the files of agents the stage cannot reach.
  */
@@ -298,7 +299,13 @@ export function stageRenderTarget(
   workspace: StageWorkspace,
   { prune }: { prune: boolean },
 ): AgentRenderTarget {
-  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir: workspace.agentsOutDir, prune };
+  return {
+    cli: stage.cli,
+    rootAgentFileId: stage.agent,
+    outDir: workspace.agentsOutDir,
+    prune,
+    returnsResult: stage.requireResultBlock,
+  };
 }
 
 /**
@@ -368,7 +375,10 @@ export async function renderAgents(input: RenderAgentsInput): Promise<string[]> 
       const scope = { ...context, self };
       const body = await engine.parseAndRender(bodyTemplate, scope, { globals: scope });
 
-      const file = writer.write({ ...frontmatter, fileId, body }, { isStageRoot, stageSubagents, mcpTools });
+      const file = writer.write(
+        { ...frontmatter, fileId, body },
+        { isStageRoot, stageSubagents, returnsResult: isStageRoot && target.returnsResult, mcpTools },
+      );
       if (!file) {
         throw new Error(
           `Agent ${fileId} is reachable from ${target.rootAgentFileId} but its runtimes ` +

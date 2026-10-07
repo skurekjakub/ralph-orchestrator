@@ -6,7 +6,7 @@ import { splitFrontmatter } from "../../../src/util/frontmatter";
 import { CliType, ReasoningEffort } from "../../../src/config/types";
 import { makeAgentDefinition } from "../../helpers/factories";
 
-const LEAF: AgentWriteContext = { isStageRoot: false, stageSubagents: [], mcpTools: {} };
+const LEAF: AgentWriteContext = { isStageRoot: false, stageSubagents: [], returnsResult: false, mcpTools: {} };
 const BUILTINS = "Read, Write, Edit, Bash, Skill, TaskCreate, TaskGet, TaskList, TaskUpdate, WebFetch, WebSearch";
 
 /** The frontmatter lines of a written agent file. */
@@ -40,9 +40,9 @@ describe("ClaudeAgentWriter", () => {
 
     // Act
     const file = writer.write(agent, {
+      ...LEAF,
       isStageRoot: true,
       stageSubagents: ["ralph-writer", "ralph-validator"],
-      mcpTools: {},
     });
 
     // Assert
@@ -85,6 +85,26 @@ describe("ClaudeAgentWriter", () => {
 
     // Assert
     expect(frontmatterOf(file!.content)).toContain("tools: Read, Bash");
+  });
+
+  it("grants the root that returns the stage's result the structured output tool, after its own tools", () => {
+    // Arrange
+    const agent = makeAgentDefinition({ name: "ralph", tools: [ClaudeBuiltinTool.Read] });
+    const context = { ...LEAF, isStageRoot: true, returnsResult: true, mcpTools: { ado: ["ado_push_progress"] } };
+
+    // Act
+    const file = writer.write(agent, context);
+
+    // Assert
+    expect(frontmatterOf(file!.content)).toContain("tools: Read, StructuredOutput, mcp__ado__ado_push_progress");
+  });
+
+  it("grants an agent that returns no result no structured output tool", () => {
+    // Act
+    const file = writer.write(makeAgentDefinition({ name: "ralph" }), { ...LEAF, isStageRoot: true });
+
+    // Assert
+    expect(file!.content).not.toContain("StructuredOutput");
   });
 
   it("appends the allowlisted MCP tools, and a whole server when it allows every tool", () => {

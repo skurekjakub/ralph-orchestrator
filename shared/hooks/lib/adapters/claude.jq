@@ -7,8 +7,7 @@
 # Payloads carry no timestamp, so records use the hook's clock ($now).
 #
 # Arguments: $hook (event family of the entry script), $event (record event),
-# $session (unused), $now (epoch ms), $extra ({blocks, max}, merged into
-# result_gate_* records).
+# $session (unused), $now (epoch ms).
 include "record";
 
 # hook_event_name → the event family of the entry script that handles it.
@@ -23,8 +22,7 @@ def claude_hook_families:
     SessionEnd: "session_end",
     SubagentStart: "subagent",
     SubagentStop: "subagent",
-    PreCompact: "compact",
-    Stop: "result_gate"
+    PreCompact: "compact"
   };
 
 # The record event for this payload. Errors when hook_event_name is missing,
@@ -136,16 +134,6 @@ def adapt:
           record: ($base + {trigger: $trigger}),
           logLine: "[RALPH] Context compaction (trigger=\($trigger), agent=\($agent // "main"))"
         }
-    elif $event == "result_gate_block" then
-      {
-        record: ($base + $extra),
-        logLine: "[RALPH] Result gate blocked stop \($extra.blocks)/\($extra.max): no result block yet"
-      }
-    elif $event == "result_gate_exhausted" then
-      {
-        record: ($base + $extra),
-        logLine: "[RALPH] Result gate gave up after \($extra.max) blocks; stop allowed without a result block"
-      }
     else
       error("Claude Code adapter has no mapping for \($event)")
     end;

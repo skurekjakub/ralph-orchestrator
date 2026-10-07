@@ -15,6 +15,7 @@ import { CLAUDE_HOST_TOOLS } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
+import { AGENT_RESULT_JSON_SCHEMA } from "../agent-result";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { ContainerExecResult, HostStageWorkspace } from "../types";
 import { prepareHostStage } from "./host-stage";
@@ -24,7 +25,7 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
 export interface LocalClaudeCodeExecutorDeps {
   /** The variant with the stage's overrides applied (`deriveStageProfile`): model, timeout. */
   readonly profile: IAgentProfile;
-  /** The stage: effort and whether the result gate is on. */
+  /** The stage: effort and whether it requires a result. */
   readonly stage: IStageConfig;
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
   readonly agentName: string;
@@ -50,7 +51,7 @@ export interface LocalClaudeCodeExecutorDeps {
  * workspace's private home, where the stage's agents and skills are rendered, so the developer's own settings,
  * hooks, plugins, agents, skills, memory and login stay out. It loads user settings only, never the orchestrator's `CLAUDE.md` files, which sit
  * above the workspace, and no MCP server. Ralph's audit hooks run from the host's `shared/hooks` and write to
- * the workspace's logs; the result gate follows the stage's `requireResultBlock`.
+ * the workspace's logs. A stage that requires a result runs with `--json-schema` and returns it as structured output.
  *
  * The session runs in `dontAsk` mode under the permissions {@link writeHostSessionSettings} writes: it reads only
  * its working directories, `workspace.cwd` and `workspace.additionalDirs`, writes only in its working and artifact
@@ -116,7 +117,7 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
         // The workspace sits inside the orchestrator checkout, whose CLAUDE.md the ancestor walk would load.
         CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
         RALPH_LOG_DIR: workspace.logDir,
-        ...claudeSessionEnv(this.stage.requireResultBlock, this.subagentDepth),
+        ...claudeSessionEnv(this.subagentDepth),
       },
     });
     const settingsPath = writeHostSessionSettings(workspace, this.hooksDir, this.subagents);
@@ -131,6 +132,7 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
         permissionMode: ClaudePermissionMode.DontAsk,
         tools: claudeSessionTools(CLAUDE_HOST_TOOLS, this.subagentDepth),
         additionalDirs: workspace.additionalDirs,
+        resultSchema: this.stage.requireResultBlock ? AGENT_RESULT_JSON_SCHEMA : undefined,
         debugFile: join(workspace.logDir, "claude.log"),
       },
       sessionArgs,

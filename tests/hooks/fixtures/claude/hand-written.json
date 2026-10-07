@@ -221,16 +221,5 @@
     "hook_event_name": "PreCompact",
     "trigger": "auto",
     "custom_instructions": null
-  },
-  "stop": {
-    "session_id": "92997de5-bf09-4b78-993c-bc33d66e925e",
-    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/92997de5-bf09-4b78-993c-bc33d66e925e.jsonl",
-    "cwd": "/workspace",
-    "permission_mode": "bypassPermissions",
-    "agent_type": "orch",
-    "hook_event_name": "Stop",
-    "stop_hook_active": false,
-    "last_assistant_message": "DONE 4 lint: SKIPPED\nRALPH_END",
-    "background_tasks": []
   }
 }

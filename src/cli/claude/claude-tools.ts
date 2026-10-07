@@ -38,6 +38,12 @@ export const CLAUDE_HOST_TOOLS: readonly ClaudeBuiltinTool[] = CLAUDE_BUILTIN_TO
 export const CLAUDE_SUBAGENT_TOOL = "Agent";
 
 /**
+ * The Claude Code tool a session run with `--json-schema` returns its result with. The `--tools` cap leaves it in,
+ * but an `--agent` root's frontmatter `tools` drops it unless it lists it (observed on Claude Code 2.1.292).
+ */
+export const CLAUDE_STRUCTURED_OUTPUT_TOOL = "StructuredOutput";
+
+/**
  * Whether a Claude Code tool call spawns a subagent: {@link CLAUDE_SUBAGENT_TOOL}, or `Task`, its name
  * before Claude Code 2.1.63 and still an alias (https://code.claude.com/docs/en/sub-agents).
  */

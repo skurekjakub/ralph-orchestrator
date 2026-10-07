@@ -12,6 +12,7 @@ import { CLAUDE_BUILTIN_TOOLS } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
+import { AGENT_RESULT_JSON_SCHEMA } from "../agent-result";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
@@ -23,7 +24,7 @@ export interface ClaudeCodeExecutorDeps {
   readonly compose: IComposeClient;
   /** The variant with the stage's overrides applied (`deriveStageProfile`): repo path, model, timeout. */
   readonly profile: IAgentProfile;
-  /** The stage: effort and whether the result gate is on. */
+  /** The stage: effort and whether it requires a result. */
   readonly stage: IStageConfig;
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
   readonly agentName: string;
@@ -43,7 +44,8 @@ export interface ClaudeCodeExecutorDeps {
  * read-only `--settings` file and bypasses permission prompts: the container, egress proxy, sidecar tool filter,
  * `--tools` cap and Ralph's hooks are the boundary. The `--tools` list caps the built-in tools, adding `Agent` and
  * the spawn depth only for a stage root with subagents; the agents' frontmatter narrows the tools per agent. With
- * `requireResultBlock`, Ralph's `Stop` hook keeps the session going until the agent prints its result block.
+ * `requireResultBlock`, the session runs with `--json-schema` and must return the agent's result as structured
+ * output.
  */
 export class ClaudeCodeExecutor implements ICliExecutor {
   activeProcess: ResultPromise | null = null;
@@ -85,7 +87,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
 
   private async exec(prompt: string, sessionArgs: readonly string[]): Promise<ContainerExecResult> {
     const { effort, requireResultBlock } = this.stage;
-    const env = claudeSessionEnv(requireResultBlock, this.subagentDepth);
+    const env = claudeSessionEnv(this.subagentDepth);
     const cliArgs = claudeSessionArgs(
       {
         agentName: this.agentName,
@@ -98,6 +100,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
         mcpConfigPath: MCP_CONFIG_CONTAINER_PATH,
         permissionMode: ClaudePermissionMode.BypassPermissions,
         tools: claudeSessionTools(CLAUDE_BUILTIN_TOOLS, this.subagentDepth),
+        resultSchema: requireResultBlock ? AGENT_RESULT_JSON_SCHEMA : undefined,
         debugFile: this.runtime.layout.debugLog.path,
       },
       sessionArgs,

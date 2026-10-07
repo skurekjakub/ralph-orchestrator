@@ -90,7 +90,7 @@ async function renderStage(
     catalog,
     includesDir: INCLUDES_DIR,
     context: scope,
-    target: { cli, rootAgentFileId: rootFileId, outDir, prune: true },
+    target: { cli, rootAgentFileId: rootFileId, outDir, prune: true, returnsResult: false },
     writer: runtime.agentWriter,
     mcpTools: {},
   });

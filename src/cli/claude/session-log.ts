@@ -17,7 +17,7 @@ export enum SessionEventKind {
   ApiError = "api-error",
   /** The CLI compacted the context. */
   Compaction = "compaction",
-  /** The reason a hook gave the model for blocking it, such as the result gate's when a stop lacks the result block. */
+  /** The reason a hook gave the model for blocking it, such as a repository `Stop` hook sending the agent back. */
   HookFeedback = "hook-feedback",
 }
 

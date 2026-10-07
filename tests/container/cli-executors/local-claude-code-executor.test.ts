@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execa, ExecaError } from "execa";
 import { LocalClaudeCodeExecutor } from "../../../src/container/cli-executors/local-claude-code-executor";
+import { AGENT_RESULT_JSON_SCHEMA } from "../../../src/container/agent-result";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
 import { hostPermissionRules } from "../../../src/cli/claude/claude-host-settings";
 import { ClaudeAuthMode, CliType, StageMode, type IStageConfig } from "../../../src/config/types";
@@ -48,7 +49,9 @@ describe("LocalClaudeCodeExecutor", () => {
         SessionStart: [
           { hooks: [{ type: "command", command: "/workspace/.ralph/hooks/log-session-start.sh --cli claude" }] },
         ],
-        Stop: [{ hooks: [{ type: "command", command: "/workspace/.ralph/hooks/claude/result-gate.sh" }] }],
+        SessionEnd: [
+          { hooks: [{ type: "command", command: "/workspace/.ralph/hooks/log-session-end.sh --cli claude" }] },
+        ],
       }),
     );
     originalCwd = process.cwd();
@@ -227,7 +230,6 @@ describe("LocalClaudeCodeExecutor", () => {
         CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1",
         CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
         RALPH_LOG_DIR: workspace.logDir,
-        RALPH_REQUIRE_RESULT_BLOCK: "0",
         CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "1",
       });
       expect(Object.keys(env).filter((name) => /^(ADO_PAT|JIRA_|GH_TOKEN|DISCORD|ANTHROPIC)/.test(name))).toEqual([]);
@@ -249,15 +251,21 @@ describe("LocalClaudeCodeExecutor", () => {
       expect(env).not.toHaveProperty("CLAUDE_CODE_OAUTH_TOKEN");
     });
 
-    it("turns the result gate on for a stage that requires a result block", async () => {
+    it("asks a stage that requires a result for it as structured output, on a resumed session too", async () => {
       // Arrange
       renderRootAgent();
+      const executor = createExecutor({ stage: { requireResultBlock: true } });
 
       // Act
-      await createExecutor({ stage: { requireResultBlock: true } }).run("p");
+      await executor.run("p");
+      await executor.continueSession("keep going");
 
       // Assert
-      expect(spawned().options.env).toMatchObject({ RALPH_REQUIRE_RESULT_BLOCK: "1" });
+      for (const call of [0, 1]) {
+        const { args } = spawned(call);
+        expect(args[args.indexOf("--json-schema") + 1]).toBe(AGENT_RESULT_JSON_SCHEMA);
+      }
+      expect(spawned(1).args).toContain("--resume");
     });
 
     it("runs Ralph's audit hooks from the host's shared/hooks under the stage's host permissions", async () => {
@@ -270,7 +278,7 @@ describe("LocalClaudeCodeExecutor", () => {
       // Assert
       const { hooks, permissions } = settings();
       expect(hooks.SessionStart[0].hooks[0].command).toBe(`'${hooksDir}/log-session-start.sh' --cli claude`);
-      expect(hooks.Stop[0].hooks[0].command).toBe(`'${hooksDir}/claude/result-gate.sh'`);
+      expect(hooks.SessionEnd[0].hooks[0].command).toBe(`'${hooksDir}/log-session-end.sh' --cli claude`);
       expect(permissions).toEqual(hostPermissionRules(workspace, ["run-analyzer", "agent-improver"]));
     });
 

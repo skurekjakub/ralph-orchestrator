@@ -35,7 +35,6 @@ const CLAUDE_FIXTURES: Record<string, [fixture: string, auditEvent: string]> = {
   SubagentStart: ["subagentStart", "subagent_start"],
   SubagentStop: ["subagentStop", "subagent_stop"],
   PreCompact: ["preCompact", "compact"],
-  Stop: ["stop", "result_gate_block"],
   StopFailure: ["stopFailure", "error"],
   SessionEnd: ["sessionEnd", "session_end"],
 };
@@ -121,11 +120,10 @@ describe("hook configurations", () => {
       const [fixture, auditEvent] = fixtureFor(CLAUDE_FIXTURES, event);
 
       // Act
-      const run = await sandbox.runJson(script, args, claude[fixture], { RALPH_REQUIRE_RESULT_BLOCK: "1" });
+      const run = await sandbox.runJson(script, args, claude[fixture]);
 
       // Assert
-      expect([run.exitCode, run.stderr]).toEqual([0, ""]);
-      expect(run.stdout).toEqual(event === "Stop" ? expect.stringContaining('"decision":"block"') : "");
+      expect([run.exitCode, run.stdout, run.stderr]).toEqual([0, "", ""]);
       expect(sandbox.audit()).toEqual([expect.objectContaining({ event: auditEvent, cli: "claude" })]);
     });
   });

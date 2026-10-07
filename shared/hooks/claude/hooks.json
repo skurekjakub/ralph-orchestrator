@@ -50,11 +50,6 @@
       "hooks": [{ "type": "command", "command": "/workspace/.ralph/hooks/log-compact.sh --cli claude", "timeout": 5 }]
     }
   ],
-  "Stop": [
-    {
-      "hooks": [{ "type": "command", "command": "/workspace/.ralph/hooks/claude/result-gate.sh", "timeout": 10 }]
-    }
-  ],
   "StopFailure": [
     {
       "hooks": [{ "type": "command", "command": "/workspace/.ralph/hooks/log-error.sh --cli claude", "timeout": 5 }]

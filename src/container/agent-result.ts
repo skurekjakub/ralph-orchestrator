@@ -17,5 +17,10 @@ export const agentResultSchema = z.strictObject({
   HANDOFF: z.string().describe("Path of the handoff file the run attached to the work item").optional(),
 });
 
-/** {@link agentResultSchema} as the JSON Schema Claude Code's `--json-schema` takes. */
-export const AGENT_RESULT_JSON_SCHEMA: string = JSON.stringify(z.toJSONSchema(agentResultSchema));
+/**
+ * {@link agentResultSchema} as the JSON Schema Claude Code's `--json-schema` takes. Draft-07, because the CLI refuses
+ * a schema that declares draft 2020-12, the default of `z.toJSONSchema` (Claude Code 2.1.292).
+ */
+export const AGENT_RESULT_JSON_SCHEMA: string = JSON.stringify(
+  z.toJSONSchema(agentResultSchema, { target: "draft-07" }),
+);

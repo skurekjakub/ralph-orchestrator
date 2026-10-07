@@ -65,6 +65,24 @@ describe("claudeSessionArgs", () => {
     expect(args).toContain("--mcp-config /workspace/.ralph/mcp-config.json --strict-mcp-config");
     expect(args).toContain("--tools Read,Edit --add-dir /logs --add-dir /repo/profiles --resume sid --debug-file");
   });
+
+  it("asks for the result schema with --json-schema when given, on a resumed session too", () => {
+    // Arrange
+    const resultSchema = '{"type":"object","properties":{}}';
+
+    // Act
+    const args = claudeSessionArgs({ ...options, resultSchema }, ["--resume", "sid"]);
+
+    // Assert
+    expect(args.slice(args.indexOf("--tools"), args.indexOf("--debug-file"))).toEqual([
+      "--tools",
+      "Read,Edit",
+      "--json-schema",
+      resultSchema,
+      "--resume",
+      "sid",
+    ]);
+  });
 });
 
 describe("claudeSessionTools", () => {
@@ -76,13 +94,10 @@ describe("claudeSessionTools", () => {
 });
 
 describe("claudeSessionEnv", () => {
-  it("turns the result gate on or off and sets the spawn depth only for a root with subagents", () => {
+  it("sets the spawn depth only for a root with subagents", () => {
     // Act & Assert
-    expect(claudeSessionEnv(true, 3)).toEqual({
-      RALPH_REQUIRE_RESULT_BLOCK: "1",
-      CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3",
-    });
-    expect(claudeSessionEnv(false, 0)).toEqual({ RALPH_REQUIRE_RESULT_BLOCK: "0" });
+    expect(claudeSessionEnv(3)).toEqual({ CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3" });
+    expect(claudeSessionEnv(0)).toEqual({});
   });
 });
 

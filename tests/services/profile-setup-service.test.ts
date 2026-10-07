@@ -79,6 +79,7 @@ describe("ProfileSetupService", () => {
           rootAgentFileId: "ralph.ralph",
           outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude),
           prune: true,
+          returnsResult: true,
         },
         expect.anything(),
       );
@@ -220,7 +221,13 @@ describe("ProfileSetupService", () => {
       expect(templateRenderer.render).toHaveBeenCalledWith(
         "docs",
         expect.objectContaining({ artifactDir: workspace.artifactDir }),
-        { cli: CliType.Claude, rootAgentFileId: "ralph.scientist", outDir: workspace.agentsOutDir, prune: true },
+        {
+          cli: CliType.Claude,
+          rootAgentFileId: "ralph.scientist",
+          outDir: workspace.agentsOutDir,
+          prune: true,
+          returnsResult: true,
+        },
         expect.anything(),
       );
       expect(skillRenderer.render).toHaveBeenCalledWith(

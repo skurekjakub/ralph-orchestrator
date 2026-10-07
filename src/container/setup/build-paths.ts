@@ -16,7 +16,7 @@ export interface ProfileBuildPaths {
 }
 
 /**
- * `shared/hooks` of an orchestrator checkout: the audit hook scripts, the result gate and the redactor.
+ * `shared/hooks` of an orchestrator checkout: the audit hook scripts and the redactor.
  *
  * @param rootDir The orchestrator checkout root.
  */

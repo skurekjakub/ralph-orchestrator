@@ -52,8 +52,8 @@ export interface IContainerManager {
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void;
   /**
    * Run one stage through its executor: build the prompt, run the CLI, continue a session that ended
-   * without a result block when the variant allows it, and parse the result under the stage's result
-   * contract (`requireResultBlock`).
+   * without a result when the variant allows it, and read the result under the stage's result contract
+   * (`requireResultBlock`).
    */
   executeWithExecutor(
     executor: ICliExecutor,
@@ -305,10 +305,10 @@ export class ContainerManager implements IContainerManager {
   }
 
   /**
-   * Run one stage through `executor` and the session runner, which builds and audits the prompt, parses
-   * the agent's `===RALPH_RESULT_START===` block and, when the stage requires one, `maxContinuations > 0`
-   * and continuation is enabled, resumes a session that ended without one, with exponential backoff
-   * between attempts. `executor` becomes the one {@link stop} kills.
+   * Run one stage through `executor` and the session runner, which builds and audits the prompt, reads
+   * the agent's result and, when the stage requires one, `maxContinuations > 0` and continuation is
+   * enabled, resumes a session that ended without one, with exponential backoff between attempts.
+   * `executor` becomes the one {@link stop} kills.
    *
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    */

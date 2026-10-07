@@ -50,6 +50,11 @@ export interface ClaudeSessionOptions {
   readonly tools: readonly string[];
   /** Directories besides the working directory the session may reach, one `--add-dir` each. */
   readonly additionalDirs?: readonly string[];
+  /**
+   * The JSON Schema the session must return its result as structured output against (`--json-schema`). A resumed
+   * session gets it too: the CLI accepts it with `--resume`.
+   */
+  readonly resultSchema?: string;
   /** Where Claude Code writes its debug log (`--debug-file`). */
   readonly debugFile: string;
 }
@@ -60,7 +65,8 @@ export interface ClaudeSessionOptions {
  * @param sessionArgs The arguments that start (`--session-id`) or resume (`--resume`) the session.
  */
 export function claudeSessionArgs(options: ClaudeSessionOptions, sessionArgs: readonly string[]): string[] {
-  const { agentName, model, effort, settingSources, settingsPath, mcpConfigPath, permissionMode, tools } = options;
+  const { agentName, model, effort, settingSources, settingsPath, mcpConfigPath, permissionMode, tools, resultSchema } =
+    options;
   return [
     "-p",
     "--output-format",
@@ -81,6 +87,7 @@ export function claudeSessionArgs(options: ClaudeSessionOptions, sessionArgs: re
     "--tools",
     tools.join(","),
     ...(options.additionalDirs ?? []).flatMap((dir) => ["--add-dir", dir]),
+    ...(resultSchema === undefined ? [] : ["--json-schema", resultSchema]),
     ...sessionArgs,
     "--debug-file",
     options.debugFile,
@@ -93,14 +100,11 @@ export function claudeSessionTools(tools: readonly string[], subagentDepth: numb
 }
 
 /**
- * The environment one session of a stage needs besides the CLI's own: whether Ralph's result gate holds the
- * session until it prints its result block, and, for a root with subagents, how deep they may spawn.
+ * The environment one session of a stage needs besides the CLI's own: for a root with subagents, how deep they
+ * may spawn.
  */
-export function claudeSessionEnv(requireResultBlock: boolean, subagentDepth: number): Record<string, string> {
-  return {
-    RALPH_REQUIRE_RESULT_BLOCK: requireResultBlock ? "1" : "0",
-    ...(subagentDepth > 0 ? { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: String(subagentDepth) } : {}),
-  };
+export function claudeSessionEnv(subagentDepth: number): Record<string, string> {
+  return subagentDepth > 0 ? { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: String(subagentDepth) } : {};
 }
 
 /** The session of one stage's Claude Code executor: each `start` begins a new one, `resume` continues the last. */

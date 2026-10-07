@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { ExecaError } from "execa";
 import { ClaudeCodeExecutor } from "../../../src/container/cli-executors/claude-code-executor";
+import { AGENT_RESULT_JSON_SCHEMA } from "../../../src/container/agent-result";
+import { TaskStatus } from "../../../src/container/types";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
 import { profileBuildPaths } from "../../../src/container/setup/build-paths";
@@ -92,7 +94,7 @@ describe("ClaudeCodeExecutor", () => {
   }
 
   describe("run", () => {
-    it("execs claude headless with stream-json, the stage's agent, policy flags and a new session id", async () => {
+    it("execs claude headless with stream-json, the stage's agent, policy flags, the result schema and a new session id", async () => {
       // Arrange
       const { executor, compose } = createExecutor();
 
@@ -107,8 +109,6 @@ describe("ClaudeCodeExecutor", () => {
         "-T",
         "--user",
         "vscode",
-        "-e",
-        "RALPH_REQUIRE_RESULT_BLOCK=1",
         "-e",
         "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2",
         "app",
@@ -130,6 +130,8 @@ describe("ClaudeCodeExecutor", () => {
         "bypassPermissions",
         "--tools",
         "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,WebFetch,WebSearch,Agent",
+        "--json-schema",
+        AGENT_RESULT_JSON_SCHEMA,
         "--session-id",
         sessionId,
         "--debug-file",
@@ -185,7 +187,7 @@ describe("ClaudeCodeExecutor", () => {
       expect(args.join(" ")).not.toContain("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH");
     });
 
-    it("turns the result gate off for a stage that needs no result block", async () => {
+    it("asks a stage that requires no result for no structured output", async () => {
       // Arrange
       const { executor, compose } = createExecutor({ stage: { requireResultBlock: false } });
 
@@ -193,7 +195,26 @@ describe("ClaudeCodeExecutor", () => {
       await executor.run("p");
 
       // Assert
-      expect(exec(compose).args).toContain("RALPH_REQUIRE_RESULT_BLOCK=0");
+      expect(exec(compose).args).not.toContain("--json-schema");
+    });
+
+    it("returns the structured output the session's result carries", async () => {
+      // Arrange
+      const structured = { STATUS: TaskStatus.Completed, PR_URL: "https://dev.azure.com/pr/3" };
+      const stream = line({
+        type: "result",
+        subtype: "success",
+        is_error: false,
+        result: JSON.stringify(structured),
+        structured_output: structured,
+      });
+      const { executor } = createExecutor({ process: () => fakeCliProcess(stream) });
+
+      // Act
+      const result = await executor.run("p");
+
+      // Assert
+      expect(result.structuredOutput).toEqual(structured);
     });
 
     it("adds the project settings source when the profile loads the repo's instructions", async () => {
@@ -309,7 +330,7 @@ describe("ClaudeCodeExecutor", () => {
   });
 
   describe("continueSession", () => {
-    it("resumes the session run started, with the continuation prompt on stdin", async () => {
+    it("resumes the session run started, with the result schema and the continuation prompt on stdin", async () => {
       // Arrange
       const { executor, compose } = createExecutor();
       await executor.run("first");
@@ -324,6 +345,7 @@ describe("ClaudeCodeExecutor", () => {
       expect(second[second.indexOf("--resume") + 1]).toBe(sessionId);
       expect(second).not.toContain("--session-id");
       expect(second[second.indexOf("--settings") + 1]).toBe("/etc/ralph/claude-settings.json");
+      expect(second[second.indexOf("--json-schema") + 1]).toBe(AGENT_RESULT_JSON_SCHEMA);
       expect(exec(compose, 1).options).toEqual({ input: "keep going" });
     });
 

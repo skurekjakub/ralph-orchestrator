@@ -61,7 +61,7 @@ export interface IStageConfig {
   readonly model?: string;
   /** Claude Code reasoning effort for this stage. Claude stages only. */
   readonly effort?: ReasoningEffort;
-  /** Whether the stage fails when the agent ends without a `===RALPH_RESULT_START===` block. */
+  /** Whether the stage fails when the agent ends without a result: structured output on Claude Code, the result block on Copilot CLI. */
   readonly requireResultBlock: boolean;
   /** Timeout override in ms for this stage. Falls back to profile-level timeout. */
   readonly timeoutMs?: number;
@@ -151,7 +151,7 @@ export interface IAgentProfile {
   readonly composeProjectLabel: string;
   /** Absolute paths inside the container to delete before each agent run. */
   readonly cleanPaths: readonly string[];
-  /** Max continuation attempts when the agent doesn't produce a result block. 0 = disabled. */
+  /** Max continuation attempts when the agent does not report the result its stage requires. 0 = disabled. */
   readonly maxContinuations: number;
   /** MCP server names to deploy into the container (from shared/mcp-servers/). */
   readonly mcpServers: readonly string[];
@@ -243,7 +243,7 @@ export interface IAppConfig {
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;
   readonly ralphchives: IRalphchivesConfig;
-  /** Allow agents to resume a session when no result block is produced (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
+  /** Allow agents to resume a session that ends without the result its stage requires (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
   readonly enableContinuation: boolean;
   /** Credential Claude Code stages authenticate with. */
   readonly claudeAuth: ClaudeAuthMode;

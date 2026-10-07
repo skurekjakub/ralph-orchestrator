@@ -1,7 +1,7 @@
 /**
  * Fixture `fixtures/claude-sessions/` is a hand-written collected sessions folder in the entry shapes of
  * Claude Code 2.1.292 session logs: a session whose main thread starts a writer subagent that starts a
- * reviewer, a subagent without metadata, a malformed line, a compaction and the result gate's feedback,
+ * reviewer, a subagent without metadata, a malformed line, a compaction and a repository Stop hook's feedback,
  * and a later session that failed to authenticate.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -63,7 +63,7 @@ describe("readClaudeSessions", () => {
       kind: SessionEventKind.HookFeedback,
       ts: Date.parse("2026-10-07T06:01:08.002Z"),
       hook: "Stop",
-      text: "You stopped before printing the Ralph result block.",
+      text: "Run the test suite before you stop.",
     });
   });
 

@@ -15,7 +15,7 @@ describe("hostHooks", () => {
           hooks: [{ type: "command", command: "/workspace/.ralph/hooks/log-pre-tool.sh --cli claude", timeout: 5 }],
         },
       ],
-      Stop: [{ hooks: [{ type: "command", command: "/workspace/.ralph/hooks/claude/result-gate.sh", timeout: 10 }] }],
+      StopFailure: [{ hooks: [{ type: "command", command: "/workspace/.ralph/hooks/log-error.sh", timeout: 5 }] }],
     };
 
     // Act
@@ -29,7 +29,7 @@ describe("hostHooks", () => {
           hooks: [{ type: "command", command: "'/srv/ralph/shared/hooks/log-pre-tool.sh' --cli claude", timeout: 5 }],
         },
       ],
-      Stop: [{ hooks: [{ type: "command", command: "'/srv/ralph/shared/hooks/claude/result-gate.sh'", timeout: 10 }] }],
+      StopFailure: [{ hooks: [{ type: "command", command: "'/srv/ralph/shared/hooks/log-error.sh'", timeout: 5 }] }],
     });
   });
 

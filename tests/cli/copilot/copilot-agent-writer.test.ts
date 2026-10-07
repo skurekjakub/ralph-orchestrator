@@ -80,7 +80,7 @@ describe("CopilotAgentWriter", () => {
         catalog: await AgentCatalog.load(join(dir, "agents")),
         includesDir: join(dir, "includes"),
         context: makeTemplateContext({ cli: CliType.Copilot, taskId: "DOC-1" }),
-        target: { cli: CliType.Copilot, rootAgentFileId: "ralph.ralph", outDir, prune: true },
+        target: { cli: CliType.Copilot, rootAgentFileId: "ralph.ralph", outDir, prune: true, returnsResult: true },
         writer,
         mcpTools: { ado: ["ado_push_progress"] },
       });

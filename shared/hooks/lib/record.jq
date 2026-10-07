@@ -13,34 +13,6 @@ def str_or($default):
 
 def str_or_null: str_or(null);
 
-# The text between the first ===RALPH_RESULT_START=== and the first
-# ===RALPH_RESULT_END=== after it, or null when there is no such pair.
-def result_block_body:
-  split("===RALPH_RESULT_START===") as $parts
-  | if ($parts | length) < 2 then null
-    else
-      ($parts[1:] | join("===RALPH_RESULT_START===") | split("===RALPH_RESULT_END===")) as $rest
-      | if ($rest | length) < 2 then null else $rest[0] end
-    end;
-
-# JavaScript's \s, so the status token ends where the orchestrator's regex ends it.
-def js_space: "\t\n\u000b\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
-
-# The STATUS value parseResultBlock (src/container/result-parser.ts) reads from
-# the text, or null. The key is ASCII case-insensitive, like its /i flag.
-def result_status:
-  if type != "string" then null
-  else
-    result_block_body
-    | if . == null then null
-      else (first(capture("[Ss][Tt][Aa][Tt][Uu][Ss]:[\(js_space)]*(?<status>[^\(js_space)]+)") | .status) // null)
-      end
-  end;
-
-# True when the text holds a result block whose STATUS the orchestrator accepts.
-def has_result_block:
-  result_status | . == "completed" or . == "partial" or . == "blocked";
-
 # "mcp__<server>__<tool>" → {server, tool}; null for any other name.
 def mcp_parts:
   if startswith("mcp__") then

@@ -15,6 +15,8 @@ export interface AgentWriteContext {
   readonly isStageRoot: boolean;
   /** Names of every agent reachable from the stage root, root excluded, root's own subagents first. */
   readonly stageSubagents: readonly string[];
+  /** True for the root of a stage that requires a result (`requireResultBlock`): the agent must return one. */
+  readonly returnsResult: boolean;
   /**
    * Allowlisted tool names of each MCP server the stage's variant runs, keyed by server name. An
    * empty list means the server allows every tool it exposes.
@@ -73,4 +75,6 @@ export interface AgentRenderTarget {
   readonly outDir: string;
   /** Whether files in `outDir` that this render does not write are removed. */
   readonly prune: boolean;
+  /** Whether the stage requires a result (`requireResultBlock`), which its root agent returns. */
+  readonly returnsResult: boolean;
 }

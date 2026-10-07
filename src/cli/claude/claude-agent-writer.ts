@@ -2,7 +2,13 @@ import { CliType } from "../../config/types";
 import { type AgentFrontmatter, INHERIT_MODEL } from "../agent-definition";
 import { yamlScalar, yamlSingleQuoted } from "../../util/frontmatter";
 import type { AgentDefinition, AgentFile, AgentWriteContext, IAgentFileWriter } from "../agent-file-writer";
-import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL, ClaudeBuiltinTool, claudeMcpToolName } from "./claude-tools";
+import {
+  CLAUDE_BUILTIN_TOOLS,
+  CLAUDE_STRUCTURED_OUTPUT_TOOL,
+  CLAUDE_SUBAGENT_TOOL,
+  ClaudeBuiltinTool,
+  claudeMcpToolName,
+} from "./claude-tools";
 
 /** File name Claude Code discovers an agent under: its frontmatter name (`ralph.md`). */
 export function claudeAgentFileName(name: string): string {
@@ -21,7 +27,8 @@ function spawnableAgents(agent: AgentDefinition, context: AgentWriteContext): re
 
 /**
  * The comma-separated `tools` value: the `Agent(…)` grant, the built-in tools (the agent's own list
- * or every tool Ralph grants) and every allowlisted tool of the variant's MCP servers.
+ * or every tool Ralph grants), the structured output tool for an agent that returns the stage's result,
+ * and every allowlisted tool of the variant's MCP servers.
  */
 function toolsValue(agent: AgentDefinition, context: AgentWriteContext): string {
   const spawnable = spawnableAgents(agent, context);
@@ -31,6 +38,7 @@ function toolsValue(agent: AgentDefinition, context: AgentWriteContext): string 
   return [
     ...(spawnable.length > 0 ? [`${CLAUDE_SUBAGENT_TOOL}(${spawnable.join(", ")})`] : []),
     ...(agent.tools ?? CLAUDE_BUILTIN_TOOLS),
+    ...(context.returnsResult ? [CLAUDE_STRUCTURED_OUTPUT_TOOL] : []),
     ...mcpTools,
   ].join(", ");
 }
@@ -51,8 +59,9 @@ function stageRootSkillsInstruction(skills: readonly string[]): string {
 
 /**
  * Writes Claude Code agent files (`<name>.md` under `$CLAUDE_CONFIG_DIR/agents/`). Canonical keys
- * map one to one, except that `subagents` becomes the `Agent(…)` grant inside `tools` and the
- * Copilot-only `copilot` block is dropped.
+ * map one to one, except that `subagents` becomes the `Agent(…)` grant inside `tools`, the root of a
+ * stage that requires a result also gets the structured output tool its `--json-schema` session returns
+ * the result with, and the Copilot-only `copilot` block is dropped.
  *
  * Claude Code preloads frontmatter `skills` only into an agent it spawns as a subagent, not into the
  * `--agent` session root, which takes on only the agent's prompt, tools and model
