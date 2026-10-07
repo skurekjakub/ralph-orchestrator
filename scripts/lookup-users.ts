@@ -13,8 +13,8 @@
 import "dotenv/config";
 import { loadConfig } from "../src/config/loader";
 import { JiraClient } from "../src/datasource/connectors/jira/jira-client";
+import { resolveJiraConnection } from "../src/datasource/connectors/jira/factory";
 import { consoleLogger } from "../src/logger";
-import type { IJiraConnectionConfig } from "../src/config/types";
 
 const issueKey = process.argv[2];
 const sourceKey = process.argv[3];
@@ -49,8 +49,8 @@ async function main() {
     process.exit(1);
   }
 
-  const conn = config.dataSources[selectedKey].connection as unknown as IJiraConnectionConfig;
-  const client = new JiraClient({ jiraConnection: conn, logger: consoleLogger });
+  const jiraConnection = resolveJiraConnection(selectedKey, config.dataSources[selectedKey]);
+  const client = new JiraClient({ jiraConnection, logger: consoleLogger });
 
   console.log(`Using data source "${selectedKey}"`);
   console.log(`Fetching comments for ${issueKey}...\n`);

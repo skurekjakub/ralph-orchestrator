@@ -6,7 +6,7 @@
  */
 
 import type { AwilixContainer } from "awilix";
-import type { IJiraConnectionConfig } from "../../../config/types";
+import type { IDataSourceConfig, IJiraConnectionConfig } from "../../../config/types";
 import type { DataSourceCradle } from "../../../awilix-cradle-types";
 import { wiring, type Registrations } from "../../../di/registration";
 import type { IDataSourceConnector } from "../../connector";
@@ -49,10 +49,20 @@ export function resolveJiraCredentials(sourceKey: string): { email: string; apiT
 }
 
 /**
+ * The JIRA connection of a data source: its `connection` validated with the JIRA schema, plus the source's
+ * credentials from {@link resolveJiraCredentials}.
+ *
+ * @throws ZodError when the connection fails the JIRA schema; Error when the source's credentials are unset.
+ */
+export function resolveJiraConnection(sourceKey: string, dataSourceConfig: IDataSourceConfig): IJiraConnectionConfig {
+  return { ...jiraConnectionSchema.parse(dataSourceConfig.connection), ...resolveJiraCredentials(sourceKey) };
+}
+
+/**
  * Builds the JIRA connector and poller of one data source in its scope.
  *
- * The connection is `dataSourceConfig.connection` validated with the JIRA schema, plus the credentials from
- * the environment. The poller queries the projects of the profiles bound to the source.
+ * The connection comes from {@link resolveJiraConnection}. The poller queries the projects of the profiles bound
+ * to the source.
  *
  * @throws ZodError when the connection fails the JIRA schema; Error when the source's credentials are unset.
  */
@@ -63,10 +73,7 @@ export function createJiraDataSource(scope: AwilixContainer<DataSourceCradle>): 
   const w = wiring<JiraSourceCradle>();
   const registrations: Registrations<Omit<JiraSourceCradle, keyof DataSourceCradle>> = {
     jiraConnection: w
-      .factory(({ sourceKey, dataSourceConfig }) => ({
-        ...jiraConnectionSchema.parse(dataSourceConfig.connection),
-        ...resolveJiraCredentials(sourceKey),
-      }))
+      .factory(({ sourceKey, dataSourceConfig }) => resolveJiraConnection(sourceKey, dataSourceConfig))
       .scoped(),
     excludeFields: w.factory(({ jiraConnection }) => [...jiraConnection.excludeFields]).scoped(),
     allowedUsers: w.factory(({ jiraConnection }) => jiraConnection.allowedUsers).scoped(),

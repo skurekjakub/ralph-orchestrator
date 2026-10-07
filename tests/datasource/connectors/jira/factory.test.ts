@@ -1,6 +1,6 @@
 import { asValue, createContainer, InjectionMode, type AwilixContainer } from "awilix";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createJiraDataSource } from "../../../../src/datasource/connectors/jira/factory";
+import { createJiraDataSource, resolveJiraConnection } from "../../../../src/datasource/connectors/jira/factory";
 import type { DataSourceCradle } from "../../../../src/awilix-cradle-types";
 import type { IAgentProfile, IDataSourceConfig } from "../../../../src/config/types";
 import type { Logger } from "../../../../src/logger";
@@ -36,18 +36,48 @@ function stubJiraSearch() {
   return fetchMock;
 }
 
-describe("createJiraDataSource", () => {
-  beforeEach(() => {
-    for (const k of JIRA_ENV_KEYS) savedEnv[k] = process.env[k];
-    process.env.JIRA_PAT_TEST_SOURCE = "env-jira-pat";
-    process.env.JIRA_EMAIL_TEST_SOURCE = "jira-user@example.com";
-  });
+beforeEach(() => {
+  for (const k of JIRA_ENV_KEYS) savedEnv[k] = process.env[k];
+  process.env.JIRA_PAT_TEST_SOURCE = "env-jira-pat";
+  process.env.JIRA_EMAIL_TEST_SOURCE = "jira-user@example.com";
+});
 
+afterEach(() => {
+  for (const [k, v] of Object.entries(savedEnv)) {
+    if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
+});
+
+describe("resolveJiraConnection", () => {
+  it("adds the source's credentials from the environment to the validated connection", () => {
+    // Arrange
+    const dataSourceConfig = makeDataSourceConfig({
+      connection: {
+        baseUrl: "https://api.atlassian.com/ex/jira",
+        cloudId: "c-1",
+        email: "config@example.com",
+        apiToken: "config-token",
+      },
+    });
+
+    // Act
+    const connection = resolveJiraConnection("test-source", dataSourceConfig);
+
+    // Assert
+    expect(connection).toEqual({
+      baseUrl: "https://api.atlassian.com/ex/jira",
+      cloudId: "c-1",
+      excludeFields: [],
+      allowedUsers: [],
+      email: "jira-user@example.com",
+      apiToken: "env-jira-pat",
+    });
+  });
+});
+
+describe("createJiraDataSource", () => {
   afterEach(() => {
-    for (const [k, v] of Object.entries(savedEnv)) {
-      if (v === undefined) delete process.env[k];
-      else process.env[k] = v;
-    }
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });
