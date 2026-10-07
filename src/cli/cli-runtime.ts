@@ -81,6 +81,12 @@ export interface ICliRuntime {
   readonly agentWriter: IAgentFileWriter;
   /** What the CLI calls the tools agent templates and skills name in prose (`{{ cliTools.subagent }}`). */
   readonly toolNames: CliToolNames;
+  /**
+   * Whether the container sees each rendered agent file and skill directory through its own bind mount,
+   * fixed at compose up, rather than the build directories whole. Every item such a mount names must then
+   * exist before the containers start and stay in place while they run.
+   */
+  readonly mountsEachRenderedItem: boolean;
   /** Domains the CLI itself reaches (its model API), added to the task's Squid allowlist. */
   readonly egressDomains: readonly string[];
   /**

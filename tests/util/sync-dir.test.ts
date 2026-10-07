@@ -55,6 +55,22 @@ describe("syncDirectory", () => {
     expect(await readFile(join(target, "keep.md"), "utf-8")).toBe("new");
   });
 
+  it("keeps entries the source does not have when not pruning, updating the others in place", async () => {
+    // Arrange
+    await writeTree(target, { "other-stage.md": "kept", "gone/SKILL.md": "kept", "agent.md": "old" });
+    await writeTree(source, { "agent.md": "new" });
+    const inode = (await stat(join(target, "agent.md"))).ino;
+
+    // Act
+    await syncDirectory(source, target, { prune: false });
+
+    // Assert
+    expect((await readdir(target)).sort()).toEqual(["agent.md", "gone", "other-stage.md"]);
+    expect(await readFile(join(target, "gone", "SKILL.md"), "utf-8")).toBe("kept");
+    expect(await readFile(join(target, "agent.md"), "utf-8")).toBe("new");
+    expect((await stat(join(target, "agent.md"))).ino).toBe(inode);
+  });
+
   it("overwrites a changed file in place, keeping its inode for file bind mounts", async () => {
     // Arrange
     await writeTree(target, { "agent.md": "old" });

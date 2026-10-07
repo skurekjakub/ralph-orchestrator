@@ -65,4 +65,6 @@ export interface AgentRenderTarget {
   readonly rootAgentFileId: string;
   /** Host directory that receives the rendered agent files; synced in place, its own inode kept. */
   readonly outDir: string;
+  /** Whether files in `outDir` that this render does not write are removed. */
+  readonly prune: boolean;
 }

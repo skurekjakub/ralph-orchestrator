@@ -63,6 +63,8 @@ export interface RenderSkillsInput {
   readonly context: TemplateContext;
   /** Directory that receives one rendered folder per skill; synced in place, its own inode kept. */
   readonly outDir: string;
+  /** Whether skill folders in `outDir` that are not in `skillNames` are removed. */
+  readonly prune: boolean;
   readonly logger?: Logger;
 }
 
@@ -71,13 +73,13 @@ export interface RenderSkillsInput {
  *
  * Each skill folder is copied whole, then its `.md` files are rendered through Liquid with partials
  * from both `skillsDir` and `includesDir`; other files are copied unchanged. The output is staged
- * and synced, so `outDir` keeps its inode and skills not in `skillNames` are removed from it. A
- * skill that does not exist is skipped with a warning.
+ * and synced, so `outDir` and each kept skill folder keep their inodes, and with `prune` skills not in
+ * `skillNames` are removed from it. A skill that does not exist is skipped with a warning.
  *
  * @throws Error when a skill name matches more than one folder or a Liquid template fails.
  */
 export async function renderSkills(input: RenderSkillsInput): Promise<void> {
-  const { skillsDir, skillNames, includesDir, context, outDir, logger } = input;
+  const { skillsDir, skillNames, includesDir, context, outDir, prune, logger } = input;
   const available = discoverSkills(skillsDir);
   const engine = createTemplateEngine([skillsDir, includesDir]);
 
@@ -101,20 +103,28 @@ export async function renderSkills(input: RenderSkillsInput): Promise<void> {
         logger?.info(`  → skill ${relative(staging, filePath)}: rendered`);
       }
     }
-    await syncDirectory(staging, outDir);
+    await syncDirectory(staging, outDir, { prune });
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
 }
 
+/** Where one render's skills go. */
+export interface SkillRenderTarget {
+  /** The profile's skills build directory. */
+  readonly outDir: string;
+  /** Whether skill folders the render does not write are removed. */
+  readonly prune: boolean;
+}
+
 /** Public contract for JIT skill template rendering. */
 export interface ISkillTemplateRenderer {
   /**
-   * Render `context.skills` into `outDir`, removing any other skill folder there.
+   * Render `context.skills` into `target.outDir`, removing any other skill folder there when `target.prune`.
    *
    * @throws Error when rendering fails (see {@link renderSkills}).
    */
-  render(context: TemplateContext, outDir: string, logger?: Logger): Promise<void>;
+  render(context: TemplateContext, target: SkillRenderTarget, logger?: Logger): Promise<void>;
 }
 
 /**
@@ -127,7 +137,7 @@ export interface ISkillTemplateRenderer {
 export class SkillTemplateRenderer implements ISkillTemplateRenderer {
   constructor() {}
 
-  async render(context: TemplateContext, outDir: string, logger?: Logger): Promise<void> {
+  async render(context: TemplateContext, { outDir, prune }: SkillRenderTarget, logger?: Logger): Promise<void> {
     const root = process.cwd();
     const skillsDir = resolve(root, "shared/skills");
     const includesDir = resolve(root, "shared/agent-includes");
@@ -138,6 +148,6 @@ export class SkillTemplateRenderer implements ISkillTemplateRenderer {
     }
 
     logger?.info(`Rendering ${context.skills.length} skill template(s)`);
-    await renderSkills({ skillsDir, skillNames: context.skills, includesDir, context, outDir, logger });
+    await renderSkills({ skillsDir, skillNames: context.skills, includesDir, context, outDir, prune, logger });
   }
 }

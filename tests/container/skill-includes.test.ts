@@ -45,7 +45,7 @@ async function writeSkillFiles(files: Record<string, string>): Promise<void> {
 
 /** renderSkills input for `skillNames` with `context`. */
 function input(skillNames: string[], context: Partial<TemplateContext> = {}): RenderSkillsInput {
-  return { skillsDir, skillNames, includesDir, context: makeTemplateContext(context), outDir };
+  return { skillsDir, skillNames, includesDir, context: makeTemplateContext(context), outDir, prune: true };
 }
 
 describe("renderSkills", () => {
@@ -142,6 +142,21 @@ describe("renderSkills", () => {
     expect((await stat(outDir)).ino).toBe(inodeBefore);
   });
 
+  it("keeps skills of an earlier render when not pruning, rewriting a kept skill in place", async () => {
+    // Arrange
+    await writeSkillFiles({ "skill-a/SKILL.md": "A for {{ taskId }}", "skill-b/SKILL.md": "B" });
+    await renderSkills(input(["skill-a", "skill-b"], { taskId: "DOC-1" }));
+    const inodeBefore = (await stat(join(outDir, "skill-a"))).ino;
+
+    // Act
+    await renderSkills({ ...input(["skill-a"], { taskId: "DOC-2" }), prune: false });
+
+    // Assert
+    expect((await readdir(outDir)).sort()).toEqual(["skill-a", "skill-b"]);
+    expect(await readFile(join(outDir, "skill-a", "SKILL.md"), "utf-8")).toBe("A for DOC-2");
+    expect((await stat(join(outDir, "skill-a"))).ino).toBe(inodeBefore);
+  });
+
   it("empties outDir when the stage mounts no skills", async () => {
     // Arrange
     await writeSkillFiles({ "skill-a/SKILL.md": "A" });
@@ -232,7 +247,10 @@ describe("SkillTemplateRenderer", () => {
     await writeSkillFiles({ "test-skill/SKILL.md": "Skill for {{ taskId }}" });
 
     // Act
-    await new SkillTemplateRenderer().render(makeTemplateContext({ taskId: "DOC-55", skills: ["test-skill"] }), outDir);
+    await new SkillTemplateRenderer().render(makeTemplateContext({ taskId: "DOC-55", skills: ["test-skill"] }), {
+      outDir,
+      prune: true,
+    });
 
     // Assert
     expect(await readFile(join(outDir, "test-skill", "SKILL.md"), "utf-8")).toBe("Skill for DOC-55");
@@ -244,7 +262,7 @@ describe("SkillTemplateRenderer", () => {
     const logger = createMockLogger();
 
     // Act
-    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["any"] }), outDir, logger);
+    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["any"] }), { outDir, prune: true }, logger);
 
     // Assert
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
@@ -256,7 +274,11 @@ describe("SkillTemplateRenderer", () => {
     const logger = createMockLogger();
 
     // Act
-    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["test-skill"] }), outDir, logger);
+    await new SkillTemplateRenderer().render(
+      makeTemplateContext({ skills: ["test-skill"] }),
+      { outDir, prune: true },
+      logger,
+    );
 
     // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 skill template"));

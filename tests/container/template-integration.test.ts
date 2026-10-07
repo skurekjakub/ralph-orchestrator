@@ -90,7 +90,7 @@ async function renderStage(
     catalog,
     includesDir: INCLUDES_DIR,
     context: scope,
-    target: { cli, rootAgentFileId: rootFileId, outDir },
+    target: { cli, rootAgentFileId: rootFileId, outDir, prune: true },
     writer: runtime.agentWriter,
     mcpTools: {},
   });
@@ -333,7 +333,14 @@ function collectAllSkillNames(): string[] {
 /** Renders `skills` with `context` into a fresh directory and returns it. */
 async function renderSkillsTo(skills: string[], context: TemplateContext): Promise<string> {
   const outDir = await mkdtemp(join(outRoot, "skills-"));
-  await renderSkills({ skillsDir: SKILLS_DIR, skillNames: skills, includesDir: INCLUDES_DIR, context, outDir });
+  await renderSkills({
+    skillsDir: SKILLS_DIR,
+    skillNames: skills,
+    includesDir: INCLUDES_DIR,
+    context,
+    outDir,
+    prune: true,
+  });
   return outDir;
 }
 

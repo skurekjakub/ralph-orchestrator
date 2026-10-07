@@ -126,7 +126,9 @@ Each stage references an agent by name (e.g. `ralph.ralph-researcher`). The corr
 
 ### Per-stage rendering
 
-Templates are re-rendered before each stage with stage-specific context. This ensures each agent sees correct metadata for its position in the pipeline. The rendered files in `.build/` are updated in-place — container stages see the changes immediately via bind mounts.
+Templates are re-rendered before each stage with stage-specific context, so each agent sees correct metadata for its position in the pipeline. Before the containers start, `ProfileSetupService.prepareForTask` renders the agents of the first stage and of every container stage, so every agent file the compose overlay mounts exists. Renders rewrite the files in `.build/` in place, so container stages see the changes through their bind mounts.
+
+Copilot CLI mounts each agent file and skill directory into the target repo's `.github/` one by one (`ICliRuntime.mountsEachRenderedItem`). While a variant with a Copilot container stage runs, renders therefore keep every rendered file in place. Claude Code mounts its agents directory whole, so each stage's render removes the agents its root cannot reach. Post-task hook stages render after teardown and always prune.
 
 ### Stage context variables
 
@@ -238,11 +240,11 @@ profiles/<id>/
   setup.sh
 ```
 
-All agent templates are rendered per-stage — even templates for inactive stages are re-rendered (the CLI only loads the active agent's file). This ensures all shared partials get fresh stage context.
+Each stage renders the agents its root can reach, with that stage's context, so shared partials get fresh stage context.
 
 ### Skill deployment
 
-Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer syncs `profiles/<id>/.build/skills/` in place, so only the current stage's skills are available and existing bind mounts keep working.
+Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer syncs `profiles/<id>/.build/skills/` in place, so existing bind mounts keep working. Claude Code mounts that directory whole, so a stage sees only its own skills, unless the variant also runs Copilot CLI in the container: Copilot mounts each skill directory one by one, and while such a variant runs the renders keep every skill directory in place.
 
 There is no profile-level `skills` field. The variant's container mounts the union of all its stages' skills, but each stage renders only its own list: a stage that declares no skills (`"skills": []`) gets an empty skill set.
 

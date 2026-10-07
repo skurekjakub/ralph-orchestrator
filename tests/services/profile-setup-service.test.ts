@@ -64,9 +64,45 @@ describe("ProfileSetupService", () => {
       expect(templateRenderer.render).toHaveBeenCalledWith(
         "docs",
         expect.objectContaining({ taskId: ctx.workItem.id, profileId: "docs", agentName: "ralph.ralph" }),
-        { cli: CliType.Claude, rootAgentFileId: "ralph.ralph", outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude) },
+        {
+          cli: CliType.Claude,
+          rootAgentFileId: "ralph.ralph",
+          outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude),
+          prune: true,
+        },
         expect.anything(),
       );
+    });
+
+    it("renders every container stage's agents before the containers start, pruning each CLI's directory once", async () => {
+      // Arrange
+      const { service, templateRenderer } = createService();
+      const profile = makeProfile({
+        id: "docs",
+        stages: [
+          makeStage({ agent: "ralph.ralph", role: "writer", mode: StageMode.Local }),
+          makeStage({ agent: "ralph.malph", role: "reviewer", cli: CliType.Claude }),
+          makeStage({ agent: "ralph.editor", role: "editor" }),
+          makeStage({ agent: "ralph.notes", role: "notes", mode: StageMode.Local }),
+        ],
+      });
+
+      // Act
+      await service.prepareForTask(makeTaskContext({ profile }));
+
+      // Assert
+      const renders = templateRenderer.render.mock.calls.map(([, context, target]) => ({
+        agentName: context.agentName,
+        stageIndex: context.stageIndex,
+        cli: target.cli,
+        root: target.rootAgentFileId,
+        prune: target.prune,
+      }));
+      expect(renders).toEqual([
+        { agentName: "ralph.ralph", stageIndex: 0, cli: CliType.Copilot, root: "ralph.ralph", prune: true },
+        { agentName: "ralph.malph", stageIndex: 1, cli: CliType.Claude, root: "ralph.malph", prune: true },
+        { agentName: "ralph.editor", stageIndex: 2, cli: CliType.Copilot, root: "ralph.editor", prune: false },
+      ]);
     });
 
     it("renders the variant's skills into the profile's skills build directory", async () => {
@@ -80,7 +116,7 @@ describe("ProfileSetupService", () => {
       // Assert
       expect(skillRenderer.render).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["a", "b"] }),
-        DOCS_PATHS.skillsBuildDir,
+        { outDir: DOCS_PATHS.skillsBuildDir, prune: true },
         expect.anything(),
       );
     });
@@ -122,10 +158,12 @@ describe("ProfileSetupService", () => {
       previousStageRoles: ["primary"] as string[],
     };
 
-    it("renders the stage's agents for its CLI and its own skills", async () => {
+    it("renders the stage's agents for its CLI and its own skills, pruning both in a Claude Code variant", async () => {
       // Arrange
       const { service, templateRenderer, skillRenderer } = createService();
-      const ctx = makeTaskContext({ profile: makeProfile({ id: "docs" }) });
+      const ctx = makeTaskContext({
+        profile: makeProfile({ id: "docs", stages: [makeStage({ cli: CliType.Claude })] }),
+      });
 
       // Act
       await service.prepareForStage(ctx, stageOverrides);
@@ -134,14 +172,69 @@ describe("ProfileSetupService", () => {
       expect(templateRenderer.render).toHaveBeenCalledWith(
         "docs",
         expect.anything(),
-        { cli: CliType.Claude, rootAgentFileId: "ralph.scientist", outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude) },
+        {
+          cli: CliType.Claude,
+          rootAgentFileId: "ralph.scientist",
+          outDir: agentsBuildDir(DOCS_PATHS, CliType.Claude),
+          prune: true,
+        },
         expect.anything(),
       );
       expect(skillRenderer.render).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["review"] }),
-        DOCS_PATHS.skillsBuildDir,
+        { outDir: DOCS_PATHS.skillsBuildDir, prune: true },
         expect.anything(),
       );
+    });
+
+    describe("with a Copilot container stage, whose agent files are mounted one by one", () => {
+      const copilotStage = makeStage({ agent: "ralph.malph", role: "reviewer" });
+      const profile = makeProfile({ id: "docs", stages: [makeStage({ agent: "ralph.ralph" }), copilotStage] });
+      const overrides = { stage: copilotStage, stageIndex: 1, stageCount: 2, previousStageRoles: ["primary"] };
+
+      it("keeps every rendered Copilot agent and skill in place while the containers run", async () => {
+        // Arrange
+        const { service, templateRenderer, skillRenderer } = createService();
+
+        // Act
+        await service.prepareForStage(makeTaskContext({ profile }), overrides);
+
+        // Assert
+        expect(templateRenderer.render.mock.calls[0][2]).toMatchObject({ cli: CliType.Copilot, prune: false });
+        expect(skillRenderer.render.mock.calls[0][1]).toEqual({ outDir: DOCS_PATHS.skillsBuildDir, prune: false });
+      });
+
+      it("prunes for a post-task hook stage, which runs after teardown", async () => {
+        // Arrange
+        const { service, templateRenderer, skillRenderer } = createService();
+        const hookStage = makeStage({ agent: "ralph.scientist", role: "scientist", mode: StageMode.Local });
+
+        // Act
+        await service.prepareForStage(makeTaskContext({ profile }), {
+          stage: hookStage,
+          stageIndex: 0,
+          stageCount: 1,
+          previousStageRoles: [],
+          hook: { collectedLogs: {}, name: "analysis", outputDir: "/out/hooks/analysis" },
+        });
+
+        // Assert
+        expect(templateRenderer.render.mock.calls[0][2]).toMatchObject({ cli: CliType.Copilot, prune: true });
+        expect(skillRenderer.render.mock.calls[0][1]).toMatchObject({ prune: true });
+      });
+
+      it("prunes a Claude Code stage's agents, whose directory is mounted whole, but keeps the shared skills", async () => {
+        // Arrange
+        const { service, templateRenderer, skillRenderer } = createService();
+        const claudeStage = makeStage({ agent: "ralph.editor", cli: CliType.Claude });
+
+        // Act
+        await service.prepareForStage(makeTaskContext({ profile }), { ...overrides, stage: claudeStage });
+
+        // Assert
+        expect(templateRenderer.render.mock.calls[0][2]).toMatchObject({ cli: CliType.Claude, prune: true });
+        expect(skillRenderer.render.mock.calls[0][1]).toMatchObject({ prune: false });
+      });
     });
 
     it("propagates a rendering failure", async () => {

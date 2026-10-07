@@ -29,6 +29,7 @@ describe("CopilotRuntime", () => {
   it("writes agents in the Copilot format and names Copilot's tools", () => {
     // Act & Assert
     expect(runtime.agentWriter).toBeInstanceOf(CopilotAgentWriter);
+    expect(runtime.mountsEachRenderedItem).toBe(true);
     expect(runtime.toolNames).toEqual({
       subagent: "task",
       skill: "skill",

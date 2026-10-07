@@ -270,10 +270,16 @@ export function createTemplateEngine(roots: readonly string[]): Liquid {
 /**
  * The render target of `stage`: its CLI, its root agent and the profile's build directory for that CLI
  * under the orchestrator's working directory.
+ *
+ * @param options.prune Whether the render removes the files of agents the stage cannot reach.
  */
-export function stageRenderTarget(profileId: string, stage: IStageConfig): AgentRenderTarget {
+export function stageRenderTarget(
+  profileId: string,
+  stage: IStageConfig,
+  { prune }: { prune: boolean },
+): AgentRenderTarget {
   const outDir = agentsBuildDir(profileBuildPaths(process.cwd(), profileId), stage.cli);
-  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir };
+  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir, prune };
 }
 
 /**
@@ -306,7 +312,8 @@ export interface RenderAgentsInput {
  *
  * Each agent's Liquid body is rendered with `context` plus its own {@link AgentSelf} as `self`, then
  * serialised by `writer`. The output is staged and synced, so `outDir` keeps its
- * inode and unreachable agents from an earlier render are removed.
+ * inode, a rewritten file keeps its inode too, and with `target.prune` the files of agents an earlier
+ * render wrote that this root cannot reach are removed.
  *
  * @returns The file names written, root agent first.
  * @throws Error when the root agent does not exist, a Liquid template fails, or a reachable agent
@@ -339,7 +346,7 @@ export async function renderAgents(input: RenderAgentsInput): Promise<string[]> 
       written.push(file.fileName);
       logger?.info(`  → ${file.fileName}: rendered for ${target.cli}`);
     }
-    await syncDirectory(staging, target.outDir);
+    await syncDirectory(staging, target.outDir, { prune: target.prune });
     return written;
   } finally {
     await rm(staging, { recursive: true, force: true });

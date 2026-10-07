@@ -32,6 +32,7 @@ describe("ClaudeCodeRuntime", () => {
 
     // Act & Assert
     expect(runtime.agentWriter).toBeInstanceOf(ClaudeAgentWriter);
+    expect(runtime.mountsEachRenderedItem).toBe(false);
     expect(runtime.toolNames).toEqual({
       subagent: "Agent",
       skill: "Skill",

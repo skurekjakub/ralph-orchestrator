@@ -52,9 +52,6 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
         break;
       }
 
-      // Re-render templates with stage-specific context so each agent sees
-      // correct stageRole, stageMode, stageIndex, skills, etc. Bind-mounted
-      // .build/ files update in-place for container stages.
       if (stages.length > 1) {
         this.logger.info(`${stageLabel}: rendering stage templates...`);
         await this.profileSetup.prepareForStage(ctx, {

@@ -223,6 +223,7 @@ export function createMockCliRuntime(
     credentials: { required: [] },
     agentWriter: { write: vi.fn().mockReturnValue(null) },
     toolNames: { subagent: "spawn", skill: "skill", shell: "sh", read: "read", askUser: "ask" },
+    mountsEachRenderedItem: false,
     egressDomains: [],
     workspaceMountTargets: [],
     composeContribution: vi.fn().mockReturnValue({ volumes: [], env: {} }),

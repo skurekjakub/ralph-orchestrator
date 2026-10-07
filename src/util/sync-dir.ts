@@ -2,23 +2,31 @@ import { chmod, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/pr
 import { join } from "node:path";
 
 /**
- * Makes `target` an exact copy of `source` without replacing anything that stays.
+ * Makes `target` a copy of `source` without replacing anything that stays.
  *
  * Bind mounts pin inodes: a container keeps seeing a replaced file or directory as it was when it
  * was mounted. So `target` itself is never removed, an unchanged file is not touched, a changed file
- * is overwritten in place (same inode), and only entries absent from `source` are deleted. File
- * modes follow `source`, so rendered scripts stay executable. Symlinks in `source` are followed.
+ * is overwritten in place (same inode), and, when `prune` is on, entries absent from `source` are
+ * deleted. File modes follow `source`, so rendered scripts stay executable. Symlinks in `source` are
+ * followed.
  *
  * @param source Directory to copy from; must exist.
  * @param target Directory to update; created when missing.
+ * @param options.prune Whether entries of `target` absent from `source` are deleted (default on).
  * @throws Error when `source` cannot be read or `target` cannot be written.
  */
-export async function syncDirectory(source: string, target: string): Promise<void> {
+export async function syncDirectory(
+  source: string,
+  target: string,
+  { prune = true }: { prune?: boolean } = {},
+): Promise<void> {
   await mkdir(target, { recursive: true });
 
   const sourceNames = new Set(await readdir(source));
-  for (const name of await readdir(target)) {
-    if (!sourceNames.has(name)) await rm(join(target, name), { recursive: true, force: true });
+  if (prune) {
+    for (const name of await readdir(target)) {
+      if (!sourceNames.has(name)) await rm(join(target, name), { recursive: true, force: true });
+    }
   }
 
   for (const name of [...sourceNames].sort()) {
@@ -29,7 +37,7 @@ export async function syncDirectory(source: string, target: string): Promise<voi
 
     if (fromStat.isDirectory()) {
       if (toStat && !toStat.isDirectory()) await rm(to, { force: true });
-      await syncDirectory(from, to);
+      await syncDirectory(from, to, { prune });
       continue;
     }
 

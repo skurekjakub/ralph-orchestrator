@@ -63,7 +63,7 @@ async function setupAgents(
     catalog: await AgentCatalog.load(agentsDir),
     includesDir,
     context: makeTemplateContext({ cli, taskId: "DOC-7" }),
-    target: { cli, rootAgentFileId: options.root ?? "ralph.root", outDir: join(tmpDir, "out") },
+    target: { cli, rootAgentFileId: options.root ?? "ralph.root", outDir: join(tmpDir, "out"), prune: true },
     writer: RUNTIMES.get(cli).agentWriter,
     mcpTools: {},
   };
@@ -173,6 +173,34 @@ describe("renderAgents", () => {
     expect((await stat(input.target.outDir)).ino).toBe(inodeBefore);
   });
 
+  it("keeps the files an earlier render wrote when not pruning, rewriting shared ones in place", async () => {
+    // Arrange
+    const input = await setupAgents({
+      "ralph.root": makeAgentTemplate("root", { subagents: ["helper"] }),
+      "ralph.helper": makeAgentTemplate("helper", { body: "Helper of {{ agentName }}\n" }),
+      "ralph.reviewer": makeAgentTemplate("reviewer", { subagents: ["helper"] }),
+    });
+    await renderAgents({ ...input, context: makeTemplateContext({ agentName: "ralph.root" }) });
+    const helperPath = join(input.target.outDir, "ralph.helper.agent.md");
+    const helperInode = (await stat(helperPath)).ino;
+
+    // Act
+    await renderAgents({
+      ...input,
+      context: makeTemplateContext({ agentName: "ralph.reviewer" }),
+      target: { ...input.target, rootAgentFileId: "ralph.reviewer", prune: false },
+    });
+
+    // Assert
+    expect((await readdir(input.target.outDir)).sort()).toEqual([
+      "ralph.helper.agent.md",
+      "ralph.reviewer.agent.md",
+      "ralph.root.agent.md",
+    ]);
+    expect(await readFile(helperPath, "utf-8")).toContain("Helper of ralph.reviewer");
+    expect((await stat(helperPath)).ino).toBe(helperInode);
+  });
+
   it("throws when a reachable agent does not run on the target CLI", async () => {
     // Arrange
     const input = await setupAgents(
@@ -259,13 +287,14 @@ describe("stageRenderTarget", () => {
     const stage = makeStage({ agent: "ralph.scientist", cli: CliType.Claude, mode: StageMode.Local });
 
     // Act
-    const target = stageRenderTarget("ralph-docs", stage);
+    const target = stageRenderTarget("ralph-docs", stage, { prune: true });
 
     // Assert
     expect(target).toEqual({
       cli: CliType.Claude,
       rootAgentFileId: "ralph.scientist",
       outDir: join(process.cwd(), "profiles", "ralph-docs", ".build", "claude", "agents"),
+      prune: true,
     });
   });
 });
@@ -294,7 +323,7 @@ describe("AgentTemplateRenderer", () => {
         body: "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}",
       }),
     });
-    const target = stageRenderTarget("my-profile", makeStage({ agent: "ralph.root" }));
+    const target = stageRenderTarget("my-profile", makeStage({ agent: "ralph.root" }), { prune: true });
     const context = makeTemplateContext({
       profileId: "my-profile",
       repo: "/my/repo",
@@ -318,7 +347,9 @@ describe("AgentTemplateRenderer", () => {
       join(tmpDir, "shared", "mcp-servers", "jira", "mcp-server.json"),
       JSON.stringify({ name: "jira", command: "node", args: [], sidecarPort: 9100, tools: ["jira_add_comment"] }),
     );
-    const target = stageRenderTarget("mcp-profile", makeStage({ agent: "ralph.root", cli: CliType.Claude }));
+    const target = stageRenderTarget("mcp-profile", makeStage({ agent: "ralph.root", cli: CliType.Claude }), {
+      prune: true,
+    });
 
     // Act
     await renderer().render("mcp-profile", makeTemplateContext({ cli: CliType.Claude, mcpServers: ["jira"] }), target);
@@ -333,7 +364,11 @@ describe("AgentTemplateRenderer", () => {
 
     // Act & Assert
     await expect(
-      renderer().render("my-profile", makeTemplateContext(), stageRenderTarget("my-profile", makeStage())),
+      renderer().render(
+        "my-profile",
+        makeTemplateContext(),
+        stageRenderTarget("my-profile", makeStage(), { prune: true }),
+      ),
     ).rejects.toThrow(`Agent includes directory not found: ${join(tmpDir, "shared", "agent-includes")}`);
   });
 
@@ -344,7 +379,11 @@ describe("AgentTemplateRenderer", () => {
 
     // Act & Assert
     await expect(
-      renderer().render("empty-profile", makeTemplateContext(), stageRenderTarget("empty-profile", makeStage())),
+      renderer().render(
+        "empty-profile",
+        makeTemplateContext(),
+        stageRenderTarget("empty-profile", makeStage(), { prune: true }),
+      ),
     ).rejects.toThrow(/Profile empty-profile has no agents directory/);
   });
 
@@ -359,7 +398,7 @@ describe("AgentTemplateRenderer", () => {
       renderer().render(
         "legacy",
         makeTemplateContext(),
-        stageRenderTarget("legacy", makeStage({ agent: "ralph.root" })),
+        stageRenderTarget("legacy", makeStage({ agent: "ralph.root" }), { prune: true }),
       ),
     ).rejects.toBeInstanceOf(AgentDefinitionError);
   });
@@ -373,7 +412,7 @@ describe("AgentTemplateRenderer", () => {
     await renderer().render(
       "test-profile",
       makeTemplateContext(),
-      stageRenderTarget("test-profile", makeStage({ agent: "ralph.root" })),
+      stageRenderTarget("test-profile", makeStage({ agent: "ralph.root" }), { prune: true }),
       logger,
     );
 

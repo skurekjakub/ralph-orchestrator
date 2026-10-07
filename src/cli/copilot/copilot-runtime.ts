@@ -29,6 +29,7 @@ export class CopilotRuntime implements ICliRuntime {
   readonly credentials = COPILOT_CREDENTIALS;
   readonly agentWriter = new CopilotAgentWriter();
   readonly toolNames = COPILOT_TOOL_NAMES;
+  readonly mountsEachRenderedItem = true;
   readonly egressDomains = [".githubcopilot.com", "api.github.com", "github.com"];
   /**
    * The agents and skills directories count whole: the mount points Docker leaves behind in them outlive
