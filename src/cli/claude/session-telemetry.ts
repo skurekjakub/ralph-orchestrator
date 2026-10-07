@@ -41,6 +41,7 @@ function spanOf(thread: SessionThread, placement: SpanPlacement, spawned: Readon
   const toolCalls: ToolCallSpan[] = [];
   const apiErrors: { ts?: number; kind: string }[] = [];
   const compactions: { ts?: number; trigger?: string }[] = [];
+  const hookFeedback: { ts?: number; hook: string }[] = [];
   let modelCalls = 0;
   for (const event of thread.events) {
     switch (event.kind) {
@@ -70,6 +71,9 @@ function spanOf(thread: SessionThread, placement: SpanPlacement, spawned: Readon
           ...(event.trigger === undefined ? {} : { trigger: event.trigger }),
         });
         break;
+      case SessionEventKind.HookFeedback:
+        hookFeedback.push({ ...(event.ts === undefined ? {} : { ts: event.ts }), hook: event.hook });
+        break;
     }
   }
 
@@ -82,6 +86,7 @@ function spanOf(thread: SessionThread, placement: SpanPlacement, spawned: Readon
     toolCalls,
     apiErrors,
     compactions,
+    hookFeedback,
   };
 }
 
@@ -132,8 +137,8 @@ function sessionSpans(session: ClaudeSession): AgentSpan[] {
 
 /**
  * Telemetry of Claude Code sessions: one span per main thread and subagent, with its models, model calls,
- * tool calls and their durations and errors, API errors and compactions. Token usage and cost are not
- * recorded.
+ * tool calls and their durations and errors, API errors, compactions and hook feedback. Token usage and
+ * cost are not recorded.
  */
 export function extractClaudeTelemetry(sessions: readonly ClaudeSession[]): RunTelemetry {
   const spans = sessions.flatMap(sessionSpans);
@@ -156,6 +161,7 @@ export function extractClaudeTelemetry(sessions: readonly ClaudeSession[]): RunT
       modelCalls: sum((s) => s.modelCalls),
       apiErrors: sum((s) => s.apiErrors.length),
       compactions: sum((s) => s.compactions.length),
+      hookFeedback: sum((s) => s.hookFeedback.length),
       malformedLines,
       ...(range && { durationMs: range.end - range.start }),
     },

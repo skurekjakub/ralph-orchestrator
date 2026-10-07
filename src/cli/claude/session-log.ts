@@ -5,7 +5,7 @@ import { toolResultText } from "./message-content";
 
 /** What one entry of a Claude Code session log contributes to the conversation. */
 export enum SessionEventKind {
-  /** A prompt or other text the session received as the user: the task, a continuation, hook feedback. */
+  /** A prompt the session received as the user: the task or a continuation. */
   Prompt = "prompt",
   /** The first line of a model response; one response spans several lines, one per content block. */
   ModelResponse = "model-response",
@@ -17,6 +17,8 @@ export enum SessionEventKind {
   ApiError = "api-error",
   /** The CLI compacted the context. */
   Compaction = "compaction",
+  /** The reason a hook gave the model for blocking it, such as the result gate's when a stop lacks the result block. */
+  HookFeedback = "hook-feedback",
 }
 
 /** Epoch milliseconds of the entry, when it carries a valid timestamp. */
@@ -67,9 +69,23 @@ export interface CompactionEvent extends TimedEvent {
   readonly trigger?: string;
 }
 
+export interface HookFeedbackEvent extends TimedEvent {
+  readonly kind: SessionEventKind.HookFeedback;
+  /** The hook event whose hook gave the feedback, e.g. `Stop`. */
+  readonly hook: string;
+  readonly text: string;
+}
+
 /** One conversation event of a session log, in log order. */
 export type SessionEvent =
-  PromptEvent | ModelResponseEvent | TextEvent | ToolCallEvent | ToolResultEvent | ApiErrorEvent | CompactionEvent;
+  | PromptEvent
+  | ModelResponseEvent
+  | TextEvent
+  | ToolCallEvent
+  | ToolResultEvent
+  | ApiErrorEvent
+  | CompactionEvent
+  | HookFeedbackEvent;
 
 /** The events of one log file. */
 export interface SessionThread {
@@ -103,6 +119,12 @@ export interface ClaudeSession extends SessionThread {
 
 /** Model name Claude Code gives the responses it makes up itself, such as an API error. */
 const SYNTHETIC_MODEL = "<synthetic>";
+
+/**
+ * How Claude Code 2.1.292 opens the meta user entry that hands a blocking hook's reason to the model
+ * (`Stop hook feedback:` and the reason on the next line); its `hook_blocking_error` attachment repeats it.
+ */
+const HOOK_FEEDBACK_PREFIX = /^([A-Za-z]+) hook feedback:\n/;
 
 function timestampOf(entry: JsonRecord): number | undefined {
   const parsed = Date.parse(asString(entry.timestamp) ?? "");
@@ -153,9 +175,18 @@ function assistantEvents(entry: JsonRecord, ts: number | undefined, seenMessages
   return events;
 }
 
+/** The hook feedback a meta user entry carries; other meta entries, such as injected skill text, carry none. */
+function hookFeedbackEvents(content: unknown, ts: number | undefined): SessionEvent[] {
+  if (typeof content !== "string") return [];
+  const match = HOOK_FEEDBACK_PREFIX.exec(content);
+  if (match === null) return [];
+  return [{ kind: SessionEventKind.HookFeedback, ts, hook: match[1], text: content.slice(match[0].length) }];
+}
+
 function userEvents(entry: JsonRecord, ts: number | undefined): SessionEvent[] {
-  if (entry.isMeta === true || entry.isCompactSummary === true) return [];
   const content = asRecord(entry.message)?.content;
+  if (entry.isMeta === true) return hookFeedbackEvents(content, ts);
+  if (entry.isCompactSummary === true) return [];
   if (typeof content === "string") {
     return content.trim() === "" ? [] : [{ kind: SessionEventKind.Prompt, ts, text: content }];
   }
@@ -180,7 +211,8 @@ function userEvents(entry: JsonRecord, ts: number | undefined): SessionEvent[] {
 
 /**
  * Parses one session log file. Entries without conversation content (attachments, queue and title entries,
- * system notes other than compactions) are skipped, and so are lines that are not JSON objects, which are counted.
+ * meta entries other than hook feedback, system notes other than compactions) are skipped, and so are lines
+ * that are not JSON objects, which are counted.
  *
  * @returns The thread, plus the agent the log's agent setting names.
  */

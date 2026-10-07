@@ -64,7 +64,7 @@ describe("extractClaudeTelemetry", () => {
       expect(writer.toolCalls[0]).toMatchObject({ tool: "Write", durationMs: 250, isError: true });
     });
 
-    it("records each span's models, model calls, time range, compactions and API errors", async () => {
+    it("records each span's models, model calls, time range, compactions, hook feedback and API errors", async () => {
       // Arrange
       const sessions = await readClaudeSessions(SESSIONS);
 
@@ -79,6 +79,7 @@ describe("extractClaudeTelemetry", () => {
         endTs: at("06:01:10.000"),
         durationMs: 69_000,
         compactions: [{ ts: at("06:01:06.000"), trigger: "auto" }],
+        hookFeedback: [{ ts: at("06:01:08.002"), hook: "Stop" }],
       });
       expect(spans[4]).toMatchObject({
         models: [],
@@ -103,6 +104,7 @@ describe("extractClaudeTelemetry", () => {
         modelCalls: 8,
         apiErrors: 1,
         compactions: 1,
+        hookFeedback: 1,
         malformedLines: 1,
         durationMs: 300_000,
       });
@@ -144,6 +146,7 @@ describe("extractClaudeTelemetry", () => {
         toolCalls: [{ toolUseId: "t1", tool: "Bash" }],
         apiErrors: [],
         compactions: [],
+        hookFeedback: [],
       });
       expect(telemetry.totals).not.toHaveProperty("durationMs");
     });

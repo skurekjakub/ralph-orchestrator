@@ -2,7 +2,7 @@ import type { TranscriptLine } from "../../logs/transcript";
 import { isClaudeSubagentTool } from "./claude-tools";
 import { type ClaudeSession, type ClaudeSubagent, type SessionEvent, SessionEventKind } from "./session-log";
 
-/** Longest tool input or tool result quoted in the transcript. */
+/** Longest tool input, tool result or hook feedback quoted in the transcript. */
 const TOOL_IO_CHARS = 2000;
 
 /** Longest prompt quoted in the transcript; the task prompt carries the whole issue. */
@@ -67,6 +67,14 @@ function renderEvents(events: readonly SessionEvent[], spawned: ReadonlyMap<stri
       case SessionEventKind.Compaction:
         out.push(eventHeading(`Context compacted${event.trigger ? ` (${event.trigger})` : ""}`, event.ts), "");
         break;
+      case SessionEventKind.HookFeedback:
+        out.push(
+          eventHeading(`${event.hook} hook feedback`, event.ts),
+          "",
+          { quote: event.text, maxChars: TOOL_IO_CHARS, info: "text" },
+          "",
+        );
+        break;
       case SessionEventKind.ModelResponse:
         break;
     }
@@ -117,9 +125,10 @@ function renderSession(session: ClaudeSession): TranscriptLine[] {
 
 /**
  * Renders Claude Code sessions as the lines of one Markdown transcript: per session its main thread, then
- * each subagent in start order, with prompts, assistant text, tool calls and their results, API errors and
- * compactions. Prompts, tool input and tool output are quoted, to be cut once redacted. The text is the
- * agent's and the tools' own, so the lines become Markdown only through `redactTranscript`.
+ * each subagent in start order, with prompts, assistant text, tool calls and their results, API errors,
+ * compactions and hook feedback. Prompts, tool input and output and hook feedback are quoted, to be cut once
+ * redacted. The text is the agent's, the tools' and the hooks' own, so the lines become Markdown only
+ * through `redactTranscript`.
  */
 export function renderClaudeTranscript(sessions: readonly ClaudeSession[]): TranscriptLine[] {
   const out: TranscriptLine[] = ["# Claude Code transcript", ""];

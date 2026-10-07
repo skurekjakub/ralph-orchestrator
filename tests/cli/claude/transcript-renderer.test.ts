@@ -91,7 +91,7 @@ describe("renderClaudeTranscript", () => {
     );
   });
 
-  it("marks failed tool calls, API errors, compactions and skipped log lines", async () => {
+  it("marks failed tool calls, API errors, compactions, hook feedback and skipped log lines", async () => {
     // Arrange
     const sessions = await readClaudeSessions(SESSIONS);
 
@@ -104,6 +104,9 @@ describe("renderClaudeTranscript", () => {
       "#### API error (authentication_failed) · 06:05:01\n\nNot logged in · Please run /login",
     );
     expect(markdown).toContain("#### Context compacted (auto) · 06:01:06");
+    expect(markdown).toContain(
+      "#### Stop hook feedback · 06:01:08\n\n```text\nYou stopped before printing the Ralph result block.\n```",
+    );
     expect(markdown).toContain("- Unreadable log lines skipped: 1");
   });
 

@@ -1,8 +1,8 @@
 /**
  * Fixture `fixtures/claude-sessions/` is a hand-written collected sessions folder in the entry shapes of
  * Claude Code 2.1.292 session logs: a session whose main thread starts a writer subagent that starts a
- * reviewer, a subagent without metadata, a malformed line and a compaction, and a later session that
- * failed to authenticate.
+ * reviewer, a subagent without metadata, a malformed line, a compaction and the result gate's feedback,
+ * and a later session that failed to authenticate.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -34,7 +34,7 @@ describe("readClaudeSessions", () => {
     ]);
   });
 
-  it("keeps the main thread's conversation and skips attachments, meta entries and compaction summaries", async () => {
+  it("keeps the main thread's conversation and hook feedback, and skips attachments, other meta entries and compaction summaries", async () => {
     // Act
     const [main] = await readClaudeSessions(SESSIONS);
 
@@ -49,6 +49,7 @@ describe("readClaudeSessions", () => {
       SessionEventKind.ToolCall,
       SessionEventKind.ToolResult,
       SessionEventKind.Compaction,
+      SessionEventKind.HookFeedback,
       SessionEventKind.ModelResponse,
       SessionEventKind.Text,
     ]);
@@ -58,6 +59,12 @@ describe("readClaudeSessions", () => {
       text: "Document the widget for DF-1.",
     });
     expect(main.events[8]).toMatchObject({ kind: SessionEventKind.Compaction, trigger: "auto" });
+    expect(main.events[9]).toEqual({
+      kind: SessionEventKind.HookFeedback,
+      ts: Date.parse("2026-10-07T06:01:08.002Z"),
+      hook: "Stop",
+      text: "You stopped before printing the Ralph result block.",
+    });
   });
 
   it("counts the lines that are not JSON objects", async () => {
@@ -196,6 +203,27 @@ describe("parseSessionLog", () => {
     // Assert
     expect(events.filter((e) => e.kind === SessionEventKind.ModelResponse)).toEqual([
       { kind: SessionEventKind.ModelResponse, messageId: "msg_1", model: "claude-opus-5-5" },
+    ]);
+  });
+
+  it("reads hook feedback from a meta entry and skips every other meta entry", () => {
+    // Arrange
+    const jsonl = [
+      line({
+        type: "user",
+        isMeta: true,
+        message: { content: "SubagentStop hook feedback:\nKeep going.\nThen stop." },
+      }),
+      line({ type: "user", isMeta: true, message: { content: "<system-reminder>injected</system-reminder>" } }),
+      line({ type: "user", isMeta: true, message: { content: [{ type: "text", text: "Stop hook feedback:\nno" }] } }),
+    ].join("\n");
+
+    // Act
+    const { events } = parseSessionLog(jsonl);
+
+    // Assert
+    expect(events).toEqual([
+      { kind: SessionEventKind.HookFeedback, hook: "SubagentStop", text: "Keep going.\nThen stop." },
     ]);
   });
 

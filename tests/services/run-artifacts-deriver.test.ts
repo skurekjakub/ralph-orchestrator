@@ -28,6 +28,7 @@ const TELEMETRY: RunTelemetry = {
     modelCalls: 1,
     apiErrors: 0,
     compactions: 0,
+    hookFeedback: 0,
     malformedLines: 0,
   },
   spans: [],
