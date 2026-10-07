@@ -144,6 +144,7 @@ export class TaskWorkspaceManager implements ITaskWorkspaceManager {
     }
     this.logger.info(`Creating workspace ${workspacePath} from ${ctx.sourceBranch}...`);
     mkdirSync(dirname(workspacePath), { recursive: true });
+    // Not --shared: its alternates file names the bare clone's host path, which the containers cannot see.
     await git(["clone", "--local", "--branch", ctx.sourceBranch, sourcePath, workspacePath]);
     await git(["-C", workspacePath, "remote", "set-url", "origin", profile.repoUrl]);
 
