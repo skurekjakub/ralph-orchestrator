@@ -21,13 +21,13 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ToolDefinition } from "./shared.js";
-import { tool as createPullRequest } from "./tools/create-pull-request.js";
-import { tool as createPullRequestThread } from "./tools/create-pull-request-thread.js";
-import { tool as listPullRequestThreads } from "./tools/list-pull-request-threads.js";
-import { tool as listPullRequests } from "./tools/list-pull-requests.js";
-import { tool as replyToComment } from "./tools/reply-to-comment.js";
-import { tool as pushProgress } from "./tools/push-progress.js";
+import type { ToolDefinition } from "./shared";
+import { tool as createPullRequest } from "./tools/create-pull-request";
+import { tool as createPullRequestThread } from "./tools/create-pull-request-thread";
+import { tool as listPullRequestThreads } from "./tools/list-pull-request-threads";
+import { tool as listPullRequests } from "./tools/list-pull-requests";
+import { tool as replyToComment } from "./tools/reply-to-comment";
+import { tool as pushProgress } from "./tools/push-progress";
 
 const tools: ToolDefinition[] = [
   createPullRequest,

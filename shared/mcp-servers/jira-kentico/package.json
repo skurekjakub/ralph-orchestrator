@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "rm -rf dist && webpack",
+    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 \"--banner:js=import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/bundle.js",
     "start": "node dist/bundle.js",
     "lint": "tsc --noEmit",
     "test": "vitest run"
@@ -22,10 +22,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "ts-loader": "^9.6.2",
-    "vitest": "^5.0.3",
-    "typescript": "^6.0.3",
-    "webpack": "^5.111.1",
-    "webpack-cli": "^7.2.3"
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   }
 }

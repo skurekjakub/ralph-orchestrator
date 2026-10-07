@@ -22,14 +22,14 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { type ToolDefinition, initCategoryId } from "./shared.js";
+import { type ToolDefinition, initCategoryId } from "./shared";
 
 // Resolve category name → cid before loading tools (they read NODEBB_CATEGORY_ID at import time)
 await initCategoryId();
 
-const { tool: searchRalphchives } = await import("./tools/search-ralphchives.js");
-const { tool: getTopic } = await import("./tools/get-topic.js");
-const { tool: listRecentTopics } = await import("./tools/list-recent-topics.js");
+const { tool: searchRalphchives } = await import("./tools/search-ralphchives");
+const { tool: getTopic } = await import("./tools/get-topic");
+const { tool: listRecentTopics } = await import("./tools/list-recent-topics");
 
 const tools: ToolDefinition[] = [searchRalphchives, getTopic, listRecentTopics];
 

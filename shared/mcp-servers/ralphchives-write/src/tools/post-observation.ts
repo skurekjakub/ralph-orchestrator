@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, nodebbPost, NODEBB_CATEGORY_ID, unavailableReason } from "../shared.js";
+import { type ToolDefinition, errorResult, nodebbPost, NODEBB_CATEGORY_ID, unavailableReason } from "../shared";
 
 interface TopicResponse {
   tid: number;

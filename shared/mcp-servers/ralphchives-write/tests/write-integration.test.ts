@@ -11,9 +11,9 @@ import { describe, it, expect, beforeAll } from "vitest";
 const token = process.env.NODEBB_API_TOKEN;
 const hasLiveNodeBB = !!token;
 
-let postTaskReport: Awaited<typeof import("../src/tools/post-task-report.js")>["tool"];
-let postObservation: Awaited<typeof import("../src/tools/post-observation.js")>["tool"];
-let replyToThread: Awaited<typeof import("../src/tools/reply-to-thread.js")>["tool"];
+let postTaskReport: Awaited<typeof import("../src/tools/post-task-report")>["tool"];
+let postObservation: Awaited<typeof import("../src/tools/post-observation")>["tool"];
+let replyToThread: Awaited<typeof import("../src/tools/reply-to-thread")>["tool"];
 
 function textContent(result: Awaited<ReturnType<typeof postTaskReport.handler>>): string {
   const item = result.content[0];
@@ -25,11 +25,11 @@ describe.skipIf(!hasLiveNodeBB)("ralphchives-write — live NodeBB integration",
   beforeAll(async () => {
     process.env.NODEBB_API_URL ??= "http://localhost:4567";
     process.env.NODEBB_CATEGORY_ID ??= process.env.NODEBB_CATEGORY_ID;
-    const { initCategoryId } = await import("../src/shared.js");
+    const { initCategoryId } = await import("../src/shared");
     await initCategoryId();
-    postTaskReport = (await import("../src/tools/post-task-report.js")).tool;
-    postObservation = (await import("../src/tools/post-observation.js")).tool;
-    replyToThread = (await import("../src/tools/reply-to-thread.js")).tool;
+    postTaskReport = (await import("../src/tools/post-task-report")).tool;
+    postObservation = (await import("../src/tools/post-observation")).tool;
+    replyToThread = (await import("../src/tools/reply-to-thread")).tool;
   });
 
   it("post_task_report creates a new topic", async () => {

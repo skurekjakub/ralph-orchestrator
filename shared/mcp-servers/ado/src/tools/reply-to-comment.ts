@@ -8,7 +8,7 @@ import {
   sanitizeContent,
   TASK_PROJECT,
   TASK_REPO,
-} from "../shared.js";
+} from "../shared";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   pullRequestId: z.number().describe("Pull request ID"),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
-import type { DiscordClient } from "../discord-client.js";
-import type { ThreadManager } from "../thread-manager.js";
+import type { DiscordClient } from "../discord-client";
+import type { ThreadManager } from "../thread-manager";
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const MAX_TIMEOUT_MINUTES = 1440; // 24h

@@ -12,7 +12,7 @@ import {
   TASK_BRANCH,
   TARGET_BRANCH,
   SOURCE_BRANCH,
-} from "../shared.js";
+} from "../shared";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   title: z.string().describe("Pull request title"),

@@ -21,9 +21,9 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { DiscordClient } from "./discord-client.js";
-import { ThreadManager } from "./thread-manager.js";
-import { registerDiscordAsk } from "./tools/discord-ask.js";
+import { DiscordClient } from "./discord-client";
+import { ThreadManager } from "./thread-manager";
+import { registerDiscordAsk } from "./tools/discord-ask";
 
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;

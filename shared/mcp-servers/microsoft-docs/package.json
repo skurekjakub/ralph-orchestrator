@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "rm -rf dist && webpack",
+    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/bundle.js",
     "start": "node dist/bundle.js",
     "lint": "tsc --noEmit"
   },
@@ -20,9 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "ts-loader": "^9.6.2",
-    "typescript": "^6.0.3",
-    "webpack": "^5.111.1",
-    "webpack-cli": "^7.2.3"
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
   }
 }

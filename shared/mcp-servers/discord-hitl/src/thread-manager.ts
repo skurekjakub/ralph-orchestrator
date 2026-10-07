@@ -1,4 +1,4 @@
-import type { DiscordClient } from "./discord-client.js";
+import type { DiscordClient } from "./discord-client";
 
 /**
  * Manages a per-session Discord thread.

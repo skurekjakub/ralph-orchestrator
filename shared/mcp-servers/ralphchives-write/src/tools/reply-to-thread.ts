@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, nodebbPost, unavailableReason } from "../shared.js";
+import { type ToolDefinition, errorResult, nodebbPost, unavailableReason } from "../shared";
 
 interface PostResponse {
   pid: number;

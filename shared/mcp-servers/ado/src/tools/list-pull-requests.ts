@@ -9,7 +9,7 @@ import {
   TASK_PROJECT,
   TASK_REPO,
   TASK_BRANCH,
-} from "../shared.js";
+} from "../shared";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   status: z.enum(["active", "completed", "abandoned", "all"]).optional().describe("PR status filter (default: active)"),

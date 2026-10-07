@@ -11,7 +11,7 @@ const token = process.env.NODEBB_API_TOKEN;
 const hasLiveNodeBB = !!token;
 
 // Dynamic import so the module picks up env at import time
-let tool: Awaited<typeof import("../src/tools/search-ralphchives.js")>["tool"];
+let tool: Awaited<typeof import("../src/tools/search-ralphchives")>["tool"];
 
 function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
   const item = result.content[0];
@@ -24,9 +24,9 @@ describe.skipIf(!hasLiveNodeBB)("search_ralphchives — live NodeBB integration"
     // Ensure env is set before importing
     process.env.NODEBB_API_URL ??= "http://localhost:4567";
     // Must init category ID before tool import (resolves env → numeric cid)
-    const { initCategoryId } = await import("../src/shared.js");
+    const { initCategoryId } = await import("../src/shared");
     await initCategoryId();
-    const mod = await import("../src/tools/search-ralphchives.js");
+    const mod = await import("../src/tools/search-ralphchives");
     tool = mod.tool;
   });
 

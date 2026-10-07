@@ -1,6 +1,6 @@
 import axios from "axios";
 import { z } from "zod";
-import { type ToolDefinition, errorResult, reqConfig, repoUrl, TASK_PROJECT, TASK_REPO } from "../shared.js";
+import { type ToolDefinition, errorResult, reqConfig, repoUrl, TASK_PROJECT, TASK_REPO } from "../shared";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   pullRequestId: z.number().describe("Pull request ID"),

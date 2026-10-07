@@ -38,7 +38,7 @@ describe("initCategoryId", () => {
       ),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBe(5);
@@ -50,7 +50,7 @@ describe("initCategoryId", () => {
     process.env.NODEBB_CATEGORY_ID = "42";
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBe(42);
@@ -63,7 +63,7 @@ describe("initCategoryId", () => {
     process.env.NODEBB_CATEGORY_ID = "abc";
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -75,7 +75,7 @@ describe("initCategoryId", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -91,7 +91,7 @@ describe("initCategoryId", () => {
       new Response(JSON.stringify({ categories: [{ cid: 1, name: "other" }] }), { status: 200 }),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.unavailableReason).toContain('"nonexistent" not found');
@@ -104,7 +104,7 @@ describe("initCategoryId", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response("Error", { status: 500 }));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.unavailableReason).toContain("HTTP 500");
@@ -115,7 +115,7 @@ describe("initCategoryId", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     process.env.NODEBB_CATEGORY_NAME = "ralph-docs";
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     expect(shared.unavailableReason).toContain("NODEBB_API_TOKEN");
 
     await shared.initCategoryId();
@@ -131,7 +131,7 @@ describe("nodebbGet", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ topics: [{ tid: 1 }] }), { status: 200 }));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     const result = await shared.nodebbGet<{ topics: { tid: number }[] }>("/api/category/5");
 
     expect(result.topics).toEqual([{ tid: 1 }]);
@@ -151,7 +151,7 @@ describe("nodebbGet", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response("Not Found", { status: 404 }));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await expect(shared.nodebbGet("/api/topic/999")).rejects.toThrow("NodeBB API 404");
   });
 });

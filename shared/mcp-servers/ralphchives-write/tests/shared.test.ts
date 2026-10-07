@@ -38,7 +38,7 @@ describe("initCategoryId", () => {
       ),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBe(5);
@@ -50,7 +50,7 @@ describe("initCategoryId", () => {
     process.env.NODEBB_CATEGORY_ID = "42";
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBe(42);
@@ -63,7 +63,7 @@ describe("initCategoryId", () => {
     process.env.NODEBB_CATEGORY_ID = "not-a-number";
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -75,7 +75,7 @@ describe("initCategoryId", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -91,7 +91,7 @@ describe("initCategoryId", () => {
       new Response(JSON.stringify({ categories: [{ cid: 5, name: "ralph-docs" }] }), { status: 200 }),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -105,7 +105,7 @@ describe("initCategoryId", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response("Internal Server Error", { status: 500 }));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -119,7 +119,7 @@ describe("initCategoryId", () => {
 
     vi.mocked(fetch).mockRejectedValueOnce(new Error("ECONNREFUSED"));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(shared.NODEBB_CATEGORY_ID).toBeUndefined();
@@ -131,7 +131,7 @@ describe("initCategoryId", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     process.env.NODEBB_CATEGORY_NAME = "ralph-docs";
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     expect(shared.unavailableReason).toContain("NODEBB_API_TOKEN not configured");
 
     await shared.initCategoryId();
@@ -149,7 +149,7 @@ describe("initCategoryId", () => {
       new Response(JSON.stringify({ categories: [{ cid: 1, name: "ralph-docs" }] }), { status: 200 }),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await shared.initCategoryId();
 
     expect(fetch).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe("nodebbPost", () => {
       new Response(JSON.stringify({ status: { code: "ok" }, response: { tid: 1 } }), { status: 200 }),
     );
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     const result = await shared.nodebbPost<{ tid: number }>("/api/v3/topics", { cid: 5, title: "test" });
 
     expect(result).toEqual({ tid: 1 });
@@ -193,7 +193,7 @@ describe("nodebbPost", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response("Forbidden", { status: 403 }));
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     await expect(shared.nodebbPost("/api/v3/topics", {})).rejects.toThrow("NodeBB API 403: Forbidden");
   });
 });
@@ -204,7 +204,7 @@ describe("errorResult", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     const result = shared.errorResult(new Error("something broke"));
 
     expect(result.isError).toBe(true);
@@ -219,7 +219,7 @@ describe("errorResult", () => {
     delete process.env.NODEBB_CATEGORY_ID;
     delete process.env.NODEBB_CATEGORY_NAME;
 
-    const shared = await import("../src/shared.js");
+    const shared = await import("../src/shared");
     const result = shared.errorResult("plain string error");
 
     expect(JSON.parse(result.content[0].text).message).toBe("plain string error");

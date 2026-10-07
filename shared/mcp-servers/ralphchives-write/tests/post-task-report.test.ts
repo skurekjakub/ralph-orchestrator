@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../src/shared.js", () => ({
+vi.mock("../src/shared", () => ({
   NODEBB_CATEGORY_ID: 5,
   unavailableReason: undefined,
   nodebbPost: vi.fn(),
@@ -10,8 +10,8 @@ vi.mock("../src/shared.js", () => ({
   }),
 }));
 
-const shared = await import("../src/shared.js");
-const { tool } = await import("../src/tools/post-task-report.js");
+const shared = await import("../src/shared");
+const { tool } = await import("../src/tools/post-task-report");
 
 function textContent(result: Awaited<ReturnType<typeof tool.handler>>): string {
   const item = result.content[0];

@@ -22,14 +22,14 @@ import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
 import { McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { type ToolDefinition, initCategoryId } from "./shared.js";
+import { type ToolDefinition, initCategoryId } from "./shared";
 
 // Resolve category name → cid before loading tools (they read NODEBB_CATEGORY_ID at import time)
 await initCategoryId();
 
-const { tool: postTaskReport } = await import("./tools/post-task-report.js");
-const { tool: postObservation } = await import("./tools/post-observation.js");
-const { tool: replyToThread } = await import("./tools/reply-to-thread.js");
+const { tool: postTaskReport } = await import("./tools/post-task-report");
+const { tool: postObservation } = await import("./tools/post-observation");
+const { tool: replyToThread } = await import("./tools/reply-to-thread");
 
 const tools: ToolDefinition[] = [postTaskReport, postObservation, replyToThread];
 

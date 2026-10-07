@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "rm -rf dist && tsc && esbuild dist/index.js --bundle --platform=node --format=esm --minify --outfile=dist/bundle.mjs",
+    "build": "rm -rf dist && esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/bundle.mjs",
     "start": "node dist/bundle.mjs",
     "lint": "tsc --noEmit"
   },

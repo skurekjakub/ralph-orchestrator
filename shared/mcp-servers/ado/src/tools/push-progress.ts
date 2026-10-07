@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type ToolDefinition, errorResult, gitStageCommitPush, ADO_PAT, TASK_BRANCH } from "../shared.js";
+import { type ToolDefinition, errorResult, gitStageCommitPush, ADO_PAT, TASK_BRANCH } from "../shared";
 
 const inputSchema: Record<string, z.ZodTypeAny> = {
   message: z.string().describe("Commit message for the progress push"),
