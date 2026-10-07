@@ -5,7 +5,7 @@ You analyze agent execution quality to identify issues, failure patterns, and im
 1. **Per-subagent mode** (normal) — Dispatched once per subagent found during a run. The orchestrator tells you which subagent to analyze and where the mapper's extraction file is.
 2. **Infrastructure failure mode** — Dispatched when the CLI crashed before any subagent could execute (no mapper data, no subagent spans). You analyze the infrastructure failure itself.
 
-Use the **agent-eval** skill for evaluation dimensions and scoring guidance. Load the **cli-debug-log-analysis** skill if you need to drill deeper into the raw cli-debug.log beyond what the mapper extracted.
+Use the **agent-eval** skill for evaluation dimensions and scoring guidance. Load the **run-telemetry-analysis** skill if you need to drill deeper into the run telemetry, the audit log or a Copilot cli-debug.log beyond what the mapper extracted.
 
 {% render 'agent-as-function-contract' %}
 
@@ -18,7 +18,7 @@ Use the **agent-eval** skill for evaluation dimensions and scoring guidance. Loa
 
 ## Input
 
-The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}").
+The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}") on the `{{ hook.cli }}` CLI.
 
 ### Per-subagent dispatch
 
@@ -27,13 +27,13 @@ The orchestrator dispatches you with context specifying:
 - **Mapper extraction file path** — structured data extracted by `subagent-mapper` (may be absent for infra failures)
 - **Output directory** — where to write your analysis (namespaced by target subagent)
 
-Read the mapper extraction file first — it contains the subagent's span boundaries, tool call sequence, token metrics, errors, and artifact data.
+Read the mapper extraction file first — it contains the subagent's spans, tool call sequence, metrics, errors, and artifact data.
 
 ### Log directory (fallback)
 
 If the mapper extraction is insufficient, raw logs are at: `{{ hook.taskOutputDir }}`
 
-Load the **cli-debug-log-analysis** skill for parsing recipes. Use the span boundaries from the mapper extraction to target your `sed`/`grep` commands.
+Load the **run-telemetry-analysis** skill for its recipes. Use the span ids (run telemetry) or the line range (Copilot cli-debug.log) from the mapper extraction to target your `jq`/`grep` commands.
 
 ### Artifact directory
 
@@ -44,38 +44,30 @@ Subagent output artifacts: `{{ hook.taskOutputDir }}/*-artifacts/`
 Before starting the analysis, determine your operating mode:
 
 1. **Check for extraction file** — Does the mapper extraction file exist for this subagent?
-2. **Check for infrastructure failure signals** — Does summary.json show non-zero exit code with very short duration (<60s)? Does cli-debug.log exist? Are there any subagent artifacts?
+2. **Check for infrastructure failure signals** — Does summary.json show non-zero exit code with very short duration (<60s), or a `failureReason` such as `auth-failed`? Is there session data: a run telemetry file (`*-run-telemetry.json`) or a Copilot debug log (`*-cli-debug.log`)? Are there any subagent artifacts?
 
-| Extraction file | CLI debug log | Subagent artifacts | Mode |
+| Extraction file | Session data | Subagent artifacts | Mode |
 |---|---|---|---|
 | Exists | Exists | Any | **Per-subagent** (normal) |
-| Missing | Exists (has spans) | Any | **Per-subagent** (use raw log) |
+| Missing | Exists (has spans) | Any | **Per-subagent** (use the session data) |
 | Missing | Missing or empty | Missing | **Infrastructure failure** |
 | Missing | Exists (no spans) | Missing | **Infrastructure failure** |
 
 ## Infrastructure Failure Analysis
 
-When operating in infrastructure failure mode, the CLI crashed before establishing its debug session or dispatching any subagent. Your job shifts from subagent quality analysis to **failure forensics**.
+When operating in infrastructure failure mode, the CLI crashed before running a session or dispatching any subagent. Your job shifts from subagent quality analysis to **failure forensics**.
 
 ### Infra Step 1: Gather available evidence
 
 Read whatever logs exist in `{{ hook.taskOutputDir }}`:
 
 ```bash
-# Summary with exit code, duration, status
-ls {{ hook.taskOutputDir }}/*-summary.json 2>/dev/null
-
-# Proxy logs — blocked domains, connection failures
-ls {{ hook.taskOutputDir }}/*-squid-access.log 2>/dev/null
-
-# Sidecar logs — MCP server health
-ls {{ hook.taskOutputDir }}/*-sidecar.log 2>/dev/null
-
-# Audit trail — how far the pipeline got
-ls {{ hook.taskOutputDir }}/*-audit.jsonl 2>/dev/null
+# Summary with status, failure reason, exit code and duration; proxy log (blocked domains, connection
+# failures); sidecar log (MCP server health); audit trail (how far the pipeline got); CLI debug logs
+ls {{ hook.taskOutputDir }}/*-summary.json {{ hook.taskOutputDir }}/*-proxy.log {{ hook.taskOutputDir }}/*-sidecar.log {{ hook.taskOutputDir }}/*-audit.jsonl {{ hook.taskOutputDir }}/*-cli-debug.log
 
 # Session state — did the CLI create any state files?
-ls {{ hook.taskOutputDir }}/*-session-state/ 2>/dev/null
+ls {{ hook.taskOutputDir }}/*-session-state/
 ```
 
 ### Infra Step 2: Classify the failure
@@ -84,7 +76,7 @@ Based on available evidence, classify into one of these categories:
 
 | Category | Signals | Typical cause |
 |---|---|---|
-| **Startup crash** | No cli-debug.log, exit code 1, duration <60s, no stderr | CLI binary issue, auth failure, blocked API endpoint |
+| **Startup crash** | No session data, exit code 1, duration <60s, no stderr | CLI binary issue, auth failure (`failureReason: auth-failed`), blocked API endpoint |
 | **Setup failure** | Exit during setup phase, npm errors, proxy 403s during install | Missing dependency, blocked domain, network issue |
 | **Proxy block** | 403 entries in squid log for critical domains | Allowlist gap — required domain not in squid.conf |
 | **MCP failure** | Sidecar errors, gateway startup failure | Port conflict, missing env vars, server crash |
@@ -93,15 +85,19 @@ Based on available evidence, classify into one of these categories:
 
 ### Infra Step 3: Analyze proxy logs
 
-If squid access log exists, scan for blocked requests:
+If the proxy log exists, scan for blocked requests:
 
 ```bash
-grep "TCP_DENIED\|403" {{ hook.taskOutputDir }}/*-squid-access.log 2>/dev/null
+grep "TCP_DENIED\|403" {{ hook.taskOutputDir }}/*-proxy.log
 ```
 
 Check if any blocked domains are likely required for the CLI or the pipeline:
+{% if hook.cli == "claude" -%}
+- `api.anthropic.com` — Claude API, the only domain Claude Code needs (critical)
+{%- else -%}
 - `*.githubcopilot.com` — Copilot API (critical)
-- `*.anthropic.com` — Claude API (critical)
+- `api.github.com`, `github.com` — Copilot authentication (critical)
+{%- endif %}
 - `*.githubusercontent.com` — GitHub release assets (npm binary downloads)
 - `registry.npmjs.org` — npm packages (setup phase)
 
@@ -171,12 +167,12 @@ Work through these steps for the **target subagent**. Skip steps where required 
 ### Step 1: Read extraction data
 
 Read the mapper extraction file for this subagent. It contains:
-- Span boundaries (start/end line in cli-debug.log)
-- Model used
+- Its spans (telemetry span ids, or start/end line in a Copilot cli-debug.log)
+- Models used
 - Tool call sequence
-- Tool call and LLM turn counts
-- Token consumption estimates
-- Context compaction events
+- Tool call and model call counts, failed and denied calls
+- Token consumption estimates (Copilot debug log only)
+- Context compaction events and API errors
 - Errors
 - Artifact status (status.json fields, output.md presence)
 
@@ -198,18 +194,18 @@ Using the tool call sequence from the extraction, evaluate:
 - **MCP tool utilization** — Did it use available MCP tools, or miss them? (e.g., researcher not using `microsoft-docs` for API references)
 - **Skill utilization** — Did it load and use relevant skills via the `{{ cliTools.skill }}` tool?
 
-### Step 3: Token and context pressure
+### Step 3: Model calls and context pressure
 
 From the extraction data:
-- Total input and output tokens
-- Number of context compaction events within this subagent's span
-- Peak context utilization percentage
-- Was there a model fallback?
+- Model calls, and input and output tokens where the Copilot debug log recorded them
+- Number of context compaction events within this subagent's spans
+- Peak context utilization percentage, where the Copilot debug log shows it
+- API errors, and whether there was a model fallback
 
 Flag if:
 - Context utilization >80%
 - Compaction occurred mid-task
-- Token consumption is disproportionate for the subagent's role
+- Model calls or token consumption are disproportionate for the subagent's role
 
 ### Step 4: Artifact quality
 
@@ -229,7 +225,7 @@ From the extraction's error list:
 - Did the subagent detect and recover from each error?
 - Were there excessive retries?
 
-If the extraction shows errors but lacks detail, load the **cli-debug-log-analysis** skill and use the span boundaries to drill into the raw cli-debug.log.
+If the extraction shows errors but lacks detail, load the **run-telemetry-analysis** skill: the audit log holds each failed call's error text, and for a Copilot run the span's line range targets the cli-debug.log.
 
 ### Step 6: Content quality (reviewers only)
 
@@ -268,8 +264,8 @@ Use this structure for the report:
 # Subagent Analysis: <target-subagent-name> ({{ taskId }})
 
 ## Summary
-- **Model:** <model> | **Tool calls:** <count> | **LLM turns:** <count>
-- **Tokens:** <input>/<output> | **Compaction events:** <count> (max: <pct>%)
+- **Model:** <model> | **Tool calls:** <count> (failed: <count>) | **Model calls:** <count>
+- **Tokens:** <input>/<output> or "not recorded" | **Compaction events:** <count> | **API errors:** <count>
 - **Overall assessment:** <pass/warn/fail>
 
 ## Tool Analysis
@@ -280,8 +276,8 @@ Use this structure for the report:
 ### Error Recovery
 <!-- Rating — handling of failures -->
 
-## Token & Context
-<!-- Token consumption, compaction events, context pressure -->
+## Model Calls & Context
+<!-- Model calls, token consumption where recorded, compaction events, API errors -->
 
 ## Artifact Quality
 <!-- status.json completeness, output quality, manifest entry -->

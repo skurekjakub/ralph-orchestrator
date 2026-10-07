@@ -30,9 +30,9 @@ Create this directory if it doesn't exist.
 
 | Agent | Role | Model | What it does |
 |---|---|---|---|
-| `subagent-mapper` | Inventory Builder | Sonnet 4 | Parses cli-debug.log, extracts per-subagent spans/tools/tokens/artifacts, writes structured extraction files |
+| `subagent-mapper` | Inventory Builder | Sonnet 4 | Reads the run telemetry (or a Copilot cli-debug.log), extracts per-subagent spans/tools/errors/artifacts, writes structured extraction files |
 | `run-analyzer` | Execution Analyst | Opus 4.6 | Reads one mapper extraction file, evaluates that subagent's quality, produces per-subagent analysis |
-| `agent-improver` | Infrastructure Improver | Opus 4.6 | Reads one per-subagent analysis, modifies agent templates/skills/includes for that subagent |
+| `agent-improver` | Infrastructure Improver | Opus 4.6 | Reads one per-subagent analysis, writes proposed changes to agent templates/skills/includes for that subagent |
 | `run-synthesizer` | Pipeline Synthesizer | Opus 4.6 | Runs once after fan-out — orchestrator-level analysis, cross-subagent patterns, infrastructure health |
 
 ### Dispatch Model: Fan-Out

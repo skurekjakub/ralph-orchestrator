@@ -35,7 +35,8 @@ Key files for orchestrator-level analysis:
 - `*-summary.json` — Overall execution metadata (status, duration, exit code, model).
 - `*-state.md` — Final pipeline state (phases completed, key identifiers, decisions made).
 - `*-sidecar.log` — MCP sidecar gateway logs (tool availability, connection health).
-- `*-squid-access.log` — HTTP proxy access log (outbound requests, blocked domains).
+- `*-proxy.log` — HTTP proxy access log (outbound requests, blocked domains).
+- `*-run-telemetry.json` — Claude Code runs: the main thread's and every subagent's spans; load the **run-telemetry-analysis** skill for its layout and recipes.
 
 ### Artifact directory
 

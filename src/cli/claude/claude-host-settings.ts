@@ -9,10 +9,11 @@ import { CLAUDE_SUBAGENT_TOOL, ClaudeBuiltinTool } from "./claude-tools";
 const CONTAINER_HOOKS_PREFIX = `${RALPH_CONTAINER_DIR}/hooks/`;
 
 /**
- * Commands a host session may run with Bash: they read logs and telemetry, and none of them writes a file or
- * starts another program. `sed` is left out, because its `e` and `w` commands do both.
+ * Commands a host session may run with Bash: they read logs and telemetry or print the time the artifact contract
+ * stamps its manifest entries with, and none of them writes a file or starts another program. `sed` is left out,
+ * because its `e` and `w` commands do both.
  */
-export const HOST_READ_ONLY_COMMANDS = ["jq", "grep", "ls", "wc", "cat", "head", "tail"] as const;
+export const HOST_READ_ONLY_COMMANDS = ["jq", "grep", "ls", "wc", "cat", "head", "tail", "date"] as const;
 
 /** Permission rules of a host session (`permissions` in its settings file); a deny rule wins over an allow rule. */
 export interface ClaudePermissionRules {

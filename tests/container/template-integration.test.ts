@@ -424,6 +424,34 @@ describe("shared agent includes (real files)", () => {
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
+  it("lists the critical egress domains of the CLI the analysed run used", async () => {
+    // Arrange
+    const claudeRun = hookContext("ralph-docs");
+    const copilotRun = makeTemplateContext({ ...claudeRun, hook: { ...claudeRun.hook, cli: "copilot" } });
+
+    // Act
+    const claude = await renderInclude("post-hooks/run-analyzer", claudeRun);
+    const copilot = await renderInclude("post-hooks/run-analyzer", copilotRun);
+
+    // Assert
+    expect(claude).toContain("- `api.anthropic.com` — Claude API");
+    expect(claude).not.toContain("githubcopilot.com");
+    expect(copilot).toContain("- `*.githubcopilot.com` — Copilot API (critical)\n- `api.github.com`");
+    expect(copilot).not.toContain("anthropic.com");
+  });
+
+  it("points agent-improver at the orchestrator's runtime sources and its proposals directory", async () => {
+    // Act
+    const rendered = await renderInclude("post-hooks/agent-improver", hookContext("ralph-docs"));
+
+    // Assert
+    expect(rendered).toContain("`/srv/ralph-orchestrator/shared/agent-includes/`");
+    expect(rendered).toContain(
+      "/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts/agent-improver/<target-subagent-name>/proposals/",
+    );
+    expect(rendered).not.toContain(".claude/skills/` |");
+  });
+
   it("renders post-hooks/subagent-mapper with hook context", async () => {
     const rendered = await renderInclude("post-hooks/subagent-mapper", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");

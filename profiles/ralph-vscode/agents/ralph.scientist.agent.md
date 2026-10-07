@@ -31,7 +31,7 @@ Create this directory if it doesn't exist.
 | Agent | Role | Model | What it does |
 |---|---|---|---|
 | `run-analyzer` | Execution Analyst | Opus 4.6 | Reads logs, evaluates tool usage, identifies failures and patterns |
-| `agent-improver` | Infrastructure Improver | Opus 4.6 | Reads analysis report, modifies agent templates/skills/includes |
+| `agent-improver` | Infrastructure Improver | Opus 4.6 | Reads analysis report, writes proposed changes to agent templates/skills/includes |
 
 ### Routing Rules
 
@@ -70,7 +70,7 @@ After each subagent completes, read its `status.json` at `{{ artifactDir }}/{age
 
 Dispatch `run-analyzer` with task context. It has access to the log directory and collected logs through its own template variables.
 
-**Infrastructure failure handling:** If the main pipeline's CLI exited before any subagent could execute (e.g., exit code 1 with no cli-debug.log), the run-analyzer will switch to infrastructure failure mode automatically. It will analyze proxy logs, sidecar health, and execution metadata instead of per-subagent spans. Dispatch it normally — it handles both modes.
+**Infrastructure failure handling:** If the main pipeline's CLI exited before any subagent could execute (e.g., exit code 1 with no run telemetry and no cli-debug.log), the run-analyzer will switch to infrastructure failure mode automatically. It will analyze proxy logs, sidecar health, and execution metadata instead of per-subagent spans. Dispatch it normally — it handles both modes.
 
 When dispatching for infrastructure failure analysis, include this context:
 - Target subagent name: `"infrastructure"`
@@ -121,7 +121,7 @@ Write your own status to `{{ artifactDir }}/scientist/status.json`:
 
 | Condition | Result |
 |---|---|
-| Analyzer ran + improver made changes | `improved` |
+| Analyzer ran + improver wrote proposals | `improved` |
 | Analyzer ran + improver found nothing actionable | `analyzed` |
 | Analyzer found nothing to analyze | `skipped` |
 | Analyzer or improver failed | `error` |

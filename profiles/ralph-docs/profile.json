@@ -106,6 +106,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
+              "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
               "model": "claude-opus-4.6"
             }
           ]
@@ -146,6 +147,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
+              "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
               "model": "claude-opus-4.6"
             }
           ]
@@ -190,6 +192,7 @@
               "agent": "ralph.scientist",
               "role": "scientist",
               "mode": "local",
+              "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
               "model": "claude-opus-4.6"
             }
           ]
