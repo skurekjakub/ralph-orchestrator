@@ -31,6 +31,9 @@ export function hookOutputDir(outputDir: string, hookName: string): string {
   return join(outputDir, "hooks", hookName);
 }
 
+/** The `shared/` sources a host stage may read: those the post-task hook prompts propose changes to. */
+const READABLE_SHARED_DIRS = ["agent-includes", "skills", "mcp-servers"] as const;
+
 /** `.ralph/tasks/<key>/artifacts`, relative to the task's workspace: where container stages write their artifacts. */
 function workspaceArtifactDir(workItemId: string): string {
   return `.ralph/tasks/${workItemId}/artifacts`;
@@ -42,8 +45,8 @@ export class StageWorkspaceResolver implements IStageWorkspaceResolver {
   private readonly rootDir: string;
 
   /**
-   * @param rootDir The orchestrator checkout: the profile build directories, and the `profiles/` and `shared/`
-   *   that host stages may read.
+   * @param rootDir The orchestrator checkout: the profile build directories, and the agent templates and `shared/`
+   *   sources that host stages may read.
    */
   constructor({ cliRuntimes, rootDir }: { cliRuntimes: ICliRuntimeRegistry; rootDir: string }) {
     this.cliRuntimes = cliRuntimes;
@@ -99,6 +102,10 @@ export class StageWorkspaceResolver implements IStageWorkspaceResolver {
     const cwd = join(stageDir, "work");
     const cliHomeDir = join(stageDir, "home");
     const { agentsDir, skillsDir } = this.cliRuntimes.get(stage.cli).hostRenderDirs({ cwd, cliHomeDir });
+    const readableSources = [
+      profileBuildPaths(this.rootDir, ctx.profile.id).agentsDir,
+      ...READABLE_SHARED_DIRS.map((dir) => join(this.rootDir, "shared", dir)),
+    ];
     return {
       mode: StageMode.Local,
       stageDir,
@@ -109,7 +116,7 @@ export class StageWorkspaceResolver implements IStageWorkspaceResolver {
       cliHomeDir,
       logDir: join(stageDir, "logs"),
       orchestratorDir: this.rootDir,
-      additionalDirs: [ctx.outputDir, ...extraDirs, join(this.rootDir, "profiles"), join(this.rootDir, "shared")],
+      additionalDirs: [ctx.outputDir, ...extraDirs, ...readableSources],
     };
   }
 }

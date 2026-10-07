@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { hostHooks, hostPermissionRules, HOST_READ_ONLY_COMMANDS } from "../../../src/cli/claude/claude-host-settings";
-import { makeHostWorkspace } from "../../helpers/factories";
+import { hostHooks, hostPermissionRules } from "../../../src/cli/claude/claude-host-settings";
+import { createCliRuntimeRegistry } from "../../../src/cli/supported-runtimes";
+import { ClaudeAuthMode, CliType, StageMode } from "../../../src/config/types";
+import { StageWorkspaceResolver } from "../../../src/services/stage-workspace";
+import { makeProfile, makeStage, makeTaskContext } from "../../helpers/factories";
 
 describe("hostHooks", () => {
   it("runs each hook script from the host's shared/hooks, keeping its arguments and the rest of the entry", () => {
@@ -57,52 +60,83 @@ describe("hostHooks", () => {
 });
 
 describe("hostPermissionRules", () => {
-  const workspace = makeHostWorkspace({
-    stageDir: "/out/hooks/run-analysis/improver",
-    cwd: "/out/hooks/run-analysis/improver/work",
-    artifactDir: "/out/hooks/run-analysis/artifacts",
-    orchestratorDir: "/srv/ralph",
-    additionalDirs: ["/out", "/srv/ralph/profiles", "/srv/ralph/shared"],
+  const ctx = makeTaskContext({
+    profile: makeProfile({ id: "docs" }),
+    outputDir: "/out/DF-100-1",
+    workspacePath: "/srv/ralph/cache/workspaces/DF-100-1",
   });
-
-  it("lets the stage read its working directory and every additional directory", () => {
-    // Act
-    const { allow } = hostPermissionRules(workspace, []);
-
-    // Assert
-    expect(allow.filter((rule) => rule.startsWith("Read("))).toEqual([
-      "Read(//out/hooks/run-analysis/improver/work/**)",
-      "Read(//out/**)",
-      "Read(//srv/ralph/profiles/**)",
-      "Read(//srv/ralph/shared/**)",
-    ]);
+  const resolver = new StageWorkspaceResolver({
+    cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+    rootDir: "/srv/ralph",
   });
+  const hookWorkspace = resolver.forHookStage(
+    ctx,
+    "run-analysis",
+    makeStage({ role: "scientist", mode: StageMode.Local, cli: CliType.Claude }),
+  );
+  const variantStage = resolver.forStage(
+    ctx,
+    makeStage({ role: "reviewer", mode: StageMode.Local, cli: CliType.Claude }),
+  );
+  if (variantStage.mode !== StageMode.Local) throw new Error("a local stage resolves to a host workspace");
+  const variantWorkspace = variantStage;
 
-  it("lets the stage write only in its working and artifact directories, never in profiles/ or shared/", () => {
+  it("lets a hook stage edit only its working directory and the hook's artifact directory", () => {
     // Act
-    const { allow } = hostPermissionRules(workspace, []);
+    const { allow } = hostPermissionRules(hookWorkspace, []);
 
     // Assert
     expect(allow.filter((rule) => /^(Edit|Write)\(/.test(rule))).toEqual([
-      "Edit(//out/hooks/run-analysis/improver/work/**)",
-      "Edit(//out/hooks/run-analysis/artifacts/**)",
+      "Edit(//out/DF-100-1/hooks/run-analysis/scientist/work/**)",
+      "Edit(//out/DF-100-1/hooks/run-analysis/artifacts/**)",
     ]);
   });
 
-  it("allows only read-only Bash commands, without sed", () => {
+  it("lets a variant's local stage edit only its working directory and the container stages' artifacts", () => {
     // Act
-    const { allow } = hostPermissionRules(workspace, []);
+    const { allow } = hostPermissionRules(variantWorkspace, []);
 
     // Assert
-    expect(allow.filter((rule) => rule.startsWith("Bash("))).toEqual(
-      HOST_READ_ONLY_COMMANDS.map((command) => `Bash(${command} *)`),
-    );
-    expect(HOST_READ_ONLY_COMMANDS).not.toContain("sed");
+    expect(allow.filter((rule) => /^(Edit|Write)\(/.test(rule))).toEqual([
+      "Edit(//out/DF-100-1/stages/reviewer/work/**)",
+      "Edit(//srv/ralph/cache/workspaces/DF-100-1/.ralph/tasks/DF-100/artifacts/**)",
+    ]);
+  });
+
+  it.each([
+    ["hook", hookWorkspace],
+    ["variant", variantWorkspace],
+  ])(
+    "denies a %s stage the orchestrator's .env and every profile's .build/, where gateway.json lives",
+    (_, workspace) => {
+      // Act
+      const { deny } = hostPermissionRules(workspace, []);
+
+      // Assert
+      expect(deny).toEqual(["Read(//srv/ralph/.env)", "Read(//srv/ralph/profiles/*/.build/**)"]);
+    },
+  );
+
+  it("refuses reads outside the session's working directories instead of granting reads by rule", () => {
+    // Act
+    const permissions = hostPermissionRules(hookWorkspace, []);
+
+    // Assert
+    expect(permissions.blockReadsOutsideWorkingDirectories).toBe(true);
+    expect(permissions.allow.filter((rule) => rule.startsWith("Read("))).toEqual([]);
+  });
+
+  it("allows with Bash only jq and date besides Claude Code's built-in read-only commands", () => {
+    // Act
+    const { allow } = hostPermissionRules(hookWorkspace, []);
+
+    // Assert
+    expect(allow.filter((rule) => rule.startsWith("Bash("))).toEqual(["Bash(jq *)", "Bash(date *)"]);
   });
 
   it("allows skills, task tracking and spawning each of the stage's subagents", () => {
     // Act
-    const { allow } = hostPermissionRules(workspace, ["run-analyzer", "agent-improver"]);
+    const { allow } = hostPermissionRules(hookWorkspace, ["run-analyzer", "agent-improver"]);
 
     // Assert
     expect(allow).toEqual(
@@ -116,13 +150,5 @@ describe("hostPermissionRules", () => {
         "Agent(agent-improver)",
       ]),
     );
-  });
-
-  it("denies reading the orchestrator's .env", () => {
-    // Act
-    const { deny } = hostPermissionRules(workspace, []);
-
-    // Assert
-    expect(deny).toEqual(["Read(//srv/ralph/.env)"]);
   });
 });

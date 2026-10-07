@@ -170,7 +170,7 @@ A `"local"` stage, and every post-task hook stage, runs on the host in a workspa
 
 - It runs the CLI the orchestrator's `npm ci` installed at the version `package.json` pins (`node_modules/.bin/claude` or `node_modules/.bin/copilot`), never one found on `PATH`. Startup validation checks that binary and its version for every CLI a host stage runs.
 - Its environment holds `PATH`, `HOME`, `LANG` and its CLI's credential, and no other orchestrator secret.
-- A Claude Code host stage loads no MCP server and has no web tools. It may read its workspace, the task's output directory, the task's workspace (variant stages only) and the orchestrator's `profiles/` and `shared/`, write only in its working and artifact directories, and run only read-only shell commands. Ralph's audit hooks run from `shared/hooks/`, so the host needs `jq`.
+- A Claude Code host stage loads no MCP server and has no web tools. It may read only its workspace, the task's output directory, the task's workspace (variant stages only), the task profile's `agents/` and the orchestrator's `shared/agent-includes`, `shared/skills` and `shared/mcp-servers`, write only in its working and artifact directories, and run only read-only shell commands. Ralph's audit hooks run from `shared/hooks/`, so the host needs `jq`.
 - A Copilot host stage runs with every tool and path allowed (`--allow-all-tools --allow-all-paths`) and without Ralph's audit hooks.
 - The host always needs `perl`, which redacts transcripts.
 

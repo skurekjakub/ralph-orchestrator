@@ -84,11 +84,12 @@ export interface HostStageWorkspace extends StageWorkspaceBase {
   readonly cliHomeDir: string;
   /** Where the CLI writes its debug log and the audit hooks their records: `<stageDir>/logs`. */
   readonly logDir: string;
-  /** The orchestrator checkout, whose `profiles/` and `shared/` the stage may read. */
+  /** The orchestrator checkout; the stage may read only the sources {@link additionalDirs} names in it. */
   readonly orchestratorDir: string;
   /**
-   * Directories the agent may reach besides `cwd`: the task's output directory, the task's workspace for a
-   * variant's stage, and the orchestrator's `profiles/` and `shared/`.
+   * Directories the agent may read besides `cwd`: the task's output directory, the task's workspace for a
+   * variant's stage, the task profile's `agents/`, and `shared/agent-includes`, `shared/skills` and
+   * `shared/mcp-servers`. Never a profile's `.build/`, which holds MCP credentials, or the checkout's `.env`.
    */
   readonly additionalDirs: readonly string[];
 }

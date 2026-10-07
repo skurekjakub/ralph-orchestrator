@@ -142,7 +142,7 @@ export interface TemplateContext {
     outputDir: string;
     /** CLI the task's first stage ran (`copilot` or `claude`): the run the hook analyses. */
     cli: string;
-    /** Absolute path of the orchestrator checkout, whose `profiles/` and `shared/` the hook's stages may read. */
+    /** Absolute path of the orchestrator checkout, whose profile `agents/` and `shared/` sources hook stages may read. */
     orchestratorDir: string;
   };
 }

@@ -9,21 +9,27 @@ import { CLAUDE_SUBAGENT_TOOL, ClaudeBuiltinTool } from "./claude-tools";
 const CONTAINER_HOOKS_PREFIX = `${RALPH_CONTAINER_DIR}/hooks/`;
 
 /**
- * Commands a host session may run with Bash: they read logs and telemetry or print the time the artifact contract
- * stamps its manifest entries with, and none of them writes a file or starts another program. `sed` is left out,
- * because its `e` and `w` commands do both.
+ * Commands a host session may run with Bash besides Claude Code's built-in read-only set (`ls`, `cat`, `grep`,
+ * `find`, `head`, `tail`, `wc`, …; https://code.claude.com/docs/en/permissions#read-only-commands), which runs in
+ * every permission mode without a rule: `jq` for the run telemetry and audit logs, and `date` for the time the
+ * artifact contract stamps its manifest entries with.
  */
-export const HOST_READ_ONLY_COMMANDS = ["jq", "grep", "ls", "wc", "cat", "head", "tail", "date"] as const;
+const HOST_EXTRA_COMMANDS = ["jq", "date"] as const;
 
-/** Permission rules of a host session (`permissions` in its settings file); a deny rule wins over an allow rule. */
-export interface ClaudePermissionRules {
+/** Permission settings of a host session (`permissions` in its settings file); a deny rule wins over an allow rule. */
+export interface ClaudeHostPermissions {
   readonly allow: readonly string[];
   readonly deny: readonly string[];
+  /**
+   * Makes the file tools, and the Bash commands Claude Code recognises as reading files, refuse paths outside the
+   * working directories.
+   */
+  readonly blockReadsOutsideWorkingDirectories: boolean;
 }
 
-/** Ralph's settings for one host session: hooks pointed at the host's `shared/hooks`, and the stage's permission rules. */
+/** Ralph's settings for one host session: hooks pointed at the host's `shared/hooks`, and the stage's permissions. */
 export interface ClaudeHostSessionSettings extends ClaudeSessionSettings {
-  readonly permissions: ClaudePermissionRules;
+  readonly permissions: ClaudeHostPermissions;
 }
 
 /** `value` quoted for a POSIX shell, so a path with spaces or quotes stays one word. */
@@ -69,20 +75,27 @@ export function hostHooks(
 }
 
 /**
- * The permission rules of a host session, which runs in `dontAsk` mode: a tool call no allow rule covers is denied.
+ * The permissions of a host session, which runs in `dontAsk` mode: a tool call that would prompt is denied
+ * (https://code.claude.com/docs/en/permissions).
  *
- * - Read the working directory and every additional directory (task logs, the orchestrator's `profiles/` and
- *   `shared/`); never the orchestrator's `.env`.
- * - Write and edit only in the working directory and the artifact directory. Edit rules cover the Write tool.
- * - Run only {@link HOST_READ_ONLY_COMMANDS} with Bash.
- * - Load skills, track tasks, and spawn the stage's subagents.
+ * - Reads: the working directories, `cwd` and each of `workspace.additionalDirs` passed with `--add-dir`, need no
+ *   rule. Outside them, `blockReadsOutsideWorkingDirectories` refuses the file tools and the Bash commands Claude
+ *   Code recognises as reading files.
+ * - The deny rules for the orchestrator's `.env` and every profile's `.build/`, which holds MCP credentials, bind
+ *   the file tools and the Bash commands that name the denied file. A command that reads without naming the file,
+ *   such as a recursive `grep` from a directory above it, is not bound by them, and neither is `jq`, which the
+ *   docs do not list among the file-reading commands.
+ * - Bash: Claude Code's built-in read-only commands run without a rule; the allow rules add only
+ *   {@link HOST_EXTRA_COMMANDS}.
+ * - Writes: only in `cwd` and the artifact directory. Edit rules cover the Write tool.
+ * - Skills, task tracking, and the stage's own subagents.
  *
  * @param subagents Frontmatter names of every agent the stage root can reach, root excluded.
  */
 export function hostPermissionRules(
   workspace: HostStageWorkspace,
   subagents: readonly string[],
-): ClaudePermissionRules {
+): ClaudeHostPermissions {
   return {
     allow: [
       ClaudeBuiltinTool.Skill,
@@ -91,11 +104,14 @@ export function hostPermissionRules(
       ClaudeBuiltinTool.TaskList,
       ClaudeBuiltinTool.TaskUpdate,
       ...subagents.map((name) => `${CLAUDE_SUBAGENT_TOOL}(${name})`),
-      ...[workspace.cwd, ...workspace.additionalDirs].map((dir) => `${ClaudeBuiltinTool.Read}(${underDir(dir)})`),
       ...[workspace.cwd, workspace.artifactDir].map((dir) => `${ClaudeBuiltinTool.Edit}(${underDir(dir)})`),
-      ...HOST_READ_ONLY_COMMANDS.map((command) => `${ClaudeBuiltinTool.Bash}(${command} *)`),
+      ...HOST_EXTRA_COMMANDS.map((command) => `${ClaudeBuiltinTool.Bash}(${command} *)`),
     ],
-    deny: [`${ClaudeBuiltinTool.Read}(/${join(workspace.orchestratorDir, ".env")})`],
+    deny: [
+      `${ClaudeBuiltinTool.Read}(/${join(workspace.orchestratorDir, ".env")})`,
+      `${ClaudeBuiltinTool.Read}(${underDir(join(workspace.orchestratorDir, "profiles", "*", ".build"))})`,
+    ],
+    blockReadsOutsideWorkingDirectories: true,
   };
 }
 

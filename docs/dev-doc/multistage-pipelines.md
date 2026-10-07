@@ -133,7 +133,8 @@ Each local stage gets a workspace of its own (`StageWorkspaceResolver`, `src/ser
 node_modules/.bin/claude -p --output-format stream-json --verbose --agent <name> [--model <model>] [--effort <effort>] \
   --setting-sources user --settings <stageDir>/claude-settings.json --strict-mcp-config --permission-mode dontAsk \
   --tools Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate[,Agent] \
-  --add-dir <outputDir> [--add-dir <workspace>] --add-dir <repo>/profiles --add-dir <repo>/shared \
+  --add-dir <outputDir> [--add-dir <workspace>] --add-dir <repo>/profiles/<id>/agents \
+  --add-dir <repo>/shared/agent-includes --add-dir <repo>/shared/skills --add-dir <repo>/shared/mcp-servers \
   --session-id <uuid> --debug-file <stageDir>/logs/claude.log < prompt
 ```
 
@@ -144,7 +145,7 @@ The host path of the task's workspace, its clone of the target repository where 
 - No Docker isolation, no Squid proxy, no MCP sidecar. The CLI runs with the host user's permissions, so it is fenced in otherwise:
 - Its environment holds only `PATH`, `HOME`, `LANG`, its own credential (`extendEnv: false`) and, for Claude Code, the variables that set its home, its headless behaviour and Ralph's audit log directory; no other orchestrator secret (`ADO_PAT`, `JIRA_*`, another CLI's token) reaches it.
 - Its private home keeps the developer's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers out.
-- Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated allow rules (`src/cli/claude/claude-host-settings.ts`): read the working directory, every `--add-dir` (the task's output directory, for a variant's stage the task's workspace, and the orchestrator's `profiles/` and `shared/`); write only in its working and artifact directories; run only `jq`, `grep`, `ls`, `wc`, `cat`, `head`, `tail` and `date` with Bash; load skills; track tasks; spawn the stage's subagents. Reading the orchestrator's `.env` is denied. Ralph's audit hooks and result gate run from `shared/hooks/` and write to `<stageDir>/logs/`, so the host needs `jq` and `perl`.
+- Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated permissions (`src/cli/claude/claude-host-settings.ts`): read only the working directory and every `--add-dir` (the task's output directory, for a variant's stage the task's workspace, the task profile's `agents/`, and `shared/agent-includes`, `shared/skills` and `shared/mcp-servers`), with `blockReadsOutsideWorkingDirectories` on; write only in its working and artifact directories; run Claude Code's built-in read-only Bash commands plus `jq` and `date`; load skills; track tasks; spawn the stage's subagents. Reading the orchestrator's `.env` or a profile's `.build/` is denied. Ralph's audit hooks and result gate run from `shared/hooks/` and write to `<stageDir>/logs/`, so the host needs `jq` and `perl`.
 - Copilot CLI runs with `--allow-all-tools --allow-all-paths`, its home at `--config-dir <stageDir>/home` and its debug log in `<stageDir>/logs/cli-debug/`, without Ralph's audit hooks.
 - No bundled local stage edits `profiles/` or `shared/`, and a Claude Code host session cannot: improvers write proposals into their artifact directory instead.
 
@@ -383,14 +384,14 @@ Add `postTaskHooks` to a variant alongside `stages`:
 
 Hook stages receive the `hook` object in addition to the standard stage context (empty values for main pipeline stages):
 
-| Variable               | Type                     | Description                                                                                   |
-| ---------------------- | ------------------------ | --------------------------------------------------------------------------------------------- |
-| `hook.taskOutputDir`   | `string`                 | Absolute path to the task's log directory (`<output.logDir>/<taskId>`)                        |
-| `hook.collectedLogs`   | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline                                    |
-| `hook.name`            | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                                              |
-| `hook.outputDir`       | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs                            |
-| `hook.cli`             | `string`                 | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses             |
-| `hook.orchestratorDir` | `string`                 | Absolute path of the orchestrator checkout, whose `profiles/` and `shared/` the hook may read |
+| Variable               | Type                     | Description                                                                                                 |
+| ---------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `hook.taskOutputDir`   | `string`                 | Absolute path to the task's log directory (`<output.logDir>/<taskId>`)                                      |
+| `hook.collectedLogs`   | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline                                                  |
+| `hook.name`            | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                                                            |
+| `hook.outputDir`       | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs                                          |
+| `hook.cli`             | `string`                 | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses                           |
+| `hook.orchestratorDir` | `string`                 | Absolute path of the orchestrator checkout, whose profile `agents/` and `shared/` sources the hook may read |
 
 `artifactDir` is `<taskOutputDir>/hooks/<hook-name>/artifacts`, absolute and shared by all of the hook's stages.
 

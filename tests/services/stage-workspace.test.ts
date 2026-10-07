@@ -66,8 +66,10 @@ describe("StageWorkspaceResolver", () => {
         additionalDirs: [
           OUTPUT_DIR,
           "/srv/ralph/cache/workspaces/DF-100-1234567890000",
-          "/srv/ralph/profiles",
-          "/srv/ralph/shared",
+          "/srv/ralph/profiles/docs/agents",
+          "/srv/ralph/shared/agent-includes",
+          "/srv/ralph/shared/skills",
+          "/srv/ralph/shared/mcp-servers",
         ],
       });
     });
@@ -108,8 +110,30 @@ describe("StageWorkspaceResolver", () => {
         cliHomeDir: `${stageDir}/home`,
         logDir: `${stageDir}/logs`,
         orchestratorDir: "/srv/ralph",
-        additionalDirs: [OUTPUT_DIR, "/srv/ralph/profiles", "/srv/ralph/shared"],
+        additionalDirs: [
+          OUTPUT_DIR,
+          "/srv/ralph/profiles/docs/agents",
+          "/srv/ralph/shared/agent-includes",
+          "/srv/ralph/shared/skills",
+          "/srv/ralph/shared/mcp-servers",
+        ],
       });
+    });
+
+    it("gives a hook stage no readable directory holding the profile's gateway.json or the checkout's .env", () => {
+      // Arrange
+      const secrets = ["/srv/ralph/profiles/docs/.build/gateway.json", "/srv/ralph/.env"];
+
+      // Act
+      const { cwd, additionalDirs } = createResolver().forHookStage(
+        taskContext(),
+        "run-analysis",
+        makeStage({ role: "scientist", mode: StageMode.Local }),
+      );
+
+      // Assert
+      const exposing = [cwd, ...additionalDirs].filter((dir) => secrets.some((path) => path.startsWith(`${dir}/`)));
+      expect(exposing).toEqual([]);
     });
 
     it("renders a Copilot hook stage's agents and skills into its working directory's .github/", () => {

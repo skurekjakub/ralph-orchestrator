@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { execa, ExecaError } from "execa";
 import { LocalClaudeCodeExecutor } from "../../../src/container/cli-executors/local-claude-code-executor";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
+import { hostPermissionRules } from "../../../src/cli/claude/claude-host-settings";
 import { ClaudeAuthMode, CliType, StageMode, type IStageConfig } from "../../../src/config/types";
 import type { HostStageWorkspace } from "../../../src/container/types";
 import { makeHostWorkspace, makeProfile, makeStage } from "../../helpers/factories";
@@ -68,7 +69,11 @@ describe("LocalClaudeCodeExecutor", () => {
       agentsOutDir: agentsDir,
       skillsOutDir: skillsDir,
       orchestratorDir,
-      additionalDirs: [outputDir, join(orchestratorDir, "profiles"), join(orchestratorDir, "shared")],
+      additionalDirs: [
+        outputDir,
+        join(orchestratorDir, "profiles", "docs", "agents"),
+        join(orchestratorDir, "shared", "skills"),
+      ],
     });
 
     vi.mocked(execa).mockReset();
@@ -116,7 +121,7 @@ describe("LocalClaudeCodeExecutor", () => {
 
   function settings(): {
     hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
-    permissions: { allow: string[]; deny: string[] };
+    permissions: unknown;
   } {
     return JSON.parse(readFileSync(join(workspace.stageDir, "claude-settings.json"), "utf-8"));
   }
@@ -154,11 +159,11 @@ describe("LocalClaudeCodeExecutor", () => {
         "--tools",
         "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,Agent",
         "--add-dir",
-        workspace.additionalDirs[0],
+        join(root, "output", "DF-100-1"),
         "--add-dir",
-        join(orchestratorDir, "profiles"),
+        join(orchestratorDir, "profiles", "docs", "agents"),
         "--add-dir",
-        join(orchestratorDir, "shared"),
+        join(orchestratorDir, "shared", "skills"),
         "--session-id",
         sessionId,
         "--debug-file",
@@ -252,7 +257,7 @@ describe("LocalClaudeCodeExecutor", () => {
       expect(spawned().options.env).toMatchObject({ RALPH_REQUIRE_RESULT_BLOCK: "1" });
     });
 
-    it("runs Ralph's audit hooks from the host's shared/hooks and lets the stage write only in its workspace", async () => {
+    it("runs Ralph's audit hooks from the host's shared/hooks under the stage's host permissions", async () => {
       // Arrange
       renderRootAgent();
 
@@ -263,10 +268,7 @@ describe("LocalClaudeCodeExecutor", () => {
       const { hooks, permissions } = settings();
       expect(hooks.SessionStart[0].hooks[0].command).toBe(`'${hooksDir}/log-session-start.sh' --cli claude`);
       expect(hooks.Stop[0].hooks[0].command).toBe(`'${hooksDir}/claude/result-gate.sh'`);
-      const edits = permissions.allow.filter((rule) => rule.startsWith("Edit("));
-      expect(edits).toEqual([`Edit(/${workspace.cwd}/**)`, `Edit(/${workspace.artifactDir}/**)`]);
-      expect(permissions.allow).toEqual(expect.arrayContaining(["Agent(run-analyzer)", "Agent(agent-improver)"]));
-      expect(permissions.deny).toEqual([`Read(/${join(orchestratorDir, ".env")})`]);
+      expect(permissions).toEqual(hostPermissionRules(workspace, ["run-analyzer", "agent-improver"]));
     });
 
     it("writes nothing outside the stage's workspace", async () => {

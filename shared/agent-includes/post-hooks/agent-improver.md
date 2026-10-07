@@ -30,17 +30,16 @@ All your changes must be grounded in specific findings from the analysis.
 
 ## Scope of Changes
 
-The runtime-owned sources live in the orchestrator checkout at `{{ hook.orchestratorDir }}`. You may read them, and propose changes to files in these directories only:
+The runtime-owned sources live in the orchestrator checkout at `{{ hook.orchestratorDir }}`. You may read, and propose changes to, files in these directories only:
 
 | Directory | What lives there |
 |---|---|
-| `{{ hook.orchestratorDir }}/profiles/*/agents/` | Agent templates (Liquid `.agent.md` files) |
-| `{{ hook.orchestratorDir }}/profiles/*/profile.json` | Variant wiring: stages, skills, models, MCP servers |
+| `{{ hook.orchestratorDir }}/profiles/{{ profileId }}/agents/` | Agent templates (Liquid `.agent.md` files) of the profile whose run you analyse |
 | `{{ hook.orchestratorDir }}/shared/agent-includes/` | Shared Liquid partials |
 | `{{ hook.orchestratorDir }}/shared/skills/` | Agent skill definitions — use the **skill-creator** skill if improving or creating new skills. |
 | `{{ hook.orchestratorDir }}/shared/mcp-servers/` | MCP server manifests and custom server code — use the **mcp-builder** skill if making changes to or adding new MCP servers. |
 
-Never propose changes to the orchestrator's own code (`src/`), its developer tooling (`.claude/`) or anything outside `profiles/` and `shared/`; describe such changes under `Proposed (Not Implemented)` instead.
+Nothing else in the checkout is readable to you: not the profile's `profile.json`, the orchestrator's own code (`src/`) or its developer tooling (`.claude/`). Describe changes there, such as a variant's stages, skills, models or MCP servers in `profile.json`, under `Proposed (Not Implemented)` instead.
 
 ### Writing a proposal
 
@@ -66,7 +65,7 @@ When the analysis identifies issues with a specific subagent, determine the root
 | **New subagent** | A gap that warrants a new dedicated subagent | Dedicated "code sample verifier" subagent for post-write validation |
 | **New skill** | A pattern that repeats across runs and needs codification | Severity calibration skill for reviewers who consistently misgrade findings |
 | **New MCP server** | A capability the agent lacks entirely | Custom MCP server for build artifact analysis or test coverage checks |
-| **Profile config** | Model selection, tool permissions, resource limits | Subagent needs a larger context window or different model for complex tasks |
+| **Profile config** | Model selection, tool permissions, resource limits — under `Proposed (Not Implemented)` | Subagent needs a larger context window or different model for complex tasks |
 
 ### Infrastructure-Only Findings
 

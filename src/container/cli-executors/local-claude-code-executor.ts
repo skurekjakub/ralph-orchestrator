@@ -52,8 +52,8 @@ export interface LocalClaudeCodeExecutorDeps {
  * above the workspace, and no MCP server. Ralph's audit hooks run from the host's `shared/hooks` and write to
  * the workspace's logs; the result gate follows the stage's `requireResultBlock`.
  *
- * The session runs in `dontAsk` mode under the allow rules {@link writeHostSessionSettings} writes: it reads the
- * task's logs and the orchestrator's `profiles/` and `shared/`, writes only in its working and artifact
+ * The session runs in `dontAsk` mode under the permissions {@link writeHostSessionSettings} writes: it reads only
+ * its working directories, `workspace.cwd` and `workspace.additionalDirs`, writes only in its working and artifact
  * directories, and runs only read-only Bash commands. The `--tools` cap has no web tools. Its environment holds
  * `PATH`, `HOME`, `LANG` and the configured Claude Code credential, and no other orchestrator secret.
  */

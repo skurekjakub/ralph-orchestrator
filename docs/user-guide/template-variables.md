@@ -95,11 +95,11 @@ Partials run in an **isolated scope** but receive all template variables as Liqu
 
 These variables are populated only for post-task hook stages. They are empty/default for main pipeline stages. All standard variables above (profile metadata, work item data, trigger metadata, stage context) are also available in hook stages.
 
-| Variable               | Type                     | Example                                           | Description                                                                                      |
-| ---------------------- | ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `hook.taskOutputDir`   | `string`                 | `/path/to/DOC-3143-1709000000/`                   | Absolute path to the task's log directory                                                        |
-| `hook.collectedLogs`   | `Record<string, string>` | `{ audit: "/path/audit.jsonl" }`                  | Map of log file IDs to their absolute paths                                                      |
-| `hook.name`            | `string`                 | `"run-analysis"`                                  | Name of the current post-task hook                                                               |
-| `hook.outputDir`       | `string`                 | `/path/to/DOC-3143-1709000000/hooks/run-analysis` | Hook-specific output directory                                                                   |
-| `hook.cli`             | `string`                 | `"claude"`                                        | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses                |
-| `hook.orchestratorDir` | `string`                 | `/srv/ralph-orchestrator`                         | Absolute path of the orchestrator checkout, whose `profiles/` and `shared/` hook stages may read |
+| Variable               | Type                     | Example                                           | Description                                                                                                    |
+| ---------------------- | ------------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `hook.taskOutputDir`   | `string`                 | `/path/to/DOC-3143-1709000000/`                   | Absolute path to the task's log directory                                                                      |
+| `hook.collectedLogs`   | `Record<string, string>` | `{ audit: "/path/audit.jsonl" }`                  | Map of log file IDs to their absolute paths                                                                    |
+| `hook.name`            | `string`                 | `"run-analysis"`                                  | Name of the current post-task hook                                                                             |
+| `hook.outputDir`       | `string`                 | `/path/to/DOC-3143-1709000000/hooks/run-analysis` | Hook-specific output directory                                                                                 |
+| `hook.cli`             | `string`                 | `"claude"`                                        | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses                              |
+| `hook.orchestratorDir` | `string`                 | `/srv/ralph-orchestrator`                         | Absolute path of the orchestrator checkout, whose profile `agents/` and `shared/` sources hook stages may read |
