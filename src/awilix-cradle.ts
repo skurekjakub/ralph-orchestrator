@@ -69,7 +69,7 @@ function buildContainerFactory({
   enableContinuation,
   cliRuntimes,
   executorFactory,
-  promptBuilder,
+  sessionRunner,
   logger,
   containerLogger,
 }: Pick<
@@ -79,7 +79,7 @@ function buildContainerFactory({
   | "enableContinuation"
   | "cliRuntimes"
   | "executorFactory"
-  | "promptBuilder"
+  | "sessionRunner"
   | "logger"
   | "containerLogger"
 >): ContainerManagerFactory {
@@ -88,8 +88,6 @@ function buildContainerFactory({
       const compose = buildComposeClient(profile, workspacePath, rootDir);
       const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
-      const continuationRunner = new ContinuationRunner({ logger });
-      const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return new ContainerManager({
         profile,
         workspacePath,
@@ -112,8 +110,6 @@ function buildContainerFactory({
     createLocalSession: async (profile, stage, workspace) => {
       const stageProfile = deriveStageProfile(profile, stage);
       const executor = await executorFactory.createLocal(stageProfile, stage, workspace, containerLogger);
-      const continuationRunner = new ContinuationRunner({ logger });
-      const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return { executor, sessionRunner };
     },
   };
@@ -168,6 +164,8 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     logCollector: w.service(LogCollector).singleton(),
     promptBuilder: w.service(PromptBuilder).singleton(),
     executorFactory: w.service(CliExecutorFactory).singleton(),
+    continuationRunner: w.service(ContinuationRunner).singleton(),
+    sessionRunner: w.service(AgentSessionRunner).singleton(),
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
     templateRenderer: w.service(AgentTemplateRenderer).singleton(),
     overlayWriter: w.service(ComposeOverlayWriter).singleton(),

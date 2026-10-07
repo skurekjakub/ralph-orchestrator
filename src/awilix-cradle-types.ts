@@ -26,6 +26,8 @@ import type { ITaskResultWriter } from "./services/task-result-writer";
 import type { IRunArtifactsDeriver } from "./services/run-artifacts-deriver";
 import type { ITextRedactor } from "./logs/text-redactor";
 import type { IHeartbeatSender } from "./services/heartbeat";
+import type { IContinuationRunner } from "./container/continuation-runner";
+import type { IAgentSessionRunner } from "./container/agent-session-runner";
 import type { ContainerManagerFactory } from "./container/types";
 import type { IDataSourceConnector } from "./datasource/connector";
 import type { IWorkItemPoller } from "./datasource/poller";
@@ -83,6 +85,8 @@ export interface OrchestratorCradle {
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
   executorFactory: ICliExecutorFactory;
+  continuationRunner: IContinuationRunner;
+  sessionRunner: IAgentSessionRunner;
   templateRenderer: IAgentTemplateRenderer;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;

@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle";
 import { ClaudeAuthMode, CliType } from "../src/config/types";
-import { makeConfig, makeProfile } from "./helpers/factories";
+import { makeConfig, makeHostWorkspace, makeProfile, makeStage } from "./helpers/factories";
+import { createMockExecutor } from "./helpers/mocks";
 import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
 import { StageWorkspaceResolver } from "../src/services/stage-workspace";
 
@@ -135,5 +136,21 @@ describe("createCradle", () => {
     expect(() => cradle.containerFactory.create(profile, "/tmp/test-workspaces/DF-100-1")).toThrow(
       /Profile squid.conf not found at .*never-set-up.*squid\.conf/,
     );
+  });
+
+  it("hands every local session the root session runner", async () => {
+    // Arrange
+    const cradle = createCradle(makeConfig(), { rootDir });
+    const profile = makeProfile();
+    const stage = makeStage();
+    vi.spyOn(cradle.executorFactory, "createLocal").mockResolvedValue(createMockExecutor());
+
+    // Act
+    const first = await cradle.containerFactory.createLocalSession(profile, stage, makeHostWorkspace());
+    const second = await cradle.containerFactory.createLocalSession(profile, stage, makeHostWorkspace());
+
+    // Assert
+    expect(first.sessionRunner).toBe(cradle.sessionRunner);
+    expect(second.sessionRunner).toBe(cradle.sessionRunner);
   });
 });
