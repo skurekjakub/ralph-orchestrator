@@ -4,8 +4,9 @@ import { join } from "node:path";
 import { asValue, createContainer, InjectionMode, type AwilixContainer } from "awilix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockExeca } = vi.hoisted(() => ({
+const { mockExeca, composeClientBuilt } = vi.hoisted(() => ({
   mockExeca: vi.fn().mockResolvedValue({ stdout: "", stderr: "", exitCode: 0 }),
+  composeClientBuilt: vi.fn(),
 }));
 
 vi.mock("execa", async (importOriginal) => {
@@ -13,20 +14,45 @@ vi.mock("execa", async (importOriginal) => {
   return { ...orig, execa: mockExeca };
 });
 
+vi.mock("../../src/container/compose-client", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("../../src/container/compose-client")>();
+  class CountedComposeClient extends orig.ComposeClient {
+    constructor(...args: ConstructorParameters<typeof orig.ComposeClient>) {
+      super(...args);
+      composeClientBuilt();
+    }
+  }
+  return { ...orig, ComposeClient: CountedComposeClient };
+});
+
 import type { OrchestratorCradle } from "../../src/awilix-cradle-types";
-import { taskRegistrations } from "../../src/awilix-cradle";
+import {
+  claudeHostStageRegistrations,
+  claudeStageRegistrations,
+  copilotHostStageRegistrations,
+  copilotStageRegistrations,
+  taskRegistrations,
+} from "../../src/awilix-cradle";
 import { createContainerManagerFactory } from "../../src/container/container-manager-factory";
 import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
-import { CliType } from "../../src/config/types";
-import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
+import { claudeAgentFileName } from "../../src/cli/claude/claude-agent-writer";
+import { CliType, StageMode } from "../../src/config/types";
+import { LocalClaudeCodeExecutor } from "../../src/container/cli-executors/local-claude-code-executor";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
-import { makeProfile, makeResult, makeWorkItem } from "../helpers/factories";
+import {
+  makeAgentTemplate,
+  makeContainerWorkspace,
+  makeHostWorkspace,
+  makeProfile,
+  makeResult,
+  makeStage,
+  makeWorkItem,
+} from "../helpers/factories";
 import {
   createMockCliRuntime,
   createMockExecutor,
   createMockSessionRunner,
   createSilentLogger,
-  type Mocked,
 } from "../helpers/mocks";
 
 /** Profile setup has written this profile's squid.conf in the fixture checkout. */
@@ -36,12 +62,20 @@ const NEVER_SET_UP = makeProfile({ id: "never-set-up" });
 /** The fixture orchestrator checkout. */
 let rootDir: string;
 
-/** A root container holding the task registrations and the root tokens the task scope reads, its services mocked. */
+/** A container stage running Claude Code, whose agent the fixture checkout holds for `SET_UP`. */
+const CLAUDE_STAGE = makeStage({ agent: "ralph.scientist", role: "write", cli: CliType.Claude });
+
+/** A container stage running Copilot. */
+const COPILOT_STAGE = makeStage({ agent: "ralph.scientist", role: "review", cli: CliType.Copilot });
+
+/**
+ * A root container holding the task and stage registrations and the root tokens their scopes read, its services
+ * mocked.
+ */
 function createRoot(
   sessionRunner: IAgentSessionRunner = createMockSessionRunner(),
 ): AwilixContainer<OrchestratorCradle> {
   const container = createContainer<OrchestratorCradle>({ injectionMode: InjectionMode.PROXY, strict: true });
-  const executorFactory: Mocked<ICliExecutorFactory> = { create: vi.fn(), createLocal: vi.fn() };
   const runtimes = [createMockCliRuntime(CliType.Claude), createMockCliRuntime(CliType.Copilot)];
   container.register({
     rootDir: asValue(rootDir),
@@ -50,10 +84,13 @@ function createRoot(
     logger: asValue(createSilentLogger()),
     containerLogger: asValue(createSilentLogger()),
     cliRuntimes: asValue(new CliRuntimeRegistry({ runtimes })),
-    executorFactory: asValue(executorFactory),
     sessionRunner: asValue(sessionRunner),
   });
   container.register(taskRegistrations);
+  container.register(claudeStageRegistrations);
+  container.register(copilotStageRegistrations);
+  container.register(claudeHostStageRegistrations);
+  container.register(copilotHostStageRegistrations);
   return container;
 }
 
@@ -65,10 +102,17 @@ function dockerEnv(index: number): Record<string, string> {
 describe("createContainerManagerFactory", () => {
   beforeEach(() => {
     mockExeca.mockClear();
+    composeClientBuilt.mockClear();
     rootDir = mkdtempSync(join(tmpdir(), "container-manager-factory-"));
     const buildDir = join(rootDir, "profiles", SET_UP.id, ".build");
     mkdirSync(buildDir, { recursive: true });
     writeFileSync(join(buildDir, "squid.conf"), "");
+    const agentsDir = join(rootDir, "profiles", SET_UP.id, "agents");
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(join(agentsDir, "ralph.scientist.agent.md"), makeAgentTemplate("scientist"));
+    const hooksDir = join(rootDir, "shared", "hooks", "claude");
+    mkdirSync(hooksDir, { recursive: true });
+    writeFileSync(join(hooksDir, "hooks.json"), "{}");
   });
 
   afterEach(() => {
@@ -117,6 +161,19 @@ describe("createContainerManagerFactory", () => {
       // Assert
       expect(result).toBe(expected);
     });
+
+    it("builds one compose client for all of a task's stages", async () => {
+      // Arrange
+      const profile = makeProfile({ id: SET_UP.id, stages: [CLAUDE_STAGE, COPILOT_STAGE] });
+      const manager = createContainerManagerFactory(createRoot()).create(profile, "/workspaces/DF-1-1000");
+
+      // Act
+      await manager.createExecutorForStage(CLAUDE_STAGE, makeContainerWorkspace());
+      await manager.createExecutorForStage(COPILOT_STAGE, makeContainerWorkspace());
+
+      // Assert
+      expect(composeClientBuilt).toHaveBeenCalledOnce();
+    });
   });
 
   describe("forceDown", () => {
@@ -141,6 +198,42 @@ describe("createContainerManagerFactory", () => {
         /Profile squid.conf not found at .*never-set-up.*squid\.conf; profile setup has not run for never-set-up/,
       );
       expect(mockExeca).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createLocalSession", () => {
+    it("runs a hook stage's Claude Code on the host in the hook's workspace, with no task scope open", async () => {
+      // Arrange
+      const stage = makeStage({
+        agent: "ralph.scientist",
+        role: "scientist",
+        mode: StageMode.Local,
+        cli: CliType.Claude,
+      });
+      const stageDir = join(rootDir, "output", "logs", "DF-1-1000", "hooks", "run-analysis", "scientist");
+      const workspace = makeHostWorkspace({
+        stageDir,
+        cwd: join(stageDir, "work"),
+        agentsOutDir: join(stageDir, "home", "agents"),
+        cliHomeDir: join(stageDir, "home"),
+        logDir: join(stageDir, "logs"),
+        orchestratorDir: rootDir,
+      });
+      mkdirSync(workspace.agentsOutDir, { recursive: true });
+      writeFileSync(join(workspace.agentsOutDir, claudeAgentFileName("scientist")), makeAgentTemplate("scientist"));
+      const { executor } = await createContainerManagerFactory(createRoot()).createLocalSession(
+        SET_UP,
+        stage,
+        workspace,
+      );
+
+      // Act
+      await executor.run("analyse the run");
+
+      // Assert
+      expect(executor).toBeInstanceOf(LocalClaudeCodeExecutor);
+      const claude = mockExeca.mock.calls.find(([file]) => file === join(rootDir, "node_modules", ".bin", "claude"));
+      expect(claude?.[2]).toMatchObject({ cwd: workspace.cwd });
     });
   });
 });

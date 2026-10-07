@@ -34,7 +34,7 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
       7. TaskWorkspaceManager.cleanup()                               # deletes the workspace on success, keeps it otherwise
 ```
 
-`CliExecutorFactory` (`src/container/cli-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host. Credentials are checked by startup validation, not by the factory.
+The stage executor factory (`src/container/stage-executor-factory.ts`) dispatches on each stage's `cli`: `ClaudeCodeExecutor` or `CopilotExecutor` in the container, `LocalClaudeCodeExecutor` or `LocalCopilotExecutor` on the host. Credentials are checked by startup validation, not by the factory.
 
 ## Where things are logged or decided
 

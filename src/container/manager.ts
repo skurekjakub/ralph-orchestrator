@@ -10,7 +10,7 @@ import { deriveStageProfile, type RalphResult, type StageWorkspace } from "./typ
 import type { Logger } from "../logger";
 import type { IssueContext } from "../prompt/prompt";
 import type { IComposeClient } from "./compose-client";
-import type { ICliExecutor, ICliExecutorFactory } from "./cli-executor-factory";
+import type { ICliExecutor, IStageExecutorFactory } from "./cli-executor-factory";
 import { StreamCapture } from "./stream-capture";
 import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
@@ -99,7 +99,7 @@ export interface IContainerManager {
  *
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
- * - {@link ICliExecutorFactory} — the executor of each stage's CLI
+ * - {@link IStageExecutorFactory} — the executor of each stage's CLI
  * - {@link registerLogSources} — standard log source registration
  *
  * 1. **start()** — `docker compose up -d --build`
@@ -110,7 +110,7 @@ export interface IContainerManager {
  */
 export class ContainerManager implements IContainerManager {
   private readonly compose: IComposeClient;
-  private readonly executorFactory: ICliExecutorFactory;
+  private readonly stageExecutors: IStageExecutorFactory;
   private readonly sessionRunner: IAgentSessionRunner;
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
@@ -147,7 +147,7 @@ export class ContainerManager implements IContainerManager {
     workspacePath,
     compose,
     cliRuntimes,
-    executorFactory,
+    stageExecutors,
     containerLogs,
     workspaceCleaner,
     sessionRunner,
@@ -159,7 +159,7 @@ export class ContainerManager implements IContainerManager {
     workspacePath: string;
     compose: IComposeClient;
     cliRuntimes: ICliRuntimeRegistry;
-    executorFactory: ICliExecutorFactory;
+    stageExecutors: IStageExecutorFactory;
     containerLogs: IContainerLogCollector;
     workspaceCleaner: IContainerWorkspaceCleaner;
     sessionRunner: IAgentSessionRunner;
@@ -174,7 +174,7 @@ export class ContainerManager implements IContainerManager {
     this.compose = compose;
     this.logs = containerLogs;
     this.cleaner = workspaceCleaner;
-    this.executorFactory = executorFactory;
+    this.stageExecutors = stageExecutors;
     this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;
     this.cliRuntimes = cliRuntimes;
@@ -294,9 +294,9 @@ export class ContainerManager implements IContainerManager {
     this.logger.info(`Stage ${stage.role}: ${stage.cli} CLI (${stage.mode}), agent ${stage.agent}`);
     switch (workspace.mode) {
       case StageMode.Local:
-        return this.executorFactory.createLocal(stageProfile, stage, workspace, this.containerLogger);
+        return this.stageExecutors.createHost(stageProfile, stage, workspace);
       case StageMode.Container:
-        return this.executorFactory.create(this.compose, stageProfile, stage, this.containerLogger);
+        return this.stageExecutors.create(stageProfile, stage);
     }
   }
 

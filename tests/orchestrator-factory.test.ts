@@ -3,9 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle";
-import { ClaudeAuthMode, CliType } from "../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode } from "../src/config/types";
 import { makeConfig, makeHostWorkspace, makeProfile, makeStage } from "./helpers/factories";
-import { createMockExecutor } from "./helpers/mocks";
 import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
 import { StageWorkspaceResolver } from "../src/services/stage-workspace";
 
@@ -103,12 +102,11 @@ describe("createCradle", () => {
     expect(runtime.credentials.required.map((c) => c.envVar)).toEqual(["ANTHROPIC_API_KEY"]);
   });
 
-  it("resolves the executor factory, overlay writer and workspace manager with their CLI runtime dependencies", () => {
+  it("resolves the overlay writer and workspace manager with their CLI runtime dependencies", () => {
     // Arrange
     const cradle = createCradle(makeConfig(), { rootDir });
 
     // Act & Assert
-    expect(cradle.executorFactory).toBeDefined();
     expect(cradle.overlayWriter).toBeDefined();
     expect(cradle.workspaceManager).toBeInstanceOf(TaskWorkspaceManager);
   });
@@ -152,8 +150,7 @@ describe("createCradle", () => {
     // Arrange
     const cradle = createCradle(makeConfig(), { rootDir });
     const profile = makeProfile();
-    const stage = makeStage();
-    vi.spyOn(cradle.executorFactory, "createLocal").mockResolvedValue(createMockExecutor());
+    const stage = makeStage({ mode: StageMode.Local, cli: CliType.Copilot });
 
     // Act
     const first = await cradle.containerFactory.createLocalSession(profile, stage, makeHostWorkspace());

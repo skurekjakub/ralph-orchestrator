@@ -2,7 +2,19 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asValue, InjectionMode } from "awilix";
 import type { IAppConfig } from "./config/types";
-import type { OrchestratorCradle, TaskCradle, TaskValues } from "./awilix-cradle-types";
+import type {
+  ClaudeHostStageCradle,
+  ClaudeHostStageValues,
+  ClaudeStageCradle,
+  ClaudeStageValues,
+  CopilotHostStageCradle,
+  CopilotStageCradle,
+  HostStageValues,
+  OrchestratorCradle,
+  StageValues,
+  TaskCradle,
+  TaskValues,
+} from "./awilix-cradle-types";
 import { wiring, type Registrations } from "./di/registration";
 import { createContainerManagerFactory } from "./container/container-manager-factory";
 import { buildDataSourceMaps } from "./datasource/registry";
@@ -25,7 +37,6 @@ import { ComposeClient } from "./container/compose-client";
 import { resolveComposeFiles } from "./container/setup/compose-files";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes";
 import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
-import { CliExecutorFactory } from "./container/cli-executor-factory";
 import { ProfileSetupService } from "./services/profile-setup-service";
 import { AgentPipelineExecutor } from "./services/agent-pipeline-executor";
 import {
@@ -36,6 +47,10 @@ import {
 import { ContainerLogCollector } from "./container/log-collector";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner";
 import { ContinuationRunner } from "./container/continuation-runner";
+import { ClaudeCodeExecutor } from "./container/cli-executors/claude-code-executor";
+import { CopilotExecutor } from "./container/cli-executors/copilot-executor";
+import { LocalClaudeCodeExecutor } from "./container/cli-executors/local-claude-code-executor";
+import { LocalCopilotExecutor } from "./container/cli-executors/local-copilot-executor";
 import { AgentSessionRunner } from "./container/agent-session-runner";
 import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
 import { profileBuildPaths } from "./container/setup/build-paths";
@@ -45,7 +60,9 @@ import { StageWorkspaceResolver } from "./services/stage-workspace";
 const t = wiring<TaskCradle>();
 
 /** Scoped task registrations; `squidConfPath` throws when profile setup has not written the profile's squid.conf. */
-export const taskRegistrations: Registrations<Omit<TaskCradle, keyof OrchestratorCradle | keyof TaskValues>> = {
+export const taskRegistrations: Registrations<
+  Omit<TaskCradle, keyof OrchestratorCradle | keyof TaskValues | "stageExecutors">
+> = {
   composeFiles: t.factory(({ profile, rootDir }) => resolveComposeFiles(profile, rootDir)).scoped(),
   squidConfPath: t
     .factory(({ profile, rootDir }) => {
@@ -62,9 +79,37 @@ export const taskRegistrations: Registrations<Omit<TaskCradle, keyof Orchestrato
   containerManager: t.service(ContainerManager).scoped(),
 };
 
+/** The scoped executor of a Claude Code container stage, resolved only from the stage's scope. */
+export const claudeStageRegistrations: Registrations<
+  Omit<ClaudeStageCradle, keyof TaskCradle | keyof ClaudeStageValues>
+> = {
+  claudeCodeExecutor: wiring<ClaudeStageCradle>().service(ClaudeCodeExecutor).scoped(),
+};
+
+/** The scoped executor of a Copilot container stage, resolved only from the stage's scope. */
+export const copilotStageRegistrations: Registrations<Omit<CopilotStageCradle, keyof TaskCradle | keyof StageValues>> =
+  {
+    copilotExecutor: wiring<CopilotStageCradle>().service(CopilotExecutor).scoped(),
+  };
+
+/** The scoped executor of a host Claude Code stage, resolved only from the stage's scope. */
+export const claudeHostStageRegistrations: Registrations<
+  Omit<ClaudeHostStageCradle, keyof OrchestratorCradle | keyof ClaudeHostStageValues>
+> = {
+  localClaudeCodeExecutor: wiring<ClaudeHostStageCradle>().service(LocalClaudeCodeExecutor).scoped(),
+};
+
+/** The scoped executor of a host Copilot stage, resolved only from the stage's scope. */
+export const copilotHostStageRegistrations: Registrations<
+  Omit<CopilotHostStageCradle, keyof OrchestratorCradle | keyof HostStageValues>
+> = {
+  localCopilotExecutor: wiring<CopilotHostStageCradle>().service(LocalCopilotExecutor).scoped(),
+};
+
 /**
  * Create the awilix DI container: register the root services, among them the container manager factory, and the
- * scoped task services its scopes resolve, then build each data source's connector and poller in a scope of its own.
+ * scoped task services and stage executors its scopes resolve, then build each data source's connector and poller in
+ * a scope of its own.
  *
  * The data-source scopes resolve here, together with the root services they depend on (`activityLog`, `logger`);
  * every other root service resolves on first access through the returned cradle.
@@ -113,7 +158,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     cliRuntimes: w.factory(({ claudeAuth }) => createCliRuntimeRegistry(claudeAuth)).singleton(),
     logCollector: w.service(LogCollector).singleton(),
     promptBuilder: w.service(PromptBuilder).singleton(),
-    executorFactory: w.service(CliExecutorFactory).singleton(),
     continuationRunner: w.service(ContinuationRunner).singleton(),
     sessionRunner: w.service(AgentSessionRunner).singleton(),
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
@@ -138,6 +182,10 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
   };
   container.register(root);
   container.register(taskRegistrations);
+  container.register(claudeStageRegistrations);
+  container.register(copilotStageRegistrations);
+  container.register(claudeHostStageRegistrations);
+  container.register(copilotHostStageRegistrations);
   const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 

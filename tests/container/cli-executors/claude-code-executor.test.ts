@@ -77,12 +77,12 @@ describe("ClaudeCodeExecutor", () => {
     const logger = createMockLogger();
     const executor = new ClaudeCodeExecutor({
       compose,
-      profile,
+      stageProfile: profile,
       stage,
       agentName: "ralph",
       subagentDepth: options.subagentDepth ?? 2,
       runtime: new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken }),
-      logger,
+      containerLogger: logger,
     });
     return { executor, compose, logger };
   }

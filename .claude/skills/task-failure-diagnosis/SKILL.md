@@ -7,7 +7,7 @@ description: "Diagnoses why a Ralph Orchestrator task run failed, especially whe
 
 Work from the cheapest evidence to the most expensive: summary → sidecar/proxy logs → per-task log → global container log → code. Stop when you have the root cause; don't patch symptoms.
 
-Read `references/log-map.md` first. Without the file layout you will waste time searching. Each stage runs the CLI its `cli` names, else the profile's (`claude` by default): Claude Code, or Copilot CLI as the second-class alternative. Both bundled profiles run Claude Code in every stage, the `run-analysis` post-task hook on the host included. `CliExecutorFactory` (`src/container/cli-executor-factory.ts`) picks the executor.
+Read `references/log-map.md` first. Without the file layout you will waste time searching. Each stage runs the CLI its `cli` names, else the profile's (`claude` by default): Claude Code, or Copilot CLI as the second-class alternative. Both bundled profiles run Claude Code in every stage, the `run-analysis` post-task hook on the host included. The stage executor factory (`src/container/stage-executor-factory.ts`) picks the executor.
 
 ## Step 1: Execution summary
 

@@ -34,7 +34,7 @@ import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-manager";
 import type { AppStartupDeps } from "../../src/app-startup";
 import type { RalphResult } from "../../src/container/types";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { ICliExecutor, IStageExecutorFactory } from "../../src/container/cli-executor-factory";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { CliType, StageMode, type IStageConfig } from "../../src/config/types";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
@@ -205,6 +205,17 @@ export function createMockExecutor(): ICliExecutor & Mocked<ICliExecutor> {
     run: vi.fn().mockResolvedValue(makeExecResult()),
     continueSession: vi.fn().mockResolvedValue(makeExecResult()),
     killActive: vi.fn(),
+  };
+}
+
+/** Create a mock stage executor factory whose executors are fresh mock executors. */
+export function createMockStageExecutors(
+  overrides: Partial<Mocked<IStageExecutorFactory>> = {},
+): Mocked<IStageExecutorFactory> {
+  return {
+    create: vi.fn().mockImplementation(async () => createMockExecutor()),
+    createHost: vi.fn().mockImplementation(async () => createMockExecutor()),
+    ...overrides,
   };
 }
 

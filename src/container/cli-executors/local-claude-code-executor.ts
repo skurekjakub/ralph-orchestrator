@@ -24,7 +24,7 @@ import { executeCliCommand, killActiveProcess } from "./shared-exec";
 /** Dependencies of one host stage's Claude Code executor. */
 export interface LocalClaudeCodeExecutorDeps {
   /** The variant with the stage's overrides applied (`deriveStageProfile`): model, timeout. */
-  readonly profile: IAgentProfile;
+  readonly stageProfile: IAgentProfile;
   /** The stage: effort and whether it requires a result. */
   readonly stage: IStageConfig;
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
@@ -41,7 +41,7 @@ export interface LocalClaudeCodeExecutorDeps {
   readonly binary: string;
   /** Host path of `shared/hooks`, whose audit hooks the session runs. */
   readonly hooksDir: string;
-  readonly logger: Logger;
+  readonly containerLogger: Logger;
 }
 
 /**
@@ -74,7 +74,7 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
   private readonly sessions = new ClaudeSessionIds();
 
   constructor(deps: LocalClaudeCodeExecutorDeps) {
-    this.profile = deps.profile;
+    this.profile = deps.stageProfile;
     this.stage = deps.stage;
     this.agentName = deps.agentName;
     this.subagentDepth = deps.subagentDepth;
@@ -83,7 +83,7 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
     this.runtime = deps.runtime;
     this.binary = deps.binary;
     this.hooksDir = deps.hooksDir;
-    this.logger = deps.logger;
+    this.logger = deps.containerLogger;
   }
 
   /** Kill the active claude process if one is running. */

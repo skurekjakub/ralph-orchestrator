@@ -1,6 +1,7 @@
 import {
   asClass,
   asFunction,
+  asValue,
   type BuildResolver,
   type Constructor,
   type FunctionReturning,
@@ -40,4 +41,9 @@ export function wiring<C extends object>(): {
       asClass(ctor as unknown as Constructor<InstanceType<F>>),
     factory: <R>(fn: (deps: C) => R) => asFunction(fn as FunctionReturning<R>),
   };
+}
+
+/** A value registration of each property of `values`, under the property's name: the values a scope opens with. */
+export function asValues<V extends object>(values: V): Registrations<V> {
+  return Object.fromEntries(Object.entries(values).map(([name, value]) => [name, asValue(value)])) as Registrations<V>;
 }

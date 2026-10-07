@@ -1,15 +1,5 @@
-import type { ICliRuntimeRegistry } from "../cli/cli-runtime";
-import { hostCliBinary } from "../cli/cli-versions";
-import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
-import type { Logger } from "../logger";
-import type { IComposeClient } from "./compose-client";
-import { loadAgentCatalog } from "./setup/agent-catalogs";
+import type { IAgentProfile, IStageConfig } from "../config/types";
 import type { ContainerExecResult, HostStageWorkspace } from "./types";
-import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor";
-import { CopilotExecutor } from "./cli-executors/copilot-executor";
-import { LocalClaudeCodeExecutor } from "./cli-executors/local-claude-code-executor";
-import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
-import { profileBuildPaths } from "./setup/build-paths";
 
 /**
  * Runs one pipeline stage's agent CLI.
@@ -26,20 +16,16 @@ export interface ICliExecutor {
   killActive(): void;
 }
 
-/** Creates the executor of a stage's CLI. Credentials are checked by startup validation, not here. */
-export interface ICliExecutorFactory {
+/** Creates the executors of one task's stages. Credentials are checked by startup validation, not here. */
+export interface IStageExecutorFactory {
   /**
    * Executor for a `mode: "container"` stage, running inside the task's `app` container.
    *
    * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
-   * @throws Error when the profile's agent templates are invalid or lack the stage's agent.
+   * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the
+   *   stage's agent.
    */
-  create(
-    compose: IComposeClient,
-    stageProfile: IAgentProfile,
-    stage: IStageConfig,
-    cliLogger: Logger,
-  ): Promise<ICliExecutor>;
+  create(stageProfile: IAgentProfile, stage: IStageConfig): Promise<ICliExecutor>;
   /**
    * Executor for a `mode: "local"` stage, running the pinned CLI the orchestrator installed
    * (`node_modules/.bin/<cli>`) on the host in the stage's `workspace`.
@@ -48,82 +34,5 @@ export interface ICliExecutorFactory {
    * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the
    *   stage's agent.
    */
-  createLocal(
-    stageProfile: IAgentProfile,
-    stage: IStageConfig,
-    workspace: HostStageWorkspace,
-    cliLogger: Logger,
-  ): Promise<ICliExecutor>;
-}
-
-/** Dispatches on the stage's resolved CLI. */
-export class CliExecutorFactory implements ICliExecutorFactory {
-  private readonly cliRuntimes: ICliRuntimeRegistry;
-  private readonly rootDir: string;
-
-  /** @param rootDir The orchestrator checkout, whose `node_modules/.bin` holds the CLIs host stages run. */
-  constructor({ cliRuntimes, rootDir }: { cliRuntimes: ICliRuntimeRegistry; rootDir: string }) {
-    this.cliRuntimes = cliRuntimes;
-    this.rootDir = rootDir;
-  }
-
-  /** Claude Code takes the stage root's frontmatter name and the depth of its subagent graph from the agent catalog. */
-  async create(
-    compose: IComposeClient,
-    stageProfile: IAgentProfile,
-    stage: IStageConfig,
-    cliLogger: Logger,
-  ): Promise<ICliExecutor> {
-    const runtime = this.cliRuntimes.get(stage.cli);
-    switch (stage.cli) {
-      case CliType.Claude: {
-        const catalog = await loadAgentCatalog(this.rootDir, stageProfile.id);
-        return new ClaudeCodeExecutor({
-          compose,
-          profile: stageProfile,
-          stage,
-          agentName: catalog.get(stage.agent).frontmatter.name,
-          subagentDepth: catalog.depthFrom(stage.agent),
-          runtime,
-          logger: cliLogger,
-        });
-      }
-      case CliType.Copilot:
-        return new CopilotExecutor({ compose, profile: stageProfile, runtime, logger: cliLogger });
-    }
-  }
-
-  /**
-   * Claude Code also takes the frontmatter names of the agents the stage root can reach, which its permission
-   * rules let it spawn, and runs the audit hooks of the orchestrator's `shared/hooks`.
-   */
-  async createLocal(
-    stageProfile: IAgentProfile,
-    stage: IStageConfig,
-    workspace: HostStageWorkspace,
-    cliLogger: Logger,
-  ): Promise<ICliExecutor> {
-    const runtime = this.cliRuntimes.get(stage.cli);
-    const binary = hostCliBinary(this.rootDir, stage.cli);
-    switch (stage.cli) {
-      case CliType.Copilot:
-        return new LocalCopilotExecutor({ profile: stageProfile, workspace, runtime, binary, logger: cliLogger });
-      case CliType.Claude: {
-        const catalog = await loadAgentCatalog(this.rootDir, stageProfile.id);
-        const nameOf = (fileId: string): string => catalog.get(fileId).frontmatter.name;
-        return new LocalClaudeCodeExecutor({
-          profile: stageProfile,
-          stage,
-          agentName: nameOf(stage.agent),
-          subagentDepth: catalog.depthFrom(stage.agent),
-          subagents: catalog.reachableFrom(stage.agent).slice(1).map(nameOf),
-          workspace,
-          runtime,
-          binary,
-          hooksDir: profileBuildPaths(this.rootDir, stageProfile.id).hooksDir,
-          logger: cliLogger,
-        });
-      }
-    }
-  }
+  createHost(stageProfile: IAgentProfile, stage: IStageConfig, workspace: HostStageWorkspace): Promise<ICliExecutor>;
 }

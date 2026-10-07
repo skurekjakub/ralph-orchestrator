@@ -25,7 +25,7 @@ export class JiraClient implements IJiraClient {
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
    - Data source connector factories register their own classes in the data source's awilix scope and resolve the connector and poller there (`src/datasource/connectors/jira/factory.ts` registers `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`; see `docs/dev-doc/data-source-registration.md`).
    - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
-   - `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`).
+   - `src/container/stage-executor-factory.ts` opens the stage scopes in which the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`) resolve.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
@@ -86,7 +86,6 @@ interface OrchestratorCradle {
   cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
-  executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
@@ -111,9 +110,9 @@ interface OrchestratorCradle {
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
 
-`containerFactory` is `createContainerManagerFactory(container)` (`src/container/container-manager-factory.ts`), registered with `asValue(...)`. Its `create` opens a task scope of the root container (`openTaskScope`) holding the task's `profile` and `workspacePath`, in which the `.scoped()` `taskRegistrations` resolve the task's `ContainerManager` and its `ComposeClient`, `ContainerLogCollector` and `ContainerWorkspaceCleaner`. `forceDown` resolves a task scope's compose client to tear a profile's stack down without a manager. `createLocalSession` builds a host stage's executor through `executorFactory` and returns it with the root `sessionRunner` for `PostTaskHookRunner`.
+`containerFactory` is `createContainerManagerFactory(container)` (`src/container/container-manager-factory.ts`), registered with `asValue(...)`. Its `create` opens a task scope of the root container (`openTaskScope`) holding the task's `profile` and `workspacePath`, in which the `.scoped()` `taskRegistrations` resolve the task's `ContainerManager` and its `ComposeClient`, `ContainerLogCollector` and `ContainerWorkspaceCleaner`. The task scope also holds the task's `stageExecutors` (`createStageExecutorFactory`, `src/container/stage-executor-factory.ts`), which opens a stage scope of the task scope per stage, holding the stage's values, in which the `.scoped()` stage registrations (one object per stage cradle kind) resolve the stage's executor. `forceDown` resolves a task scope's compose client to tear a profile's stack down without a manager. `createLocalSession` resolves a post-task hook stage's executor in a host stage scope of the root (`createHostStageExecutor`) and returns it with the root `sessionRunner` for `PostTaskHookRunner`.
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 

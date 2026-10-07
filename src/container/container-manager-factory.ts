@@ -1,7 +1,8 @@
 import { asValue, type AwilixContainer } from "awilix";
 import type { OrchestratorCradle, TaskCradle, TaskValues } from "../awilix-cradle-types";
-import type { Registrations } from "../di/registration";
+import { asValues } from "../di/registration";
 import { repoCachePaths } from "../services/task-workspace-manager";
+import { createHostStageExecutor, createStageExecutorFactory } from "./stage-executor-factory";
 import { deriveStageProfile, type ContainerManagerFactory } from "./types";
 
 /**
@@ -14,26 +15,26 @@ export function openTaskScope(
   container: AwilixContainer<OrchestratorCradle>,
   values: TaskValues,
 ): AwilixContainer<TaskCradle> {
-  const registrations: Registrations<TaskValues> = {
-    profile: asValue(values.profile),
-    workspacePath: asValue(values.workspacePath),
-  };
-  return container.createScope<TaskCradle>().register(registrations);
+  return container.createScope<TaskCradle>().register(asValues(values));
 }
 
 /**
- * The container manager factory over `container`: each task's stack resolves in a task scope of its own, and a
- * host stage's session from the root. `create` throws, and `forceDown` rejects, with `Profile squid.conf not found`
- * when profile setup has not written the profile's `squid.conf`.
+ * The container manager factory over `container`: each task's stack resolves in a task scope of its own and each of
+ * its stages' executors in a stage scope of that, while a post-task hook stage's executor resolves in a host stage
+ * scope of the root. `create` throws, and `forceDown` rejects, with `Profile squid.conf not found` when profile setup
+ * has not written the profile's `squid.conf`.
  *
- * @param container The root container, holding the scoped task registrations.
+ * @param container The root container, holding the scoped task and stage registrations.
  */
 export function createContainerManagerFactory(container: AwilixContainer<OrchestratorCradle>): ContainerManagerFactory {
   return {
     create: (profile, workspacePath) => {
       const scope = openTaskScope(container, { profile, workspacePath });
-      // A scoped registration caches in the scope that resolves it; as a value, child scopes inherit this client.
-      scope.register({ compose: asValue(scope.resolve("compose")) });
+      scope.register({
+        // A scoped registration caches in the scope that resolves it; as a value, the stage scopes inherit this client.
+        compose: asValue(scope.resolve("compose")),
+        stageExecutors: asValue(createStageExecutorFactory(scope)),
+      });
       return scope.resolve("containerManager");
     },
     forceDown: async (profile) => {
@@ -43,10 +44,8 @@ export function createContainerManagerFactory(container: AwilixContainer<Orchest
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
     },
     createLocalSession: async (profile, stage, workspace) => {
-      const { executorFactory, containerLogger, sessionRunner } = container.cradle;
-      const stageProfile = deriveStageProfile(profile, stage);
-      const executor = await executorFactory.createLocal(stageProfile, stage, workspace, containerLogger);
-      return { executor, sessionRunner };
+      const executor = await createHostStageExecutor(container, deriveStageProfile(profile, stage), stage, workspace);
+      return { executor, sessionRunner: container.cradle.sessionRunner };
     },
   };
 }
