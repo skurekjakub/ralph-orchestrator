@@ -6,6 +6,7 @@ import type { CliType } from "../config/types";
 import type { RalphResult } from "../container/types";
 import type { Logger } from "../logger";
 import type { ITextRedactor } from "../logs/text-redactor";
+import { redactTranscript, type TranscriptLine } from "../logs/transcript";
 import { toErrorMessage } from "../util/error";
 import type { TaskContext } from "./task-context";
 
@@ -89,13 +90,13 @@ export class RunArtifactsDeriver implements IRunArtifactsDeriver {
   private async saveTranscript(
     collectedLogs: Record<string, string>,
     cli: CliType,
-    markdown: string,
+    lines: readonly TranscriptLine[],
     prefix: string,
   ): Promise<void> {
     const id = TRANSCRIPT_LOG_ID in collectedLogs ? `${cli}-${TRANSCRIPT_LOG_ID}` : TRANSCRIPT_LOG_ID;
     const path = `${prefix}-${id}.md`;
     try {
-      const redacted = await this.textRedactor.redact(markdown);
+      const redacted = await redactTranscript(lines, this.textRedactor);
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, redacted);
       collectedLogs[id] = path;

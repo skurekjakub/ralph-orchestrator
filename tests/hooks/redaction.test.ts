@@ -167,17 +167,33 @@ describe("lib/redact.pl", () => {
   });
 
   describe("command line", () => {
-    it.each([["--json"], ["--text", "extra"]])("refuses the arguments %j", async (...args) => {
+    it.each([["--json"], ["--text", "extra"], ["--json-lines", "extra"]])(
+      "refuses the arguments %j",
+      async (...args) => {
+        // Act
+        const run = await execa("perl", [join(HOOKS_DIR, "lib", "redact.pl"), ...args], {
+          input: `token ${GITHUB_TOKEN}`,
+          reject: false,
+        });
+
+        // Assert
+        expect(run.exitCode).not.toBe(0);
+        expect(run.stdout).toBe("");
+        expect(run.stderr).toContain("usage: redact.pl [--text | --json-lines]");
+      },
+    );
+
+    it("refuses a --json-lines line that is not a JSON string", async () => {
       // Act
-      const run = await execa("perl", [join(HOOKS_DIR, "lib", "redact.pl"), ...args], {
-        input: `token ${GITHUB_TOKEN}`,
+      const run = await execa("perl", [join(HOOKS_DIR, "lib", "redact.pl"), "--json-lines"], {
+        input: `token ${GITHUB_TOKEN}\n`,
         reject: false,
       });
 
       // Assert
       expect(run.exitCode).not.toBe(0);
       expect(run.stdout).toBe("");
-      expect(run.stderr).toContain("usage: redact.pl [--text]");
+      expect(run.stderr).toContain("malformed text line");
     });
   });
 

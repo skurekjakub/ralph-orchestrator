@@ -1,4 +1,4 @@
-import { truncate } from "../../util/text";
+import type { TranscriptLine } from "../../logs/transcript";
 import { isClaudeSubagentTool } from "./claude-tools";
 import { type ClaudeSession, type ClaudeSubagent, type SessionEvent, SessionEventKind } from "./session-log";
 
@@ -23,13 +23,6 @@ function eventHeading(title: string, ts: number | undefined): string {
   return `#### ${title}${ts === undefined ? "" : ` · ${timeOf(ts)}`}`;
 }
 
-/** `text` in a fenced code block whose fence is longer than any backtick run inside it. */
-function fenced(text: string, info = ""): string {
-  const longestRun = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
-  const fence = "`".repeat(Math.max(3, longestRun + 1));
-  return `${fence}${info}\n${text}\n${fence}`;
-}
-
 function toolInputText(input: unknown): string {
   if (input === undefined) return "";
   return typeof input === "string" ? input : JSON.stringify(input, null, 2);
@@ -40,14 +33,14 @@ function subagentLabel(subagent: ClaudeSubagent): string {
   return `subagent \`${subagent.agentType}\` (\`${subagent.agentId}\`)`;
 }
 
-/** The Markdown of one thread's events; `spawned` maps a tool call id to the subagent it started. */
-function renderEvents(events: readonly SessionEvent[], spawned: ReadonlyMap<string, ClaudeSubagent>): string[] {
+/** The transcript lines of one thread's events; `spawned` maps a tool call id to the subagent it started. */
+function renderEvents(events: readonly SessionEvent[], spawned: ReadonlyMap<string, ClaudeSubagent>): TranscriptLine[] {
   const toolNames = new Map<string, string>();
-  const out: string[] = [];
+  const out: TranscriptLine[] = [];
   for (const event of events) {
     switch (event.kind) {
       case SessionEventKind.Prompt:
-        out.push(eventHeading("User", event.ts), "", fenced(truncate(event.text, PROMPT_CHARS), "text"), "");
+        out.push(eventHeading("User", event.ts), "", { quote: event.text, maxChars: PROMPT_CHARS, info: "text" }, "");
         break;
       case SessionEventKind.Text:
         out.push(eventHeading("Assistant", event.ts), "", event.text, "");
@@ -59,13 +52,13 @@ function renderEvents(events: readonly SessionEvent[], spawned: ReadonlyMap<stri
         if (subagent) out.push(`Starts ${subagentLabel(subagent)}, transcribed below.`, "");
         else if (isClaudeSubagentTool(event.tool)) out.push("Starts a subagent whose log was not collected.", "");
         const input = toolInputText(event.input);
-        if (input !== "") out.push(fenced(truncate(input, TOOL_IO_CHARS), "json"), "");
+        if (input !== "") out.push({ quote: input, maxChars: TOOL_IO_CHARS, info: "json" }, "");
         break;
       }
       case SessionEventKind.ToolResult: {
         const tool = toolNames.get(event.toolUseId) ?? "unknown";
         const title = `${event.isError ? "Tool error" : "Tool result"} \`${tool}\``;
-        out.push(eventHeading(title, event.ts), "", fenced(truncate(event.text, TOOL_IO_CHARS), "text"), "");
+        out.push(eventHeading(title, event.ts), "", { quote: event.text, maxChars: TOOL_IO_CHARS, info: "text" }, "");
         break;
       }
       case SessionEventKind.ApiError:
@@ -81,7 +74,7 @@ function renderEvents(events: readonly SessionEvent[], spawned: ReadonlyMap<stri
   return out;
 }
 
-function renderSession(session: ClaudeSession): string[] {
+function renderSession(session: ClaudeSession): TranscriptLine[] {
   const spawned = new Map(
     session.subagents.flatMap((s) => (s.toolUseId === undefined ? [] : [[s.toolUseId, s] as const])),
   );
@@ -93,7 +86,7 @@ function renderSession(session: ClaudeSession): string[] {
     `- Subagents: ${session.subagents.length}`,
     ...(session.malformedLines > 0 ? [`- Unreadable log lines skipped: ${session.malformedLines}`] : []),
   ];
-  const out = [
+  const out: TranscriptLine[] = [
     `## Session \`${session.sessionId}\``,
     "",
     ...facts,
@@ -123,13 +116,13 @@ function renderSession(session: ClaudeSession): string[] {
 }
 
 /**
- * Renders Claude Code sessions as one Markdown transcript: per session its main thread, then each subagent
- * in start order, with prompts, assistant text, tool calls and their results, API errors and compactions.
- * Tool input and output and long prompts are cut. The text is the agent's and the tools' own, so the
- * transcript must be redacted before it is stored or attached.
+ * Renders Claude Code sessions as the lines of one Markdown transcript: per session its main thread, then
+ * each subagent in start order, with prompts, assistant text, tool calls and their results, API errors and
+ * compactions. Prompts, tool input and tool output are quoted, to be cut once redacted. The text is the
+ * agent's and the tools' own, so the lines become Markdown only through `redactTranscript`.
  */
-export function renderClaudeTranscript(sessions: readonly ClaudeSession[]): string {
-  const out = ["# Claude Code transcript", ""];
+export function renderClaudeTranscript(sessions: readonly ClaudeSession[]): TranscriptLine[] {
+  const out: TranscriptLine[] = ["# Claude Code transcript", ""];
   for (const session of sessions) out.push(...renderSession(session));
-  return out.join("\n");
+  return out;
 }

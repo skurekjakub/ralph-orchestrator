@@ -2,6 +2,7 @@ import type { CliType, IAgentProfile } from "../config/types";
 import type { FolderExportDef, LogSourceDef } from "../container/log-collector";
 import type { ProfileBuildPaths } from "../container/setup/build-paths";
 import type { Logger } from "../logger";
+import type { TranscriptLine } from "../logs/transcript";
 import type { AgentGraph, IAgentFileWriter } from "./agent-file-writer";
 import type { CliToolNames } from "./cli-tools";
 import type { ICliCredentialPolicy } from "./credential-catalog";
@@ -79,8 +80,8 @@ export interface CliLogSources {
 
 /** What the host derives from the logs one CLI left for a task. */
 export interface CliRunArtifacts {
-  /** Markdown transcript, not yet redacted; null when the CLI writes its own or left no session log. */
-  readonly transcript: string | null;
+  /** The lines of a Markdown transcript, not yet redacted; null when the CLI writes its own or left no session log. */
+  readonly transcript: readonly TranscriptLine[] | null;
   /** Telemetry of the CLI's sessions; null when its logs yield none. */
   readonly telemetry: RunTelemetry | null;
 }

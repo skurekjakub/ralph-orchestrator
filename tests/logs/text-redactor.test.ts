@@ -83,6 +83,43 @@ describe("HookRulesRedactor", () => {
     });
   });
 
+  describe("each text of a batch", () => {
+    it("scrubs each text on its own, exactly as it scrubs one text", async () => {
+      // Arrange
+      const texts = CASES.map(([, text]) => text);
+
+      // Act
+      const redacted = await redactor.redactEach(texts);
+
+      // Assert
+      expect(redacted).toEqual(await Promise.all(texts.map((text) => redactor.redact(text))));
+    });
+
+    it("keeps each text whole and apart: newlines, quotes, NUL, non-ASCII and empty texts", async () => {
+      // Arrange
+      const texts = [`line\n"quoted" \\ tab\t é 🚀 ${String.fromCharCode(0)}end\n`, "", "\n\n"];
+
+      // Act & Assert
+      expect(await redactor.redactEach(texts)).toEqual(texts);
+    });
+
+    it("does not let a secret pattern run from one text into the next", async () => {
+      // Arrange
+      const texts = ['{"token": "', 'next text"}'];
+
+      // Act & Assert
+      expect(await redactor.redactEach(texts)).toEqual(texts);
+    });
+
+    it("returns no texts for an empty batch without running the script", async () => {
+      // Arrange
+      const missing = new HookRulesRedactor({ scriptPath: "/nonexistent/redact.pl", env: { PATH } });
+
+      // Act & Assert
+      await expect(missing.redactEach([])).resolves.toEqual([]);
+    });
+  });
+
   describe("failures", () => {
     it("throws, without quoting the text, when the script is missing", async () => {
       // Arrange
@@ -90,6 +127,18 @@ describe("HookRulesRedactor", () => {
 
       // Act
       const failure = missing.redact(`secret ${GITHUB_TOKEN}`);
+
+      // Assert
+      await expect(failure).rejects.toThrow("Redacting with /nonexistent/redact.pl failed");
+      await expect(failure).rejects.not.toThrow(GITHUB_TOKEN);
+    });
+
+    it("throws, without quoting the texts, when a batch cannot be redacted", async () => {
+      // Arrange
+      const missing = new HookRulesRedactor({ scriptPath: "/nonexistent/redact.pl", env: { PATH } });
+
+      // Act
+      const failure = missing.redactEach([`secret ${GITHUB_TOKEN}`]);
 
       // Assert
       await expect(failure).rejects.toThrow("Redacting with /nonexistent/redact.pl failed");

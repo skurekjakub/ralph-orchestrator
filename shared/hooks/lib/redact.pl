@@ -6,7 +6,10 @@
 # length and not with the number of secrets in it.
 #
 # With --text it scrubs all of stdin as one UTF-8 text and prints it whole,
-# for the transcripts the orchestrator stores and attaches on the host.
+# for the transcripts the orchestrator stores and attaches on the host. With
+# --json-lines it reads one JSON string per line and prints each scrubbed on
+# its own, one JSON string per line, so the host scrubs every text of a
+# transcript in one process.
 use strict;
 use warnings;
 
@@ -78,8 +81,20 @@ sub sh_quote {
   return "'$text'";
 }
 
+if (@ARGV == 1 && $ARGV[0] eq '--json-lines') {
+  while (my $line = <STDIN>) {
+    chomp $line;
+    utf8::decode($line);
+    die "malformed text line\n" unless $line =~ /^".*"$/;
+    my $out = json_encode_string(redact(json_decode_string($line)));
+    utf8::encode($out);
+    print $out, "\n";
+  }
+  exit 0;
+}
+
 if (@ARGV) {
-  die "usage: redact.pl [--text]\n" unless @ARGV == 1 && $ARGV[0] eq '--text';
+  die "usage: redact.pl [--text | --json-lines]\n" unless @ARGV == 1 && $ARGV[0] eq '--text';
   local $/;
   my $text = <STDIN> // '';
   utf8::decode($text);

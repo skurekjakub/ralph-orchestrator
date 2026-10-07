@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { renderClaudeTranscript } from "../../../src/cli/claude/transcript-renderer";
+import { redactTranscript } from "../../../src/logs/transcript";
 import {
   type ClaudeSession,
   readClaudeSessions,
   type SessionEvent,
   SessionEventKind,
 } from "../../../src/cli/claude/session-log";
+import { createMockTextRedactor } from "../../helpers/mocks";
 
 const SESSIONS = join(import.meta.dirname, "fixtures", "claude-sessions");
 const T0 = Date.parse("2026-10-07T06:00:00.000Z");
+
+/** The Markdown of the rendered transcript, through a redactor that scrubs only the word SECRET. */
+function markdownOf(sessions: readonly ClaudeSession[]): Promise<string> {
+  return redactTranscript(renderClaudeTranscript(sessions), createMockTextRedactor());
+}
 
 /** A session holding `events` on its main thread and no subagents. */
 function session(events: SessionEvent[], overrides: Partial<ClaudeSession> = {}): ClaudeSession {
@@ -17,7 +24,7 @@ function session(events: SessionEvent[], overrides: Partial<ClaudeSession> = {})
 }
 
 describe("renderClaudeTranscript", () => {
-  it("renders a session's prompt, text, tool call and result under timed headings", () => {
+  it("renders a session's prompt, text, tool call and result under timed headings", async () => {
     // Arrange
     const events: SessionEvent[] = [
       { kind: SessionEventKind.Prompt, ts: T0, text: "Do it." },
@@ -28,7 +35,7 @@ describe("renderClaudeTranscript", () => {
     ];
 
     // Act
-    const markdown = renderClaudeTranscript([session(events)]);
+    const markdown = await markdownOf([session(events)]);
 
     // Assert
     expect(markdown).toBe(
@@ -68,7 +75,7 @@ describe("renderClaudeTranscript", () => {
     const sessions = await readClaudeSessions(SESSIONS);
 
     // Act
-    const markdown = renderClaudeTranscript(sessions);
+    const markdown = await markdownOf(sessions);
 
     // Assert
     expect(markdown).toContain(
@@ -89,7 +96,7 @@ describe("renderClaudeTranscript", () => {
     const sessions = await readClaudeSessions(SESSIONS);
 
     // Act
-    const markdown = renderClaudeTranscript(sessions);
+    const markdown = await markdownOf(sessions);
 
     // Assert
     expect(markdown).toContain("#### Tool error `Write` · 06:00:07\n\n```text\nPermission denied\n```");
@@ -100,20 +107,20 @@ describe("renderClaudeTranscript", () => {
     expect(markdown).toContain("- Unreadable log lines skipped: 1");
   });
 
-  it("notes a subagent call whose subagent log was not collected", () => {
+  it("notes a subagent call whose subagent log was not collected", async () => {
     // Arrange
     const events: SessionEvent[] = [
       { kind: SessionEventKind.ToolCall, toolUseId: "t1", tool: "Agent", input: { subagent_type: "writer" } },
     ];
 
     // Act
-    const markdown = renderClaudeTranscript([session(events)]);
+    const markdown = await markdownOf([session(events)]);
 
     // Assert
     expect(markdown).toContain("#### Tool call `Agent`\n\nStarts a subagent whose log was not collected.");
   });
 
-  it("cuts long tool output and fences text that holds backtick runs", () => {
+  it("cuts long tool output and fences text that holds backtick runs", async () => {
     // Arrange
     const events: SessionEvent[] = [
       { kind: SessionEventKind.ToolResult, toolUseId: "t1", text: "x".repeat(2500), isError: false },
@@ -121,15 +128,15 @@ describe("renderClaudeTranscript", () => {
     ];
 
     // Act
-    const markdown = renderClaudeTranscript([session(events)]);
+    const markdown = await markdownOf([session(events)]);
 
     // Assert
     expect(markdown).toContain(`\`\`\`text\n${"x".repeat(2000)}…\n\`\`\``);
     expect(markdown).toContain("`````text\na ```` fence\n`````");
   });
 
-  it("renders only the title when there are no sessions", () => {
+  it("renders only the title when there are no sessions", async () => {
     // Act & Assert
-    expect(renderClaudeTranscript([])).toBe("# Claude Code transcript\n");
+    expect(await markdownOf([])).toBe("# Claude Code transcript\n");
   });
 });

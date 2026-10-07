@@ -19,6 +19,7 @@ import type {
   ISupportsTransitions,
 } from "../../src/datasource/connector";
 import type { ILogCollector } from "../../src/logs/collector";
+import type { ITextRedactor } from "../../src/logs/text-redactor";
 import type { IWorkItemPoller } from "../../src/datasource/poller";
 import type { ITaskRunner } from "../../src/services/task-runner";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes";
@@ -324,6 +325,15 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
 }
 
 // ── Orchestration service mocks ──────────────────────────────────────────────
+
+/** A text redactor that scrubs the word SECRET, from one text or from each text of a batch. */
+export function createMockTextRedactor(): Mocked<ITextRedactor> {
+  const scrub = (text: string): string => text.replaceAll("SECRET", "[REDACTED]");
+  return {
+    redact: vi.fn(async (text: string) => scrub(text)),
+    redactEach: vi.fn(async (texts: readonly string[]) => texts.map(scrub)),
+  };
+}
 
 /** Create a mock LogCollector with all methods stubbed. */
 export function createMockLogCollector(overrides: Partial<Mocked<ILogCollector>> = {}): Mocked<ILogCollector> {

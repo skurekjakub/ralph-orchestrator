@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { RunArtifactsDeriver } from "../../src/services/run-artifacts-deriver";
@@ -10,7 +10,7 @@ import { RUN_TELEMETRY_SCHEMA_VERSION, type RunTelemetry } from "../../src/cli/t
 import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
 import type { TaskContext } from "../../src/services/task-context";
 import { makeProfile, makeResult, makeStage, makeTaskContext } from "../helpers/factories";
-import { createMockCliRuntime, createMockLogger, type Mocked } from "../helpers/mocks";
+import { createMockCliRuntime, createMockLogger, createMockTextRedactor, type Mocked } from "../helpers/mocks";
 import type { Logger } from "../../src/logger";
 
 const SESSIONS = join(import.meta.dirname, "../cli/claude/fixtures/claude-sessions");
@@ -33,11 +33,6 @@ const TELEMETRY: RunTelemetry = {
   spans: [],
 };
 
-/** A redactor that scrubs the word SECRET. */
-function createMockRedactor(): Mocked<ITextRedactor> {
-  return { redact: vi.fn(async (text: string) => text.replaceAll("SECRET", "[REDACTED]")) };
-}
-
 describe("RunArtifactsDeriver", () => {
   let outputDir: string;
   let logger: Logger;
@@ -58,9 +53,9 @@ describe("RunArtifactsDeriver", () => {
   beforeEach(() => {
     outputDir = mkdtempSync(join(tmpdir(), "run-artifacts-"));
     logger = createMockLogger();
-    redactor = createMockRedactor();
+    redactor = createMockTextRedactor();
     claude = createMockCliRuntime(CliType.Claude, {
-      deriveRunArtifacts: vi.fn().mockResolvedValue({ transcript: "# T\nSECRET\n", telemetry: TELEMETRY }),
+      deriveRunArtifacts: vi.fn().mockResolvedValue({ transcript: ["# T", "SECRET", ""], telemetry: TELEMETRY }),
     });
     copilot = createMockCliRuntime(CliType.Copilot);
   });
@@ -177,7 +172,7 @@ describe("RunArtifactsDeriver", () => {
 
     it("never writes a derived transcript it cannot redact, but still writes the telemetry", async () => {
       // Arrange
-      redactor.redact.mockRejectedValue(new Error("redact.pl exited 255"));
+      redactor.redactEach.mockRejectedValue(new Error("redact.pl exited 255"));
       const result = makeResult("DF-1");
 
       // Act
@@ -193,7 +188,7 @@ describe("RunArtifactsDeriver", () => {
     it("logs a runtime that cannot read its session logs and goes on with the other CLIs", async () => {
       // Arrange
       claude.deriveRunArtifacts.mockRejectedValue(new Error("ENOENT: claude-sessions"));
-      copilot.deriveRunArtifacts.mockResolvedValue({ transcript: "copilot SECRET", telemetry: null });
+      copilot.deriveRunArtifacts.mockResolvedValue({ transcript: ["copilot SECRET"], telemetry: null });
       const result = makeResult("DF-1");
 
       // Act
@@ -238,6 +233,33 @@ describe("RunArtifactsDeriver", () => {
       expect(stored).not.toContain("ghp_0123456789abcdefghijABCDEFGHIJ");
       const telemetry = JSON.parse(readFileSync(result.collectedLogs["claude-run-telemetry"], "utf-8"));
       expect(telemetry.totals.sessions).toBe(2);
+    });
+
+    it("scrubs a token the tool output cut would split before cutting, so none of it is stored", async () => {
+      // Arrange
+      const token = "ghp_0123456789abcdefghijABCDEFGHIJ";
+      const output = `${"x".repeat(1980)} ${token}`;
+      const project = join(outputDir, "claude-sessions", "-workspace");
+      mkdirSync(project, { recursive: true });
+      const entries = [
+        {
+          type: "assistant",
+          message: { id: "m1", content: [{ type: "tool_use", id: "t1", name: "Bash", input: {} }] },
+        },
+        { type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: output }] } },
+      ];
+      writeFileSync(join(project, "s-1.jsonl"), entries.map((entry) => JSON.stringify(entry)).join("\n"));
+      const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
+      const hookRules = new HookRulesRedactor({ scriptPath: HOOK_REDACTOR, env: { PATH: process.env.PATH } });
+      const result = makeResult("DF-1", { collectedLogs: { "claude-sessions": join(outputDir, "claude-sessions") } });
+
+      // Act
+      await deriver([runtime], hookRules).derive(taskOn(CliType.Claude), result);
+
+      // Assert
+      const stored = readFileSync(result.collectedLogs["transcript"], "utf-8");
+      expect(stored).toContain(`${"x".repeat(1980)} [REDACTED]\n`);
+      expect(stored).not.toContain("ghp_");
     });
   });
 });

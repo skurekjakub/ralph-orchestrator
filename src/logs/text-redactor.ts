@@ -10,10 +10,17 @@ export interface ITextRedactor {
    * @throws Error when the redaction could not run, so the caller never mistakes unscrubbed text for scrubbed.
    */
   redact(text: string): Promise<string>;
+  /**
+   * Each of `texts` scrubbed on its own, as {@link redact} scrubs it, in one pass over all of them.
+   *
+   * @returns The scrubbed texts, in the order of `texts`.
+   * @throws Error when the redaction could not run or returned another number of texts.
+   */
+  redactEach(texts: readonly string[]): Promise<string[]>;
 }
 
 /**
- * Applies the audit hooks' redaction rules (`shared/hooks/lib/redact.pl --text`), so text the host stores
+ * Applies the audit hooks' redaction rules (`shared/hooks/lib/redact.pl`), so text the host stores
  * is scrubbed exactly like the records the hooks write in the container: credential values from the
  * environment, well-known token formats, authorization values, URL passwords and secret assignments.
  */
@@ -34,9 +41,25 @@ export class HookRulesRedactor implements ITextRedactor {
     this.env = env;
   }
 
+  /** Runs `redact.pl --text`, which scrubs all of stdin as one text. */
   async redact(text: string): Promise<string> {
-    const { stdout } = await execa("perl", [this.scriptPath, "--text"], {
-      input: text,
+    return this.run("--text", text);
+  }
+
+  /** Runs `redact.pl --json-lines`, which scrubs one JSON-encoded text per line, so no match spans two texts. */
+  async redactEach(texts: readonly string[]): Promise<string[]> {
+    if (texts.length === 0) return [];
+    const stdout = await this.run("--json-lines", texts.map((text) => `${JSON.stringify(text)}\n`).join(""));
+    const lines = stdout.split("\n").slice(0, -1);
+    if (lines.length !== texts.length) {
+      throw new Error(`Redacting with ${this.scriptPath} returned ${lines.length} texts for ${texts.length}`);
+    }
+    return lines.map((line) => JSON.parse(line) as string);
+  }
+
+  private async run(mode: string, input: string): Promise<string> {
+    const { stdout } = await execa("perl", [this.scriptPath, mode], {
+      input,
       env: this.env,
       extendEnv: false,
       stripFinalNewline: false,
