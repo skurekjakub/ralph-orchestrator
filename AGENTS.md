@@ -186,6 +186,10 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - `mocks.ts`: `createMock*` factories, the custom `Mocked<T>` type, `createMockLogger` and `createSilentLogger`.
   - `mcp-fs.ts`.
 - Mock `I`-interfaces, never classes. For ESM modules use `vi.mock` (not `vi.spyOn` on namespaces). Pass `{ delayMs: 1 }` `RetryOptions` instead of raising timeouts. More rules: `.claude/rules/`.
+- **Claude Code contract test** (`tests/cli/claude/claude-contract.test.ts`): runs the pinned `node_modules/.bin/claude` with no credential and a private home. The CLI emits its `system/init` event, runs the hooks, writes the transcript and fails the login without a network request or tokens.
+  - It renders test-owned agents, skills and settings with Ralph's own writers and checks what Ralph relies on: the version, the agents, skills, tools and resolved model aliases in `init`, `--agent`, `--effort`, `--resume`, `--json-schema`, the settings' hooks and the payload fields the audit adapter reads, the transcript, and the auth failure mapping to `auth-failed`.
+  - **Bumping the Claude Code pin requires it to pass.**
+  - It skips, naming the reason, when the native binary is missing or is npm's placeholder; the container-session tests also skip as root, because Claude Code refuses `bypassPermissions` to root.
 
 ## Sub-projects
 
