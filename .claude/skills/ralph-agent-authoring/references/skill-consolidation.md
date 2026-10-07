@@ -1,6 +1,6 @@
 # Consolidating phase skills into a router skill
 
-Every mounted skill costs context, because the agent reads each `SKILL.md`. One router skill with a routing table and per-phase `references/` files costs far less, since the agent reads only the reference for its current phase. `shared/skills/workflow/docs/ralph-workflow/` and `shared/skills/workflow/vscode/vscode-workflow/` are the canonical results. The `malph-*workflow-*` families are still unconsolidated.
+Every mounted skill costs context, because the agent reads each `SKILL.md`. One router skill with a routing table and per-phase `references/` files costs far less, since the agent reads only the reference for its current phase. `shared/skills/workflow/docs/ralph-workflow/` and `shared/skills/workflow/vscode/vscode-workflow/` are the canonical results. The `malph-*workflow-*` families keep one skill per phase.
 
 ## Procedure
 

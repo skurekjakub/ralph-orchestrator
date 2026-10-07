@@ -16,7 +16,7 @@ Answer these before editing: Who calls it, the orchestrator or another subagent?
 | Helper / validator                             | Called by another subagent, not the orchestrator | helper-specific                                 | Parent subagent's `subagents:` list and prompt only                                            |
 | Scribe / aggregator                            | Composes handoff from upstream artifacts         | `composed`/`partial`                            | Remove inline handoff composition from the orchestrator                                        |
 
-Model new prompts on the live families: `profiles/ralph-docs/agents/` (ralph, malph) and `profiles/ralph-vscode/agents/` (ralph, malph, robinson/vasco explorers).
+Model new prompts on the live families: `profiles/ralph-docs/agents/` (ralph, malph, stacky) and `profiles/ralph-vscode/agents/` (ralph, malph, robinson/vasco explorers).
 
 ## File-by-file checklist
 

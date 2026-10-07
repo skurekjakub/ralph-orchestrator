@@ -26,8 +26,10 @@
     `strict`), execa 10, zod 4 (not the v3 API), liquidjs 10, ws 8, ink 8 +
     React 19.3 (`src/cli-dashboard/`), Docker Compose multi-file merge rules,
     Squid ACL syntax (`shared/security/squid.conf`).
-  - Copilot CLI (the only runtime CLI today):
-    `docs/research/copilot-cli-internals.md`.
+  - Runtime CLIs, at the exact versions the root `package.json`
+    `dependencies` pin: Claude Code (`@anthropic-ai/claude-code`, the default
+    CLI; https://code.claude.com/docs) and Copilot CLI (`@github/copilot`, the
+    second-class alternative; `docs/research/copilot-cli-internals.md`).
   - MCP: SDK v2 — `@modelcontextprotocol/server` + `@modelcontextprotocol/node`
     in `shared/mcp-servers/*`, `@modelcontextprotocol/client` +
     `@modelcontextprotocol/core` (plus `server` and `node` for the stdio
@@ -127,12 +129,17 @@
   - The real security contract is container egress:
     `shared/security/docker-compose.security.yml` (internal network, Squid
     sidecar, `cap_drop: ALL`, limits), `shared/security/squid.conf` (baseline
-    allowlist, extended by profile `allowlistDomains` through
-    `src/container/setup/squid-config.ts`),
+    allowlist with no AI provider, extended per task by the model API domains
+    of the CLIs its container stages run and the profile's `allowlistDomains`
+    through `src/container/setup/squid-config.ts`),
     `src/container/setup/url-restrictions.ts` (Copilot CLI URL allowlist
-    derived from that squid.conf) and `src/container/setup/compose-overlay.ts`
-    (`BASE_CONTAINER_ENV`, the only env vars the agent container gets). Read
-    them with `SECURITY.md` and `docs/dev-doc/egress-security.md`.
+    derived from that squid.conf), `src/cli/claude/claude-settings.ts`
+    (Ralph's hooks and attribution policy, mounted read-only and passed with
+    `--settings`) and each CLI runtime's `composeContribution`
+    (`src/cli/{claude,copilot}/*-runtime.ts`: the mounts and env, including
+    the one CLI credential by `${VAR}` reference, the agent container gets
+    beyond its profile compose file). Read them with `SECURITY.md` and
+    `docs/dev-doc/egress-security.md`.
 - **Trust boundaries** — what must never cross:
   - JIRA → prompt and container: issue text, comments, attachments and trigger
     params are attacker-writable. They reach the agent only through
@@ -141,8 +148,8 @@
     validated before they become a path, shell argument, branch or compose
     value. `connection.allowedUsers` limits who can trigger.
   - Agent container ↔ MCP sidecar: the agent gets the URL-only
-    `.build/mcp-config.json` and `BASE_CONTAINER_ENV`; MCP secrets live only
-    in the sidecar's `.build/gateway.json`. Never mount `gateway.json` or
+    `.build/mcp-config.json` and the env its CLIs' `composeContribution`
+    adds; MCP secrets live only in the sidecar's `.build/gateway.json`. Never mount `gateway.json` or
     server code into the agent, or put a secret in
     `profiles/<id>/docker-compose.yml`.
   - Agent container → internet: only through Squid on `ralph-internal`. Every

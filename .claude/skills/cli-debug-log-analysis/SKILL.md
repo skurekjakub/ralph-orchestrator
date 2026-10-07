@@ -1,11 +1,22 @@
 ---
 name: cli-debug-log-analysis
-description: "Parse and analyze Ralph CLI debug logs (cli-debug.log) to extract subagent spans, tool call sequences, token consumption, context compaction events, and error patterns. Use this skill whenever you need to manually parse a cli-debug.log file — for example when the subagent-mapper's pre-extracted data is insufficient or missing, when debugging a specific subagent's behavior in detail, or when investigating infrastructure issues visible only in raw logs. Trigger on phrases like 'parse the debug log', 'extract subagent spans', 'analyze tool calls from the log', 'what happened in the cli-debug log', or 'dig into the raw log'."
+description: "Parse and analyze the Copilot CLI debug log of a Ralph run (cli-debug.log) to extract subagent spans, tool call sequences, token consumption, context compaction events, and error patterns; for a Claude Code run, points to the run telemetry and session export instead. Use this skill whenever you need to manually parse a cli-debug.log file — for example when the subagent-mapper's pre-extracted data is insufficient or missing, when debugging a specific subagent's behavior in detail, or when investigating infrastructure issues visible only in raw logs. Trigger on phrases like 'parse the debug log', 'extract subagent spans', 'analyze tool calls from the log', 'what happened in the cli-debug log', or 'dig into the raw log'."
 ---
 
 # CLI Debug Log Analysis
 
-Ralph runs the GitHub Copilot CLI (in agent containers, and on the host for `mode: "local"` stages), and every execution produces a debug log (`*-cli-debug.log`). This log is the richest data source for understanding what happened during a run — it contains per-subagent lifecycle events, tool call telemetry, model resolution, token usage, and context window pressure.
+This skill covers the debug log of the Copilot CLI, the second-class runtime CLI a stage can select with `cli: "copilot"`. A Copilot container stage's debug log is collected as `<key>-<startTs>-<ts>-cli-debug.log`; a Copilot host stage writes it under its workspace's `logs/cli-debug/`. It is the richest data source for a Copilot run: per-subagent lifecycle events, tool call telemetry, model resolution, token usage, and context window pressure.
+
+Claude Code, the default CLI and the one both bundled profiles run, logs differently:
+
+| File (in the task log dir)                       | Holds                                                                                                                                                                                              |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<key>-<startTs>-<ts>-claude-run-telemetry.json` | **Primary source.** One span per main thread and subagent: tool calls with durations and errors, model calls, API errors, compactions, hook feedback. No token usage                               |
+| `<key>-<startTs>-<ts>-claude-sessions/`          | The raw, unredacted session logs the telemetry is derived from: `-workspace/<session id>.jsonl` per session, subagents in `-workspace/<session id>/subagents/agent-<id>.jsonl` with a `.meta.json` |
+| `<key>-<startTs>-<ts>-claude-cli-debug.log`      | Claude Code's own debug log (`--debug-file`): startup, settings, hook and MCP connection diagnostics, API errors. No span events                                                                   |
+| `<key>-<startTs>-<ts>-audit.jsonl`               | Ralph's hook records for both CLIs: tool arguments and results, subagent start and stop, the result gate                                                                                           |
+
+For a Claude Code run, read the telemetry with `jq` (the runtime skill `shared/skills/analysis/run-telemetry-analysis/` has the recipes) and use the recipes below only on a Copilot `cli-debug.log`. A Claude Code host stage keeps its debug log at `logs/claude.log` and its sessions under `home/projects/` in its workspace.
 
 Typical log size: **10K–40K lines**. Never read the entire file at once — use `grep`, `sed`, and `awk` to extract targeted data.
 
@@ -17,7 +28,7 @@ Typical log size: **10K–40K lines**. Never read the entire file at once — us
 
 ## Log Structure
 
-The cli-debug.log is a timestamped debug stream. Key event types:
+The Copilot cli-debug.log is a timestamped debug stream. Key event types:
 
 | Event pattern                   | What it marks                                                  |
 | ------------------------------- | -------------------------------------------------------------- |

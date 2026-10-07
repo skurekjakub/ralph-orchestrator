@@ -30,7 +30,7 @@ Add the name to the `skills` array of the stage whose agent (or its subagents) w
 }]
 ```
 
-`npm run validate` fails if a listed name has no `SKILL.md` under `shared/skills/`. For local (hook) stages, see the note in SKILL.md: they don't get these mounts.
+`npm run validate` fails if a listed name has no `SKILL.md` under `shared/skills/`. Local (hook) stages get no mounts: they render their listed skills into their own workspace (see SKILL.md).
 
 ## 2. Reference it in the subagent template
 
@@ -43,6 +43,8 @@ Choose the lightest pattern that works. Each has a live example:
 | **Authoritative reference** ("read cover to cover; if a rule isn't in these skills it isn't a finding")      | Reviewers whose acceptance criteria are the skills            | `shared/agent-includes/ralph-docs/ralph-reviewer-style-body.md` |
 | **Inline bold at a step** ("2. READ **test-behavior-testing**, …")                                           | Guidance needed at one precise step                           | `profiles/ralph-vscode/agents/ralph.ralph-coder.agent.md`       |
 | **Conditional section** (whole block inside `{%- if triggerParams.codesamples %}`)                           | Feature-gated work (`@RalphDf(codesamples)`)                  | `shared/agent-includes/ralph-docs/ralph-standard-workflow.md`   |
+
+On Claude Code an agent can also list a skill in its frontmatter `skills`: a subagent starts with it preloaded, and a stage root loads it with the `Skill` tool before anything else. Startup validation rejects a frontmatter skill its stage doesn't register.
 
 Anti-patterns: skills in the orchestrator prompt (except its workflow router), skill content pasted into the template, a mandatory skill behind a conditional, the same skill on every subagent "just in case", referencing a skill the stage doesn't register.
 

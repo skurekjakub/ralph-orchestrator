@@ -3,8 +3,8 @@
 ## Tool missing from the agent
 
 1. The server is listed in the variant's effective `mcpServers` (profile level ∪ variant level) in `profiles/<id>/profile.json`.
-2. The tool name is in the manifest `tools` array. `mcp-config.json` passes that list to the CLI as an allowlist.
-3. The name is the real server-side name (see below). The agent sees it prefixed as `<server-key>-<tool>` (`docs/dev-doc/mcp-tool-naming.md`), so templates and `pre-tool.log` use the prefixed form.
+2. The tool name is in the manifest `tools` array. The sidecar's tool-filter proxy hides every other tool; on Claude Code the rendered agent's frontmatter `tools` must also name it (`profiles/<id>/.build/claude/agents/<name>.md`, generated from the manifest), and on Copilot `mcp-config.json` passes the list as Copilot's own filter.
+3. The name is the real server-side name (see below). The agent sees it under its CLI's name for MCP tools (`docs/dev-doc/mcp-tool-naming.md`): `mcp__<server>__<tool>` on Claude Code, `<server-key>-<tool>` on Copilot. `pre-tool.log` records the CLI's form; on Claude Code it also splits it into `mcpServer` and `mcpTool`.
 4. `npm run validate` passes. `requiredConfig` keys must be present in the profile entry's `env`.
 
 ## Discover real tool names
@@ -49,7 +49,7 @@ The gateway restarts a crashed server up to 3 times, 1 s apart, and reports per-
 
 ## Squid proxy log (agent container only)
 
-MCP servers bypass Squid, so read the proxy log only when you suspect the **agent's own** traffic (CLI API calls, package installs in `setup.sh`). It is collected per task as `output/logs/<taskId>/<taskId>-<ts>-proxy.log` (Squid `access.log`).
+MCP servers bypass Squid, so read the proxy log only when you suspect the **agent's own** traffic (the CLI's model API: `api.anthropic.com` for Claude Code, the GitHub Copilot domains for Copilot; package installs in `setup.sh`; Claude Code's `WebFetch`). It is collected per task as `output/logs/<taskId>/<taskId>-<ts>-proxy.log` (Squid `access.log`).
 
 Squid tunnels HTTPS with `CONNECT host:443` and does no SSL bumping:
 

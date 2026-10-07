@@ -9,19 +9,19 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 **Signature:**
 
 - `summary.json`: `status: "error"`, `exitCode: 1`, `durationMs` < 10s, `failureCategory: "infra"`
-- Per-task `.log`: only `[build]`/`[setup]` lines, no `[copilot]` lines
-- Session-state export missing from `collectedLogs`
+- Per-task `.log`: only `[build]`/`[setup]` lines, no `[claude]` or `[copilot]` lines
+- The CLI's session export (`claude-sessions` or `session-state`) missing from `collectedLogs`
 - Sidecar + proxy logs: normal (servers started, expected HTTP traffic)
 
-**Root cause:** The CLI process crashed immediately on launch. Its stderr is in `summary.json` `stderr` and in the `CLI exited with code N — stderr:` warning from `executeCliCommand()`. Summaries written before stderr capture was added lack the field; for those, only the logs remain.
+**Root cause:** The CLI process crashed immediately on launch. Its stderr is in `summary.json` `stderr` and in the `CLI exited with code N — stderr:` warning from `executeCliCommand()`. A Claude Code session that started and then failed is not silent: its stream-json result names the error, which lands in `cliError` and `failureReason` (`auth-failed` for a rejected credential).
 
 **Common underlying causes:**
 
-- A flag that persists a setting (e.g. `--experimental`) makes Copilot CLI exit 1 without output, since its `settings.json` is mounted read-only
+- Copilot: a flag that persists a setting (e.g. `--experimental`) makes Copilot CLI exit 1 without output, since its `settings.json` is mounted read-only
 - MCP config JSON syntax error
 - Missing environment variable referenced in CLI flags
-- Copilot CLI version incompatibility
-- Auth token expired or malformed
+- A CLI binary missing from the image or of another version than `package.json` pins (rebuild the image)
+- Auth token expired or malformed (`CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY` for Claude Code, per `claudeAuth`; `GH_TOKEN` for Copilot)
 
 **Fix:** Read `stderr` and fix the underlying cause. If it says `no stderr captured`, check the `shortMessage` in the same log line; it usually names a Docker-level failure.
 
@@ -48,7 +48,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 - `summary.json`: `status: "partial"` (unless the agent had already printed a `STATUS:`), `durationMs` close to the stage timeout
 - Per-task log shows CLI output that stops mid-work; with continuations enabled, the activity log shows `CLI session timed out — skipping continuation`
 
-**Root cause:** The stage timeout (`timeoutMs` on the variant or stage) was exceeded. execa kills the host-side `docker compose exec` process and reports `timedOut`, which `resolveStatus()` maps to `partial`.
+**Root cause:** The stage timeout (`timeoutMs` on the profile or stage) was exceeded. execa kills the host-side `docker compose exec` process and reports `timedOut`, which `resolveStatus()` maps to `partial`.
 
 **Fix:** Increase the stage timeout in `profile.json`, or optimize the agent prompt to work faster.
 
@@ -86,7 +86,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 **Signature:**
 
-- The task fails before `Starting containers`, with no container logs and `durationMs: 0`
+- The task fails before `Starting containers`, with no container logs and no `summary.json`; the activity log, the ledger's `reason` and the issue's error comment hold the message
 - The error names a git command (`clone --bare`, `fetch --prune origin`, `clone --local`, `checkout -B`) with `***` in place of the auth header, or reads `Base branch "…" does not exist on …`, `Revision branch "…" does not exist on …`, `<repoPat> must be set to clone …` or `Workspace … already exists`
 
 **Root cause:** The remote is unreachable or rejects the PAT, the base branch (`source_branch` or the PR's target) or a revision's task branch is missing on the remote, or the profile's `cache/repos/<profileId>` clone is broken.
@@ -106,7 +106,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 **Root cause:** The agent ended its CLI sessions without producing a result block, and `ContinuationRunner` used up `maxContinuations`. The stage requires the block (`requireResultBlock`, on by default for variant stages), so the run fails and the work item gets an error comment instead of moving to review. With `maxContinuations: 0` you see the same outcome without the continuation lines.
 
-**Fix:** Check the agent prompt to ensure it instructs the agent to emit the result block. Check `maxContinuations` in profile.json — it may need to be higher, or the agent prompt may need clarification.
+**Fix:** Check the agent prompt to ensure it instructs the agent to emit the result block. Continuations need both `enableContinuation: true` in config.json and `maxContinuations > 0` in profile.json; the count may need to be higher, or the agent prompt may need clarification.
 
 ---
 
@@ -114,7 +114,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 **Signature:**
 
-- Per-task log ends in `[build]` lines with a Docker build error; `summary.json` has `durationMs: 0` and the error text in `stderr`
+- Per-task log ends in `[build]` lines with a Docker build error; there is no `summary.json`, and the activity log and the ledger's `reason` hold the error text
 - Common in first run after Dockerfile changes
 
 **Root cause:** The profile's Dockerfile has a syntax error, a missing base image, or a build step that fails.
@@ -126,19 +126,6 @@ docker compose -f profiles/<id>/docker-compose.yml \
   -f shared/security/docker-compose.security.yml \
   -f profiles/<id>/.build/docker-compose.overlay.yml build
 ```
-
----
-
-## 9. Empty StreamCapture (Line Buffer Not Flushed)
-
-**Signature:**
-
-- Per-task log has output that ends mid-word or is missing the last few lines
-- The container log shows the same truncation
-
-**Root cause:** (Historical) `StreamCapture` used line-buffering but had no `close` handler to flush residual content when the process exited. If the CLI wrote partial lines (no trailing newline) before dying, those bytes were lost.
-
-**Status:** Fixed. `StreamCapture` now flushes residual buffer on `close` for both stdout and stderr.
 
 ---
 

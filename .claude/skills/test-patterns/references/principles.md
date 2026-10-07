@@ -25,15 +25,18 @@ Over-mocking smells: more than 3–4 mocks in one setup, mocks returning mocks, 
 
 ## Shape of a test
 
-Given / When / Then, separated by blank lines, no labels needed. Keep the Given short. If the setup runs past ~10 lines, add a factory override or a helper. Each `it` verifies one behaviour, and a few tightly related assertions are fine.
+Arrange / Act / Assert, each phase labelled with a `// Arrange`, `// Act` or `// Assert` comment above its first statement (`// Act & Assert` when one expression does both; no label for an absent phase; `docs/conventions/comment-policy.md` § Tests). Keep the Arrange short. If the setup runs past ~10 lines, add a factory override or a helper. Each `it` verifies one behaviour, and a few tightly related assertions are fine.
 
 ```ts
 // tests/services/issue-manager.test.ts
 it("posts failure comment when connector throws", async () => {
+  // Arrange
   connector.transitionWorkItem.mockRejectedValue(new Error('No transition to "Done" available for DF-100'));
 
+  // Act
   await manager.transitionWorkItem(DS, KEY, "Done", TransitionPhase.AfterAgent);
 
+  // Assert
   expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Failed to transition"));
   expect(connector.addComment).toHaveBeenCalledWith(KEY, expect.stringContaining("Done"));
 });

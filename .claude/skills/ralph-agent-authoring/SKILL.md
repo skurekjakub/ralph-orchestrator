@@ -5,7 +5,7 @@ description: "Authors and wires Ralph's runtime agent families: Liquid agent tem
 
 # Ralph Runtime Agent Authoring
 
-These agents do not work on this repo. They run inside Docker containers (or on the host for `mode: "local"` stages) against a **target** repo mounted at `/workspace`, driven by the GitHub Copilot CLI. Every path you write _inside_ a template or runtime skill is a container path (`/workspace/...`, `.ralph/tasks/{{ taskId }}/...`), not an orchestrator path.
+These agents do not work on this repo. They run inside Docker containers against a **target** repo mounted at `/workspace`, driven by Claude Code (the default CLI, which both bundled profiles run) or by Copilot CLI when a stage sets `cli: "copilot"`. Every path you write _inside_ a container agent's template or runtime skill is a container path (`/workspace/...`, `.ralph/tasks/{{ taskId }}/...`), not an orchestrator path. Host (`mode: "local"`) stages, such as the `ralph.scientist` post-task hook, run in their own workspace on the host and take their paths from `{{ artifactDir }}` and the `hook.*` variables. Name CLI tools through `{{ cliTools.* }}` so one template reads right on both CLIs.
 
 ## Moving parts
 
@@ -21,7 +21,7 @@ These agents do not work on this repo. They run inside Docker containers (or on 
 
 - Before each task (and again per stage in multi-stage pipelines and post-task hooks), `AgentTemplateRenderer` and `SkillTemplateRenderer` (`src/container/setup/agent-includes.ts`, `skill-includes.ts`) render with LiquidJS. The template variables are the fields of the `TemplateContext` interface in `src/container/setup/agent-includes.ts`, built by `buildTemplateContext()`. Read that interface instead of guessing names. Adding a field means updating `buildTemplateContext()` **and** the key set in `tests/container/template-context-lint.test.ts`, which fails on unknown variables.
 - `{% section "name" %}…{% endsection %}` (`src/container/setup/liquid-tags.ts`) wraps content in `<name>…</name>` so the model sees hard section boundaries. Use it for identity, security, contract and workflow blocks.
-- Each stage renders only the agents its root agent can reach (through `subagents`), in its CLI's format, into `profiles/<id>/.build/<cli>/agents/`; its `skills` render to `profiles/<id>/.build/skills/<name>/`. Both directories are synced in place, so bind mounts keep working. For Copilot the overlay mounts them at `/workspace/.github/agents/<file>` and `/workspace/.github/skills/<name>/`. A skill not listed in `profile.json` does not exist for the agent.
+- Each stage renders only the agents its root agent can reach (through `subagents`), in its CLI's format, into `profiles/<id>/.build/<cli>/agents/`; its `skills` render to `profiles/<id>/.build/skills/<name>/`. Both directories are synced in place, so bind mounts keep working. For Claude Code the overlay mounts both directories whole, read-only, at `/workspace/.ralph/claude/agents/` and `/workspace/.ralph/claude/skills/`; for Copilot it mounts each file at `/workspace/.github/agents/<file>` and each skill at `/workspace/.github/skills/<name>/`. A skill not listed in `profile.json` does not exist for the agent.
 - Local stages (`mode: "local"`, post-task hooks included) render their agents and skills into a workspace of their own under the task's output directory (`StageWorkspaceResolver`, `src/services/stage-workspace.ts`): Claude Code into its private home (`home/agents/`, `home/skills/`), Copilot into `work/.github/`. They get exactly the skills their stage lists, like container stages. The `ralph.scientist` hook stages list the runtime skills in `shared/skills/analysis/` (`agent-eval`, `run-telemetry-analysis`, `skill-creator`, `mcp-builder`), which the hook prompts in `shared/agent-includes/post-hooks/` name. Don't rename or move those skills without updating the hook prompts and `profile.json`.
 
 ## Agent frontmatter (canonical format)
@@ -63,9 +63,9 @@ When a design choice needs the user (variants, which subagents, gating parameter
 ## Invariants
 
 - Orchestrators are pure routers: they dispatch, route on each subagent's `status.json` `result`, and never read `output.md` or do the substantive work. Subagents follow `shared/agent-includes/agent-as-function-contract.md` and write under `{{ artifactDir }}/<agent>/`.
-- One spelling per agent name across frontmatter `agents:`, roster tables, routing tables, and artifact paths.
+- One spelling per agent name across frontmatter `name:` and `subagents:`, roster tables, routing tables, and artifact paths.
 - Standard and revision paths (`isRevision`, `revisionStatuses`) are separate. Every change must be checked against both.
-- Feature toggles come from trigger params (`triggerParams.<key>`, see `docs/user-guide/trigger-parameters.md`). The toggle-off path must keep the previous behaviour.
+- Feature toggles come from trigger params (`triggerParams.<key>`, see `docs/user-guide/trigger-parameters.md`). The toggle-off path must behave exactly as the agent does without the feature.
 - Domain knowledge lives in skills, not pasted into templates. Reference skills by name.
 
 ## Verify

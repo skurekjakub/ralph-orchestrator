@@ -9,9 +9,10 @@
 **Symptom:** a "quick check" posts JIRA comments, transitions issues, resets a
 target repo or starts Docker stacks.
 **Cause:** `npm run dev` (and `npm start`) is the real orchestrator: it polls
-live JIRA, rebuilds MCP servers, runs `git fetch/checkout/reset --hard` in the
-profile repos, lets agents push branches and open PRs, and writes
-`cache/trigger-cache.json` and `output/`.
+live JIRA, rebuilds MCP servers, clones and fetches each profile's `repoUrl`
+into `cache/repos/` and a workspace per task into `cache/workspaces/`, lets
+agents push branches and open PRs, and writes `cache/trigger-cache.json` and
+`output/`.
 **Fix:** verify with `npm test` or `npx vitest run <file>`; for UI, use
 `npm run dashboard` (reads `output/logs/` only). Run `dev`, `start`,
 `npm run agent` or `reset-testenv` only when the user asks (AGENTS.md
@@ -45,9 +46,9 @@ repo, or an improver's change does not show up in `profiles/` or `shared/`.
 **Cause:** `mode: "local"` stages and post-task hooks run in a workspace of
 their own under the task's output directory, not with cwd = this repo root,
 and `agent-improver` writes proposals instead of editing the live tree.
-**Fix:** reach this repo through `{{ hook.orchestratorDir }}` and the task's
-logs through `{{ hook.taskOutputDir }}`; apply an improver's
-`proposals/` by PR. Paths in a local-stage template are host paths, not
+**Fix:** in a post-task hook stage, reach this repo through
+`{{ hook.orchestratorDir }}` and the task's logs through
+`{{ hook.taskOutputDir }}`; apply an improver's `proposals/` by PR. Paths in a local-stage template are host paths, not
 `/workspace/...`.
 
 ## Green root `npm test`, untested change

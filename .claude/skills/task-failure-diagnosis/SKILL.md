@@ -1,13 +1,13 @@
 ---
 name: task-failure-diagnosis
-description: "Diagnoses why a Ralph Orchestrator task run failed, especially when it ended with an unhelpful error, a bare exit code, missing logs, or no CLI output at all. Use when the user reports a run that died without useful output, asks to investigate a task failure or exit code, says 'audit this run', 'why did this fail', 'no error message', 'the run just died', or names a failed DOC-* issue key. Also use when stderr is empty, logs say 'Failed to collect', a run finished in suspiciously few seconds, or the user needs to trace what went wrong in the JIRA → Docker → Copilot CLI pipeline. Covers log forensics, code-path tracing, container diagnostics, and known failure signatures."
+description: "Diagnoses why a Ralph Orchestrator task run failed, especially when it ended with an unhelpful error, a bare exit code, missing logs, or no CLI output at all. Use when the user reports a run that died without useful output, asks to investigate a task failure or exit code, says 'audit this run', 'why did this fail', 'no error message', 'the run just died', or names a failed DOC-* issue key. Also use when stderr is empty, logs say 'Failed to collect', a run finished in suspiciously few seconds, or the user needs to trace what went wrong in the JIRA → Docker → Claude Code (or Copilot) CLI pipeline. Covers log forensics, code-path tracing, container diagnostics, and known failure signatures."
 ---
 
 # Task Failure Diagnosis
 
 Work from the cheapest evidence to the most expensive: summary → sidecar/proxy logs → per-task log → global container log → code. Stop when you have the root cause; don't patch symptoms.
 
-Read `references/log-map.md` first. Without the file layout you will waste time searching. The runtime only ever launches the GitHub Copilot CLI (`CliExecutorFactory` in `src/container/cli-executor-factory.ts`).
+Read `references/log-map.md` first. Without the file layout you will waste time searching. Each stage runs the CLI its `cli` names, else the profile's (`claude` by default): Claude Code, or Copilot CLI as the second-class alternative. Both bundled profiles run Claude Code in every stage, the `run-analysis` post-task hook on the host included. `CliExecutorFactory` (`src/container/cli-executor-factory.ts`) picks the executor.
 
 ## Step 1: Execution summary
 
@@ -34,7 +34,7 @@ The operation ledger `<output.logDir>/history/<dataSource>/<issueKey>.json` also
 
 ## Step 3: Per-task execution log
 
-`<taskId>-<ts>.log` is the human-readable stream of container-tagged entries (`ActivityLog.startTaskLog()`). It holds `[build]`, `[setup]` and `[copilot]` lines captured by `StreamCapture`.
+`<taskId>-<ts>.log` is the human-readable stream of container-tagged entries (`ActivityLog.startTaskLog()`). It holds `[build]` and `[setup]` lines and the CLI's own lines captured by `StreamCapture`: `[claude]` (decoded stream-json: `assistant: …`, `[<subagent>] tool …`, `result: …`) or `[copilot]`, and `[local-claude]` / `[local-copilot]` for host stages.
 
 - Only build/setup lines → the CLI never started or crashed at launch. Check config-dir preparation (`ContainerWorkspaceCleaner.prepareConfigDir()`) and the CLI binary in the image.
 - CLI output that stops mid-work → killed (timeout, OOM, abort).
@@ -47,7 +47,7 @@ The operation ledger `<output.logDir>/history/<dataSource>/<issueKey>.json` also
 
 ## Step 5: Trace the code path
 
-Read `references/code-paths.md` for the call chain, the place each log line is emitted, and how errors propagate. If you need detail inside the CLI session, use the `cli-debug-log-analysis` skill on `<taskId>-<ts>-cli-debug.log`.
+Read `references/code-paths.md` for the call chain, the place each log line is emitted, and how errors propagate. If you need detail inside the CLI session: for Claude Code, read the run telemetry `<taskId>-<ts>-claude-run-telemetry.json` (spans, tool calls, API errors, compactions) and the `<taskId>-<ts>-claude-sessions/` export; `<taskId>-<ts>-claude-cli-debug.log` holds Claude Code's startup, settings, hook and API diagnostics. For Copilot, use the `cli-debug-log-analysis` skill on `<taskId>-<ts>-cli-debug.log`.
 
 ## Step 6: Match a known signature
 
@@ -62,6 +62,6 @@ Read `references/failure-signatures.md`.
 
 ## Related skills
 
-- `cli-debug-log-analysis` — subagent spans, tool calls, tokens inside the CLI debug log.
+- `cli-debug-log-analysis` — subagent spans, tool calls and tokens inside a Copilot `cli-debug.log`; where to look for a Claude Code run.
 - `agent-eval` — quality of a run that _succeeded_ but produced poor output.
 - `mcp-deployment` — MCP server and sidecar problems.

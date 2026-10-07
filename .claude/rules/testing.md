@@ -12,5 +12,6 @@ paths:
 - ESM: use a top-level `vi.mock("execa" | "node:fs", async (importOriginal) => …)` plus `vi.mocked()`. `vi.spyOn` can't intercept module namespace exports.
 - No real waits: `manager.retryOptions = { delayMs: 1 }`, `withRetry(..., { delayMs: 1 })`, stubbed sleeps or fake timers. Never raise timeouts.
 - One top-level `describe` per unit under test. Nest by public method or behaviour area, never by internals. `it` names describe behaviour. Assert on observable outcomes and enum values (`TaskStatus.Error`), not raw strings.
+- Label each test body's phases `// Arrange`, `// Act`, `// Assert` (`// Act & Assert` for one expression; no label for an absent phase), per `docs/conventions/comment-policy.md` § Tests.
 - Cover unhappy paths: thrown errors, non-zero exits, timeouts, malformed input, missing files.
 - Details and examples: the `test-patterns` skill.

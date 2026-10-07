@@ -9,6 +9,20 @@ Evaluate a completed Ralph agent run by decomposing the task into constituent su
 
 All Ralph agents follow the **agent-as-function** pattern: orchestrators dispatch subagents as pure functions, subagents communicate through filesystem artifacts (`status.json`, `output.md`, `manifest.json`), and orchestrators route on `status.json` — never reading artifact content. Evaluations must assess compliance with this pattern alongside traditional quality dimensions.
 
+Runs execute on Claude Code, the default CLI both bundled profiles use, or on Copilot CLI when a stage sets `cli: "copilot"`; the summary's `sessionIds` and the `claude-*` files mark a Claude Code run. This skill names tools by their Claude Code names. The Copilot equivalents:
+
+| Claude Code             | Copilot CLI       | Use                                                                                              |
+| ----------------------- | ----------------- | ------------------------------------------------------------------------------------------------ |
+| `Bash`                  | `bash`            | git, builds, and file discovery (`grep`, `find`; Ralph grants Claude Code no `Grep`/`Glob` tool) |
+| `Read`                  | `view`            | Read a file                                                                                      |
+| `Write`                 | `create`          | Create a file                                                                                    |
+| `Edit`                  | `edit`            | Modify a file                                                                                    |
+| —                       | `grep`, `glob`    | File discovery                                                                                   |
+| `Skill`                 | `skill`           | Load a workflow skill                                                                            |
+| `Agent`                 | `task`            | Dispatch a subagent                                                                              |
+| `mcp__<server>__<tool>` | the MCP tool name | External service calls (JIRA, ADO, ralphchives)                                                  |
+| —                       | `report_intent`   | Announce a phase                                                                                 |
+
 ## When to Use
 
 - After a completed agent run (successful or failed) when you want quality analysis
@@ -22,21 +36,23 @@ All Ralph agents follow the **agent-as-function** pattern: orchestrators dispatc
 
 Collect all available artifacts from the run. The log directory is at `output/logs/<key>-<startTs>/`.
 
-| Artifact           | Purpose                                                                                    | Required?           |
-| ------------------ | ------------------------------------------------------------------------------------------ | ------------------- |
-| `*-pre-tool.log`   | Complete tool call sequence (JSONL: tool name + args) — the single most important artifact | **Yes**             |
-| `*-transcript.md`  | Full reasoning trace with tool outputs                                                     | **Yes**             |
-| `*-summary.json`   | Duration, exit code, PR URL, status                                                        | **Yes**             |
-| `*-audit.jsonl`    | Timestamped audit trail                                                                    | Helpful             |
-| `*-proxy.log`      | Squid proxy access log (allowed/denied domains)                                            | Optional            |
-| `*-sidecar.log`    | MCP sidecar output                                                                         | Optional            |
-| Target repo branch | Actual output files for content verification                                               | For content scoring |
+| Artifact                      | Purpose                                                                                                                                                                                                  | Required?           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| `*-pre-tool.log`              | Complete tool call sequence (JSONL: `tool`, `toolKind`, `subagent`, `skill`, `args`; on Claude Code also `agent` and `agentId`, which is `null` on the main thread) — the single most important artifact | **Yes**             |
+| `*-transcript.md`             | Full reasoning trace with tool outputs, redacted: Copilot's own, or rendered from the Claude Code sessions (`### Main thread`, then one `### Subagent` section per subagent)                             | **Yes**             |
+| `*-summary.json`              | Duration, exit code, PR URL, status, failure reason                                                                                                                                                      | **Yes**             |
+| `*-artifacts/`                | The subagents' `status.json`, `output.md` and `manifest.json` (`.ralph/tasks/<key>/artifacts`)                                                                                                           | For D9              |
+| `*-claude-run-telemetry.json` | Claude Code: one span per main thread and subagent with tool calls, durations, errors and compactions                                                                                                    | Helpful             |
+| `*-audit.jsonl`               | Timestamped audit trail, including tool results and subagent start and stop                                                                                                                              | Helpful             |
+| `*-proxy.log`                 | Squid proxy access log (allowed/denied domains)                                                                                                                                                          | Optional            |
+| `*-sidecar.log`               | MCP sidecar output                                                                                                                                                                                       | Optional            |
+| Target repo branch            | Actual output files for content verification                                                                                                                                                             | For content scoring |
 
 **Reading strategy:**
 
 1. Read `pre-tool.log` first — it's compact (one JSON line per tool call) and gives you the complete tool sequence
 2. Read `summary.json` for metadata (duration, status, PR URL)
-3. Use `grep` on `transcript.md` to locate key markers (`📦 task`, `report_intent`, `APPROVED`, `REJECTED`, `===RALPH_RESULT`) before reading sections
+3. Use `grep` on `transcript.md` to locate key markers before reading sections: ``Tool call `Agent` ``, `### Subagent` (Claude Code) or `📦 task`, `report_intent` (Copilot), and `APPROVED`, `REJECTED`, `===RALPH_RESULT`
 4. Read transcript sections selectively — don't read the entire file linearly
 
 ### Phase 2: Decompose Task
@@ -45,33 +61,33 @@ Break the JIRA issue into constituent sub-tasks the agent needed to accomplish. 
 
 Standard decomposition for a documentation task:
 
-| ID  | Task                 | Typical Tools                                                         |
-| --- | -------------------- | --------------------------------------------------------------------- |
-| T1  | Setup                | bash (git), create (state.md), MCP (JIRA ack), MCP (ralphchives)      |
-| T2  | Research             | task (researcher sub-agent), grep, glob, view                         |
-| T3  | Create content       | create, view (sibling pages for reference)                            |
-| T4  | Cross-references     | edit (existing pages)                                                 |
-| T5  | Build validation     | bash (npm run build)                                                  |
-| T6  | Release notes        | create (if trigger param present)                                     |
-| T7  | Sub-agent validation | task (validator sub-agent)                                            |
-| T8  | Review               | task (reviewer sub-agent), edit (apply fixes)                         |
-| T9  | Commit & push        | bash (git), MCP (ado_push_progress fallback)                          |
-| T10 | Pull request         | MCP (ado_create_pull_request)                                         |
-| T11 | Handoff & exit       | create (handoff), MCP (JIRA attachments + comment), MCP (ralphchives) |
+| ID  | Task                 | Typical Tools                                                        |
+| --- | -------------------- | -------------------------------------------------------------------- |
+| T1  | Setup                | Bash (git), Write (state.md), MCP (JIRA ack), MCP (ralphchives)      |
+| T2  | Research             | Agent (researcher sub-agent), Bash (grep, find), Read                |
+| T3  | Create content       | Write, Read (sibling pages for reference)                            |
+| T4  | Cross-references     | Edit (existing pages)                                                |
+| T5  | Build validation     | Bash (npm run build)                                                 |
+| T6  | Release notes        | Write (if trigger param present)                                     |
+| T7  | Sub-agent validation | Agent (validator sub-agent)                                          |
+| T8  | Review               | Agent (reviewer sub-agent), Edit (apply fixes)                       |
+| T9  | Commit & push        | Bash (git commit), MCP (ado_push_progress)                           |
+| T10 | Pull request         | MCP (ado_create_pull_request)                                        |
+| T11 | Handoff & exit       | Write (handoff), MCP (JIRA attachments + comment), MCP (ralphchives) |
 
 Adapt this table — not all tasks have all sub-tasks. A simple task might have T1, T3, T5, T9–T11.
 
 Standard decomposition for a **review workflow** task:
 
-| ID  | Task                    | Typical Tools                                                                                  |
-| --- | ----------------------- | ---------------------------------------------------------------------------------------------- |
-| T1  | Descend (setup)         | bash (git), create (state.md), MCP (JIRA ack), MCP (ralphchives), MCP (ado_list_pull_requests) |
-| T2  | Study the Law           | view (style guides, standards docs)                                                            |
-| T3  | Investigate             | bash (git diff, git show, grep), view (modified files, sibling pages)                          |
-| T4  | Verify Technical Claims | task (investigator sub-agent)                                                                  |
-| T5  | Review & Verdict        | bash (convention analysis), edit (state.md with findings + verdict)                            |
-| T6  | Deliver                 | MCP (jira_add_comment), MCP (ado PR thread comments)                                           |
-| T7  | Handoff & Exit          | create (handoff), MCP (JIRA attachment), MCP (ralphchives), exit block                         |
+| ID  | Task                    | Typical Tools                                                                                 |
+| --- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| T1  | Descend (setup)         | Bash (git), Write (state.md), MCP (JIRA ack), MCP (ralphchives), MCP (ado_list_pull_requests) |
+| T2  | Study the Law           | Read (style guides, standards docs)                                                           |
+| T3  | Investigate             | Bash (git diff, git show, grep), Read (modified files, sibling pages)                         |
+| T4  | Verify Technical Claims | Agent (investigator sub-agent)                                                                |
+| T5  | Review & Verdict        | Bash (convention analysis), Edit (state.md with findings + verdict)                           |
+| T6  | Deliver                 | MCP (jira_add_comment), MCP (ado PR thread comments)                                          |
+| T7  | Handoff & Exit          | Write (handoff), MCP (JIRA attachment), MCP (ralphchives), exit block                         |
 
 Review workflows use **D6a/D6b** instead of D6 — see the dimension definition below.
 
@@ -87,15 +103,14 @@ Did the agent choose the right tool for each action?
 
 **What to check:**
 
-- `bash` for git operations, file system commands, build commands
-- `create` for new files, `edit` for modifying existing files
-- `view` for reading files in the target repo
-- `grep`/`glob` for file discovery
-- `skill` for loading workflow skills at phase boundaries
-- `task` for sub-agent delegation
+- `Bash` for git operations, file system commands, build commands, and file discovery (`grep`, `find`)
+- `Write` for new files, `Edit` for modifying existing files
+- `Read` for reading files in the target repo
+- `Skill` for loading workflow skills at phase boundaries
+- `Agent` for sub-agent delegation
 - MCP tools for external service calls (JIRA, ADO, ralphchives)
 
-**Common failure pattern:** Using `bash` with `cat` to read files instead of `view`. Using `edit` when `create` is appropriate (new file). Chaining unrelated operations in a single `bash` call where one failure kills the entire chain.
+**Common failure pattern:** Using `Bash` with `cat` to read files instead of `Read`. Using `Edit` when `Write` is appropriate (new file). Chaining unrelated operations in a single `Bash` call where one failure kills the entire chain.
 
 ### D2: Tool Call Ordering
 
@@ -125,7 +140,7 @@ Were tool arguments correct on first attempt?
 - PR descriptions include per-file changes, context, and review notes
 - JIRA comment formatting correct (monospace for code, emoji for status)
 
-**Common failure pattern:** `git checkout -b` chained with `&& mkdir -p` — exit code propagation kills the chain. `create` called without verifying parent directory exists.
+**Common failure pattern:** `git checkout -b` chained with `&& mkdir -p` — exit code propagation kills the chain. A file created in a directory that doesn't exist yet.
 
 ### D4: Efficiency
 
@@ -152,7 +167,7 @@ How did the agent handle tool failures?
 
 - Did it diagnose before retrying (e.g., `git branch -a` to understand why checkout failed)?
 - Did it simplify the failing command (break a 4-command chain into individual commands)?
-- Did it try a different approach (git push failed → ado_push_progress MCP tool)?
+- Did it try a different approach (git push failed → `ado_push_progress` MCP tool)?
 - Did it spin in a retry loop, or did it converge quickly?
 - Did it acknowledge errors in its reasoning, or silently proceed as if the call succeeded?
 
@@ -246,7 +261,7 @@ Did the agent follow the prescribed phase workflow?
 **What to check:**
 
 - Correct skill loaded at each phase boundary
-- `report_intent` called at phase transitions
+- On Copilot, `report_intent` called at phase transitions
 - `state.md` created in setup, updated at each phase transition
 - Sub-agents invoked at the correct phase (researcher in research, validator after write, reviewer after validation)
 - Phase order respected (no writing before research, no commit before review)
@@ -261,7 +276,7 @@ Did subagents produce the required filesystem artifacts?
 
 **What to check:**
 
-- Every subagent writes `status.json` with all 7 required fields (`agent`, `task_id`, `status`, `result`, `summary`, `artifacts`, `next_hint`, `iteration`)
+- Every subagent writes `status.json` with every required field (`agent`, `task_id`, `status`, `result`, `summary`, `artifacts`, `next_hint`, `iteration`)
 - Every subagent writes a primary artifact (`output.md` or `output-v{N}.md` for iterative agents)
 - Every subagent appends to the shared `manifest.json` audit log
 - `result` codes match the declared set for that agent type (e.g., researcher: `researched`/`blocked`, writer: `implemented`/`partial`, reviewer: `approved`/`needs-revision`, mapper: `mapped`/`skipped`, analyzer: `analyzed`/`skipped`, synthesizer: `synthesized`/`skipped`)
@@ -271,7 +286,7 @@ Did subagents produce the required filesystem artifacts?
 - **Fan-out agents** use namespaced artifact paths: `run-analyzer/<target>/status.json`, `agent-improver/<target>/status.json` — one directory per target subagent
 - **Mapper agents** produce both a master inventory (`output.md`) and per-item extraction files (`subagents/<name>.md`)
 
-**Evidence sources:** Search `audit.jsonl` or transcript for `status.json`, `manifest.json`, `output.md` reads/writes. Check `pre-tool.log` for `cat .../status.json` commands. For fan-out pipelines, verify each dispatched instance writes to its own namespaced directory.
+**Evidence sources:** The exported `*-artifacts/` directory holds what each subagent wrote. Search `audit.jsonl` or transcript for `status.json`, `manifest.json`, `output.md` reads/writes. Check `pre-tool.log` for `cat .../status.json` commands. For fan-out pipelines, verify each dispatched instance writes to its own namespaced directory.
 
 #### D9b: Orchestrator Purity
 
@@ -287,7 +302,7 @@ Does the orchestrator act as a pure router?
 
 **Anti-patterns to flag:**
 
-- `cat .../output.md` or `view .../output.md` by the orchestrator → purity violation
+- `cat .../output.md` or `Read .../output.md` by the orchestrator (on Claude Code, a `pre-tool.log` record with `agentId: null`) → purity violation
 - Orchestrator prompt contains long relayed content from a subagent → data relay violation
 - Orchestrator reading reviewer `output.md` to decide whether to revise → should route on `result` from `status.json`
 
@@ -308,7 +323,7 @@ Do subagents read upstream artifacts from the filesystem, not from the orchestra
 - **Fan-out dispatch** prompts point to the mapper's per-subagent extraction file (e.g., `"read extraction at .../subagent-mapper/subagents/<name>.md"`) — the orchestrator passes the path, not extracted data
 - **Analyzer → improver** handoff passes the analyzer's namespaced output path (e.g., `"read analysis at .../run-analyzer/<name>/output.md"`) — not analysis content
 
-**Per-dispatch check:** For each `task` tool call in `pre-tool.log`, examine the `prompt` argument:
+**Per-dispatch check:** For each subagent dispatch in `pre-tool.log` (`toolKind: "subagent"`: `Agent` on Claude Code, `task` on Copilot), examine the `prompt` argument:
 
 1. Does it contain a filesystem path pointer to upstream artifacts? ✅
 2. Does it contain inline content that came from another subagent? ❌
@@ -401,13 +416,13 @@ Per-task scoring tables with evidence, dimension averages, overall score, streng
 
 **pre-tool.log first.** Each line is one tool call with name and args — map the entire execution in minutes. Read transcript.md selectively after that.
 
-**Transcript for purity checks.** Pre-tool.log shows what tools the orchestrator called, but you need the transcript to see if subagent returns leaked artifact content into the orchestrator's context. Grep for `output.md`, `cat `, and artifact directory paths in orchestrator sections.
+**Transcript for purity checks.** Pre-tool.log shows what tools the orchestrator called, but you need the transcript to see if subagent returns leaked artifact content into the orchestrator's context. Grep for `output.md`, `cat `, and artifact directory paths in orchestrator sections (the `### Main thread` section of a Claude Code transcript).
 
 ### Architecture (D9)
 
 **D9 is independent of D1–D8.** A run can score 5 on execution quality while scoring 2 on architecture (orchestrator reads output.md, relays data, no manifest). Always evaluate D9 separately.
 
-**manifest.json is the newest contract requirement.** Many existing runs predate it — score current runs against the current contract, but note if the template itself doesn't include manifest.json instructions (template bug, not agent bug).
+**Score against the current contract.** `manifest.json` is part of it (`shared/agent-includes/agent-as-function-contract.md`); if the template itself doesn't include the manifest.json instructions, that is a template bug, not an agent bug.
 
 **Sub-agent duplication is expected.** Sub-agents don't share the main agent's file cache or loaded skills. Some re-reading is unavoidable. Score as 3–4 depending on severity, not as failure.
 
@@ -423,7 +438,7 @@ Per-task scoring tables with evidence, dimension averages, overall score, streng
 
 **Build check frequency is a judgment call.** Two builds (after all changes + before commit) is the minimum. Three (early smoke + after changes + before commit) is defensible for complex tasks. More than three is inefficient.
 
-**Git push failures are expected in proxy environments.** The container routes through Squid proxy, which blocks direct git push. The correct fallback is `ado_push_progress` MCP tool. Score the fallback as D5: 5.
+**Pushes go through `ado_push_progress`.** The agent container holds no credential for the target repo, so a direct `git push` fails; the MCP tool pushes from the sidecar. Score a quick switch to `ado_push_progress` after a failed `git push` as D5: 5, and the `git push` attempt against the workflow's instructions on D8.
 
 **Chain commands carefully or don't chain them.** `cmd1 && cmd2 && cmd3` fails entirely if any command returns non-zero. Separate tool calls are more robust for setup operations with different failure modes. Chaining is fine for read-only sequences.
 

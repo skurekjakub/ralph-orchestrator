@@ -10,7 +10,7 @@ Vitest runs in ESM mode. `vitest.config.ts` includes only `tests/**/*.test.ts` a
 ```bash
 npx vitest run tests/services/task-runner.test.ts   # one file while iterating
 npm run test:watch                                  # watch, no lint/build
-npm test                                            # lint (src, tests and scripts tsconfigs + eslint) → build → vitest; run before finishing
+npm test                                            # lint (src, tests and scripts tsconfigs + eslint + prettier --check) → build → vitest; run before finishing
 ```
 
 ## Layout and naming
@@ -30,7 +30,7 @@ npm test                                            # lint (src, tests and scrip
 
 - **Mock interfaces, not classes.** Type mocks as `Mocked<IFoo>` imported from `tests/helpers/mocks.ts`. Class types carry private-member identity, so plain objects never satisfy them and you end up casting. No `as any`.
 - **Construct like the cradle does.** Services take a single deps object (`new IssueManager({ connectors, logger })`), so pass mocks there; don't patch internals.
-- **ESM module mocking** uses a top-level `vi.mock("execa" | "node:fs", async (importOriginal) => ({ ...await importOriginal(), fn: vi.fn() }))` followed by `vi.mocked(fn)`. `vi.spyOn` cannot intercept ESM namespace exports. It is fine on plain objects and static methods (`console`, `ContinuationRunner.sleep`). Example: `tests/container/lifecycle.test.ts`.
+- **ESM module mocking** uses a top-level `vi.mock("execa" | "node:fs", async (importOriginal) => ({ ...await importOriginal(), fn: vi.fn() }))` followed by `vi.mocked(fn)`. `vi.spyOn` cannot intercept ESM namespace exports. It is fine on plain objects and static methods (`console`, `ContinuationRunner.sleep`). Example: `tests/container/cli-executors/local-claude-code-executor.test.ts`.
 - **No real waits.** Set `manager.retryOptions = { delayMs: 1 }` (`IssueManager`, `TaskResourceManager`). Pass `{ delayMs: 1 }` as `JiraClient`'s second constructor argument, or to `withRetry(fn, label, logger, { attempts, delayMs: 1 })`. Stub sleeps (`vi.spyOn(ContinuationRunner, "sleep")`) or use `vi.useFakeTimers()`. Never raise a test timeout to absorb a delay.
 - **Assert on enums** (`TransitionPhase.BeforeAgent`, `TaskStatus.Error`, `StageMode.Local`), not their string values.
 - **Test unhappy paths for every behaviour:** connector/API throws, non-zero exit or `ExecaError`, timeout, malformed JSON or Liquid, missing files, empty inputs. Assert on what the caller observes (status, logged warning, posted error comment, thrown message).

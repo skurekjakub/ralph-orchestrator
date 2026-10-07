@@ -39,11 +39,11 @@ Result codes `planned` / `verified` / `gaps_found` / `blocked`. Artifacts under 
 
 1. Create the planner `.agent.md` (copy a canonical one; adapt architecture, task types, constraints).
 2. Orchestrator: add to `subagents:` after the analyst; add a roster row; add a routing branch with rows for all four planner results and per-task coder/reviewer routing; add three-level iteration tracking; add planner `blocked` error handling; add "Never break analysis into tasks yourself — dispatch `ralph-planner`".
-3. Keep the toggle-on (`{%- if triggerParams.<toggle> %}`) branch **identical** to the old analyst → coder → reviewer flow.
+3. Keep the toggle-on (`{%- if triggerParams.<toggle> %}`) branch **identical** to the analyst → coder → reviewer flow without a planner.
 4. Workflow: phase tables (standard + revision) mention the planner dispatch and the per-task loop. The analyze reference dispatches the planner after the analyst. The implement-loop reference iterates `tasks.json`, scopes review to the current task, and dispatches the verification pass after the last task.
 5. Coder: read the current task file from `{{ artifactDir }}/ralph-planner/` and implement only that task. Reviewer: review against that task's acceptance criteria. Scribe: list `ralph-planner/` artifacts.
 6. Document the toggle in `docs/user-guide/trigger-parameters.md`.
 
 ## Validate
 
-Every planner result has a route, in both toggle branches. Caps match the decisions. Coder, reviewer and scribe changes are all gated. Standard and revision tables are updated. With the toggle set, the old behaviour is unchanged. Then run the verification commands in SKILL.md.
+Every planner result has a route, in both toggle branches. Caps match the decisions. Coder, reviewer and scribe changes are all gated. Standard and revision tables are updated. With the toggle set, the flow runs exactly as it does without a planner. Then run the verification commands in SKILL.md.

@@ -13,7 +13,7 @@ Detailed reference (read the relevant section rather than re-deriving it):
 - `docs/user-guide/mcp-servers.md` — manifest field table, available servers, required config/env per server
 - `MCP.md` — startup resolution, network flow, custom server HTTP transport code
 - `docs/user-guide/runtime-macros.md` — `$task.*`, `$trigger.*`, `$variantEnv.*`
-- `docs/dev-doc/mcp-tool-naming.md` — how Copilot CLI prefixes tool names (`<server-key>-<tool>`)
+- `docs/dev-doc/mcp-tool-naming.md` — how each CLI names MCP tools (Claude Code `mcp__<server>__<tool>`, Copilot `<server-key>-<tool>`)
 - `docs/dev-doc/mcp-sidecar-design.md` — why the sidecar exists
 
 ## Choose the server type
@@ -32,7 +32,7 @@ The gateway launches `custom` servers as `<command> <containerPath>/<args...> --
    - `custom`: set `"command": "node"`, `"args": ["dist/bundle.js"]` (relative — joined with `containerPath`), `"containerPath": "/opt/mcp/servers/<name>"`.
    - `requiredEnv` / `optionalEnv`: host `.env` vars copied into `gateway.json` (sidecar only).
    - `requiredConfig`: keys every profile using the server must supply in its `mcpServers[].env`; checked by `src/validate/profiles.ts`.
-   - `tools`: becomes the agent-side allowlist in `mcp-config.json` and the allowlist the sidecar's tool-filter proxy enforces. A tool missing here is invisible to the agent, and calls to it are refused, even if the server implements it. Required for `npm` servers and never empty; a `custom` server without it exposes every tool. `/health` reports allowlisted names the server does not expose as drift. Verify real names first (see `references/troubleshooting.md`).
+   - `tools`: becomes the allowlist the sidecar's tool-filter proxy enforces for every CLI, Copilot's own filter in `mcp-config.json`, and one `mcp__<server>__<tool>` entry per tool in each rendered Claude Code agent's frontmatter `tools` (a server without `tools` gets `mcp__<server>`, every tool). A tool missing here is invisible to the agent, and calls to it are refused, even if the server implements it. Required for `npm` servers and never empty; a `custom` server without it exposes every tool. `/health` reports allowlisted names the server does not expose as drift. Verify real names first (see `references/troubleshooting.md`).
    - `initScript` (optional): relative path to a script run by `shared/mcp-sidecar/entrypoint.sh` before the gateway starts; failures are logged and ignored. Must be idempotent and fast.
 2. **Code / install**
    - `custom`: `package.json` with `build` (esbuild), `lint` (`tsc --noEmit`) and `test` (vitest, including `tests/http-launch.test.ts`) scripts; bundle per `references/bundling.md`. The orchestrator runs `npm install && npm run build` for every custom server and the gateway at startup (`src/container/setup/mcp-builder.ts`).
@@ -44,7 +44,7 @@ The gateway launches `custom` servers as `<command> <containerPath>/<args...> --
 5. **Docs** — add the server to the port and server tables in `docs/user-guide/deploying-mcp-servers.md`, `docs/user-guide/mcp-servers.md`, and `MCP.md` § Current Servers.
 6. **Verify** — `npm run validate`, then start the orchestrator and confirm `profiles/<id>/.build/` lists the server in `mcp-config.json` and `gateway.json`. In a run's `*-sidecar.log`, look for `[gateway] Starting <name>` with no later `[gateway] <name> exited` or `exceeded max restarts`.
 
-Generated files in `profiles/<id>/.build/` (`mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, `copilot-settings.json`) are rewritten on every start — fix the source, never these files.
+Generated files in `profiles/<id>/.build/` (`mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, the CLIs' `claude/` settings and `copilot-settings.json`, the rendered `<cli>/agents/` and `skills/`) are rewritten at startup and again for each task — fix the source, never these files.
 
 ## Port allocation
 
