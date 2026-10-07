@@ -68,21 +68,22 @@ Profiles add what their agent needs via `allowlistDomains` in `profile.json`. Th
 | `ralph-docs`   | `.aka.ms`, `.dev.azure.com`, `.artifacts.visualstudio.com`, `.blob.core.windows.net`, `.npmjs.org`, `.rubygems.org`, `.nuget.org`, `.pypi.org`, `.pythonhosted.org` |
 | `ralph-vscode` | `.npmjs.org`, `dev.azure.com`, `pkgs.dev.azure.com`, `vsblob.dev.azure.com`, `.artifacts.visualstudio.com`                                                          |
 
-JIRA, ADO REST, documentation sites and arbitrary web fetches are meant to go through MCP tools in the sidecar container, which has direct internet access via `ralph-sidecar-external`. Both bundled profiles still put Azure DevOps domains on the agent's allowlist, so domain filtering alone does not stop the agent from calling ADO with a credential it holds.
+JIRA, ADO REST, documentation sites and arbitrary web fetches are meant to go through MCP tools in the sidecar container, which has direct internet access via `ralph-sidecar-external`. Both bundled profiles put Azure DevOps domains on the agent's allowlist, though, so domain filtering alone does not stop the agent from calling ADO with a credential it holds.
 
 All other domains are blocked. Squid access logs (allowed + denied) are collected per task for tuning.
 
 ### Container Hardening
 
-| Control                        | Implementation                                                                                                                                                                                  | Why                                                                                                                                                                                                                                             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No Docker socket               | Removed from all compose volume mounts                                                                                                                                                          | Prevents container escape via Docker API                                                                                                                                                                                                        |
-| No sudo                        | Profile images (`ralph-docs`: `ubuntu:22.04`, `ralph-vscode`: `node:24-bookworm-slim`) don't install sudo; the CLI runs as the unprivileged `vscode` user (`docker compose exec --user vscode`) | Prevents privilege escalation to root                                                                                                                                                                                                           |
-| `cap_drop: ALL`                | In security overlay compose file                                                                                                                                                                | Drops all Linux capabilities                                                                                                                                                                                                                    |
-| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file                                                                                                                                                                | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts. NOTE: This is mainly to simplify Dockerfile setup requirements for now. Will be revised later. |
-| `no-new-privileges: true`      | In security overlay compose file                                                                                                                                                                | Prevents setuid/setgid privilege escalation                                                                                                                                                                                                     |
-| Resource limits                | Memory: 8G, CPU: 4, PIDs: 500                                                                                                                                                                   | Prevents resource exhaustion attacks                                                                                                                                                                                                            |
-| User-writable npm prefix       | `~/.npm-global` set via `NPM_CONFIG_PREFIX`                                                                                                                                                     | Allows `npm install -g` without root                                                                                                                                                                                                            |
+| Control                        | Implementation                                                                                                                                                                                  | Why                                                                                                                                              |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| No Docker socket               | Removed from all compose volume mounts                                                                                                                                                          | Prevents container escape via Docker API                                                                                                         |
+| No sudo                        | Profile images (`ralph-docs`: `ubuntu:22.04`, `ralph-vscode`: `node:24-bookworm-slim`) don't install sudo; the CLI runs as the unprivileged `vscode` user (`docker compose exec --user vscode`) | Prevents privilege escalation to root                                                                                                            |
+| `cap_drop: ALL`                | In security overlay compose file                                                                                                                                                                | Drops all Linux capabilities                                                                                                                     |
+| `cap_add: DAC_OVERRIDE, CHOWN` | In security overlay compose file                                                                                                                                                                | Re-adds file permission bypass and ownership change capabilities — needed for cleanup of root-owned directories created by Docker volume mounts. |
+| `no-new-privileges: true`      | In security overlay compose file                                                                                                                                                                | Prevents setuid/setgid privilege escalation                                                                                                      |
+| Resource limits                | Memory: 8G, CPU: 4, PIDs: 500                                                                                                                                                                   | Prevents resource exhaustion attacks                                                                                                             |
+| User-writable npm prefix       | `~/.npm-global` set via `NPM_CONFIG_PREFIX`                                                                                                                                                     | Allows `npm install -g` without root                                                                                                             |
+| Root-owned agent CLIs          | Claude Code and Copilot CLI are installed under `/usr/local` at image build, at the versions `package.json` pins, and run by absolute path                                                      | The agent cannot replace or patch its own CLI, and a CLI it installs under `~/.npm-global` never runs in its place                               |
 
 ### Compose Merge Pattern
 
@@ -90,7 +91,7 @@ Security is applied via a **compose file merge** (up to three files):
 
 1. **Base:** `profiles/<id>/docker-compose.yml` — services, volumes, build config
 2. **Security overlay:** `shared/security/docker-compose.security.yml` — Squid sidecar, networks, limits, hardening
-3. **Resources overlay:** `profiles/<id>/.build/docker-compose.overlay.yml` — MCP sidecar service, agent env vars, agent/skill/resource file mounts (generated at startup and regenerated per task, only included if present)
+3. **Resources overlay:** `profiles/<id>/.build/docker-compose.overlay.yml` — the build args, environment, credentials and mounts of the agent CLIs the variant's container stages run, the MCP sidecar service and resource file mounts (written at startup, rewritten before each task, included when present)
 
 `ComposeClient` automatically injects all applicable files for every command. The security overlay adds:
 
@@ -98,8 +99,8 @@ Security is applied via a **compose file merge** (up to three files):
 - `ralph-internal` network (`internal: true`) — agent's only network
 - `ralph-external` network — Squid's bridge to the internet
 - `ralph-sidecar-external` network — the MCP sidecar's direct route to the internet
-- Proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY` and lowercase variants)
-- Read-only audit hook mounts (`shared/hooks/`)
+- Proxy env vars (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and lowercase variants)
+- Read-only mount of the audit hook scripts (`shared/hooks/` at `/workspace/.ralph/hooks`)
 - Security options (`cap_drop: ALL`, `cap_add: DAC_OVERRIDE, CHOWN`, `no-new-privileges`)
 - Resource limits (`deploy.resources.limits`)
 
@@ -107,13 +108,25 @@ Security is applied via a **compose file merge** (up to three files):
 
 MCP server secrets (`ADO_PAT`, `JIRA_PAT_<KEY>`, `JIRA_EMAIL_<KEY>`, Discord and NodeBB tokens) are written to `gateway.json`, which is mounted only into the MCP sidecar; the agent container does not get them. It does get these credentials through its environment:
 
-| Variable            | Source                                                       | Containers                             |
-| ------------------- | ------------------------------------------------------------ | -------------------------------------- |
-| `GH_TOKEN`          | Resources overlay (`src/container/setup/compose-overlay.ts`) | Every agent container                  |
-| `ANTHROPIC_API_KEY` | Resources overlay (`src/container/setup/compose-overlay.ts`) | Every agent container (empty if unset) |
-| `ADO_PAT_XPERIENCE` | `profiles/ralph-docs/docker-compose.yml`                     | `ralph-docs` agent container           |
+| Variable                                                                       | Source                                                                                                       | Containers                                                                  |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `CLAUDE_CODE_OAUTH_TOKEN`, or `ANTHROPIC_API_KEY` with `claudeAuth: "api-key"` | Resources overlay, from the Claude Code runtime's `composeContribution` (`src/cli/claude/claude-runtime.ts`) | Tasks with a container stage that runs Claude Code; only the configured one |
+| `GH_TOKEN`                                                                     | Resources overlay, from the Copilot runtime's `composeContribution` (`src/cli/copilot/copilot-runtime.ts`)   | Tasks with a container stage that runs Copilot CLI                          |
+| `ADO_PAT_XPERIENCE`                                                            | `profiles/ralph-docs/docker-compose.yml`                                                                     | `ralph-docs` agent container                                                |
 
-A prompt-injected agent can read these values. Combined with an allowlisted domain (`api.github.com`, `github.com`, Azure DevOps hosts), it can use them directly.
+The overlay names each CLI credential as a `${VAR}` reference, so its value comes from the orchestrator's environment at compose time and never appears in a generated file. A prompt-injected agent can read these values. Combined with an allowlisted domain (`api.anthropic.com`, the Copilot domains, Azure DevOps hosts), it can use them directly.
+
+### Agent CLI Sessions
+
+Each container stage runs its CLI as `vscode` through `docker compose exec`, with the prompt on stdin.
+
+- **Claude Code** (`src/container/cli-executors/claude-code-executor.ts`) runs with `--permission-mode bypassPermissions`, so no tool call waits for approval. What bounds it is the container, Squid, the sidecar's tool filter, the `--tools` cap and Ralph's hooks:
+  - `--tools` caps the built-in tools at `Read`, `Write`, `Edit`, `Bash`, `Skill`, `TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`, `WebFetch` and `WebSearch`, plus `Agent` for a stage root that spawns subagents. Each agent's frontmatter `tools` narrows that list further.
+  - `--strict-mcp-config` with the generated `mcp-config.json`: the session runs only the sidecar's MCP servers, never one from the target repo.
+  - `--setting-sources user` with `CLAUDE_CONFIG_DIR=/workspace/.ralph/claude` and `CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`: neither the target repo's `CLAUDE.md` files nor its `.claude/` settings load. A profile that sets `claude.loadRepoInstructions` gets `--setting-sources user,project` and the repo's `CLAUDE.md` files.
+  - Non-essential traffic (telemetry, error reporting, update checks), auto-update, auto memory and background tasks are off, so the session needs no domain besides the model API.
+  - `--settings /etc/ralph/claude-settings.json` carries Ralph's hooks and attribution policy; see [Audit Hooks](#audit-hooks-sharedhooks).
+- **Copilot CLI** (`src/container/cli-executors/copilot-executor.ts`) runs with `--allow-all-tools --allow-all-paths` under its URL allowlist (see [Copilot CLI URL Allowlist](#copilot-cli-url-allowlist-copilot-settingsjson)). Its bundled GitHub MCP server is off unless the profile sets `githubMcpTools`.
 
 ### MCP Sidecar Tool Allowlists
 
@@ -146,7 +159,30 @@ timestamp elapsed_ms client_ip TCP_status/HTTP_code bytes method domain:port use
 - `TCP_TUNNEL/200` — HTTPS tunnel allowed
 - `TCP_MISS/200` — HTTP request allowed
 
-Proxy logs are saved in each task's subdirectory as `<key>-<startTs>-<ts>-proxy.log` within `output/logs/<key>-<startTs>/`.
+Proxy logs are saved in each task's subdirectory as `<key>-<startTs>-<ts>-proxy.log` within `output/logs/<key>-<startTs>/`; a multi-stage pipeline also saves one per container stage as `<key>-<startTs>-<ts>-<role>-proxy.log`.
+
+## Transcripts, Logs and Redaction
+
+Credentials are scrubbed in two places, both with the rules of `shared/hooks/lib/redact.pl` ([shared/hooks/README.md](shared/hooks/README.md#behaviour)): the literal values of credential-named variables in the environment the script runs in, well-known token formats, `Authorization` values, URL passwords and secret assignments.
+
+- **By the audit hooks, as they write.** Every record in `audit.jsonl`, `pre-tool.log`, `tool-output.log` and `ralph.log` is scrubbed before it is written, against the hook's environment: the agent container's, or a Claude Code local-mode stage's, which holds only the credentials that session has.
+- **On the host, by `RunArtifactsDeriver`** (`src/services/run-artifacts-deriver.ts`), against the orchestrator's own environment, which holds every secret from `.env`. It runs during result collection, once the stage pipeline has returned a result, whatever its status:
+  - it redacts in place every transcript a CLI wrote itself (Copilot CLI's `--share` transcript, collected as `transcript` or, per stage, `<role>-transcript`);
+  - it writes the transcript it renders from the Claude Code session logs already redacted;
+  - only then is the `transcript` log attached to the JIRA issue.
+
+  A CLI-written transcript whose redaction fails stays on disk unredacted, and is dropped from the collected logs, so it is never attached. A rendered transcript that cannot be redacted is not written.
+
+When a task phase throws instead (preparing the workspace, compose up, setup, building a stage's executor), the task runner only collects the container logs. Nothing is redacted on the host, a Copilot transcript stays unredacted in `output/`, and nothing is attached.
+
+Nothing scrubs these files, so treat them as holding secrets:
+
+- the exported Claude Code session logs (`-claude-sessions/`) and Copilot CLI's session state (`-session-state/`) and session store (`-session-db`);
+- the CLI debug logs (`-cli-debug.log`, `-claude-cli-debug.log`) and their live copy (`<key>-<startTs>-cli-debug-stream.log`);
+- the proxy and sidecar logs, `-state.md` and the exported `-artifacts/`;
+- the per-task log (`<key>-<startTs>-<ts>.log`) and the daily `container-YYYY-MM-DD.log`;
+- the `stderr` and `agentText` snippets in the execution summary (`-summary.json`);
+- in a local-mode stage's directory, everything besides the hooks' records: the CLI's debug log and its private home, which holds its session logs.
 
 ## Prompt Injection Defense
 
@@ -215,9 +251,9 @@ Both URL controls work at **domain** level. Neither restricts URL paths, so neit
 
 An attacker embeds a PAT (personal access token) in a JIRA issue description, or the agent reads one from its own environment (see [Credentials in the Agent Container](#credentials-in-the-agent-container)). The injected agent uses `curl` or a bash tool to call an allowlisted API (e.g., `dev.azure.com` for profiles that allow it) with that PAT, targeting a different organization than the one Ralph is configured for. The controls below do not prevent this; the pre-tool hook only records it.
 
-### Pre-Tool Hook Audit Logging (`shared/hooks/log-pre-tool.sh`)
+### Audit Hooks (`shared/hooks/`)
 
-A Copilot CLI `preToolUse` hook that runs before every tool execution. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to the host in real time) and `audit.jsonl` for post-task analysis. The other hooks in `shared/hooks/` log session start/end, prompts, tool output and errors.
+`log-pre-tool.sh` runs before every tool call, as Copilot CLI's `preToolUse` and Claude Code's `PreToolUse` hook. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to the host in real time) and `audit.jsonl` for post-task analysis. The other hooks in `shared/hooks/` log session start and end, prompts, tool output, subagents, compactions and errors. Every hook scrubs credentials from what it writes (see [Transcripts, Logs and Redaction](#transcripts-logs-and-redaction)); their contract is in [shared/hooks/README.md](shared/hooks/README.md).
 
 The scripts are mounted by the security overlay at `/workspace/.ralph/hooks/`. Each CLI's hook configuration comes from the generated overlay, only when a container stage runs that CLI:
 
@@ -226,18 +262,18 @@ The scripts are mounted by the security overlay at `/workspace/.ralph/hooks/`. E
 
   Ralph's settings are not managed settings, so they cannot set `allowManagedHooksOnly`, which Claude Code honours only in managed settings. Hooks from other sources therefore run alongside Ralph's. With the default `--setting-sources user` there is no other writable source in the container. With `claude.loadRepoInstructions: true`, the target repo's `.claude/settings.json` loads too, and the agent can write that file: hooks in it run alongside Ralph's, but it cannot switch Ralph's off. Ralph's settings set `disableAllHooks: false`, and `--settings` outranks project and local settings ([hooks](https://code.claude.com/docs/en/hooks#disable-or-remove-hooks), [settings precedence](https://code.claude.com/docs/en/settings)), so a project `disableAllHooks: true` has no effect. Ralph does not use the managed settings file (`/etc/claude-code/managed-settings.json`) because Claude Code ignores it entirely whenever the credential's organisation delivers server-managed settings.
 
-  Server-managed settings still apply on top. When the Team or Enterprise organisation behind the OAuth token or API key delivers settings from the claude.ai admin console, they outrank `--settings` ([server-managed settings](https://code.claude.com/docs/en/server-managed-settings)), and nothing in the container can prevent it: an organisation `attribution` value replaces Ralph's, and `allowManagedHooksOnly` or `disableAllHooks` stops Ralph's hooks and the result gate. After each Claude Code container stage the orchestrator looks for the stage session's `session_start` record in the audit log. When it is missing, the orchestrator logs a warning and lists the session under `hooklessSessions` in the task's execution summary; the task still finishes.
+  Server-managed settings apply on top regardless. When the Team or Enterprise organisation behind the OAuth token or API key delivers settings from the claude.ai admin console, they outrank `--settings` ([server-managed settings](https://code.claude.com/docs/en/server-managed-settings)), and nothing in the container can prevent it: an organisation `attribution` value replaces Ralph's, and `allowManagedHooksOnly` or `disableAllHooks` stops Ralph's hooks and the result gate. After each Claude Code container stage the orchestrator looks for the stage session's `session_start` record in the audit log. When it is missing, the orchestrator logs a warning and lists the session under `hooklessSessions` in the task's execution summary; the task still finishes.
 
 **Limitations:**
 
-- Run by Copilot CLI and Claude Code in the container. Local-mode stages don't get these hooks.
-- Audit-only — the hook never blocks a tool call.
+- Run by Copilot CLI and Claude Code in the container, and by Claude Code in local-mode stages (from the host's `shared/hooks/`, writing to the stage's `logs/`). Copilot CLI in local-mode stages runs without them.
+- Audit-only — no hook blocks a tool call. The one hook that blocks anything is Claude Code's result gate (`claude/result-gate.sh`), a `Stop` hook that keeps a stage that must print a result block from ending its turn without one, a bounded number of times.
 
 ### Copilot CLI URL Allowlist (`copilot-settings.json`)
 
 The Copilot CLI's built-in URL permission system, configured via a generated settings file. The CLI checks URLs at its own permission layer before tools execute.
 
-Before each task, `writeCopilotSettings()` (`src/cli/copilot/copilot-settings.ts`):
+Before each task whose container stages run Copilot CLI, `writeCopilotSettings()` (`src/cli/copilot/copilot-settings.ts`):
 
 1. Parses the profile's generated `squid.conf` for allowed domains
 2. Converts each domain to a URL pattern: `.example.com` → `https://*.example.com`, `api.github.com` → `https://api.github.com`
@@ -268,7 +304,8 @@ The settings are mounted read-only at `/workspace/.ralph/settings.json`, and `CO
 │  Audit: Pre-tool hook logs all tool calls for observability     │
 │                                                                 │
 │  Not covered: MCP sidecar traffic (direct internet access),     │
-│  local-mode stages (run on the host).                           │
+│  Claude Code WebSearch (runs at Anthropic), local-mode stages   │
+│  (run on the host).                                             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -279,9 +316,9 @@ Stages with `mode: "local"` — including every post-task hook stage — run Cla
 - **Own workspace.** Each stage runs in `<outputDir>/hooks/<hook>/<role>/` or `<outputDir>/stages/<role>/`, with a private CLI home, so the host user's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers stay out and nothing the stage writes lands in the orchestrator checkout.
 - **Pinned CLI.** The stage runs `node_modules/.bin/<cli>` at the version `package.json` pins, never a CLI on `PATH`; startup validation checks it.
 - **No secrets.** The CLI starts with `extendEnv: false`: `PATH`, `HOME`, `LANG` and its own credential only. `ADO_PAT`, the `JIRA_*` credentials and other CLIs' tokens never reach it or its tools.
-- **Claude Code** loads no `CLAUDE.md` and no MCP server, has no `WebFetch`/`WebSearch`, runs Ralph's audit hooks, and runs in `dontAsk` mode under generated permission rules (`src/cli/claude/claude-host-settings.ts`): it reads the task's output directory and the orchestrator's `profiles/` and `shared/`, writes only in its working directory and its artifact directory, may run only `jq`, `grep`, `ls`, `wc`, `cat`, `head`, `tail` and `date` with Bash, and may not read the orchestrator's `.env` with its file tools. Bash permission rules match commands, not the paths they read, so an allowed command such as `cat` can still read files outside those directories; with no network tool and no secret in its environment, what it reads can reach only the model provider and the stage's own output files.
-- **Copilot CLI** keeps `--allow-all-tools --allow-all-paths`, gets no URL allowlist and no audit hooks.
-- **No live edits.** The `agent-improver` hook stage writes proposed files into its artifact directory; a maintainer applies them by pull request.
+- **Claude Code** loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`, `--setting-sources user` in its private home) and no MCP server, has no `WebFetch`/`WebSearch` in its `--tools` cap, runs Ralph's audit hooks, and runs in `dontAsk` mode under generated permission rules (`src/cli/claude/claude-host-settings.ts`), which deny any tool call no allow rule covers. It reads its working directory, the task's output directory, the task's workspace (variant stages only) and the orchestrator's `profiles/` and `shared/`; writes only in its working directory and its artifact directory; may run only `jq`, `grep`, `ls`, `wc`, `cat`, `head`, `tail` and `date` with Bash; may spawn only the stage's own subagents; and may not read the orchestrator's `.env` with its file tools. Bash permission rules match commands, not the paths they read, so an allowed command such as `cat` can still read files outside those directories; with no network tool and no secret in its environment besides its own credential, what it reads can reach only the model provider and the stage's own output files.
+- **Copilot CLI** runs with `--allow-all-tools --allow-all-paths`, gets no URL allowlist and no audit hooks.
+- **No live edits.** The `agent-improver` subagent of the `run-analysis` hook writes proposed files into the hook's artifact directory; a maintainer applies them by pull request.
 
 ## What the Agent Can Still Do
 
@@ -291,19 +328,20 @@ These are **by design** — the agent needs them to function:
 - Push the task branch and create PRs through the `ado` MCP tools (the ADO PAT stays in the sidecar)
 - Post comments and attach files to JIRA through the `jira-kentico` MCP tools
 - Call the allowlisted tools (manifest `tools`) of its effective MCP servers, including `web-fetch` and `playwright` where declared — these run in the sidecar, which has unrestricted internet access
-- Read the credentials in its environment (`GH_TOKEN`, `ANTHROPIC_API_KEY`, and `ADO_PAT_XPERIENCE` for `ralph-docs`) and use them against allowlisted domains
-- Make LLM API calls (Copilot, Anthropic)
+- Read the credentials in its environment (the credential of each CLI its container stages run, and `ADO_PAT_XPERIENCE` for `ralph-docs`) and use them against allowlisted domains
+- Call the model API of each CLI its container stages run (`api.anthropic.com`, the Copilot domains)
+- Search the web with Claude Code's `WebSearch`, which runs at Anthropic outside the allowlist, and fetch allowlisted pages with `WebFetch`
 - Install packages from the registries on its profile's allowlist (through the proxy)
 - Run arbitrary commands inside the container (as unprivileged `vscode` user)
 
 ## What the Agent Cannot Do
 
 - Access the Docker socket or control other containers
-- Reach a domain outside its profile's allowlist directly (MCP tools in the sidecar are not subject to the allowlist)
-- Call an MCP tool outside its server's `tools` allowlist, or reach an MCP server other than through its tool-filter proxy
+- Reach a domain outside its task's allowlist directly (`WebSearch` runs at Anthropic, and MCP tools in the sidecar are not subject to the allowlist)
+- Call an MCP tool outside the `tools` allowlist of a server that has one, or reach such a server other than through its tool-filter proxy
 - Escalate to root (no sudo, no setuid; only `DAC_OVERRIDE` and `CHOWN` capabilities are kept)
 - Exhaust host resources beyond the limits
-- Access the host filesystem outside the mounted workspace and the read-only mounts (rendered agents, skills, MCP config, hooks, resources)
+- Access the host filesystem outside the mounted workspace, the attachments exchange directory (`/tmp/mcp-attachments`) and the read-only mounts (CLI settings, rendered agents, skills, MCP config, hooks, resources)
 - Install system packages (no apt/dpkg without root)
 
 These limits apply to container stages only; see [Local-Mode Stages](#local-mode-stages).
@@ -324,7 +362,7 @@ For all profiles, add it to the baseline allowlist in `shared/security/squid.con
 acl allowed_domains dstdomain .example.com
 ```
 
-Restart the orchestrator so it regenerates the profile's `squid.conf` and `copilot-settings.json`. The domain will appear in proxy logs for verification.
+The orchestrator reads `profile.json` once at startup, so restart it after editing `allowlistDomains`. Every task regenerates the profile's `squid.conf` (and `copilot-settings.json` when a container stage runs Copilot CLI) from the baseline and the profile, so a baseline edit applies from the next task. The domain will appear in proxy logs for verification.
 
 ### How do I expose a host service (e.g. local RAG endpoint) to the agent?
 
