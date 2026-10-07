@@ -3,17 +3,17 @@ import type { RalphResult } from "./types";
 import type { Logger } from "../logger";
 import type { PromptBuilder } from "../prompt/prompt-builder";
 import type { IssueContext } from "../prompt/prompt";
-import { parseResultBlock, resolveStatus } from "./result-parser";
+import { readReportedResult, resolveStatus } from "./result-parser";
 import type { ICliExecutor } from "./cli-executor-factory";
 import type { IContinuationRunner } from "./continuation-runner";
 
 /** Options controlling a single agent session execution. */
 export interface AgentSessionOptions {
-  /** Maximum continuation retries when the result block is missing. */
+  /** Maximum continuation retries when the result is missing. */
   maxContinuations: number;
   /** Whether the continuation feature is globally enabled. */
   enableContinuation: boolean;
-  /** The stage's `requireResultBlock`: a run that ends without a result block fails, and only such a stage is continued. */
+  /** The stage's `requireResultBlock`: a run that ends without a result fails, and only such a stage is continued. */
   requireResultBlock: boolean;
 }
 
@@ -21,7 +21,7 @@ export interface AgentSessionOptions {
 export interface IAgentSessionRunner {
   /**
    * Execute a single agent session: build prompt, run CLI (with continuation
-   * retries), parse the result block, and return an enriched {@link RalphResult}.
+   * retries), read the agent's result, and return an enriched {@link RalphResult}.
    *
    * @param executor  CLI executor to invoke (container-bound or local).
    * @param workItem  Work item being processed — used for prompt building and continuation prompts.
@@ -37,9 +37,9 @@ export interface IAgentSessionRunner {
 }
 
 /**
- * Runs one agent CLI session, container-bound or local, resuming it while it lacks a result block its
- * stage requires, and returns a {@link RalphResult} with the status {@link resolveStatus} gives it, the
- * failure reason of a failed run and the session ids of every invocation.
+ * Runs one agent CLI session, container-bound or local, resuming it while it lacks the result its stage
+ * requires, and returns a {@link RalphResult} with the status {@link resolveStatus} gives it, the failure
+ * reason of a failed run and the session ids of every invocation.
  */
 export class AgentSessionRunner implements IAgentSessionRunner {
   private readonly continuationRunner: IContinuationRunner;
@@ -81,7 +81,10 @@ export class AgentSessionRunner implements IAgentSessionRunner {
 
     const durationMs = Date.now() - startTime;
 
-    const { prUrl, agentStatus } = parseResultBlock(resultText);
+    const { prUrl, agentStatus } = readReportedResult(
+      { agentText: resultText, structuredOutput: lastResult.structuredOutput },
+      this.logger,
+    );
     const { status, failureReason } = resolveStatus(
       {
         exitCode: lastResult.exitCode,

@@ -320,19 +320,80 @@ describe("ContainerManager.executeWithExecutor — continuation loop", () => {
     expect(result.sessionIds).toEqual(["s-1", "s-2"]);
   });
 
-  it("passes continuation prompt with attempt number and issue key", async () => {
+  it("passes a continuation prompt with the attempt number and issue, naming no CLI's result format", async () => {
+    // Arrange
     const executor = createMockExecutor();
     executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));
     executor.continueSession.mockResolvedValue(plainTextResult({ stdout: RESULT_BLOCK }));
     const manager = buildManager(3, executor);
 
+    // Act
     await manager.executeWithExecutor(executor, STAGE, makeWorkItem("DF-200", "Fix the widget"));
 
+    // Assert
     const prompt: string = executor.continueSession.mock.calls[0][0];
     expect(prompt).toContain("RALPH CONTINUATION 1/3");
-    expect(prompt).toContain("===RALPH_RESULT_START===");
     expect(prompt).toContain("DF-200");
     expect(prompt).toContain("Fix the widget");
+    expect(prompt).not.toMatch(/RALPH_RESULT|StructuredOutput/);
+  });
+
+  describe("with structured output", () => {
+    it("does not continue a run that returned a structured result, and takes its status and PR", async () => {
+      // Arrange
+      const executor = createMockExecutor();
+      executor.run.mockResolvedValue(
+        makeExecResult({
+          agentText: "Done.",
+          structuredOutput: { STATUS: TaskStatus.Partial, PR_URL: "https://dev.azure.com/pr/9" },
+        }),
+      );
+      const manager = buildManager(3, executor);
+
+      // Act
+      const result = await manager.executeWithExecutor(executor, STAGE, makeWorkItem(KEY));
+
+      // Assert
+      expect(executor.continueSession).not.toHaveBeenCalled();
+      expect(result.status).toBe(TaskStatus.Partial);
+      expect(result.prUrl).toBe("https://dev.azure.com/pr/9");
+    });
+
+    it("continues a run that ran out of structured output retries and takes the result the continuation returned", async () => {
+      // Arrange
+      const executor = createMockExecutor();
+      executor.run.mockResolvedValue(
+        makeExecResult({ exitCode: 1, cliError: { subtype: "error_max_structured_output_retries" } }),
+      );
+      executor.continueSession.mockResolvedValue(
+        makeExecResult({ structuredOutput: { STATUS: TaskStatus.Completed } }),
+      );
+      const manager = buildManager(3, executor);
+
+      // Act
+      const result = await manager.executeWithExecutor(executor, STAGE, makeWorkItem(KEY));
+
+      // Assert
+      expect(executor.continueSession).toHaveBeenCalledOnce();
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(result.failureReason).toBeUndefined();
+    });
+
+    it("fails with missing-result-block when the retries run out on the last attempt", async () => {
+      // Arrange
+      const executor = createMockExecutor();
+      executor.run.mockResolvedValue(
+        makeExecResult({ exitCode: 1, cliError: { subtype: "error_max_structured_output_retries" } }),
+      );
+      const manager = buildManager(0, executor);
+
+      // Act
+      const result = await manager.executeWithExecutor(executor, STAGE, makeWorkItem(KEY));
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.failureReason).toBe(FailureReason.MissingResultBlock);
+    });
   });
 
   it("uses exponential backoff between continuation attempts", async () => {

@@ -204,6 +204,65 @@ describe("ClaudeStreamJsonDecoder", () => {
     });
   });
 
+  describe("structured output", () => {
+    it("hands back the structured output of a session run with --json-schema", () => {
+      // Arrange
+      const decoder = new ClaudeStreamJsonDecoder();
+      const structured = { STATUS: "completed", PR_URL: "https://dev.azure.com/org/p/_git/r/pullrequest/7" };
+
+      // Act
+      decoder.decodeLine(
+        line({
+          type: "result",
+          subtype: "success",
+          is_error: false,
+          result: JSON.stringify(structured),
+          structured_output: structured,
+        }),
+      );
+
+      // Assert
+      expect(decoder.finish().structuredOutput).toEqual(structured);
+    });
+
+    it("hands back none when the result carries no structured output", () => {
+      // Arrange
+      const decoder = new ClaudeStreamJsonDecoder();
+
+      // Act
+      decoder.decodeLine(line({ type: "result", subtype: "success", is_error: false, result: BLOCK }));
+
+      // Assert
+      const outcome = decoder.finish();
+      expect(outcome.structuredOutput).toBeUndefined();
+      expect(outcome.agentText).toBe(BLOCK);
+    });
+
+    it("reports a session that ran out of structured output retries as a CLI error, with none returned", () => {
+      // Arrange
+      const decoder = new ClaudeStreamJsonDecoder();
+
+      // Act
+      decoder.decodeLine(
+        line({
+          type: "result",
+          subtype: "error_max_structured_output_retries",
+          is_error: true,
+          errors: ["Failed to provide valid structured output after 5 attempts"],
+          terminal_reason: "structured_output_retry_exhausted",
+        }),
+      );
+
+      // Assert
+      const outcome = decoder.finish();
+      expect(outcome.cliError).toEqual({
+        subtype: "error_max_structured_output_retries",
+        message: "Failed to provide valid structured output after 5 attempts",
+      });
+      expect(outcome.structuredOutput).toBeUndefined();
+    });
+  });
+
   describe("failed sessions", () => {
     it.each([
       ["error_max_turns", { subtype: "error_max_turns", is_error: true, errors: ["Reached max turns"] }],

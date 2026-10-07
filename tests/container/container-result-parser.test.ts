@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { hasResultBlock, parseResultBlock, resolveStatus, type StatusInput } from "../../src/container/result-parser";
+import {
+  hasResultBlock,
+  parseResultBlock,
+  readReportedResult,
+  resolveStatus,
+  type StatusInput,
+} from "../../src/container/result-parser";
 import { FailureReason, TaskStatus } from "../../src/container/types";
 import { createMockLogger } from "../helpers/mocks";
 
@@ -78,6 +84,42 @@ summary: Implemented feature
     const { prUrl, agentStatus } = parseResultBlock(stdout);
     expect(prUrl).toBe("https://dev.azure.com/org/project/_git/repo/pullrequest/789");
     expect(agentStatus).toBe("completed");
+  });
+});
+
+describe("readReportedResult", () => {
+  const BLOCK =
+    "===RALPH_RESULT_START===\nSTATUS: blocked\nPR_URL: https://dev.azure.com/pr/text\n===RALPH_RESULT_END===";
+
+  it("takes the structured output over a result block in the text", () => {
+    // Act
+    const reported = readReportedResult({
+      agentText: BLOCK,
+      structuredOutput: { STATUS: TaskStatus.Partial, PR_URL: "https://dev.azure.com/pr/structured" },
+    });
+
+    // Assert
+    expect(reported).toEqual({ agentStatus: TaskStatus.Partial, prUrl: "https://dev.azure.com/pr/structured" });
+  });
+
+  it("reads the result block when the CLI returned no structured output", () => {
+    // Act & Assert
+    expect(readReportedResult({ agentText: BLOCK })).toEqual({
+      agentStatus: TaskStatus.Blocked,
+      prUrl: "https://dev.azure.com/pr/text",
+    });
+  });
+
+  it("reports nothing, and warns with the mismatch, for structured output outside the result schema", () => {
+    // Arrange
+    const logger = createMockLogger();
+
+    // Act
+    const reported = readReportedResult({ agentText: BLOCK, structuredOutput: { STATUS: "success" } }, logger);
+
+    // Assert
+    expect(reported).toEqual({ agentStatus: undefined, prUrl: undefined });
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/does not match the result schema:[\s\S]*STATUS/));
   });
 });
 
@@ -161,6 +203,7 @@ describe("resolveStatus", () => {
       ["authentication_failed", FailureReason.AuthFailed],
       ["error_max_turns", FailureReason.MaxTurns],
       ["error_during_execution", FailureReason.ExecutionError],
+      ["error_max_structured_output_retries", FailureReason.MissingResultBlock],
       ["rate_limit", FailureReason.CliError],
       ["server_error", FailureReason.CliError],
     ])("maps subtype %s to %s", (subtype, failureReason) => {

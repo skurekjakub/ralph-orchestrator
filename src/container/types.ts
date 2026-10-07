@@ -15,6 +15,8 @@ export interface ContainerExecResult {
   timedOut: boolean;
   /** The agent text the result block is read from, as the CLI's output decoder reports it (`CliRunOutcome.agentText`). */
   agentText: string;
+  /** The result the CLI returned as structured output (`CliRunOutcome.structuredOutput`), unvalidated. */
+  structuredOutput?: unknown;
   /** Token, cost and turn usage the CLI reported. */
   usage?: CliRunUsage;
   /** CLI session id, for resuming the session and correlating logs. */
@@ -97,7 +99,7 @@ export interface HostStageWorkspace extends StageWorkspaceBase {
 /** Where one stage's CLI runs and where its rendered agents, skills and artifacts live. */
 export type StageWorkspace = ContainerStageWorkspace | HostStageWorkspace;
 
-/** Final task status — from the agent's structured output or inferred from exit code. */
+/** Final task status — from the result the agent reported or inferred from exit code. */
 export enum TaskStatus {
   Completed = "completed",
   Partial = "partial",
@@ -125,7 +127,11 @@ export enum FailureReason {
   CliError = "cli-error",
   /** The CLI process exited non-zero without reporting an error of its own. */
   ExitCode = "exit-code",
-  /** The stage requires a result block, and the agent text holds none whose STATUS the orchestrator accepts. */
+  /**
+   * The stage requires a result, and the agent reported none whose STATUS the orchestrator accepts: no valid
+   * structured output and no such result block, or Claude Code gave up after the agent's structured output kept
+   * failing validation (`error_max_structured_output_retries`).
+   */
   MissingResultBlock = "missing-result-block",
 }
 
@@ -171,7 +177,7 @@ export function deriveStageProfile(profile: IAgentProfile, stage: IStageConfig):
 export interface RalphResult {
   /** Work item identifier (e.g. `DF-2759`). */
   taskId: string;
-  /** Final task status — may come from the agent's structured output block or be inferred from the exit code. */
+  /** Final task status — may come from the result the agent reported or be inferred from the exit code. */
   status: TaskStatus;
   /** Wall-clock duration in milliseconds. */
   durationMs: number;
@@ -188,7 +194,7 @@ export interface RalphResult {
    * Values are local filesystem paths. Absent sources are omitted.
    */
   collectedLogs: Record<string, string>;
-  /** ADO pull request URL parsed from the agent's structured output. */
+  /** ADO pull request URL from the result the agent reported. */
   prUrl?: string;
   /** Per-stage results when running a multi-stage pipeline. */
   stageResults?: StageResult[];

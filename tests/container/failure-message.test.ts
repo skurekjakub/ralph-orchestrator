@@ -28,14 +28,33 @@ describe("describeFailure", () => {
     expect(describeFailure(makeResult("DF-1", { ...failed, failureReason, cliError, stderr: "noise" }))).toBe(expected);
   });
 
-  it("explains a missing result block in plain words", () => {
+  it("explains a missing result in plain words, naming no CLI's result format", () => {
     // Act
     const description = describeFailure(
       makeResult("DF-1", { ...failed, exitCode: 0, failureReason: FailureReason.MissingResultBlock }),
     );
 
     // Assert
-    expect(description).toContain("finished without the ===RALPH_RESULT_START===");
+    expect(description).toBe("The agent finished without reporting the result its stage requires");
+  });
+
+  it("adds the CLI's message when it gave up on the agent's structured output", () => {
+    // Arrange
+    const cliError = {
+      subtype: "error_max_structured_output_retries",
+      message: "Failed to provide valid structured output after 5 attempts",
+    };
+
+    // Act
+    const description = describeFailure(
+      makeResult("DF-1", { ...failed, failureReason: FailureReason.MissingResultBlock, cliError }),
+    );
+
+    // Assert
+    expect(description).toBe(
+      "The agent finished without reporting the result its stage requires: " +
+        "Failed to provide valid structured output after 5 attempts",
+    );
   });
 
   it("cuts a long CLI message", () => {

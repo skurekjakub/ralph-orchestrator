@@ -11,7 +11,7 @@ export enum FailureCategory {
   Task = "task",
   /** The process was killed for exceeding its timeout. */
   Timeout = "timeout",
-  /** The agent ended without the result block its stage requires. */
+  /** The agent ended without the result its stage requires. */
   Contract = "contract",
   /** No signal tells the cause. */
   Unknown = "unknown",
@@ -34,7 +34,7 @@ const CATEGORY_OF_REASON: ReadonlyMap<FailureReason, FailureCategory> = new Map(
  * - **timeout**: The process was killed due to exceeding the configured timeout.
  * - **task**: The CLI ran long enough to suggest the agent was working, but
  *   exited with an error — likely a task-level failure.
- * - **contract**: The agent ended without the result block its stage requires.
+ * - **contract**: The agent ended without the result its stage requires.
  * - **unknown**: Cannot determine category from available signals.
  */
 export function classifyFailure(result: RalphResult): FailureCategory {

@@ -146,9 +146,9 @@ export class ClaudeStreamJsonDecoder implements ICliOutputDecoder {
 
   /**
    * The agent text is the last `result` event's `result` (the session's final assistant message) when that
-   * holds a result block, otherwise all main-thread assistant text joined. Ralph's result gate checks the
-   * same two texts in the same order (`last_assistant_message`, then the transcript's main-thread assistant
-   * text), so a stop the gate allows is one whose result block the orchestrator also finds.
+   * holds a result block, otherwise all main-thread assistant text joined, so a block quoted earlier in the
+   * session cannot hide the one the agent ended with. The structured output is that event's
+   * `structured_output`, which Claude Code sets on a successful session run with `--json-schema`.
    */
   finish(): CliRunOutcome {
     const result = this.lastResult;
@@ -156,6 +156,7 @@ export class ClaudeStreamJsonDecoder implements ICliOutputDecoder {
     const finalMessage = result && !failed ? asString(result.result) : undefined;
     return {
       agentText: finalMessage !== undefined && hasResultBlock(finalMessage) ? finalMessage : this.agentTexts.join("\n"),
+      structuredOutput: result?.structured_output,
       usage: result ? usageOf(result) : undefined,
       sessionId: this.sessionId,
       cliError: failed ? cliErrorOf(result, this.apiErrorKind) : undefined,

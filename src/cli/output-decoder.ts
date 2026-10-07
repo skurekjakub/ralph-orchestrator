@@ -48,6 +48,8 @@ export interface CliRunOutcome {
    * result block, otherwise all main-thread assistant text, in order.
    */
   readonly agentText: string;
+  /** The result the CLI returned as structured output (Claude Code `--json-schema`), unvalidated; absent without one. */
+  readonly structuredOutput?: unknown;
   readonly usage?: CliRunUsage;
   /** CLI session id, for resuming the session and correlating logs. */
   readonly sessionId?: string;

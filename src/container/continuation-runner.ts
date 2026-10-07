@@ -1,17 +1,17 @@
 import type { ContainerExecResult } from "./types";
 import type { WorkItem } from "../datasource/types";
 import type { Logger } from "../logger";
-import { hasResultBlock, parseResultBlock } from "./result-parser";
+import { hasAcceptedStatus, hasResultBlock, readReportedResult, type ReportedResult } from "./result-parser";
 import { ICliExecutor } from "./cli-executor-factory";
 
 /** Accumulated output from the initial run plus any continuation attempts. */
 export interface ContinuationResult {
-  /** The last CLI invocation's raw result (exit code, timeout flag). */
+  /** The last CLI invocation's raw result (exit code, timeout flag, structured output). */
   lastResult: ContainerExecResult;
   /** Combined agent text across all invocations. */
   combinedAgentText: string;
   /**
-   * The text the result block is parsed from: the last invocation's agent text when it holds a block whose
+   * The text a result block is parsed from: the last invocation's agent text when it holds a block whose
    * STATUS the orchestrator accepts, else the combined agent text. Only the first block of a text counts,
    * so an earlier invalid block must not hide the one a continuation printed.
    */
@@ -27,7 +27,7 @@ export interface ContinuationResult {
 /** Public contract for the continuation runner. */
 export interface IContinuationRunner {
   /**
-   * Run the executor and resume its session while the agent text holds no result block whose STATUS the
+   * Run the executor and resume its session while the agent has reported no result whose STATUS the
    * orchestrator accepts.
    *
    * @param executor     CLI executor to invoke.
@@ -47,9 +47,8 @@ export interface IContinuationRunner {
 /**
  * Handles the continuation retry loop for agent CLI sessions.
  *
- * When the agent's session ends without producing the required
- * `===RALPH_RESULT_START===` block, resumes the CLI session (`continueSession`)
- * and exponential backoff until the block appears or attempts are exhausted.
+ * When the agent's session ends without the result its stage requires, resumes the CLI session
+ * (`continueSession`) with exponential backoff until the result arrives or attempts are exhausted.
  */
 export class ContinuationRunner implements IContinuationRunner {
   private readonly logger: Logger;
@@ -74,6 +73,8 @@ export class ContinuationRunner implements IContinuationRunner {
     };
     recordSession(result);
     const resultText = (): string => (hasResultBlock(result.agentText) ? result.agentText : combinedAgentText);
+    const reported = (): ReportedResult =>
+      readReportedResult({ agentText: resultText(), structuredOutput: result.structuredOutput });
 
     if (maxContinuations > 0) {
       let attempt = 0;
@@ -83,26 +84,24 @@ export class ContinuationRunner implements IContinuationRunner {
           break;
         }
 
-        if (hasResultBlock(resultText())) {
-          const { prUrl, agentStatus } = parseResultBlock(resultText());
+        const report = reported();
+        if (hasAcceptedStatus(report)) {
           this.logger.info(
-            `Result block found after ${attempt} continuation(s) — status: ${agentStatus}` +
-              (prUrl ? ` — PR: ${prUrl}` : ""),
+            `Result found after ${attempt} continuation(s) — status: ${report.agentStatus}` +
+              (report.prUrl ? ` — PR: ${report.prUrl}` : ""),
           );
           break;
         }
 
         attempt++;
         const backoffMs = ContinuationRunner.continuationBackoff(attempt);
-        this.logger.warn(
-          `No result block found — continuation ${attempt}/${maxContinuations} (backoff: ${backoffMs}ms)`,
-        );
+        this.logger.warn(`No result found — continuation ${attempt}/${maxContinuations} (backoff: ${backoffMs}ms)`);
         await ContinuationRunner.sleep(backoffMs);
 
         const continuationPrompt =
           `[RALPH CONTINUATION ${attempt}/${maxContinuations}]\n\n` +
-          `Your previous session ended without producing the required ===RALPH_RESULT_START=== block.\n` +
-          `Continue working on the task. When complete, output the result block as instructed.\n\n` +
+          `Your previous session ended without the result your instructions require.\n` +
+          `Continue working on the task. When it is complete, return your result as your instructions describe.\n\n` +
           `Original issue: ${workItem.id} — ${workItem.title}`;
 
         result = await executor.continueSession(continuationPrompt);
@@ -112,8 +111,8 @@ export class ContinuationRunner implements IContinuationRunner {
         combinedStderr += "\n" + result.stderr;
       }
 
-      if (attempt >= maxContinuations && !hasResultBlock(resultText())) {
-        this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result block`);
+      if (attempt >= maxContinuations && !hasAcceptedStatus(reported())) {
+        this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result`);
       }
     }
 

@@ -20,10 +20,7 @@ export function describeFailure(result: RalphResult): string {
     case FailureReason.CliError:
       return `The agent CLI reported an error (${result.cliError?.subtype ?? "unknown"})${message}`;
     case FailureReason.MissingResultBlock:
-      return (
-        "The agent finished without the ===RALPH_RESULT_START=== … ===RALPH_RESULT_END=== result block " +
-        "its stage requires"
-      );
+      return `The agent finished without reporting the result its stage requires${message}`;
     case FailureReason.ExitCode:
       return result.stderr || `The agent CLI exited with code ${result.exitCode}`;
     case undefined:
