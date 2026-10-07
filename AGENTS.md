@@ -59,7 +59,7 @@ Side-effecting. Run these only when the user asks:
 src/index.tsx
   AppStartup.run(): validate → loadConfig → import data-source connectors → [ralphchives stack]
                     → build custom MCP servers + sidecar → resolveAllProfileSetup (profiles/*/.build/)
-  createCradle(config, { rootDir }) → cradle.orchestrator + cradle.dashboardServer (ws :3100) + Ink TUI (src/cli-dashboard/)
+  createRootContainer(config, { rootDir }).cradle → orchestrator + dashboardServer (ws :3100) + Ink TUI (src/cli-dashboard/)
 
 Orchestrator loop: one operation at a time; it sleeps until poller.onItems / ledger.onPending fires
   pollers.drain() → TriggerScanner.scan()
@@ -106,7 +106,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 
 1. In the same file, define `IFoo` and `class Foo implements IFoo`. The constructor takes **one destructured deps object** whose keys are cradle tokens (awilix `InjectionMode.PROXY`, `strict: true`). Depend on interfaces and config slices, never on the whole `IAppConfig`.
 2. Add `foo: IFoo` to `OrchestratorCradle` in `src/awilix-cradle-types.ts`.
-3. Register it in `createRootContainer()` in `src/awilix-cradle.ts` (`asClass(Foo).singleton()`).
+3. Register it in the root registration object of `createRootContainer()` in `src/awilix-cradle.ts` (`foo: w.service(Foo).singleton()`, where `w = wiring<OrchestratorCradle>()`).
 4. Tests construct `Foo` directly with mocks, not with the container. Add `createMockFoo(overrides)` returning `Mocked<IFoo>` to `tests/helpers/mocks.ts` when more than one suite needs it.
 
 Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
@@ -115,7 +115,7 @@ A data-source connector's classes register in its own `factory.ts`, not in `crea
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
-- `index.tsx` builds `AppStartup`, which runs before the cradle exists, and takes `orchestrator` and `dashboardServer` from the cradle.
+- `index.tsx` builds `AppStartup`, which runs before the cradle exists.
 - A task's container stack (compose client, log collector, workspace cleaner, `ContainerManager`) resolves in a task scope that `createContainerManagerFactory` (`src/container/container-manager-factory.ts`) opens from the root container. Each stage's executor resolves in a stage scope that `src/container/stage-executor-factory.ts` opens from the task scope, or from the root for a post-task hook stage.
 - `PromptBuilder` is registered without an interface.
 

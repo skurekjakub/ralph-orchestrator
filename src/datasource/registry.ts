@@ -37,7 +37,7 @@ const factories = new Map<string, DataSourceFactory>();
  * Register a factory for a data source type.
  *
  * Called at module load time by each connector implementation.
- * Must be called before {@link buildDataSourceMaps} (i.e. before `createCradle()`).
+ * Must be called before {@link buildDataSourceMaps} (i.e. before `createRootContainer()`).
  *
  * @param type - Data source type string (must match `dataSources.<key>.type` in config)
  * @param factory - Factory that creates connector + poller from config

@@ -130,7 +130,7 @@ export function registerScopedServices(container: AwilixContainer<OrchestratorCr
  * @param config The loaded config: its slices become root tokens, and each `dataSources` entry gets a scope.
  * @param options.rootDir The orchestrator checkout: the profile build directories, `shared/` sources, `cache/` and
  *   the output directory resolve against it.
- * @returns The root container, from which `openTaskScope` opens a task's scope.
+ * @returns The root container.
  * @throws Error with `resolveJiraCredentials`' message when a JIRA data source's `JIRA_PAT_<KEY>` or
  *   `JIRA_EMAIL_<KEY>` is unset, or when a data source's type has no registered factory; ZodError when a JIRA
  *   data source's connection fails its schema.
@@ -204,14 +204,4 @@ export function createRootContainer(
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 
   return container;
-}
-
-/**
- * The cradle of {@link createRootContainer}'s root container, through which every root service resolves on first
- * access.
- *
- * @throws As {@link createRootContainer}.
- */
-export function createCradle(config: IAppConfig, options: { rootDir: string }): OrchestratorCradle {
-  return createRootContainer(config, options).cradle;
 }

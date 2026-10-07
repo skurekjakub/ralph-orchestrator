@@ -1,13 +1,13 @@
 import React from "react";
 import { render } from "ink";
 import { App } from "./cli-dashboard/App";
-import { createCradle } from "./awilix-cradle";
+import { createRootContainer } from "./awilix-cradle";
 import { AppStartup } from "./app-startup";
 
 async function main(): Promise<void> {
   const startup = new AppStartup();
   const config = await startup.run();
-  const { orchestrator, dashboardServer } = createCradle(config, { rootDir: process.cwd() });
+  const { orchestrator, dashboardServer } = createRootContainer(config, { rootDir: process.cwd() }).cradle;
 
   // Start the local WebSocket dashboard server
   dashboardServer.start();

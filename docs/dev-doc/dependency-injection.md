@@ -22,14 +22,14 @@ export class JiraClient implements IJiraClient {
 1. **Consumers depend on the interface** — never the concrete class. All constructor parameters, `OrchestratorCradle` entries, and function arguments use `IJiraClient`, `ITaskRunner`, etc.
 
 2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that constructs concrete classes:
-   - `src/index.tsx` builds `AppStartup`, which runs before the cradle exists, and takes `orchestrator` and `dashboardServer` from the cradle.
+   - `src/index.tsx` builds `AppStartup`, which runs before the cradle exists.
    - Data source connector factories register their own classes in the data source's awilix scope and resolve the connector and poller there (`src/datasource/connectors/jira/factory.ts` registers `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`; see `docs/dev-doc/data-source-registration.md`).
    - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
    - `src/container/stage-executor-factory.ts` opens the stage scopes in which the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`) resolve.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
-Known exceptions: `PromptBuilder` has no interface; `OrchestratorCradle.promptBuilder` and `AgentSessionRunner` use the class type. `Orchestrator` and `DashboardServer` have none either, so `OrchestratorCradle.orchestrator` and `dashboardServer` use their classes.
+Known exceptions: `PromptBuilder` has no interface; `OrchestratorCradle.promptBuilder` and `AgentSessionRunner` use the class type. `Orchestrator` and `DashboardServer` have none either, so `OrchestratorCradle.orchestrator` and `dashboardServer` use their classes, and `DashboardServer` takes its `orchestrator` dep as `Pick<Orchestrator, "observer">`.
 
 ## Why Interfaces, Not Classes?
 
@@ -108,7 +108,7 @@ interface OrchestratorCradle {
 }
 ```
 
-`createRootContainer(config, { rootDir })` in `awilix-cradle.ts` builds the root container with `InjectionMode.PROXY` and `strict: true`, and `createCradle(config, { rootDir })` returns its cradle. It registers the root tokens below and the scoped task registrations, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
+`createRootContainer(config, { rootDir })` in `awilix-cradle.ts` builds and returns the root container, with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below and the scoped task registrations, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`

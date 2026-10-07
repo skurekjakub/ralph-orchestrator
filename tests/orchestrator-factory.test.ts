@@ -27,7 +27,7 @@ vi.mock("ws", async (importOriginal) => {
 });
 
 import { Lifetime } from "awilix";
-import { createCradle, createRootContainer } from "../src/awilix-cradle";
+import { createRootContainer } from "../src/awilix-cradle";
 import type {
   ClaudeHostStageCradle,
   ClaudeHostStageValues,
@@ -119,7 +119,7 @@ function setUpStage(cli: CliType, mode: StageMode): IStageConfig {
  * an optional param that is not registered in the cradle (e.g. `maxLines`,
  * `retryOptions`, `fetchComments`).
  */
-describe("createCradle", () => {
+describe("createRootContainer", () => {
   const rootDir = process.cwd();
   const savedEnv: Record<string, string | undefined> = {};
   const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
@@ -142,7 +142,7 @@ describe("createCradle", () => {
 
   it("resolves all cradle services without AwilixResolutionError", () => {
     const config = makeConfig();
-    const cradle = createCradle(config, { rootDir });
+    const cradle = createRootContainer(config, { rootDir }).cradle;
 
     expect(cradle.activityLog).toBeDefined();
     expect(cradle.pollers).toBeDefined();
@@ -161,14 +161,14 @@ describe("createCradle", () => {
     delete process.env.JIRA_PAT_TEST_SOURCE;
 
     // Act & Assert
-    expect(() => createCradle(makeConfig(), { rootDir })).toThrow(
+    expect(() => createRootContainer(makeConfig(), { rootDir }).cradle).toThrow(
       new Error('JIRA_PAT_TEST_SOURCE and JIRA_EMAIL_TEST_SOURCE must be set in .env for data source "test-source"'),
     );
   });
 
   it("returns dataSources and profiles from the config", () => {
     const config = makeConfig();
-    const cradle = createCradle(config, { rootDir });
+    const cradle = createRootContainer(config, { rootDir }).cradle;
 
     expect(cradle.dataSources).toBe(config.dataSources);
     expect(cradle.profiles).toBe(config.profiles);
@@ -176,14 +176,14 @@ describe("createCradle", () => {
 
   it("returns null heartbeat when dashboard is disabled", () => {
     const config = makeConfig();
-    const cradle = createCradle(config, { rootDir });
+    const cradle = createRootContainer(config, { rootDir }).cradle;
 
     expect(cradle.heartbeat).toBeNull();
   });
 
   it("registers the Copilot CLI runtime", () => {
     // Arrange
-    const cradle = createCradle(makeConfig(), { rootDir });
+    const cradle = createRootContainer(makeConfig(), { rootDir }).cradle;
 
     // Act
     const runtime = cradle.cliRuntimes.get(CliType.Copilot);
@@ -194,7 +194,7 @@ describe("createCradle", () => {
 
   it("registers the Claude Code runtime with the configured credential", () => {
     // Arrange
-    const cradle = createCradle({ ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey }, { rootDir });
+    const cradle = createRootContainer({ ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey }, { rootDir }).cradle;
 
     // Act
     const runtime = cradle.cliRuntimes.get(CliType.Claude);
@@ -205,7 +205,7 @@ describe("createCradle", () => {
 
   it("resolves the overlay writer and workspace manager with their CLI runtime dependencies", () => {
     // Arrange
-    const cradle = createCradle(makeConfig(), { rootDir });
+    const cradle = createRootContainer(makeConfig(), { rootDir }).cradle;
 
     // Act & Assert
     expect(cradle.overlayWriter).toBeDefined();
@@ -217,7 +217,7 @@ describe("createCradle", () => {
     const checkout = mkdtempSync(join(tmpdir(), "cradle-"));
 
     // Act
-    const cradle = createCradle(makeConfig(), { rootDir: checkout });
+    const cradle = createRootContainer(makeConfig(), { rootDir: checkout }).cradle;
 
     // Assert
     expect(cradle.rootDir).toBe(checkout);
@@ -230,7 +230,7 @@ describe("createCradle", () => {
     const config = { ...makeConfig(), claudeAuth: ClaudeAuthMode.ApiKey };
 
     // Act
-    const cradle = createCradle(config, { rootDir });
+    const cradle = createRootContainer(config, { rootDir }).cradle;
 
     // Assert
     expect(cradle.claudeAuth).toBe(ClaudeAuthMode.ApiKey);
@@ -238,7 +238,7 @@ describe("createCradle", () => {
 
   it("refuses to build a container stack for a profile whose squid.conf was never generated", () => {
     // Arrange
-    const cradle = createCradle(makeConfig(), { rootDir });
+    const cradle = createRootContainer(makeConfig(), { rootDir }).cradle;
     const profile = makeProfile({ id: "never-set-up" });
 
     // Act & Assert
@@ -249,7 +249,7 @@ describe("createCradle", () => {
 
   it("hands every local session the root session runner", async () => {
     // Arrange
-    const cradle = createCradle(makeConfig(), { rootDir });
+    const cradle = createRootContainer(makeConfig(), { rootDir }).cradle;
     const profile = makeProfile();
     const stage = makeStage({ mode: StageMode.Local, cli: CliType.Copilot });
 
@@ -360,7 +360,7 @@ describe("createCradle", () => {
 
     it("streams the orchestrator's state to the dashboard server's clients", () => {
       // Arrange
-      const { orchestrator, dashboardServer } = createCradle(fixtureConfig(), { rootDir: checkout });
+      const { orchestrator, dashboardServer } = createRootContainer(fixtureConfig(), { rootDir: checkout }).cradle;
       dashboardServer.start();
       const client = { readyState: WebSocket.OPEN, send: vi.fn(), close: vi.fn() };
       unboundServers[0].clients.add(client);
@@ -427,7 +427,7 @@ describe("createCradle", () => {
       "resolves %s for a post-task hook stage of its kind from the root",
       async (_token, { cli, mode, type }) => {
         // Arrange
-        const { containerFactory } = createCradle(fixtureConfig(), { rootDir: checkout });
+        const { containerFactory } = createRootContainer(fixtureConfig(), { rootDir: checkout }).cradle;
 
         // Act
         const { executor } = await containerFactory.createLocalSession(
