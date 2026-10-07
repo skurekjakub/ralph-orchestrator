@@ -93,9 +93,9 @@ export interface SubagentSpan {
   fullName: string;
   /** Model configured in the agent definition (may not match actual). */
   definitionModel?: string;
-  /** Model actually used for inference. */
+  /** Model actually used for inference; run telemetry lists every model that answered, comma-separated. */
   resolvedModel: string;
-  /** Whether the model fell back from definition to session model. */
+  /** Whether the model fell back from definition to session model; run telemetry never says so. */
   didFallback: boolean;
   /** ISO timestamp of subagent start. */
   startTs: string;
@@ -107,7 +107,7 @@ export interface SubagentSpan {
   endMs?: number;
   /** Duration in ms. */
   durationMs?: number;
-  /** Total tool_call_executed events within this subagent span. */
+  /** Tool calls within this subagent span: tool_call_executed events, or the telemetry's calls. */
   toolCallCount: number;
   /** Model call (LLM turn) count within this subagent span. */
   modelCallCount: number;
@@ -145,9 +145,9 @@ export interface AssistantUsageEntry {
 
 /** Tree node representing a single subagent invocation with nesting. */
 export interface SubagentTreeNode {
-  /** Unique node ID (e.g. "node-0", "node-1"). */
+  /** Unique node ID (e.g. "node-0", "node-1"; a run telemetry span id, or "run" for its synthetic root). */
   id: string;
-  /** Nesting depth (0 = synthetic root). */
+  /** Nesting depth (0 = root). */
   depth: number;
   /** Parent node ID (null for root). */
   parentId: string | null;
@@ -175,11 +175,12 @@ export interface SubagentTreeNode {
   toolCallCount: number;
   modelCallCount: number;
   toolCalls: SubagentToolCall[];
+  toolUseId?: string;
 }
 
 /** Result of tree-based parsing. */
 export interface ParsedTree {
-  /** Synthetic root node (depth 0). */
+  /** Root node (depth 0): the main thread, or a synthetic node over several sessions' main threads. */
   root: SubagentTreeNode;
   /** Flat array of all nodes including root for easy lookup. */
   allNodes: SubagentTreeNode[];
