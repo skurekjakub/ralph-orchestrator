@@ -8,8 +8,8 @@ import {
   type StageOverrides,
   type IAgentTemplateRenderer,
 } from "../container/setup/agent-includes";
-import type { ISkillTemplateRenderer } from "../container/setup/skill-includes";
-import type { IJitMcpConfigWriter } from "../container/setup/jit-mcp-params";
+import { renderStageSkills } from "../container/setup/skill-includes";
+import { writeJitMcpConfig } from "../container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "../container/setup/compose-overlay-writer";
 import type { StageWorkspace } from "../container/types";
 import type { IStageWorkspaceResolver } from "./stage-workspace";
@@ -51,35 +51,31 @@ export class ProfileSetupService implements IProfileSetupService {
   private readonly logger: Logger;
   private readonly cliRuntimes: ICliRuntimeRegistry;
   private readonly templateRenderer: IAgentTemplateRenderer;
-  private readonly skillRenderer: ISkillTemplateRenderer;
   private readonly overlayWriter: IComposeOverlayWriter;
-  private readonly jitMcpConfig: IJitMcpConfigWriter;
+  private readonly rootDir: string;
   private readonly stageWorkspaces: IStageWorkspaceResolver;
 
   constructor({
     logger,
     cliRuntimes,
     templateRenderer,
-    skillRenderer,
     overlayWriter,
-    jitMcpConfig,
     stageWorkspaces,
+    rootDir,
   }: {
     logger: Logger;
     cliRuntimes: ICliRuntimeRegistry;
     templateRenderer: IAgentTemplateRenderer;
-    skillRenderer: ISkillTemplateRenderer;
     overlayWriter: IComposeOverlayWriter;
-    jitMcpConfig: IJitMcpConfigWriter;
     stageWorkspaces: IStageWorkspaceResolver;
+    rootDir: string;
   }) {
     this.logger = logger;
     this.cliRuntimes = cliRuntimes;
     this.templateRenderer = templateRenderer;
-    this.skillRenderer = skillRenderer;
     this.overlayWriter = overlayWriter;
-    this.jitMcpConfig = jitMcpConfig;
     this.stageWorkspaces = stageWorkspaces;
+    this.rootDir = rootDir;
   }
 
   async prepareForTask(ctx: TaskContext): Promise<void> {
@@ -90,9 +86,10 @@ export class ProfileSetupService implements IProfileSetupService {
     if (containerStage) {
       this.logger.info("Rendering skill templates...");
       const workspace = this.stageWorkspaces.forStage(ctx, containerStage);
-      await this.skillRenderer.render(
+      await renderStageSkills(
         buildTemplateContext(ctx, this.cliRuntimes, workspace),
         { outDir: workspace.skillsOutDir, prune: true },
+        this.rootDir,
         this.logger,
       );
     }
@@ -100,7 +97,7 @@ export class ProfileSetupService implements IProfileSetupService {
     this.logger.info("Regenerating compose overlay for matched variant...");
     await this.overlayWriter.write(ctx.profile, this.logger);
 
-    this.jitMcpConfig.write(ctx.profile, ctx.workItem, this.logger, ctx.triggerParams, {
+    writeJitMcpConfig(ctx.profile, ctx.workItem, this.rootDir, this.logger, ctx.triggerParams, {
       sourceBranch: ctx.sourceBranch,
       taskBranch: ctx.taskBranch,
     });
@@ -146,7 +143,12 @@ export class ProfileSetupService implements IProfileSetupService {
       stageRenderTarget(stage, workspace, { prune: !keepAgents }),
       this.logger,
     );
-    await this.skillRenderer.render(stageContext, { outDir: workspace.skillsOutDir, prune: !keepSkills }, this.logger);
+    await renderStageSkills(
+      stageContext,
+      { outDir: workspace.skillsOutDir, prune: !keepSkills },
+      this.rootDir,
+      this.logger,
+    );
   }
 
   /** Whether the variant's container mounts the rendered agent files and skill directories of `cli` one by one. */

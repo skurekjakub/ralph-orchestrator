@@ -23,8 +23,6 @@ import type { ITextRedactor } from "../../src/logs/text-redactor";
 import type { IWorkItemPoller } from "../../src/datasource/poller";
 import type { ITaskRunner } from "../../src/services/task-runner";
 import type { IAgentTemplateRenderer } from "../../src/container/setup/agent-includes";
-import type { ISkillTemplateRenderer } from "../../src/container/setup/skill-includes";
-import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer";
 import type { IProfileSetupService } from "../../src/services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
@@ -460,26 +458,6 @@ export function createMockTemplateRenderer(
 ): Mocked<IAgentTemplateRenderer> {
   return {
     render: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-/** Create a mock SkillTemplateRenderer with all methods stubbed. */
-export function createMockSkillRenderer(
-  overrides: Partial<Mocked<ISkillTemplateRenderer>> = {},
-): Mocked<ISkillTemplateRenderer> {
-  return {
-    render: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-/** Create a mock JitMcpConfigWriter with all methods stubbed. */
-export function createMockJitMcpConfigWriter(
-  overrides: Partial<Mocked<IJitMcpConfigWriter>> = {},
-): Mocked<IJitMcpConfigWriter> {
-  return {
-    write: vi.fn(),
     ...overrides,
   };
 }

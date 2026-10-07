@@ -24,8 +24,6 @@ import { ContainerManager } from "./container/manager";
 import { ComposeClient, type IComposeClient } from "./container/compose-client";
 import { resolveComposeFiles } from "./container/setup/compose-files";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes";
-import { SkillTemplateRenderer } from "./container/setup/skill-includes";
-import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params";
 import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
 import { CliExecutorFactory } from "./container/cli-executor-factory";
 import { ProfileSetupService } from "./services/profile-setup-service";
@@ -172,8 +170,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     executorFactory: w.service(CliExecutorFactory).singleton(),
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
     templateRenderer: w.service(AgentTemplateRenderer).singleton(),
-    skillRenderer: w.service(SkillTemplateRenderer).singleton(),
-    jitMcpConfig: w.service(JitMcpConfigWriter).singleton(),
     overlayWriter: w.service(ComposeOverlayWriter).singleton(),
     containerFactory: w.factory(buildContainerFactory).singleton(),
     workspaceManager: w.service(TaskWorkspaceManager).singleton(),

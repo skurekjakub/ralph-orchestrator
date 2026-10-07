@@ -97,7 +97,7 @@
         </mxCell>
 
         <!-- JIT MCP Config -->
-        <mxCell id="jitmcp" value="&lt;b&gt;JitMcpConfigWriter&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;$task.id, $task.project&lt;br&gt;$task.branch, $task.title&lt;br&gt;$trigger.&amp;lt;key&amp;gt;, $variantEnv.&amp;lt;PREFIX&amp;gt;&lt;br&gt;→ gateway.json in-place&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="jitmcp" value="&lt;b&gt;writeJitMcpConfig&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;$task.id, $task.project&lt;br&gt;$task.branch, $task.title&lt;br&gt;$trigger.&amp;lt;key&amp;gt;, $variantEnv.&amp;lt;PREFIX&amp;gt;&lt;br&gt;→ gateway.json in-place&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="360" y="440" width="160" height="75" as="geometry" />
         </mxCell>
 

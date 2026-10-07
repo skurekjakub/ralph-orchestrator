@@ -10,15 +10,11 @@
  * not on their internal behavior.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderStageSkills } from "../../src/container/setup/skill-includes";
+import { writeJitMcpConfig } from "../../src/container/setup/jit-mcp-params";
 import { ProfileSetupService } from "../../src/services/profile-setup-service";
 import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
-import {
-  createMockTemplateRenderer,
-  createMockSkillRenderer,
-  createMockJitMcpConfigWriter,
-  createMockOverlayWriter,
-  createSilentLogger,
-} from "../helpers/mocks";
+import { createMockTemplateRenderer, createMockOverlayWriter, createSilentLogger } from "../helpers/mocks";
 import {
   makeContainerWorkspace,
   makeHostWorkspace,
@@ -30,6 +26,9 @@ import { agentsBuildDir, profileBuildPaths } from "../../src/container/setup/bui
 import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 
+vi.mock("../../src/container/setup/skill-includes", () => ({ renderStageSkills: vi.fn() }));
+vi.mock("../../src/container/setup/jit-mcp-params", () => ({ writeJitMcpConfig: vi.fn() }));
+
 const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
 
 /** Build paths of the "docs" profile under the orchestrator checkout the resolver lays out. */
@@ -37,24 +36,23 @@ const DOCS_PATHS = profileBuildPaths("/repo", "docs");
 
 function createService() {
   const templateRenderer = createMockTemplateRenderer();
-  const skillRenderer = createMockSkillRenderer();
   const overlayWriter = createMockOverlayWriter();
-  const jitMcpConfig = createMockJitMcpConfigWriter();
   const service = new ProfileSetupService({
     logger: createSilentLogger(),
     cliRuntimes: RUNTIMES,
     templateRenderer,
-    skillRenderer,
     overlayWriter,
-    jitMcpConfig,
     stageWorkspaces: new StageWorkspaceResolver({ cliRuntimes: RUNTIMES, rootDir: "/repo" }),
+    rootDir: "/repo",
   });
-  return { service, templateRenderer, skillRenderer, overlayWriter, jitMcpConfig };
+  return { service, templateRenderer, overlayWriter };
 }
 
 describe("ProfileSetupService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(renderStageSkills).mockReset();
+    vi.mocked(writeJitMcpConfig).mockReset();
   });
 
   describe("prepareForTask", () => {
@@ -136,30 +134,31 @@ describe("ProfileSetupService", () => {
 
     it("renders the variant's skills into the profile's skills build directory", async () => {
       // Arrange
-      const { service, skillRenderer } = createService();
+      const { service } = createService();
       const profile = makeProfile({ id: "docs", stages: [makeStage({ skills: ["a"] }), makeStage({ skills: ["b"] })] });
 
       // Act
       await service.prepareForTask(makeTaskContext({ profile }));
 
       // Assert
-      expect(skillRenderer.render).toHaveBeenCalledWith(
+      expect(renderStageSkills).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["a", "b"], artifactDir: ".ralph/tasks/DF-100/artifacts" }),
         { outDir: DOCS_PATHS.skillsBuildDir, prune: true },
+        "/repo",
         expect.anything(),
       );
     });
 
     it("renders no container skills when every stage runs on the host", async () => {
       // Arrange
-      const { service, skillRenderer, templateRenderer } = createService();
+      const { service, templateRenderer } = createService();
       const profile = makeProfile({ stages: [makeStage({ mode: StageMode.Local, skills: ["a"] })] });
 
       // Act
       await service.prepareForTask(makeTaskContext({ profile }));
 
       // Assert
-      expect(skillRenderer.render).not.toHaveBeenCalled();
+      expect(renderStageSkills).not.toHaveBeenCalled();
       expect(templateRenderer.render).not.toHaveBeenCalled();
     });
 
@@ -177,17 +176,24 @@ describe("ProfileSetupService", () => {
 
     it("writes JIT MCP config with task and trigger params", async () => {
       // Arrange
-      const { service, jitMcpConfig } = createService();
+      const { service } = createService();
       const ctx = makeTaskContext({ triggerParams: { verbose: "true" } });
 
       // Act
       await service.prepareForTask(ctx);
 
       // Assert
-      expect(jitMcpConfig.write).toHaveBeenCalledWith(ctx.profile, ctx.workItem, expect.anything(), ctx.triggerParams, {
-        sourceBranch: ctx.sourceBranch,
-        taskBranch: ctx.taskBranch,
-      });
+      expect(writeJitMcpConfig).toHaveBeenCalledWith(
+        ctx.profile,
+        ctx.workItem,
+        "/repo",
+        expect.anything(),
+        ctx.triggerParams,
+        {
+          sourceBranch: ctx.sourceBranch,
+          taskBranch: ctx.taskBranch,
+        },
+      );
     });
   });
 
@@ -208,7 +214,7 @@ describe("ProfileSetupService", () => {
 
     it("renders a host stage's agents and skills into its own workspace, pruning both", async () => {
       // Arrange
-      const { service, templateRenderer, skillRenderer } = createService();
+      const { service, templateRenderer } = createService();
       const workspace = makeHostWorkspace();
       const ctx = makeTaskContext({
         profile: makeProfile({ id: "docs", stages: [makeStage(), makeStage({ role: "notes" })] }),
@@ -230,9 +236,10 @@ describe("ProfileSetupService", () => {
         },
         expect.anything(),
       );
-      expect(skillRenderer.render).toHaveBeenCalledWith(
+      expect(renderStageSkills).toHaveBeenCalledWith(
         expect.objectContaining({ skills: ["review"] }),
         { outDir: workspace.skillsOutDir, prune: true },
+        "/repo",
         expect.anything(),
       );
     });
@@ -244,7 +251,7 @@ describe("ProfileSetupService", () => {
 
       it("keeps every rendered Copilot agent and skill in place while the containers run", async () => {
         // Arrange
-        const { service, templateRenderer, skillRenderer } = createService();
+        const { service, templateRenderer } = createService();
         const workspace = makeContainerWorkspace({ skillsOutDir: DOCS_PATHS.skillsBuildDir });
 
         // Act
@@ -252,12 +259,15 @@ describe("ProfileSetupService", () => {
 
         // Assert
         expect(templateRenderer.render.mock.calls[0][2]).toMatchObject({ cli: CliType.Copilot, prune: false });
-        expect(skillRenderer.render.mock.calls[0][1]).toEqual({ outDir: DOCS_PATHS.skillsBuildDir, prune: false });
+        expect(vi.mocked(renderStageSkills).mock.calls[0][1]).toEqual({
+          outDir: DOCS_PATHS.skillsBuildDir,
+          prune: false,
+        });
       });
 
       it("prunes for a post-task hook stage, which renders into its own workspace after teardown", async () => {
         // Arrange
-        const { service, templateRenderer, skillRenderer } = createService();
+        const { service, templateRenderer } = createService();
         const hookStage = makeStage({ agent: "ralph.scientist", role: "scientist", mode: StageMode.Local });
         const workspace = makeHostWorkspace();
 
@@ -280,12 +290,12 @@ describe("ProfileSetupService", () => {
           outDir: workspace.agentsOutDir,
           prune: true,
         });
-        expect(skillRenderer.render.mock.calls[0][1]).toEqual({ outDir: workspace.skillsOutDir, prune: true });
+        expect(vi.mocked(renderStageSkills).mock.calls[0][1]).toEqual({ outDir: workspace.skillsOutDir, prune: true });
       });
 
       it("prunes a Claude Code stage's agents, whose directory is mounted whole, but keeps the shared skills", async () => {
         // Arrange
-        const { service, templateRenderer, skillRenderer } = createService();
+        const { service, templateRenderer } = createService();
         const claudeStage = makeStage({ agent: "ralph.editor", cli: CliType.Claude });
 
         // Act
@@ -297,7 +307,7 @@ describe("ProfileSetupService", () => {
 
         // Assert
         expect(templateRenderer.render.mock.calls[0][2]).toMatchObject({ cli: CliType.Claude, prune: true });
-        expect(skillRenderer.render.mock.calls[0][1]).toMatchObject({ prune: false });
+        expect(vi.mocked(renderStageSkills).mock.calls[0][1]).toMatchObject({ prune: false });
       });
     });
 
@@ -329,14 +339,14 @@ describe("ProfileSetupService", () => {
 
     it("does not regenerate compose overlay or JIT MCP config", async () => {
       // Arrange
-      const { service, overlayWriter, jitMcpConfig } = createService();
+      const { service, overlayWriter } = createService();
 
       // Act
       await service.prepareForStage(makeTaskContext(), stageOverrides, makeHostWorkspace());
 
       // Assert
       expect(overlayWriter.write).not.toHaveBeenCalled();
-      expect(jitMcpConfig.write).not.toHaveBeenCalled();
+      expect(writeJitMcpConfig).not.toHaveBeenCalled();
     });
   });
 });

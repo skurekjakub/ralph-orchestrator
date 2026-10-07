@@ -134,7 +134,7 @@ Custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/server` a
 
 ## Task-Scoped Parameters (JIT)
 
-Profile `mcpServers` entries can include `env` blocks with per-server configuration. Before each task, `JitMcpConfigWriter` resolves runtime macros and injects all env values into the server's `gateway.json` entry.
+Profile `mcpServers` entries can include `env` blocks with per-server configuration. Before each task, `writeJitMcpConfig` resolves runtime macros and injects all env values into the server's `gateway.json` entry.
 
 ### How it works
 
@@ -160,7 +160,7 @@ Profile `mcpServers` entries can include `env` blocks with per-server configurat
 
    Variants inherit profile-level servers and add their own. The effective set is the union.
 
-2. **Resolution** — Before each task, `JitMcpConfigWriter.write()` processes each env value:
+2. **Resolution** — Before each task, `writeJitMcpConfig()` processes each env value:
    - Static values (no `$` prefix) pass through as-is
    - `$`-prefixed macros are resolved from the current JIRA issue, the trigger comment's parameters, or the orchestrator's environment (`$variantEnv.*`)
    - An unknown `$` macro, or a `$variantEnv.*` variable missing from the environment, fails the task
@@ -286,7 +286,7 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 }
 ```
 
-(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.) `allowedTools` is the manifest's `tools`; the gateway starts a tool-filter proxy for every entry that has it, and refuses an npm entry without it.
+(The task-scoped `JIRA_ISSUE_KEY` is merged in by `writeJitMcpConfig` before each task.) `allowedTools` is the manifest's `tools`; the gateway starts a tool-filter proxy for every entry that has it, and refuses an npm entry without it.
 
 ### `docker-compose.overlay.yml`
 

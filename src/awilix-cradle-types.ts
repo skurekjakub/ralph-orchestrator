@@ -18,8 +18,6 @@ import type { IProfileRouter } from "./services/profile-router";
 import type { IIssueManager } from "./services/issue-manager";
 import type { IResourceManager } from "./services/task-resource-manager";
 import type { IAgentTemplateRenderer } from "./container/setup/agent-includes";
-import type { ISkillTemplateRenderer } from "./container/setup/skill-includes";
-import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
 import type { ITriggerScanner } from "./services/trigger-scanner";
 import type { ITaskRunner } from "./services/task-runner";
@@ -86,8 +84,6 @@ export interface OrchestratorCradle {
   promptBuilder: PromptBuilder;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
-  skillRenderer: ISkillTemplateRenderer;
-  jitMcpConfig: IJitMcpConfigWriter;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   workspaceManager: ITaskWorkspaceManager;

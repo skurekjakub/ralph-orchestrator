@@ -2,7 +2,7 @@
 
 Skills are markdown files (`SKILL.md`) that provide domain-specific knowledge to agents at runtime. Each skill lives in a folder under `shared/skills/` that holds a `SKILL.md`, usually `shared/skills/<category>/<skill-name>/`. A stage gets the skills its `stages[].skills` array names in `profile.json`.
 
-Before the containers start, and again before each stage of a multi-stage pipeline and each local stage, `SkillTemplateRenderer` renders the stage's skills through Liquid (the [template variables](template-variables.md) without `self`; partials from `shared/skills/` and `shared/agent-includes/`) into one folder per skill, category folders flattened. Where the stage's CLI finds them:
+Before the containers start, and again before each stage of a multi-stage pipeline and each local stage, `renderStageSkills` renders the stage's skills through Liquid (the [template variables](template-variables.md) without `self`; partials from `shared/skills/` and `shared/agent-includes/`) into one folder per skill, category folders flattened. Where the stage's CLI finds them:
 
 | Stage                                   | Claude Code                                                                                 | Copilot CLI                                                              |
 | --------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |

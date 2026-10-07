@@ -88,8 +88,6 @@ interface OrchestratorCradle {
   promptBuilder: PromptBuilder;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
-  skillRenderer: ISkillTemplateRenderer;
-  jitMcpConfig: IJitMcpConfigWriter;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   workspaceManager: ITaskWorkspaceManager;

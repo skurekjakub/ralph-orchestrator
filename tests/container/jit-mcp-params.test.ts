@@ -1,9 +1,11 @@
+import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { GatewayConfig } from "../../src/container/setup/mcp-config";
 import { McpServerType } from "../../src/container/setup/mcp-manifest";
 import { makeWorkItem, makeProfile } from "../helpers/factories";
 import { createSilentLogger, createMockLogger } from "../helpers/mocks";
 const PID = "ralph-docs";
+const ROOT = "/orchestrator";
 
 vi.mock("node:fs", async (importOriginal) => {
   const orig = await importOriginal<typeof import("node:fs")>();
@@ -16,7 +18,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const { existsSync, readFileSync, writeFileSync } = await import("node:fs");
-const { JitMcpConfigWriter } = await import("../../src/container/setup/jit-mcp-params");
+const { writeJitMcpConfig } = await import("../../src/container/setup/jit-mcp-params");
 
 function makeGateway(servers: GatewayConfig["servers"] = []): GatewayConfig {
   return { servers };
@@ -26,8 +28,7 @@ function makeGatewayServer(name: string, env: Record<string, string> = {}): Gate
   return { name, type: McpServerType.Custom, port: 9100, command: "node", args: [], env };
 }
 
-describe("JitMcpConfigWriter", () => {
-  const writer = new JitMcpConfigWriter();
+describe("writeJitMcpConfig", () => {
   const issue = makeWorkItem("DOC-3143", "Update API docs for v2");
 
   beforeEach(() => {
@@ -46,13 +47,31 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("jira-kentico", { JIRA_PAT: "secret" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env).toEqual({
       JIRA_PAT: "secret",
       JIRA_ISSUE_KEY: "DOC-3143",
     });
+  });
+
+  it("reads and writes the profile's gateway.json under the given root", () => {
+    // Arrange
+    const profile = makeProfile({
+      id: PID,
+      mcpServers: ["ado"],
+      mcpServerConfigs: { ado: { PROJECT: "$task.project" } },
+    });
+    vi.mocked(readFileSync).mockReturnValue(JSON.stringify(makeGateway([makeGatewayServer("ado")])));
+
+    // Act
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
+
+    // Assert
+    const gatewayPath = join(ROOT, "profiles", PID, ".build", "gateway.json");
+    expect(vi.mocked(readFileSync)).toHaveBeenCalledWith(gatewayPath, "utf-8");
+    expect(vi.mocked(writeFileSync).mock.calls[0][0]).toBe(gatewayPath);
   });
 
   it("resolves $task.project macro from issue key prefix", () => {
@@ -64,7 +83,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.PROJECT).toBe("DOC");
@@ -79,7 +98,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TASK_BRANCH).toBe("ralph/DOC-3143-update-api-docs-for-v2");
@@ -94,7 +113,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger(), { branch: "code/my-existing-branch" });
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger(), { branch: "code/my-existing-branch" });
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TASK_BRANCH).toBe("code/my-existing-branch");
@@ -109,7 +128,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger(), {}, { taskBranch: "feature/from-pr" });
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger(), {}, { taskBranch: "feature/from-pr" });
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TASK_BRANCH).toBe("feature/from-pr");
@@ -124,7 +143,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.SUMMARY).toBe("Update API docs for v2");
@@ -139,7 +158,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.ADO_PROJECT).toBe("CustomerEducation");
@@ -161,7 +180,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado", { ADO_PAT: "secret" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env).toEqual({
@@ -181,7 +200,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("jira-kentico", { JIRA_PAT: "token123", JIRA_EMAIL: "a@b.com" })]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.JIRA_PAT).toBe("token123");
@@ -192,7 +211,7 @@ describe("JitMcpConfigWriter", () => {
   it("no-ops when profile has no MCP servers", () => {
     const emptyProfile = makeProfile({ mcpServers: [] });
 
-    writer.write(emptyProfile, issue, createSilentLogger());
+    writeJitMcpConfig(emptyProfile, issue, ROOT, createSilentLogger());
 
     expect(readFileSync).not.toHaveBeenCalled();
     expect(writeFileSync).not.toHaveBeenCalled();
@@ -204,7 +223,7 @@ describe("JitMcpConfigWriter", () => {
       mcpServerConfigs: {},
     });
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     expect(readFileSync).not.toHaveBeenCalled();
     expect(writeFileSync).not.toHaveBeenCalled();
@@ -218,7 +237,7 @@ describe("JitMcpConfigWriter", () => {
     });
     const logger = createMockLogger();
 
-    writer.write(profile, issue, logger);
+    writeJitMcpConfig(profile, issue, ROOT, logger);
 
     expect(readFileSync).not.toHaveBeenCalled();
     expect(writeFileSync).not.toHaveBeenCalled();
@@ -231,7 +250,7 @@ describe("JitMcpConfigWriter", () => {
       mcpServerConfigs: {},
     });
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     expect(writeFileSync).not.toHaveBeenCalled();
   });
@@ -245,7 +264,7 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
     const logger = createMockLogger();
 
-    writer.write(profile, issue, logger);
+    writeJitMcpConfig(profile, issue, ROOT, logger);
 
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found in gateway.json"));
     expect(writeFileSync).not.toHaveBeenCalled();
@@ -262,7 +281,7 @@ describe("JitMcpConfigWriter", () => {
     ]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.JIRA_ISSUE_KEY).toBe("DOC-3143");
@@ -279,7 +298,7 @@ describe("JitMcpConfigWriter", () => {
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
     const logger = createMockLogger();
 
-    writer.write(profile, issue, logger);
+    writeJitMcpConfig(profile, issue, ROOT, logger);
 
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Injected 1 env var(s)"));
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("DOC-3143"));
@@ -293,8 +312,8 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    expect(() => writer.write(profile, issue, createSilentLogger())).toThrow("Unknown macro");
-    expect(() => writer.write(profile, issue, createSilentLogger())).toThrow("$variantEnv.<PREFIX>");
+    expect(() => writeJitMcpConfig(profile, issue, ROOT, createSilentLogger())).toThrow("Unknown macro");
+    expect(() => writeJitMcpConfig(profile, issue, ROOT, createSilentLogger())).toThrow("$variantEnv.<PREFIX>");
   });
 
   it("resolves $trigger.<key> from triggerParams", () => {
@@ -305,7 +324,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger(), { target_branch: "develop" });
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger(), { target_branch: "develop" });
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TARGET_BRANCH).toBe("develop");
@@ -319,7 +338,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger(), {});
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger(), {});
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TARGET_BRANCH).toBe("");
@@ -333,7 +352,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.TARGET_BRANCH).toBe("");
@@ -353,7 +372,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("ado")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger(), { target_branch: "main" });
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger(), { target_branch: "main" });
 
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
     expect(written.servers[0].env.ADO_PROJECT).toBe("CustomerEducation");
@@ -369,7 +388,7 @@ describe("JitMcpConfigWriter", () => {
     const gateway = makeGateway([makeGatewayServer("playwright")]);
     vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-    writer.write(profile, issue, createSilentLogger());
+    writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
     // Should not write since the only config is for a server not in mcpServers
     expect(writeFileSync).not.toHaveBeenCalled();
@@ -387,7 +406,7 @@ describe("JitMcpConfigWriter", () => {
       const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
       vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-      writer.write(profile, issue, createSilentLogger());
+      writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-ralph-123");
@@ -405,7 +424,7 @@ describe("JitMcpConfigWriter", () => {
       const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
       vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-      writer.write(profile, issue, createSilentLogger());
+      writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-malph-456");
@@ -423,7 +442,7 @@ describe("JitMcpConfigWriter", () => {
       const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
       vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-      expect(() => writer.write(profile, issue, createSilentLogger())).toThrow(
+      expect(() => writeJitMcpConfig(profile, issue, ROOT, createSilentLogger())).toThrow(
         'Missing env var "NODEBB_TOKEN_RALPH_DOCS_RALPH"',
       );
     });
@@ -439,7 +458,7 @@ describe("JitMcpConfigWriter", () => {
       const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
       vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-      writer.write(profile, issue, createSilentLogger());
+      writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env.NODEBB_API_TOKEN).toBe("tok-vscode");
@@ -463,7 +482,7 @@ describe("JitMcpConfigWriter", () => {
       const gateway = makeGateway([makeGatewayServer("ralphchives-write")]);
       vi.mocked(readFileSync).mockReturnValue(JSON.stringify(gateway));
 
-      writer.write(profile, issue, createSilentLogger());
+      writeJitMcpConfig(profile, issue, ROOT, createSilentLogger());
 
       const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string) as GatewayConfig;
       expect(written.servers[0].env).toEqual({

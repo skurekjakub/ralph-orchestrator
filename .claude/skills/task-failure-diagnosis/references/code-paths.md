@@ -52,7 +52,7 @@ Orchestrator.executeOperation()            # src/orchestrator.ts — resolve pro
 
 Startup (`src/app-startup.ts`) runs once: it builds custom MCP servers and the gateway (`buildCustomMcpServers()` in `src/container/setup/mcp-builder.ts`), then `resolveAllProfileSetup()` (`src/container/setup/profile-setup.ts`) writes `profiles/<id>/.build/`: `mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, and each container-stage CLI's files (`copilot-settings.json`, `claude/`).
 
-Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.render()` (Liquid → `profiles/<id>/.build/<cli>/agents/`), `SkillTemplateRenderer.render()`, `ComposeOverlayWriter.write()` and `JitMcpConfigWriter.write()` (macro resolution into `gateway.json`). A Liquid error or an unknown MCP macro throws here, before any container starts.
+Per task, `ProfileSetupService.prepareForTask()` runs `AgentTemplateRenderer.render()` (Liquid → `profiles/<id>/.build/<cli>/agents/`), `renderStageSkills()`, `ComposeOverlayWriter.write()` and `writeJitMcpConfig()` (macro resolution into `gateway.json`). A Liquid error or an unknown MCP macro throws here, before any container starts.
 
 `TaskWorkspaceManager.prepare()` runs host-side git before any container starts: it clones or fetches the profile's bare clone in `cache/repos/<profileId>` from `repoUrl`, clones `cache/workspaces/<taskId>` from it and checks out the task branch. `ContainerManager.start()` then runs `docker compose up -d --build` with that workspace mounted at `/workspace` (output tagged `[build]`), and `setup()` runs the profile's setup script as `vscode` (tagged `[setup]`). A failed task keeps its workspace; the activity log names its path.
 

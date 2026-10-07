@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   discoverSkills,
   renderSkills,
-  SkillTemplateRenderer,
+  renderStageSkills,
   type RenderSkillsInput,
 } from "../../src/container/setup/skill-includes";
 import { createMockLogger } from "../helpers/mocks";
@@ -13,15 +13,12 @@ import { makeTemplateContext } from "../helpers/factories";
 import type { TemplateContext } from "../../src/container/setup/agent-includes";
 
 let tmpDir: string;
-let originalCwd: string;
 let skillsDir: string;
 let includesDir: string;
 let outDir: string;
 
 beforeEach(async () => {
-  originalCwd = process.cwd();
   tmpDir = await mkdtemp(join(tmpdir(), "skill-includes-test-"));
-  process.chdir(tmpDir);
   skillsDir = join(tmpDir, "shared", "skills");
   includesDir = join(tmpDir, "shared", "agent-includes");
   outDir = join(tmpDir, "profiles", "p", ".build", "skills");
@@ -30,7 +27,6 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  process.chdir(originalCwd);
   await rm(tmpDir, { recursive: true, force: true });
 });
 
@@ -241,16 +237,17 @@ describe("discoverSkills", () => {
   });
 });
 
-describe("SkillTemplateRenderer", () => {
+describe("renderStageSkills", () => {
   it("renders the context's skills from shared/skills into the given directory", async () => {
     // Arrange
     await writeSkillFiles({ "test-skill/SKILL.md": "Skill for {{ taskId }}" });
 
     // Act
-    await new SkillTemplateRenderer().render(makeTemplateContext({ taskId: "DOC-55", skills: ["test-skill"] }), {
-      outDir,
-      prune: true,
-    });
+    await renderStageSkills(
+      makeTemplateContext({ taskId: "DOC-55", skills: ["test-skill"] }),
+      { outDir, prune: true },
+      tmpDir,
+    );
 
     // Assert
     expect(await readFile(join(outDir, "test-skill", "SKILL.md"), "utf-8")).toBe("Skill for DOC-55");
@@ -262,7 +259,7 @@ describe("SkillTemplateRenderer", () => {
     const logger = createMockLogger();
 
     // Act
-    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["any"] }), { outDir, prune: true }, logger);
+    await renderStageSkills(makeTemplateContext({ skills: ["any"] }), { outDir, prune: true }, tmpDir, logger);
 
     // Assert
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
@@ -274,11 +271,7 @@ describe("SkillTemplateRenderer", () => {
     const logger = createMockLogger();
 
     // Act
-    await new SkillTemplateRenderer().render(
-      makeTemplateContext({ skills: ["test-skill"] }),
-      { outDir, prune: true },
-      logger,
-    );
+    await renderStageSkills(makeTemplateContext({ skills: ["test-skill"] }), { outDir, prune: true }, tmpDir, logger);
 
     // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 skill template"));
