@@ -226,7 +226,7 @@ The JIRA connector in `src/datasource/connectors/jira/` is the reference impleme
 
 - `jiraConnection`: the connection parsed with `jiraConnectionSchema`, plus the credentials from `.env`;
 - `excludeFields` and `allowedUsers` from that connection, `pollIntervalMs` from the entry, and `queries` built from the profiles bound to the source;
-- `JiraClient`, `JiraConnector` and `JiraWorkItemPoller`.
+- `JiraClient`, `JiraConnector` and `JiraWorkItemPoller`. The client's retry warnings and the poller's progress and failures go to the cradle's `logger`, the activity log.
 
 It resolves the connector and poller, and the module registers the `"jira"` type.
 

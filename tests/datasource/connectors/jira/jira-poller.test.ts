@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { JiraWorkItemPoller } from "../../../../src/datasource/connectors/jira/jira-poller";
-import { createSilentLogger } from "../../../helpers/mocks";
+import { createMockLogger } from "../../../helpers/mocks";
 import { makeWorkItem } from "../../../helpers/factories";
 import type { IWorkItemSource } from "../../../../src/datasource/connector";
+import type { Logger } from "../../../../src/logger";
 
 function createMockSource(items: ReturnType<typeof makeWorkItem>[] = []): IWorkItemSource {
   return {
@@ -18,15 +19,14 @@ function createMockSource(items: ReturnType<typeof makeWorkItem>[] = []): IWorkI
 
 describe("JiraWorkItemPoller", () => {
   let source: IWorkItemSource;
+  let logger: Logger;
   let poller: JiraWorkItemPoller;
 
   beforeEach(() => {
     vi.useFakeTimers();
     source = createMockSource();
-    poller = new JiraWorkItemPoller(
-      { connector: source, queries: ["jql1", "jql2"], pollIntervalMs: 60_000 },
-      createSilentLogger(),
-    );
+    logger = createMockLogger();
+    poller = new JiraWorkItemPoller({ connector: source, queries: ["jql1", "jql2"], pollIntervalMs: 60_000, logger });
   });
 
   afterEach(() => {
@@ -131,6 +131,18 @@ describe("JiraWorkItemPoller", () => {
     await vi.runOnlyPendingTimersAsync();
 
     expect(poller.drain()).toEqual([]);
+  });
+
+  it("logs a poll failure to its logger", async () => {
+    // Arrange
+    vi.mocked(source.searchWorkItems).mockRejectedValue(new Error("network"));
+
+    // Act
+    poller.start();
+    await vi.runOnlyPendingTimersAsync();
+
+    // Assert
+    expect(logger.error).toHaveBeenCalledWith("JIRA poll failed: network");
   });
 
   it("sorts items by created date", async () => {

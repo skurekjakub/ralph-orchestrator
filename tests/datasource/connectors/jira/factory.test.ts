@@ -3,18 +3,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createJiraDataSource } from "../../../../src/datasource/connectors/jira/factory";
 import type { DataSourceCradle } from "../../../../src/awilix-cradle-types";
 import type { IAgentProfile, IDataSourceConfig } from "../../../../src/config/types";
+import type { Logger } from "../../../../src/logger";
 import { makeDataSourceConfig, makeIssue, makeProfile } from "../../../helpers/factories";
+import { createMockLogger, createSilentLogger } from "../../../helpers/mocks";
 
 const JIRA_ENV_KEYS = ["JIRA_PAT_TEST_SOURCE", "JIRA_EMAIL_TEST_SOURCE"];
 const savedEnv: Record<string, string | undefined> = {};
 
-/** The data-source scope of the `test-source` entry, opened on a root cradle holding `profiles`. */
+/** The data-source scope of the `test-source` entry, opened on a root cradle holding `profiles` and `logger`. */
 function sourceScope(
   dataSourceConfig: IDataSourceConfig,
-  profiles: readonly IAgentProfile[] = [makeProfile()],
+  {
+    profiles = [makeProfile()],
+    logger = createSilentLogger(),
+  }: { profiles?: readonly IAgentProfile[]; logger?: Logger } = {},
 ): AwilixContainer<DataSourceCradle> {
   const root = createContainer<DataSourceCradle>({ injectionMode: InjectionMode.PROXY, strict: true });
-  root.register({ profiles: asValue(profiles) });
+  root.register({ profiles: asValue(profiles), logger: asValue(logger) });
   const scope = root.createScope();
   scope.register({ sourceKey: asValue("test-source"), dataSourceConfig: asValue(dataSourceConfig) });
   return scope;
@@ -36,7 +41,6 @@ describe("createJiraDataSource", () => {
     for (const k of JIRA_ENV_KEYS) savedEnv[k] = process.env[k];
     process.env.JIRA_PAT_TEST_SOURCE = "env-jira-pat";
     process.env.JIRA_EMAIL_TEST_SOURCE = "jira-user@example.com";
-    vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -45,7 +49,6 @@ describe("createJiraDataSource", () => {
       else process.env[k] = v;
     }
     vi.unstubAllGlobals();
-    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -103,7 +106,7 @@ describe("createJiraDataSource", () => {
       makeProfile({ match: { projects: ["DF"] } }),
       makeProfile({ id: "elsewhere", dataSource: "other-source", match: { projects: ["XX"] } }),
     ];
-    const { poller } = createJiraDataSource(sourceScope(makeDataSourceConfig(), profiles));
+    const { poller } = createJiraDataSource(sourceScope(makeDataSourceConfig(), { profiles }));
     const polled = new Promise<void>((resolve) => poller.onItems(resolve));
 
     // Act
@@ -114,6 +117,22 @@ describe("createJiraDataSource", () => {
     // Assert
     const jqls = fetchMock.mock.calls.map(([url]) => new URL(url as string).searchParams.get("jql"));
     expect(jqls).toEqual(['project = "DF" ORDER BY created ASC']);
+  });
+
+  it("logs polling to the cradle's logger", async () => {
+    // Arrange
+    stubJiraSearch();
+    const logger = createMockLogger();
+    const { poller } = createJiraDataSource(sourceScope(makeDataSourceConfig(), { logger }));
+    const polled = new Promise<void>((resolve) => poller.onItems(resolve));
+
+    // Act
+    poller.start();
+    await polled;
+    poller.stop();
+
+    // Assert
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("Polling JIRA"));
   });
 
   it("polls again after the source's poll interval", async () => {

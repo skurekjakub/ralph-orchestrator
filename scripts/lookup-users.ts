@@ -13,6 +13,7 @@
 import "dotenv/config";
 import { loadConfig } from "../src/config/loader";
 import { JiraClient } from "../src/datasource/connectors/jira/jira-client";
+import { consoleLogger } from "../src/logger";
 import type { IJiraConnectionConfig } from "../src/config/types";
 
 const issueKey = process.argv[2];
@@ -49,7 +50,7 @@ async function main() {
   }
 
   const conn = config.dataSources[selectedKey].connection as unknown as IJiraConnectionConfig;
-  const client = new JiraClient({ jiraConnection: conn });
+  const client = new JiraClient({ jiraConnection: conn, logger: consoleLogger });
 
   console.log(`Using data source "${selectedKey}"`);
   console.log(`Fetching comments for ${issueKey}...\n`);
