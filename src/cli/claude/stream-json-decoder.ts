@@ -7,6 +7,7 @@ import type {
   ICliOutputDecoder,
 } from "../output-decoder";
 import { hasResultBlock } from "../../container/result-parser";
+import { truncate } from "../../util/text";
 
 /** A parsed JSON object from one stream-json line. Every field is untrusted and checked before use. */
 type JsonRecord = Readonly<Record<string, unknown>>;
@@ -41,8 +42,7 @@ function asArray(value: unknown): readonly unknown[] {
 
 /** `text` on one line, cut to `max` characters. */
 function preview(text: string, max: number): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
+  return truncate(text.replace(/\s+/g, " ").trim(), max);
 }
 
 /** What a tool call acts on: the subagent and task for a spawn, else the first subject field, else the input as JSON. */

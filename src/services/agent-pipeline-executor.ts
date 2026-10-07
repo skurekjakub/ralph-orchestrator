@@ -5,6 +5,7 @@ import type { IssueContext } from "../prompt/prompt";
 import type { Logger } from "../logger";
 import type { IProfileSetupService } from "./profile-setup-service";
 import type { TaskContext } from "./task-context";
+import { truncate } from "../util/text";
 
 /** Public contract for the multi-stage agent execution loop. */
 export interface IAgentPipelineExecutor {
@@ -116,8 +117,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       if (pipelineAborted) {
         this.logger.error(`${stageLabel}: stage failed — aborting pipeline`);
         if (result.stderr) {
-          const snippet = result.stderr.length > 2000 ? result.stderr.slice(0, 2000) + "…" : result.stderr;
-          this.logger.error(`${stageLabel}: stderr: ${snippet}`);
+          this.logger.error(`${stageLabel}: stderr: ${truncate(result.stderr, 2000)}`);
         }
         if (!result.stderr && !result.stdout) {
           this.logger.error(`${stageLabel}: CLI produced no output — check container health or CLI installation`);

@@ -13,6 +13,7 @@
  * @see https://simonwillison.net/series/prompt-injection/
  * @see https://arxiv.org/abs/2506.08837 — Design Patterns for Securing LLM Agents
  */
+import { truncate } from "../util/text";
 
 /** Severity of a detected pattern. */
 export enum AuditSeverity {
@@ -202,12 +203,10 @@ export function auditPromptSections(sections: PromptSection[]): AuditResult {
     for (const rule of INJECTION_PATTERNS) {
       const match = rule.pattern.exec(section.content);
       if (match) {
-        const truncated = match[0].length > 120 ? match[0].slice(0, 120) + "…" : match[0];
-
         findings.push({
           severity: rule.severity,
           pattern: rule.name,
-          match: truncated,
+          match: truncate(match[0], 120),
           section: section.fieldName,
         });
       }

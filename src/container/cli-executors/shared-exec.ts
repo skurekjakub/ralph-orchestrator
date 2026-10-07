@@ -4,6 +4,7 @@ import type { Logger } from "../../logger";
 import type { IComposeClient } from "../compose-client";
 import type { ContainerExecResult } from "../types";
 import { StreamCapture } from "../stream-capture";
+import { truncate } from "../../util/text";
 
 /** Mutable reference to the active CLI process, shared between executor and these helpers. */
 export interface ProcessTracker {
@@ -82,9 +83,7 @@ export async function executeCliCommand(command: CliCommand): Promise<ContainerE
     if (err instanceof ExecaError) {
       const stderr = capture?.stderr || err.stderr || "";
       if (stderr) {
-        logger.warn(
-          `${tag}: CLI exited with code ${err.exitCode ?? 1} — stderr: ${stderr.length > 2000 ? stderr.slice(0, 2000) + "…" : stderr}`,
-        );
+        logger.warn(`${tag}: CLI exited with code ${err.exitCode ?? 1} — stderr: ${truncate(stderr, 2000)}`);
       } else {
         logger.warn(
           `${tag}: CLI exited with code ${err.exitCode ?? 1} — no stderr captured (message: ${err.shortMessage})`,
