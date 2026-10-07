@@ -296,3 +296,8 @@ From the Task 10 review on 2026-10-07:
 
 11. **§4's `IStageExecutorFactory` had only `create(stageProfile, stage)`,** but `ContainerManager.createExecutorForStage` also builds the executor of a variant's own `mode: "local"` stage (`agent-pipeline-executor.ts`, `scripts/run-agent.ts`). **Fix:** `createHost(stageProfile, stage, workspace)` opens the host stage cradle from the task scope; a post-task hook opens it from the root through `createLocalSession`. The host cradles name no task token, so either parent serves.
 12. **§4 registered `stageExecutors` only in `create`,** so a scope from `openTaskScope` was typed `TaskCradle` without holding every `TaskCradle` token. **Fix:** `openTaskScope` registers `stageExecutors` itself.
+
+From the Task 12 sweep and the final review on 2026-10-07:
+
+13. **The completeness proofs needed named exceptions.** The `new …(` grep hits `scripts/lookup-users.ts`, which builds one `JiraClient` with `consoleLogger` for a one-shot lookup; resolving it from a data-source scope would build the root container and write activity logs. The old-name grep hits `plans/claude-cli-parity-audit.md` and `todos/cli-optimization.md`, superseded notes kept with a banner. **Fix:** both are named exceptions; the journal and `.superpowers/` are excluded as history.
+14. **§3's "one typed object per registration site" missed three literal `register` calls** (`connectors`/`pollers`, the task scope's `compose` pin, `stageExecutors`). **Fix:** each carries `satisfies Registrations<Pick<…>>`.
