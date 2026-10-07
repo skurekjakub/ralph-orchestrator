@@ -16,14 +16,14 @@ import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-cod
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
 import { LocalClaudeCodeExecutor } from "../../src/container/cli-executors/local-claude-code-executor";
 import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
-import type { IComposeClient } from "../../src/container/compose-client";
 import { openTaskScope } from "../../src/container/container-manager-factory";
 import { loadAgentCatalog } from "../../src/container/setup/agent-catalogs";
 import { createHostStageExecutor, createStageExecutorFactory } from "../../src/container/stage-executor-factory";
 import { deriveStageProfile, type HostStageWorkspace } from "../../src/container/types";
 import type { Logger } from "../../src/logger";
 import { makeAgentSource, makeHostWorkspace, makeProfile, makeStage } from "../helpers/factories";
-import { createMockCompose, createMockLogger, fakeCliProcess, hostStageProcesses } from "../helpers/mocks";
+import { createMockLogger, fakeCliProcess, hostStageProcesses } from "../helpers/mocks";
+import { writeFixtureProfile } from "../helpers/fixture-checkout";
 
 vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
@@ -71,24 +71,9 @@ function createRoot(): AwilixContainer<OrchestratorCradle> {
   return root;
 }
 
-/** The scope of a task running `VARIANT`, whose stack execs through `compose`. */
-function createTaskScope(compose: IComposeClient = createMockCompose().compose): AwilixContainer<TaskCradle> {
-  const scope = openTaskScope(createRoot(), { profile: VARIANT, workspacePath: join(rootDir, "workspace") });
-  scope.register({ compose: asValue(compose) });
-  return scope;
-}
-
-/** A compose client whose execs run a CLI that prints {@link CLI_STDERR}. */
-function cliCompose(): IComposeClient {
-  const { compose } = createMockCompose();
-  vi.mocked(compose.execWithTimeout).mockImplementation(() => fakeCliProcess("", { stderr: CLI_STDERR }));
-  return compose;
-}
-
-/** The `docker compose exec` arguments and timeout of the first exec. */
-function exec(compose: IComposeClient): { args: string[]; timeoutMs: number } {
-  const [args, timeoutMs] = vi.mocked(compose.execWithTimeout).mock.calls[0];
-  return { args, timeoutMs };
+/** The scope of a task running `VARIANT`, whose stack's `docker compose` runs the mocked `execa`. */
+function createTaskScope(): AwilixContainer<TaskCradle> {
+  return openTaskScope(createRoot(), { profile: VARIANT, workspacePath: join(rootDir, "workspace") });
 }
 
 /** The workspace of a host stage under the fixture's output directory, with `agentFile` rendered into it. */
@@ -125,6 +110,7 @@ function argAfter(args: readonly string[], name: string): string {
 
 beforeEach(() => {
   rootDir = mkdtempSync(join(tmpdir(), "stage-executor-factory-"));
+  writeFixtureProfile(rootDir, VARIANT.id, {});
   const hooksDir = join(rootDir, "shared", "hooks", "claude");
   mkdirSync(hooksDir, { recursive: true });
   writeFileSync(
@@ -163,9 +149,8 @@ describe("createStageExecutorFactory", () => {
 
     it("creates a ClaudeCodeExecutor with the root agent's name and the depth of its subagent graph", async () => {
       // Arrange
-      const compose = cliCompose();
       const stage = makeStage({ agent: "ralph.reviewer", cli: CliType.Claude });
-      const executor = await createStageExecutorFactory(createTaskScope(compose)).create(
+      const executor = await createStageExecutorFactory(createTaskScope()).create(
         deriveStageProfile(VARIANT, stage),
         stage,
       );
@@ -176,7 +161,7 @@ describe("createStageExecutorFactory", () => {
       // Assert
       expect(executor).toBeInstanceOf(ClaudeCodeExecutor);
       expect(loadAgentCatalog).toHaveBeenCalledWith(rootDir, "docs");
-      const { args } = exec(compose);
+      const { args } = spawned("docker");
       expect(argAfter(args, "--agent")).toBe("reviewer");
       expect(args).toContain("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2");
     });
@@ -204,9 +189,8 @@ describe("createStageExecutorFactory", () => {
 
     it("runs a Claude Code stage with the stage's agent, model and timeout and logs to the container logger", async () => {
       // Arrange
-      const compose = cliCompose();
       const stage = reviewerStage(CliType.Claude);
-      const executor = await createStageExecutorFactory(createTaskScope(compose)).create(
+      const executor = await createStageExecutorFactory(createTaskScope()).create(
         deriveStageProfile(VARIANT, stage),
         stage,
       );
@@ -215,10 +199,10 @@ describe("createStageExecutorFactory", () => {
       await executor.run("p");
 
       // Assert
-      const { args, timeoutMs } = exec(compose);
+      const { args, options } = spawned("docker");
       expect(argAfter(args, "--agent")).toBe("reviewer");
       expect(argAfter(args, "--model")).toBe("opus");
-      expect(timeoutMs).toBe(5_000);
+      expect(options).toMatchObject({ timeout: 5_000 });
       expect(containerLogger.warn).toHaveBeenCalledWith("[claude] cli warning");
       expect(logger.info).not.toHaveBeenCalled();
       expect(logger.warn).not.toHaveBeenCalled();
@@ -226,9 +210,8 @@ describe("createStageExecutorFactory", () => {
 
     it("runs a Copilot stage with the stage's agent, model and timeout and logs to the container logger", async () => {
       // Arrange
-      const compose = cliCompose();
       const stage = reviewerStage(CliType.Copilot);
-      const executor = await createStageExecutorFactory(createTaskScope(compose)).create(
+      const executor = await createStageExecutorFactory(createTaskScope()).create(
         deriveStageProfile(VARIANT, stage),
         stage,
       );
@@ -237,10 +220,10 @@ describe("createStageExecutorFactory", () => {
       await executor.run("p");
 
       // Assert
-      const { args, timeoutMs } = exec(compose);
+      const { args, options } = spawned("docker");
       expect(argAfter(args, "--agent")).toBe("ralph.reviewer");
       expect(argAfter(args, "--model")).toBe("opus");
-      expect(timeoutMs).toBe(5_000);
+      expect(options).toMatchObject({ timeout: 5_000 });
       expect(containerLogger.warn).toHaveBeenCalledWith("[copilot] cli warning");
       expect(logger.info).not.toHaveBeenCalled();
       expect(logger.warn).not.toHaveBeenCalled();

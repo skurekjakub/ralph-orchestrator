@@ -60,6 +60,7 @@ export class Orchestrator {
   private readonly ledger: IOperationLedger;
   private readonly ralphchivesConfig: IRalphchivesConfig;
   private readonly outputConfig: IOutputConfig;
+  private readonly rootDir: string;
   private readonly heartbeat: IHeartbeatSender | null;
   private taskCallbacks: TaskCallbacks = {};
 
@@ -91,6 +92,7 @@ export class Orchestrator {
     heartbeat,
     ralphchivesConfig,
     outputConfig,
+    rootDir,
   }: {
     dataSources: Readonly<Record<string, IDataSourceConfig>>;
     profiles: readonly IAgentProfile[];
@@ -106,6 +108,7 @@ export class Orchestrator {
     heartbeat: IHeartbeatSender | null;
     ralphchivesConfig: IRalphchivesConfig;
     outputConfig: IOutputConfig;
+    rootDir: string;
   }) {
     this.dataSources = dataSources;
     this.profiles = profiles;
@@ -119,6 +122,7 @@ export class Orchestrator {
     this.triggerScanner = triggerScanner;
     this.ralphchivesConfig = ralphchivesConfig;
     this.outputConfig = outputConfig;
+    this.rootDir = rootDir;
     this.ledger = ledger;
     this.heartbeat = heartbeat;
 
@@ -407,6 +411,7 @@ export class Orchestrator {
         profile,
         taskId,
         this.ralphchivesConfig,
+        this.rootDir,
         operation.triggerParams,
         preflightCtx?.prUrl,
         preflightCtx?.prBranches ?? null,

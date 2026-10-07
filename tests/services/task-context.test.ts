@@ -4,6 +4,8 @@ import { buildTaskContext } from "../../src/services/task-context";
 import { makeWorkItem, makeProfile } from "../helpers/factories";
 import type { IRalphchivesConfig } from "../../src/config/types";
 const KEY = "DF-100";
+/** The orchestrator checkout, away from the test's working directory. */
+const ROOT_DIR = "/srv/ralph";
 
 const ralphchivesConfig: IRalphchivesConfig = {
   enabled: false,
@@ -14,7 +16,7 @@ const ralphchivesConfig: IRalphchivesConfig = {
 
 describe("buildTaskContext", () => {
   it("builds context with default values", () => {
-    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig);
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig, ROOT_DIR);
 
     expect(ctx.workItem.id).toBe(KEY);
     expect(ctx.profile).toBeDefined();
@@ -26,16 +28,16 @@ describe("buildTaskContext", () => {
     expect(ctx.ralphchivesEnabled).toBe(false);
   });
 
-  it("places the task's workspace under the checkout's cache/workspaces, named after the task id", () => {
+  it("places the task's workspace under the orchestrator checkout's cache/workspaces, named after the task id", () => {
     // Act
-    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig);
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig, ROOT_DIR);
 
     // Assert
-    expect(ctx.workspacePath).toBe(join(process.cwd(), "cache", "workspaces", "DF-100-123"));
+    expect(ctx.workspacePath).toBe(join(ROOT_DIR, "cache", "workspaces", "DF-100-123"));
   });
 
   it("converts string[] triggerParams to Record", () => {
-    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig, [
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig, ROOT_DIR, [
       "codesamples",
       "branch=develop",
     ]);
@@ -50,6 +52,7 @@ describe("buildTaskContext", () => {
       makeProfile(),
       "DF-100-123",
       ralphchivesConfig,
+      ROOT_DIR,
       undefined,
       "https://dev.azure.com/org/proj/_git/repo/pullrequest/42",
       { sourceBranch: "feature/from-pr", targetBranch: "release/31" },
@@ -65,7 +68,7 @@ describe("buildTaskContext", () => {
     });
     const issue = makeWorkItem(KEY, "Fix docs", "Defect Found");
 
-    const ctx = buildTaskContext(issue, profile, "DF-100-123", ralphchivesConfig);
+    const ctx = buildTaskContext(issue, profile, "DF-100-123", ralphchivesConfig, ROOT_DIR);
 
     expect(ctx.isRevision).toBe(true);
   });
@@ -76,7 +79,7 @@ describe("buildTaskContext", () => {
     });
     const issue = makeWorkItem(KEY, "Fix docs", "Defect Found");
 
-    const ctx = buildTaskContext(issue, profile, "DF-100-123", ralphchivesConfig);
+    const ctx = buildTaskContext(issue, profile, "DF-100-123", ralphchivesConfig, ROOT_DIR);
 
     expect(ctx.isRevision).toBe(true);
   });
@@ -86,14 +89,14 @@ describe("buildTaskContext", () => {
       match: { projects: ["DF"], statuses: [], commentTrigger: "@docs", revisionStatuses: [] },
     });
 
-    const ctx = buildTaskContext(makeWorkItem(KEY), profile, "DF-100-123", ralphchivesConfig);
+    const ctx = buildTaskContext(makeWorkItem(KEY), profile, "DF-100-123", ralphchivesConfig, ROOT_DIR);
 
     expect(ctx.isRevision).toBe(false);
   });
 
   it("propagates ralphchivesEnabled true when config is enabled", () => {
     const enabled = { ...ralphchivesConfig, enabled: true };
-    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", enabled);
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", enabled, ROOT_DIR);
 
     expect(ctx.ralphchivesEnabled).toBe(true);
   });

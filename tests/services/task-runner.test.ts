@@ -442,7 +442,7 @@ describe("TaskRunner", () => {
     });
 
     await runner.run(
-      buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000", makeConfig().ralphchives),
+      buildTaskContext(revisionIssue, revisionProfile, "DF-200-1234567890000", makeConfig().ralphchives, "/srv/ralph"),
     );
 
     expect(resources.fetchHandoff).toHaveBeenCalledWith(DS, "DF-200");
@@ -485,7 +485,9 @@ describe("TaskRunner", () => {
       pipelineExecutor: createMockPipelineExecutor(),
     });
 
-    await runner.run(buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, ["codesamples", "verbose"]));
+    await runner.run(
+      buildTaskContext(issue, profile, taskId, makeConfig().ralphchives, "/srv/ralph", ["codesamples", "verbose"]),
+    );
 
     expect(profileSetup.prepareForTask).toHaveBeenCalledWith(
       expect.objectContaining({ triggerParams: { codesamples: "true", verbose: "true" } }),

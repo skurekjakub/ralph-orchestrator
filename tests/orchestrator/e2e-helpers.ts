@@ -146,6 +146,7 @@ export function buildMockDeps(
     ledger,
     heartbeat: null,
     outputConfig: { logDir },
+    rootDir: tempDir,
   };
 }
 
@@ -224,5 +225,6 @@ export function buildBaseDeps(
     ledger,
     heartbeat: null,
     outputConfig: { logDir },
+    rootDir: tempDir,
   };
 }

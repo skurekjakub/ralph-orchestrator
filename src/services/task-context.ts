@@ -47,12 +47,15 @@ export interface TaskCallbacks {
  * Converts raw trigger params (`string[]`) to a key-value `Record`,
  * determines whether the issue is in a revision status, and places the
  * task's workspace under the orchestrator checkout's `cache/workspaces/`.
+ *
+ * @param rootDir The orchestrator checkout.
  */
 export function buildTaskContext(
   workItem: WorkItem,
   profile: IAgentProfile,
   taskId: string,
   ralphchivesConfig: IRalphchivesConfig,
+  rootDir: string,
   triggerParams?: string[],
   prUrl?: string | null,
   prBranches?: { sourceBranch: string; targetBranch: string } | null,
@@ -80,7 +83,7 @@ export function buildTaskContext(
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,
     outputDir: logsDir ? join(logsDir, taskId) : "",
-    workspacePath: taskWorkspacePath(process.cwd(), taskId),
+    workspacePath: taskWorkspacePath(rootDir, taskId),
     signal: signal ?? new AbortController().signal,
     onToolOutput,
     onPreToolUse,

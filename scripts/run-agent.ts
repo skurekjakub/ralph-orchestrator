@@ -80,7 +80,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir,
-    workspacePath: taskWorkspacePath(process.cwd(), taskId),
+    workspacePath: taskWorkspacePath(cradle.rootDir, taskId),
     signal: new AbortController().signal,
   };
 

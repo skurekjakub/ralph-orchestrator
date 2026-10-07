@@ -4,25 +4,13 @@ import { join } from "node:path";
 import { asValue, createContainer, InjectionMode, type AwilixContainer } from "awilix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockExeca, composeClientBuilt } = vi.hoisted(() => ({
+const { mockExeca } = vi.hoisted(() => ({
   mockExeca: vi.fn().mockResolvedValue({ stdout: "", stderr: "", exitCode: 0 }),
-  composeClientBuilt: vi.fn(),
 }));
 
 vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
   return { ...orig, execa: mockExeca };
-});
-
-vi.mock("../../src/container/compose-client", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("../../src/container/compose-client")>();
-  class CountedComposeClient extends orig.ComposeClient {
-    constructor(...args: ConstructorParameters<typeof orig.ComposeClient>) {
-      super(...args);
-      composeClientBuilt();
-    }
-  }
-  return { ...orig, ComposeClient: CountedComposeClient };
 });
 
 import type { OrchestratorCradle } from "../../src/awilix-cradle-types";
@@ -58,9 +46,6 @@ const NEVER_SET_UP = makeProfile({ id: "never-set-up" });
 /** The fixture orchestrator checkout. */
 let rootDir: string;
 
-/** A container stage running Claude Code, whose agent the fixture checkout holds for `SET_UP`. */
-const CLAUDE_STAGE = makeStage({ agent: "ralph.scientist", role: "write", cli: CliType.Claude });
-
 /** A container stage running Copilot. */
 const COPILOT_STAGE = makeStage({ agent: "ralph.scientist", role: "review", cli: CliType.Copilot });
 
@@ -93,7 +78,6 @@ function dockerEnv(index: number): Record<string, string> {
 
 beforeEach(() => {
   mockExeca.mockClear();
-  composeClientBuilt.mockClear();
   rootDir = mkdtempSync(join(tmpdir(), "container-manager-factory-"));
   writeFixtureProfile(rootDir, SET_UP.id, { "ralph.scientist": makeAgentTemplate("scientist") });
   const hooksDir = join(rootDir, "shared", "hooks", "claude");
@@ -117,6 +101,19 @@ describe("openTaskScope", () => {
 
     // Assert
     expect(executor).toBeInstanceOf(CopilotExecutor);
+  });
+
+  it("hands its stage scopes the task's compose client", () => {
+    // Arrange
+    const scope = openTaskScope(createRoot(), { profile: SET_UP, workspacePath: "/workspaces/DF-1-1000" });
+
+    // Act
+    const first = scope.createScope().resolve("compose");
+    const second = scope.createScope().resolve("compose");
+
+    // Assert
+    expect(first).toBe(scope.resolve("compose"));
+    expect(second).toBe(scope.resolve("compose"));
   });
 });
 
@@ -162,19 +159,6 @@ describe("createContainerManagerFactory", () => {
 
       // Assert
       expect(result).toBe(expected);
-    });
-
-    it("builds one compose client for all of a task's stages", async () => {
-      // Arrange
-      const profile = makeProfile({ id: SET_UP.id, stages: [CLAUDE_STAGE, COPILOT_STAGE] });
-      const manager = createContainerManagerFactory(createRoot()).create(profile, "/workspaces/DF-1-1000");
-
-      // Act
-      await manager.createExecutorForStage(CLAUDE_STAGE, makeContainerWorkspace());
-      await manager.createExecutorForStage(COPILOT_STAGE, makeContainerWorkspace());
-
-      // Assert
-      expect(composeClientBuilt).toHaveBeenCalledOnce();
     });
   });
 

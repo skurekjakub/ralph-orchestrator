@@ -108,7 +108,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir: absOutputDir,
-    workspacePath: taskWorkspacePath(process.cwd(), manifest.taskId),
+    workspacePath: taskWorkspacePath(cradle.rootDir, manifest.taskId),
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,
