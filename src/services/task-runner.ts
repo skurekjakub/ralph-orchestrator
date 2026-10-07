@@ -13,8 +13,7 @@ import type { AnalysedRun, IPostTaskHookRunner } from "./post-task-hook-runner";
 import { TransitionPhase } from "../orchestrator-types";
 import type { TaskContext } from "./task-context";
 import { toErrorMessage } from "../util/error";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { buildHookManifest, writeHookManifest } from "./hook-manifest";
 
 /** Public contract for the task execution pipeline. */
 export interface ITaskRunner {
@@ -265,35 +264,11 @@ export class TaskRunner implements ITaskRunner {
     };
     if (ctx.triggerParams.skip_hooks) {
       this.logger.info("skip_hooks param set — skipping post-task hooks, writing hook manifest");
-      this.writeHookManifest(ctx, result);
+      const manifestPath = await writeHookManifest(ctx.outputDir, buildHookManifest(ctx, run, result.status));
+      this.logger.info(`Hook manifest written to ${manifestPath}`);
       return;
     }
 
     await this.hookRunner.run(ctx, hooks, run);
-  }
-
-  /**
-   * Write a JSON manifest with all context needed to replay post-task hooks later.
-   * Saved to `<outputDir>/hook-manifest.json`.
-   */
-  private writeHookManifest(ctx: TaskContext, result: RalphResult): void {
-    const manifest = {
-      taskId: ctx.taskId,
-      workItemId: ctx.workItem.id,
-      source: ctx.workItem.source,
-      profileId: ctx.profile.id,
-      variantKey: ctx.profile.variantKey,
-      triggerParams: ctx.triggerParams,
-      isRevision: ctx.isRevision,
-      outputDir: ctx.outputDir,
-      status: result.status,
-      collectedLogs: result.collectedLogs,
-      hooks: ctx.profile.postTaskHooks,
-      createdAt: new Date().toISOString(),
-    };
-
-    const manifestPath = join(ctx.outputDir, "hook-manifest.json");
-    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-    this.logger.info(`Hook manifest written to ${manifestPath}`);
   }
 }

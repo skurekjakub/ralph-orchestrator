@@ -5,41 +5,28 @@
  * Usage:
  *   npx tsx scripts/run-hooks.ts <outputDir>
  *   npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974
- *   npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974 --hook scientist
+ *   npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974 --hook run-analysis
  *
  * The script:
- * 1. Reads hook-manifest.json from the given output directory
+ * 1. Reads and validates hook-manifest.json in the given output directory
  * 2. Runs AppStartup to validate config and generate .build/ files
- * 3. Finds the matching profile by ID
+ * 3. Finds the variant the task ran by the manifest's variantKey
  * 4. Builds a DI cradle for service access
- * 5. Runs the hooks through the cradle's post-task hook runner, as a task does
+ * 5. Clears each replayed hook's output directory, then runs the hooks through the cradle's post-task hook runner
+ *    on the analysed run the manifest recorded, with the work item's saved id, source, title and description
  *
  * Pass --hook <name> to run only a specific hook instead of all.
  */
 import "dotenv/config";
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
 import { createCradle } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
-import type { IPostTaskHook } from "../src/config/types";
+import { readHookManifest } from "../src/services/hook-manifest";
+import { hookOutputDir } from "../src/services/stage-workspace";
 import type { TaskContext } from "../src/services/task-context";
 import { taskWorkspacePath } from "../src/services/task-workspace-manager";
-
-interface HookManifest {
-  taskId: string;
-  workItemId: string;
-  source: string;
-  profileId: string;
-  variantKey: string;
-  triggerParams: Record<string, string>;
-  isRevision: boolean;
-  outputDir: string;
-  status: string;
-  collectedLogs: Record<string, string>;
-  hooks: readonly IPostTaskHook[];
-  createdAt: string;
-}
 
 // ── Parse args ────────────────────────────────────────────────────────────────
 
@@ -68,27 +55,19 @@ async function main() {
   const absOutputDir = resolve(process.cwd(), outputDir!);
 
   // 1. Read manifest
-  const manifestPath = join(absOutputDir, "hook-manifest.json");
-  let manifest: HookManifest;
-  try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf-8")) as HookManifest;
-  } catch {
-    console.error(`Cannot read hook manifest at ${manifestPath}`);
-    process.exit(1);
-  }
-
+  const manifest = await readHookManifest(absOutputDir);
   logger.info(
-    `Manifest loaded: task=${manifest.taskId}, profile=${manifest.profileId}, hooks=${manifest.hooks.length}`,
+    `Manifest loaded: task=${manifest.taskId}, variant=${manifest.variantKey}, hooks=${manifest.hooks.length}`,
   );
 
   // 2. Startup + config
   const config = await new AppStartup().run(logger);
 
-  // 3. Find profile
-  const profile = config.profiles.find((p) => p.id === manifest.profileId);
+  // 3. Find the variant the task ran
+  const profile = config.profiles.find((p) => p.variantKey === manifest.variantKey);
   if (!profile) {
     console.error(
-      `Profile "${manifest.profileId}" not found. Available: ${config.profiles.map((p) => p.id).join(", ")}`,
+      `Variant "${manifest.variantKey}" not found. Available: ${config.profiles.map((p) => p.variantKey).join(", ")}`,
     );
     process.exit(1);
   }
@@ -110,16 +89,13 @@ async function main() {
   // 6. Build a minimal TaskContext from the manifest
   const ctx: TaskContext = {
     workItem: {
-      id: manifest.workItemId,
-      source: manifest.source,
-      title: "",
+      ...manifest.workItem,
       status: "",
       type: "",
       priority: "",
       labels: [],
       components: [],
       project: "",
-      description: "",
       created: "",
       updated: "",
       customFields: new Map(),
@@ -140,8 +116,11 @@ async function main() {
     taskBranch: "",
   };
 
-  // 7. Execute hooks
-  await cradle.hookRunner.run(ctx, hooks, manifest.collectedLogs);
+  // 7. Clear what an earlier run of each hook left, then execute the hooks
+  for (const hook of hooks) {
+    await rm(hookOutputDir(absOutputDir, hook.name), { recursive: true, force: true });
+  }
+  await cradle.hookRunner.run(ctx, hooks, { collectedLogs: manifest.collectedLogs, clis: manifest.clis });
 
   logger.info("Hook replay complete");
 }

@@ -15,7 +15,8 @@ import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { PostTaskHookRunner } from "../../src/services/post-task-hook-runner";
 import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { readHookManifest } from "../../src/services/hook-manifest";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
@@ -872,36 +873,53 @@ describe("TaskRunner", () => {
 
     it("skips hooks and writes the replay manifest when the skip_hooks trigger param is set", async () => {
       // Arrange
+      const outputDir = mkdtempSync(join(tmpdir(), "task-runner-manifest-"));
       const { container } = createMockContainer();
       const hookRunner = createMockHookRunner();
 
-      // Act
-      const result = await createRunner(container, hookRunner).run(
-        makeTaskContext({ workItem: issue, profile: hookProfile, taskId, triggerParams: { skip_hooks: "true" } }),
-      );
+      try {
+        // Act
+        const result = await createRunner(container, hookRunner).run(
+          makeTaskContext({
+            workItem: issue,
+            profile: hookProfile,
+            taskId,
+            outputDir,
+            triggerParams: { skip_hooks: "true" },
+          }),
+        );
 
-      // Assert
-      expect(result.status).toBe(TaskStatus.Completed);
-      expect(hookRunner.run).not.toHaveBeenCalled();
-      const { writeFileSync } = await import("node:fs");
-      expect(writeFileSync).toHaveBeenCalledWith(
-        expect.stringContaining("hook-manifest.json"),
-        expect.stringContaining('"workItemId"'),
-      );
+        // Assert
+        expect(result.status).toBe(TaskStatus.Completed);
+        expect(hookRunner.run).not.toHaveBeenCalled();
+        const manifest = await readHookManifest(outputDir);
+        expect(manifest).toMatchObject({
+          workItem: { id: issue.id, title: issue.title },
+          variantKey: hookProfile.variantKey,
+          clis: [CliType.Copilot],
+          hooks: hookProfile.postTaskHooks,
+        });
+      } finally {
+        rmSync(outputDir, { recursive: true, force: true });
+      }
     });
 
     it("writes no manifest when skip_hooks is not set", async () => {
       // Arrange
+      const outputDir = mkdtempSync(join(tmpdir(), "task-runner-manifest-"));
       const { container } = createMockContainer();
 
-      // Act
-      await createRunner(container, createMockHookRunner()).run(
-        makeTaskContext({ workItem: issue, profile: hookProfile, taskId }),
-      );
+      try {
+        // Act
+        await createRunner(container, createMockHookRunner()).run(
+          makeTaskContext({ workItem: issue, profile: hookProfile, taskId, outputDir }),
+        );
 
-      // Assert
-      const { writeFileSync } = await import("node:fs");
-      expect(writeFileSync).not.toHaveBeenCalled();
+        // Assert
+        expect(readdirSync(outputDir)).toEqual([]);
+      } finally {
+        rmSync(outputDir, { recursive: true, force: true });
+      }
     });
   });
 });

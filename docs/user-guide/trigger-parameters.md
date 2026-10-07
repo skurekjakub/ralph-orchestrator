@@ -88,8 +88,7 @@ When hooks are skipped, the orchestrator writes a `hook-manifest.json` to the ta
 ```json
 {
   "taskId": "DOC-3189-1773218420974",
-  "workItemId": "DOC-3189",
-  "source": "jira",
+  "workItem": { "id": "DOC-3189", "source": "jira", "title": "...", "description": "..." },
   "profileId": "ralph-docs",
   "variantKey": "ralph-docs:ralph.ralph:@RalphDf",
   "triggerParams": { "skip_hooks": "true" },
@@ -97,6 +96,7 @@ When hooks are skipped, the orchestrator writes a `hook-manifest.json` to the ta
   "outputDir": "output/logs/DOC-3189-1773218420974",
   "status": "completed",
   "collectedLogs": { "audit": "...", "transcript": "...", "claude-run-telemetry": "..." },
+  "clis": ["claude"],
   "hooks": [ { "name": "run-analysis", "stages": [...] } ],
   "createdAt": "2025-07-09T10:00:00.000Z"
 }
@@ -114,7 +114,7 @@ npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974
 npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974 --hook run-analysis
 ```
 
-The script loads the current config (runs `AppStartup`), finds the matching profile, and runs the hooks through the same post-task hook runner a task uses: each stage on the host, in its own workspace under the output directory's `hooks/<hook>/<role>/`. This enables running analysis pipelines asynchronously or selectively.
+The script validates the manifest, loads the current config (runs `AppStartup`), finds the variant by its `variantKey`, clears each replayed hook's `hooks/<hook>/` directory, and runs the hooks through the same post-task hook runner a task uses: each stage on the host, in its own workspace under the output directory's `hooks/<hook>/<role>/`. The hooks see the work item's saved title and description and the CLIs the task's stages ran (`clis`), as the original run would have. This enables running analysis pipelines asynchronously or selectively.
 
 The JIRA start comment includes a notice when hooks are skipped, with the replay command.
 
