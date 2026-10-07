@@ -30,6 +30,15 @@ export function repoCachePaths(rootDir: string): RepoCachePaths {
 }
 
 /**
+ * The workspace of one task, `cache/workspaces/<taskId>`.
+ *
+ * @param rootDir The orchestrator checkout root.
+ */
+export function taskWorkspacePath(rootDir: string, taskId: string): string {
+  return join(repoCachePaths(rootDir).workspacesDir, taskId);
+}
+
+/**
  * The git `http.extraHeader` auth header for the given VCS provider.
  *
  * - ADO: `Basic base64(:pat)` (empty username, PAT as password)

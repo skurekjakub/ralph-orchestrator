@@ -3,7 +3,7 @@ import type { WorkItem } from "../datasource/types";
 import { buildTriggerParams } from "../container/setup/agent-includes";
 import { join } from "node:path";
 import { slugifyBranchName } from "../util/branch";
-import { repoCachePaths } from "./task-workspace-manager";
+import { taskWorkspacePath } from "./task-workspace-manager";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
@@ -80,7 +80,7 @@ export function buildTaskContext(
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,
     outputDir: logsDir ? join(logsDir, taskId) : "",
-    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, taskId),
+    workspacePath: taskWorkspacePath(process.cwd(), taskId),
     signal: signal ?? new AbortController().signal,
     onToolOutput,
     onPreToolUse,

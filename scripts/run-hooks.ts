@@ -25,7 +25,7 @@ import { TaskStatus } from "../src/container/types";
 import { consoleLogger } from "../src/logger";
 import type { IPostTaskHook } from "../src/config/types";
 import type { TaskContext } from "../src/services/task-context";
-import { repoCachePaths } from "../src/services/task-workspace-manager";
+import { taskWorkspacePath } from "../src/services/task-workspace-manager";
 
 interface HookManifest {
   taskId: string;
@@ -133,7 +133,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir: absOutputDir,
-    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, manifest.taskId),
+    workspacePath: taskWorkspacePath(process.cwd(), manifest.taskId),
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,

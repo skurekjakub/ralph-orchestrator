@@ -24,7 +24,7 @@ import { AppStartup } from "../src/app-startup";
 import { createCradle } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
 import type { TaskContext } from "../src/services/task-context";
-import { repoCachePaths } from "../src/services/task-workspace-manager";
+import { taskWorkspacePath } from "../src/services/task-workspace-manager";
 
 const [trigger, ...promptParts] = process.argv.slice(2);
 const prompt = promptParts.join(" ");
@@ -80,7 +80,7 @@ async function main() {
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir,
-    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, taskId),
+    workspacePath: taskWorkspacePath(process.cwd(), taskId),
     signal: new AbortController().signal,
   };
 

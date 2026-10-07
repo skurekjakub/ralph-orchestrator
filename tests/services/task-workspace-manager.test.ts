@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execa } from "execa";
 import { rm } from "node:fs/promises";
-import { TaskWorkspaceManager } from "../../src/services/task-workspace-manager";
+import { TaskWorkspaceManager, taskWorkspacePath } from "../../src/services/task-workspace-manager";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { ClaudeAuthMode, CliType, VcsProvider } from "../../src/config/types";
 import { TaskStatus } from "../../src/container/types";
@@ -340,5 +340,12 @@ describe("TaskWorkspaceManager", () => {
         `Could not delete workspace ${ctx.workspacePath}: EACCES: permission denied`,
       );
     });
+  });
+});
+
+describe("taskWorkspacePath", () => {
+  it("places a task's workspace in the checkout's cache/workspaces, named after the task", () => {
+    // Act & Assert
+    expect(taskWorkspacePath("/srv/ralph", "DF-1-123")).toBe(join("/srv/ralph", "cache", "workspaces", "DF-1-123"));
   });
 });
