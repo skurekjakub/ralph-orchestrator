@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { AgentCatalog, findAgentCatalogIssues, scanAgentSources } from "../cli/agent-catalog";
 import { AGENT_SOURCE_SUFFIX, INHERIT_MODEL } from "../cli/agent-definition";
+import { ClaudeBuiltinTool } from "../cli/claude/claude-tools";
 import { COPILOT_MODEL_POLICY } from "../cli/model-catalog";
 import { CliType, type IAgentProfile } from "../config/types";
 import { toErrorMessage } from "../util/error";
@@ -12,6 +13,13 @@ function stageGraphProblems(catalog: AgentCatalog, { stage }: LocatedStage): str
   const root = catalog.get(stage.agent);
   if (root.frontmatter.model === INHERIT_MODEL) {
     problems.push(`agent ${stage.agent} runs as the stage root, so its model cannot be "${INHERIT_MODEL}"`);
+  }
+  const { skills, tools } = root.frontmatter;
+  if (stage.cli === CliType.Claude && skills.length > 0 && tools && !tools.includes(ClaudeBuiltinTool.Skill)) {
+    problems.push(
+      `agent ${stage.agent} runs as the stage root on cli "claude", which loads its skills with the ` +
+        `${ClaudeBuiltinTool.Skill} tool, so its tools must include ${ClaudeBuiltinTool.Skill}`,
+    );
   }
 
   for (const fileId of catalog.reachableFrom(stage.agent)) {
@@ -50,7 +58,8 @@ function stageGraphProblems(catalog: AgentCatalog, { stage }: LocatedStage): str
  *
  * Checks that every `*.agent.md` has valid canonical frontmatter, that names are unique, that every
  * `subagents` entry is an agent of the profile and that there are no subagent cycles. For each
- * variant and post-task hook stage: its root agent exists and does not `inherit` a model, every
+ * variant and post-task hook stage: its root agent exists and does not `inherit` a model, on Claude Code
+ * a root that lists skills keeps the `Skill` tool, every
  * agent it can reach runs on the stage's CLI and preloads only skills the stage mounts, and on
  * Copilot every reachable model has a Copilot equivalent. A finding shared by several stages is
  * reported once.

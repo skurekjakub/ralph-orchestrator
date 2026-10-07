@@ -128,6 +128,50 @@ describe("ClaudeAgentWriter", () => {
     ]);
   });
 
+  describe("skills", () => {
+    const ROOT: AgentWriteContext = { ...LEAF, isStageRoot: true };
+
+    it("has a stage root load its skills with the Skill tool before anything else", () => {
+      // Arrange
+      const agent = makeAgentDefinition({ name: "ralph", skills: ["ralph-workflow", "style"] }, "\n# Ralph\n");
+
+      // Act
+      const file = writer.write(agent, ROOT);
+
+      // Assert
+      const { frontmatter, body } = splitFrontmatter(file!.content);
+      expect(frontmatter).not.toContain("skills:");
+      expect(body).toBe(
+        "<startup-skills>\n" +
+          "Before you do anything else, load each of these skills with the Skill tool, one call per skill: " +
+          "`ralph-workflow`, `style`. Their instructions are part of yours.\n" +
+          "</startup-skills>\n" +
+          "\n# Ralph\n",
+      );
+    });
+
+    it("lists a subagent's skills in its frontmatter for Claude Code to preload, leaving its body unchanged", () => {
+      // Arrange
+      const agent = makeAgentDefinition({ name: "ralph-writer", skills: ["ralph-workflow"] }, "\n# Writer\n");
+
+      // Act
+      const file = writer.write(agent, LEAF);
+
+      // Assert
+      const { frontmatter, body } = splitFrontmatter(file!.content);
+      expect(frontmatter).toContain("skills:\n  - ralph-workflow\n");
+      expect(body).toBe("\n# Writer\n");
+    });
+
+    it("leaves the body of a stage root without skills unchanged", () => {
+      // Act
+      const file = writer.write(makeAgentDefinition({ name: "ralph" }, "\n# Ralph\n"), ROOT);
+
+      // Assert
+      expect(splitFrontmatter(file!.content).body).toBe("\n# Ralph\n");
+    });
+  });
+
   it("leaves the model to Claude Code when the agent sets none", () => {
     // Act
     const file = writer.write(makeAgentDefinition({ name: "x" }), LEAF);

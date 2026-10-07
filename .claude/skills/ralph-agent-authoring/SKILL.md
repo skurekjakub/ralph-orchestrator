@@ -35,7 +35,7 @@ description: "Writer sub-agent — …"
 model: opus # Claude Code alias or full id; `inherit` for subagents only
 subagents: [ralph-validator] # agents this one may dispatch, by name
 tools: [Read, Edit, Bash] # optional Claude Code built-in subset
-skills: [ralph-workflow] # optional Claude Code preload; must be in the stage's skills
+skills: [ralph-workflow] # optional, Claude Code only: preloaded into a subagent, loaded with the Skill tool first by a stage root (whose tools must keep Skill); must be in the stage's skills
 effort: high # optional, Claude Code only
 maxTurns: 300 # optional, Claude Code only
 runtimes: [claude, copilot] # optional, default both

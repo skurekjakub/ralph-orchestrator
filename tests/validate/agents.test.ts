@@ -176,6 +176,27 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
+  it("reports a Claude Code stage root with skills whose tools leave out Skill", async () => {
+    // Arrange
+    writeAgents({
+      ralph: { skills: ["style"], extraLines: ["tools: [Read, Bash]"] },
+      reader: { skills: ["style"], extraLines: ["tools: [Read, Skill]"] },
+    });
+    const stage = (agent: string, cli: CliType) => makeStage({ agent, cli, skills: ["style"] });
+
+    // Act
+    const claude = await validate(variant([stage("ralph.ralph", CliType.Claude)]));
+    const copilot = await validate(variant([stage("ralph.ralph", CliType.Copilot)]));
+    const withSkill = await validate(variant([stage("ralph.reader", CliType.Claude)]));
+
+    // Assert
+    expect(claude).toEqual([
+      `${PREFIX}: agent ralph.ralph runs as the stage root on cli "claude", which loads its skills with the Skill tool, so its tools must include Skill`,
+    ]);
+    expect(copilot).toEqual([]);
+    expect(withSkill).toEqual([]);
+  });
+
   it("reports a model with no Copilot equivalent only for Copilot stages", async () => {
     // Arrange
     writeAgents({ ralph: { model: "claude-opus-5-5-1" } });

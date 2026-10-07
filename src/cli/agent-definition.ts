@@ -54,7 +54,11 @@ export const agentFrontmatterSchema = z.strictObject({
   subagents: uniqueList(agentName).default([]),
   /** Claude Code built-in tools the agent may use; omitted means every tool Ralph grants. */
   tools: uniqueList(z.enum(ClaudeBuiltinTool)).optional(),
-  /** Skills Claude Code preloads into the agent's context; each must be one of its stage's skills. */
+  /**
+   * Skills the agent starts with on Claude Code: preloaded into its context as a subagent, loaded with the `Skill`
+   * tool as its first step as a stage root, whose `tools` must then include `Skill`. Each must be one of its
+   * stage's skills.
+   */
   skills: uniqueList(z.string().min(1)).default([]),
   /** Claude Code reasoning effort for the agent. */
   effort: z.enum(ReasoningEffort).optional(),
