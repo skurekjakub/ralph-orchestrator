@@ -80,7 +80,7 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 5. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
 6. Recreates each profile's `.build/` for the union of its variants (`resolveAllProfileSetup`): `squid.conf`, each container CLI's own artifacts (Claude Code session and user settings, `copilot-settings.json`), compose overlay, `mcp-config.json`, `gateway.json`, `pre-init.sh`
 
-Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). After startup, `src/index.tsx` builds the cradle (`createCradle()`), constructs the `Orchestrator`, and starts the dashboard server and Ink UI.
+Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). After startup, `src/index.tsx` builds the cradle (`createCradle()`), takes the `Orchestrator` and the dashboard server from it, and starts them and the Ink UI.
 
 ### JIRA Poller (`JiraWorkItemPoller`, `src/datasource/connectors/jira/jira-poller.ts`)
 
@@ -156,7 +156,7 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 Main loop: poll → scan triggers → execute pending operations → repeat.
 
-**Dependency injection:** The `createCradle()` factory in `src/awilix-cradle.ts` registers all service classes with **awilix** (`InjectionMode.PROXY`, `strict: true`) and returns the resolved cradle (typed by `OrchestratorCradle` in `src/awilix-cradle-types.ts`). `src/index.tsx` passes the cradle to `new Orchestrator(cradle)`, which destructures the services it needs — services can be replaced with mocks in tests. Configuration is injected as individual **config slices** (`dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`) rather than a monolithic config object. Per-data-source connectors and pollers are registered as `connectors` / `pollers` maps. See [docs/dev-doc/dependency-injection.md](docs/dev-doc/dependency-injection.md).
+**Dependency injection:** The `createCradle()` factory in `src/awilix-cradle.ts` registers all service classes with **awilix** (`InjectionMode.PROXY`, `strict: true`) and returns the resolved cradle (typed by `OrchestratorCradle` in `src/awilix-cradle-types.ts`). The cradle resolves the `Orchestrator` too, whose constructor destructures the services it needs — services can be replaced with mocks in tests. Configuration is injected as individual **config slices** (`dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`) rather than a monolithic config object. Per-data-source connectors and pollers are registered as `connectors` / `pollers` maps. See [docs/dev-doc/dependency-injection.md](docs/dev-doc/dependency-injection.md).
 
 **Trigger scanning:** The `TriggerScanner` service scans polled issues for `commentTrigger` matches. For each issue, it fetches comments once (shared across profiles), checks each matching variant's trigger string, and plans unconsumed triggers as pending operations in the ledger. Triggers from users outside the data source's `allowedUsers` are recorded as rejected. An ack comment is posted for each new trigger. If the trigger comment includes parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`), they are extracted and stored in the operation as `triggerParams`.
 

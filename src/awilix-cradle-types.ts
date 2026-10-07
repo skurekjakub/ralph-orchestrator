@@ -42,6 +42,8 @@ import type { IComposeClient } from "./container/compose-client";
 import type { IContainerLogCollector } from "./container/log-collector";
 import type { IContainerWorkspaceCleaner } from "./container/workspace-cleaner";
 import type { IContainerManager } from "./container/manager";
+import type { Orchestrator } from "./orchestrator";
+import type { DashboardServer } from "./services/dashboard-server";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -85,6 +87,8 @@ export interface OrchestratorCradle {
   ledger: IOperationLedger;
   router: IProfileRouter;
   triggerScanner: ITriggerScanner;
+  orchestrator: Orchestrator;
+  dashboardServer: DashboardServer;
 
   // Execution infrastructure
   cliRuntimes: ICliRuntimeRegistry;

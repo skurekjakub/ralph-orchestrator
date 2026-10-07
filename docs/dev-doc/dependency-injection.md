@@ -22,14 +22,14 @@ export class JiraClient implements IJiraClient {
 1. **Consumers depend on the interface** — never the concrete class. All constructor parameters, `OrchestratorCradle` entries, and function arguments use `IJiraClient`, `ITaskRunner`, etc.
 
 2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that constructs concrete classes:
-   - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
+   - `src/index.tsx` builds `AppStartup`, which runs before the cradle exists, and takes `orchestrator` and `dashboardServer` from the cradle.
    - Data source connector factories register their own classes in the data source's awilix scope and resolve the connector and poller there (`src/datasource/connectors/jira/factory.ts` registers `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`; see `docs/dev-doc/data-source-registration.md`).
    - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
    - `src/container/stage-executor-factory.ts` opens the stage scopes in which the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`) resolve.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
-Known exception: `PromptBuilder` has no interface; `OrchestratorCradle.promptBuilder` and `AgentSessionRunner` use the class type.
+Known exceptions: `PromptBuilder` has no interface; `OrchestratorCradle.promptBuilder` and `AgentSessionRunner` use the class type. `Orchestrator` and `DashboardServer` have none either, so `OrchestratorCradle.orchestrator` and `dashboardServer` use their classes.
 
 ## Why Interfaces, Not Classes?
 
@@ -81,6 +81,8 @@ interface OrchestratorCradle {
   ledger: IOperationLedger;
   router: IProfileRouter;
   triggerScanner: ITriggerScanner;
+  orchestrator: Orchestrator;
+  dashboardServer: DashboardServer;
 
   // Execution infrastructure
   cliRuntimes: ICliRuntimeRegistry;

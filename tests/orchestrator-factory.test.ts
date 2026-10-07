@@ -1,9 +1,33 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { WebSocket } from "ws";
+
+/** A client of the dashboard server: the messages the server sends it are `send`'s calls. */
+type FakeClient = { readyState: number; send: (data: string) => void; close: () => void };
+
+const { unboundServers } = vi.hoisted(() => ({ unboundServers: [] as { clients: Set<FakeClient> }[] }));
+
+/** The dashboard server's WebSocket server binds no port; a test connects a client by adding it to `clients`. */
+vi.mock("ws", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("ws")>();
+  const { EventEmitter } = await import("node:events");
+  class UnboundWebSocketServer extends EventEmitter {
+    readonly clients = new Set<FakeClient>();
+    constructor() {
+      super();
+      unboundServers.push(this);
+    }
+    close(): void {
+      this.clients.clear();
+    }
+  }
+  return { ...orig, WebSocketServer: UnboundWebSocketServer };
+});
+
 import { createCradle } from "../src/awilix-cradle";
-import { ClaudeAuthMode, CliType, StageMode } from "../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode, type IAppConfig } from "../src/config/types";
 import { makeConfig, makeHostWorkspace, makeProfile, makeStage } from "./helpers/factories";
 import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
 import { StageWorkspaceResolver } from "../src/services/stage-workspace";
@@ -159,5 +183,39 @@ describe("createCradle", () => {
     // Assert
     expect(first.sessionRunner).toBe(cradle.sessionRunner);
     expect(second.sessionRunner).toBe(cradle.sessionRunner);
+  });
+
+  describe("from a fixture checkout", () => {
+    let checkout: string;
+
+    /** The test config, its logs under the fixture checkout. */
+    function fixtureConfig(): IAppConfig {
+      return { ...makeConfig(), output: { logDir: join(checkout, "output", "logs") } };
+    }
+
+    beforeEach(() => {
+      checkout = mkdtempSync(join(tmpdir(), "cradle-"));
+      unboundServers.length = 0;
+    });
+
+    afterEach(() => {
+      rmSync(checkout, { recursive: true, force: true });
+    });
+
+    it("streams the orchestrator's state to the dashboard server's clients", () => {
+      // Arrange
+      const { orchestrator, dashboardServer } = createCradle(fixtureConfig(), { rootDir: checkout });
+      dashboardServer.start();
+      const client = { readyState: WebSocket.OPEN, send: vi.fn(), close: vi.fn() };
+      unboundServers[0].clients.add(client);
+
+      // Act
+      orchestrator.observer.emit();
+
+      // Assert
+      expect(client.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: "state", data: orchestrator.observer.getState() }),
+      );
+    });
   });
 });

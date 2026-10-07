@@ -145,7 +145,6 @@ export function buildMockDeps(
     },
     ledger,
     heartbeat: null,
-    logger: silentLogger,
     outputConfig: { logDir },
   };
 }
@@ -224,7 +223,6 @@ export function buildBaseDeps(
     triggerScanner: scanner,
     ledger,
     heartbeat: null,
-    logger: silentLogger,
     outputConfig: { logDir },
   };
 }

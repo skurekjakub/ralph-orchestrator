@@ -59,7 +59,7 @@ Side-effecting. Run these only when the user asks:
 src/index.tsx
   AppStartup.run(): validate → loadConfig → import data-source connectors → [ralphchives stack]
                     → build custom MCP servers + sidecar → resolveAllProfileSetup (profiles/*/.build/)
-  createCradle(config) → new Orchestrator(cradle) + DashboardServer (ws :3100) + Ink TUI (src/cli-dashboard/)
+  createCradle(config, { rootDir }) → cradle.orchestrator + cradle.dashboardServer (ws :3100) + Ink TUI (src/cli-dashboard/)
 
 Orchestrator loop: one operation at a time; it sleeps until poller.onItems / ledger.onPending fires
   pollers.drain() → TriggerScanner.scan()
@@ -115,7 +115,7 @@ A data-source connector's classes register in its own `factory.ts`, not in `crea
 
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
-- `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
+- `index.tsx` builds `AppStartup`, which runs before the cradle exists, and takes `orchestrator` and `dashboardServer` from the cradle.
 - A task's container stack (compose client, log collector, workspace cleaner, `ContainerManager`) resolves in a task scope that `createContainerManagerFactory` (`src/container/container-manager-factory.ts`) opens from the root container. Each stage's executor resolves in a stage scope that `src/container/stage-executor-factory.ts` opens from the task scope, or from the root for a post-task hook stage.
 - `PromptBuilder` is registered without an interface.
 

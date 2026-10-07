@@ -17,7 +17,6 @@ import type { ITaskRunner } from "./services/task-runner";
 import type { ITriggerScanner } from "./services/trigger-scanner";
 import type { IVcsSourceClient } from "./services/vcs-source-client";
 import type { IHeartbeatSender } from "./services/heartbeat";
-import type { Logger } from "./logger";
 
 /** Everything the pre-activation phases resolved for an operation that is cleared to run. */
 interface PreparedOperation {
@@ -107,7 +106,6 @@ export class Orchestrator {
     heartbeat: IHeartbeatSender | null;
     ralphchivesConfig: IRalphchivesConfig;
     outputConfig: IOutputConfig;
-    logger?: Logger;
   }) {
     this.dataSources = dataSources;
     this.profiles = profiles;

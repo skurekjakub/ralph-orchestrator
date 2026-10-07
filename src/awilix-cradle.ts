@@ -19,6 +19,8 @@ import { wiring, type Registrations } from "./di/registration";
 import { createContainerManagerFactory } from "./container/container-manager-factory";
 import { buildDataSourceMaps } from "./datasource/registry";
 import { LogCollector } from "./logs/collector";
+import { Orchestrator } from "./orchestrator";
+import { DashboardServer } from "./services/dashboard-server";
 import { PromptBuilder } from "./prompt/prompt-builder";
 import { ActivityLog } from "./services/activity-log";
 import { ProfileRouter } from "./services/profile-router";
@@ -165,6 +167,8 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     ledger: w.service(OperationLedger).singleton(),
     router: w.service(ProfileRouter).singleton(),
     triggerScanner: w.service(TriggerScanner).singleton(),
+    orchestrator: w.service(Orchestrator).singleton(),
+    dashboardServer: w.service(DashboardServer).singleton(),
 
     cliRuntimes: w.factory(({ claudeAuth }) => createCliRuntimeRegistry(claudeAuth)).singleton(),
     logCollector: w.service(LogCollector).singleton(),

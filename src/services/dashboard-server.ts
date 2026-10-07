@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { toErrorMessage } from "../util/error";
 import type { OrchestratorState, LogEntry } from "../orchestrator-types";
 import type { OrchestratorObserver } from "../orchestrator-observer";
+import type { Orchestrator } from "../orchestrator";
 import type { Logger } from "../logger";
 
 /** Message types sent from the server to dashboard clients. */
@@ -23,13 +24,20 @@ const DEFAULT_PORT = 3100;
  */
 export class DashboardServer {
   private wss: WebSocketServer | null = null;
-  private port: number;
+  private readonly observer: OrchestratorObserver;
+  private readonly logger: Logger;
+  private readonly port: number;
 
+  /**
+   * @param deps.orchestrator The orchestrator whose observer's state the server streams.
+   * @param port The port the server listens on; 3100 when omitted.
+   */
   constructor(
-    private observer: OrchestratorObserver,
-    private logger: Logger,
+    { orchestrator, logger }: { orchestrator: Pick<Orchestrator, "observer">; logger: Logger },
     port?: number,
   ) {
+    this.observer = orchestrator.observer;
+    this.logger = logger;
     this.port = port ?? DEFAULT_PORT;
   }
 

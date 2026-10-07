@@ -1,20 +1,15 @@
 import React from "react";
 import { render } from "ink";
 import { App } from "./cli-dashboard/App";
-import { Orchestrator } from "./orchestrator";
 import { createCradle } from "./awilix-cradle";
 import { AppStartup } from "./app-startup";
-import { DashboardServer } from "./services/dashboard-server";
 
 async function main(): Promise<void> {
   const startup = new AppStartup();
   const config = await startup.run();
-  const cradle = createCradle(config, { rootDir: process.cwd() });
-
-  const orchestrator = new Orchestrator(cradle);
+  const { orchestrator, dashboardServer } = createCradle(config, { rootDir: process.cwd() });
 
   // Start the local WebSocket dashboard server
-  const dashboardServer = new DashboardServer(orchestrator.observer, cradle.logger);
   dashboardServer.start();
 
   // Wire real-time tool output streaming to the dashboard
