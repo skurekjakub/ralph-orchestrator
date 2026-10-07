@@ -15,7 +15,7 @@ import type { IComposeClient } from "../../src/container/compose-client";
 import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
-import type { ILogSourceRegistry } from "../../src/container/log-source-registry";
+import { registerLogSources } from "../../src/container/log-source-registry";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { TaskStatus } from "../../src/container/types";
 import {
@@ -36,6 +36,8 @@ vi.mock("execa", async (importOriginal) => {
   const orig = await importOriginal<typeof import("execa")>();
   return { ...orig, execa: vi.fn().mockResolvedValue({ exitCode: 0 }) };
 });
+
+vi.mock("../../src/container/log-source-registry", () => ({ registerLogSources: vi.fn() }));
 
 // ── Mock factories ───────────────────────────────────────────────────────────
 
@@ -98,7 +100,6 @@ interface Harness {
   compose: Mocked<IComposeClient>;
   executorFactory: Mocked<ICliExecutorFactory>;
   logs: Mocked<IContainerLogCollector>;
-  logRegistry: Mocked<ILogSourceRegistry>;
   sessionRunner: Mocked<IAgentSessionRunner>;
   logger: Logger;
 }
@@ -113,7 +114,6 @@ function createHarness(
   const compose = overrides.compose ?? createMockComposeClient();
   const executorFactory = overrides.executorFactory ?? createMockExecutorFactory();
   const logs = overrides.logs ?? createMockLogCollector();
-  const logRegistry = overrides.logRegistry ?? { registerAll: vi.fn() };
   const sessionRunner = overrides.sessionRunner ?? createMockSessionRunner();
   const logger = overrides.logger ?? createMockLogger();
 
@@ -125,13 +125,12 @@ function createHarness(
     executorFactory,
     logs,
     cleaner: createMockCleaner(),
-    logRegistry,
     sessionRunner,
     logger,
     enableContinuation: overrides.enableContinuation,
   });
 
-  return { manager, compose, executorFactory, logs, logRegistry, sessionRunner, logger };
+  return { manager, compose, executorFactory, logs, sessionRunner, logger };
 }
 
 describe("ContainerManager", () => {
@@ -345,13 +344,13 @@ describe("ContainerManager", () => {
   describe("registerLogSources", () => {
     it("registers the common sources and those of the container CLIs' runtimes", () => {
       // Arrange
-      const { manager, logRegistry, logs } = createHarness(mixedProfile);
+      const { manager, logs } = createHarness(mixedProfile);
 
       // Act
       manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
-      expect(logRegistry.registerAll).toHaveBeenCalledWith(
+      expect(registerLogSources).toHaveBeenCalledWith(
         logs,
         mixedProfile,
         KEY,
@@ -363,7 +362,7 @@ describe("ContainerManager", () => {
 
     it("passes the tool-output and pre-tool callbacks and always streams the CLI debug log", () => {
       // Arrange
-      const { manager, logRegistry } = createHarness(mixedProfile);
+      const { manager } = createHarness(mixedProfile);
       const onToolOutput = vi.fn();
       const onPreToolUse = vi.fn();
       manager.onToolOutput = onToolOutput;
@@ -373,7 +372,7 @@ describe("ContainerManager", () => {
       manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
-      const callbacks = logRegistry.registerAll.mock.calls[0][4];
+      const callbacks = vi.mocked(registerLogSources).mock.calls[0][4];
       expect(callbacks).toMatchObject({ onToolOutput, onPreToolUse });
       expect(callbacks.onCliDebug).toBeTypeOf("function");
     });

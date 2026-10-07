@@ -12,7 +12,6 @@ import type { ICliExecutor, ICliExecutorFactory } from "../../src/container/cli-
 import type { IComposeClient } from "../../src/container/compose-client";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
-import type { ILogSourceRegistry } from "../../src/container/log-source-registry";
 import type { ResultPromise } from "execa";
 
 const KEY = "DF-100";
@@ -80,9 +79,6 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     cleanDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
   };
-  const logRegistry: ILogSourceRegistry = {
-    registerAll: vi.fn(),
-  };
   const continuationRunner = new ContinuationRunner({ logger });
   const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
 
@@ -99,7 +95,6 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
     executorFactory,
     logs,
     cleaner,
-    logRegistry,
     sessionRunner,
     logger,
     enableContinuation: true,

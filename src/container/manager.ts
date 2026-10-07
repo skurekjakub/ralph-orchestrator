@@ -14,7 +14,7 @@ import type { ICliExecutor, ICliExecutorFactory } from "./cli-executor-factory";
 import { StreamCapture } from "./stream-capture";
 import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
-import type { ILogSourceRegistry } from "./log-source-registry";
+import { registerLogSources } from "./log-source-registry";
 import type { IAgentSessionRunner } from "./agent-session-runner";
 import { hostWorkspacePath, mountTargetDirs, RALPH_CONTAINER_DIR } from "./workspace-paths";
 
@@ -100,7 +100,7 @@ export interface IContainerManager {
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
  * - {@link ICliExecutorFactory} — the executor of each stage's CLI
- * - {@link LogSourceRegistry} — standard log source registration
+ * - {@link registerLogSources} — standard log source registration
  *
  * 1. **start()** — `docker compose up -d --build`
  * 2. **setup()** — runs the profile's setup script inside the container
@@ -117,7 +117,6 @@ export class ContainerManager implements IContainerManager {
   private readonly profile: IAgentProfile;
   /** The task's workspace on the host, bind-mounted at `/workspace`. */
   private readonly workspacePath: string;
-  private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
   private readonly cliRuntimes: ICliRuntimeRegistry;
   /** Runtimes of the CLIs the variant's container stages run. */
@@ -151,7 +150,6 @@ export class ContainerManager implements IContainerManager {
     executorFactory,
     logs,
     cleaner,
-    logRegistry,
     sessionRunner,
     logger,
     containerLogger,
@@ -164,7 +162,6 @@ export class ContainerManager implements IContainerManager {
     executorFactory: ICliExecutorFactory;
     logs: IContainerLogCollector;
     cleaner: IContainerWorkspaceCleaner;
-    logRegistry: ILogSourceRegistry;
     sessionRunner: IAgentSessionRunner;
     logger: Logger;
     containerLogger?: Logger;
@@ -177,7 +174,6 @@ export class ContainerManager implements IContainerManager {
     this.compose = compose;
     this.logs = logs;
     this.cleaner = cleaner;
-    this.logRegistry = logRegistry;
     this.executorFactory = executorFactory;
     this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;
@@ -272,7 +268,7 @@ export class ContainerManager implements IContainerManager {
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void {
     const debugLogPath = join(outputDir, `${taskId}-cli-debug-stream.log`);
 
-    this.logRegistry.registerAll(
+    registerLogSources(
       this.logs,
       this.profile,
       taskId,

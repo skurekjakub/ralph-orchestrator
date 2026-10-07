@@ -22,7 +22,7 @@ import { OperationLedger } from "./services/operation-ledger";
 import { TriggerScanner } from "./services/trigger-scanner";
 import { ContainerManager } from "./container/manager";
 import { ComposeClient, type IComposeClient } from "./container/compose-client";
-import { ComposeFileResolver } from "./container/setup/compose-files";
+import { resolveComposeFiles } from "./container/setup/compose-files";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes";
 import { SkillTemplateRenderer } from "./container/setup/skill-includes";
 import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params";
@@ -37,7 +37,6 @@ import {
 } from "./services/vcs-source-client";
 import { ContainerLogCollector } from "./container/log-collector";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner";
-import { LogSourceRegistry } from "./container/log-source-registry";
 import { ContinuationRunner } from "./container/continuation-runner";
 import { AgentSessionRunner } from "./container/agent-session-runner";
 import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
@@ -52,9 +51,9 @@ import { StageWorkspaceResolver } from "./services/stage-workspace";
  *
  * @throws Error when profile setup has not written the profile's `squid.conf`.
  */
-function buildComposeClient(profile: IAgentProfile, workspacePath: string): IComposeClient {
-  const composeFiles = new ComposeFileResolver().resolve(profile);
-  const squidConfPath = join(profileBuildPaths(process.cwd(), profile.id).buildDir, "squid.conf");
+function buildComposeClient(profile: IAgentProfile, workspacePath: string, rootDir: string): IComposeClient {
+  const composeFiles = resolveComposeFiles(profile, rootDir);
+  const squidConfPath = join(profileBuildPaths(rootDir, profile.id).buildDir, "squid.conf");
   if (!existsSync(squidConfPath)) {
     throw new Error(`Profile squid.conf not found at ${squidConfPath}; profile setup has not run for ${profile.id}`);
   }
@@ -68,6 +67,7 @@ function buildComposeClient(profile: IAgentProfile, workspacePath: string): ICom
  * OrchestratorCradle — it only touches the deps it declares, no others.
  */
 function buildContainerFactory({
+  rootDir,
   outputConfig,
   enableContinuation,
   cliRuntimes,
@@ -77,6 +77,7 @@ function buildContainerFactory({
   containerLogger,
 }: Pick<
   OrchestratorCradle,
+  | "rootDir"
   | "outputConfig"
   | "enableContinuation"
   | "cliRuntimes"
@@ -87,10 +88,9 @@ function buildContainerFactory({
 >): ContainerManagerFactory {
   return {
     create: (profile, workspacePath) => {
-      const compose = buildComposeClient(profile, workspacePath);
+      const compose = buildComposeClient(profile, workspacePath, rootDir);
       const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
-      const logRegistry = new LogSourceRegistry();
       const continuationRunner = new ContinuationRunner({ logger });
       const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return new ContainerManager({
@@ -101,7 +101,6 @@ function buildContainerFactory({
         executorFactory,
         logs,
         cleaner,
-        logRegistry,
         sessionRunner,
         logger,
         containerLogger,
@@ -110,7 +109,7 @@ function buildContainerFactory({
     },
     forceDown: async (profile) => {
       // `down` never reads the workspace mount's source, but compose refuses to load a mount with an empty one.
-      const compose = buildComposeClient(profile, repoCachePaths(process.cwd()).workspacesDir);
+      const compose = buildComposeClient(profile, repoCachePaths(rootDir).workspacesDir, rootDir);
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
     },
     createLocalSession: async (profile, stage, workspace) => {

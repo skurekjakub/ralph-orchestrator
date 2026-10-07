@@ -12,22 +12,16 @@ import type { IAgentProfile } from "../../config/types";
  *
  * The resources overlay is written at startup by {@link resolveAllProfileSetup} and rewritten for each task
  * by `ComposeOverlayWriter`; it is only included when the file exists on disk.
+ *
+ * @param profile Agent profile whose compose files to resolve.
+ * @param rootDir Repository root the profile's relative paths resolve against.
  */
-export class ComposeFileResolver {
-  private readonly rootDir: string;
+export function resolveComposeFiles(profile: IAgentProfile, rootDir: string): string[] {
+  const base = resolve(rootDir, profile.composeFile);
+  const security = resolve(rootDir, "shared/security/docker-compose.security.yml");
+  const overlay = resolve(rootDir, "profiles", profile.id, ".build/docker-compose.overlay.yml");
 
-  constructor(rootDir?: string) {
-    this.rootDir = rootDir ?? process.cwd();
-  }
-
-  /** Resolve compose file paths for a profile, applying the three-file merge pattern. */
-  resolve(profile: IAgentProfile): string[] {
-    const base = resolve(this.rootDir, profile.composeFile);
-    const security = resolve(this.rootDir, "shared/security/docker-compose.security.yml");
-    const overlay = resolve(this.rootDir, "profiles", profile.id, ".build/docker-compose.overlay.yml");
-
-    const files = [base, security];
-    if (existsSync(overlay)) files.push(overlay);
-    return files;
-  }
+  const files = [base, security];
+  if (existsSync(overlay)) files.push(overlay);
+  return files;
 }

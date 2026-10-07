@@ -35,7 +35,7 @@ output/logs/<taskId>/
 
 The transcripts are redacted with `shared/hooks/lib/redact.pl` during result collection, before `transcript` is attached. When a phase throws, `TaskRunner` only collects the logs, so a Copilot transcript stays unredacted and nothing is attached. Host stage workspaces are described in `code-paths.md` § Local stages.
 
-Sources are registered in `LogSourceRegistry.registerAll()` (`src/container/log-source-registry.ts`). Filenames come from `ContainerLogCollector.collectAll()` (`src/container/log-collector.ts`).
+Sources are registered in `registerLogSources()` (`src/container/log-source-registry.ts`). Filenames come from `ContainerLogCollector.collectAll()` (`src/container/log-collector.ts`).
 
 ## Global logs
 

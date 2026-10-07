@@ -126,7 +126,7 @@ The workspace's `origin` is the profile's `repoUrl`, which carries no credential
 
 ## File Resolution
 
-`ComposeFileResolver` (`src/container/setup/compose-files.ts`) resolves the three files:
+`resolveComposeFiles` (`src/container/setup/compose-files.ts`) resolves the three files:
 
 1. Base: `profiles/<id>/docker-compose.yml` (from `profile.composeFile`)
 2. Security: `shared/security/docker-compose.security.yml` (always)
