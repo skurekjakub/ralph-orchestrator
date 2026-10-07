@@ -18,7 +18,7 @@ Use the **agent-eval** skill for evaluation dimensions and scoring guidance. Loa
 
 ## Input
 
-The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}") on the `{{ hook.cli }}` CLI.
+The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}"); its stages ran on `{{ hook.clis | join: "`, `" }}`.
 
 ### Per-subagent dispatch
 
@@ -91,13 +91,15 @@ If the proxy log exists, scan for blocked requests:
 grep "TCP_DENIED\|403" {{ hook.taskOutputDir }}/*-proxy.log
 ```
 
-Check if any blocked domains are likely required for the CLI or the pipeline:
-{% if hook.cli == "claude" -%}
+Check if any blocked domains are likely required for the run's CLIs or the pipeline:
+{%- for cli in hook.clis %}
+{%- if cli == "claude" %}
 - `api.anthropic.com` — Claude API, the only domain Claude Code needs (critical)
-{%- else -%}
+{%- elsif cli == "copilot" %}
 - `*.githubcopilot.com` — Copilot API (critical)
 - `api.github.com`, `github.com` — Copilot authentication (critical)
 {%- endif %}
+{%- endfor %}
 - `*.githubusercontent.com` — GitHub release assets (npm binary downloads)
 - `registry.npmjs.org` — npm packages (setup phase)
 

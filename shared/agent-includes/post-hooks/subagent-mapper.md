@@ -15,7 +15,7 @@ Load the **run-telemetry-analysis** skill with the {{ cliTools.skill }} tool bef
 
 ## Input
 
-The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}") on the `{{ hook.cli }}` CLI.
+The main pipeline just finished processing work item **{{ taskId }}** ("{{ taskTitle }}"); its stages ran on `{{ hook.clis | join: "`, `" }}`.
 
 ### Log directory
 
@@ -204,7 +204,7 @@ Write the master inventory to: `{{ artifactDir }}/{{ self.name }}/output.md`
 # Subagent Inventory: {{ taskId }}
 
 ## Execution Overview
-- **CLI:** {{ hook.cli }}
+- **CLIs:** {{ hook.clis | join: ", " }}
 - **Status:** <from summary.json>
 - **Failure reason:** <from summary.json, or none>
 - **Duration:** <from summary.json>

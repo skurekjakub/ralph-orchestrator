@@ -710,7 +710,7 @@ describe("buildTemplateContext", () => {
       stageIndex: 0,
       stageCount: 1,
       previousStageRoles: [],
-      hook: { collectedLogs: {}, name: "run-analysis", outputDir: "/out/hooks/run-analysis" },
+      hook: { collectedLogs: {}, clis: [CliType.Claude], name: "run-analysis", outputDir: "/out/hooks/run-analysis" },
     });
 
     // Assert
@@ -736,7 +736,7 @@ describe("buildTemplateContext", () => {
     expect(host.artifactDir).toBe("/out/hooks/run-analysis/artifacts");
   });
 
-  it("tells a hook stage the CLI the task's first stage ran and where the orchestrator's sources are", () => {
+  it("tells a hook stage every CLI the analysed run used and where the orchestrator's sources are", () => {
     // Arrange
     const profile = makeProfile({ stages: [makeStage({ cli: CliType.Claude })] });
     const hookStage = makeStage({ agent: "ralph.scientist", role: "scientist", mode: StageMode.Local });
@@ -751,13 +751,22 @@ describe("buildTemplateContext", () => {
         stageIndex: 0,
         stageCount: 1,
         previousStageRoles: [],
-        hook: { collectedLogs: {}, name: "run-analysis", outputDir: "/out/hooks/run-analysis" },
+        hook: {
+          collectedLogs: {},
+          clis: [CliType.Claude, CliType.Copilot],
+          name: "run-analysis",
+          outputDir: "/out/hooks/run-analysis",
+        },
       },
     );
 
     // Assert
     expect(ctx.cli).toBe(CliType.Copilot);
-    expect(ctx.hook).toMatchObject({ cli: CliType.Claude, orchestratorDir: "/srv/ralph", taskOutputDir: "/out" });
+    expect(ctx.hook).toMatchObject({
+      clis: [CliType.Claude, CliType.Copilot],
+      orchestratorDir: "/srv/ralph",
+      taskOutputDir: "/out",
+    });
   });
 
   it("leaves the hook fields empty outside post-task hooks", () => {
@@ -770,7 +779,7 @@ describe("buildTemplateContext", () => {
       collectedLogs: {},
       name: "",
       outputDir: "",
-      cli: "",
+      clis: [],
       orchestratorDir: "",
     });
   });

@@ -11,7 +11,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TaskRunner } from "../../src/services/task-runner";
 import { TaskStatus, type ContainerManagerFactory } from "../../src/container/types";
-import { CliType, StageMode } from "../../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { PostTaskHookRunner } from "../../src/services/post-task-hook-runner";
+import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { TransitionPhase } from "../../src/orchestrator-types";
 import type { IContainerManager } from "../../src/container/manager";
@@ -760,8 +766,72 @@ describe("TaskRunner", () => {
 
       // Assert
       expect(hookRunner.run).toHaveBeenCalledExactlyOnceWith(ctx, hookProfile.postTaskHooks, {
-        audit: "/logs/audit.jsonl",
+        collectedLogs: { audit: "/logs/audit.jsonl" },
+        clis: [CliType.Copilot],
       });
+    });
+
+    it("tells the hooks each CLI the run's stages ran, once, in stage order", async () => {
+      // Arrange
+      const { container } = createMockContainer();
+      const hookRunner = createMockHookRunner();
+      const profile = makeProfile({
+        ...hookProfile,
+        stages: [
+          makeStage({ role: "primary", cli: CliType.Claude }),
+          makeStage({ role: "reviewer", cli: CliType.Copilot }),
+          makeStage({ role: "fixer", cli: CliType.Claude }),
+        ],
+      });
+
+      // Act
+      await createRunner(container, hookRunner).run(makeTaskContext({ workItem: issue, profile, taskId }));
+
+      // Assert
+      expect(hookRunner.run.mock.calls[0][2].clis).toEqual([CliType.Claude, CliType.Copilot]);
+    });
+
+    it("keeps the task's result when a hook's host session cannot be created", async () => {
+      // Arrange
+      const outputDir = mkdtempSync(join(tmpdir(), "task-runner-hooks-"));
+      const { container } = createMockContainer();
+      const containerFactory = createMockFactory(container);
+      vi.mocked(containerFactory.createLocalSession).mockRejectedValue(
+        new Error("Agent ralph.analyzer has no template"),
+      );
+      const hookRunner = new PostTaskHookRunner({
+        logger,
+        profileSetup: createMockProfileSetupService(),
+        containerFactory,
+        stageWorkspaces: new StageWorkspaceResolver({
+          cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+          rootDir: "/srv/ralph",
+        }),
+      });
+      const runner = new TaskRunner({
+        workspaceManager: createMockWorkspaceManager(),
+        hookRunner,
+        resultWriter: createMockResultWriter(),
+        logger,
+        containerFactory,
+        resources: createMockResources(),
+        issueManager: createMockIssueManager(),
+        profileSetup: createMockProfileSetupService(),
+        pipelineExecutor: createMockPipelineExecutor(),
+      });
+
+      try {
+        // Act
+        const result = await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId, outputDir }));
+
+        // Assert
+        expect(result.status).toBe(TaskStatus.Completed);
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining("[hook:analysis] Unexpected error: Agent ralph.analyzer has no template"),
+        );
+      } finally {
+        rmSync(outputDir, { recursive: true, force: true });
+      }
     });
 
     it("does not run hooks when the main pipeline throws", async () => {

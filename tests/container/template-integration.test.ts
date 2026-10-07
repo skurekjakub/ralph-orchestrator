@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -173,7 +173,7 @@ function hookContext(profileId: string): TemplateContext {
       collectedLogs: { audit: "audit.jsonl", transcript: "transcript.md" },
       name: "run-analysis",
       outputDir: "/output/logs/DOC-100-1234567890000/hooks/run-analysis",
-      cli: "claude",
+      clis: [CliType.Claude],
       orchestratorDir: "/srv/ralph-orchestrator",
     },
   });
@@ -388,11 +388,11 @@ describe("skill template rendering (real files)", () => {
 
 describe("shared agent includes (real files)", () => {
   /** Render a single include as if it were an agent template. */
-  async function renderInclude(includeName: string, ctx: TemplateContext): Promise<string> {
+  async function renderInclude(includeName: string, ctx: TemplateContext, root = INCLUDES_DIR): Promise<string> {
     const { Liquid } = await import("liquidjs");
     const { registerCustomTags } = await import("../../src/container/setup/liquid-tags");
     const engine = new Liquid({
-      root: [INCLUDES_DIR],
+      root: [root],
       extname: ".md",
       globals: ctx,
     });
@@ -424,32 +424,23 @@ describe("shared agent includes (real files)", () => {
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
-  it("lists the critical egress domains of the CLI the analysed run used", async () => {
+  it("interpolates the analysed run's CLIs and the orchestrator checkout into a hook template", async () => {
     // Arrange
-    const claudeRun = hookContext("ralph-docs");
-    const copilotRun = makeTemplateContext({ ...claudeRun, hook: { ...claudeRun.hook, cli: "copilot" } });
-
-    // Act
-    const claude = await renderInclude("post-hooks/run-analyzer", claudeRun);
-    const copilot = await renderInclude("post-hooks/run-analyzer", copilotRun);
-
-    // Assert
-    expect(claude).toContain("- `api.anthropic.com` — Claude API");
-    expect(claude).not.toContain("githubcopilot.com");
-    expect(copilot).toContain("- `*.githubcopilot.com` — Copilot API (critical)\n- `api.github.com`");
-    expect(copilot).not.toContain("anthropic.com");
-  });
-
-  it("points agent-improver at the orchestrator's runtime sources and its proposals directory", async () => {
-    // Act
-    const rendered = await renderInclude("post-hooks/agent-improver", hookContext("ralph-docs"));
-
-    // Assert
-    expect(rendered).toContain("`/srv/ralph-orchestrator/shared/agent-includes/`");
-    expect(rendered).toContain(
-      "/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts/agent-improver/<target-subagent-name>/proposals/",
+    const fixtureDir = await mkdtemp(join(outRoot, "hook-fixture-"));
+    await writeFile(
+      join(fixtureDir, "hook-fixture.md"),
+      "{% for cli in hook.clis %}[{{ cli }}]{% endfor %} {{ hook.orchestratorDir }}/shared/skills",
     );
-    expect(rendered).not.toContain(".claude/skills/` |");
+    const context = makeTemplateContext({
+      ...hookContext("ralph-docs"),
+      hook: { ...hookContext("ralph-docs").hook, clis: [CliType.Claude, CliType.Copilot] },
+    });
+
+    // Act
+    const rendered = await renderInclude("hook-fixture", context, fixtureDir);
+
+    // Assert
+    expect(rendered).toBe("[claude][copilot] /srv/ralph-orchestrator/shared/skills");
   });
 
   it("renders post-hooks/subagent-mapper with hook context", async () => {

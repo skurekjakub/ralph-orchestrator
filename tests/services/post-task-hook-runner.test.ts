@@ -3,13 +3,16 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PostTaskHookRunner } from "../../src/services/post-task-hook-runner";
-import { ClaudeAuthMode, StageMode, type IPostTaskHook } from "../../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode, type IPostTaskHook } from "../../src/config/types";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
 import { TaskStatus, type ContainerManagerFactory, type RalphResult } from "../../src/container/types";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { makeProfile, makeResult, makeStage, makeTaskContext } from "../helpers/factories";
 import { createMockExecutor, createMockLogger, createMockProfileSetupService, type Mocked } from "../helpers/mocks";
+
+/** A run without logs whose one stage ran Claude Code. */
+const NO_RUN = { collectedLogs: {}, clis: [CliType.Claude] };
 
 /** A hook named `name` whose stages have `roles`, all on the host. */
 function hook(name: string, ...roles: string[]): IPostTaskHook {
@@ -68,7 +71,7 @@ describe("PostTaskHookRunner", () => {
     const collectedLogs = { audit: "/logs/audit.jsonl" };
 
     // Act
-    await runner.run(ctx, [analysis], collectedLogs);
+    await runner.run(ctx, [analysis], { collectedLogs, clis: [CliType.Claude, CliType.Copilot] });
 
     // Assert
     const hookOutputDir = join(outputDir, "hooks", "analysis");
@@ -80,7 +83,7 @@ describe("PostTaskHookRunner", () => {
         stageIndex: 0,
         stageCount: 1,
         previousStageRoles: [],
-        hook: { collectedLogs, name: "analysis", outputDir: hookOutputDir },
+        hook: { collectedLogs, clis: [CliType.Claude, CliType.Copilot], name: "analysis", outputDir: hookOutputDir },
       },
       workspace,
     );
@@ -99,7 +102,7 @@ describe("PostTaskHookRunner", () => {
     const analysis = hook("analysis", "analyzer", "improver");
 
     // Act
-    await runner.run(taskContext(analysis), [analysis], {});
+    await runner.run(taskContext(analysis), [analysis], NO_RUN);
 
     // Assert
     const workspaces = profileSetup.prepareForStage.mock.calls.map(([, , workspace]) => workspace);
@@ -126,7 +129,7 @@ describe("PostTaskHookRunner", () => {
     };
 
     // Act
-    await runner.run(taskContext(analysis), [analysis], {});
+    await runner.run(taskContext(analysis), [analysis], NO_RUN);
 
     // Assert
     expect(sessionRunner.run.mock.calls.map((call) => call[3])).toEqual([
@@ -141,7 +144,7 @@ describe("PostTaskHookRunner", () => {
     const analysis = hook("analysis", "analyzer", "improver");
 
     // Act
-    await runner.run(taskContext(analysis), [analysis], {});
+    await runner.run(taskContext(analysis), [analysis], NO_RUN);
 
     // Assert
     expect(profileSetup.prepareForStage.mock.calls.map(([, overrides]) => overrides.previousStageRoles)).toEqual([
@@ -159,7 +162,7 @@ describe("PostTaskHookRunner", () => {
       const analysis = hook("analysis", "analyzer", "improver");
 
       // Act
-      await runner.run(taskContext(analysis), [analysis], {});
+      await runner.run(taskContext(analysis), [analysis], NO_RUN);
 
       // Assert
       expect(containerFactory.createLocalSession).toHaveBeenCalledOnce();
@@ -180,7 +183,7 @@ describe("PostTaskHookRunner", () => {
     const hookB = hook("hook-b", "b");
 
     // Act
-    await runner.run(taskContext(hookA, hookB), [hookA, hookB], {});
+    await runner.run(taskContext(hookA, hookB), [hookA, hookB], NO_RUN);
 
     // Assert
     expect(containerFactory.createLocalSession).toHaveBeenCalledTimes(2);
@@ -197,10 +200,44 @@ describe("PostTaskHookRunner", () => {
     const analysis = hook("analysis", "analyzer");
 
     // Act
-    await runner.run(taskContext(analysis), [analysis], {});
+    await runner.run(taskContext(analysis), [analysis], NO_RUN);
 
     // Assert
     expect(sessionRunner.run).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("does not run on cli"));
+  });
+
+  it("rejects an unsafe hook name before creating any directory for it", async () => {
+    // Arrange
+    const { runner, containerFactory } = createRunner();
+    const escaping = hook("../escape", "analyzer");
+
+    // Act
+    await runner.run(taskContext(escaping), [escaping], NO_RUN);
+
+    // Assert
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Unsafe hook name for filesystem use: "../escape"'),
+    );
+    expect(existsSync(join(outputDir, "escape"))).toBe(false);
+    expect(containerFactory.createLocalSession).not.toHaveBeenCalled();
+  });
+
+  it("logs a stage whose host session cannot be created as the hook's error, then runs the next hook", async () => {
+    // Arrange
+    const { runner, containerFactory, sessionRunner } = createRunner();
+    containerFactory.createLocalSession.mockRejectedValueOnce(new Error("Agent ralph.a has no template"));
+    const hookA = hook("hook-a", "a");
+    const hookB = hook("hook-b", "b");
+
+    // Act
+    await runner.run(taskContext(hookA, hookB), [hookA, hookB], NO_RUN);
+
+    // Assert
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining("[hook:hook-a] Unexpected error: Agent ralph.a has no template"),
+    );
+    expect(sessionRunner.run).toHaveBeenCalledOnce();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:hook-b] Finished"));
   });
 });

@@ -140,8 +140,8 @@ export interface TemplateContext {
     name: string;
     /** Hook-specific output directory. */
     outputDir: string;
-    /** CLI the task's first stage ran (`copilot` or `claude`): the run the hook analyses. */
-    cli: string;
+    /** Every CLI the stages of the run the hook analyses ran, in stage order. */
+    clis: CliType[];
     /** Absolute path of the orchestrator checkout, whose profile `agents/` and `shared/` sources hook stages may read. */
     orchestratorDir: string;
   };
@@ -175,6 +175,8 @@ export type StageOverrides = {
   /** Hook context — set only for post-task hook stages. */
   hook?: {
     collectedLogs: Record<string, string>;
+    /** Every CLI the stages of the run the hook analyses ran, in stage order. */
+    clis: readonly CliType[];
     name: string;
     outputDir: string;
   };
@@ -251,7 +253,7 @@ export function buildTemplateContext(
       collectedLogs: hook?.collectedLogs ?? {},
       name: hook?.name ?? "",
       outputDir: hook?.outputDir ?? "",
-      cli: hook ? ctx.profile.stages[0].cli : "",
+      clis: hook ? [...hook.clis] : [],
       orchestratorDir: hook && workspace.mode === StageMode.Local ? workspace.orchestratorDir : "",
     },
   };

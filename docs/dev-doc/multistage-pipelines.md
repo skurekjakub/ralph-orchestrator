@@ -390,7 +390,7 @@ Hook stages receive the `hook` object in addition to the standard stage context 
 | `hook.collectedLogs`   | `Record<string, string>` | Map of log source IDs to file paths from the main pipeline                                                  |
 | `hook.name`            | `string`                 | Name of the current hook (e.g. `"run-analysis"`)                                                            |
 | `hook.outputDir`       | `string`                 | `<taskOutputDir>/hooks/<hook-name>` — created before the hook runs                                          |
-| `hook.cli`             | `string`                 | CLI the task's first stage ran (`claude` or `copilot`): the run the hook analyses                           |
+| `hook.clis`            | `string[]`               | Every CLI the stages of the analysed run ran (`claude`, `copilot`), in stage order                          |
 | `hook.orchestratorDir` | `string`                 | Absolute path of the orchestrator checkout, whose profile `agents/` and `shared/` sources the hook may read |
 
 `artifactDir` is `<taskOutputDir>/hooks/<hook-name>/artifacts`, absolute and shared by all of the hook's stages.
@@ -428,6 +428,6 @@ Main pipeline stages → collectResults → container teardown
 Every variant in the bundled profiles (`ralph-docs`: `@Ralph`, `@Malph`, `@RalphDev`; `ralph-vscode`: `@RalphAutocomplete`, `@MalphAutocomplete`) declares a `run-analysis` hook with a single local stage, `ralph.scientist`, which mounts the runtime skills in `shared/skills/analysis/`: `agent-eval`, `run-telemetry-analysis` and `skill-authoring`. The scientist dispatches subagents:
 
 1. **subagent-mapper** (`ralph-docs` only) — extracts per-subagent spans, tool calls and errors from the run telemetry (`*-claude-run-telemetry.json`), or from the collected Copilot CLI debug log when there is none.
-2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`); its list of critical egress domains follows `hook.cli`.
+2. **run-analyzer** — analyzes one subagent's execution per dispatch (`analyzed` or `skipped`); its list of critical egress domains covers each of `hook.clis`.
 3. **agent-improver** — proposes targeted changes to agent templates, skills, shared includes and MCP server configs based on one analysis (`improved` or `no-action`). It never edits the live tree: each changed file is written whole to `{{ artifactDir }}/agent-improver/<subagent>/proposals/<path relative to the orchestrator checkout>`. Apply the proposals with `cp -r <proposals>/. <orchestrator checkout>/`, review `git diff`, and open a PR.
 4. **run-synthesizer** (`ralph-docs` only) — writes a cross-subagent synthesis.

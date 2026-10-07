@@ -262,7 +262,7 @@ describe("ProfileSetupService", () => {
             stageIndex: 0,
             stageCount: 1,
             previousStageRoles: [],
-            hook: { collectedLogs: {}, name: "analysis", outputDir: "/out/hooks/analysis" },
+            hook: { collectedLogs: {}, clis: [CliType.Claude], name: "analysis", outputDir: "/out/hooks/analysis" },
           },
           workspace,
         );

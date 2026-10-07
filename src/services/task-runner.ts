@@ -9,7 +9,7 @@ import type { IIssueManager } from "./issue-manager";
 import type { IProfileSetupService } from "./profile-setup-service";
 import type { IAgentPipelineExecutor } from "./agent-pipeline-executor";
 import type { ITaskWorkspaceManager } from "./task-workspace-manager";
-import type { IPostTaskHookRunner } from "./post-task-hook-runner";
+import type { AnalysedRun, IPostTaskHookRunner } from "./post-task-hook-runner";
 import { TransitionPhase } from "../orchestrator-types";
 import type { TaskContext } from "./task-context";
 import { toErrorMessage } from "../util/error";
@@ -259,13 +259,17 @@ export class TaskRunner implements ITaskRunner {
     const hooks = ctx.profile.postTaskHooks;
     if (!hooks.length) return;
 
+    const run: AnalysedRun = {
+      collectedLogs: result.collectedLogs,
+      clis: [...new Set(ctx.profile.stages.map(({ cli }) => cli))],
+    };
     if (ctx.triggerParams.skip_hooks) {
       this.logger.info("skip_hooks param set — skipping post-task hooks, writing hook manifest");
       this.writeHookManifest(ctx, result);
       return;
     }
 
-    await this.hookRunner.run(ctx, hooks, result.collectedLogs);
+    await this.hookRunner.run(ctx, hooks, run);
   }
 
   /**

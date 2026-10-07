@@ -331,7 +331,7 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
       collectedLogs: {},
       name: "",
       outputDir: "",
-      cli: "",
+      clis: [],
       orchestratorDir: "",
     },
     ...overrides,

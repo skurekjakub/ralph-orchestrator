@@ -117,12 +117,12 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 
 ### Skills, Artifacts, Stages and Hooks
 
-| Variable                                                                                                      | Type       | Description                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `skills`                                                                                                      | `string[]` | Skill names for the current stage                                                                                           |
-| `artifactDir`                                                                                                 | `string`   | `.ralph/tasks/<taskId>/artifacts` in containers; absolute in host stages (see [agent-as-function.md](agent-as-function.md)) |
-| `stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles`     | —          | Pipeline stage context (see [multistage-pipelines.md](multistage-pipelines.md))                                             |
-| `hook.taskOutputDir`, `hook.collectedLogs`, `hook.name`, `hook.outputDir`, `hook.cli`, `hook.orchestratorDir` | —          | Post-task hook context; empty for main pipeline stages                                                                      |
+| Variable                                                                                                       | Type       | Description                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `skills`                                                                                                       | `string[]` | Skill names for the current stage                                                                                           |
+| `artifactDir`                                                                                                  | `string`   | `.ralph/tasks/<taskId>/artifacts` in containers; absolute in host stages (see [agent-as-function.md](agent-as-function.md)) |
+| `stageRole`, `stageMode`, `stageIndex`, `stageCount`, `isFirstStage`, `isLastStage`, `previousStageRoles`      | —          | Pipeline stage context (see [multistage-pipelines.md](multistage-pipelines.md))                                             |
+| `hook.taskOutputDir`, `hook.collectedLogs`, `hook.name`, `hook.outputDir`, `hook.clis`, `hook.orchestratorDir` | —          | Post-task hook context; empty for main pipeline stages                                                                      |
 
 ## Trigger Parameters
 
