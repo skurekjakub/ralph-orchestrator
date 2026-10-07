@@ -112,4 +112,9 @@ export class CopilotRuntime implements ICliRuntime {
   createOutputDecoder(): ICliOutputDecoder {
     return new PlainTextDecoder();
   }
+
+  /** Copilot's audit records carry a session id the hooks mint, and Copilot CLI reports none to tie it to. */
+  sessionStartAudited(): undefined {
+    return undefined;
+  }
 }

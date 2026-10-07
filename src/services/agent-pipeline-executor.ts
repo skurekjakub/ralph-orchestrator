@@ -41,6 +41,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
   async run(ctx: TaskContext, container: IContainerManager, issueContext: IssueContext): Promise<RalphResult> {
     const stages = ctx.profile.stages;
     const stageResults: StageResult[] = [];
+    const hooklessSessions: string[] = [];
     let lastResult: RalphResult | undefined;
 
     for (let i = 0; i < stages.length; i++) {
@@ -71,6 +72,17 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       this.logger.info(
         `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`,
       );
+      if (
+        stage.mode === StageMode.Container &&
+        result.sessionId !== undefined &&
+        (await container.sessionStartAudited(stage.cli, result.sessionId)) === false
+      ) {
+        this.logger.warn(
+          `${stageLabel}: the audit log has no session_start for ${stage.cli} session ${result.sessionId} — ` +
+            "Ralph's hooks did not run; server-managed settings may have replaced the managed settings file",
+        );
+        hooklessSessions.push(result.sessionId);
+      }
 
       if (ctx.signal.aborted) {
         this.logger.info(`${stageLabel}: abort signalled — stopping pipeline`);
@@ -144,6 +156,9 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
     }
     if (stageResults.length > 1) {
       finalResult.stageResults = stageResults;
+    }
+    if (hooklessSessions.length > 0) {
+      finalResult.hooklessSessions = hooklessSessions;
     }
 
     return finalResult;

@@ -46,6 +46,7 @@ Sources are registered in `LogSourceRegistry.registerAll()` (`src/container/log-
   "prUrl": null,
   "collectedLogs": { "audit": "...", "proxy": "..." }, // id → local path; a missing id means collection failed
   "failureCategory": "infra", // only when status != completed
+  "hooklessSessions": ["..."], // Claude Code sessions without a session_start audit record; only when non-empty
   "stderr": "...", // first 5000 chars, only when non-empty
   "stdout": "...", // first 5000 chars, only when status != completed
   "activityLogPath": "...",

@@ -116,6 +116,11 @@ describe("CopilotRuntime", () => {
     });
   });
 
+  it("cannot tie its audit records to a CLI session", () => {
+    // Act & Assert
+    expect(runtime.sessionStartAudited()).toBeUndefined();
+  });
+
   it("needs the Copilot API and GitHub through the egress proxy", () => {
     // Act & Assert
     expect(runtime.egressDomains).toEqual([".githubcopilot.com", "api.github.com", "github.com"]);

@@ -112,4 +112,16 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   createOutputDecoder(): ICliOutputDecoder {
     return new ClaudeStreamJsonDecoder();
   }
+
+  /** The managed `SessionStart` hook records Claude Code's own session id; unparsable lines are skipped. */
+  sessionStartAudited(auditJsonl: string, sessionId: string): boolean {
+    return auditJsonl.split("\n").some((line) => {
+      try {
+        const record = JSON.parse(line) as { event?: unknown; session?: unknown };
+        return record.event === "session_start" && record.session === sessionId;
+      } catch {
+        return false;
+      }
+    });
+  }
 }

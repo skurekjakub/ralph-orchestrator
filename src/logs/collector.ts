@@ -97,6 +97,7 @@ export class LogCollector implements ILogCollector {
           prUrl: result.prUrl,
           collectedLogs: result.collectedLogs,
           ...(failureCategory && { failureCategory }),
+          ...(result.hooklessSessions && { hooklessSessions: result.hooklessSessions }),
           ...(stderrSnippet && { stderr: stderrSnippet }),
           ...(stdoutSnippet && { stdout: stdoutSnippet }),
           activityLogPath,

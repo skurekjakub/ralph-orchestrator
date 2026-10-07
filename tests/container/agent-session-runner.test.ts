@@ -106,6 +106,25 @@ describe("AgentSessionRunner", () => {
     expect(result.stderr).toBe("some warning");
   });
 
+  it("returns the session id the last CLI run reported", async () => {
+    // Arrange
+    continuationRunner.run.mockResolvedValue({
+      lastResult: makeExecResult({ sessionId: "s-1" }),
+      combinedAgentText: "",
+      combinedStdout: "",
+      combinedStderr: "",
+    });
+
+    // Act
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-700"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
+
+    // Assert
+    expect(result.sessionId).toBe("s-1");
+  });
+
   it("passes 0 continuations when enableContinuation is false", async () => {
     await runner.run(createMockExecutor(), makeWorkItem("DF-600"), undefined, {
       maxContinuations: 5,

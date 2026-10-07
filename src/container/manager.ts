@@ -1,9 +1,10 @@
 import { execa } from "execa";
 import { toErrorMessage } from "../util/error";
 import { appendFileSync, mkdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { CliContainerLayout, ICliRuntime, ICliRuntimeRegistry } from "../cli/cli-runtime";
-import { StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
+import { type CliType, StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { WorkItem } from "../datasource/types";
 import { deriveStageProfile, type RalphResult } from "./types";
 import type { Logger } from "../logger";
@@ -56,6 +57,14 @@ export interface IContainerManager {
   executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
   /** Create the executor of a pipeline stage's CLI. */
   createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor>;
+  /**
+   * Whether the audit log holds a `session_start` record for `sessionId`, a session a container stage ran
+   * with `cli`. A missing audit log holds none.
+   *
+   * @returns Undefined when `cli`'s audit records cannot be tied to its session ids.
+   * @throws Error when the audit log exists but cannot be read.
+   */
+  sessionStartAudited(cli: CliType, sessionId: string): Promise<boolean | undefined>;
   /** Tear down all containers and associated resources. */
   stop(): Promise<void>;
   /** Per-task log collector. */
@@ -97,6 +106,7 @@ export class ContainerManager implements IContainerManager {
   private readonly profile: IAgentProfile;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
+  private readonly cliRuntimes: ICliRuntimeRegistry;
   /** Runtimes of the CLIs the variant's container stages run. */
   private readonly containerRuntimes: readonly ICliRuntime[];
   /** The executor of the stage that runs or ran last, killed on stop. */
@@ -155,6 +165,7 @@ export class ContainerManager implements IContainerManager {
     this.executorFactory = executorFactory;
     this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;
+    this.cliRuntimes = cliRuntimes;
     this.containerRuntimes = cliRuntimes.forClis(profile.containerClis);
   }
 
@@ -291,6 +302,15 @@ export class ContainerManager implements IContainerManager {
       maxContinuations: this.profile.maxContinuations,
       enableContinuation: this.enableContinuation,
     });
+  }
+
+  async sessionStartAudited(cli: CliType, sessionId: string): Promise<boolean | undefined> {
+    const auditPath = hostWorkspacePath(this.profile.repoPath, this.profile.auditLogPath);
+    const audit = await readFile(auditPath, "utf-8").catch((err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT") return "";
+      throw err;
+    });
+    return this.cliRuntimes.get(cli).sessionStartAudited(audit, sessionId);
   }
 
   /**

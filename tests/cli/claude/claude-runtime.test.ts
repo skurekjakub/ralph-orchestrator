@@ -26,6 +26,28 @@ function contribution(auth: ClaudeAuthMode, loadRepoInstructions = false) {
 }
 
 describe("ClaudeCodeRuntime", () => {
+  describe("sessionStartAudited", () => {
+    const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
+    const record = (event: string, session: string) => JSON.stringify({ schemaVersion: 2, event, session });
+
+    it("finds the session_start record of the session", () => {
+      // Arrange
+      const audit = [record("session_start", "other"), "not json", record("session_start", "s-1"), ""].join("\n");
+
+      // Act & Assert
+      expect(runtime.sessionStartAudited(audit, "s-1")).toBe(true);
+    });
+
+    it("reports false when only other sessions or other events were recorded", () => {
+      // Arrange
+      const audit = [record("session_start", "other"), record("prompt", "s-1")].join("\n");
+
+      // Act & Assert
+      expect(runtime.sessionStartAudited(audit, "s-1")).toBe(false);
+      expect(runtime.sessionStartAudited("", "s-1")).toBe(false);
+    });
+  });
+
   it("writes agents in the Claude Code format and names Claude Code's tools", () => {
     // Arrange
     const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });

@@ -97,6 +97,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
       stderr: combinedStderr,
       collectedLogs: {},
       prUrl,
+      ...(lastResult.sessionId === undefined ? {} : { sessionId: lastResult.sessionId }),
     };
   }
 }

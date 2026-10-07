@@ -110,6 +110,13 @@ export interface ICliRuntime {
   logSources(onDebugLine?: (line: string) => void): CliLogSources;
   /** A fresh decoder for the stdout of one CLI process. */
   createOutputDecoder(): ICliOutputDecoder;
+  /**
+   * Whether `auditJsonl`, the container's audit log, holds the `session_start` record Ralph's hooks write for
+   * the CLI session `sessionId`.
+   *
+   * @returns Undefined when the CLI's audit records cannot be tied to its session ids.
+   */
+  sessionStartAudited(auditJsonl: string, sessionId: string): boolean | undefined;
 }
 
 /** Resolves the runtime of a CLI. */

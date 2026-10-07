@@ -20,7 +20,10 @@ export const CLAUDE_USER_SETTINGS_PATH = `${CLAUDE_CONFIG_DIR}/settings.json`;
 /** Session transcripts Claude Code writes: `projects/<cwd slug>/<session id>.jsonl` plus subagent files. */
 export const CLAUDE_SESSIONS_DIR = `${CLAUDE_CONFIG_DIR}/projects`;
 
-/** Managed settings Claude Code reads on Linux; no user, project or flag source can override them. */
+/**
+ * Managed settings file Claude Code reads on Linux. It outranks user, project and flag settings, but when the
+ * credential's organisation delivers server-managed settings, Claude Code uses those instead.
+ */
 export const CLAUDE_MANAGED_SETTINGS_PATH = "/etc/claude-code/managed-settings.json";
 
 /** Directory the audit hooks write their logs to (`RALPH_LOG_DIR`). */

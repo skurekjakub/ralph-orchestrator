@@ -230,6 +230,7 @@ export function createMockCliRuntime(
     writeTaskArtifacts: vi.fn(),
     logSources: vi.fn().mockReturnValue({ sources: [], exports: [] }),
     createOutputDecoder: vi.fn().mockImplementation(() => new PlainTextDecoder()),
+    sessionStartAudited: vi.fn().mockReturnValue(undefined),
     ...overrides,
   } as ICliRuntime & Mocked<ICliRuntime>;
 }
@@ -281,6 +282,7 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
     registerLogSources: vi.fn(),
     executeWithExecutor: vi.fn().mockResolvedValue(result),
     createExecutorForStage: vi.fn().mockResolvedValue(createMockExecutor()),
+    sessionStartAudited: vi.fn().mockResolvedValue(true),
     stop: vi.fn().mockResolvedValue(undefined),
     cleanLogDirectory: vi.fn().mockResolvedValue(undefined),
     cleanPaths: vi.fn().mockResolvedValue(undefined),
@@ -299,6 +301,7 @@ export function createMockContainer(executeResult?: Partial<RalphResult>): {
     registerLogSources: spies.registerLogSources,
     executeWithExecutor: spies.executeWithExecutor,
     createExecutorForStage: spies.createExecutorForStage,
+    sessionStartAudited: spies.sessionStartAudited,
     stop: spies.stop,
     onToolOutput: undefined,
     onPreToolUse: undefined,

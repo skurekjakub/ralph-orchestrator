@@ -12,7 +12,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
 import { TaskStatus } from "../../src/container/types";
 import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories";
-import { createMockExecutor, createMockProfileSetupService, createSilentLogger } from "../helpers/mocks";
+import {
+  createMockExecutor,
+  createMockLogger,
+  createMockProfileSetupService,
+  createSilentLogger,
+} from "../helpers/mocks";
+import { CliType, StageMode } from "../../src/config/types";
 import type { IContainerManager } from "../../src/container/manager";
 import type { IssueContext } from "../../src/prompt/prompt";
 
@@ -29,6 +35,7 @@ function createMockContainer(executeResult?: Partial<ReturnType<typeof makeResul
     registerLogSources: vi.fn(),
     executeWithExecutor: vi.fn().mockResolvedValue(makeResult("DF-100", executeResult)),
     createExecutorForStage: vi.fn().mockResolvedValue(createMockExecutor()),
+    sessionStartAudited: vi.fn().mockResolvedValue(true),
     stop: vi.fn().mockResolvedValue(undefined),
     logs: {
       detach: vi.fn(),
@@ -101,6 +108,56 @@ describe("AgentPipelineExecutor", () => {
       const result = await pipeline.run(ctx, container, issueContext);
 
       expect(result.stageResults).toBeUndefined();
+    });
+  });
+
+  describe("audit of the managed hooks", () => {
+    it("warns and flags a container stage's session whose audit log has no session_start, without failing it", async () => {
+      // Arrange
+      const logger = createMockLogger();
+      const pipeline = new AgentPipelineExecutor({ logger, profileSetup: createMockProfileSetupService() });
+      const container = createMockContainer({ sessionId: "s-1" });
+      vi.mocked(container.sessionStartAudited).mockResolvedValue(false);
+      const ctx = makeTaskContext({ profile: makeProfile({ stages: [makeStage({ cli: CliType.Claude })] }) });
+
+      // Act
+      const result = await pipeline.run(ctx, container, issueContext);
+
+      // Assert
+      expect(container.sessionStartAudited).toHaveBeenCalledWith(CliType.Claude, "s-1");
+      expect(result.hooklessSessions).toEqual(["s-1"]);
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("no session_start for claude session s-1"));
+    });
+
+    it.each([
+      ["the audit log holds the session's start", true],
+      ["the CLI cannot tie audit records to its sessions", undefined],
+    ])("leaves the result unflagged when %s", async (_label, audited) => {
+      // Arrange
+      const { pipeline, container } = createExecutor({ executeResult: { sessionId: "s-1" } });
+      vi.mocked(container.sessionStartAudited).mockResolvedValue(audited);
+
+      // Act
+      const result = await pipeline.run(makeTaskContext(), container, issueContext);
+
+      // Assert
+      expect(result.hooklessSessions).toBeUndefined();
+    });
+
+    it("does not check a host stage or a run that reported no session id", async () => {
+      // Arrange
+      const { pipeline, container } = createExecutor({ executeResult: { sessionId: "s-1" } });
+      const local = makeProfile({ stages: [makeStage({ mode: StageMode.Local })] });
+      const { pipeline: other, container: noSession } = createExecutor();
+
+      // Act
+      await pipeline.run(makeTaskContext({ profile: local }), container, issueContext);
+      await other.run(makeTaskContext(), noSession, issueContext);
+
+      // Assert
+      expect(container.sessionStartAudited).not.toHaveBeenCalled();
+      expect(noSession.sessionStartAudited).not.toHaveBeenCalled();
     });
   });
 

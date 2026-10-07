@@ -220,7 +220,9 @@ A Copilot CLI `preToolUse` hook that runs before every tool execution. It logs e
 The scripts are mounted by the security overlay at `/workspace/.ralph/hooks/`. Each CLI's hook configuration comes from the generated overlay, only when a container stage runs that CLI:
 
 - **Copilot CLI:** `shared/hooks/ralph-audit.json` at `/workspace/.github/hooks/ralph-audit.json`, the location Copilot CLI reads repository hooks from.
-- **Claude Code:** `shared/hooks/claude/hooks.json`, embedded as the `hooks` of the managed settings at `/etc/claude-code/managed-settings.json` (read-only). The managed settings also set `allowManagedHooksOnly` (hooks from the target repo or written by the agent never run) and remove Claude Code's commit and PR attribution. No user, project or flag settings can override them.
+- **Claude Code:** `shared/hooks/claude/hooks.json`, embedded as the `hooks` of the managed settings at `/etc/claude-code/managed-settings.json` (read-only). The managed settings also set `allowManagedHooksOnly` (hooks from the target repo or written by the agent never run) and remove Claude Code's commit and PR attribution. User, project and flag settings cannot override them.
+
+  Server-managed settings can. When the Team or Enterprise organisation behind the OAuth token or API key delivers any policy key from the claude.ai admin console, Claude Code uses those settings instead of the file: managed sources do not merge, apart from a few keys such as `env` ([server-managed settings](https://code.claude.com/docs/en/server-managed-settings)). Ralph's hooks, `allowManagedHooksOnly` and the attribution setting then no longer apply, and nothing in the container can prevent it. After each Claude Code container stage the orchestrator looks for the stage session's `session_start` record in the audit log. When it is missing, the orchestrator logs a warning and lists the session under `hooklessSessions` in the task's execution summary; the task still finishes.
 
 **Limitations:**
 

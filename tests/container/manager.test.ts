@@ -5,7 +5,7 @@
  * executors, log collection and the session runner are mocks, the CLI runtimes are mock runtimes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ContainerManager } from "../../src/container/manager";
@@ -418,6 +418,38 @@ describe("ContainerManager", () => {
         maxContinuations: 3,
         enableContinuation: true,
       });
+    });
+  });
+
+  describe("sessionStartAudited", () => {
+    const AUDIT = '{"event":"session_start","session":"s-1"}\n';
+
+    it("asks the stage CLI's runtime about the target repo's audit log", async () => {
+      // Arrange
+      mkdirSync(join(tempDir, ".ralph", "logs"), { recursive: true });
+      writeFileSync(join(tempDir, ".ralph", "logs", "audit.jsonl"), AUDIT);
+      claudeRuntime.sessionStartAudited.mockReturnValue(true);
+      const { manager } = createHarness(mixedProfile);
+
+      // Act
+      const audited = await manager.sessionStartAudited(CliType.Claude, "s-1");
+
+      // Assert
+      expect(audited).toBe(true);
+      expect(claudeRuntime.sessionStartAudited).toHaveBeenCalledWith(AUDIT, "s-1");
+    });
+
+    it("hands the runtime an empty audit log when the hooks never wrote one", async () => {
+      // Arrange
+      claudeRuntime.sessionStartAudited.mockReturnValue(false);
+      const { manager } = createHarness(mixedProfile);
+
+      // Act
+      const audited = await manager.sessionStartAudited(CliType.Claude, "s-1");
+
+      // Assert
+      expect(audited).toBe(false);
+      expect(claudeRuntime.sessionStartAudited).toHaveBeenCalledWith("", "s-1");
     });
   });
 

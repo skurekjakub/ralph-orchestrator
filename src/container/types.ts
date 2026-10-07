@@ -127,4 +127,12 @@ export interface RalphResult {
   prUrl?: string;
   /** Per-stage results when running a multi-stage pipeline. */
   stageResults?: StageResult[];
+  /** CLI session id the run's last CLI process reported, when its CLI reports one. */
+  sessionId?: string;
+  /**
+   * Session ids of container stages whose audit log has no `session_start` record: Ralph's hooks did not
+   * run for them, e.g. because an organisation's server-managed settings replaced Claude Code's managed
+   * settings file.
+   */
+  hooklessSessions?: string[];
 }
