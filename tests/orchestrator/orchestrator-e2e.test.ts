@@ -104,9 +104,9 @@ describe("Orchestrator E2E loop (mock deps)", () => {
 
   it.each([
     [
-      "ended without its result block",
+      "ended without its result",
       { failureReason: FailureReason.MissingResultBlock, exitCode: 0 },
-      "The agent finished without the ===RALPH_RESULT_START=== … ===RALPH_RESULT_END=== result block its stage requires",
+      "The agent finished without reporting the result its stage requires",
     ],
     [
       "could not authenticate",
