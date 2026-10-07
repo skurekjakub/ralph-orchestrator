@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
 import { join } from "node:path";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
+import type { TaskLogFileKey, TaskLogGroup } from "./types";
 
 /**
  * Vite plugin that serves the log browsing API from the dev server.
@@ -41,20 +42,50 @@ export function createLogApiMiddleware(logDir: string) {
   };
 }
 
-interface TaskLogGroup {
-  id: string;
-  taskId: string;
-  timestamp?: number;
-  files: {
-    log?: string;
-    summary?: string;
-    audit?: string;
-    transcript?: string;
-    toolOutput?: string;
-    preTool?: string;
-    cliDebug?: string;
-  };
-  summary?: Record<string, unknown>;
+/**
+ * Single-file logs a task group exposes, by the source id and extension the orchestrator names them with
+ * (`<taskId>-<ts>-<sourceId>.<ext>`). A file whose source id carries a stage role (`-primary-cli-debug`)
+ * belongs to one stage of a pipeline and is left out.
+ */
+const TASK_FILE_SOURCES: ReadonlyArray<{ sourceId: string; ext: string; key: TaskLogFileKey }> = [
+  { sourceId: "summary", ext: "json", key: "summary" },
+  { sourceId: "transcript", ext: "md", key: "transcript" },
+  { sourceId: "claude-transcript", ext: "md", key: "claudeTranscript" },
+  { sourceId: "tool-output", ext: "log", key: "toolOutput" },
+  { sourceId: "pre-tool", ext: "log", key: "preTool" },
+  { sourceId: "cli-debug", ext: "log", key: "cliDebug" },
+  { sourceId: "claude-cli-debug", ext: "log", key: "claudeCliDebug" },
+  { sourceId: "claude-run-telemetry", ext: "json", key: "claudeRunTelemetry" },
+];
+
+/** Source id of the folder the Claude Code session logs are exported to (`<taskId>-<ts>-claude-sessions/`). */
+const CLAUDE_SESSIONS_SOURCE_ID = "claude-sessions";
+
+/** A collected file's name (`<taskId>-<ts>[-<sourceId>].<ext>`), split; null for a name of any other shape. */
+function parseCollectedFileName(fileName: string): { sourceId?: string; ext: string } | null {
+  const match = fileName.match(/^.+-(\d+)(?:-(.+))?\.(.+)$/);
+  return match ? { sourceId: match[2], ext: match[3] } : null;
+}
+
+/** The task-file key of a collected file, or undefined when no group exposes it. */
+function taskFileKey({ sourceId, ext }: { sourceId?: string; ext: string }): TaskLogFileKey | undefined {
+  if (ext === "log" && !sourceId) return "log";
+  if (ext === "jsonl") return "audit";
+  return TASK_FILE_SOURCES.find((source) => source.sourceId === sourceId && source.ext === ext)?.key;
+}
+
+/** Whether a folder name is a task's Claude Code session export. */
+function isClaudeSessionsFolder(folderName: string): boolean {
+  return folderName.match(/^.+-\d+-(.+)$/)?.[1] === CLAUDE_SESSIONS_SOURCE_ID;
+}
+
+/** Every regular file under `dir`, relative to it; symbolic links are not followed. */
+function listFilesUnder(dir: string, prefix = ""): string[] {
+  return readdirSync(join(dir, prefix), { withFileTypes: true }).flatMap((entry) => {
+    const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) return listFilesUnder(dir, relPath);
+    return entry.isFile() ? [relPath] : [];
+  });
 }
 
 function handleLogList(logDir: string, res: import("node:http").ServerResponse) {
@@ -84,33 +115,23 @@ function handleLogList(logDir: string, res: import("node:http").ServerResponse) 
       const dirMatch = entry.match(/^(.+?)-(\d{13,})$/);
       const dirTaskId = dirMatch ? dirMatch[1] : entry;
       const dirTimestamp = dirMatch ? Number(dirMatch[2]) : undefined;
-
-      const files = readdirSync(entryPath).filter((f) => statSync(join(entryPath, f)).isFile());
-
-      for (const file of files) {
-        const relPath = `${entry}/${file}`;
-        const match = file.match(/^.+-(\d+)(?:-(.+))?\.(.+)$/);
-        if (!match) continue;
-
-        const [, , suffix, ext] = match;
-
+      const groupFiles = () => {
         if (!taskMap.has(entry)) {
-          taskMap.set(entry, {
-            id: entry,
-            taskId: dirTaskId,
-            timestamp: dirTimestamp,
-            files: {},
-          });
+          taskMap.set(entry, { id: entry, taskId: dirTaskId, timestamp: dirTimestamp, files: {} });
         }
+        return taskMap.get(entry)!.files;
+      };
 
-        const group = taskMap.get(entry)!;
-        if (ext === "log" && !suffix) group.files.log = relPath;
-        else if (ext === "json" && suffix === "summary") group.files.summary = relPath;
-        else if (ext === "jsonl") group.files.audit = relPath;
-        else if (suffix === "transcript" && ext === "md") group.files.transcript = relPath;
-        else if (suffix === "tool-output" && ext === "log") group.files.toolOutput = relPath;
-        else if (suffix === "pre-tool" && ext === "log") group.files.preTool = relPath;
-        else if (suffix === "cli-debug" && ext === "log") group.files.cliDebug = relPath;
+      for (const item of readdirSync(entryPath, { withFileTypes: true })) {
+        const relPath = `${entry}/${item.name}`;
+        const collected = item.isFile() ? parseCollectedFileName(item.name) : null;
+        if (collected) {
+          const files = groupFiles();
+          const key = taskFileKey(collected);
+          if (key) files[key] = relPath;
+        } else if (item.isDirectory() && isClaudeSessionsFolder(item.name)) {
+          groupFiles().claudeSessions = { dir: relPath, files: listFilesUnder(join(entryPath, item.name)).sort() };
+        }
       }
     }
 

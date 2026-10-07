@@ -1,4 +1,4 @@
-import type { TaskLogGroup } from "../../types";
+import type { TaskLogFileKey, TaskLogGroup } from "../../types";
 
 export function formatDate(ts?: number): string {
   if (!ts) return "";
@@ -18,13 +18,17 @@ export const statusBadge: Record<string, string> = {
   blocked: "bg-dim/15 text-dim",
 };
 
-export const fileLabels: Record<string, { label: string; icon: string }> = {
+/** Button label and icon of each task file the execution row opens in the file viewer, in display order. */
+export const fileLabels: Partial<Record<TaskLogFileKey, { label: string; icon: string }>> = {
   log: { label: "Log", icon: "📄" },
   summary: { label: "Summary", icon: "📊" },
   audit: { label: "Audit", icon: "🔍" },
   transcript: { label: "Transcript", icon: "💬" },
+  claudeTranscript: { label: "Claude Transcript", icon: "💬" },
   toolOutput: { label: "Tool Output", icon: "🔧" },
   preTool: { label: "Tool Log", icon: "📋" },
+  claudeRunTelemetry: { label: "Run Telemetry", icon: "📈" },
+  claudeCliDebug: { label: "Claude Debug Log", icon: "🐞" },
 };
 
 export interface IssueGroup {

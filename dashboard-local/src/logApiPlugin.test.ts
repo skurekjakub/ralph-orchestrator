@@ -1,9 +1,10 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { createLogApiMiddleware } from "./logApiPlugin";
+import type { TaskLogGroup } from "./types";
 
 function makeResponse() {
   const response = {
@@ -26,6 +27,12 @@ function makeResponse() {
     headers: Record<string, string>;
     statusCode: number;
   };
+}
+
+function get(logDir: string, url: string) {
+  const res = makeResponse();
+  createLogApiMiddleware(logDir)({ url } as IncomingMessage & { url?: string }, res, () => {});
+  return res;
 }
 
 const tempDirs: string[] = [];
@@ -89,6 +96,112 @@ describe("logApiPlugin", () => {
     expect(invalidRes.body).toBe("Invalid filename");
   });
 
+  describe("Claude Code run files", () => {
+    const TASK_DIR = "DF-1-1791352800000";
+    const PREFIX = `${TASK_DIR}-1791353200000`;
+
+    /** Writes `files` (paths relative to the task folder) into a fresh log directory. */
+    function writeTaskFiles(files: Record<string, string>): string {
+      const logDir = makeTempLogDir();
+      for (const [relPath, content] of Object.entries(files)) {
+        const path = join(logDir, TASK_DIR, relPath);
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, content);
+      }
+      return logDir;
+    }
+
+    function listGroups(logDir: string): TaskLogGroup[] {
+      return JSON.parse(get(logDir, "/api/logs").body) as TaskLogGroup[];
+    }
+
+    it("groups the transcript, debug log, run telemetry and session export with their task", () => {
+      // Arrange
+      const logDir = writeTaskFiles({
+        [`${PREFIX}-summary.json`]: JSON.stringify({ status: "completed" }),
+        [`${PREFIX}-transcript.md`]: "# Claude Code transcript",
+        [`${PREFIX}-claude-cli-debug.log`]: "debug",
+        [`${PREFIX}-claude-run-telemetry.json`]: "{}",
+        [`${PREFIX}-claude-sessions/-workspace/s1.jsonl`]: "{}",
+        [`${PREFIX}-claude-sessions/-workspace/s1/subagents/agent-a1.jsonl`]: "{}",
+        [`${PREFIX}-claude-sessions/-workspace/s1/subagents/agent-a1.meta.json`]: "{}",
+      });
+
+      // Act
+      const groups = listGroups(logDir);
+
+      // Assert
+      expect(groups).toHaveLength(1);
+      expect(groups[0].files).toEqual({
+        summary: `${TASK_DIR}/${PREFIX}-summary.json`,
+        transcript: `${TASK_DIR}/${PREFIX}-transcript.md`,
+        claudeCliDebug: `${TASK_DIR}/${PREFIX}-claude-cli-debug.log`,
+        claudeRunTelemetry: `${TASK_DIR}/${PREFIX}-claude-run-telemetry.json`,
+        claudeSessions: {
+          dir: `${TASK_DIR}/${PREFIX}-claude-sessions`,
+          files: [
+            "-workspace/s1.jsonl",
+            "-workspace/s1/subagents/agent-a1.jsonl",
+            "-workspace/s1/subagents/agent-a1.meta.json",
+          ],
+        },
+      });
+    });
+
+    it("keeps the Claude Code transcript and debug log apart from Copilot's when one run has both", () => {
+      // Arrange
+      const logDir = writeTaskFiles({
+        [`${PREFIX}-transcript.md`]: "copilot",
+        [`${PREFIX}-claude-transcript.md`]: "claude",
+        [`${PREFIX}-cli-debug.log`]: "copilot",
+        [`${PREFIX}-claude-cli-debug.log`]: "claude",
+      });
+
+      // Act
+      const [group] = listGroups(logDir);
+
+      // Assert
+      expect(group.files).toEqual({
+        transcript: `${TASK_DIR}/${PREFIX}-transcript.md`,
+        claudeTranscript: `${TASK_DIR}/${PREFIX}-claude-transcript.md`,
+        cliDebug: `${TASK_DIR}/${PREFIX}-cli-debug.log`,
+        claudeCliDebug: `${TASK_DIR}/${PREFIX}-claude-cli-debug.log`,
+      });
+    });
+
+    it("leaves out the files and exports a pipeline stage collected under its role", () => {
+      // Arrange
+      const logDir = writeTaskFiles({
+        [`${PREFIX}-summary.json`]: "{}",
+        [`${PREFIX}-primary-claude-cli-debug.log`]: "debug",
+        [`${PREFIX}-primary-claude-sessions/-workspace/s1.jsonl`]: "{}",
+        [`${PREFIX}-artifacts/plan.md`]: "plan",
+      });
+
+      // Act
+      const [group] = listGroups(logDir);
+
+      // Assert
+      expect(group.files).toEqual({ summary: `${TASK_DIR}/${PREFIX}-summary.json` });
+    });
+
+    it("serves a session log from inside the export", () => {
+      // Arrange
+      const logDir = writeTaskFiles({ [`${PREFIX}-claude-sessions/-workspace/s1.jsonl`]: '{"type":"user"}' });
+
+      // Act
+      const res = get(
+        logDir,
+        `/api/logs/${encodeURIComponent(`${TASK_DIR}/${PREFIX}-claude-sessions/-workspace/s1.jsonl`)}`,
+      );
+
+      // Assert
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["Content-Type"]).toContain("application/x-ndjson");
+      expect(res.body).toBe('{"type":"user"}');
+    });
+  });
+
   describe("operation ledger history", () => {
     function makeLedger(status: string) {
       return { operations: [{ id: `op-${status}`, status }] };
@@ -99,12 +212,6 @@ describe("logApiPlugin", () => {
       const sourceDir = join(logDir, "history", dataSource);
       mkdirSync(sourceDir, { recursive: true });
       writeFileSync(join(sourceDir, `${issueKey}.json`), content);
-    }
-
-    function get(logDir: string, url: string) {
-      const res = makeResponse();
-      createLogApiMiddleware(logDir)({ url } as IncomingMessage & { url?: string }, res, () => {});
-      return res;
     }
 
     it("lists ledger files from every data-source directory", () => {

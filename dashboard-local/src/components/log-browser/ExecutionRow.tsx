@@ -1,7 +1,8 @@
-import type { TaskLogGroup } from "../../types";
+import type { TaskLogFileKey, TaskLogGroup } from "../../types";
 import { formatMs } from "./tool-timeline-shared";
 import { formatDate, statusBadge, fileLabels } from "./utils";
 import { Button, ButtonVariant, ButtonSize } from "../Button";
+import { SessionFileList } from "./SessionFileList";
 
 export function ExecutionRow({
   group,
@@ -36,10 +37,11 @@ export function ExecutionRow({
       </div>
 
       <div className="flex gap-1.5 flex-wrap">
-        {(Object.keys(fileLabels) as Array<keyof typeof fileLabels>).map((key) => {
-          const filename = group.files[key as keyof typeof group.files];
-          if (!filename) return null;
-          const { label, icon } = fileLabels[key];
+        {(Object.keys(fileLabels) as TaskLogFileKey[]).map((key) => {
+          const filename = group.files[key];
+          const fileLabel = fileLabels[key];
+          if (!filename || !fileLabel) return null;
+          const { label, icon } = fileLabel;
           return (
             <Button
               key={key}
@@ -65,6 +67,10 @@ export function ExecutionRow({
           </Button>
         )}
       </div>
+
+      {group.files.claudeSessions && (
+        <SessionFileList folder={group.files.claudeSessions} onSelectFile={onSelectFile} />
+      )}
     </div>
   );
 }
