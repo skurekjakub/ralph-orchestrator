@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { parseResultBlock } from "../../src/container/result-parser";
+import { TaskStatus } from "../../src/container/types";
 import { HookSandbox, loadPayloads, type HookRun } from "./hook-harness";
 
 const GATE = "claude/result-gate.sh";
@@ -9,7 +11,13 @@ const SESSION = "92997de5-bf09-4b78-993c-bc33d66e925e";
 const RESULT_BLOCK = "===RALPH_RESULT_START===\nSTATUS: completed\nPR_URL: none\n===RALPH_RESULT_END===";
 const PROMPT =
   "Process DOC-3141. When you finish, print:\n===RALPH_RESULT_START===\nSTATUS: <status>\n===RALPH_RESULT_END===";
+const NBSP = String.fromCharCode(0xa0);
 const GATE_ON = { RALPH_REQUIRE_RESULT_BLOCK: "1" };
+const ACCEPTED_STATUSES: readonly (string | undefined)[] = [
+  TaskStatus.Completed,
+  TaskStatus.Partial,
+  TaskStatus.Blocked,
+];
 
 const stop = loadPayloads("claude").stop;
 
@@ -59,13 +67,18 @@ describe("claude/result-gate.sh", () => {
     expect(run.stderr).toBe("");
     const decision = JSON.parse(run.stdout);
     expect(decision.decision).toBe("block");
-    expect(decision.reason).toContain("===RALPH_RESULT_START===");
-    expect(decision.reason).toContain("===RALPH_RESULT_END===");
+    expect(decision.reason).toContain("result block");
+    expect(decision.reason).not.toContain("===RALPH_RESULT_");
   }
 
   function expectAllowed(run: HookRun): void {
     expect(run.exitCode).toBe(0);
     expect(run.stdout).toBe("");
+  }
+
+  /** The gate's decision as one word, so a table can name the expected outcome. */
+  function decisionOf(run: HookRun): "allows" | "blocks" {
+    return JSON.parse(run.stdout || "{}").decision === "block" ? "blocks" : "allows";
   }
 
   describe("when the stage does not require a result block", () => {
@@ -93,9 +106,7 @@ describe("claude/result-gate.sh", () => {
           max: 2,
         }),
       ]);
-      expect(sandbox.read("ralph.log")).toBe(
-        "[RALPH] Result gate blocked stop 1/2: no ===RALPH_RESULT_END=== block yet\n",
-      );
+      expect(sandbox.read("ralph.log")).toBe("[RALPH] Result gate blocked stop 1/2: no result block yet\n");
       expect(sandbox.read(`.result-gate-${SESSION}`)).toBe("1\n");
     });
 
@@ -190,6 +201,86 @@ describe("claude/result-gate.sh", () => {
   });
 
   describe("text that does not count as the block", () => {
+    it("blocks a reply that quotes both markers without a status", async () => {
+      // Arrange
+      const paraphrase =
+        "I ended without the ===RALPH_RESULT_START=== ... ===RALPH_RESULT_END=== block; I will print it next time.";
+
+      // Act
+      const run = await runGate({ last_assistant_message: paraphrase });
+
+      // Assert
+      expectBlocked(run);
+    });
+
+    it("blocks a reply that repeats the gate's own reason", async () => {
+      // Arrange
+      const first = await runGate();
+      const reason: string = JSON.parse(first.stdout).reason;
+
+      // Act
+      const second = await runGate({ stop_hook_active: true, last_assistant_message: `Understood: ${reason}` });
+
+      // Assert
+      expectBlocked(second);
+    });
+
+    it("blocks a quoted paraphrase in the transcript even after a later real block", async () => {
+      // Arrange
+      const transcript = writeTranscript([
+        transcriptMessage("user", PROMPT),
+        assistantText("Plan: finish, then print ===RALPH_RESULT_START=== with the fields ===RALPH_RESULT_END==="),
+        assistantText(RESULT_BLOCK),
+        assistantText("Done."),
+      ]);
+
+      // Act
+      const run = await runGate({ transcript_path: transcript, last_assistant_message: "Done." });
+
+      // Assert
+      expectBlocked(run);
+    });
+
+    it.each([
+      ["a recognised status", "allows", "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END==="],
+      ["a lower-case key", "allows", "===RALPH_RESULT_START===\nstatus: partial\n===RALPH_RESULT_END==="],
+      ["the value on the next line", "allows", "===RALPH_RESULT_START===\nSTATUS:\n  blocked\n===RALPH_RESULT_END==="],
+      [
+        "non-breaking spaces around the value",
+        "allows",
+        `===RALPH_RESULT_START===STATUS:${NBSP}blocked${NBSP}===RALPH_RESULT_END===`,
+      ],
+      ["no status line", "blocks", "===RALPH_RESULT_START===\nPR_URL: none\n===RALPH_RESULT_END==="],
+      ["an unrecognised status", "blocks", "===RALPH_RESULT_START===\nSTATUS: success\n===RALPH_RESULT_END==="],
+      ["a capitalised status", "blocks", "===RALPH_RESULT_START===\nSTATUS: Completed\n===RALPH_RESULT_END==="],
+      ["trailing punctuation", "blocks", "===RALPH_RESULT_START===\nSTATUS: completed.\n===RALPH_RESULT_END==="],
+      [
+        "an empty status before the next key",
+        "blocks",
+        "===RALPH_RESULT_START===\nSTATUS:\nPR_URL: none\n===RALPH_RESULT_END===",
+      ],
+      [
+        "an empty first pair before a real block",
+        "blocks",
+        "===RALPH_RESULT_START=== ===RALPH_RESULT_END===\n===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===",
+      ],
+      [
+        "the status after the end marker",
+        "blocks",
+        "===RALPH_RESULT_START===\n===RALPH_RESULT_END===\nSTATUS: completed",
+      ],
+    ])("%s: %s the stop, as parseResultBlock would", async (_label, decision, text) => {
+      // Arrange
+      const parserDecision = ACCEPTED_STATUSES.includes(parseResultBlock(text).agentStatus) ? "allows" : "blocks";
+
+      // Act
+      const run = await runGate({ last_assistant_message: text });
+
+      // Assert
+      expect(parserDecision).toBe(decision);
+      expect(decisionOf(run)).toBe(decision);
+    });
+
     it("ignores the markers quoted in the user prompt and queue entries", async () => {
       const transcript = writeTranscript([
         JSON.stringify({ type: "queue-operation", operation: "enqueue", content: RESULT_BLOCK, sessionId: SESSION }),

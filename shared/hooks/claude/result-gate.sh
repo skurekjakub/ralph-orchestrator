@@ -87,4 +87,4 @@ blocks=$((blocks + 1))
 printf '%s\n' "$blocks" >"$counter"
 ralph_normalize result_gate_block "{\"blocks\":$blocks,\"max\":$max}"
 ralph_write
-printf '%s\n' '{"decision":"block","reason":"You ended without the ===RALPH_RESULT_START=== ... ===RALPH_RESULT_END=== block. Check state.md, finish remaining work, then print the block exactly as specified."}'
+printf '%s\n' '{"decision":"block","reason":"You stopped before printing the Ralph result block. Check state.md, finish the remaining work, then print the result block exactly as your instructions specify, with a STATUS of completed, partial or blocked."}'

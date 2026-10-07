@@ -107,7 +107,7 @@ def adapt:
     elif $event == "result_gate_block" then
       {
         record: ($base + $extra),
-        logLine: "[RALPH] Result gate blocked stop \($extra.blocks)/\($extra.max): no ===RALPH_RESULT_END=== block yet"
+        logLine: "[RALPH] Result gate blocked stop \($extra.blocks)/\($extra.max): no result block yet"
       }
     elif $event == "result_gate_exhausted" then
       {
