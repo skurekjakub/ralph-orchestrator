@@ -1,8 +1,7 @@
 ---
+name: stacky-test-writer
 description: 'Test writer sub-agent — creates unit and integration tests for code changes'
-model: claude-opus-4.6
-name: 'stacky-test-writer'
-user-invocable: false
+model: opus
 ---
 
 {% section "agent-identity" %}

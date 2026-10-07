@@ -45,8 +45,8 @@ Phase 1: Setup
 | Reviewer | Verdict | Findings |
 |---|---|---|
 | malph-reviewer-opus | pending | — |
-| malph-reviewer-gpt | pending | — |
-| malph-reviewer-gemini | pending | — |
+| malph-reviewer-sonnet | pending | — |
+| malph-reviewer-fable | pending | — |
 
 ## Panel Verdict
 (will be aggregated after all reviewers complete)

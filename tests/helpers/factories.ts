@@ -24,6 +24,9 @@ import type { TemplateContext } from "../../src/container/setup/agent-includes";
 import type { TaskContext } from "../../src/services/task-context";
 import { AuditMode } from "../../src/prompt/prompt-auditor";
 import { slugifyBranchName } from "../../src/util/branch";
+import { cliToolNamesFor } from "../../src/cli/cli-tools";
+import { agentFrontmatterSchema, type AgentSource } from "../../src/cli/agent-definition";
+import type { AgentDefinition } from "../../src/cli/agent-file-writer";
 
 // ── JIRA data ────────────────────────────────────────────────────────────────
 
@@ -276,11 +279,13 @@ export function makeCompletion(key: string, overrides: Partial<CompletedTask> = 
 
 /** Create a minimal TemplateContext for testing. */
 export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): TemplateContext {
+  const cli = overrides.cli ?? CliType.Copilot;
   return {
     profileId: "ralph-default",
     repo: "/tmp/test-repo",
     targetRepoPath: "/tmp/test-repo",
-    cli: "copilot",
+    cli,
+    cliTools: cliToolNamesFor(cli),
     model: "",
     agentName: "ralph",
     displayName: "ralph",
@@ -318,6 +323,53 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
     },
     ...overrides,
   };
+}
+
+// ── Agent templates ──────────────────────────────────────────────────────────
+
+/** Frontmatter fields of {@link makeAgentTemplate}; arrays are written as flow sequences. */
+export interface AgentTemplateFields {
+  readonly description?: string;
+  readonly model?: string;
+  readonly subagents?: readonly string[];
+  readonly runtimes?: readonly string[];
+  readonly skills?: readonly string[];
+  /** Extra raw frontmatter lines, written verbatim after the fields above. */
+  readonly extraLines?: readonly string[];
+  readonly body?: string;
+}
+
+/** The text of a canonical `*.agent.md` template named `name`. */
+export function makeAgentTemplate(name: string, fields: AgentTemplateFields = {}): string {
+  const lines = [`name: ${name}`, `description: '${fields.description ?? `The ${name} agent`}'`];
+  if (fields.model !== undefined) lines.push(`model: ${fields.model}`);
+  if (fields.subagents) lines.push(`subagents: [${fields.subagents.join(", ")}]`);
+  if (fields.runtimes) lines.push(`runtimes: [${fields.runtimes.join(", ")}]`);
+  if (fields.skills) lines.push(`skills: [${fields.skills.join(", ")}]`);
+  lines.push(...(fields.extraLines ?? []));
+  return `---\n${lines.join("\n")}\n---\n${fields.body ?? `Body of ${name}.\n`}`;
+}
+
+/** A parsed {@link AgentSource}; `frontmatter` is schema-defaulted from the given fields. */
+export function makeAgentSource(
+  fileId: string,
+  frontmatter: Partial<AgentSource["frontmatter"]> & { name: string },
+  bodyTemplate = "Body.\n",
+): AgentSource {
+  return {
+    fileId,
+    frontmatter: agentFrontmatterSchema.parse({ description: `The ${frontmatter.name} agent`, ...frontmatter }),
+    bodyTemplate,
+  };
+}
+
+/** A rendered {@link AgentDefinition} with file id `ralph.<name>`; `frontmatter` is schema-defaulted. */
+export function makeAgentDefinition(
+  frontmatter: Partial<AgentSource["frontmatter"]> & { name: string },
+  body = "\nBody.\n",
+): AgentDefinition {
+  const { fileId, frontmatter: parsed } = makeAgentSource(`ralph.${frontmatter.name}`, frontmatter);
+  return { ...parsed, fileId, body };
 }
 
 // ── Task context ─────────────────────────────────────────────────────────────

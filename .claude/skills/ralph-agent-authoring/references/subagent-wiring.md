@@ -13,7 +13,7 @@ Answer these before editing: Who calls it, the orchestrator or another subagent?
 | Phase owner (researcher, writer/coder, scribe) | Owns a pipeline step                             | `researched`/`implemented`/`partial`/`composed` | Orchestrator roster, routing, ordering; downstream readers                                     |
 | Reviewer                                       | Approval-style verdict, may loop                 | `approved`/`needs-revision` (or `pass`/`fail`)  | Review gate, loop cap, writer reads its findings on later iterations, scribe includes verdicts |
 | Scout / analyst                                | Gathers context for a downstream owner           | `scouted`/`analyzed`/`blocked`                  | Writer/reviewer read its artifact                                                              |
-| Helper / validator                             | Called by another subagent, not the orchestrator | helper-specific                                 | Parent subagent's `agents:` list and prompt only                                               |
+| Helper / validator                             | Called by another subagent, not the orchestrator | helper-specific                                 | Parent subagent's `subagents:` list and prompt only                                            |
 | Scribe / aggregator                            | Composes handoff from upstream artifacts         | `composed`/`partial`                            | Remove inline handoff composition from the orchestrator                                        |
 
 Model new prompts on the live families: `profiles/ralph-docs/agents/` (ralph, malph) and `profiles/ralph-vscode/agents/` (ralph, malph, robinson/vasco explorers).
@@ -21,12 +21,12 @@ Model new prompts on the live families: `profiles/ralph-docs/agents/` (ralph, ma
 ## File-by-file checklist
 
 1. **New prompt** `profiles/<id>/agents/ralph.<name>.agent.md`:
-   - frontmatter `name: '<name>'`, `description`, `model`, `user-invocable: false` (plus `agents:` if it dispatches helpers)
+   - canonical frontmatter: `name: <name>`, `description`, `model` (alias such as `opus`), plus `subagents: [...]` if it dispatches helpers
    - `{% section "artifact-contract" %}{% render 'agent-as-function-contract' %}{% endsection %}`
    - result-code table (small, stable, routable; never a vague `done`)
    - inputs (only the artifacts it needs, under `{{ artifactDir }}/…`), outputs (`{{ artifactDir }}/<name>/output.md` + `status.json` + manifest append)
    - narrow mission and explicit "you do not …" boundaries
-2. **Orchestrator frontmatter**: add `<name>` to `agents: [...]`. If you miss this, the subagent cannot be dispatched.
+2. **Orchestrator frontmatter**: add `<name>` to `subagents: [...]`. If you miss this, the subagent is not rendered and cannot be dispatched.
 3. **Orchestrator roster** (`### Subagents` table): add a row, and fix any adjacent rows whose ownership changed.
 4. **Routing table**: add a route into the subagent from its predecessor state and a row for **every** result code it can return. Update successor routes.
 5. **Ordering constraints**: add hard "X must run before Y" rules where needed.

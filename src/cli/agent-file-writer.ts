@@ -1,27 +1,10 @@
-import type { CliType, ReasoningEffort } from "../config/types";
+import type { CliType } from "../config/types";
+import type { AgentFrontmatter } from "./agent-definition";
 
 /** One agent of a profile in its canonical, CLI-neutral form, with its Liquid body already rendered. */
-export interface AgentDefinition {
+export interface AgentDefinition extends AgentFrontmatter {
   /** Agent file name without `.agent.md` (e.g. `ralph.ralph`); stages reference agents by it. */
   readonly fileId: string;
-  /** Frontmatter `name` the CLI resolves the agent by (e.g. `ralph`). */
-  readonly name: string;
-  readonly description: string;
-  /** A Claude Code alias or full id, or `inherit` for a subagent that runs its parent's model. */
-  readonly model?: string;
-  /** Frontmatter names of the subagents this agent may spawn. */
-  readonly subagents: readonly string[];
-  /** Built-in tools the agent may use; undefined means the runtime's default set. */
-  readonly tools?: readonly string[];
-  /** Skills Claude Code preloads into the agent's context. */
-  readonly skills: readonly string[];
-  readonly effort?: ReasoningEffort;
-  /** Turn cap for one run of the agent. */
-  readonly maxTurns?: number;
-  /** CLIs the agent can be rendered for. */
-  readonly runtimes: readonly CliType[];
-  /** Copilot-only overrides. */
-  readonly copilot: { readonly model?: string };
   /** Rendered markdown body: the agent's system prompt. */
   readonly body: string;
 }
@@ -30,9 +13,12 @@ export interface AgentDefinition {
 export interface AgentWriteContext {
   /** True for the stage's root agent (`stages[].agent`). */
   readonly isStageRoot: boolean;
-  /** Frontmatter names of every agent reachable from the stage root, root excluded. */
+  /** Names of every agent reachable from the stage root, root excluded, root's own subagents first. */
   readonly stageSubagents: readonly string[];
-  /** Tool names of each MCP server the stage's variant runs, keyed by server name. */
+  /**
+   * Allowlisted tool names of each MCP server the stage's variant runs, keyed by server name. An
+   * empty list means the server allows every tool it exposes.
+   */
   readonly mcpTools: Readonly<Record<string, readonly string[]>>;
 }
 
@@ -56,9 +42,18 @@ export interface IAgentFileWriter {
 
 /** Subagent edges between one profile's agents, keyed by agent file id. */
 export interface AgentGraph {
-  /** File ids of `rootFileId` and of every agent reachable from it through `subagents`, root first. */
+  /**
+   * File ids of `rootFileId` and of every agent reachable from it through `subagents`, root first,
+   * then breadth-first.
+   *
+   * @throws Error when the profile has no agent `rootFileId`.
+   */
   reachableFrom(rootFileId: string): readonly string[];
-  /** Length of the longest subagent chain below `rootFileId`; 0 for an agent without subagents. */
+  /**
+   * Length of the longest subagent chain below `rootFileId`; 0 for an agent without subagents.
+   *
+   * @throws Error when the profile has no agent `rootFileId`.
+   */
   depthFrom(rootFileId: string): number;
 }
 
@@ -66,10 +61,8 @@ export interface AgentGraph {
 export interface AgentRenderTarget {
   /** CLI the stage runs; selects the agent file writer. */
   readonly cli: CliType;
-  /** File id of the stage's root agent (`stages[].agent`). */
+  /** File id of the stage's root agent (`stages[].agent`); only agents reachable from it are rendered. */
   readonly rootAgentFileId: string;
-  /** Host directory that receives the rendered agent files. */
+  /** Host directory that receives the rendered agent files; synced in place, its own inode kept. */
   readonly outDir: string;
-  /** The profile's agent graph; only agents reachable from the root are rendered. */
-  readonly agentGraph: AgentGraph;
 }

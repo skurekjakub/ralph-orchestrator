@@ -163,12 +163,10 @@ async function main() {
 
         logger.info(`${stageLabel} Rendering templates...`);
         await cradle.profileSetup.prepareForStage(ctx, {
+          stage,
           stageIndex: i,
           stageCount: hook.stages.length,
-          stageRole: stage.role,
-          stageMode: stage.mode,
           previousStageRoles: completedRoles,
-          skills: stage.skills,
           hook: {
             collectedLogs: result.collectedLogs,
             name: hook.name,

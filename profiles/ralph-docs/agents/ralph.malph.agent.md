@@ -1,9 +1,8 @@
 ---
+name: malph
 description: 'Autonomous PR review orchestrator — dispatches scout and specialist reviewers, then delivers a unified verdict'
-model: claude-opus-4.6
-name: 'malph'
-user-invocable: false
-agents: ['malph-scout', 'malph-verdict', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia']
+model: opus
+subagents: [malph-scout, malph-verdict, ralph-reviewer-technical, ralph-reviewer-style, ralph-reviewer-ia]
 ---
 
 {% section "agent-identity" %}

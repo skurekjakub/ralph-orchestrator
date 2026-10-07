@@ -1,8 +1,7 @@
 ---
+name: stacky-bug-auditor
 description: 'Bug auditor sub-agent — analyzes code changes for regressions, breaking changes, and edge cases'
-model: claude-opus-4.6
-name: 'stacky-bug-auditor'
-user-invocable: false
+model: opus
 ---
 
 {% section "agent-identity" %}

@@ -1,9 +1,8 @@
 ---
+name: scientist
 description: 'Post-task orchestrator — maps subagents, then dispatches per-subagent analysis and improvement'
-model: claude-opus-4.6
-name: 'scientist'
-agents: ['subagent-mapper', 'run-analyzer', 'agent-improver', 'run-synthesizer']
-user-invocable: false
+model: opus
+subagents: [subagent-mapper, run-analyzer, agent-improver, run-synthesizer]
 ---
 
 {% section "agent-identity" %}

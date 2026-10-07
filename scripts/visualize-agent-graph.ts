@@ -19,6 +19,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { parseAgentSource } from "../src/cli/agent-definition";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const PROFILES_DIR = path.join(ROOT, "profiles");
@@ -103,17 +104,7 @@ function discoverAgents(): AgentFile[] {
       const fullPath = path.join(agentsDir, agentFile);
       const content = fs.readFileSync(fullPath, "utf-8");
 
-      // Parse sub-agents from YAML frontmatter
-      const subAgents: string[] = [];
-      const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-      if (fmMatch) {
-        const agentsMatch = fmMatch[1].match(/agents:\s*\[([^\]]*)\]/);
-        if (agentsMatch) {
-          for (const m of agentsMatch[1].matchAll(/'([^']+)'|"([^"]+)"/g)) {
-            subAgents.push(m[1] ?? m[2]);
-          }
-        }
-      }
+      const subAgents = [...parseAgentSource(agentFile.replace(/\.agent\.md$/, ""), content).frontmatter.subagents];
 
       agents.push({
         profile: profileDir.name,

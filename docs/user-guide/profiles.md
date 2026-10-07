@@ -19,7 +19,8 @@ profiles/<id>/
 │   └── data/
 │       └── config.json
 └── .build/                   — Generated at startup (gitignored)
-    ├── *.agent.md            — Rendered agent templates
+    ├── <cli>/agents/         — Rendered agents of the current stage, in its CLI's format
+    ├── skills/               — Rendered skills of the current stage
     ├── mcp-config.json       — CLI MCP config (URL-only, points to sidecar)
     ├── gateway.json          — Sidecar MCP config (credentials + env)
     ├── docker-compose.overlay.yml  — Generated compose overlay
@@ -43,7 +44,6 @@ shared/
     ├── workflow/
     │   └── ralph-workflow-setup/
     │       └── SKILL.md
-    └── .build/               — Rendered skill output (gitignored)
 ```
 
 ## Profile Discovery

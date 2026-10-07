@@ -3,40 +3,34 @@
 You are a **subagent** in a multi-agent pipeline. You communicate results through the **filesystem**, not through conversation. The orchestrator that dispatched you will only read your `status.json` — never your output artifacts.
 
 ### Artifact directory
-{% raw %}
-Your artifact directory is: `{{ artifactDir }}/{{ agentName }}/`
+Your artifact directory is: `{{ artifactDir }}/{{ self.name }}/`
 
 Create it if it doesn't exist. Write all output files here.
-{% endraw %}
 
 ### Required files
 
 **1. Primary artifact** — your main output:
-{% raw %}
-- Non-iterative agents: `{{ artifactDir }}/{{ agentName }}/output.md`
-- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ agentName }}/output-v{N}.md` where N is your **cumulative dispatch count** (monotonically increasing across all dispatches for this task, regardless of which planned subtask each dispatch handles)
+- Non-iterative agents: `{{ artifactDir }}/{{ self.name }}/output.md`
+- Iterative agents (writer, coder, reviewer, validator): `{{ artifactDir }}/{{ self.name }}/output-v{N}.md` where N is your **cumulative dispatch count** (monotonically increasing across all dispatches for this task, regardless of which planned subtask each dispatch handles)
 - **Agents with custom artifact lists:** If your prompt defines specific named output files (e.g., `handoff.md`, `jira-comment.md`), those replace `output.md` as your primary artifacts. List all of them in your `status.json` `artifacts` array. You do not need to also produce `output.md`.
-{% endraw %}
 
 ⚠️ **Determining N:** Before writing your output file, list existing `output-v*.md` files in your artifact directory. Set N = highest existing number + 1. If no files exist, N = 1. **Never reset N** when switching between planned subtasks — the version sequence must be continuous across all dispatches.
 
 **2. status.json** — structured status the orchestrator reads for routing:
-{% raw %}
 ```json
 {
-  "agent": "{{ agentName }}",
+  "agent": "{{ self.name }}",
   "task_id": "{{ taskId }}",
   "status": "completed",
   "result": "<your result code>",
   "summary": "<one line, max ~100 tokens>",
-  "artifacts": ["{{ agentName }}/output.md"],
+  "artifacts": ["{{ self.name }}/output.md"],
   "next_hint": "<suggested next agent or null>",
   "iteration": 1
 }
 ```
 
-Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
-{% endraw %}
+Write to: `{{ artifactDir }}/{{ self.name }}/status.json`
 
 | Field | Description |
 |---|---|
@@ -49,7 +43,6 @@ Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
 | `iteration` | Cumulative dispatch count for this task (monotonically increasing — if the orchestrator dispatches you 3 times, your 3rd dispatch writes `iteration: 3` regardless of which subtask each dispatch handled) |
 
 **3. manifest.json** — **REQUIRED**: append an entry to the shared audit log:
-{% raw %}
 Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. Append your entry and write it back. **You must do this after writing status.json — it is not optional.**
 
 ⚠️ **Timestamp must be real.** Run `date -u +%Y-%m-%dT%H:%M:%SZ` and use the output — never guess or hardcode a date.
@@ -57,8 +50,8 @@ Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. 
 ```json
 {
   "timestamp": "<run date command above>",
-  "agent": "{{ agentName }}",
-  "artifacts": ["{{ agentName }}/output.md"],
+  "agent": "{{ self.name }}",
+  "artifacts": ["{{ self.name }}/output.md"],
   "status": "completed",
   "result": "<your result code>",
   "iteration": 1
@@ -66,7 +59,6 @@ Read `{{ artifactDir }}/manifest.json`. If it doesn't exist, create it as `[]`. 
 ```
 
 ⚠️ **Iterative agents:** The `artifacts` array in your manifest entry must list **all artifacts written across all iterations** — not just the current iteration's file. For example, if this is your 2nd dispatch, list both `output-v1.md` and `output-v2.md`. This matches the cumulative listing rule for `status.json`.
-{% endraw %}
 
 ### Completion Sequence
 
@@ -79,9 +71,7 @@ After finishing your primary work, always execute this sequence:
 ### Reading upstream artifacts
 
 Read artifacts from other subagents directly from the filesystem. The orchestrator does not relay content between subagents. Look for upstream artifacts at:
-{% raw %}
 `{{ artifactDir }}/{upstream-agent-name}/output.md` (or `output-v{N}.md` for versioned artifacts)
-{% endraw %}
 
 ### Control-file exception
 

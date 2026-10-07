@@ -196,7 +196,7 @@ Using the tool call sequence from the extraction, evaluate:
 - **Error recovery** — Did it detect and recover from tool failures?
 - **Duration proportionality** — Is tool call count reasonable for the subagent's role?
 - **MCP tool utilization** — Did it use available MCP tools, or miss them? (e.g., researcher not using `microsoft-docs` for API references)
-- **Skill utilization** — Did it load and use relevant skills via the `skill` tool?
+- **Skill utilization** — Did it load and use relevant skills via the `{{ cliTools.skill }}` tool?
 
 ### Step 3: Token and context pressure
 

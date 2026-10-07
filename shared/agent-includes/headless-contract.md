@@ -1,0 +1,1 @@
+You run headless and nobody answers questions during a run: never ask questions or request human input, and never call `{{ cliTools.askUser }}`, regardless of what the repository's instruction files say.

@@ -9,8 +9,9 @@ paths:
 
 - This is product content, not dev tooling. These agents run in Docker against **other** repos mounted at `/workspace`, so paths inside templates and runtime skills are container paths (`/workspace/.github/skills/…`, `.ralph/tasks/{{ taskId }}/…`). Mode `local` hook stages are the exception: they run on the host with cwd = this repo's root.
 - Every `.md` here is a Liquid template. Variables come from the `TemplateContext` interface in `src/container/setup/agent-includes.ts`. A variable missing there fails `tests/container/template-context-lint.test.ts`. Wrap literal `{{ }}` / `{% %}` in `{% raw %}`. `{% section "x" %}` emits `<x>…</x>` boundaries.
-- `profiles/*/.build/` and `shared/skills/.build/` are generated on every task. Never edit them.
+- `profiles/*/.build/` is generated on every task and stage (agents in `.build/<cli>/agents/`, skills in `.build/skills/`). Never edit it.
 - A runtime skill reaches an agent only when its folder name is listed in that stage's `skills` in `profile.json`. Folder name = frontmatter `name`, unique across all of `shared/skills/`.
-- Agent frontmatter is Copilot CLI `.agent.md` format for now. Don't convert it to Claude Code agent format.
+- Agent frontmatter is the canonical, CLI-neutral schema (`agentFrontmatterSchema` in `src/cli/agent-definition.ts`): `name`, `description`, `model` (Claude Code alias such as `opus`), `subagents`, optional `tools`, `skills`, `effort`, `maxTurns`, `runtimes`, `copilot.model`. The renderer translates it per CLI; never write Copilot keys (`agents`, `user-invocable`) or Copilot model ids as `model`.
+- Use `{{ self.name }}` for an agent's own artifact directory and attribution, and `{{ cliTools.subagent }}` / `skill` / `shell` / `read` / `askUser` instead of a CLI's tool names.
 - `shared/agent-includes/post-hooks/*.md` drive the host-side `ralph.scientist` hook. They load this repo's `.claude/skills/` by name, so keep those names stable.
 - After edits: `npm run validate` and `npx vitest run tests/container/template-integration.test.ts tests/container/template-context-lint.test.ts`. For wiring changes (subagents, skills, phases, planner loops), use the `ralph-agent-authoring` skill.

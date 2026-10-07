@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { buildTemplateContext } from "../../src/container/setup/agent-includes";
+import { buildTemplateContext, type AgentSelf } from "../../src/container/setup/agent-includes";
+import { CLAUDE_TOOL_NAMES } from "../../src/cli/cli-tools";
 import { makeTaskContext } from "../helpers/factories";
 
 /**
@@ -18,6 +19,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   "repo",
   "targetRepoPath",
   "cli",
+  "cliTools",
   "model",
   "agentName",
   "displayName",
@@ -51,11 +53,31 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Variables only agent templates and the partials they render see: the per-agent `self`.
+ * Skills are rendered once per stage, not per agent, so they must not use them.
+ */
+const AGENT_SCOPE_KEYS: ReadonlySet<string> = new Set(["self"]);
+
+/** The fields of {@link AgentSelf}; `satisfies` fails the build when the interface gains or loses one. */
+const SELF_FIELDS = {
+  name: true,
+  fileId: true,
+  isStageRoot: true,
+  subagents: true,
+} satisfies Record<keyof AgentSelf, true>;
+
+/**
  * Top-level context keys that hold objects with dynamic sub-keys.
  * References like `triggerParams.codesamples` are valid — we only
  * validate that the root (`triggerParams`) exists in TemplateContext.
  */
 const DYNAMIC_PARENT_KEYS: ReadonlySet<string> = new Set(["triggerParams", "hook"]);
+
+/** Context keys holding objects with a fixed set of fields; a dotted reference must name one of them. */
+const FIXED_FIELD_KEYS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ["cliTools", new Set(Object.keys(CLAUDE_TOOL_NAMES))],
+  ["self", new Set(Object.keys(SELF_FIELDS))],
+]);
 
 /**
  * Variables passed via `{% render 'partial', key: value %}` at render
@@ -160,7 +182,7 @@ describe("Template context variable lint", () => {
       const relPath = file.replace(REPO_ROOT + "/", "");
 
       for (const [root, fullRefs] of refs) {
-        if (!KNOWN_KEYS.has(root)) {
+        if (!KNOWN_KEYS.has(root) && !AGENT_SCOPE_KEYS.has(root)) {
           errors.push(`${relPath}: unknown variable "{{ ${fullRefs[0]} }}" (root: "${root}")`);
         }
       }
@@ -182,7 +204,7 @@ describe("Template context variable lint", () => {
       const relPath = file.replace(REPO_ROOT + "/", "");
 
       for (const [root, fullRefs] of refs) {
-        if (!KNOWN_KEYS.has(root) && !RENDER_PARAM_KEYS.has(root)) {
+        if (!KNOWN_KEYS.has(root) && !AGENT_SCOPE_KEYS.has(root) && !RENDER_PARAM_KEYS.has(root)) {
           errors.push(`${relPath}: unknown variable "{{ ${fullRefs[0]} }}" (root: "${root}")`);
         }
       }
@@ -231,7 +253,12 @@ describe("Template context variable lint", () => {
 
       for (const [root, fullRefs] of refs) {
         for (const ref of fullRefs) {
-          if (ref.includes(".") && !DYNAMIC_PARENT_KEYS.has(root)) {
+          if (!ref.includes(".")) continue;
+          const fields = FIXED_FIELD_KEYS.get(root);
+          if (fields) {
+            const field = ref.split(".")[1];
+            if (!fields.has(field)) errors.push(`${relPath}: "{{ ${ref} }}" — "${root}" has no field "${field}"`);
+          } else if (!DYNAMIC_PARENT_KEYS.has(root)) {
             errors.push(`${relPath}: dotted access "{{ ${ref} }}" but "${root}" is not a known dynamic key`);
           }
         }

@@ -1,9 +1,8 @@
 ---
+name: ralph
 description: 'Autonomous documentation orchestrator — routes researcher, writer, and reviewers; commits and delivers doc tasks'
-model: claude-opus-4.6
-name: 'ralph'
-user-invocable: false
-agents: ['ralph-coder', 'ralph-researcher', 'ralph-planner', 'ralph-writer', 'ralph-reviewer-technical', 'ralph-reviewer-style', 'ralph-reviewer-ia', 'ralph-reviewer-technical-gpt', 'ralph-reviewer-style-gpt', 'ralph-reviewer-ia-gpt', 'ralph-scribe']
+model: opus
+subagents: [ralph-coder, ralph-researcher, ralph-planner, ralph-writer, ralph-reviewer-technical, ralph-reviewer-style, ralph-reviewer-ia, ralph-scribe]
 ---
 
 {% section "agent-identity" %}
@@ -65,12 +64,9 @@ You still route on subagent `status.json` results. `tasks.json` is the explicit 
 | `ralph-researcher` | Researcher | Explores docs, source code, and Ralphchives; produces a structured research report for downstream agents |
 | `ralph-planner` | Planner | Breaks research artifacts or revision feedback into ordered task files for headless execution |
 | `ralph-writer` | Writer | Executes one planned task at a time and handles same-task revision fixes in later rounds |
-| `ralph-reviewer-technical` | Technical Reviewer (Claude) | Verifies technical accuracy against Xperience source code |
-| `ralph-reviewer-style` | Style Reviewer (Claude) | Checks style guide compliance and grammar |
-| `ralph-reviewer-ia` | IA Reviewer (Claude) | Evaluates information architecture and content placement |
-| `ralph-reviewer-technical-gpt` | Technical Reviewer (GPT) | Verifies technical accuracy against Xperience source code |
-| `ralph-reviewer-style-gpt` | Style Reviewer (GPT) | Checks style guide compliance and grammar |
-| `ralph-reviewer-ia-gpt` | IA Reviewer (GPT) | Evaluates information architecture and content placement |
+| `ralph-reviewer-technical` | Technical Reviewer | Verifies technical accuracy against Xperience source code |
+| `ralph-reviewer-style` | Style Reviewer | Checks style guide compliance and grammar |
+| `ralph-reviewer-ia` | IA Reviewer | Evaluates information architecture and content placement |
 | `ralph-scribe` | Scribe | Composes handoff artifacts, attaches evidence, posts the JIRA completion comment, updates ralphchives, and prepares the final handoff path |
 {%- if triggerParams.codesamples and triggerParams.xpversion %}
 
@@ -97,7 +93,7 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 | `ralph-researcher` | `blocked` | Set overall status to `blocked`, exit |
 | `ralph-planner` | `planned` | Mark the first `not_processed` task as `in_progress` with `attempt: 1` in `tasks.json`, then dispatch `ralph-writer` |
 | `ralph-planner` | `blocked` | Set overall status to `blocked`, exit |
-| `ralph-writer` | `task-implemented` | Dispatch all six reviewers in parallel for the current `in_progress` task |
+| `ralph-writer` | `task-implemented` | Dispatch all three reviewers in parallel for the current `in_progress` task |
 | `ralph-writer` | `partial` | Mark the current `in_progress` task as `done`, skip review, proceed to commit with partial status |
 | Any `ralph-reviewer-*` | `approved` | Record approval, check remaining reviewers |
 | Any `ralph-reviewer-*` | `needs-revision` | If any reviewer rejects and the current task is below the retry cap, increment the current task `attempt` in `tasks.json` and re-dispatch `ralph-writer` for the same task |
@@ -107,7 +103,7 @@ After each subagent completes, read its `status.json` at `.ralph/tasks/{{ taskId
 
 ### Review Gate
 
-All six reviewers (3 Claude + 3 GPT) must run in parallel for the current `in_progress` task. Dispatch all six simultaneously using the task tool. If any reviewer returns `needs-revision`, increment that task's `attempt` in `tasks.json`, re-dispatch `ralph-writer` for that same task, then re-run only the reviewers that rejected. **Maximum 3 revision rounds per task after the initial write** — initial write is `attempt: 1`, and the last writer-only retry runs at `attempt: 4`. After that final writer pass, proceed onward and note the non-converged reviewer(s) in `state.md` for the scribe.
+All three reviewers (`ralph-reviewer-technical`, `ralph-reviewer-style`, `ralph-reviewer-ia`) must run in parallel for the current `in_progress` task. Dispatch all three simultaneously using the `{{ cliTools.subagent }}` tool. If any reviewer returns `needs-revision`, increment that task's `attempt` in `tasks.json`, re-dispatch `ralph-writer` for that same task, then re-run only the reviewers that rejected. **Maximum 3 revision rounds per task after the initial write** — initial write is `attempt: 1`, and the last writer-only retry runs at `attempt: 4`. After that final writer pass, proceed onward and note the non-converged reviewer(s) in `state.md` for the scribe.
 
 ### What you do yourself
 
@@ -141,7 +137,7 @@ These are hard sequencing rules. Violating any of them produces broken output re
 - You MUST dispatch `ralph-researcher` BEFORE any implementation work begins
 - You MUST dispatch `ralph-planner` AFTER `ralph-researcher` and BEFORE `ralph-writer`
 - You MUST dispatch `ralph-writer` for all documentation edits and review-fix iterations
-- You MUST dispatch all six reviewers BEFORE committing
+- You MUST dispatch all three reviewers BEFORE committing
 {% endsection %}
 
 {% section "known-failure-patterns" %}

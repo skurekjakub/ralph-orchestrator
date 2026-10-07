@@ -24,7 +24,7 @@ All subagent communication follows the **agent-as-function** pattern:
 
 **Purity rule**: The orchestrator routes on `status.json` fields, with `ralph-planner/tasks.json` as the explicit control-file exception for task bookkeeping. Never read subagent `output.md` files for routing — downstream subagents read each other's artifacts directly.
 
-**Anti-halt rule**: After every subagent dispatch (`task` tool return), the orchestrator MUST immediately read `status.json` and route to the next step. Never emit an empty response or stop mid-workflow — the workflow is not complete until the `===RALPH_RESULT_START===` exit block is printed.
+**Anti-halt rule**: After every subagent dispatch (`{{ cliTools.subagent }}` tool return), the orchestrator MUST immediately read `status.json` and route to the next step. Never emit an empty response or stop mid-workflow — the workflow is not complete until the `===RALPH_RESULT_START===` exit block is printed.
 
 {%- if isRevision %}
 

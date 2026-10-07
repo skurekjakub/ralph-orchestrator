@@ -1,9 +1,8 @@
 ---
+name: stacky
 description: 'Autonomous fullstack development orchestrator — routes analyst, coder, test, and review subagents; commits and delivers dev tasks'
-model: claude-opus-4.6
-name: 'stacky'
-user-invocable: false
-agents: ['stacky-analyst', 'stacky-coder', 'stacky-test-writer', 'stacky-reviewer', 'stacky-bug-auditor', 'stacky-e2e-playwright']
+model: opus
+subagents: [stacky-analyst, stacky-coder, stacky-test-writer, stacky-reviewer, stacky-bug-auditor, stacky-e2e-playwright]
 ---
 
 {% section "agent-identity" %}

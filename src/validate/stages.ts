@@ -3,7 +3,7 @@ import type { ProfileFile } from "../config/schemas";
 import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 
 /** A resolved stage with its location in profile.json (`variants[0]/postTaskHooks[1]/stages[2]`). */
-interface LocatedStage {
+export interface LocatedStage {
   readonly stage: IStageConfig;
   readonly variantIndex: number;
   readonly path: string;
@@ -19,7 +19,7 @@ interface ModelSource {
 const CLAUDE_ONLY_STAGE_OPTIONS = ["effort", "maxBudgetUsd"] as const;
 
 /** Every variant and post-task hook stage of `variants`, in profile.json order. */
-function locateStages(variants: readonly IAgentProfile[]): LocatedStage[] {
+export function locateStages(variants: readonly IAgentProfile[]): LocatedStage[] {
   return variants.flatMap((variant, variantIndex) => [
     ...variant.stages.map((stage, si) => ({ stage, variantIndex, path: `variants[${variantIndex}]/stages[${si}]` })),
     ...variant.postTaskHooks.flatMap((hook, hi) =>

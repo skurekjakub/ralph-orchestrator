@@ -1,14 +1,48 @@
-import { readFile, writeFile, mkdir, readdir, cp } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { readFile, writeFile, readdir, cp, mkdtemp, rm } from "node:fs/promises";
+import { existsSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve, relative } from "node:path";
-import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger";
-import { registerCustomTags } from "./liquid-tags";
-import type { TemplateContext } from "./agent-includes";
+import { createTemplateEngine, type TemplateContext } from "./agent-includes";
+import { syncDirectory } from "../../util/sync-dir";
+
+/** File that marks a directory under `shared/skills/` as a skill. */
+export const SKILL_FILE = "SKILL.md";
+
+/** Generated output directories never searched for skills. */
+const SKIPPED_DIRS = new Set([".build", "node_modules"]);
 
 /**
- * Recursively collect all `.md` file paths under `dir`.
+ * Every skill under `skillsDir`, keyed by folder name. Skills sit in arbitrary category folders
+ * (`shared/skills/domain/ralph-build-errors/`); a directory holding a `SKILL.md` is a skill, and
+ * nothing inside it is searched further.
+ *
+ * @returns Skill folder name → absolute directories using that name, sorted; more than one directory
+ *   means the name is ambiguous. Empty when `skillsDir` does not exist.
  */
+export function discoverSkills(skillsDir: string): Map<string, string[]> {
+  const skills = new Map<string, string[]>();
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (!entry.isDirectory() || SKIPPED_DIRS.has(entry.name)) continue;
+      const path = join(dir, entry.name);
+      if (existsSync(join(path, SKILL_FILE))) {
+        skills.set(entry.name, [...(skills.get(entry.name) ?? []), path]);
+      } else {
+        walk(path);
+      }
+    }
+  };
+  if (existsSync(skillsDir)) walk(skillsDir);
+  return skills;
+}
+
+/** Host directory a profile's skills are rendered into (`profiles/<id>/.build/skills`), one folder per skill. */
+export function skillsBuildDir(profileId: string): string {
+  return resolve(process.cwd(), "profiles", profileId, ".build", "skills");
+}
+
+/** Recursively collect all `.md` file paths under `dir`. */
 async function collectMdFiles(dir: string): Promise<string[]> {
   const results: string[] = [];
   const entries = await readdir(dir, { withFileTypes: true });
@@ -23,136 +57,92 @@ async function collectMdFiles(dir: string): Promise<string[]> {
   return results;
 }
 
-/**
- * Find a skill directory by name anywhere under `skillsDir`.
- *
- * Skills can be organized into arbitrary subdirectories for better
- * organization (e.g., `shared/skills/domain/ralph-build-errors/`).
- * The search looks for `<name>/SKILL.md` recursively and returns the
- * matching directory path, or `undefined` if not found.
- *
- * Skips the `.build/` output directory.
- */
-async function findSkillDir(skillsDir: string, name: string): Promise<string | undefined> {
-  // Fast path: check flat layout first
-  const flatPath = join(skillsDir, name);
-  if (existsSync(join(flatPath, "SKILL.md"))) return flatPath;
-
-  // Recursive search for nested layout
-  const entries = await readdir(skillsDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name === ".build") continue;
-    if (entry.name === name && existsSync(join(skillsDir, entry.name, "SKILL.md"))) {
-      return join(skillsDir, entry.name);
-    }
-    // Search one level deeper
-    const nested = join(skillsDir, entry.name);
-    const nestedPath = join(nested, name);
-    if (existsSync(join(nestedPath, "SKILL.md"))) return nestedPath;
-    // Recurse further
-    const found = await findSkillDir(nested, name);
-    if (found) return found;
-  }
-  return undefined;
+/** Inputs of {@link renderSkills}. */
+export interface RenderSkillsInput {
+  /** Root of the skill sources (`shared/skills`). */
+  readonly skillsDir: string;
+  /** Skill folder names to render. */
+  readonly skillNames: readonly string[];
+  /** Root of the shared partials (`shared/agent-includes`). */
+  readonly includesDir: string;
+  readonly context: TemplateContext;
+  /** Directory that receives one rendered folder per skill; synced in place, its own inode kept. */
+  readonly outDir: string;
+  readonly logger?: Logger;
 }
 
 /**
- * Render skill templates to resolved files in `shared/skills/.build/<name>/`.
+ * Renders skills into `outDir/<name>/`, flattening their category folders.
  *
- * For each declared skill, copies the entire skill directory to the build
- * output, then renders `.md` files through Liquid (same includes + custom
- * tags as agent templates). Non-`.md` files are copied unchanged.
+ * Each skill folder is copied whole, then its `.md` files are rendered through Liquid with partials
+ * from both `skillsDir` and `includesDir`; other files are copied unchanged. The output is staged
+ * and synced, so `outDir` keeps its inode and skills not in `skillNames` are removed from it. A
+ * skill that does not exist is skipped with a warning.
  *
- * The Liquid engine is rooted at both `skillsDir` (so skills can reference
- * other skill partials) and `includesDir` (shared agent-includes partials).
- *
- * @param skillsDir Absolute path to `shared/skills/` on the host.
- * @param skillNames Skill folder names to render.
- * @param includesDir Absolute path to `shared/agent-includes/`.
- * @param context Template variables for Liquid rendering.
- * @param logger Logger for progress and error reporting.
+ * @throws Error when a skill name matches more than one folder or a Liquid template fails.
  */
-export async function resolveSkillIncludes(
-  skillsDir: string,
-  skillNames: string[],
-  includesDir: string,
-  context: Record<string, unknown>,
-  logger?: Logger,
-): Promise<void> {
-  if (skillNames.length === 0) return;
+export async function renderSkills(input: RenderSkillsInput): Promise<void> {
+  const { skillsDir, skillNames, includesDir, context, outDir, logger } = input;
+  const available = discoverSkills(skillsDir);
+  const engine = createTemplateEngine([skillsDir, includesDir]);
 
-  const buildDir = join(skillsDir, ".build");
-  await mkdir(buildDir, { recursive: true });
+  const staging = await mkdtemp(join(tmpdir(), "ralph-skills-"));
+  try {
+    for (const name of skillNames) {
+      const dirs = available.get(name) ?? [];
+      if (dirs.length === 0) {
+        logger?.warn(`Skill directory not found: ${name}, skipping`);
+        continue;
+      }
+      if (dirs.length > 1) {
+        throw new Error(`Skill "${name}" is ambiguous: ${dirs.map((d) => relative(skillsDir, d)).join(", ")}`);
+      }
 
-  const engine = new Liquid({
-    root: [skillsDir, includesDir],
-    extname: ".md",
-    globals: context,
-  });
-  registerCustomTags(engine);
-
-  for (const name of skillNames) {
-    const srcDir = await findSkillDir(skillsDir, name);
-    if (!srcDir) {
-      logger?.warn(`Skill directory not found: ${name}, skipping`);
-      continue;
+      const destDir = join(staging, name);
+      await cp(dirs[0], destDir, { recursive: true });
+      for (const filePath of await collectMdFiles(destDir)) {
+        const content = await readFile(filePath, "utf-8");
+        await writeFile(filePath, await engine.parseAndRender(content, context, { globals: context }), "utf-8");
+        logger?.info(`  → skill ${relative(staging, filePath)}: rendered`);
+      }
     }
-
-    // Always flatten to .build/<name>/ regardless of source nesting
-    const destDir = join(buildDir, name);
-    // Copy the entire skill directory first (preserves non-.md files unchanged)
-    await cp(srcDir, destDir, { recursive: true });
-
-    // Render all .md files recursively through Liquid
-    const mdFiles = await collectMdFiles(destDir);
-    for (const filePath of mdFiles) {
-      const content = await readFile(filePath, "utf-8");
-      const rendered = await engine.parseAndRender(content, context);
-      await writeFile(filePath, rendered, "utf-8");
-      const relPath = relative(buildDir, filePath);
-      logger?.info(`  → skill ${relPath}: rendered`);
-    }
+    await syncDirectory(staging, outDir);
+  } finally {
+    await rm(staging, { recursive: true, force: true });
   }
 }
 
 /** Public contract for JIT skill template rendering. */
 export interface ISkillTemplateRenderer {
-  /** Render skill templates with the pre-built template context. */
-  render(context: TemplateContext, logger?: Logger): Promise<void>;
+  /**
+   * Render `context.skills` into `outDir`, removing any other skill folder there.
+   *
+   * @throws Error when rendering fails (see {@link renderSkills}).
+   */
+  render(context: TemplateContext, outDir: string, logger?: Logger): Promise<void>;
 }
 
 /**
  * JIT skill template renderer.
  *
- * Renders all skill templates declared by the profile through Liquid,
- * writing output to `shared/skills/.build/<name>/`. Called before each
- * task so skills can use runtime data like `{{ taskId }}`.
+ * Renders the skills of the current stage from `shared/skills/` (partials from
+ * `shared/agent-includes/`) under the orchestrator root. Called before each task and stage so
+ * skills can use runtime data like `{{ taskId }}`.
  */
 export class SkillTemplateRenderer implements ISkillTemplateRenderer {
   constructor() {}
 
-  async render(context: TemplateContext, logger?: Logger): Promise<void> {
+  async render(context: TemplateContext, outDir: string, logger?: Logger): Promise<void> {
     const root = process.cwd();
     const skillsDir = resolve(root, "shared/skills");
     const includesDir = resolve(root, "shared/agent-includes");
-
-    const skillNames = [...context.skills];
 
     if (!existsSync(skillsDir)) {
       logger?.warn("Skills directory not found, skipping skill rendering");
       return;
     }
 
-    // Clean stale skills from previous variant before rendering current variant's skills
-    const buildDir = join(skillsDir, ".build");
-    if (existsSync(buildDir)) {
-      const { rm } = await import("node:fs/promises");
-      await rm(buildDir, { recursive: true });
-    }
-
-    if (skillNames.length === 0) return;
-
-    logger?.info(`Rendering ${skillNames.length} skill template(s)`);
-    await resolveSkillIncludes(skillsDir, skillNames, includesDir, context, logger);
+    logger?.info(`Rendering ${context.skills.length} skill template(s)`);
+    await renderSkills({ skillsDir, skillNames: context.skills, includesDir, context, outDir, logger });
   }
 }

@@ -18,10 +18,10 @@ description: "VS Code extension review orchestrator Phase 4. Aggregate reviewer 
 For each reviewer that completed successfully, read:
 - `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-opus/status.json`
 - `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-opus/jira-findings.json`
-- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gpt/status.json`
-- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gpt/jira-findings.json`
-- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gemini/status.json`
-- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gemini/jira-findings.json`
+- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-sonnet/status.json`
+- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-sonnet/jira-findings.json`
+- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-fable/status.json`
+- `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-fable/jira-findings.json`
 
 Skip any reviewer whose `status.json` shows `status: failed`.
 
@@ -46,23 +46,23 @@ Post a single rich comment on **{{ taskId }}** with the panel verdict:
 ```
 ## Review Panel Verdict: APPROVED | NEEDS REVISION
 
-**Panel:** 3 reviewers (Opus 4.6, GPT 5.4, Gemini Pro)
+**Panel:** 3 reviewers (Opus — architecture & requirements, Sonnet — runtime correctness, Fable — tests & user-facing behaviour)
 **Scout:** Build PASS | FAIL
 
 ### Reviewer Verdicts
 | Reviewer | Verdict | Findings |
 |---|---|---|
 | malph-reviewer-opus | approved / needs-revision / failed | N findings |
-| malph-reviewer-gpt | approved / needs-revision / failed | N findings |
-| malph-reviewer-gemini | approved / needs-revision / failed | N findings |
+| malph-reviewer-sonnet | approved / needs-revision / failed | N findings |
+| malph-reviewer-fable | approved / needs-revision / failed | N findings |
 
 ### Aggregated Findings
 
 #### Critical (must fix)
-- **[ARCH-001]** `file:line` — description *(flagged by: opus, gpt)*
+- **[ARCH-001]** `file:line` — description *(flagged by: opus, sonnet)*
 
 #### Style (should fix)
-- **[TS-003]** `file:line` — description *(flagged by: gemini)*
+- **[TS-003]** `file:line` — description *(flagged by: fable)*
 
 #### Suggestions
 - **[SUG-001]** description *(flagged by: opus)*

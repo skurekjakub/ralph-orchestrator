@@ -1,8 +1,9 @@
 ---
+name: subagent-mapper
 description: 'Post-task hook — maps all subagent spans, artifacts, and metrics from a completed execution'
-model: claude-sonnet-4
-name: 'subagent-mapper'
-user-invocable: false
+model: sonnet
+copilot:
+  model: claude-sonnet-4
 ---
 
 {% render 'post-hooks/subagent-mapper' %}

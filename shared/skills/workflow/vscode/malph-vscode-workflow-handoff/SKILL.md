@@ -23,11 +23,11 @@ Create at `/tmp/mcp-attachments/review-handoff-{{ taskId }}.md`:
 ## Panel Verdict: APPROVED | NEEDS REVISION
 
 ## Review Panel
-| Reviewer | Model | Verdict | Findings |
+| Reviewer | Lens | Verdict | Findings |
 |---|---|---|---|
-| malph-reviewer-opus | Opus 4.6 | approved / needs-revision | N |
-| malph-reviewer-gpt | GPT 5.4 | approved / needs-revision | N |
-| malph-reviewer-gemini | Gemini Pro | approved / needs-revision | N |
+| malph-reviewer-opus | Architecture & requirements | approved / needs-revision | N |
+| malph-reviewer-sonnet | Runtime correctness | approved / needs-revision | N |
+| malph-reviewer-fable | Tests & user-facing behaviour | approved / needs-revision | N |
 
 ## Build Status (from scout)
 - Compile: PASS | FAIL

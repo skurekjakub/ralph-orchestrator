@@ -2,12 +2,14 @@
 import "dotenv/config";
 export type { ValidationResult } from "./types";
 
+import { resolve } from "node:path";
 import type { Logger } from "../logger";
 import type { ValidationResult } from "./types";
 import { validateEnvFile } from "./env";
 import { validateConfigFile } from "./config";
 import { validateSecurityInfra } from "./security";
 import { validateDocker } from "./docker";
+import { validateSkills } from "./skills";
 
 /**
  * Validate all prerequisites before starting the orchestrator.
@@ -15,7 +17,8 @@ import { validateDocker } from "./docker";
  * Checks:
  * - `.env` file exists and has all required variables
  * - `config.json` exists and has valid structure
- * - Agent profile repo paths, variants, and compose files
+ * - Agent profile repo paths, variants, compose files and agent graphs
+ * - Runtime skill names and frontmatter
  * - Credentials of the CLIs the profiles' stages run
  * - Security infrastructure (Squid proxy, network isolation)
  * - Docker daemon is reachable
@@ -30,6 +33,8 @@ export async function validatePrerequisites(logger?: Logger): Promise<Validation
   validateEnvFile({ errors, warnings });
   logger?.info("Validating config.json");
   validateConfigFile({ errors, warnings });
+  logger?.info("Validating runtime skills");
+  validateSkills(resolve(process.cwd(), "shared/skills"), { errors, warnings });
   logger?.info("Validating security infrastructure");
   validateSecurityInfra({ errors, warnings });
   logger?.info("Validating Docker availability");

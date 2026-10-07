@@ -1,8 +1,7 @@
 ---
+name: stacky-reviewer
 description: 'Code reviewer sub-agent — reviews code changes for quality, consistency, and correctness'
-model: claude-opus-4.6
-name: 'stacky-reviewer'
-user-invocable: false
+model: opus
 ---
 
 {% section "agent-identity" %}

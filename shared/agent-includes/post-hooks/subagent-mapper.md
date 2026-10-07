@@ -63,7 +63,7 @@ grep -i "error\|started\|listening" {{ hook.taskOutputDir }}/*-sidecar.log 2>/de
 ls {{ hook.taskOutputDir }}/*-session-state/ 2>/dev/null | wc -l
 ```
 
-Write an infrastructure metadata file to: `{{ artifactDir }}/{{ agentName }}/subagents/infrastructure.md`
+Write an infrastructure metadata file to: `{{ artifactDir }}/{{ self.name }}/subagents/infrastructure.md`
 
 ```markdown
 # Infrastructure Metadata (No Subagent Spans)
@@ -198,7 +198,7 @@ wc -l {{ hook.taskOutputDir }}/*-pre-tool.log
 
 For each subagent found, write a structured extraction file:
 
-`{{ artifactDir }}/{{ agentName }}/subagents/<agent-name>.md`
+`{{ artifactDir }}/{{ self.name }}/subagents/<agent-name>.md`
 
 Use this structure:
 
@@ -237,7 +237,7 @@ Use this structure:
 
 ### Inventory summary
 
-Write the master inventory to: `{{ artifactDir }}/{{ agentName }}/output.md`
+Write the master inventory to: `{{ artifactDir }}/{{ self.name }}/output.md`
 
 ```markdown
 # Subagent Inventory: {{ taskId }}
@@ -260,8 +260,8 @@ Write the master inventory to: `{{ artifactDir }}/{{ agentName }}/output.md`
 
 Detailed extractions available at:
 <!-- List all extraction file paths -->
-- `{{ artifactDir }}/{{ agentName }}/subagents/<agent-1>.md`
-- `{{ artifactDir }}/{{ agentName }}/subagents/<agent-2>.md`
+- `{{ artifactDir }}/{{ self.name }}/subagents/<agent-1>.md`
+- `{{ artifactDir }}/{{ self.name }}/subagents/<agent-2>.md`
 - ...
 
 ## Manifest Completeness
@@ -274,7 +274,7 @@ Detailed extractions available at:
 
 ### Status file
 
-Write to: `{{ artifactDir }}/{{ agentName }}/status.json`
+Write to: `{{ artifactDir }}/{{ self.name }}/status.json`
 
 The `summary` field must list all subagents found and their result codes in a single line, e.g.:
 `"Mapped 5 subagents: researcher(researched), writer(implemented), reviewer-1(needs-revision), reviewer-2(approved), validator(pass)"`

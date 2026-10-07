@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { ValidationCollector } from "../../src/validate/types";
 import { validateConfigFile } from "../../src/validate/config";
+import { makeAgentTemplate } from "../helpers/factories";
 
 const CREDENTIAL_VARS = ["ADO_PAT", "GH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"];
 
@@ -30,7 +31,7 @@ function writeFixture(config: Record<string, unknown>, cli: string) {
   );
   const profileDir = join(tempDir, "profiles", "docs");
   mkdirSync(join(profileDir, "agents"), { recursive: true });
-  writeFileSync(join(profileDir, "agents", "ralph.agent.md"), "# Agent");
+  writeFileSync(join(profileDir, "agents", "ralph.agent.md"), makeAgentTemplate("ralph"));
   writeFileSync(join(profileDir, "docker-compose.yml"), "services:\n  app: {}\n");
   writeFileSync(
     join(profileDir, "profile.json"),

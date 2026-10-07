@@ -15,7 +15,7 @@ Read these from your folder:
 |---|---|
 | `references/existing-docs.md` | How to navigate the docs site structure, find sibling pages, check frontmatter |
 | `references/source-code.md` | How to search the Xperience C# codebase for classes, APIs, enums, defaults |
-| `references/external-docs.md` | When and how to use `microsoft_docs_search` and `web_fetch` |
+| `references/external-docs.md` | When and how to use the `microsoft_docs_search` tool (microsoft-docs MCP server) and the `web_fetch` tool (web-fetch MCP server) |
 | `references/report-template.md` | Report template and validation checklist — structure your output using this |
 
 ## Research Order

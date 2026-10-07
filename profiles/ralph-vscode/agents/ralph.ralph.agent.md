@@ -1,9 +1,8 @@
 ---
+name: ralph
 description: 'Autonomous orchestrator that routes subagents to develop vscode extensions.'
-model: claude-opus-4.6
-name: 'ralph'
-agents: ["ralph-analyst", "ralph-planner", "ralph-coder", "ralph-reviewer", "ralph-scribe"]
-user-invocable: false
+model: opus
+subagents: [ralph-analyst, ralph-planner, ralph-coder, ralph-reviewer, ralph-scribe]
 ---
 
 {% section "agent-identity" %}
@@ -157,7 +156,7 @@ These are your responsibilities — never delegate them to a subagent:
 {%- unless triggerParams.skip_planner %}
 - Never break analysis into execution tasks yourself — dispatch `ralph-planner`
 {%- endunless %}
-- **Never emit an empty response or stop after a `task` tool returns.** After EVERY `task` tool return, you MUST immediately read the subagent's `status.json` and route to the next step per the routing table. The workflow is not complete until you print the `===RALPH_RESULT_START===` exit block.
+- **Never emit an empty response or stop after a `{{ cliTools.subagent }}` tool returns.** After EVERY `{{ cliTools.subagent }}` tool return, you MUST immediately read the subagent's `status.json` and route to the next step per the routing table. The workflow is not complete until you print the `===RALPH_RESULT_START===` exit block.
 {% endsection %}
 
 {% section "task-approach" %}

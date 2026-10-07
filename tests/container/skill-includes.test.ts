@@ -1,19 +1,33 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdtemp, mkdir, writeFile, readFile, rm, readdir, stat, chmod } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveSkillIncludes, SkillTemplateRenderer } from "../../src/container/setup/skill-includes";
+import {
+  discoverSkills,
+  renderSkills,
+  SkillTemplateRenderer,
+  skillsBuildDir,
+  type RenderSkillsInput,
+} from "../../src/container/setup/skill-includes";
 import { createMockLogger } from "../helpers/mocks";
 import { makeTemplateContext } from "../helpers/factories";
+import type { TemplateContext } from "../../src/container/setup/agent-includes";
 
 let tmpDir: string;
 let originalCwd: string;
+let skillsDir: string;
+let includesDir: string;
+let outDir: string;
 
 beforeEach(async () => {
   originalCwd = process.cwd();
   tmpDir = await mkdtemp(join(tmpdir(), "skill-includes-test-"));
   process.chdir(tmpDir);
+  skillsDir = join(tmpDir, "shared", "skills");
+  includesDir = join(tmpDir, "shared", "agent-includes");
+  outDir = join(tmpDir, "profiles", "p", ".build", "skills");
+  await mkdir(skillsDir, { recursive: true });
+  await mkdir(includesDir, { recursive: true });
 });
 
 afterEach(async () => {
@@ -21,239 +35,238 @@ afterEach(async () => {
   await rm(tmpDir, { recursive: true, force: true });
 });
 
-describe("resolveSkillIncludes", () => {
+/** Writes `files` (paths relative to `shared/skills/`). */
+async function writeSkillFiles(files: Record<string, string>): Promise<void> {
+  for (const [path, content] of Object.entries(files)) {
+    const full = join(skillsDir, path);
+    await mkdir(join(full, ".."), { recursive: true });
+    await writeFile(full, content);
+  }
+}
+
+/** renderSkills input for `skillNames` with `context`. */
+function input(skillNames: string[], context: Partial<TemplateContext> = {}): RenderSkillsInput {
+  return { skillsDir, skillNames, includesDir, context: makeTemplateContext(context), outDir };
+}
+
+describe("renderSkills", () => {
   it("renders .md files through Liquid with context", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+    // Arrange
+    await writeSkillFiles({ "my-skill/SKILL.md": "Skill for {{ taskId }} in {{ taskProject }}" });
 
-    await mkdir(join(skillsDir, "my-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await renderSkills(input(["my-skill"], { taskId: "DOC-42", taskProject: "DOC" }));
 
-    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "Skill for {{ taskId }} in {{ taskProject }}");
-
-    await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {
-      taskId: "DOC-42",
-      taskProject: "DOC",
-    });
-
-    const output = await readFile(join(skillsDir, ".build", "my-skill", "SKILL.md"), "utf-8");
-    expect(output).toBe("Skill for DOC-42 in DOC");
+    // Assert
+    expect(await readFile(join(outDir, "my-skill", "SKILL.md"), "utf-8")).toBe("Skill for DOC-42 in DOC");
   });
 
-  it("copies non-.md files unchanged", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("names the stage's tools through cliTools", async () => {
+    // Arrange
+    await writeSkillFiles({ "my-skill/SKILL.md": "Dispatch with {{ cliTools.subagent }}" });
 
-    await mkdir(join(skillsDir, "my-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await renderSkills(input(["my-skill"]));
 
-    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "# Skill");
-    await writeFile(join(skillsDir, "my-skill", "helper.sh"), "#!/bin/bash\necho {{ taskId }}");
-
-    await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {});
-
-    const script = await readFile(join(skillsDir, ".build", "my-skill", "helper.sh"), "utf-8");
-    // Non-.md files are copied as-is, NOT rendered through Liquid
-    expect(script).toBe("#!/bin/bash\necho {{ taskId }}");
+    // Assert
+    expect(await readFile(join(outDir, "my-skill", "SKILL.md"), "utf-8")).toBe("Dispatch with task");
   });
 
-  it("resolves Liquid includes from agent-includes partials", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("copies non-.md files unchanged and keeps their mode", async () => {
+    // Arrange
+    await writeSkillFiles({ "my-skill/SKILL.md": "# Skill", "my-skill/helper.sh": "#!/bin/bash\necho {{ taskId }}" });
+    await chmod(join(skillsDir, "my-skill", "helper.sh"), 0o755);
 
-    await mkdir(join(skillsDir, "my-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await renderSkills(input(["my-skill"]));
 
+    // Assert
+    const script = join(outDir, "my-skill", "helper.sh");
+    expect(await readFile(script, "utf-8")).toBe("#!/bin/bash\necho {{ taskId }}");
+    expect((await stat(script)).mode & 0o777).toBe(0o755);
+  });
+
+  it("resolves partials from agent-includes and from other skills", async () => {
+    // Arrange
     await writeFile(join(includesDir, "shared-rules.md"), "Shared rules content");
-    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "# Skill\n\n{% render 'shared-rules' %}\n\nEnd.");
-
-    await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {});
-
-    const output = await readFile(join(skillsDir, ".build", "my-skill", "SKILL.md"), "utf-8");
-    expect(output).toContain("Shared rules content");
-    expect(output).not.toContain("{% render");
-  });
-
-  it("resolves Liquid includes from other skill partials via skills root", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-
-    await mkdir(join(skillsDir, "skill-a"), { recursive: true });
-    await mkdir(join(skillsDir, "skill-b"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-
-    // Skill B has a partial that skill A references
-    await writeFile(join(skillsDir, "skill-b", "shared-defs.md"), "Shared definitions");
-    await writeFile(join(skillsDir, "skill-a", "SKILL.md"), "# Skill A\n\n{% render 'skill-b/shared-defs' %}\n\nEnd.");
-
-    await resolveSkillIncludes(skillsDir, ["skill-a"], includesDir, {});
-
-    const output = await readFile(join(skillsDir, ".build", "skill-a", "SKILL.md"), "utf-8");
-    expect(output).toContain("Shared definitions");
-    expect(output).not.toContain("{% render");
-  });
-
-  it("handles multiple skills", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-
-    await mkdir(join(skillsDir, "skill-a"), { recursive: true });
-    await mkdir(join(skillsDir, "skill-b"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-
-    await writeFile(join(skillsDir, "skill-a", "SKILL.md"), "Skill A: {{ taskId }}");
-    await writeFile(join(skillsDir, "skill-b", "SKILL.md"), "Skill B: {{ taskId }}");
-
-    await resolveSkillIncludes(skillsDir, ["skill-a", "skill-b"], includesDir, {
-      taskId: "DF-10",
+    await writeSkillFiles({
+      "skill-b/shared-defs.md": "Shared definitions",
+      "skill-a/SKILL.md": "{% render 'shared-rules' %}\n{% render 'skill-b/shared-defs' %}",
     });
 
-    const a = await readFile(join(skillsDir, ".build", "skill-a", "SKILL.md"), "utf-8");
-    const b = await readFile(join(skillsDir, ".build", "skill-b", "SKILL.md"), "utf-8");
-    expect(a).toBe("Skill A: DF-10");
-    expect(b).toBe("Skill B: DF-10");
+    // Act
+    await renderSkills(input(["skill-a"]));
+
+    // Assert
+    expect(await readFile(join(outDir, "skill-a", "SKILL.md"), "utf-8")).toBe(
+      "Shared rules content\nShared definitions",
+    );
   });
 
-  it("skips missing skill directories with warning", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("flattens nested skills to outDir/<name>/ and renders their reference files", async () => {
+    // Arrange
+    await writeSkillFiles({
+      "domain/nested-skill/SKILL.md": "Nested skill for {{ taskId }}",
+      "domain/nested-skill/references/guide.md": "Guide for {{ taskId }}",
+    });
 
-    await mkdir(skillsDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await renderSkills(input(["nested-skill"], { taskId: "DOC-99" }));
 
-    const logger = createMockLogger();
-    await resolveSkillIncludes(skillsDir, ["nonexistent"], includesDir, {}, logger);
-
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("nonexistent"));
-  });
-
-  it("does nothing when skill list is empty", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-
-    await resolveSkillIncludes(skillsDir, [], includesDir, {});
-
-    expect(existsSync(join(skillsDir, ".build"))).toBe(false);
+    // Assert
+    expect(await readFile(join(outDir, "nested-skill", "SKILL.md"), "utf-8")).toBe("Nested skill for DOC-99");
+    expect(await readFile(join(outDir, "nested-skill", "references", "guide.md"), "utf-8")).toBe("Guide for DOC-99");
   });
 
   it("supports custom section tags in skills", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+    // Arrange
+    await writeSkillFiles({ "sec-skill/SKILL.md": '{% section "rules" %}Be careful{% endsection %}' });
 
-    await mkdir(join(skillsDir, "sec-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await renderSkills(input(["sec-skill"]));
 
-    await writeFile(join(skillsDir, "sec-skill", "SKILL.md"), '{% section "rules" %}Be careful{% endsection %}');
-
-    await resolveSkillIncludes(skillsDir, ["sec-skill"], includesDir, {});
-
-    const output = await readFile(join(skillsDir, ".build", "sec-skill", "SKILL.md"), "utf-8");
-    expect(output).toBe("<rules>\nBe careful\n</rules>");
+    // Assert
+    expect(await readFile(join(outDir, "sec-skill", "SKILL.md"), "utf-8")).toBe("<rules>\nBe careful\n</rules>");
   });
 
-  it("logs rendered files when logger provided", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("removes skills of an earlier render that the stage no longer mounts, keeping the directory", async () => {
+    // Arrange
+    await writeSkillFiles({ "skill-a/SKILL.md": "A", "skill-b/SKILL.md": "B" });
+    await renderSkills(input(["skill-a", "skill-b"]));
+    const inodeBefore = (await stat(outDir)).ino;
 
-    await mkdir(join(skillsDir, "my-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-    await writeFile(join(skillsDir, "my-skill", "SKILL.md"), "Content");
+    // Act
+    await renderSkills(input(["skill-b"]));
 
+    // Assert
+    expect(await readdir(outDir)).toEqual(["skill-b"]);
+    expect((await stat(outDir)).ino).toBe(inodeBefore);
+  });
+
+  it("empties outDir when the stage mounts no skills", async () => {
+    // Arrange
+    await writeSkillFiles({ "skill-a/SKILL.md": "A" });
+    await renderSkills(input(["skill-a"]));
+
+    // Act
+    await renderSkills(input([]));
+
+    // Assert
+    expect(await readdir(outDir)).toEqual([]);
+  });
+
+  it("skips a missing skill with a warning", async () => {
+    // Arrange
     const logger = createMockLogger();
-    await resolveSkillIncludes(skillsDir, ["my-skill"], includesDir, {}, logger);
 
+    // Act
+    await renderSkills({ ...input(["nonexistent"]), logger });
+
+    // Assert
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("nonexistent"));
+    expect(await readdir(outDir)).toEqual([]);
+  });
+
+  it("throws when a skill name matches folders in two categories", async () => {
+    // Arrange
+    await writeSkillFiles({ "a/dup/SKILL.md": "one", "b/dup/SKILL.md": "two" });
+
+    // Act & Assert
+    await expect(renderSkills(input(["dup"]))).rejects.toThrow(/Skill "dup" is ambiguous: a\/dup, b\/dup/);
+  });
+
+  it("logs each rendered file", async () => {
+    // Arrange
+    await writeSkillFiles({ "my-skill/SKILL.md": "Content" });
+    const logger = createMockLogger();
+
+    // Act
+    await renderSkills({ ...input(["my-skill"]), logger });
+
+    // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("my-skill/SKILL.md"));
   });
+});
 
-  it("discovers skills nested in subdirectories and flattens to .build/<name>/", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-
-    // Skill nested under domain/ subfolder
-    await mkdir(join(skillsDir, "domain", "nested-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-
-    await writeFile(join(skillsDir, "domain", "nested-skill", "SKILL.md"), "Nested skill for {{ taskId }}");
-
-    await resolveSkillIncludes(skillsDir, ["nested-skill"], includesDir, {
-      taskId: "DOC-99",
+describe("discoverSkills", () => {
+  it("finds skills at any depth, skipping .build and not searching inside a skill", async () => {
+    // Arrange
+    await writeSkillFiles({
+      "flat/SKILL.md": "",
+      "domain/deep/nested/SKILL.md": "",
+      "flat/inner/SKILL.md": "",
+      ".build/flat/SKILL.md": "",
     });
 
-    // Output is flattened to .build/nested-skill/, not .build/domain/nested-skill/
-    const output = await readFile(join(skillsDir, ".build", "nested-skill", "SKILL.md"), "utf-8");
-    expect(output).toBe("Nested skill for DOC-99");
+    // Act
+    const skills = discoverSkills(skillsDir);
+
+    // Assert
+    expect(skills).toEqual(
+      new Map([
+        ["nested", [join(skillsDir, "domain", "deep", "nested")]],
+        ["flat", [join(skillsDir, "flat")]],
+      ]),
+    );
   });
 
-  it("renders .md files in subdirectories recursively", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("lists every folder that uses an ambiguous name", async () => {
+    // Arrange
+    await writeSkillFiles({ "a/dup/SKILL.md": "", "b/dup/SKILL.md": "" });
 
-    await mkdir(join(skillsDir, "ref-skill", "references"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    const skills = discoverSkills(skillsDir);
 
-    await writeFile(join(skillsDir, "ref-skill", "SKILL.md"), "Main skill for {{ taskId }}");
-    await writeFile(join(skillsDir, "ref-skill", "references", "guide.md"), "Guide for {{ taskId }}");
+    // Assert
+    expect(skills.get("dup")).toEqual([join(skillsDir, "a", "dup"), join(skillsDir, "b", "dup")]);
+  });
 
-    await resolveSkillIncludes(skillsDir, ["ref-skill"], includesDir, {
-      taskId: "DOC-77",
-    });
-
-    const main = await readFile(join(skillsDir, ".build", "ref-skill", "SKILL.md"), "utf-8");
-    const ref = await readFile(join(skillsDir, ".build", "ref-skill", "references", "guide.md"), "utf-8");
-    expect(main).toBe("Main skill for DOC-77");
-    expect(ref).toBe("Guide for DOC-77");
+  it("returns no skills when the directory does not exist", () => {
+    // Act & Assert
+    expect(discoverSkills(join(tmpDir, "missing")).size).toBe(0);
   });
 });
 
 describe("SkillTemplateRenderer", () => {
-  it("renders skills into shared/skills/.build/", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
+  it("renders the context's skills from shared/skills into the given directory", async () => {
+    // Arrange
+    await writeSkillFiles({ "test-skill/SKILL.md": "Skill for {{ taskId }}" });
 
-    await mkdir(join(skillsDir, "test-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+    // Act
+    await new SkillTemplateRenderer().render(makeTemplateContext({ taskId: "DOC-55", skills: ["test-skill"] }), outDir);
 
-    await writeFile(join(skillsDir, "test-skill", "SKILL.md"), "Skill for {{ taskId }}");
-
-    const renderer = new SkillTemplateRenderer();
-    await renderer.render(
-      makeTemplateContext({
-        taskId: "DOC-55",
-        skills: ["test-skill"],
-      }),
-    );
-
-    const output = await readFile(join(skillsDir, ".build", "test-skill", "SKILL.md"), "utf-8");
-    expect(output).toBe("Skill for DOC-55");
+    // Assert
+    expect(await readFile(join(outDir, "test-skill", "SKILL.md"), "utf-8")).toBe("Skill for DOC-55");
   });
 
-  it("does nothing when no skills are declared", async () => {
-    const renderer = new SkillTemplateRenderer();
-    // Should not throw even when shared/skills/ does not exist
-    await renderer.render(makeTemplateContext({ skills: [] }));
-  });
-
-  it("warns when skills directory is missing", async () => {
-    const renderer = new SkillTemplateRenderer();
+  it("warns and skips when shared/skills is missing", async () => {
+    // Arrange
+    await rm(skillsDir, { recursive: true });
     const logger = createMockLogger();
 
-    await renderer.render(makeTemplateContext({ skills: ["nonexistent-skill"] }), logger);
+    // Act
+    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["any"] }), outDir, logger);
 
+    // Assert
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
   });
 
-  it("logs progress", async () => {
-    const skillsDir = join(tmpDir, "shared", "skills");
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-
-    await mkdir(join(skillsDir, "test-skill"), { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-    await writeFile(join(skillsDir, "test-skill", "SKILL.md"), "Content");
-
+  it("logs how many skills it renders", async () => {
+    // Arrange
+    await writeSkillFiles({ "test-skill/SKILL.md": "Content" });
     const logger = createMockLogger();
-    const renderer = new SkillTemplateRenderer();
-    await renderer.render(makeTemplateContext({ skills: ["test-skill"] }), logger);
 
+    // Act
+    await new SkillTemplateRenderer().render(makeTemplateContext({ skills: ["test-skill"] }), outDir, logger);
+
+    // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 skill template"));
+  });
+});
+
+describe("skillsBuildDir", () => {
+  it("is the profile's .build/skills directory under the orchestrator root", () => {
+    // Act & Assert
+    expect(skillsBuildDir("ralph-docs")).toBe(join(process.cwd(), "profiles", "ralph-docs", ".build", "skills"));
   });
 });

@@ -6,7 +6,7 @@ How agent templates are authored, rendered, and parameterized at runtime. The op
 
 ```
 profiles/<id>/agents/*.agent.md      — Profile-specific agent templates (Liquid source)
-profiles/<id>/.build/*.agent.md      — Rendered output (gitignored, mounted into container)
+profiles/<id>/.build/<cli>/agents/   — Rendered output per CLI (gitignored, mounted into container)
 shared/agent-includes/               — Shared Liquid partials
   ├── ado-api.md                     — ADO MCP tool reference
   ├── ado-pr-format.md               — PR description template
@@ -31,9 +31,9 @@ shared/agent-includes/               — Shared Liquid partials
 
 1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params); `prepareForStage()` repeats this before each pipeline stage with stage overrides
 2. `buildTemplateContext()` produces a `TemplateContext` — a typed object with all template variables
-3. `AgentTemplateRenderer.render()` creates a LiquidJS engine with `shared/agent-includes/` as the root and the context as globals
-4. Each `.agent.md` file is parsed and rendered — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
-5. Output goes to `.build/` and is mounted read-only into the container
+3. `AgentTemplateRenderer.render()` loads the profile's templates into an `AgentCatalog` (canonical frontmatter, `subagents` graph) and creates a LiquidJS engine with `shared/agent-includes/` as the root
+4. Each agent reachable from the stage's root agent has its body rendered with the context plus its own `self` — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
+5. The stage CLI's agent file writer serialises each agent; the output is synced into `profiles/<id>/.build/<cli>/agents/` and mounted read-only into the container
 
 The Liquid engine uses `extname: ".md"` — partials are referenced without extensions (e.g. `{% render 'personality/ralph' %}` resolves to `shared/agent-includes/personality/ralph.md`).
 
@@ -205,4 +205,4 @@ Without the `-`, a false condition leaves a blank line in the rendered output wh
 1. Edit the `.agent.md` source in `profiles/<id>/agents/`
 2. Run `npx vitest run tests/container/agent-includes.test.ts` to validate rendering
 3. To preview the rendered output with specific context, use the test pattern in `agent-includes.test.ts` — create a temp directory, copy the template, and call `resolveAgentIncludes()` with a custom context object
-4. Check `profiles/<id>/.build/` for the rendered output after a task run (or manual render)
+4. Check `profiles/<id>/.build/<cli>/agents/` for the rendered output after a task run (or manual render)

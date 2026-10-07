@@ -1,61 +1,26 @@
-import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { Liquid } from "liquidjs";
 import type { Logger } from "../../logger";
 import { normalizeContent } from "../../prompt/normalizer";
 import { registerCustomTags } from "./liquid-tags";
-import { TaskContext } from "../../services/task-context";
+import type { TaskContext } from "../../services/task-context";
+import type { CliType, IStageConfig } from "../../config/types";
+import { AgentCatalog } from "../../cli/agent-catalog";
+import type { AgentRenderTarget } from "../../cli/agent-file-writer";
+import { agentFileWriterFor } from "../../cli/agent-writers";
+import { cliToolNamesFor, type CliToolNames } from "../../cli/cli-tools";
+import { syncDirectory } from "../../util/sync-dir";
+import { loadMcpManifest } from "./mcp-manifest";
 
 /**
- * Render agent templates to resolved `.agent.md` files in `.build/`.
+ * Template variables available to agent templates, shared partials and skills.
  *
- * Reads `.agent.md` templates from agentDir, renders Liquid tags
- * (e.g. `{% render 'name' %}`) using partials from includesDir, and
- * writes the output to the profile's `.build/` directory.
- *
- * The context object is passed to Liquid's renderer, making all keys
- * available as template variables (e.g. `{{ repo }}`, `{{ isRevision }}`).
- *
- * The `.build/` directory is what Docker compose should mount. The
- * `.agent.md` files in agentDir are the source of truth.
- */
-export async function resolveAgentIncludes(
-  agentDir: string,
-  includesDir: string,
-  context: Record<string, unknown>,
-  logger?: Logger,
-): Promise<void> {
-  const profileDir = dirname(agentDir);
-  const buildDir = join(profileDir, ".build");
-  await mkdir(buildDir, { recursive: true });
-
-  const engine = new Liquid({
-    root: [includesDir],
-    extname: ".md",
-    globals: context,
-  });
-  registerCustomTags(engine);
-
-  const allFiles = await readdir(agentDir);
-  const templates = allFiles.filter((f) => f.endsWith(".agent.md"));
-
-  for (const file of templates) {
-    const templatePath = join(agentDir, file);
-    const content = await readFile(templatePath, "utf-8");
-    logger?.info(`  → ${file}: rendering`);
-    const rendered = await engine.parseAndRender(content, context);
-    await writeFile(join(buildDir, file), rendered, "utf-8");
-    logger?.info(`  → ${file}: rendered`);
-  }
-}
-
-/**
- * Template variables available to agent `.agent.md` templates.
- *
- * Built from the parsed profile config and the current work item,
- * so templates can tailor instructions per-task (e.g. `{% if isRevision %}`,
- * `{% if taskProject == "DOC" %}`).
+ * Built from the parsed profile config, the current stage and the current work item, so templates
+ * can tailor instructions per task (e.g. `{% if isRevision %}`, `{% if taskProject == "DOC" %}`).
+ * Agent templates and the partials they render also see {@link AgentSelf} as `self`.
  */
 export interface TemplateContext {
   /** Allow Liquid to access any property — known fields are typed below. */
@@ -72,13 +37,15 @@ export interface TemplateContext {
    * and needs an explicit reference to the target repo the container agents work in.
    */
   targetRepoPath: string;
-  /** CLI type (`copilot` or `claude`). */
-  cli: string;
-  /** Model override, or empty string when using CLI default. */
+  /** CLI the current stage runs (`copilot` or `claude`). */
+  cli: CliType;
+  /** What the current stage's CLI calls the tools templates name in prose (`{{ cliTools.subagent }}`). */
+  cliTools: CliToolNames;
+  /** The current stage's model override, or empty string when the agent definition decides. */
   model: string;
-  /** Raw agent name as registered by the CLI (e.g. `ralph.ralph`). */
+  /** File id of the current stage's root agent (e.g. `ralph.ralph`). An agent's own name is `self.name`. */
   agentName: string;
-  /** Human-friendly agent name (e.g. `ralph`). */
+  /** `agentName` without the `ralph.` prefix (e.g. `ralph`). */
   displayName: string;
   /** MCP servers deployed for this profile. */
   mcpServers: readonly string[];
@@ -171,15 +138,24 @@ export interface TemplateContext {
   };
 }
 
-/** Stage-specific overrides for template context — passed during per-stage re-renders. */
+/** The agent a template renders, exposed to it and to its partials as `self`. */
+export interface AgentSelf {
+  /** Frontmatter name (`malph-reviewer-opus`); names the agent's artifact directory and status files. */
+  readonly name: string;
+  /** Template file id (`ralph.malph-reviewer-opus`). */
+  readonly fileId: string;
+  /** Whether the agent is the current stage's root agent. */
+  readonly isStageRoot: boolean;
+  /** Names of the subagents the agent may spawn. */
+  readonly subagents: readonly string[];
+}
+
+/** The pipeline or post-task hook stage a render is for, and where it sits in its pipeline. */
 export type StageOverrides = {
+  stage: IStageConfig;
   stageIndex: number;
   stageCount: number;
-  stageRole: string;
-  stageMode: string;
   previousStageRoles: string[];
-  /** Per-stage skill names — overrides profile-level skills for rendering and context. */
-  skills?: readonly string[];
   /** Hook context — set only for post-task hook stages. */
   hook?: {
     collectedLogs: Record<string, string>;
@@ -191,20 +167,24 @@ export type StageOverrides = {
 /**
  * Build a {@link TemplateContext} from the already-parsed profile and work item.
  *
- * Called by {@link TaskRunner} before rendering so all data is available
- * as Liquid variables without re-reading `profile.json` from disk.
+ * Without `stageOverrides` the context describes the variant's first stage, with the union of all
+ * its stages' skills, as rendered before the container starts.
  */
 export function buildTemplateContext(ctx: TaskContext, stageOverrides?: StageOverrides): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams) ? buildTriggerParams(ctx.triggerParams) : ctx.triggerParams;
+  const stage = stageOverrides?.stage ?? ctx.profile.stages[0];
+  const stageIndex = stageOverrides?.stageIndex ?? 0;
+  const stageCount = stageOverrides?.stageCount ?? ctx.profile.stages.length;
 
   return {
     profileId: ctx.profile.id,
     repo: ctx.profile.repoPath,
     targetRepoPath: ctx.profile.repoPath,
-    cli: ctx.profile.cli,
-    model: ctx.profile.model ?? "",
-    agentName: ctx.profile.agentName,
-    displayName: ctx.profile.displayName,
+    cli: stage.cli,
+    cliTools: cliToolNamesFor(stage.cli),
+    model: stage.model ?? ctx.profile.model ?? "",
+    agentName: stage.agent,
+    displayName: stage.agent.replace(/^ralph\./, ""),
     mcpServers: ctx.profile.mcpServers,
 
     taskId: ctx.workItem.id,
@@ -228,16 +208,16 @@ export function buildTemplateContext(ctx: TaskContext, stageOverrides?: StageOve
 
     prUrl: ctx.prUrl ?? "",
 
-    skills: stageOverrides?.skills ?? ctx.profile.skills,
+    skills: stageOverrides ? stage.skills : ctx.profile.skills,
 
     artifactDir: `.ralph/tasks/${ctx.workItem.id}/artifacts`,
 
-    stageRole: stageOverrides?.stageRole ?? ctx.profile.stages[0]?.role ?? "primary",
-    stageMode: stageOverrides?.stageMode ?? ctx.profile.stages[0]?.mode ?? "container",
-    stageIndex: stageOverrides?.stageIndex ?? 0,
-    stageCount: stageOverrides?.stageCount ?? ctx.profile.stages.length,
-    isFirstStage: (stageOverrides?.stageIndex ?? 0) === 0,
-    isLastStage: (stageOverrides?.stageIndex ?? 0) === (stageOverrides?.stageCount ?? ctx.profile.stages.length) - 1,
+    stageRole: stage.role,
+    stageMode: stage.mode,
+    stageIndex,
+    stageCount,
+    isFirstStage: stageIndex === 0,
+    isLastStage: stageIndex === stageCount - 1,
     previousStageRoles: stageOverrides?.previousStageRoles ?? [],
 
     hook: {
@@ -268,39 +248,139 @@ export function buildTriggerParams(params: string[]): Record<string, string> {
   return map;
 }
 
+/**
+ * A Liquid engine resolving `{% render %}` partials from `roots` (`.md` implied), with Ralph's
+ * custom tags registered.
+ */
+export function createTemplateEngine(roots: readonly string[]): Liquid {
+  const engine = new Liquid({ root: [...roots], extname: ".md" });
+  registerCustomTags(engine);
+  return engine;
+}
+
+/**
+ * Host directory a profile's agents are rendered into for one CLI (`profiles/<id>/.build/<cli>/agents`).
+ * Compose overlays mount it, or files in it, into the agent container.
+ */
+export function agentBuildDir(profileId: string, cli: CliType): string {
+  return resolve(process.cwd(), "profiles", profileId, ".build", cli, "agents");
+}
+
+/**
+ * The render target of `stage`: its CLI, its root agent and the profile's build directory for that CLI.
+ */
+export function stageRenderTarget(profileId: string, stage: IStageConfig): AgentRenderTarget {
+  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir: agentBuildDir(profileId, stage.cli) };
+}
+
+/**
+ * The allowlisted tools of each server in `serverNames`, read from its manifest; an empty list
+ * means the server allows every tool.
+ *
+ * @throws Error when a server's manifest is missing or malformed.
+ */
+export function resolveMcpToolNames(mcpServersDir: string, serverNames: readonly string[]): Record<string, string[]> {
+  return Object.fromEntries(serverNames.map((name) => [name, loadMcpManifest(mcpServersDir, name).tools ?? []]));
+}
+
+/** Inputs of {@link renderAgents}. */
+export interface RenderAgentsInput {
+  /** The profile's `agents/` directory of canonical templates. */
+  readonly agentsDir: string;
+  /** Root of the shared partials (`shared/agent-includes`). */
+  readonly includesDir: string;
+  readonly context: TemplateContext;
+  readonly target: AgentRenderTarget;
+  /** Allowlisted tools of each MCP server the variant runs (see {@link resolveMcpToolNames}). */
+  readonly mcpTools: Readonly<Record<string, readonly string[]>>;
+  readonly logger?: Logger;
+}
+
+/**
+ * Renders the agents a stage can reach into `target.outDir` in the target CLI's agent file format.
+ *
+ * Each agent's Liquid body is rendered with `context` plus its own {@link AgentSelf} as `self`, then
+ * serialised by the CLI's agent file writer. The output is staged and synced, so `outDir` keeps its
+ * inode and unreachable agents from an earlier render are removed.
+ *
+ * @returns The file names written, root agent first.
+ * @throws AgentDefinitionError or Error when a template is invalid, the agent set is not a valid
+ *   graph, the root agent does not exist, a Liquid template fails, or a reachable agent does not
+ *   run on `target.cli`.
+ */
+export async function renderAgents(input: RenderAgentsInput): Promise<string[]> {
+  const { agentsDir, includesDir, context, target, mcpTools, logger } = input;
+  const catalog = await AgentCatalog.load(agentsDir);
+  const reachable = catalog.reachableFrom(target.rootAgentFileId);
+  const stageSubagents = reachable.slice(1).map((fileId) => catalog.get(fileId).frontmatter.name);
+  const writer = agentFileWriterFor(target.cli);
+  const engine = createTemplateEngine([includesDir]);
+
+  const staging = await mkdtemp(join(tmpdir(), "ralph-agents-"));
+  try {
+    const written: string[] = [];
+    for (const fileId of reachable) {
+      const { frontmatter, bodyTemplate } = catalog.get(fileId);
+      const isStageRoot = fileId === target.rootAgentFileId;
+      const self: AgentSelf = { name: frontmatter.name, fileId, isStageRoot, subagents: frontmatter.subagents };
+      const scope = { ...context, self };
+      const body = await engine.parseAndRender(bodyTemplate, scope, { globals: scope });
+
+      const file = writer.write({ ...frontmatter, fileId, body }, { isStageRoot, stageSubagents, mcpTools });
+      if (!file) {
+        throw new Error(
+          `Agent ${fileId} is reachable from ${target.rootAgentFileId} but its runtimes ` +
+            `[${frontmatter.runtimes.join(", ")}] exclude cli "${target.cli}"`,
+        );
+      }
+      await writeFile(join(staging, file.fileName), file.content, "utf-8");
+      written.push(file.fileName);
+      logger?.info(`  → ${file.fileName}: rendered for ${target.cli}`);
+    }
+    await syncDirectory(staging, target.outDir);
+    return written;
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+  }
+}
+
 /** Public contract for JIT agent template rendering. */
 export interface IAgentTemplateRenderer {
-  /** Render agent templates for a profile with the pre-built template context. */
-  render(profileId: string, context: TemplateContext, logger?: Logger): Promise<void>;
+  /**
+   * Render the agents of `target`'s stage for `target.cli` into `target.outDir`.
+   *
+   * @throws Error when rendering fails (see {@link renderAgents}).
+   */
+  render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void>;
 }
 
 /**
  * JIT agent template renderer.
  *
- * Accepts a pre-built {@link TemplateContext} and renders all agent
- * templates via Liquid. Called before each task so templates can use
- * runtime data like `{% if isRevision %}` or `{{ taskId }}`.
+ * Reads the profile's canonical templates from `profiles/<id>/agents/`, partials from
+ * `shared/agent-includes/` and MCP tool allowlists from `shared/mcp-servers/`, all under the
+ * orchestrator root. Called before each task and stage so templates can use runtime data like
+ * `{% if isRevision %}` or `{{ taskId }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
   constructor() {}
 
-  async render(profileId: string, context: TemplateContext, logger?: Logger): Promise<void> {
+  async render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void> {
     const root = process.cwd();
     const includesDir = resolve(root, "shared/agent-includes");
+    const agentsDir = join(root, "profiles", profileId, "agents");
 
     if (!existsSync(includesDir)) {
       logger?.warn("Agent includes directory not found, skipping template rendering");
       return;
     }
-
-    const profileDir = join(root, "profiles", profileId);
-    const agentDir = join(profileDir, "agents");
-    if (!existsSync(agentDir)) {
+    if (!existsSync(agentsDir)) {
       logger?.warn(`No agents directory for profile ${profileId}, skipping template rendering`);
       return;
     }
 
-    logger?.info(`Rendering agent templates for ${profileId}`);
-    await resolveAgentIncludes(agentDir, includesDir, context, logger);
+    logger?.info(`Rendering agents of ${profileId} reachable from ${target.rootAgentFileId} for ${target.cli}`);
+    const mcpTools = resolveMcpToolNames(resolve(root, "shared/mcp-servers"), context.mcpServers);
+    await renderAgents({ agentsDir, includesDir, context, target, mcpTools, logger });
   }
 }

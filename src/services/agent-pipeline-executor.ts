@@ -58,12 +58,10 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       if (stages.length > 1) {
         this.logger.info(`${stageLabel}: rendering stage templates...`);
         await this.profileSetup.prepareForStage(ctx, {
+          stage,
           stageIndex: i,
           stageCount: stages.length,
-          stageRole: stage.role,
-          stageMode: stage.mode,
           previousStageRoles: stageResults.map((r) => r.role),
-          skills: stage.skills,
         });
       }
 

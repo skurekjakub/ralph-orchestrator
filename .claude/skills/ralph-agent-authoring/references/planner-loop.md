@@ -38,7 +38,7 @@ Result codes `planned` / `verified` / `gaps_found` / `blocked`. Artifacts under 
 ## Wiring edits (all planner text inside `{%- unless triggerParams.<toggle> %}`)
 
 1. Create the planner `.agent.md` (copy a canonical one; adapt architecture, task types, constraints).
-2. Orchestrator: add to `agents:` after the analyst; add a roster row; add a routing branch with rows for all four planner results and per-task coder/reviewer routing; add three-level iteration tracking; add planner `blocked` error handling; add "Never break analysis into tasks yourself — dispatch `ralph-planner`".
+2. Orchestrator: add to `subagents:` after the analyst; add a roster row; add a routing branch with rows for all four planner results and per-task coder/reviewer routing; add three-level iteration tracking; add planner `blocked` error handling; add "Never break analysis into tasks yourself — dispatch `ralph-planner`".
 3. Keep the toggle-on (`{%- if triggerParams.<toggle> %}`) branch **identical** to the old analyst → coder → reviewer flow.
 4. Workflow: phase tables (standard + revision) mention the planner dispatch and the per-task loop. The analyze reference dispatches the planner after the analyst. The implement-loop reference iterates `tasks.json`, scopes review to the current task, and dispatches the verification pass after the last task.
 5. Coder: read the current task file from `{{ artifactDir }}/ralph-planner/` and implement only that task. Reviewer: review against that task's acceptance criteria. Scribe: list `ralph-planner/` artifacts.

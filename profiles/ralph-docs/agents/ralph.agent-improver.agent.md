@@ -1,8 +1,7 @@
 ---
+name: agent-improver
 description: 'Post-task hook — proposes agent infrastructure improvements based on analysis'
-model: claude-opus-4.6
-name: 'agent-improver'
-user-invocable: false
+model: opus
 ---
 
 {% render 'post-hooks/agent-improver' %}

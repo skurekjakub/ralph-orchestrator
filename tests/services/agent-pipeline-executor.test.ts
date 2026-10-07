@@ -181,12 +181,12 @@ describe("AgentPipelineExecutor", () => {
 
       const [, firstOverrides] = (profileSetup.prepareForStage as ReturnType<typeof vi.fn>).mock.calls[0];
       expect(firstOverrides.stageIndex).toBe(0);
-      expect(firstOverrides.stageRole).toBe("primary");
+      expect(firstOverrides.stage.role).toBe("primary");
       expect(firstOverrides.previousStageRoles).toEqual([]);
 
       const [, secondOverrides] = (profileSetup.prepareForStage as ReturnType<typeof vi.fn>).mock.calls[1];
       expect(secondOverrides.stageIndex).toBe(1);
-      expect(secondOverrides.stageRole).toBe("reviewer");
+      expect(secondOverrides.stage.role).toBe("reviewer");
       expect(secondOverrides.previousStageRoles).toEqual(["primary"]);
     });
   });

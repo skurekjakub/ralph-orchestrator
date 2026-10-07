@@ -1,8 +1,7 @@
 ---
+name: run-synthesizer
 description: 'Post-task hook — synthesizes orchestrator-level and cross-subagent analysis'
-model: claude-opus-4.6
-name: 'run-synthesizer'
-user-invocable: false
+model: opus
 ---
 
 {% render 'post-hooks/run-synthesizer' %}

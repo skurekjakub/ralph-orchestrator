@@ -6,8 +6,8 @@ Techniques for searching and retrieving external documentation during research.
 
 | Tool | Purpose |
 |---|---|
-| `microsoft_docs_search` | Search Microsoft Learn documentation by keyword |
-| `web_fetch` | Fetch content from any public URL |
+| `microsoft_docs_search` (microsoft-docs MCP server) | Search Microsoft Learn documentation by keyword |
+| `web_fetch` (web-fetch MCP server) | Fetch content from any public URL |
 
 ## When to Use External Docs
 

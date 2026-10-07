@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import type { ValidationCollector } from "../../src/validate/types";
 import { validateProfiles } from "../../src/validate/profiles";
 import { CliType } from "../../src/config/types";
+import { makeAgentTemplate } from "../helpers/factories";
 const PROJECT = "DF";
 
 let tempDir: string;
@@ -39,7 +40,7 @@ function writeValidProfile(
   mkdirSync(agentsDir, { recursive: true });
   const agentFiles = overrides.agentFiles ?? ["ralph.agent.md"];
   for (const f of agentFiles) {
-    writeFileSync(join(agentsDir, f), "# Agent");
+    writeFileSync(join(agentsDir, f), makeAgentTemplate(f.replace(".agent.md", "").replace(/\./g, "-")));
   }
 
   if (!overrides.skipCompose) {
@@ -353,6 +354,45 @@ describe("validateProfiles", () => {
       const c = collector();
       validateProfiles(c);
       expect(c.errors.filter((e) => e.includes("skill"))).toHaveLength(0);
+    });
+
+    it("checks post-task hook stage skills too", () => {
+      // Arrange
+      mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          hookStages: [{ agent: "ralph", role: "scientist", mode: "local", skills: ["run-telemetry-analysis"] }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toContainEqual(
+        expect.stringMatching(/postTaskHooks\[0\]\/stages\[0\]: skill "run-telemetry-analysis" not found/),
+      );
+    });
+  });
+
+  describe("agent graph", () => {
+    it("reports a subagent no template defines", () => {
+      // Arrange
+      writeValidProfile("test");
+      writeFileSync(
+        join(tempDir, "profiles", "test", "agents", "ralph.agent.md"),
+        makeAgentTemplate("ralph", { subagents: ["ralph-reviewer-ia-gpt"] }),
+      );
+      const c = collector();
+
+      // Act
+      validateProfiles(c);
+
+      // Assert
+      expect(c.errors).toEqual([
+        'profiles/test/agents: agent ralph: subagent "ralph-reviewer-ia-gpt" is not an agent of this profile',
+      ]);
     });
   });
 

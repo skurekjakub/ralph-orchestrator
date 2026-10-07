@@ -1,8 +1,7 @@
 ---
+name: stacky-e2e-playwright
 description: 'Playwright E2E test writer sub-agent — creates browser-based end-to-end tests for UI-facing changes'
-model: claude-opus-4.6
-name: 'stacky-e2e-playwright'
-user-invocable: false
+model: opus
 ---
 
 {% section "agent-identity" %}

@@ -242,7 +242,7 @@ All agent templates are rendered per-stage — even templates for inactive stage
 
 ### Skill deployment
 
-Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer cleans `.build/` and reconstructs it, so only the current stage's skills are available.
+Each stage can declare its own `skills` array. Skills are re-rendered per-stage with the stage's context. The skill renderer syncs `profiles/<id>/.build/skills/` in place, so only the current stage's skills are available and existing bind mounts keep working.
 
 There is no profile-level `skills` field. The variant's container mounts the union of all its stages' skills, but each stage renders only its own list: a stage that declares no skills (`"skills": []`) gets an empty skill set.
 

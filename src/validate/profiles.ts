@@ -1,4 +1,4 @@
-import { Dirent, existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { ZodError } from "zod";
 import { resolvePath } from "../util/path";
@@ -14,7 +14,9 @@ import {
 import { resolveProfileVariants } from "../config/profile-variants";
 import { profileFileSchema } from "../config/schemas";
 import type { IAgentProfile } from "../config/types";
-import { validateStageClis } from "./stages";
+import { discoverSkills } from "../container/setup/skill-includes";
+import { validateAgentGraph } from "./agents";
+import { locateStages, validateStageClis } from "./stages";
 import type { ValidationCollector } from "./types";
 
 /**
@@ -101,22 +103,8 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): IAg
       continue;
     }
 
-    const agentsDir = join(profilesDir, dirName, "agents");
-    const agentFiles = existsSync(agentsDir) ? readdirSync(agentsDir).filter((f) => f.endsWith(".agent.md")) : [];
-    const availableAgents = agentFiles.map((f) => f.replace(".agent.md", ""));
-
     profile.variants.forEach((v, i) => {
       const vPrefix = `${prefix}/variants[${i}]`;
-
-      v.stages.forEach((stage, si) => {
-        if (agentFiles.length > 0 && !availableAgents.includes(stage.agent)) {
-          errors.push(
-            `${vPrefix}/stages[${si}]: agent "${stage.agent}" not found in ${prefix}/agents/\n` +
-              `  Available agents: ${availableAgents.join(", ")}\n` +
-              `  Agent files use the pattern: <name>.agent.md`,
-          );
-        }
-      });
 
       if (v.match.projects.length === 0) {
         warnings.push(`${vPrefix}: no match.projects defined — this variant won't match any issues`);
@@ -144,6 +132,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): IAg
     });
 
     validateStageClis(profile, variants, prefix, errors);
+    validateAgentGraph(variants, join(profilesDir, dirName, "agents"), prefix, errors);
 
     const { repoPat } = variants[0];
     if (!process.env[repoPat]) {
@@ -174,49 +163,23 @@ function formatSchemaIssues(prefix: string, error: ZodError): string[] {
   });
 }
 
-/**
- * Validate that all skills referenced by each variant's stages exist in shared/skills/
- * (searching subdirectories recursively).
- */
+/** Validate that every skill a variant or post-task hook stage mounts exists in shared/skills/. */
 function validateVariantSkills(
   variants: readonly IAgentProfile[],
   skillsDir: string,
   prefix: string,
   errors: string[],
 ): void {
-  variants.forEach((variant, i) => {
-    variant.stages.forEach((stage, si) => {
-      for (const skill of stage.skills) {
-        if (!findSkillDirSync(skillsDir, skill)) {
-          errors.push(
-            `${prefix}/variants[${i}]/stages[${si}]: skill "${skill}" not found in shared/skills/\n` +
-              `  Create shared/skills/${skill}/`,
-          );
-        }
+  const available = discoverSkills(skillsDir);
+  for (const { stage, path } of locateStages(variants)) {
+    for (const skill of stage.skills) {
+      if (!available.has(skill)) {
+        errors.push(
+          `${prefix}/${path}: skill "${skill}" not found in shared/skills/\n  Create shared/skills/${skill}/`,
+        );
       }
-    });
-  });
-}
-
-/** Synchronous recursive search for a skill directory by name. */
-function findSkillDirSync(skillsDir: string, name: string): boolean {
-  // Fast path: flat layout
-  if (existsSync(join(skillsDir, name, "SKILL.md"))) return true;
-
-  // Recursive search through subdirectories
-  let entries: Dirent[];
-  try {
-    entries = readdirSync(skillsDir, { withFileTypes: true }) as Dirent[];
-  } catch {
-    return false;
+    }
   }
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.name === ".build") continue;
-    const nested = join(skillsDir, entry.name);
-    if (existsSync(join(nested, name, "SKILL.md"))) return true;
-    if (findSkillDirSync(nested, name)) return true;
-  }
-  return false;
 }
 
 export interface VariantTriggerInfo {

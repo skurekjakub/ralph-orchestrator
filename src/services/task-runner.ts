@@ -262,12 +262,10 @@ export class TaskRunner implements ITaskRunner {
 
           this.logger.info(`${stageLabel} Rendering templates...`);
           await this.profileSetup.prepareForStage(ctx, {
+            stage,
             stageIndex: i,
             stageCount: hook.stages.length,
-            stageRole: stage.role,
-            stageMode: stage.mode,
             previousStageRoles: completedRoles,
-            skills: stage.skills,
             hook: {
               collectedLogs: result.collectedLogs,
               name: hook.name,

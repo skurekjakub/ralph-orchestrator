@@ -18,7 +18,10 @@ import {
   createMockOverlayWriter,
   createSilentLogger,
 } from "../helpers/mocks";
-import { makeTaskContext } from "../helpers/factories";
+import { makeProfile, makeStage, makeTaskContext } from "../helpers/factories";
+import { agentBuildDir } from "../../src/container/setup/agent-includes";
+import { skillsBuildDir } from "../../src/container/setup/skill-includes";
+import { CliType, StageMode } from "../../src/config/types";
 
 function createService() {
   const templateRenderer = createMockTemplateRenderer();
@@ -41,26 +44,41 @@ describe("ProfileSetupService", () => {
   });
 
   describe("prepareForTask", () => {
-    it("renders agent templates with the task's profile ID and context", async () => {
+    it("renders the first stage's agents for its CLI into the profile's build directory for that CLI", async () => {
+      // Arrange
       const { service, templateRenderer } = createService();
-      const ctx = makeTaskContext();
+      const profile = makeProfile({
+        id: "docs",
+        stages: [makeStage({ agent: "ralph.ralph", cli: CliType.Claude }), makeStage({ agent: "ralph.second" })],
+      });
+      const ctx = makeTaskContext({ profile });
 
+      // Act
       await service.prepareForTask(ctx);
 
+      // Assert
       expect(templateRenderer.render).toHaveBeenCalledWith(
-        ctx.profile.id,
-        expect.objectContaining({ taskId: ctx.workItem.id, profileId: ctx.profile.id }),
+        "docs",
+        expect.objectContaining({ taskId: ctx.workItem.id, profileId: "docs", agentName: "ralph.ralph" }),
+        { cli: CliType.Claude, rootAgentFileId: "ralph.ralph", outDir: agentBuildDir("docs", CliType.Claude) },
         expect.anything(),
       );
     });
 
-    it("renders skill templates", async () => {
+    it("renders the variant's skills into the profile's skills build directory", async () => {
+      // Arrange
       const { service, skillRenderer } = createService();
-      const ctx = makeTaskContext();
+      const profile = makeProfile({ id: "docs", stages: [makeStage({ skills: ["a"] }), makeStage({ skills: ["b"] })] });
 
-      await service.prepareForTask(ctx);
+      // Act
+      await service.prepareForTask(makeTaskContext({ profile }));
 
-      expect(skillRenderer.render).toHaveBeenCalledOnce();
+      // Assert
+      expect(skillRenderer.render).toHaveBeenCalledWith(
+        expect.objectContaining({ skills: ["a", "b"] }),
+        skillsBuildDir("docs"),
+        expect.anything(),
+      );
     });
 
     it("writes the compose overlay for the matched variant", async () => {
@@ -86,22 +104,49 @@ describe("ProfileSetupService", () => {
   });
 
   describe("prepareForStage", () => {
+    const stage = makeStage({
+      agent: "ralph.scientist",
+      role: "reviewer",
+      mode: StageMode.Local,
+      cli: CliType.Claude,
+      skills: ["review"],
+    });
     const stageOverrides = {
+      stage,
       stageIndex: 1,
       stageCount: 2,
-      stageRole: "reviewer",
-      stageMode: "container",
       previousStageRoles: ["primary"] as string[],
     };
 
-    it("re-renders agent and skill templates with stage-specific context", async () => {
+    it("renders the stage's agents for its CLI and its own skills", async () => {
+      // Arrange
       const { service, templateRenderer, skillRenderer } = createService();
-      const ctx = makeTaskContext();
+      const ctx = makeTaskContext({ profile: makeProfile({ id: "docs" }) });
 
+      // Act
       await service.prepareForStage(ctx, stageOverrides);
 
-      expect(templateRenderer.render).toHaveBeenCalledOnce();
-      expect(skillRenderer.render).toHaveBeenCalledOnce();
+      // Assert
+      expect(templateRenderer.render).toHaveBeenCalledWith(
+        "docs",
+        expect.anything(),
+        { cli: CliType.Claude, rootAgentFileId: "ralph.scientist", outDir: agentBuildDir("docs", CliType.Claude) },
+        expect.anything(),
+      );
+      expect(skillRenderer.render).toHaveBeenCalledWith(
+        expect.objectContaining({ skills: ["review"] }),
+        skillsBuildDir("docs"),
+        expect.anything(),
+      );
+    });
+
+    it("propagates a rendering failure", async () => {
+      // Arrange
+      const { service, templateRenderer } = createService();
+      templateRenderer.render.mockRejectedValue(new Error("agent ralph.scientist does not run on cli claude"));
+
+      // Act & Assert
+      await expect(service.prepareForStage(makeTaskContext(), stageOverrides)).rejects.toThrow(/does not run on cli/);
     });
 
     it("includes stage role and index in the rendered template context", async () => {

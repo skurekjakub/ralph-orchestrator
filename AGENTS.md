@@ -77,7 +77,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 ```
 
 - In code, a **"profile" is one variant.** `loadConfig()` expands each `profiles/<id>/profile.json` into one `IAgentProfile` per variant, keyed by `variantKey` = `<profileId>:<firstStageAgent>:<commentTrigger>`.
-- `agentName` is the first stage's `agent`; `displayName` is that name without the `ralph.` prefix.
+- `agentName` is the first stage's `agent`; `displayName` is that name without the `ralph.` prefix. In templates, `agentName` is the current stage's root agent; an agent's own name is `self.name`.
 - Trigger params `@X(a, k=v)` become `triggerParams` (`buildTriggerParams` in `src/container/setup/agent-includes.ts`): a bare param maps to `"true"`, a `k=v` param maps to its value.
 - `skip_hooks` writes `hook-manifest.json` instead of running post-task hooks.
 
@@ -130,7 +130,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - The sidecar also joins `ralph-sidecar-external`.
   - Hardening: `cap_drop: ALL` (+ `DAC_OVERRIDE`, `CHOWN`), `no-new-privileges`, 8G / 4 CPU / 500 PIDs. See `SECURITY.md` and `docs/dev-doc/compose-layering.md`.
 - **Target repo.** `RepoSyncHook` (`src/container/lifecycle.ts`) writes `.ralph/`, `.github/skills/` and `.github/agents/` to `.git/info/exclude`, then fetches, checks out and runs `reset --hard` to the task branch. `TaskRunner` deletes `<repo>/.ralph` before each run.
-- **Templates.** `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders `profiles/<id>/agents/*.agent.md` (Liquid; partials from `shared/agent-includes/**`; `{% section "x" %}` → `<x>…</x>`) into `.build/`. `SkillTemplateRenderer` renders `shared/skills/<name>` into `shared/skills/.build/<name>/`. Both re-render per task and per stage, and the output is mounted read-only. Template variables: the `TemplateContext` interface in `agent-includes.ts` and `docs/user-guide/template-variables.md`.
+- **Templates.** Agent templates `profiles/<id>/agents/*.agent.md` carry one canonical frontmatter (`agentFrontmatterSchema`, `src/cli/agent-definition.ts`; `AgentCatalog` in `src/cli/agent-catalog.ts` holds the `subagents` graph). `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders the agents a stage's root can reach (Liquid; partials from `shared/agent-includes/**`; `{% section "x" %}` → `<x>…</x>`; per-agent `self`) and writes them in the stage CLI's format (`src/cli/{claude,copilot}/*-agent-writer.ts`) into `profiles/<id>/.build/<cli>/agents/`. `SkillTemplateRenderer` renders the stage's skills into `profiles/<id>/.build/skills/<name>/`. Both re-render per task and per stage and sync in place (`src/util/sync-dir.ts`), and the output is mounted read-only. Template variables: the `TemplateContext` interface in `agent-includes.ts` and `docs/user-guide/template-variables.md`.
 - **MCP.** The effective servers are the union of profile- and variant-level `mcpServers`. Secrets live in `gateway.json` inside the sidecar (`shared/mcp-sidecar/src/gateway.ts`, which serves `/health`).
   - `type: "npm"` servers speak stdio and are bridged inside the gateway, behind the tool-filter proxy (`shared/mcp-sidecar/src/stdio-upstream.ts`, `stdio-bridge.ts`). `type: "custom"` servers serve Streamable HTTP themselves on the `--host` and `--port` the gateway passes (`shared/mcp-servers/common/http-launch.ts`).
   - A server whose manifest lists `tools` runs on `127.0.0.1:<sidecarPort + 10000>`; the gateway's tool-filter proxy serves `sidecarPort`, hides other tools from `tools/list` and refuses calls to them.

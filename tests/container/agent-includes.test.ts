@@ -1,17 +1,31 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile, rm, readdir } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  resolveAgentIncludes,
   AgentTemplateRenderer,
+  agentBuildDir,
   buildTemplateContext,
   buildTriggerParams,
+  renderAgents,
+  resolveMcpToolNames,
+  stageRenderTarget,
+  type RenderAgentsInput,
 } from "../../src/container/setup/agent-includes";
 import { registerCustomTags } from "../../src/container/setup/liquid-tags";
 import { Liquid } from "liquidjs";
 import { createMockLogger } from "../helpers/mocks";
-import { makeProfile, makeStage, makeWorkItem, makeTemplateContext, makeTaskContext } from "../helpers/factories";
+import {
+  makeAgentTemplate,
+  makeProfile,
+  makeStage,
+  makeWorkItem,
+  makeTemplateContext,
+  makeTaskContext,
+} from "../helpers/factories";
+import { AgentDefinitionError } from "../../src/cli/agent-definition";
+import { CLAUDE_TOOL_NAMES, COPILOT_TOOL_NAMES } from "../../src/cli/cli-tools";
+import { CliType, StageMode } from "../../src/config/types";
 
 let tmpDir: string;
 let originalCwd: string;
@@ -27,238 +41,345 @@ afterEach(async () => {
   await rm(tmpDir, { recursive: true, force: true });
 });
 
-describe("resolveAgentIncludes", () => {
-  it("renders a liquid template with includes from includesDir", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+/** Writes agent templates and partials under `tmpDir` and returns renderAgents input for `rootAgentFileId`. */
+async function setupAgents(
+  templates: Record<string, string>,
+  options: { partials?: Record<string, string>; cli?: CliType; root?: string } = {},
+): Promise<RenderAgentsInput> {
+  const agentsDir = join(tmpDir, "agents");
+  const includesDir = join(tmpDir, "includes");
+  await mkdir(agentsDir, { recursive: true });
+  await mkdir(includesDir, { recursive: true });
+  for (const [fileId, text] of Object.entries(templates)) await writeFile(join(agentsDir, `${fileId}.agent.md`), text);
+  for (const [name, text] of Object.entries(options.partials ?? {}))
+    await writeFile(join(includesDir, `${name}.md`), text);
+  const cli = options.cli ?? CliType.Copilot;
+  return {
+    agentsDir,
+    includesDir,
+    context: makeTemplateContext({ cli, taskId: "DOC-7" }),
+    target: { cli, rootAgentFileId: options.root ?? "ralph.root", outDir: join(tmpDir, "out") },
+    mcpTools: {},
+  };
+}
 
-    await writeFile(join(includesDir, "greeting.md"), "Hello from the include");
-    await writeFile(join(agentDir, "test.agent.md"), "# Agent\n\n{% render 'greeting' %}\n\nEnd.");
+describe("renderAgents", () => {
+  it("renders the root agent's body with partials and context in the Copilot format", async () => {
+    // Arrange
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", { model: "opus", body: "{% render 'greeting' %} for {{ taskId }}\n" }),
+      },
+      { partials: { greeting: "Hello" } },
+    );
 
-    await resolveAgentIncludes(agentDir, includesDir, {});
+    // Act
+    const written = await renderAgents(input);
 
-    const output = await readFile(join(tmpDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toContain("Hello from the include");
-    expect(output).toContain("# Agent");
-    expect(output).toContain("End.");
-    expect(output).not.toContain("{% render");
+    // Assert
+    expect(written).toEqual(["ralph.root.agent.md"]);
+    const output = await readFile(join(input.target.outDir, "ralph.root.agent.md"), "utf-8");
+    expect(output).toBe(
+      "---\ndescription: 'The root agent'\nmodel: claude-opus-4.6\nname: 'root'\nuser-invocable: false\n---\nHello for DOC-7\n",
+    );
   });
 
-  it("creates .build directory if it does not exist", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+  it("renders only the agents reachable from the root, root first", async () => {
+    // Arrange
+    const input = await setupAgents({
+      "ralph.root": makeAgentTemplate("root", { subagents: ["mid"] }),
+      "ralph.mid": makeAgentTemplate("mid", { subagents: ["leaf"] }),
+      "ralph.leaf": makeAgentTemplate("leaf"),
+      "ralph.other": makeAgentTemplate("other"),
+    });
 
-    await writeFile(join(agentDir, "simple.agent.md"), "No includes here.");
+    // Act
+    const written = await renderAgents(input);
 
-    await resolveAgentIncludes(agentDir, includesDir, {});
-
-    const output = await readFile(join(tmpDir, ".build", "simple.agent.md"), "utf-8");
-    expect(output).toBe("No includes here.");
+    // Assert
+    expect(written).toEqual(["ralph.root.agent.md", "ralph.mid.agent.md", "ralph.leaf.agent.md"]);
+    expect((await readdir(input.target.outDir)).sort()).toEqual([
+      "ralph.leaf.agent.md",
+      "ralph.mid.agent.md",
+      "ralph.root.agent.md",
+    ]);
   });
 
-  it("processes multiple agent files", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+  it("gives each agent and the partials it renders its own self", async () => {
+    // Arrange
+    const body = "{% render 'contract' %}\n";
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", { subagents: ["reviewer-a", "reviewer-b"], body }),
+        "ralph.reviewer-a": makeAgentTemplate("reviewer-a", { body }),
+        "ralph.reviewer-b": makeAgentTemplate("reviewer-b", { body }),
+      },
+      { partials: { contract: "dir={{ self.name }} file={{ self.fileId }} root={{ self.isStageRoot }}" } },
+    );
 
-    await writeFile(join(agentDir, "one.agent.md"), "Agent One");
-    await writeFile(join(agentDir, "two.agent.md"), "Agent Two");
+    // Act
+    await renderAgents(input);
 
-    await resolveAgentIncludes(agentDir, includesDir, {});
-
-    const files = await readdir(join(tmpDir, ".build"));
-    expect(files).toContain("one.agent.md");
-    expect(files).toContain("two.agent.md");
+    // Assert
+    const read = (file: string) => readFile(join(input.target.outDir, file), "utf-8");
+    expect(await read("ralph.root.agent.md")).toContain("dir=root file=ralph.root root=true");
+    expect(await read("ralph.reviewer-a.agent.md")).toContain("dir=reviewer-a file=ralph.reviewer-a root=false");
+    expect(await read("ralph.reviewer-b.agent.md")).toContain("dir=reviewer-b file=ralph.reviewer-b root=false");
   });
 
-  it("ignores non-agent files in agent directory", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+  it("names a Claude Code agent file after its frontmatter name and grants the root every reachable agent", async () => {
+    // Arrange
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", { subagents: ["mid"], body: "Use {{ cliTools.subagent }}.\n" }),
+        "ralph.mid": makeAgentTemplate("mid", { subagents: ["leaf"] }),
+        "ralph.leaf": makeAgentTemplate("leaf"),
+      },
+      { cli: CliType.Claude },
+    );
 
-    await writeFile(join(agentDir, "readme.txt"), "Not a template");
-    await writeFile(join(agentDir, "test.agent.md"), "Template");
+    // Act
+    const written = await renderAgents({ ...input, mcpTools: { ado: ["ado_push_progress"] } });
 
-    await resolveAgentIncludes(agentDir, includesDir, {});
-
-    const files = await readdir(join(tmpDir, ".build"));
-    expect(files).toEqual(["test.agent.md"]);
+    // Assert
+    expect(written).toEqual(["root.md", "mid.md", "leaf.md"]);
+    const root = await readFile(join(input.target.outDir, "root.md"), "utf-8");
+    expect(root).toContain("tools: Agent(mid, leaf), Read,");
+    expect(root).toContain("mcp__ado__ado_push_progress");
+    expect(root).toContain("Use Agent.");
   });
 
-  it("throws on missing include", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+  it("removes agents an earlier render wrote that the new root cannot reach, keeping the directory", async () => {
+    // Arrange
+    const input = await setupAgents({
+      "ralph.root": makeAgentTemplate("root", { subagents: ["helper"] }),
+      "ralph.helper": makeAgentTemplate("helper"),
+      "ralph.scientist": makeAgentTemplate("scientist"),
+    });
+    await renderAgents(input);
+    const inodeBefore = (await stat(input.target.outDir)).ino;
 
-    await writeFile(join(agentDir, "broken.agent.md"), "{% render 'nonexistent' %}");
+    // Act
+    await renderAgents({ ...input, target: { ...input.target, rootAgentFileId: "ralph.scientist" } });
 
-    await expect(resolveAgentIncludes(agentDir, includesDir, {})).rejects.toThrow();
+    // Assert
+    expect(await readdir(input.target.outDir)).toEqual(["ralph.scientist.agent.md"]);
+    expect((await stat(input.target.outDir)).ino).toBe(inodeBefore);
   });
 
-  it("logs rendered files when logger provided", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+  it("throws when a reachable agent does not run on the target CLI", async () => {
+    // Arrange
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", { subagents: ["copilot-only"] }),
+        "ralph.copilot-only": makeAgentTemplate("copilot-only", { runtimes: ["copilot"] }),
+      },
+      { cli: CliType.Claude },
+    );
 
-    await writeFile(join(agentDir, "test.agent.md"), "Content");
+    // Act & Assert
+    await expect(renderAgents(input)).rejects.toThrow(/ralph\.copilot-only is reachable from ralph\.root/);
+  });
+
+  it("throws when the root agent does not exist", async () => {
+    // Arrange
+    const input = await setupAgents({ "ralph.other": makeAgentTemplate("other") });
+
+    // Act & Assert
+    await expect(renderAgents(input)).rejects.toThrow(/No agent template ralph\.root/);
+  });
+
+  it("throws an AgentDefinitionError for a template with legacy Copilot frontmatter", async () => {
+    // Arrange
+    const input = await setupAgents({
+      "ralph.root": "---\nname: 'root'\ndescription: 'Root'\nagents: ['x']\nuser-invocable: false\n---\nBody\n",
+    });
+
+    // Act & Assert
+    await expect(renderAgents(input)).rejects.toBeInstanceOf(AgentDefinitionError);
+  });
+
+  it("throws on a missing partial", async () => {
+    // Arrange
+    const input = await setupAgents({
+      "ralph.root": makeAgentTemplate("root", { body: "{% render 'nonexistent' %}" }),
+    });
+
+    // Act & Assert
+    await expect(renderAgents(input)).rejects.toThrow();
+  });
+
+  it("logs each rendered file", async () => {
+    // Arrange
+    const input = await setupAgents({ "ralph.root": makeAgentTemplate("root") });
     const logger = createMockLogger();
 
-    await resolveAgentIncludes(agentDir, includesDir, {}, logger);
+    // Act
+    await renderAgents({ ...input, logger });
 
-    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("test.agent.md"));
+    // Assert
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("ralph.root.agent.md"));
+  });
+});
+
+describe("resolveMcpToolNames", () => {
+  it("returns each server's allowlist, and an empty list for a server that allows every tool", async () => {
+    // Arrange
+    const serversDir = join(tmpDir, "servers");
+    for (const [name, tools] of [
+      ["ado", ["ado_push_progress"]],
+      ["open", undefined],
+    ] as const) {
+      await mkdir(join(serversDir, name), { recursive: true });
+      await writeFile(
+        join(serversDir, name, "mcp-server.json"),
+        JSON.stringify({
+          name,
+          type: "custom",
+          command: "node",
+          args: [],
+          sidecarPort: name === "ado" ? 9001 : 9002,
+          tools,
+        }),
+      );
+    }
+
+    // Act
+    const tools = resolveMcpToolNames(serversDir, ["ado", "open"]);
+
+    // Assert
+    expect(tools).toEqual({ ado: ["ado_push_progress"], open: [] });
   });
 
-  it("passes profile config as Liquid context", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
-
-    await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}\nCLI: {{ cli }}");
-
-    await resolveAgentIncludes(agentDir, includesDir, { repo: "/my/repo", cli: "copilot" });
-
-    const output = await readFile(join(tmpDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toBe("Repo: /my/repo\nCLI: copilot");
+  it("throws when a server has no manifest", () => {
+    // Act & Assert
+    expect(() => resolveMcpToolNames(join(tmpDir, "servers"), ["missing"])).toThrow(/manifest not found/);
   });
+});
 
-  it("resolves multiple includes in one template", async () => {
-    const agentDir = join(tmpDir, "agents");
-    const includesDir = join(tmpDir, "includes");
-    await mkdir(agentDir, { recursive: true });
-    await mkdir(includesDir, { recursive: true });
+describe("stageRenderTarget", () => {
+  it("targets the stage's CLI and root agent in the profile's build directory for that CLI", () => {
+    // Arrange
+    const stage = makeStage({ agent: "ralph.scientist", cli: CliType.Claude, mode: StageMode.Local });
 
-    await writeFile(join(includesDir, "header.md"), "# Header");
-    await writeFile(join(includesDir, "footer.md"), "---\nEnd of file");
-    await writeFile(join(agentDir, "full.agent.md"), "{% render 'header' %}\n\nBody\n\n{% render 'footer' %}");
+    // Act
+    const target = stageRenderTarget("ralph-docs", stage);
 
-    await resolveAgentIncludes(agentDir, includesDir, {});
-
-    const output = await readFile(join(tmpDir, ".build", "full.agent.md"), "utf-8");
-    expect(output).toContain("# Header");
-    expect(output).toContain("Body");
-    expect(output).toContain("End of file");
+    // Assert
+    expect(target).toEqual({
+      cli: CliType.Claude,
+      rootAgentFileId: "ralph.scientist",
+      outDir: join(process.cwd(), "profiles", "ralph-docs", ".build", "claude", "agents"),
+    });
+    expect(agentBuildDir("ralph-docs", CliType.Copilot)).toBe(
+      join(process.cwd(), "profiles", "ralph-docs", ".build", "copilot", "agents"),
+    );
   });
 });
 
 describe("AgentTemplateRenderer", () => {
-  it("renders templates with context variables", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    const profileDir = join(tmpDir, "profiles", "my-profile");
-    const agentDir = join(profileDir, "agents");
-
-    await mkdir(includesDir, { recursive: true });
+  /** Lays out profiles/<id>/agents and shared/ under the temp cwd. */
+  async function setupProfile(profileId: string, templates: Record<string, string>): Promise<void> {
+    const agentDir = join(tmpDir, "profiles", profileId, "agents");
+    await mkdir(join(tmpDir, "shared", "agent-includes"), { recursive: true });
     await mkdir(agentDir, { recursive: true });
+    for (const [fileId, text] of Object.entries(templates)) await writeFile(join(agentDir, `${fileId}.agent.md`), text);
+  }
 
-    await writeFile(join(agentDir, "test.agent.md"), "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}");
-
-    const renderer = new AgentTemplateRenderer();
-    await renderer.render(
-      "my-profile",
-      makeTemplateContext({
-        profileId: "my-profile",
-        repo: "/my/repo",
-        isRevision: true,
-        taskId: "DF-123",
+  it("renders the profile's agents with context variables into the target directory", async () => {
+    // Arrange
+    await setupProfile("my-profile", {
+      "ralph.root": makeAgentTemplate("root", {
+        body: "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}",
       }),
-    );
+    });
+    const target = stageRenderTarget("my-profile", makeStage({ agent: "ralph.root" }));
+    const context = makeTemplateContext({
+      profileId: "my-profile",
+      repo: "/my/repo",
+      isRevision: true,
+      taskId: "DF-123",
+    });
 
-    const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toBe("Repo: /my/repo, Revision: true, Key: DF-123");
+    // Act
+    await new AgentTemplateRenderer().render("my-profile", context, target);
+
+    // Assert
+    const output = await readFile(join(target.outDir, "ralph.root.agent.md"), "utf-8");
+    expect(output).toContain("---\nRepo: /my/repo, Revision: true, Key: DF-123");
   });
 
-  it("makes issue data available in templates", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    const profileDir = join(tmpDir, "profiles", "test-profile");
-    const agentDir = join(profileDir, "agents");
-
-    await mkdir(includesDir, { recursive: true });
-    await mkdir(agentDir, { recursive: true });
-
+  it("grants Claude Code agents the allowlisted tools of the variant's MCP servers", async () => {
+    // Arrange
+    await setupProfile("mcp-profile", { "ralph.root": makeAgentTemplate("root") });
+    await mkdir(join(tmpDir, "shared", "mcp-servers", "jira"), { recursive: true });
     await writeFile(
-      join(agentDir, "test.agent.md"),
-      "Project: {{ taskProject }}, Status: {{ taskStatus }}, Summary: {{ taskTitle }}",
+      join(tmpDir, "shared", "mcp-servers", "jira", "mcp-server.json"),
+      JSON.stringify({ name: "jira", command: "node", args: [], sidecarPort: 9100, tools: ["jira_add_comment"] }),
+    );
+    const target = stageRenderTarget("mcp-profile", makeStage({ agent: "ralph.root", cli: CliType.Claude }));
+
+    // Act
+    await new AgentTemplateRenderer().render(
+      "mcp-profile",
+      makeTemplateContext({ cli: CliType.Claude, mcpServers: ["jira"] }),
+      target,
     );
 
-    const renderer = new AgentTemplateRenderer();
-    await renderer.render(
-      "test-profile",
-      makeTemplateContext({
-        profileId: "test-profile",
-        taskProject: "DOC",
-        taskStatus: "To Do",
-        taskTitle: "Add widget docs",
-      }),
-    );
-
-    const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toBe("Project: DOC, Status: To Do, Summary: Add widget docs");
+    // Assert
+    expect(await readFile(join(target.outDir, "root.md"), "utf-8")).toContain("mcp__jira__jira_add_comment");
   });
 
-  it("warns and skips when includes directory is missing", async () => {
-    const renderer = new AgentTemplateRenderer();
+  it("warns and skips when the includes directory is missing", async () => {
+    // Arrange
     const logger = createMockLogger();
 
-    await renderer.render("nonexistent", makeTemplateContext(), logger);
+    // Act
+    await new AgentTemplateRenderer().render(
+      "nonexistent",
+      makeTemplateContext(),
+      stageRenderTarget("nonexistent", makeStage()),
+      logger,
+    );
 
+    // Assert
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("not found"));
   });
 
-  it("warns when agents directory is missing", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    await mkdir(includesDir, { recursive: true });
+  it("warns when the agents directory is missing", async () => {
+    // Arrange
+    await mkdir(join(tmpDir, "shared", "agent-includes"), { recursive: true });
     await mkdir(join(tmpDir, "profiles", "empty-profile"), { recursive: true });
-
-    const renderer = new AgentTemplateRenderer();
     const logger = createMockLogger();
 
-    await renderer.render("empty-profile", makeTemplateContext(), logger);
+    // Act
+    await new AgentTemplateRenderer().render(
+      "empty-profile",
+      makeTemplateContext(),
+      stageRenderTarget("empty-profile", makeStage()),
+      logger,
+    );
 
+    // Assert
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("No agents directory"));
   });
 
-  it("resolves shared includes alongside context", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    const profileDir = join(tmpDir, "profiles", "inc-profile");
-    const agentDir = join(profileDir, "agents");
-
-    await mkdir(includesDir, { recursive: true });
-    await mkdir(agentDir, { recursive: true });
-
-    await writeFile(join(includesDir, "greeting.md"), "Hello from include");
-    await writeFile(join(agentDir, "test.agent.md"), "{% render 'greeting' %}\nRevision: {{ isRevision }}");
-
-    const renderer = new AgentTemplateRenderer();
-    await renderer.render("inc-profile", makeTemplateContext({ isRevision: false }));
-
-    const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toContain("Hello from include");
-    expect(output).toContain("Revision: false");
-  });
-
-  it("logs progress", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    const profileDir = join(tmpDir, "profiles", "test-profile");
-    const agentDir = join(profileDir, "agents");
-
-    await mkdir(includesDir, { recursive: true });
-    await mkdir(agentDir, { recursive: true });
-
-    await writeFile(join(agentDir, "x.agent.md"), "Content");
-
+  it("logs which profile, root and CLI it renders", async () => {
+    // Arrange
+    await setupProfile("test-profile", { "ralph.root": makeAgentTemplate("root") });
     const logger = createMockLogger();
-    const renderer = new AgentTemplateRenderer();
-    await renderer.render("test-profile", makeTemplateContext(), logger);
 
+    // Act
+    await new AgentTemplateRenderer().render(
+      "test-profile",
+      makeTemplateContext(),
+      stageRenderTarget("test-profile", makeStage({ agent: "ralph.root" })),
+      logger,
+    );
+
+    // Assert
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("test-profile"));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("ralph.root"));
   });
 });
 
@@ -393,21 +514,26 @@ describe("buildTemplateContext", () => {
   });
 
   it("applies stageOverrides when provided", () => {
+    // Arrange
+    const reviewer = makeStage({ agent: "ralph.reviewer", role: "reviewer", skills: ["review-skill"] });
     const profile = makeProfile({
-      stages: [
-        makeStage({ agent: "ralph.writer", role: "writer" }),
-        makeStage({ agent: "ralph.reviewer", role: "reviewer" }),
-        makeStage({ agent: "ralph.editor", role: "editor" }),
-      ],
+      stages: [makeStage({ agent: "ralph.writer", role: "writer", skills: ["write-skill"] }), reviewer],
     });
+
+    // Act
     const ctx = buildTemplateContext(makeTaskContext({ profile }), {
+      stage: reviewer,
       stageIndex: 1,
       stageCount: 3,
-      stageRole: "reviewer",
-      stageMode: "container",
       previousStageRoles: ["writer"],
     });
+
+    // Assert
     expect(ctx.stageRole).toBe("reviewer");
+    expect(ctx.stageMode).toBe(StageMode.Container);
+    expect(ctx.skills).toEqual(["review-skill"]);
+    expect(ctx.agentName).toBe("ralph.reviewer");
+    expect(ctx.displayName).toBe("reviewer");
     expect(ctx.stageIndex).toBe(1);
     expect(ctx.stageCount).toBe(3);
     expect(ctx.isFirstStage).toBe(false);
@@ -416,15 +542,67 @@ describe("buildTemplateContext", () => {
   });
 
   it("computes isLastStage correctly from stageOverrides", () => {
+    // Act
     const ctx = buildTemplateContext(makeTaskContext(), {
+      stage: makeStage({ role: "editor" }),
       stageIndex: 2,
       stageCount: 3,
-      stageRole: "editor",
-      stageMode: "container",
       previousStageRoles: ["writer", "reviewer"],
     });
+
+    // Assert
     expect(ctx.isLastStage).toBe(true);
     expect(ctx.isFirstStage).toBe(false);
+  });
+
+  it("describes a post-task hook stage: its root agent, CLI, tool names, skills and model", () => {
+    // Arrange
+    const hookStage = makeStage({
+      agent: "ralph.scientist",
+      role: "scientist",
+      mode: StageMode.Local,
+      cli: CliType.Claude,
+      model: "opus",
+      skills: [],
+    });
+    const profile = makeProfile({ agentName: "ralph.ralph", model: "sonnet", stages: [makeStage({ skills: ["a"] })] });
+
+    // Act
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), {
+      stage: hookStage,
+      stageIndex: 0,
+      stageCount: 1,
+      previousStageRoles: [],
+      hook: { collectedLogs: {}, name: "run-analysis", outputDir: "/out/hooks/run-analysis" },
+    });
+
+    // Assert
+    expect(ctx.agentName).toBe("ralph.scientist");
+    expect(ctx.cli).toBe(CliType.Claude);
+    expect(ctx.cliTools).toEqual(CLAUDE_TOOL_NAMES);
+    expect(ctx.model).toBe("opus");
+    expect(ctx.skills).toEqual([]);
+    expect(ctx.stageMode).toBe(StageMode.Local);
+  });
+
+  it("takes the CLI and tool names from the first stage, not the profile default", () => {
+    // Arrange
+    const profile = makeProfile({ cli: CliType.Copilot, stages: [makeStage({ cli: CliType.Claude })] });
+
+    // Act
+    const ctx = buildTemplateContext(makeTaskContext({ profile }));
+
+    // Assert
+    expect(ctx.cli).toBe(CliType.Claude);
+    expect(ctx.cliTools).toEqual(CLAUDE_TOOL_NAMES);
+  });
+
+  it("names Copilot tools for a Copilot stage", () => {
+    // Act
+    const ctx = buildTemplateContext(makeTaskContext());
+
+    // Assert
+    expect(ctx.cliTools).toEqual(COPILOT_TOOL_NAMES);
   });
 });
 
@@ -552,21 +730,22 @@ describe("SectionTag", () => {
     );
   });
 
-  it("works in full agent template rendering pipeline", async () => {
-    const includesDir = join(tmpDir, "shared", "agent-includes");
-    const profileDir = join(tmpDir, "profiles", "sec-profile");
-    const agentDir = join(profileDir, "agents");
+  it("works in the agent rendering pipeline", async () => {
+    // Arrange
+    const input = await setupAgents(
+      {
+        "ralph.root": makeAgentTemplate("root", {
+          body: '{% section "security" %}{% render "rules" %}{% endsection %}',
+        }),
+      },
+      { partials: { rules: "Rule: {{ taskId }}" } },
+    );
 
-    await mkdir(includesDir, { recursive: true });
-    await mkdir(agentDir, { recursive: true });
+    // Act
+    await renderAgents(input);
 
-    await writeFile(join(includesDir, "rules.md"), "Rule: {{ taskId }}");
-    await writeFile(join(agentDir, "test.agent.md"), '{% section "security" %}{% render "rules" %}{% endsection %}');
-
-    const renderer = new AgentTemplateRenderer();
-    await renderer.render("sec-profile", makeTemplateContext({ taskId: "DOC-99" }));
-
-    const output = await readFile(join(profileDir, ".build", "test.agent.md"), "utf-8");
-    expect(output).toBe("<security>\nRule: DOC-99\n</security>");
+    // Assert
+    const output = await readFile(join(input.target.outDir, "ralph.root.agent.md"), "utf-8");
+    expect(output).toMatch(/---\n<security>\nRule: DOC-7\n<\/security>$/);
   });
 });

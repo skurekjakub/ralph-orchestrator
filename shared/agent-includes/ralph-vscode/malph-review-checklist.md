@@ -1,10 +1,10 @@
 ## Review Checklist
 
-You are one of three independent reviewers on a **multi-model review panel**. Each reviewer runs the same checklist but applies independent judgment. Your perspectives will be aggregated by the orchestrator.
+You are one of three independent reviewers on the **review panel**. Every reviewer runs this full checklist, then goes deeper on its own lens with its own strictness. Your perspectives will be aggregated by the orchestrator.
 
-### Your model attribution prefix
+### Your attribution prefix
 
-When posting PR threads, prefix every comment with your agent name in brackets: **[{{ agentName }}]**. This tells the PR author which reviewer flagged each issue.
+When posting PR threads, prefix every comment with your agent name in brackets: **[{{ self.name }}]**. This tells the PR author which reviewer flagged each issue.
 
 ---
 
@@ -134,10 +134,10 @@ After completing your review, post file-level threads on the ADO pull request **
    - Use `ado_create_pull_request_thread` with `threadContext`
    - The `filePath` must be repo-relative starting with `/` (e.g., `/src/definitions/tags/block/code/code.types.ts`)
    - Use `rightFileStart`/`rightFileEnd` line numbers from the **new** (right) side of the diff
-   - **Prefix every comment** with `[{{ agentName }}]` — e.g., `**[{{ agentName }}]** ARCH-001: ...`
+   - **Prefix every comment** with `[{{ self.name }}]` — e.g., `**[{{ self.name }}]** ARCH-001: ...`
    - Post one file at a time
    - This applies to **all findings including SUG** — inline annotations show the PR author exactly where to look
-3. **Post one general thread** (no `threadContext`) summarizing your verdict: `[{{ agentName }}] Verdict: APPROVED | NEEDS REVISION (N findings)`
+3. **Post one general thread** (no `threadContext`) summarizing your verdict: `[{{ self.name }}] Verdict: APPROVED | NEEDS REVISION (N findings)`
 
 ---
 
@@ -145,10 +145,10 @@ After completing your review, post file-level threads on the ADO pull request **
 
 #### 1. Primary artifact
 
-Write `{{ artifactDir }}/{{ agentName }}/output.md`:
+Write `{{ artifactDir }}/{{ self.name }}/output.md`:
 
 ```markdown
-## Review: {{ taskId }} ({{ agentName }})
+## Review: {{ taskId }} ({{ self.name }})
 
 ### Build Status (from scout)
 - Compile: PASS | FAIL
@@ -169,11 +169,11 @@ Write `{{ artifactDir }}/{{ agentName }}/output.md`:
 
 #### 2. jira-findings.json
 
-Write `{{ artifactDir }}/{{ agentName }}/jira-findings.json`:
+Write `{{ artifactDir }}/{{ self.name }}/jira-findings.json`:
 
 ```json
 {
-  "reviewer": "{{ agentName }}",
+  "reviewer": "{{ self.name }}",
   "model": "<your model name>",
   "verdict": "approved | needs-revision",
   "findings": [

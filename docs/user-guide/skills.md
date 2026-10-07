@@ -70,15 +70,15 @@ Revision workflow (4 phases):
 
 Standard workflow — single consolidated skill `ralph-workflow` with reference files per phase:
 
-| Phase | Reference                  | Description                                                                                                                      |
-| ----- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `references/1-setup.md`    | Initialize `state.md` with skill manifest, search ralphchives for prior work.                                                    |
-| 2     | `references/2-research.md` | Delegate to ralph-researcher sub-agent, validate the 4-section report.                                                           |
-| 3     | `references/3-write.md`    | Implement documentation changes based on researcher's report, validate builds.                                                   |
-| 4–5   | `references/4-review.md`   | Delegate to six reviewer sub-agents (technical, style, IA × Claude + GPT), aggregate verdicts, run revision loop (max 3 cycles). |
-| 6     | `references/6-commit.md`   | Pre-commit checkpoint, stage, commit, push.                                                                                      |
-| 7     | `references/7-pr.md`       | Create ADO draft pull request.                                                                                                   |
-| 8     | `references/8-handoff.md`  | Write handoff, attach to JIRA, post to ralphchives, print exit block.                                                            |
+| Phase | Reference                  | Description                                                                                                         |
+| ----- | -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| 1     | `references/1-setup.md`    | Initialize `state.md` with skill manifest, search ralphchives for prior work.                                       |
+| 2     | `references/2-research.md` | Delegate to ralph-researcher sub-agent, validate the 4-section report.                                              |
+| 3     | `references/3-write.md`    | Implement documentation changes based on researcher's report, validate builds.                                      |
+| 4–5   | `references/4-review.md`   | Delegate to three reviewer sub-agents (technical, style, IA), aggregate verdicts, run revision loop (max 3 cycles). |
+| 6     | `references/6-commit.md`   | Pre-commit checkpoint, stage, commit, push.                                                                         |
+| 7     | `references/7-pr.md`       | Create ADO draft pull request.                                                                                      |
+| 8     | `references/8-handoff.md`  | Write handoff, attach to JIRA, post to ralphchives, print exit block.                                               |
 
 Revision workflow (same `ralph-workflow` skill, revision reference files):
 

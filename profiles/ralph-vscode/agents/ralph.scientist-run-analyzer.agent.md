@@ -1,8 +1,7 @@
 ---
+name: run-analyzer
 description: 'Post-task hook — analyzes completed agent execution logs'
-model: claude-opus-4.6
-name: 'run-analyzer'
-user-invocable: false
+model: opus
 ---
 
 {% render 'post-hooks/run-analyzer' %}

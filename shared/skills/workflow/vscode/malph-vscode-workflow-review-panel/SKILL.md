@@ -1,6 +1,6 @@
 ---
 name: malph-vscode-workflow-review-panel
-description: "VS Code extension review orchestrator Phase 3. Dispatch three independent reviewers sequentially — Opus, GPT, Gemini — each running the full review checklist independently."
+description: "VS Code extension review orchestrator Phase 3. Dispatch three independent reviewers sequentially — Opus, Sonnet, Fable — each running the full review checklist with its own lens."
 ---
 
 # Phase 3: Review Panel
@@ -15,8 +15,8 @@ description: "VS Code extension review orchestrator Phase 3. Dispatch three inde
 
 Dispatch three independent reviewers **in sequence**. Each reviewer:
 - Reads the scout's artifacts (diff mapping, build results, focus areas)
-- Runs the full 7-category review checklist independently
-- Posts file-level PR threads on ADO with their model attribution prefix
+- Runs the full 7-category review checklist independently, then goes deeper on its own lens
+- Posts file-level PR threads on ADO with their reviewer attribution prefix
 - Writes `jira-findings.json` and `status.json` to their artifact directory
 
 ### Step 1: Dispatch malph-reviewer-opus
@@ -33,11 +33,11 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-opus/status.json`.
 
 Update `state.md` — record the Opus verdict in the Reviewer Verdicts table.
 
-### Step 2: Dispatch malph-reviewer-gpt
+### Step 2: Dispatch malph-reviewer-sonnet
 
-Delegate to `malph-reviewer-gpt`. Wait for completion.
+Delegate to `malph-reviewer-sonnet`. Wait for completion.
 
-Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gpt/status.json`.
+Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-sonnet/status.json`.
 
 | `result` | Action |
 |---|---|
@@ -45,13 +45,13 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gpt/status.json`.
 | `needs-revision` | Record verdict, continue to next reviewer |
 | `failed` / `blocked` | Note error, continue to next reviewer |
 
-Update `state.md` — record the GPT verdict in the Reviewer Verdicts table.
+Update `state.md` — record the Sonnet verdict in the Reviewer Verdicts table.
 
-### Step 3: Dispatch malph-reviewer-gemini
+### Step 3: Dispatch malph-reviewer-fable
 
-Delegate to `malph-reviewer-gemini`. Wait for completion.
+Delegate to `malph-reviewer-fable`. Wait for completion.
 
-Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gemini/status.json`.
+Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-fable/status.json`.
 
 | `result` | Action |
 |---|---|
@@ -59,13 +59,13 @@ Read `.ralph/tasks/{{ taskId }}/artifacts/malph-reviewer-gemini/status.json`.
 | `needs-revision` | Record verdict, proceed to Phase 4 |
 | `failed` / `blocked` | Note error, proceed to Phase 4 |
 
-Update `state.md` — record the Gemini verdict in the Reviewer Verdicts table.
+Update `state.md` — record the Fable verdict in the Reviewer Verdicts table.
 
 ### Important
 
 - **Do NOT read any reviewer's `output.md` or `jira-findings.json`** during this phase — you are a router
 - **Do NOT relay findings between reviewers** — they work independently
-- Each reviewer runs the **same checklist** with independent judgment
+- Each reviewer runs the **same checklist** with independent judgment, its own lens and its own strictness
 - A reviewer failing does NOT block the remaining reviewers
 
 ## Before moving to the next phase

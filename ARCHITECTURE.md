@@ -203,7 +203,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── Dockerfile                   # Container image (ubuntu:22.04 with Ruby, Node, .NET, etc.)
 │   │   ├── docker-compose.yml           # Base compose: services, volumes, env vars
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
-│   │   ├── .build/                      # Generated at startup (gitignored): rendered agent files,
+│   │   ├── .build/                      # Generated (gitignored): <cli>/agents/ and skills/ per stage,
 │   │   │                                #   mcp-config.json, gateway.json, docker-compose.overlay.yml,
 │   │   │                                #   squid.conf, copilot-config.json, pre-init.sh, attachments/
 │   │   └── agents/                      # Liquid agent templates (*.agent.md), e.g.
@@ -257,7 +257,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   ├── src/gateway.ts                   # Gateway: spawns MCP servers, /health endpoint
 │   └── package.json
 ├── shared/skills/                       # Skill folders grouped by category (<category>/<name>/SKILL.md);
-│                                        #   rendered per task into shared/skills/.build/<name>/ and
+│                                        #   rendered per stage into profiles/<id>/.build/skills/<name>/ and
 │                                        #   mounted at /workspace/.github/skills/<name>/ (excluded from
 │                                        #   the target repo's git via .git/info/exclude by RepoSyncHook)
 ```

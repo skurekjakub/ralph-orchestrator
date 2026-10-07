@@ -1,4 +1,4 @@
-# Phase 4: Review (Six-Reviewer Gate)
+# Phase 4: Review (Three-Reviewer Gate)
 
 ## Before you begin
 
@@ -9,17 +9,17 @@
 
 ## Instructions
 
-Delegate to **all listed** reviewer sub-agents in parallel using the task tool. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
+Delegate to **all listed** reviewer sub-agents in parallel using the `{{ cliTools.subagent }}` tool. Each reviewer reads the planner task file, the writer's latest artifact, and the task's actual changed files directly from the filesystem. Aggregate only their `status.json` verdicts.
 
 | Sub-agent | Responsibility | Verdict codes |
 |---|---|---|
-| **ralph-reviewer-technical** | Technical accuracy (Claude) — verifies claims against Xperience source code | `ACC-XXX` |
-| **ralph-reviewer-style** | Style guide compliance & grammar (Claude) — verifies against style guide and syntax standards | `STY-XXX` |
-| **ralph-reviewer-ia** | Information architecture (Claude) — evaluates fit within existing docs structure | `IA-XXX` |
+| **ralph-reviewer-technical** | Technical accuracy — verifies claims against Xperience source code | `ACC-XXX` |
+| **ralph-reviewer-style** | Style guide compliance & grammar — verifies against style guide and syntax standards | `STY-XXX` |
+| **ralph-reviewer-ia** | Information architecture — evaluates fit within existing docs structure | `IA-XXX` |
 
 ### Invocation
 
-Invoke all six reviewers as subagents simultaneously via the task tool. Include the task-id and a one-line directive (e.g. "Review the current planned task for {{ taskId }}"). Each reviewer reads the current planner task, the writer's artifact, and the actual changed files directly from the filesystem. Collect all six verdicts before deciding.
+Invoke all three reviewers as subagents simultaneously via the `{{ cliTools.subagent }}` tool. Include the task-id and a one-line directive (e.g. "Review the current planned task for {{ taskId }}"). Each reviewer reads the current planner task, the writer's artifact, and the actual changed files directly from the filesystem. Collect all three verdicts before deciding.
 
 **Include changed files in the dispatch prompt.** Before invoking reviewers, check which files the writer modified for the current task (from the writer's latest `output-v{N}.md` or by running `git diff --name-only`). Include this file list in each reviewer's dispatch prompt — this saves 1–2 discovery turns at the start of each review. Example:
 
@@ -34,9 +34,9 @@ If this is a revision review, tell each reviewer so they apply revision-mode len
 
 ### Aggregation
 
-**All six must return APPROVED for the current task.** If ANY reviewer returns NEEDS REVISION, the overall verdict for the current task is NEEDS REVISION.
+**All three must return APPROVED for the current task.** If ANY reviewer returns NEEDS REVISION, the overall verdict for the current task is NEEDS REVISION.
 
-After collecting all six verdicts:
+After collecting all three verdicts:
 1. **All APPROVED and `not_processed` tasks remain in `tasks.json`** → mark the current `in_progress` task as `done`, mark the next `not_processed` task as `in_progress` with `attempt: 1`, and return to Phase 3
 2. **All APPROVED and no `not_processed` tasks remain** → mark the current `in_progress` task as `done` and proceed to Phase 6
 3. **Any NEEDS REVISION** → enter Phase 5 (Revision Loop). The writer reads the failing reviewers' artifacts from the filesystem on its own.
@@ -65,7 +65,7 @@ Read each failing reviewer's `status.json` — the `summary` field contains a co
 Address reviewer feedback for the current task in {{ taskId }}.
 Failing reviewers:
 - ralph-reviewer-style: "4 blocking findings: STY-001 passive voice on line 45, STY-002 wrong terminology on line 72, STY-003 missing callout line 90, STY-004 inconsistent navigation verb line 21"
-- ralph-reviewer-technical-gpt: "1 blocking finding: ACC-003 incorrect API return type on line 88"
+- ralph-reviewer-technical: "1 blocking finding: ACC-003 incorrect API return type on line 88"
 All other reviewers: approved (no action needed)
 ```
 
@@ -92,7 +92,7 @@ Check whether these were fixed and whether any new issues were introduced.
 ## Before moving to the next phase
 
 Update `state.md`:
-- Add Phase 4-5 to "Completed Phases" with review outcome per reviewer for the current task (e.g. "Technical (Claude): Approved", "Style (GPT): Approved after 2 cycles", "IA (Claude): Not converged")
+- Add Phase 4-5 to "Completed Phases" with review outcome per reviewer for the current task (e.g. "Technical: Approved", "Style: Approved after 2 cycles", "IA: Not converged")
 - If the task was approved, append it to "Completed Tasks" as a human-readable mirror of `tasks.json`
 - If more planned tasks remain, clear "Current Task" and set "Current Phase" to `Phase 3: Write`
 - If the final task was approved, clear "Current Task" and set "Current Phase" to `Phase 6: Commit & Push`
