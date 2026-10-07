@@ -54,10 +54,12 @@ The baseline (`shared/security/squid.conf`) allows no AI provider. Each agent CL
 
 | Agent CLI   | Domains                                              |
 | ----------- | ---------------------------------------------------- |
-| Claude Code | `.anthropic.com`                                     |
+| Claude Code | `api.anthropic.com`                                  |
 | Copilot CLI | `.githubcopilot.com`, `api.github.com`, `github.com` |
 
-Claude Code's built-in web tools are allowed in container sessions. `WebSearch` runs server-side at Anthropic, so this allowlist does not apply to it. `WebFetch` fetches from the container through Squid, so it reaches only allowlisted domains, unless Claude Code fetches server-side.
+Claude Code's built-in web tools are allowed in container sessions. `WebSearch` runs server-side at Anthropic, so this allowlist does not apply to it. `WebFetch` fetches from the container through Squid, so it reaches only allowlisted domains; its domain safety check goes to `api.anthropic.com`.
+
+When the organisation behind the Claude Code credential lists GitHub plugin marketplaces in its server-managed settings, Claude Code tries to clone them at startup. Squid denies `github.com` unless a Copilot stage of the same task adds it, and the session carries on.
 
 Profiles add what their agent needs via `allowlistDomains` in `profile.json`. The bundled profiles add:
 

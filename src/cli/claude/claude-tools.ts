@@ -6,7 +6,7 @@ import type { CliToolNames } from "../cli-tools";
  *
  * `WebSearch` runs server-side at Anthropic, so the egress proxy's allowlist does not apply to it.
  * `WebFetch` fetches from the container through the egress proxy, so it reaches only allowlisted
- * domains, unless the CLI fetches server-side.
+ * domains; its domain safety check goes to `api.anthropic.com`.
  */
 export enum ClaudeBuiltinTool {
   Read = "Read",

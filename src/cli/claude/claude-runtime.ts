@@ -48,7 +48,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   readonly agentWriter = new ClaudeAgentWriter();
   readonly toolNames = CLAUDE_TOOL_NAMES;
   readonly mountsEachRenderedItem = false;
-  readonly egressDomains = [".anthropic.com"];
+  readonly egressDomains = ["api.anthropic.com"];
   readonly workspaceMountTargets = [
     workspaceMountTarget(CLAUDE_USER_SETTINGS_PATH, false),
     workspaceMountTarget(CLAUDE_CONTAINER_LAYOUT.agentsDir, true),

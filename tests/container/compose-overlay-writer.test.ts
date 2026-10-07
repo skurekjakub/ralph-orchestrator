@@ -148,7 +148,7 @@ describe("writeComposeArtifacts", () => {
 
       // Assert
       const squid = built("squid.conf");
-      expect(squid).toContain("acl allowed_domains dstdomain .anthropic.com");
+      expect(squid).toContain("acl allowed_domains dstdomain api.anthropic.com");
       expect(squid).toContain("acl allowed_domains dstdomain .npmjs.org");
       expect(squid).not.toContain("githubcopilot");
       expect(squid).not.toContain("github.com");
@@ -236,7 +236,7 @@ describe("writeComposeArtifacts", () => {
     expect(overlay).toContain("/workspace/.github/agents/ralph.other.agent.md:ro");
     expect(overlay).not.toContain("/workspace/.github/agents/ralph.ralph.agent.md");
     const squid = built("squid.conf");
-    expect(squid).toContain(".anthropic.com");
+    expect(squid).toContain("api.anthropic.com");
     expect(squid).toContain(".githubcopilot.com");
   });
 

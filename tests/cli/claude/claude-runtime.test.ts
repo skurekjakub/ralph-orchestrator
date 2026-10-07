@@ -124,9 +124,11 @@ describe("ClaudeCodeRuntime", () => {
     });
   });
 
-  it("needs only the Anthropic API through the egress proxy", () => {
+  it("needs only the Anthropic API host through the egress proxy", () => {
     // Act & Assert
-    expect(new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken }).egressDomains).toEqual([".anthropic.com"]);
+    expect(new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken }).egressDomains).toEqual([
+      "api.anthropic.com",
+    ]);
   });
 
   it("mounts only inside .ralph/ of the target repo", () => {

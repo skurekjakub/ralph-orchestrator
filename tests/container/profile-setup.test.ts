@@ -123,7 +123,7 @@ describe("Profile Setup", () => {
       expect(overlay).not.toContain("GH_TOKEN");
       expect(overlay).toContain("/etc/ralph/claude-settings.json:ro");
       expect(JSON.parse(built("claude/session-settings.json")).attribution).toEqual({ commit: "", pr: "" });
-      expect(built("squid.conf")).toContain("acl allowed_domains dstdomain .anthropic.com");
+      expect(built("squid.conf")).toContain("acl allowed_domains dstdomain api.anthropic.com");
       expect(existsSync(join(buildDir, "copilot-settings.json"))).toBe(false);
     });
 
@@ -141,7 +141,7 @@ describe("Profile Setup", () => {
       const settings = JSON.parse(built("copilot-settings.json"));
       expect(settings.allowedUrls).toContain("https://*.githubcopilot.com");
       expect(settings.allowedUrls).toContain("https://*.npmjs.org");
-      expect(settings.allowedUrls).not.toContain("https://*.anthropic.com");
+      expect(settings.allowedUrls).not.toContain("https://api.anthropic.com");
     });
 
     it("injects allowlistDomains from profile.json into squid.conf", async () => {
