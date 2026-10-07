@@ -83,7 +83,7 @@ def tool_fields($tool; $toolUseId; $kind; $input; $subagentKey; $args):
 def tool_output_block($timestamp; $tool; $resultType; $args; $text):
   "── \($timestamp / 1000 | floor | strftime("%H:%M:%S")) \($tool) (\($resultType)) ──\nargs: \($args)\n\($text)\n\n";
 
-# The envelope {record, logLine, toolOutput} as lines for lib/redact.pl:
+# The envelope {record, logLine, toolOutput} as tab-separated lines:
 # "record.<key>\t<JSON value>" per record field, then "logLine\t<JSON string>"
 # and "toolOutput\t<JSON string>". tojson escapes tabs and newlines, so every
 # value stays on its line.

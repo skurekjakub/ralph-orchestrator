@@ -1,10 +1,9 @@
-# Reads the lines `envelope_lines` (lib/record.jq) prints, scrubs credentials
+# Reads envelope lines on stdin ("record.<key>\t<JSON value>" per record field,
+# "logLine\t<JSON string>", "toolOutput\t<JSON string>"), scrubs credentials
 # from every string, cuts resultText and lastMessage to the audit text budget,
-# and prints the shell assignments lib/common.sh evals.
-#
-# Input lines are "record.<key>\t<JSON value>", "logLine\t<JSON string>" and
-# "toolOutput\t<JSON string>". Every pass is one regex scan, so the cost grows
-# with the text length and not with the number of secrets in it.
+# and prints RALPH_RECORD, RALPH_LOG_LINE and RALPH_TOOL_OUTPUT as shell
+# assignments. Every pass is one regex scan, so the cost grows with the text
+# length and not with the number of secrets in it.
 use strict;
 use warnings;
 
