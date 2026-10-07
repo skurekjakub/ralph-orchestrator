@@ -28,6 +28,11 @@ export const CLAUDE_BUILTIN_TOOLS: readonly ClaudeBuiltinTool[] = Object.values(
 /** The Claude Code tool that spawns a subagent; `Agent(a, b)` limits it to the named agents. */
 export const CLAUDE_SUBAGENT_TOOL = "Agent";
 
+/** Whether a Claude Code tool call spawns a subagent; the CLI reports {@link CLAUDE_SUBAGENT_TOOL} as `Task` in places. */
+export function isClaudeSubagentTool(name: string): boolean {
+  return name === CLAUDE_SUBAGENT_TOOL || name === "Task";
+}
+
 /**
  * Claude Code's name for an MCP tool (`mcp__ado__ado_push_progress`), or for every tool of `server`
  * when `tool` is omitted (`mcp__ado`).

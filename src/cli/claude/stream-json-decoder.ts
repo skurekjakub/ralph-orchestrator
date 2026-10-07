@@ -8,9 +8,9 @@ import type {
 } from "../output-decoder";
 import { hasResultBlock } from "../../container/result-parser";
 import { truncate } from "../../util/text";
-
-/** A parsed JSON object from one stream-json line. Every field is untrusted and checked before use. */
-type JsonRecord = Readonly<Record<string, unknown>>;
+import { asArray, asNumber, asRecord, asString, type JsonRecord } from "../../util/json";
+import { isClaudeSubagentTool } from "./claude-tools";
+import { toolResultText } from "./message-content";
 
 /** Longest tool-input preview in a log line. */
 const TOOL_INPUT_PREVIEW_CHARS = 160;
@@ -21,25 +21,6 @@ const MESSAGE_PREVIEW_CHARS = 300;
 /** Tool-input fields that name what a tool call acts on, in preference order. */
 const TOOL_SUBJECT_FIELDS = ["command", "file_path", "path", "skill", "pattern", "url", "query"] as const;
 
-/** Claude Code tool names that spawn a subagent. */
-const SUBAGENT_TOOLS = new Set(["Agent", "Task"]);
-
-function asRecord(value: unknown): JsonRecord | undefined {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as JsonRecord) : undefined;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function asNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function asArray(value: unknown): readonly unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
 /** `text` on one line, cut to `max` characters. */
 function preview(text: string, max: number): string {
   return truncate(text.replace(/\s+/g, " ").trim(), max);
@@ -48,7 +29,7 @@ function preview(text: string, max: number): string {
 /** What a tool call acts on: the subagent and task for a spawn, else the first subject field, else the input as JSON. */
 function toolSubject(name: string, input: JsonRecord | undefined): string {
   if (!input) return "";
-  if (SUBAGENT_TOOLS.has(name)) {
+  if (isClaudeSubagentTool(name)) {
     const type = asString(input.subagent_type) ?? "?";
     const description = asString(input.description);
     return description ? `${type}: ${description}` : type;
@@ -58,14 +39,6 @@ function toolSubject(name: string, input: JsonRecord | undefined): string {
     if (value) return value;
   }
   return JSON.stringify(input);
-}
-
-/** Text of a tool result, whose `content` is a string or a list of text blocks. */
-function toolResultText(content: unknown): string {
-  if (typeof content === "string") return content;
-  return asArray(content)
-    .map((block) => asString(asRecord(block)?.text) ?? "")
-    .join(" ");
 }
 
 /** Per-model usage from a `result` event's cumulative `modelUsage`. */
