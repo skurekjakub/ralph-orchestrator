@@ -257,12 +257,22 @@ export function parseSessionLog(jsonl: string): SessionThread & { readonly agent
   return { events, malformedLines, ...(agent === undefined ? {} : { agent }) };
 }
 
-/** A subagent's `.meta.json`; missing or malformed metadata yields none. */
+/**
+ * A subagent's `.meta.json`; missing or malformed metadata yields none.
+ *
+ * @throws Error when the file exists but cannot be read.
+ */
 async function readSubagentMeta(path: string): Promise<JsonRecord> {
+  const text = await readFile(path, "utf-8").catch((err: NodeJS.ErrnoException) => {
+    if (err.code === "ENOENT") return undefined;
+    throw err;
+  });
+  if (text === undefined) return {};
   try {
-    return asRecord(JSON.parse(await readFile(path, "utf-8"))) ?? {};
-  } catch {
-    return {};
+    return asRecord(JSON.parse(text)) ?? {};
+  } catch (err) {
+    if (err instanceof SyntaxError) return {};
+    throw err;
   }
 }
 
@@ -291,7 +301,7 @@ async function readSubagent(logPath: string): Promise<ClaudeSubagent> {
  * `<project>/<session id>.jsonl` main thread and its `<project>/<session id>/subagents/agent-<id>.jsonl`
  * subagents, with their `.meta.json`. Sessions and subagents come in start order.
  *
- * @throws Error when the folder or one of its logs cannot be read.
+ * @throws Error when the folder, one of its logs or an existing subagent metadata file cannot be read.
  */
 export async function readClaudeSessions(exportDir: string): Promise<ClaudeSession[]> {
   const logs = (await readdir(exportDir, { recursive: true })).filter((path) => path.endsWith(".jsonl")).sort();

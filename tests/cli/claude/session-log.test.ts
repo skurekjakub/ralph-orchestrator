@@ -142,6 +142,17 @@ describe("readClaudeSessions", () => {
       expect(session.subagents).toEqual([{ agentId: "x", agentType: "unknown", events: [], malformedLines: 0 }]);
     });
 
+    it("throws when a subagent's metadata exists but cannot be read", async () => {
+      // Arrange
+      const subagents = join(dir, "-workspace", "s-1", "subagents");
+      mkdirSync(join(subagents, "agent-x.meta.json"), { recursive: true });
+      writeFileSync(join(dir, "-workspace", "s-1.jsonl"), "");
+      writeFileSync(join(subagents, "agent-x.jsonl"), "");
+
+      // Act & Assert
+      await expect(readClaudeSessions(dir)).rejects.toThrow(/EISDIR/);
+    });
+
     it("does not take other logs inside a session's folder for sessions", async () => {
       // Arrange
       mkdirSync(join(dir, "-workspace", "s-1", "notes"), { recursive: true });
