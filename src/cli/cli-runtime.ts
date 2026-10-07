@@ -53,12 +53,21 @@ export interface ComposeContribution {
   readonly env: Readonly<Record<string, string>>;
 }
 
-/** Several CLIs' contributions as one: each volume listed once, in order, and the environment entries of all of them (the CLIs set disjoint variables). */
+/**
+ * Several CLIs' contributions as one: each volume listed once, in order, and the environment entries of all
+ * of them.
+ *
+ * @throws Error when two contributions set the same environment variable.
+ */
 export function mergeComposeContributions(contributions: readonly ComposeContribution[]): ComposeContribution {
-  return {
-    volumes: [...new Set(contributions.flatMap((c) => c.volumes))],
-    env: Object.assign({}, ...contributions.map((c) => c.env)),
-  };
+  const env: Record<string, string> = {};
+  for (const contribution of contributions) {
+    for (const [name, value] of Object.entries(contribution.env)) {
+      if (name in env) throw new Error(`Two agent CLIs set the container environment variable ${name}`);
+      env[name] = value;
+    }
+  }
+  return { volumes: [...new Set(contributions.flatMap((c) => c.volumes))], env };
 }
 
 /** Log files and folders one CLI writes inside the agent container. */

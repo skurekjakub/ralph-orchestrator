@@ -33,8 +33,8 @@ export interface ComposeArtifactsInput {
  * `squid.conf` is written first because Copilot's URL allowlist is derived from it. Only the credential of
  * a CLI some container stage runs reaches the agent container.
  *
- * @throws Error when the baseline `shared/security/squid.conf` is missing, or a CLI's artifact inputs are
- * missing or malformed (see `ICliRuntime.writeTaskArtifacts`).
+ * @throws Error when the baseline `shared/security/squid.conf` is missing, a CLI's artifact inputs are missing or
+ * malformed (see `ICliRuntime.writeTaskArtifacts`), or two CLIs set the same container variable.
  */
 export function writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, logger }: ComposeArtifactsInput): void {
   const paths = profileBuildPaths(rootDir, profile.id);

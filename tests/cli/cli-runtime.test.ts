@@ -16,6 +16,17 @@ describe("mergeComposeContributions", () => {
     expect(merged).toEqual({ volumes: ["/a:/x:ro", "/b:/y:ro", "/c:/z:ro"], env: { A: "1", B: "2" } });
   });
 
+  it("throws when two contributions set the same environment variable", () => {
+    // Arrange
+    const claude = { volumes: [], env: { SHARED: "1" } };
+    const copilot = { volumes: [], env: { SHARED: "1" } };
+
+    // Act & Assert
+    expect(() => mergeComposeContributions([claude, copilot])).toThrow(
+      "Two agent CLIs set the container environment variable SHARED",
+    );
+  });
+
   it("is empty for no contributions", () => {
     // Act & Assert
     expect(mergeComposeContributions([])).toEqual({ volumes: [], env: {} });
