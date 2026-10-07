@@ -5,7 +5,7 @@ import { AGENT_CLI_VERSIONS, agentCliBuildArgs } from "../../cli/cli-versions";
 import type { AgentGraph } from "../../cli/agent-file-writer";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import type { IAgentCatalogProvider } from "./agent-catalogs";
+import { loadAgentCatalog } from "./agent-catalogs";
 import { profileBuildPaths } from "./build-paths";
 import { generateComposeOverlay } from "./compose-overlay";
 import { generateMcpConfig, generateGatewayConfig } from "./mcp-config";
@@ -97,24 +97,19 @@ export interface IComposeOverlayWriter {
   write(profile: IAgentProfile, logger: Logger): Promise<void>;
 }
 
-/** Per-task compose overlay writer rooted at the orchestrator's working directory. */
+/** Per-task compose overlay writer rooted at the orchestrator checkout. */
 export class ComposeOverlayWriter implements IComposeOverlayWriter {
   private readonly cliRuntimes: ICliRuntimeRegistry;
-  private readonly agentCatalogs: IAgentCatalogProvider;
+  private readonly rootDir: string;
 
-  constructor({
-    cliRuntimes,
-    agentCatalogs,
-  }: {
-    cliRuntimes: ICliRuntimeRegistry;
-    agentCatalogs: IAgentCatalogProvider;
-  }) {
+  /** @param deps.rootDir The orchestrator checkout root. */
+  constructor({ cliRuntimes, rootDir }: { cliRuntimes: ICliRuntimeRegistry; rootDir: string }) {
     this.cliRuntimes = cliRuntimes;
-    this.agentCatalogs = agentCatalogs;
+    this.rootDir = rootDir;
   }
 
   async write(profile: IAgentProfile, logger: Logger): Promise<void> {
-    const agents = await this.agentCatalogs.load(profile.id);
-    writeComposeArtifacts({ rootDir: process.cwd(), cliRuntimes: this.cliRuntimes, profile, agents, logger });
+    const agents = await loadAgentCatalog(this.rootDir, profile.id);
+    writeComposeArtifacts({ rootDir: this.rootDir, cliRuntimes: this.cliRuntimes, profile, agents, logger });
   }
 }

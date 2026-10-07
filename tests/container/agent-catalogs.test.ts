@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { AgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
+import { loadAgentCatalog } from "../../src/container/setup/agent-catalogs";
 import { makeAgentTemplate } from "../helpers/factories";
 import { createTempDir } from "../helpers/mcp-fs";
 
-describe("AgentCatalogProvider", () => {
+describe("loadAgentCatalog", () => {
   let root: string;
 
   beforeEach(() => {
@@ -22,7 +22,7 @@ describe("AgentCatalogProvider", () => {
     writeFileSync(join(root, "profiles", "docs", "agents", "ralph.ralph.agent.md"), makeAgentTemplate("ralph"));
 
     // Act
-    const catalog = await new AgentCatalogProvider({ rootDir: root }).load("docs");
+    const catalog = await loadAgentCatalog(root, "docs");
 
     // Assert
     expect(catalog.fileIds).toEqual(["ralph.ralph"]);
@@ -31,7 +31,7 @@ describe("AgentCatalogProvider", () => {
 
   it("throws for a profile without an agents directory", async () => {
     // Act & Assert
-    await expect(new AgentCatalogProvider({ rootDir: root }).load("docs")).rejects.toThrow(
+    await expect(loadAgentCatalog(root, "docs")).rejects.toThrow(
       `Profile docs has no agents directory: ${join(root, "profiles", "docs", "agents")}`,
     );
   });
@@ -45,8 +45,6 @@ describe("AgentCatalogProvider", () => {
     );
 
     // Act & Assert
-    await expect(new AgentCatalogProvider({ rootDir: root }).load("docs")).rejects.toThrow(
-      /subagent "gone" is not an agent/,
-    );
+    await expect(loadAgentCatalog(root, "docs")).rejects.toThrow(/subagent "gone" is not an agent/);
   });
 });

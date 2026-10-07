@@ -3,7 +3,7 @@ import { hostCliBinary } from "../cli/cli-versions";
 import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { Logger } from "../logger";
 import type { IComposeClient } from "./compose-client";
-import type { IAgentCatalogProvider } from "./setup/agent-catalogs";
+import { loadAgentCatalog } from "./setup/agent-catalogs";
 import type { ContainerExecResult, HostStageWorkspace } from "./types";
 import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor";
 import { CopilotExecutor } from "./cli-executors/copilot-executor";
@@ -59,21 +59,11 @@ export interface ICliExecutorFactory {
 /** Dispatches on the stage's resolved CLI. */
 export class CliExecutorFactory implements ICliExecutorFactory {
   private readonly cliRuntimes: ICliRuntimeRegistry;
-  private readonly agentCatalogs: IAgentCatalogProvider;
   private readonly rootDir: string;
 
   /** @param rootDir The orchestrator checkout, whose `node_modules/.bin` holds the CLIs host stages run. */
-  constructor({
-    cliRuntimes,
-    agentCatalogs,
-    rootDir,
-  }: {
-    cliRuntimes: ICliRuntimeRegistry;
-    agentCatalogs: IAgentCatalogProvider;
-    rootDir: string;
-  }) {
+  constructor({ cliRuntimes, rootDir }: { cliRuntimes: ICliRuntimeRegistry; rootDir: string }) {
     this.cliRuntimes = cliRuntimes;
-    this.agentCatalogs = agentCatalogs;
     this.rootDir = rootDir;
   }
 
@@ -87,7 +77,7 @@ export class CliExecutorFactory implements ICliExecutorFactory {
     const runtime = this.cliRuntimes.get(stage.cli);
     switch (stage.cli) {
       case CliType.Claude: {
-        const catalog = await this.agentCatalogs.load(stageProfile.id);
+        const catalog = await loadAgentCatalog(this.rootDir, stageProfile.id);
         return new ClaudeCodeExecutor({
           compose,
           profile: stageProfile,
@@ -119,7 +109,7 @@ export class CliExecutorFactory implements ICliExecutorFactory {
       case CliType.Copilot:
         return new LocalCopilotExecutor({ profile: stageProfile, workspace, runtime, binary, logger: cliLogger });
       case CliType.Claude: {
-        const catalog = await this.agentCatalogs.load(stageProfile.id);
+        const catalog = await loadAgentCatalog(this.rootDir, stageProfile.id);
         const nameOf = (fileId: string): string => catalog.get(fileId).frontmatter.name;
         return new LocalClaudeCodeExecutor({
           profile: stageProfile,

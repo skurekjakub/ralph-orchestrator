@@ -5,7 +5,7 @@ import type { Logger } from "../../logger";
 import { readProfileFile, resolveProfileVariants } from "../../config/profile-variants";
 import type { IAgentProfile } from "../../config/types";
 import { toErrorMessage } from "../../util/error";
-import { AgentCatalogProvider } from "./agent-catalogs";
+import { loadAgentCatalog } from "./agent-catalogs";
 import { profileBuildPaths } from "./build-paths";
 import { writeComposeArtifacts } from "./compose-overlay-writer";
 import { discoverMcpServers, loadMcpManifest } from "./mcp-manifest";
@@ -88,7 +88,6 @@ export async function resolveAllProfileSetup({
   logger,
   rootDir = process.cwd(),
 }: ProfileSetupInput): Promise<void> {
-  const agentCatalogs = new AgentCatalogProvider({ rootDir });
   const mcpServersDir = resolve(rootDir, "shared/mcp-servers");
   const profilesDir = resolve(rootDir, "profiles");
 
@@ -140,7 +139,7 @@ export async function resolveAllProfileSetup({
       chmodSync(preInitPath, 0o755);
     }
 
-    const agents = await agentCatalogs.load(profileId.name);
+    const agents = await loadAgentCatalog(rootDir, profileId.name);
     writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, logger });
   }
 }

@@ -30,7 +30,6 @@ import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
 import { COPILOT_TOOL_NAMES } from "../../src/cli/copilot/copilot-tools";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
-import { AgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
 import { ClaudeAuthMode, CliType, StageMode, type IStageConfig } from "../../src/config/types";
 
 const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
@@ -427,8 +426,8 @@ describe("AgentTemplateRenderer", () => {
   /** A renderer over the profiles and shared/ under the temp cwd. */
   function renderer(): AgentTemplateRenderer {
     return new AgentTemplateRenderer({
-      agentCatalogs: new AgentCatalogProvider({ rootDir: tmpDir }),
       cliRuntimes: RUNTIMES,
+      rootDir: tmpDir,
     });
   }
 

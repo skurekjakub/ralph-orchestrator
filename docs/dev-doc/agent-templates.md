@@ -57,7 +57,7 @@ Each CLI's runtime has an agent file writer that translates the canonical form:
 
 1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params) for every container stage before the containers start; `prepareForStage()` repeats this before each stage of a multi-stage pipeline, each local stage and each post-task hook stage, with stage overrides and the stage's workspace
 2. `buildTemplateContext()` produces a `TemplateContext` — a typed object with all template variables
-3. `AgentTemplateRenderer.render()` takes the profile's `AgentCatalog` (canonical frontmatter, `subagents` graph) from `AgentCatalogProvider` and creates a LiquidJS engine with `shared/agent-includes/` as the root
+3. `AgentTemplateRenderer.render()` takes the profile's `AgentCatalog` (canonical frontmatter, `subagents` graph) from `loadAgentCatalog` and creates a LiquidJS engine with `shared/agent-includes/` as the root
 4. Each agent reachable from the stage's root agent has its body rendered with the context plus its own `self` — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
 5. The agent file writer of the stage CLI's runtime (`ICliRuntime.agentWriter`) serialises each agent; the output is synced in place into the stage workspace's agents directory. For a container stage that is `profiles/<id>/.build/<cli>/agents/`: Claude Code sees the whole directory, mounted read-only at `/workspace/.ralph/claude/agents/`; Copilot sees one read-only mount per agent file in `/workspace/.github/agents/`, so a re-render keeps every file an earlier stage mounted
 

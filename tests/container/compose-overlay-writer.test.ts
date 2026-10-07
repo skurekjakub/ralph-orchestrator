@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { ClaudeAuthMode, CliType, StageMode, type IAgentProfile } from "../../src/config/types";
 import { ComposeOverlayWriter, writeComposeArtifacts } from "../../src/container/setup/compose-overlay-writer";
-import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
+import { loadAgentCatalog } from "../../src/container/setup/agent-catalogs";
 import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
 import { createTempDir } from "../helpers/mcp-fs";
-import { createMockAgentCatalogProvider, createSilentLogger, type Mocked } from "../helpers/mocks";
+import { createSilentLogger } from "../helpers/mocks";
+
+vi.mock("../../src/container/setup/agent-catalogs");
 
 const PID = "docs";
 
@@ -298,47 +300,42 @@ describe("writeComposeArtifacts", () => {
 
 describe("ComposeOverlayWriter", () => {
   let root: string;
-  let originalCwd: string;
-  let agentCatalogs: Mocked<IAgentCatalogProvider>;
 
   beforeEach(() => {
-    originalCwd = process.cwd();
     root = createTempDir();
     mkdirSync(join(root, "profiles", PID), { recursive: true });
     mkdirSync(join(root, "shared", "mcp-servers"), { recursive: true });
     mkdirSync(join(root, "shared", "security"), { recursive: true });
     writeFileSync(join(root, "shared", "security", "squid.conf"), "# {{PROFILE_DOMAINS}}\nhttp_access deny all\n");
-    process.chdir(root);
-    agentCatalogs = createMockAgentCatalogProvider(AGENTS);
+    vi.mocked(loadAgentCatalog).mockResolvedValue(AGENTS);
   });
 
   afterEach(() => {
-    process.chdir(originalCwd);
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("writes the variant's artifacts under the working directory with the profile's agent catalog", async () => {
+  it("writes the variant's artifacts under the root with the profile's agent catalog", async () => {
     // Arrange
     const writer = new ComposeOverlayWriter({
       cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
-      agentCatalogs,
+      rootDir: root,
     });
 
     // Act
     await writer.write(variant(CliType.Copilot), createSilentLogger());
 
     // Assert
-    expect(agentCatalogs.load).toHaveBeenCalledWith(PID);
+    expect(loadAgentCatalog).toHaveBeenCalledWith(root, PID);
     const overlay = readFileSync(join(root, "profiles", PID, ".build", "docker-compose.overlay.yml"), "utf-8");
     expect(overlay).toContain("/workspace/.github/agents/ralph.writer.agent.md:ro");
   });
 
   it("propagates an invalid agent catalog", async () => {
     // Arrange
-    agentCatalogs.load.mockRejectedValue(new Error("Invalid agent set"));
+    vi.mocked(loadAgentCatalog).mockRejectedValue(new Error("Invalid agent set"));
     const writer = new ComposeOverlayWriter({
       cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
-      agentCatalogs,
+      rootDir: root,
     });
 
     // Act & Assert

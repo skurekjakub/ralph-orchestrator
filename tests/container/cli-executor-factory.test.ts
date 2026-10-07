@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { loadAgentCatalog } from "../../src/container/setup/agent-catalogs";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
@@ -8,7 +9,7 @@ import { CopilotExecutor } from "../../src/container/cli-executors/copilot-execu
 import { LocalClaudeCodeExecutor } from "../../src/container/cli-executors/local-claude-code-executor";
 import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
 import { makeAgentSource, makeHostWorkspace, makeProfile, makeStage } from "../helpers/factories";
-import { createMockAgentCatalogProvider, createMockCompose, createMockLogger, fakeCliProcess } from "../helpers/mocks";
+import { createMockCompose, createMockLogger, fakeCliProcess } from "../helpers/mocks";
 
 /** `ralph.root` (named `root`) spawns `writer`, which spawns `checker`. */
 const CATALOG = new AgentCatalog([
@@ -17,21 +18,22 @@ const CATALOG = new AgentCatalog([
   makeAgentSource("ralph.checker", { name: "checker" }),
 ]);
 
+vi.mock("../../src/container/setup/agent-catalogs");
+
 function createFactory() {
-  const agentCatalogs = createMockAgentCatalogProvider(CATALOG);
+  vi.mocked(loadAgentCatalog).mockResolvedValue(CATALOG);
   const factory = new CliExecutorFactory({
     cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
     rootDir: "/repo",
-    agentCatalogs,
   });
-  return { factory, agentCatalogs };
+  return { factory };
 }
 
 describe("CliExecutorFactory", () => {
   describe("create", () => {
     it("creates a CopilotExecutor for a stage that runs Copilot, without loading agents", async () => {
       // Arrange
-      const { factory, agentCatalogs } = createFactory();
+      const { factory } = createFactory();
       const { compose } = createMockCompose();
       const stage = makeStage({ agent: "ralph.root", cli: CliType.Copilot });
 
@@ -40,12 +42,12 @@ describe("CliExecutorFactory", () => {
 
       // Assert
       expect(executor).toBeInstanceOf(CopilotExecutor);
-      expect(agentCatalogs.load).not.toHaveBeenCalled();
+      expect(loadAgentCatalog).not.toHaveBeenCalled();
     });
 
     it("creates a ClaudeCodeExecutor with the root agent's name and the depth of its subagent graph", async () => {
       // Arrange
-      const { factory, agentCatalogs } = createFactory();
+      const { factory } = createFactory();
       const { compose } = createMockCompose();
       vi.mocked(compose.execWithTimeout).mockImplementation(() => fakeCliProcess(""));
       const stage = makeStage({ agent: "ralph.root", cli: CliType.Claude });
@@ -57,7 +59,7 @@ describe("CliExecutorFactory", () => {
 
       // Assert
       expect(executor).toBeInstanceOf(ClaudeCodeExecutor);
-      expect(agentCatalogs.load).toHaveBeenCalledWith("docs");
+      expect(loadAgentCatalog).toHaveBeenCalledWith("/repo", "docs");
       const args = vi.mocked(compose.execWithTimeout).mock.calls[0][0];
       expect(args[args.indexOf("--agent") + 1]).toBe("root");
       expect(args).toContain("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2");
@@ -77,8 +79,8 @@ describe("CliExecutorFactory", () => {
 
     it("propagates an agent catalog that fails to load", async () => {
       // Arrange
-      const { factory, agentCatalogs } = createFactory();
-      agentCatalogs.load.mockRejectedValue(new Error("Invalid agent set"));
+      const { factory } = createFactory();
+      vi.mocked(loadAgentCatalog).mockRejectedValue(new Error("Invalid agent set"));
       const { compose } = createMockCompose();
       const stage = makeStage({ agent: "ralph.root", cli: CliType.Claude });
 
@@ -104,7 +106,7 @@ describe("CliExecutorFactory", () => {
 
     it("creates a LocalClaudeCodeExecutor for a host stage that runs Claude Code, from the profile's agents", async () => {
       // Arrange
-      const { factory, agentCatalogs } = createFactory();
+      const { factory } = createFactory();
       const stage = makeStage({ agent: "ralph.root", role: "scientist", mode: StageMode.Local, cli: CliType.Claude });
 
       // Act
@@ -117,7 +119,7 @@ describe("CliExecutorFactory", () => {
 
       // Assert
       expect(executor).toBeInstanceOf(LocalClaudeCodeExecutor);
-      expect(agentCatalogs.load).toHaveBeenCalledWith("docs");
+      expect(loadAgentCatalog).toHaveBeenCalledWith("/repo", "docs");
     });
 
     it("rejects a host Claude Code stage whose agent has no template", async () => {

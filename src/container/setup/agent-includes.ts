@@ -14,7 +14,7 @@ import type { ICliRuntimeRegistry } from "../../cli/cli-runtime";
 import type { CliToolNames } from "../../cli/cli-tools";
 import { syncDirectory } from "../../util/sync-dir";
 import type { StageWorkspace } from "../types";
-import type { IAgentCatalogProvider } from "./agent-catalogs";
+import { loadAgentCatalog } from "./agent-catalogs";
 import { loadMcpManifest } from "./mcp-manifest";
 
 /**
@@ -402,7 +402,7 @@ export interface IAgentTemplateRenderer {
    * Render the agents of `target`'s stage for `target.cli` into `target.outDir`.
    *
    * @throws Error when `shared/agent-includes/` is missing, the profile's agent templates cannot be
-   *   loaded (see {@link IAgentCatalogProvider.load}) or rendering fails (see {@link renderAgents}).
+   *   loaded (see {@link loadAgentCatalog}) or rendering fails (see {@link renderAgents}).
    */
   render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void>;
 }
@@ -410,36 +410,30 @@ export interface IAgentTemplateRenderer {
 /**
  * JIT agent template renderer.
  *
- * Takes the profile's parsed templates from the agent catalog provider, partials from
+ * Takes the profile's parsed templates from {@link loadAgentCatalog}, partials from
  * `shared/agent-includes/` and MCP tool allowlists from `shared/mcp-servers/` under the orchestrator
  * root, and each CLI's agent file writer from its runtime. Called before each task and stage so
  * templates can use runtime data like `{% if isRevision %}` or `{{ taskId }}`.
  */
 export class AgentTemplateRenderer implements IAgentTemplateRenderer {
-  private readonly agentCatalogs: IAgentCatalogProvider;
   private readonly cliRuntimes: ICliRuntimeRegistry;
+  private readonly rootDir: string;
 
-  constructor({
-    agentCatalogs,
-    cliRuntimes,
-  }: {
-    agentCatalogs: IAgentCatalogProvider;
-    cliRuntimes: ICliRuntimeRegistry;
-  }) {
-    this.agentCatalogs = agentCatalogs;
+  /** @param deps.rootDir The orchestrator checkout root. */
+  constructor({ cliRuntimes, rootDir }: { cliRuntimes: ICliRuntimeRegistry; rootDir: string }) {
     this.cliRuntimes = cliRuntimes;
+    this.rootDir = rootDir;
   }
 
   async render(profileId: string, context: TemplateContext, target: AgentRenderTarget, logger?: Logger): Promise<void> {
-    const root = process.cwd();
-    const includesDir = resolve(root, "shared/agent-includes");
+    const includesDir = resolve(this.rootDir, "shared/agent-includes");
     if (!existsSync(includesDir)) {
       throw new Error(`Agent includes directory not found: ${includesDir}`);
     }
 
-    const catalog = await this.agentCatalogs.load(profileId);
+    const catalog = await loadAgentCatalog(this.rootDir, profileId);
     logger?.info(`Rendering agents of ${profileId} reachable from ${target.rootAgentFileId} for ${target.cli}`);
-    const mcpTools = resolveMcpToolNames(resolve(root, "shared/mcp-servers"), context.mcpServers);
+    const mcpTools = resolveMcpToolNames(resolve(this.rootDir, "shared/mcp-servers"), context.mcpServers);
     const writer = this.cliRuntimes.get(target.cli).agentWriter;
     await renderAgents({ catalog, includesDir, context, target, writer, mcpTools, logger });
   }

@@ -24,7 +24,7 @@ export class JiraClient implements IJiraClient {
 2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that constructs concrete classes:
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
    - Data source connector factories build their own connector and poller (`src/datasource/connectors/jira/factory.ts` creates `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`).
-   - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup, which also builds its own `AgentCatalogProvider`.
+   - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
    - `*Factory` classes and the per-task container factory build their products. `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`). `buildContainerFactory` in `awilix-cradle.ts` returns a `ContainerManagerFactory`: `create` builds a `ContainerManager` and its per-task collaborators (`ComposeClient`, `ContainerLogCollector`, `ContainerWorkspaceCleaner`, `ContinuationRunner`, `AgentSessionRunner`), `createLocalSession` builds a host stage's executor and session runner for `PostTaskHookRunner`, and `forceDown` tears a profile's stack down without a manager.
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
@@ -86,7 +86,6 @@ interface OrchestratorCradle {
   cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
-  agentCatalogs: IAgentCatalogProvider;
   executorFactory: ICliExecutorFactory;
   templateRenderer: IAgentTemplateRenderer;
   skillRenderer: ISkillTemplateRenderer;
@@ -114,7 +113,7 @@ interface OrchestratorCradle {
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `agentCatalogs`, `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 

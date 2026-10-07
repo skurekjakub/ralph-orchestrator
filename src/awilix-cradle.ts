@@ -40,7 +40,6 @@ import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner";
 import { ContinuationRunner } from "./container/continuation-runner";
 import { AgentSessionRunner } from "./container/agent-session-runner";
 import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
-import { AgentCatalogProvider } from "./container/setup/agent-catalogs";
 import { profileBuildPaths } from "./container/setup/build-paths";
 import { repoCachePaths, TaskWorkspaceManager } from "./services/task-workspace-manager";
 import { StageWorkspaceResolver } from "./services/stage-workspace";
@@ -170,7 +169,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     cliRuntimes: w.factory(({ claudeAuth }) => createCliRuntimeRegistry(claudeAuth)).singleton(),
     logCollector: w.service(LogCollector).singleton(),
     promptBuilder: w.service(PromptBuilder).singleton(),
-    agentCatalogs: w.service(AgentCatalogProvider).singleton(),
     executorFactory: w.service(CliExecutorFactory).singleton(),
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
     templateRenderer: w.service(AgentTemplateRenderer).singleton(),
