@@ -45,7 +45,8 @@ export interface ICliExecutorFactory {
    * (`node_modules/.bin/<cli>`) on the host in the stage's `workspace`.
    *
    * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
-   * @throws Error when the stage's CLI has no host executor.
+   * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the
+   *   stage's agent.
    */
   createLocal(
     stageProfile: IAgentProfile,

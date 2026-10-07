@@ -20,7 +20,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 - Per-exec environment read by the result gate: `RALPH_REQUIRE_RESULT_BLOCK` (`1` turns the gate on; unset or anything else allows every stop) and `RALPH_RESULT_GATE_MAX` (blocks allowed per session, default `2`, `0` never blocks).
 - `RALPH_LOG_DIR` (default `/workspace/.ralph/logs`) must be writable by the CLI user. Scripts create it when missing.
 - Image requirements: bash (5.x reads the clock without a `date` fork), jq ≥ 1.6 (tested on 1.6 and 1.7.1), perl 5 with no extra modules (`perl-base`, present on every Debian and Ubuntu image), coreutils. `flock` (util-linux) serialises appends from concurrent hooks; without it appends are unlocked.
-- Host-side runs (`--settings <file>`): replace the `/workspace/.ralph/hooks/` prefix with the absolute host path of `shared/hooks/`, set `RALPH_LOG_DIR` in the CLI environment, and leave `RALPH_REQUIRE_RESULT_BLOCK` unset unless the stage must print a result block.
+- Host-side runs (`--settings <file>`, written per session by `src/cli/claude/claude-host-settings.ts`): every `/workspace/.ralph/hooks/` prefix is replaced with the shell-quoted absolute host path of `shared/hooks/`, `RALPH_LOG_DIR` is the stage's `logs/` directory, and `RALPH_REQUIRE_RESULT_BLOCK` is `1` only when the stage must print a result block (`0` for post-task hook stages by default).
 - Copilot keeps using `ralph-audit.json`. Its commands pass no flag, so the scripts default to the Copilot adapter.
 
 ## Behaviour
