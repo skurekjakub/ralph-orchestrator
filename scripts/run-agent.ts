@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Run an agent profile variant locally with a direct prompt.
+ * Run a profile variant's first stage once in the full container stack, with a direct prompt.
  *
  * Usage:
  *   npx tsx scripts/run-agent.ts <trigger> "<prompt>"
@@ -8,26 +8,21 @@
  *   npx tsx scripts/run-agent.ts @RalphAutocomplete "Explain the project structure"
  *
  * The script:
- * 1. Finds the variant matching the trigger string
- * 2. Runs AppStartup to generate .build/ files (MCP configs, overlays)
- * 3. Starts containers (app + sidecar + proxy)
- * 4. Executes the agent CLI with the provided prompt
- * 5. Collects logs and tears down
+ * 1. Runs AppStartup (validation, MCP server builds, profile setup) and finds the variant matching the trigger
+ * 2. Renders the variant's task artifacts (agents, skills, compose overlay, JIT MCP config) as a task does
+ * 3. Starts the stack, prepares the CLI homes, registers the log sources and runs the profile's setup script
+ * 4. Runs the first stage's CLI, Claude Code or Copilot, on the prompt as given, without the task prompt template
+ * 5. Collects logs and tears the stack down
  *
- * Logs are saved to output/logs/ with prefix "local-run-<timestamp>".
+ * It does not sync the target repo to a task branch. Logs are saved to output/logs/local-run-<timestamp>/.
  */
 import "dotenv/config";
-import { resolve, join } from "node:path";
-import { existsSync, rmSync, mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
-import { ComposeClient } from "../src/container/compose-client";
-import { ComposeFileResolver } from "../src/container/setup/compose-files";
-import { CopilotExecutor } from "../src/container/cli-executors/copilot-executor";
-import { COPILOT_CONTAINER_LAYOUT } from "../src/cli/copilot/copilot-layout";
-import { StreamCapture } from "../src/container/stream-capture";
-import { ContainerLogCollector, CaptureMode } from "../src/container/log-collector";
-import { ContainerWorkspaceCleaner } from "../src/container/workspace-cleaner";
+import { createCradle } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
+import type { TaskContext } from "../src/services/task-context";
 
 const [trigger, ...promptParts] = process.argv.slice(2);
 const prompt = promptParts.join(" ");
@@ -41,124 +36,79 @@ if (!trigger || !prompt) {
 async function main() {
   const logger = consoleLogger;
 
-  // 1. Run startup pipeline (validate, build MCP servers, generate configs)
   logger.info("Running startup pipeline...");
   const config = await new AppStartup().run(logger);
 
-  // 2. Find matching variant
   const profile = config.profiles.find((p) => p.match.commentTrigger.toLowerCase() === trigger.toLowerCase());
-
   if (!profile) {
     const available = config.profiles.map((p) => p.match.commentTrigger).join(", ");
     console.error(`No variant matches trigger "${trigger}". Available: ${available}`);
     process.exit(1);
   }
+  const stage = profile.stages[0];
+  logger.info(`Matched variant ${profile.variantKey}: stage ${stage.role} runs ${stage.agent} on ${stage.cli}`);
 
-  logger.info(`Matched variant: ${profile.displayName} (${profile.id}, cli: ${profile.cli})`);
-  logger.info(`Model: ${profile.model ?? "default"}`);
+  const cradle = createCradle(config);
+  const taskId = `local-run-${Date.now()}`;
+  const outputDir = join(resolve(config.output.logDir), taskId);
+  mkdirSync(outputDir, { recursive: true });
+  const ctx: TaskContext = {
+    workItem: {
+      id: taskId,
+      source: profile.dataSource,
+      project: "",
+      title: "Local run",
+      description: prompt,
+      status: "",
+      type: "",
+      priority: "",
+      labels: [],
+      components: [],
+      created: new Date().toISOString(),
+      updated: "",
+      customFields: new Map(),
+      sourceData: null,
+    },
+    profile,
+    taskId,
+    triggerParams: {},
+    sourceBranch: "",
+    taskBranch: "",
+    isRevision: false,
+    ralphchivesEnabled: config.ralphchives.enabled,
+    prUrl: null,
+    outputDir,
+    signal: new AbortController().signal,
+  };
 
-  // 3. Create compose client
-  const composeFiles = new ComposeFileResolver().resolve(profile);
-  const profileSquid = resolve(process.cwd(), "profiles", profile.id, ".build/squid.conf");
-  const squidConfPath = existsSync(profileSquid) ? profileSquid : resolve(process.cwd(), "shared/security/squid.conf");
+  logger.info("Rendering the variant's task artifacts...");
+  await cradle.profileSetup.prepareForTask(ctx);
+  rmSync(join(profile.repoPath, ".ralph"), { recursive: true, force: true });
 
-  const compose = new ComposeClient(composeFiles, {
-    targetRepoPath: profile.repoPath,
-    squidConfPath,
-  });
-
-  // 4. Set up log collector
-  const logs = new ContainerLogCollector(compose, config.output.logDir, logger);
-  const issueKey = `local-run-${Date.now()}`;
-  logs.setTaskId(issueKey);
-
-  logs.addSource({
-    id: "audit",
-    service: "app",
-    containerPath: profile.auditLogPath,
-    extension: "jsonl",
-    mode: CaptureMode.Collect,
-  });
-  logs.addSource({
-    id: "transcript",
-    service: "app",
-    containerPath: COPILOT_CONTAINER_LAYOUT.transcriptPath,
-    extension: "md",
-    mode: CaptureMode.Collect,
-  });
-  logs.addSource({
-    id: "proxy",
-    service: "egress-proxy",
-    containerPath: "/var/log/squid/access.log",
-    extension: "log",
-    mode: CaptureMode.Collect,
-  });
-  logs.addSource({
-    id: "sidecar",
-    service: "mcp-sidecar",
-    containerPath: "",
-    extension: "log",
-    mode: CaptureMode.Collect,
-    useComposeLogs: true,
-  });
-
-  const executor = new CopilotExecutor(compose, profile, logger);
-
+  const container = cradle.containerFactory.create(profile);
   try {
-    // 5. Clean .ralph directory on host before compose up
-    const ralphDir = join(profile.repoPath, ".ralph");
-    logger.info(`Cleaning ${ralphDir}...`);
-    rmSync(ralphDir, { recursive: true, force: true });
-    mkdirSync(ralphDir, { recursive: true });
+    await container.start(ctx.signal);
+    for (const layout of container.layouts) {
+      await container.cleaner.prepareConfigDir(layout.configDir, layout.writableDirs);
+    }
+    await container.cleaner.cleanPaths(profile.cleanPaths);
+    container.registerLogSources(taskId, taskId, outputDir);
+    await container.setup();
 
-    // 6. Start containers
-    logger.info("Starting containers...");
-    const buildProc = compose.compose(["up", "-d", "--build"]);
-    new StreamCapture(buildProc, logger, "build");
-    await buildProc;
-    logger.info("Containers started");
-
-    // 7. Health check
-    await compose.checkDocker();
-
-    // 8. Prepare workspace
-    logger.info("Preparing workspace...");
-    const cleaner = new ContainerWorkspaceCleaner(compose, logger);
-    await cleaner.prepareConfigDir(COPILOT_CONTAINER_LAYOUT.configDir, COPILOT_CONTAINER_LAYOUT.writableDirs);
-    await cleaner.cleanPaths(profile.cleanPaths);
-
-    logs.attach();
-
-    // 9. Run setup script
-    logger.info("Running setup script...");
-    const setupProc = compose.exec(["--user", "vscode", "app", profile.setupScript]);
-    new StreamCapture(setupProc, logger, "setup");
-    await setupProc;
-    logger.info("Setup complete");
-
-    // 10. Execute agent
-    logger.info(`Executing ${profile.displayName} agent...`);
+    const executor = await container.createExecutorForStage(stage);
+    logger.info(`Executing ${stage.agent}...`);
     const result = await executor.run(prompt);
     logger.info(`Agent finished: exit=${result.exitCode}, timedOut=${result.timedOut}`);
 
-    // 11. Collect logs
     logger.info("Collecting logs...");
-    const collected = await logs.collectAll();
-    for (const { id, path } of collected) {
+    for (const { id, path } of await container.logs.collectAll()) {
       if (path) logger.info(`  ${id}: ${path}`);
     }
   } catch (err) {
     logger.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    // 11. Teardown
     logger.info("Tearing down containers...");
-    try {
-      const downProc = compose.compose(["down", "--volumes", "--remove-orphans"]);
-      new StreamCapture(downProc, logger, "down");
-      await downProc;
-    } catch {
-      logger.warn("Teardown failed — containers may need manual cleanup");
-    }
+    await container.stop();
     logger.info("Done");
   }
 }
