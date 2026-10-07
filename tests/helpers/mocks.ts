@@ -44,7 +44,7 @@ import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
 import { modelPolicyFor } from "../../src/cli/model-catalog";
 import { PlainTextDecoder } from "../../src/cli/plain-text-decoder";
-import type { ResultPromise } from "execa";
+import type { ResultPromise, execa } from "execa";
 import { once } from "node:events";
 import { PassThrough } from "node:stream";
 import { makeConfig, makeContainerWorkspace, makeExecResult, makeHostWorkspace, makeResult } from "./factories";
@@ -192,6 +192,14 @@ export function fakeCliProcess(
     return { exitCode, stdout, stderr };
   });
   return Object.assign(settled, { stdout: out, stderr: err, kill: vi.fn() }) as unknown as ResultPromise;
+}
+
+/**
+ * An `execa` stand-in for a host stage's executor: the workspace's `git init` succeeds at once, and every other
+ * command gets the process `cli` starts.
+ */
+export function hostStageProcesses(cli: () => ResultPromise): typeof execa {
+  return ((file: string) => (file === "git" ? Promise.resolve(fakeExecResult()) : cli())) as unknown as typeof execa;
 }
 
 /** Create a mock CLI executor whose runs exit cleanly without output. */

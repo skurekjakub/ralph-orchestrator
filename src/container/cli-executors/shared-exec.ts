@@ -38,10 +38,11 @@ export interface CliCommand {
  * doesn't exit within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM. This prevents the CLI
  * from idling indefinitely after printing a valid result block.
  *
- * A non-zero exit or a timeout resolves to a result with the exit code and whatever the CLI printed and
- * reported before it ended.
+ * A non-zero exit, a timeout, or a CLI that never started resolves to a result with the exit code (1 when the
+ * process never ran) and whatever the CLI printed and reported before it ended. Execa reports a CLI that cannot
+ * start, such as a missing binary (`ENOENT`), as an `ExecaError` like any failed run.
  *
- * @throws Error when the process cannot be spawned for a reason other than its own exit.
+ * @throws Error that is not an `ExecaError`: `spawn` itself throwing, or the output capture failing.
  */
 export async function executeCliCommand(command: CliCommand): Promise<ContainerExecResult> {
   const { spawn, logger, tag, tracker, decoder } = command;

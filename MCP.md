@@ -24,7 +24,7 @@ Claude Code, the default CLI, and Copilot CLI read the same `mcp-config.json`. A
 
 The sidecar is the enforcement boundary, and it fails closed: `/health` stays unhealthy until every filtered server's tools have been listed and nothing but the proxy can reach it, and the gateway refuses (stops, and answers HTTP 503 for) a server whose upstream port turns out to be reachable off loopback. See [Failing closed](#failing-closed).
 
-Only container stages reach the sidecar. A host (`mode: "local"`) stage runs no Ralph MCP server: a host Claude Code session gets no `--mcp-config`, and `--strict-mcp-config` keeps every other server out; a host Copilot session gets no `--additional-mcp-config` and a private `--config-dir`. Copilot's bundled GitHub MCP server stays off (`--disable-builtin-mcps`) in both modes unless the profile's `githubMcpTools` lists tools.
+Only container stages reach the sidecar. A host (`mode: "local"`) stage runs no Ralph MCP server: a host Claude Code session gets no `--mcp-config`, and `--strict-mcp-config` keeps every other server out; a host Copilot session gets no `--additional-mcp-config` and a private `COPILOT_HOME`. Copilot's bundled GitHub MCP server stays off (`--disable-builtin-mcps`) in both modes unless the profile's `githubMcpTools` lists tools.
 
 ## Server Registry
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execa } from "execa";
@@ -132,6 +132,22 @@ describe("validateHostTools", () => {
       expect(versionCall?.[2]).toMatchObject({ extendEnv: false });
       expect(JSON.stringify(versionCall?.[2])).not.toContain("ado-secret");
       vi.unstubAllEnvs();
+    });
+
+    it("checks Copilot's version with a fresh home and auto-update off, then removes the home", async () => {
+      // Arrange
+      const copilot = installCli(CliType.Copilot);
+      hostCommands({ [copilot]: `GitHub Copilot CLI ${AGENT_CLI_VERSIONS[CliType.Copilot]}.\n` });
+
+      // Act
+      await validate([hookProfile("vscode", CliType.Copilot)]);
+
+      // Assert
+      const versionCall = (vi.mocked(execa).mock.calls as unknown[][]).find(([command]) => command === copilot);
+      const env = (versionCall?.[2] as { env: Record<string, string> }).env;
+      expect(env.COPILOT_AUTO_UPDATE).toBe("false");
+      expect(env.COPILOT_HOME.startsWith(tmpdir())).toBe(true);
+      expect(existsSync(env.COPILOT_HOME)).toBe(false);
     });
 
     it("checks a CLI that a variant's local stage runs", async () => {

@@ -76,11 +76,11 @@ export interface HostStageWorkspace extends StageWorkspaceBase {
   readonly mode: StageMode.Local;
   /** The stage's own directory: `<outputDir>/hooks/<hook>/<role>` or `<outputDir>/stages/<role>`. */
   readonly stageDir: string;
-  /** `<stageDir>/work`. */
+  /** `<stageDir>/work`, a git repository of its own once the stage's executor has prepared it. */
   readonly cwd: string;
   /** Absolute. A hook's stages share theirs; a variant's local stage shares the container stages' artifacts. */
   readonly artifactDir: string;
-  /** The stage's private CLI home (`CLAUDE_CONFIG_DIR`, Copilot `--config-dir`): `<stageDir>/home`. */
+  /** The stage's private CLI home (`CLAUDE_CONFIG_DIR`, `COPILOT_HOME`): `<stageDir>/home`. */
   readonly cliHomeDir: string;
   /** Where the CLI writes its debug log and the audit hooks their records: `<stageDir>/logs`. */
   readonly logDir: string;

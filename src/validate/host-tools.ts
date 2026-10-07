@@ -1,7 +1,10 @@
 import { existsSync } from "node:fs";
-import { relative } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, relative } from "node:path";
 import { execa } from "execa";
 import { AGENT_CLI_VERSIONS, CLI_PACKAGES, hostCliBinary } from "../cli/cli-versions";
+import { copilotHostEnv } from "../cli/copilot/copilot-host-env";
 import { hostCliEnv } from "../cli/host-env";
 import { CliType, StageMode, type IAgentProfile } from "../config/types";
 import { toErrorMessage } from "../util/error";
@@ -47,6 +50,31 @@ function reinstallHint(cli: CliType): string {
     : "  Run npm ci";
 }
 
+/**
+ * The `--version` output of `binary`, run the way a host stage runs it: without the orchestrator's secrets, and
+ * Copilot with a fresh home and auto-update off, so it reports the version it runs rather than a newer one it
+ * downloaded.
+ *
+ * @throws Error when the CLI cannot start, times out or exits non-zero.
+ */
+async function reportedVersion(cli: CliType, binary: string): Promise<string> {
+  const run = async (env: Readonly<Record<string, string>>): Promise<string> => {
+    const { stdout } = await execa(binary, ["--version"], {
+      timeout: VERSION_TIMEOUT_MS,
+      extendEnv: false,
+      env: hostCliEnv(process.env, [], env),
+    });
+    return String(stdout);
+  };
+  if (cli !== CliType.Copilot) return run({});
+  const home = await mkdtemp(join(tmpdir(), "ralph-copilot-home-"));
+  try {
+    return await run(copilotHostEnv(home));
+  } finally {
+    await rm(home, { recursive: true, force: true });
+  }
+}
+
 /** Checks that `cli` is installed under `<rootDir>/node_modules/.bin` and reports the version package.json pins. */
 async function validateHostCli(cli: CliType, usedBy: Set<string>, rootDir: string, errors: string[]): Promise<void> {
   const binary = hostCliBinary(rootDir, cli);
@@ -61,12 +89,7 @@ async function validateHostCli(cli: CliType, usedBy: Set<string>, rootDir: strin
 
   let output: string;
   try {
-    const result = await execa(binary, ["--version"], {
-      timeout: VERSION_TIMEOUT_MS,
-      extendEnv: false,
-      env: hostCliEnv(process.env, []),
-    });
-    output = String(result.stdout);
+    output = await reportedVersion(cli, binary);
   } catch (err) {
     errors.push(`${shown} --version failed, but ${context}: ${toErrorMessage(err)}\n${reinstallHint(cli)}`);
     return;

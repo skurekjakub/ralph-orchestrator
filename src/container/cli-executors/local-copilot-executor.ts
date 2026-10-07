@@ -1,15 +1,15 @@
 import { execa, type ResultPromise } from "execa";
-import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import { githubMcpArgs } from "../../cli/copilot/copilot-args";
 import { copilotAgentFileName } from "../../cli/copilot/copilot-agent-writer";
-import { hostCliEnv } from "../../cli/host-env";
+import { copilotHostEnv } from "../../cli/copilot/copilot-host-env";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { ContainerExecResult, HostStageWorkspace } from "../types";
+import { prepareHostStage } from "./host-stage";
 import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /** Dependencies of one host stage's Copilot CLI executor. */
@@ -28,10 +28,12 @@ export interface LocalCopilotExecutorDeps {
 /**
  * Runs a `mode: "local"` stage with the Copilot CLI on the host, inside the stage's own workspace.
  *
- * The CLI runs in `workspace.cwd`, where it discovers the stage's agents and skills in `.github/`, with its home
- * (`--config-dir`) and debug logs in the workspace, so nothing it writes lands in the orchestrator checkout and
- * the developer's own Copilot config, agents and MCP servers stay out. Its environment holds only `PATH`, `HOME`,
- * `LANG` and `GH_TOKEN`: no other orchestrator secret reaches its tools.
+ * The CLI runs in `workspace.cwd`, a git repository of its own, where it discovers the stage's agents and skills
+ * in `.github/` and none of the orchestrator checkout's. Its home (`COPILOT_HOME`) and debug logs are in the
+ * workspace, so nothing it writes lands in the checkout and the developer's own Copilot config, agents and MCP
+ * servers stay out; auto-update is off. It may reach only its working directory and, with one `--add-dir` each,
+ * `workspace.additionalDirs`. Its environment holds only `PATH`, `HOME`, `LANG` and `GH_TOKEN`: no other
+ * orchestrator secret reaches its tools.
  */
 export class LocalCopilotExecutor implements ICliExecutor {
   activeProcess: ResultPromise | null = null;
@@ -57,26 +59,28 @@ export class LocalCopilotExecutor implements ICliExecutor {
 
   /** Start a new session with `prompt`. */
   async run(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["-p", prompt]);
+    return this.exec([], prompt);
   }
 
-  /** Resume the last session of the stage's CLI home with a continuation prompt. */
+  /** Resume the last session of the stage's CLI home (`--continue`) with a continuation prompt. */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
-    return this.exec(["--continue", "--prompt", prompt]);
+    return this.exec(["--continue"], prompt);
   }
 
   /**
-   * @throws Error when the stage root's agent was not rendered into the workspace.
+   * Runs Copilot CLI non-interactively in the stage's workspace, passing `prompt` on stdin.
+   *
+   * @param sessionFlags Flags that pick the session, e.g. `["--continue"]`; none starts a new one.
+   * @throws Error when the stage root's agent was not rendered into the workspace, or the workspace cannot be
+   *   prepared.
    */
-  private async exec(promptArgs: readonly string[]): Promise<ContainerExecResult> {
+  private async exec(sessionFlags: readonly string[], prompt: string): Promise<ContainerExecResult> {
     const { workspace } = this;
-    const rootAgentPath = join(workspace.agentsOutDir, copilotAgentFileName(this.profile.agentName));
-    if (!existsSync(rootAgentPath)) {
-      throw new Error(
-        `Rendered Copilot agent ${rootAgentPath} not found; the stage's agents must be rendered before it runs`,
-      );
-    }
-    for (const dir of [workspace.cwd, workspace.cliHomeDir, workspace.logDir]) mkdirSync(dir, { recursive: true });
+    const env = await prepareHostStage(workspace, {
+      rootAgentPath: join(workspace.agentsOutDir, copilotAgentFileName(this.profile.agentName)),
+      runtime: this.runtime,
+      env: copilotHostEnv(workspace.cliHomeDir),
+    });
 
     const args = [
       "--agent",
@@ -84,25 +88,25 @@ export class LocalCopilotExecutor implements ICliExecutor {
       "--model",
       this.profile.model ?? DEFAULT_COPILOT_MODEL,
       ...githubMcpArgs(this.profile.githubMcpTools),
-      "--config-dir",
-      workspace.cliHomeDir,
       "--log-level",
       "debug",
       "--log-dir",
       join(workspace.logDir, "cli-debug"),
       "--experimental",
       "--allow-all-tools",
-      "--allow-all-paths",
-      ...promptArgs,
+      ...workspace.additionalDirs.flatMap((dir) => ["--add-dir", dir]),
+      ...sessionFlags,
     ];
-    const env = hostCliEnv(
-      process.env,
-      this.runtime.credentials.required.map(({ envVar }) => envVar),
-    );
 
     return executeCliCommand({
       spawn: () =>
-        execa(this.binary, args, { cwd: workspace.cwd, timeout: this.profile.timeoutMs, extendEnv: false, env }),
+        execa(this.binary, args, {
+          cwd: workspace.cwd,
+          timeout: this.profile.timeoutMs,
+          extendEnv: false,
+          env,
+          input: prompt,
+        }),
       logger: this.logger,
       tag: "local-copilot",
       tracker: this,

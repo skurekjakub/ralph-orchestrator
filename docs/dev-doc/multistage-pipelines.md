@@ -123,8 +123,8 @@ Each local stage gets a workspace of its own (`StageWorkspaceResolver`, `src/ser
 
 ```
 <stageDir>/
-  work/                  ← the CLI's cwd (Copilot finds its agents and skills in work/.github/)
-  home/                  ← private CLI home: CLAUDE_CONFIG_DIR (agents/, skills/, sessions) or Copilot --config-dir
+  work/                  ← the CLI's cwd, a git repository of its own (Copilot finds its agents and skills in work/.github/)
+  home/                  ← private CLI home: CLAUDE_CONFIG_DIR (agents/, skills/, sessions) or COPILOT_HOME
   logs/                  ← debug log (claude.log, cli-debug/) and, for Claude Code, Ralph's audit hook output
   claude-settings.json   ← Claude Code only: hooks and permission rules, passed with --settings
 ```
@@ -146,7 +146,7 @@ The host path of the task's workspace, its clone of the target repository where 
 - Its environment holds only `PATH`, `HOME`, `LANG`, its own credential (`extendEnv: false`) and, for Claude Code, the variables that set its home, its headless behaviour and Ralph's audit log directory; no other orchestrator secret (`ADO_PAT`, `JIRA_*`, another CLI's token) reaches it.
 - Its private home keeps the developer's own CLI settings, hooks, plugins, agents, skills, memory, login and MCP servers out.
 - Claude Code loads no `CLAUDE.md` (`CLAUDE_CODE_DISABLE_CLAUDE_MDS=1`; the output directory sits inside the orchestrator checkout), runs no MCP server and has no web tools. It runs in `dontAsk` mode under generated permissions (`src/cli/claude/claude-host-settings.ts`): read only the working directory and every `--add-dir` (the task's output directory, for a variant's stage the task's workspace, the task profile's `agents/`, and `shared/agent-includes`, `shared/skills` and `shared/mcp-servers`), with `blockReadsOutsideWorkingDirectories` on; write only in its working and artifact directories; run Claude Code's built-in read-only Bash commands plus `jq` and `date`; load skills; track tasks; spawn the stage's subagents. Reading the orchestrator's `.env` or a profile's `.build/` is denied. Ralph's audit hooks and result gate run from `shared/hooks/` and write to `<stageDir>/logs/`, so the host needs `jq` and `perl`.
-- Copilot CLI runs with `--allow-all-tools --allow-all-paths`, its home at `--config-dir <stageDir>/home` and its debug log in `<stageDir>/logs/cli-debug/`, without Ralph's audit hooks.
+- Copilot CLI runs with `--allow-all-tools`, one `--add-dir` per directory a Claude Code host stage may read, the prompt on stdin, its home at `COPILOT_HOME=<stageDir>/home` with `COPILOT_AUTO_UPDATE=false`, and its debug log in `<stageDir>/logs/cli-debug/`, without Ralph's audit hooks.
 - No bundled local stage edits `profiles/` or `shared/`, and a Claude Code host session cannot: improvers write proposals into their artifact directory instead.
 
 ## Agent Templates

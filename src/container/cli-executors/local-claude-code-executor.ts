@@ -1,5 +1,4 @@
 import { execa, type ResultPromise } from "execa";
-import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { claudeAgentFileName } from "../../cli/claude/claude-agent-writer";
 import { writeHostSessionSettings } from "../../cli/claude/claude-host-settings";
@@ -13,11 +12,11 @@ import {
 } from "../../cli/claude/claude-session";
 import { CLAUDE_HOST_TOOLS } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
-import { hostCliEnv } from "../../cli/host-env";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { ContainerExecResult, HostStageWorkspace } from "../types";
+import { prepareHostStage } from "./host-stage";
 import { executeCliCommand, killActiveProcess } from "./shared-exec";
 
 /** Dependencies of one host stage's Claude Code executor. */
@@ -46,7 +45,8 @@ export interface LocalClaudeCodeExecutorDeps {
 /**
  * Runs a `mode: "local"` stage with Claude Code on the host, inside the stage's own workspace.
  *
- * The CLI runs headless in `workspace.cwd` with `CLAUDE_CONFIG_DIR` at the workspace's private home, where the
+ * The CLI runs headless in `workspace.cwd`, a git repository of its own, with `CLAUDE_CONFIG_DIR` at the
+ * workspace's private home, where the
  * stage's agents and skills are rendered, so the developer's own settings, hooks, plugins, agents, skills,
  * memory and login stay out. It loads user settings only, never the orchestrator's `CLAUDE.md` files, which sit
  * above the workspace, and no MCP server. Ralph's audit hooks run from the host's `shared/hooks` and write to
@@ -102,18 +102,23 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
   }
 
   /**
-   * @throws Error when the stage root's agent was not rendered into the workspace, or Ralph's hooks cannot be
-   *   read.
+   * @throws Error when the stage root's agent was not rendered into the workspace, the workspace cannot be
+   *   prepared, or Ralph's hooks cannot be read.
    */
   private async exec(prompt: string, sessionArgs: readonly string[]): Promise<ContainerExecResult> {
     const { workspace } = this;
-    const rootAgentPath = join(workspace.agentsOutDir, claudeAgentFileName(this.agentName));
-    if (!existsSync(rootAgentPath)) {
-      throw new Error(
-        `Rendered Claude Code agent ${rootAgentPath} not found; the stage's agents must be rendered before it runs`,
-      );
-    }
-    for (const dir of [workspace.cwd, workspace.cliHomeDir, workspace.logDir]) mkdirSync(dir, { recursive: true });
+    const env = await prepareHostStage(workspace, {
+      rootAgentPath: join(workspace.agentsOutDir, claudeAgentFileName(this.agentName)),
+      runtime: this.runtime,
+      env: {
+        CLAUDE_CONFIG_DIR: workspace.cliHomeDir,
+        ...CLAUDE_HEADLESS_ENV,
+        // The workspace sits inside the orchestrator checkout, whose CLAUDE.md the ancestor walk would load.
+        CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
+        RALPH_LOG_DIR: workspace.logDir,
+        ...claudeSessionEnv(this.stage.requireResultBlock, this.subagentDepth),
+      },
+    });
     const settingsPath = writeHostSessionSettings(workspace, this.hooksDir, this.subagents);
 
     const args = claudeSessionArgs(
@@ -129,18 +134,6 @@ export class LocalClaudeCodeExecutor implements ICliExecutor {
         debugFile: join(workspace.logDir, "claude.log"),
       },
       sessionArgs,
-    );
-    const env = hostCliEnv(
-      process.env,
-      this.runtime.credentials.required.map(({ envVar }) => envVar),
-      {
-        CLAUDE_CONFIG_DIR: workspace.cliHomeDir,
-        ...CLAUDE_HEADLESS_ENV,
-        // The workspace sits inside the orchestrator checkout, whose CLAUDE.md the ancestor walk would load.
-        CLAUDE_CODE_DISABLE_CLAUDE_MDS: "1",
-        RALPH_LOG_DIR: workspace.logDir,
-        ...claudeSessionEnv(this.stage.requireResultBlock, this.subagentDepth),
-      },
     );
 
     return executeCliCommand({
