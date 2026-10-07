@@ -1,15 +1,21 @@
 import type { ContainerExecResult } from "./types";
 import type { WorkItem } from "../datasource/types";
 import type { Logger } from "../logger";
-import { parseResultBlock } from "./result-parser";
+import { hasResultBlock, parseResultBlock } from "./result-parser";
 import { ICliExecutor } from "./cli-executor-factory";
 
 /** Accumulated output from the initial run plus any continuation attempts. */
 export interface ContinuationResult {
   /** The last CLI invocation's raw result (exit code, timeout flag). */
   lastResult: ContainerExecResult;
-  /** Combined agent text across all invocations; the result block is parsed from it. */
+  /** Combined agent text across all invocations. */
   combinedAgentText: string;
+  /**
+   * The text the result block is parsed from: the last invocation's agent text when it holds a block whose
+   * STATUS the orchestrator accepts, else the combined agent text. Only the first block of a text counts,
+   * so an earlier invalid block must not hide the one a continuation printed.
+   */
+  resultText: string;
   /** Combined stdout across all invocations. */
   combinedStdout: string;
   /** Combined stderr across all invocations. */
@@ -19,7 +25,8 @@ export interface ContinuationResult {
 /** Public contract for the continuation runner. */
 export interface IContinuationRunner {
   /**
-   * Run the executor and resume its session if the agent text holds no result block.
+   * Run the executor and resume its session while the agent text holds no result block whose STATUS the
+   * orchestrator accepts.
    *
    * @param executor     CLI executor to invoke.
    * @param prompt       Initial prompt for the first run.
@@ -59,6 +66,7 @@ export class ContinuationRunner implements IContinuationRunner {
     let combinedAgentText = result.agentText;
     let combinedStdout = result.stdout;
     let combinedStderr = result.stderr;
+    const resultText = (): string => (hasResultBlock(result.agentText) ? result.agentText : combinedAgentText);
 
     if (maxContinuations > 0) {
       let attempt = 0;
@@ -68,12 +76,11 @@ export class ContinuationRunner implements IContinuationRunner {
           break;
         }
 
-        const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
-        if (prUrl !== undefined || agentStatus !== undefined) {
+        if (hasResultBlock(resultText())) {
+          const { prUrl, agentStatus } = parseResultBlock(resultText());
           this.logger.info(
-            `Result block found after ${attempt} continuation(s)` +
-              (prUrl ? ` — PR: ${prUrl}` : "") +
-              (agentStatus ? ` — status: ${agentStatus}` : ""),
+            `Result block found after ${attempt} continuation(s) — status: ${agentStatus}` +
+              (prUrl ? ` — PR: ${prUrl}` : ""),
           );
           break;
         }
@@ -97,15 +104,12 @@ export class ContinuationRunner implements IContinuationRunner {
         combinedStderr += "\n" + result.stderr;
       }
 
-      if (attempt >= maxContinuations) {
-        const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
-        if (prUrl === undefined && agentStatus === undefined) {
-          this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result block`);
-        }
+      if (attempt >= maxContinuations && !hasResultBlock(resultText())) {
+        this.logger.warn(`All ${maxContinuations} continuation(s) exhausted without a result block`);
       }
     }
 
-    return { lastResult: result, combinedAgentText, combinedStdout, combinedStderr };
+    return { lastResult: result, combinedAgentText, resultText: resultText(), combinedStdout, combinedStderr };
   }
 
   /**

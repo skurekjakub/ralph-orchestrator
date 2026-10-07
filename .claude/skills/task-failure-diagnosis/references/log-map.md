@@ -46,9 +46,12 @@ Sources are registered in `LogSourceRegistry.registerAll()` (`src/container/log-
   "prUrl": null,
   "collectedLogs": { "audit": "...", "proxy": "..." }, // id → local path; a missing id means collection failed
   "failureCategory": "infra", // only when status != completed
+  "failureReason": "auth-failed", // FailureReason, only on error runs the session runner resolved
+  "cliError": { "subtype": "authentication_failed", "message": "..." }, // the CLI's own terminal error
+  "sessionIds": ["..."], // Claude Code session ids, one per stage
   "hooklessSessions": ["..."], // Claude Code sessions without a session_start audit record; only when non-empty
   "stderr": "...", // first 5000 chars, only when non-empty
-  "stdout": "...", // first 5000 chars, only when status != completed
+  "agentText": "...", // first 5000 chars of the decoded agent text, only when status != completed
   "activityLogPath": "...",
   "timestamp": "2026-03-12T...",
 }

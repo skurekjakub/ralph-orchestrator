@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { classifyFailure } from "../../src/logs/collector";
+import { classifyFailure, FailureCategory } from "../../src/logs/collector";
 import { makeResult } from "../helpers/factories";
-import { TaskStatus } from "../../src/container/types";
+import { FailureReason, TaskStatus } from "../../src/container/types";
 
 describe("classifyFailure", () => {
   it("classifies short run with no output as infra", () => {
@@ -58,6 +58,42 @@ describe("classifyFailure", () => {
     });
     expect(classifyFailure(result)).toBe("unknown");
   });
+
+  it.each([
+    [FailureReason.MissingResultBlock, FailureCategory.Contract],
+    [FailureReason.AuthFailed, FailureCategory.Infra],
+    [FailureReason.CliError, FailureCategory.Infra],
+    [FailureReason.MaxTurns, FailureCategory.Task],
+  ])("classifies failure reason %s as %s, whatever the run's output and length", (failureReason, category) => {
+    // Arrange
+    const result = makeResult("DOC-7", {
+      status: TaskStatus.Error,
+      exitCode: 1,
+      durationMs: 300_000,
+      stdout: "Agent timed out ".repeat(20),
+      failureReason,
+    });
+
+    // Act & Assert
+    expect(classifyFailure(result)).toBe(category);
+  });
+
+  it.each([FailureReason.ExecutionError, FailureReason.ExitCode])(
+    "classifies failure reason %s by the run's output and length",
+    (failureReason) => {
+      // Arrange
+      const result = makeResult("DOC-8", {
+        status: TaskStatus.Error,
+        exitCode: 1,
+        durationMs: 11_000,
+        stdout: "",
+        failureReason,
+      });
+
+      // Act & Assert
+      expect(classifyFailure(result)).toBe(FailureCategory.Infra);
+    },
+  );
 
   it("returns unknown for completed runs", () => {
     const result = makeResult("DOC-6", {

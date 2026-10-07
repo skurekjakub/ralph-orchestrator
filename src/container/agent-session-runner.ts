@@ -13,6 +13,11 @@ export interface AgentSessionOptions {
   maxContinuations: number;
   /** Whether the continuation feature is globally enabled. */
   enableContinuation: boolean;
+  /**
+   * The stage's `requireResultBlock`: a run that ends without a result block fails, and only such a stage
+   * is continued. Absent means the block is not required.
+   */
+  requireResultBlock?: boolean;
 }
 
 /** Public contract for running a single agent CLI session. */
@@ -43,8 +48,8 @@ export interface IAgentSessionRunner {
  * Responsibilities:
  * 1. Build the prompt via {@link PromptBuilder}
  * 2. Delegate to {@link IContinuationRunner} for the retry loop
- * 3. Parse the `===RALPH_RESULT_START===` block from the combined agent text
- * 4. Resolve the final task status
+ * 3. Parse the `===RALPH_RESULT_START===` block from the agent text the continuation runner picks
+ * 4. Resolve the final task status and, for a failed run, its failure reason
  * 5. Assemble and return the {@link RalphResult}
  */
 export class AgentSessionRunner implements IAgentSessionRunner {
@@ -73,20 +78,31 @@ export class AgentSessionRunner implements IAgentSessionRunner {
     opts: AgentSessionOptions,
   ): Promise<RalphResult> {
     const { text: prompt } = this.promptBuilder.build(workItem, context);
+    const requireResultBlock = opts.requireResultBlock ?? false;
 
     const startTime = Date.now();
 
-    const { lastResult, combinedAgentText, combinedStdout, combinedStderr } = await this.continuationRunner.run(
-      executor,
-      prompt,
-      workItem,
-      opts.enableContinuation ? opts.maxContinuations : 0,
-    );
+    const { lastResult, combinedAgentText, resultText, combinedStdout, combinedStderr } =
+      await this.continuationRunner.run(
+        executor,
+        prompt,
+        workItem,
+        opts.enableContinuation && requireResultBlock ? opts.maxContinuations : 0,
+      );
 
     const durationMs = Date.now() - startTime;
 
-    const { prUrl, agentStatus } = parseResultBlock(combinedAgentText);
-    const status = resolveStatus(lastResult.exitCode, lastResult.timedOut, agentStatus, this.logger);
+    const { prUrl, agentStatus } = parseResultBlock(resultText);
+    const { status, failureReason } = resolveStatus(
+      {
+        exitCode: lastResult.exitCode,
+        timedOut: lastResult.timedOut,
+        agentStatus,
+        requireResultBlock,
+        cliError: lastResult.cliError,
+      },
+      this.logger,
+    );
 
     return {
       taskId: workItem.id,
@@ -95,9 +111,12 @@ export class AgentSessionRunner implements IAgentSessionRunner {
       exitCode: lastResult.exitCode,
       stdout: combinedStdout,
       stderr: combinedStderr,
+      agentText: combinedAgentText,
       collectedLogs: {},
       prUrl,
-      ...(lastResult.sessionId === undefined ? {} : { sessionId: lastResult.sessionId }),
+      ...(failureReason === undefined ? {} : { failureReason }),
+      ...(lastResult.cliError === undefined ? {} : { cliError: lastResult.cliError }),
+      ...(lastResult.sessionId === undefined ? {} : { sessionIds: [lastResult.sessionId] }),
     };
   }
 }

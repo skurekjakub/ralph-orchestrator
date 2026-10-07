@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
-import { TaskStatus } from "../../src/container/types";
+import { FailureReason, TaskStatus } from "../../src/container/types";
 import { makeTaskContext, makeProfile, makeResult, makeStage } from "../helpers/factories";
 import {
   createMockExecutor,
@@ -116,7 +116,7 @@ describe("AgentPipelineExecutor", () => {
       // Arrange
       const logger = createMockLogger();
       const pipeline = new AgentPipelineExecutor({ logger, profileSetup: createMockProfileSetupService() });
-      const container = createMockContainer({ sessionId: "s-1" });
+      const container = createMockContainer({ sessionIds: ["s-1"] });
       vi.mocked(container.sessionStartAudited).mockResolvedValue(false);
       const ctx = makeTaskContext({ profile: makeProfile({ stages: [makeStage({ cli: CliType.Claude })] }) });
 
@@ -135,7 +135,7 @@ describe("AgentPipelineExecutor", () => {
       ["the CLI cannot tie audit records to its sessions", undefined],
     ])("leaves the result unflagged when %s", async (_label, audited) => {
       // Arrange
-      const { pipeline, container } = createExecutor({ executeResult: { sessionId: "s-1" } });
+      const { pipeline, container } = createExecutor({ executeResult: { sessionIds: ["s-1"] } });
       vi.mocked(container.sessionStartAudited).mockResolvedValue(audited);
 
       // Act
@@ -147,7 +147,7 @@ describe("AgentPipelineExecutor", () => {
 
     it("does not check a host stage or a run that reported no session id", async () => {
       // Arrange
-      const { pipeline, container } = createExecutor({ executeResult: { sessionId: "s-1" } });
+      const { pipeline, container } = createExecutor({ executeResult: { sessionIds: ["s-1"] } });
       const local = makeProfile({ stages: [makeStage({ mode: StageMode.Local })] });
       const { pipeline: other, container: noSession } = createExecutor();
 
@@ -177,6 +177,33 @@ describe("AgentPipelineExecutor", () => {
 
       expect(result.status).toBe(TaskStatus.Completed);
       expect((container.executeWithExecutor as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(2);
+    });
+
+    it("runs each stage under its own result contract", async () => {
+      // Arrange
+      const { pipeline, container } = createExecutor();
+      const ctx = makeMultiStageCtx();
+
+      // Act
+      await pipeline.run(ctx, container, issueContext);
+
+      // Assert
+      const stagesRun = vi.mocked(container.executeWithExecutor).mock.calls.map(([, stage]) => stage);
+      expect(stagesRun).toEqual(ctx.profile.stages);
+    });
+
+    it("records every stage's session id, in stage order", async () => {
+      // Arrange
+      const { pipeline, container } = createExecutor();
+      vi.mocked(container.executeWithExecutor)
+        .mockResolvedValueOnce(makeResult("DF-100", { sessionIds: ["s-1"] }))
+        .mockResolvedValueOnce(makeResult("DF-100", { sessionIds: ["s-2"] }));
+
+      // Act
+      const result = await pipeline.run(makeMultiStageCtx(), container, issueContext);
+
+      // Assert
+      expect(result.sessionIds).toEqual(["s-1", "s-2"]);
     });
 
     it("sums stage durations in the final result", async () => {
@@ -228,6 +255,20 @@ describe("AgentPipelineExecutor", () => {
   });
 
   describe("stage failure", () => {
+    it("returns the failed stage's failure reason", async () => {
+      // Arrange
+      const { pipeline, container } = createExecutor({
+        executeResult: { status: TaskStatus.Error, failureReason: FailureReason.MissingResultBlock },
+      });
+
+      // Act
+      const result = await pipeline.run(makeTaskContext(), container, issueContext);
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.failureReason).toBe(FailureReason.MissingResultBlock);
+    });
+
     it("stops the pipeline when a stage returns error status", async () => {
       const { pipeline, container } = createExecutor();
       const ctx = makeTaskContext({

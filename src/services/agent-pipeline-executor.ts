@@ -42,6 +42,7 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
   async run(ctx: TaskContext, container: IContainerManager, issueContext: IssueContext): Promise<RalphResult> {
     const stages = ctx.profile.stages;
     const stageResults: StageResult[] = [];
+    const sessionIds: string[] = [];
     const hooklessSessions: string[] = [];
     let lastResult: RalphResult | undefined;
 
@@ -69,20 +70,23 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
       const timeoutSec = Math.round((stage.timeoutMs ?? ctx.profile.timeoutMs) / 1000);
       this.logger.info(`${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`);
 
-      const result = await container.executeWithExecutor(executor, ctx.workItem, issueContext);
+      const result = await container.executeWithExecutor(executor, stage, ctx.workItem, issueContext);
       this.logger.info(
-        `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s`,
+        `${stageLabel}: finished — status=${result.status}, exit=${result.exitCode}, duration=${Math.round(result.durationMs / 1000)}s` +
+          (result.failureReason ? `, failure=${result.failureReason}` : ""),
       );
-      if (
-        stage.mode === StageMode.Container &&
-        result.sessionId !== undefined &&
-        (await container.sessionStartAudited(stage.cli, result.sessionId)) === false
-      ) {
-        this.logger.warn(
-          `${stageLabel}: the audit log has no session_start for ${stage.cli} session ${result.sessionId} — ` +
-            "Ralph's hooks did not run; server-managed settings may set allowManagedHooksOnly or disableAllHooks",
-        );
-        hooklessSessions.push(result.sessionId);
+      for (const sessionId of result.sessionIds ?? []) {
+        sessionIds.push(sessionId);
+        if (
+          stage.mode === StageMode.Container &&
+          (await container.sessionStartAudited(stage.cli, sessionId)) === false
+        ) {
+          this.logger.warn(
+            `${stageLabel}: the audit log has no session_start for ${stage.cli} session ${sessionId} — ` +
+              "Ralph's hooks did not run; server-managed settings may set allowManagedHooksOnly or disableAllHooks",
+          );
+          hooklessSessions.push(sessionId);
+        }
       }
 
       if (ctx.signal.aborted) {
@@ -156,6 +160,9 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
     }
     if (stageResults.length > 1) {
       finalResult.stageResults = stageResults;
+    }
+    if (sessionIds.length > 0) {
+      finalResult.sessionIds = sessionIds;
     }
     if (hooklessSessions.length > 0) {
       finalResult.hooklessSessions = hooklessSessions;

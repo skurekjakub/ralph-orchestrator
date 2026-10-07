@@ -8,7 +8,7 @@ import { OperationStatus } from "../../src/services/operation-ledger";
 import { makeProfile, makeWorkItemComment, makeWorkItem, makeResult } from "../helpers/factories";
 import { OrchestratorStatus, TransitionPhase } from "../../src/orchestrator-types";
 import type { IAgentProfile } from "../../src/config/types";
-import { TaskStatus } from "../../src/container/types";
+import { FailureReason, TaskStatus } from "../../src/container/types";
 import { HeartbeatStatus } from "../../src/services/heartbeat";
 import { buildMockDeps, buildBaseDeps, runUntil, DS } from "./e2e-helpers";
 import { createMockVcsSourceClient } from "../helpers/mocks";
@@ -100,6 +100,45 @@ describe("Orchestrator E2E loop (mock deps)", () => {
     const ops = deps.ledger.getOperations(DS, "DF-150");
     expect(ops[0].status).toBe(OperationStatus.Error);
     expect(ops[0].resultStatus).toBe(TaskStatus.Error);
+  });
+
+  it.each([
+    [
+      "ended without its result block",
+      { failureReason: FailureReason.MissingResultBlock, exitCode: 0 },
+      "The agent finished without the ===RALPH_RESULT_START=== … ===RALPH_RESULT_END=== result block its stage requires",
+    ],
+    [
+      "could not authenticate",
+      {
+        failureReason: FailureReason.AuthFailed,
+        exitCode: 1,
+        cliError: { subtype: "authentication_failed", message: "Not logged in · Please run /login" },
+      },
+      "The agent CLI could not authenticate: Not logged in · Please run /login",
+    ],
+  ])("records and comments the failure reason when the agent %s", async (_label, failure, reason) => {
+    // Arrange
+    const issue = makeWorkItem("DF-153", "Agent breaks the contract");
+    const deps = buildMockDeps(tempDir, {
+      issues: [issue],
+      comments: { "DF-153": [makeWorkItemComment(CID, "@docs handle this")] },
+      taskResult: { status: TaskStatus.Error, stderr: "", ...failure },
+    });
+    const orchestrator = new Orchestrator(deps);
+
+    // Act
+    await runUntil(orchestrator, () => orchestrator.observer.getState().completedToday.length > 0);
+
+    // Assert
+    expect(deps.issueManager.postErrorComment).toHaveBeenCalledWith(DS, "DF-153", reason);
+    expect(deps.ledger.getOperations(DS, "DF-153")[0]).toMatchObject({ status: OperationStatus.Error, reason });
+    expect(deps.issueManager.transitionWorkItem).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      TransitionPhase.AfterAgent,
+    );
   });
 
   it("maps TaskStatus.Blocked to OperationStatus.Error in the ledger", async () => {

@@ -100,10 +100,11 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 **Signature:**
 
 - Activity log: `No result block found — continuation k/N` repeated, then `All N continuation(s) exhausted without a result block`
-- `summary.json`: `exitCode: 0` and `status: "completed"` (no agent `STATUS:` → exit-code resolution), no `prUrl`
-- No `===RALPH_RESULT_START===` block in output
+- `summary.json`: `exitCode: 0`, `status: "error"`, `failureReason: "missing-result-block"`, `failureCategory: "contract"`, no `prUrl`
+- No `===RALPH_RESULT_START===` block with an accepted `STATUS` in the agent text
+- On Claude Code, `result_gate_block` and then `result_gate_exhausted` records in the audit log
 
-**Root cause:** The agent ended its CLI sessions without producing a result block, and `ContinuationRunner` used up `maxContinuations`. Because exit 0 resolves to `completed`, the run looks successful even though no result was reported. With `maxContinuations: 0` you see the same outcome without the continuation lines.
+**Root cause:** The agent ended its CLI sessions without producing a result block, and `ContinuationRunner` used up `maxContinuations`. The stage requires the block (`requireResultBlock`, on by default for variant stages), so the run fails and the work item gets an error comment instead of moving to review. With `maxContinuations: 0` you see the same outcome without the continuation lines.
 
 **Fix:** Check the agent prompt to ensure it instructs the agent to emit the result block. Check `maxContinuations` in profile.json — it may need to be higher, or the agent prompt may need clarification.
 

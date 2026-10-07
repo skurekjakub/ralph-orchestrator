@@ -52,9 +52,15 @@ export interface IContainerManager {
   registerLogSources(taskId: string, workItemId: string, outputDir: string): void;
   /**
    * Run one stage through its executor: build the prompt, run the CLI, continue a session that ended
-   * without a result block when the variant allows it, and parse the result.
+   * without a result block when the variant allows it, and parse the result under the stage's result
+   * contract (`requireResultBlock`).
    */
-  executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult>;
+  executeWithExecutor(
+    executor: ICliExecutor,
+    stage: IStageConfig,
+    workItem: WorkItem,
+    context?: IssueContext,
+  ): Promise<RalphResult>;
   /** Create the executor of a pipeline stage's CLI. */
   createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor>;
   /**
@@ -301,17 +307,23 @@ export class ContainerManager implements IContainerManager {
 
   /**
    * Run one stage through `executor` and the session runner, which builds and audits the prompt, parses
-   * the agent's `===RALPH_RESULT_START===` block and, when `maxContinuations > 0` and continuation is
-   * enabled, resumes a session that ended without one, with exponential backoff between attempts.
-   * `executor` becomes the one {@link stop} kills.
+   * the agent's `===RALPH_RESULT_START===` block and, when the stage requires one, `maxContinuations > 0`
+   * and continuation is enabled, resumes a session that ended without one, with exponential backoff
+   * between attempts. `executor` becomes the one {@link stop} kills.
    *
    * @param context Pre-fetched issue context (comments, revision handoff). Omit for tasks with no context.
    */
-  async executeWithExecutor(executor: ICliExecutor, workItem: WorkItem, context?: IssueContext): Promise<RalphResult> {
+  async executeWithExecutor(
+    executor: ICliExecutor,
+    stage: IStageConfig,
+    workItem: WorkItem,
+    context?: IssueContext,
+  ): Promise<RalphResult> {
     this.activeExecutor = executor;
     return this.sessionRunner.run(executor, workItem, context, {
       maxContinuations: this.profile.maxContinuations,
       enableContinuation: this.enableContinuation,
+      requireResultBlock: stage.requireResultBlock,
     });
   }
 

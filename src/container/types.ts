@@ -73,6 +73,22 @@ export function isSuccessfulStatus(status: TaskStatus): boolean {
   return status === TaskStatus.Completed || status === TaskStatus.Partial;
 }
 
+/** Why a run ended in {@link TaskStatus.Error}, as far as the CLI and the result contract tell. */
+export enum FailureReason {
+  /** The CLI could not authenticate with its configured credential. */
+  AuthFailed = "auth-failed",
+  /** The CLI stopped the session at its turn limit. */
+  MaxTurns = "max-turns",
+  /** The CLI's session failed while it ran (Claude Code `error_during_execution`). */
+  ExecutionError = "execution-error",
+  /** The CLI reported another terminal error, such as a rate limit, a billing or a server error. */
+  CliError = "cli-error",
+  /** The CLI process exited non-zero without reporting an error of its own. */
+  ExitCode = "exit-code",
+  /** The stage requires a result block, and the agent text holds none whose STATUS the orchestrator accepts. */
+  MissingResultBlock = "missing-result-block",
+}
+
 /** Result of a single pipeline stage execution. */
 export interface StageResult {
   /** Stage role identifier (e.g. `primary`, `reviewer`). */
@@ -136,8 +152,17 @@ export interface RalphResult {
   prUrl?: string;
   /** Per-stage results when running a multi-stage pipeline. */
   stageResults?: StageResult[];
-  /** CLI session id the run's last CLI process reported, when its CLI reports one. */
-  sessionId?: string;
+  /**
+   * The agent text of the run's CLI sessions, continuations included, as the CLI's output decoder reports
+   * it. Absent when no CLI session ran, e.g. when the task failed before its first stage.
+   */
+  agentText?: string;
+  /** Why the run failed; set on the {@link TaskStatus.Error} results the session runner resolves. */
+  failureReason?: FailureReason;
+  /** Terminal error the CLI reported for the run's last session. */
+  cliError?: CliError;
+  /** CLI session ids in run order, one per stage whose CLI reports one. */
+  sessionIds?: string[];
   /**
    * Session ids of container stages whose audit log has no `session_start` record: Ralph's hooks did not
    * run for them, e.g. because an organisation's server-managed settings set `allowManagedHooksOnly` or

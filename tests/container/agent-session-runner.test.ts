@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { AgentSessionRunner } from "../../src/container/agent-session-runner";
 import type { IContinuationRunner } from "../../src/container/continuation-runner";
 import type { PromptBuilder } from "../../src/prompt/prompt-builder";
-import { TaskStatus } from "../../src/container/types";
+import { FailureReason, TaskStatus, type ContainerExecResult } from "../../src/container/types";
 import { makeExecResult, makeWorkItem } from "../helpers/factories";
 import { createMockExecutor, createSilentLogger, type Mocked } from "../helpers/mocks";
 
@@ -18,6 +18,7 @@ function createMockContinuationRunner(): Mocked<IContinuationRunner> {
     run: vi.fn().mockResolvedValue({
       lastResult: makeExecResult(),
       combinedAgentText: "",
+      resultText: "",
       combinedStdout: "",
       combinedStderr: "",
     }),
@@ -65,11 +66,12 @@ describe("AgentSessionRunner", () => {
     expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(expect.objectContaining({ id: "DF-500" }), context);
   });
 
-  it("parses the result block from the combined agent text, not from raw stdout", async () => {
+  it("parses the result block from the continuation's result text, not from the combined text or raw stdout", async () => {
     // Arrange
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult(),
-      combinedAgentText:
+      combinedAgentText: "===RALPH_RESULT_START===\nSTATUS: done\n===RALPH_RESULT_END===\nworking...",
+      resultText:
         "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
       combinedStdout: '{"type":"assistant","message":{"content":[{"type":"text","text":"STATUS: blocked"}]}}',
       combinedStderr: "",
@@ -92,6 +94,7 @@ describe("AgentSessionRunner", () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult(),
       combinedAgentText: block,
+      resultText: block,
       combinedStdout: block,
       combinedStderr: "some warning",
     });
@@ -114,6 +117,7 @@ describe("AgentSessionRunner", () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult({ sessionId: "s-1" }),
       combinedAgentText: "",
+      resultText: "",
       combinedStdout: "",
       combinedStderr: "",
     });
@@ -125,31 +129,140 @@ describe("AgentSessionRunner", () => {
     });
 
     // Assert
-    expect(result.sessionId).toBe("s-1");
+    expect(result.sessionIds).toEqual(["s-1"]);
+  });
+
+  it("records no session id when the CLI reports none", async () => {
+    // Act
+    const result = await runner.run(createMockExecutor(), makeWorkItem("DF-701"), undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+    });
+
+    // Assert
+    expect(result).not.toHaveProperty("sessionIds");
   });
 
   it("passes 0 continuations when enableContinuation is false", async () => {
     await runner.run(createMockExecutor(), makeWorkItem("DF-600"), undefined, {
       maxContinuations: 5,
       enableContinuation: false,
+      requireResultBlock: true,
     });
 
     expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 0);
   });
 
-  it("passes maxContinuations when enableContinuation is true", async () => {
+  it("passes maxContinuations when enableContinuation is true and the stage requires a result block", async () => {
     await runner.run(createMockExecutor(), makeWorkItem("DF-601"), undefined, {
       maxContinuations: 3,
       enableContinuation: true,
+      requireResultBlock: true,
     });
 
     expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 3);
+  });
+
+  it.each([
+    ["waives the result block", false],
+    ["leaves the contract unset", undefined],
+  ])("passes 0 continuations when the stage %s", async (_label, requireResultBlock) => {
+    // Act
+    await runner.run(createMockExecutor(), makeWorkItem("DF-602"), undefined, {
+      maxContinuations: 3,
+      enableContinuation: true,
+      requireResultBlock,
+    });
+
+    // Assert
+    expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 0);
+  });
+
+  describe("result contract", () => {
+    /** Runs the session runner over one CLI result whose agent text is `agentText`. */
+    async function runWith(
+      lastResult: Partial<ContainerExecResult>,
+      requireResultBlock: boolean | undefined,
+      agentText = "",
+    ) {
+      continuationRunner.run.mockResolvedValue({
+        lastResult: makeExecResult(lastResult),
+        combinedAgentText: agentText,
+        resultText: agentText,
+        combinedStdout: "",
+        combinedStderr: lastResult.stderr ?? "",
+      });
+      return runner.run(createMockExecutor(), makeWorkItem("DF-900"), undefined, {
+        maxContinuations: 0,
+        enableContinuation: false,
+        requireResultBlock,
+      });
+    }
+
+    it("fails a stage that requires a result block and ended without one", async () => {
+      // Act
+      const result = await runWith({}, true, "All done, no block.");
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.failureReason).toBe(FailureReason.MissingResultBlock);
+      expect(result.agentText).toBe("All done, no block.");
+    });
+
+    it.each([
+      ["waives the block", false],
+      ["leaves the contract unset, as hook stages do", undefined],
+    ])("completes a stage that %s on exit 0", async (_label, requireResultBlock) => {
+      // Act
+      const result = await runWith({}, requireResultBlock);
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Completed);
+      expect(result.failureReason).toBeUndefined();
+    });
+
+    it("fails an authentication error with its reason and keeps the CLI's message", async () => {
+      // Arrange
+      const cliError = { subtype: "authentication_failed", message: "Not logged in · Please run /login" };
+
+      // Act
+      const result = await runWith({ exitCode: 1, cliError }, true);
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.failureReason).toBe(FailureReason.AuthFailed);
+      expect(result.cliError).toEqual(cliError);
+    });
+
+    it("fails a session that hit its turn limit, even when its stage needs no result block", async () => {
+      // Act
+      const result = await runWith({ cliError: { subtype: "error_max_turns" } }, false);
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Error);
+      expect(result.failureReason).toBe(FailureReason.MaxTurns);
+    });
+
+    it("takes the agent's reported status over the CLI error that followed it", async () => {
+      // Act
+      const result = await runWith(
+        { cliError: { subtype: "error_during_execution" } },
+        true,
+        "===RALPH_RESULT_START===\nSTATUS: partial\n===RALPH_RESULT_END===",
+      );
+
+      // Assert
+      expect(result.status).toBe(TaskStatus.Partial);
+      expect(result.failureReason).toBeUndefined();
+      expect(result.cliError).toEqual({ subtype: "error_during_execution" });
+    });
   });
 
   it("resolves error status when exit code is non-zero", async () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult({ exitCode: 1, stderr: "fail" }),
       combinedAgentText: "",
+      resultText: "",
       combinedStdout: "",
       combinedStderr: "fail",
     });
@@ -167,6 +280,7 @@ describe("AgentSessionRunner", () => {
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult({ exitCode: 1, timedOut: true }),
       combinedAgentText: "",
+      resultText: "",
       combinedStdout: "",
       combinedStderr: "",
     });

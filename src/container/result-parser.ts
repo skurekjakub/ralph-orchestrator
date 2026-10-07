@@ -1,4 +1,5 @@
-import { TaskStatus, type RalphResult } from "./types";
+import { FailureReason, TaskStatus } from "./types";
+import type { CliError } from "../cli/output-decoder";
 import type { Logger } from "../logger";
 
 /** Valid agent-reported statuses accepted by {@link resolveStatus}. */
@@ -50,35 +51,68 @@ export function hasResultBlock(text: string): boolean {
   return agentStatus !== undefined && RECOGNIZED_STATUSES.has(agentStatus);
 }
 
+/** CLI error subtypes with a failure reason of their own; every other subtype is a {@link FailureReason.CliError}. */
+const CLI_ERROR_REASONS: ReadonlyMap<string, FailureReason> = new Map([
+  ["authentication_failed", FailureReason.AuthFailed],
+  ["error_max_turns", FailureReason.MaxTurns],
+  ["error_during_execution", FailureReason.ExecutionError],
+]);
+
+/** What one run's status is resolved from. */
+export interface StatusInput {
+  readonly exitCode: number;
+  readonly timedOut: boolean;
+  /** The STATUS of the agent's result block, when it printed one. */
+  readonly agentStatus: string | undefined;
+  /** Whether the stage must end with a result block whose STATUS the orchestrator accepts. */
+  readonly requireResultBlock: boolean;
+  /** Terminal error the CLI reported for its session. */
+  readonly cliError?: CliError;
+}
+
+/** A run's status and, for {@link TaskStatus.Error}, why it failed. */
+export interface ResolvedStatus {
+  readonly status: TaskStatus;
+  readonly failureReason?: FailureReason;
+}
+
 /**
- * Determine the final {@link RalphResult} status from exit code, timeout flag,
- * and agent-reported status.
+ * Resolves a run's status. The first rule that applies wins:
  *
- * Priority: agent-reported status > timeout > exit code.
+ * 1. the agent's result block reports `completed`, `partial` or `blocked`: that status;
+ * 2. the CLI timed out: {@link TaskStatus.Partial};
+ * 3. the CLI reported a terminal error: {@link TaskStatus.Error}, with the reason its subtype maps to;
+ * 4. the CLI exited non-zero: {@link TaskStatus.Error}, {@link FailureReason.ExitCode};
+ * 5. the stage requires a result block: {@link TaskStatus.Error}, {@link FailureReason.MissingResultBlock};
+ * 6. otherwise {@link TaskStatus.Completed}.
  *
- * Logs a warning when the agent reports an unrecognized status value — this
- * typically indicates a typo in the result block (e.g. `STATUS: success`
- * instead of `STATUS: completed`).
- *
- * @param logger Optional logger for diagnostic warnings.
+ * A crashed CLI also leaves no result block, so its own failure (rules 3 and 4) is reported before the
+ * missing block. Warns when the agent reports a STATUS outside rule 1, typically a typo such as
+ * `STATUS: success`, and when a required result block is missing.
  */
-export function resolveStatus(
-  exitCode: number,
-  timedOut: boolean,
-  agentStatus: string | undefined,
-  logger?: Logger,
-): RalphResult["status"] {
+export function resolveStatus(input: StatusInput, logger?: Logger): ResolvedStatus {
+  const { agentStatus, cliError } = input;
   if (agentStatus !== undefined) {
     if (RECOGNIZED_STATUSES.has(agentStatus)) {
-      return agentStatus as RalphResult["status"];
+      return { status: agentStatus as TaskStatus };
     }
     logger?.warn(
-      `Agent reported unrecognized status "${agentStatus}" — falling back to exit-code resolution. ` +
+      `Agent reported unrecognized status "${agentStatus}" — the result block does not count. ` +
         `Valid values: ${[...RECOGNIZED_STATUSES].join(", ")}`,
     );
   }
 
-  if (timedOut) return TaskStatus.Partial;
-  if (exitCode === 0) return TaskStatus.Completed;
-  return TaskStatus.Error;
+  if (input.timedOut) return { status: TaskStatus.Partial };
+  if (cliError) {
+    return {
+      status: TaskStatus.Error,
+      failureReason: CLI_ERROR_REASONS.get(cliError.subtype) ?? FailureReason.CliError,
+    };
+  }
+  if (input.exitCode !== 0) return { status: TaskStatus.Error, failureReason: FailureReason.ExitCode };
+  if (input.requireResultBlock) {
+    logger?.warn("The agent ended without a result block its stage requires");
+    return { status: TaskStatus.Error, failureReason: FailureReason.MissingResultBlock };
+  }
+  return { status: TaskStatus.Completed };
 }

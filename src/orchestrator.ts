@@ -1,5 +1,6 @@
 import type { IAgentProfile, IDataSourceConfig, IOutputConfig, IRalphchivesConfig } from "./config/types";
 import { isSuccessfulStatus, TaskStatus } from "./container/types";
+import { describeFailure } from "./container/failure-message";
 import { LogLevel, TransitionPhase, type ActiveTask } from "./orchestrator-types";
 import { OperationStatus, type Operation, type IOperationLedger } from "./services/operation-ledger";
 import { OrchestratorObserver } from "./orchestrator-observer";
@@ -431,6 +432,7 @@ export class Orchestrator {
       this.log(`Done ${workItem.id}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`);
 
       const isSuccess = isSuccessfulStatus(result.status);
+      const failure = isSuccess ? undefined : describeFailure(result);
 
       this.ledger.transition(
         operation.dataSource,
@@ -439,11 +441,11 @@ export class Orchestrator {
         isSuccess ? OperationStatus.Completed : OperationStatus.Error,
         {
           resultStatus: result.status,
-          ...(!isSuccess && { reason: result.stderr || `Agent finished with status: ${result.status}` }),
+          ...(failure !== undefined && { reason: failure }),
         },
       );
 
-      if (isSuccess) {
+      if (failure === undefined) {
         await this.issueManager.transitionWorkItem(
           workItem.source,
           workItem.id,
@@ -451,11 +453,7 @@ export class Orchestrator {
           TransitionPhase.AfterAgent,
         );
       } else {
-        await this.issueManager.postErrorComment(
-          workItem.source,
-          workItem.id,
-          result.stderr || `Agent finished with status: ${result.status}`,
-        );
+        await this.issueManager.postErrorComment(workItem.source, workItem.id, failure);
       }
     } catch (err) {
       const errorMsg = toErrorMessage(err);
