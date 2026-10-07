@@ -38,6 +38,11 @@ export function RunTelemetrySummary({ telemetry }: { telemetry: RunTelemetry }) 
         </span>
       )}
       {totals.compactions > 0 && <span>{plural(totals.compactions, "compaction")}</span>}
+      {totals.hookFeedback > 0 && (
+        <span className="text-warn" title="Times a blocking hook, such as the result gate, sent the model back to work">
+          {plural(totals.hookFeedback, "hook block")}
+        </span>
+      )}
       {totals.malformedLines > 0 && (
         <span className="text-warn">{plural(totals.malformedLines, "unreadable session log line")}</span>
       )}

@@ -265,6 +265,8 @@ export interface RunTelemetryTotals {
   modelCalls: number;
   apiErrors: number;
   compactions: number;
+  /** Feedback blocking hooks gave the model, such as the result gate stopping a session. */
+  hookFeedback: number;
   /** Session log lines that were not JSON objects and were skipped. */
   malformedLines: number;
   /** From the first to the last timestamp of any session. */
@@ -296,6 +298,8 @@ export interface RunTelemetrySpan {
   apiErrors: { ts?: number; kind: string }[];
   /** Context compactions and what triggered them (`auto`, `manual`). */
   compactions: { ts?: number; trigger?: string }[];
+  /** Feedback a blocking hook gave the model, by the hook event (`Stop` for the result gate). */
+  hookFeedback: { ts?: number; hook: string }[];
 }
 
 /** One tool call of a span. */

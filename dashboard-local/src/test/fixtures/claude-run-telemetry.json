@@ -10,6 +10,7 @@
     "modelCalls": 8,
     "apiErrors": 1,
     "compactions": 1,
+    "hookFeedback": 1,
     "malformedLines": 1,
     "durationMs": 300000
   },
@@ -47,6 +48,12 @@
           "ts": 1791352866000,
           "trigger": "auto"
         }
+      ],
+      "hookFeedback": [
+        {
+          "ts": 1791352868002,
+          "hook": "Stop"
+        }
       ]
     },
     {
@@ -79,7 +86,8 @@
         }
       ],
       "apiErrors": [],
-      "compactions": []
+      "compactions": [],
+      "hookFeedback": []
     },
     {
       "spanId": "11111111-2222-4333-8444-555555555555/a2",
@@ -95,7 +103,8 @@
       "modelCalls": 1,
       "toolCalls": [],
       "apiErrors": [],
-      "compactions": []
+      "compactions": [],
+      "hookFeedback": []
     },
     {
       "spanId": "11111111-2222-4333-8444-555555555555/a3",
@@ -110,7 +119,8 @@
       "modelCalls": 1,
       "toolCalls": [],
       "apiErrors": [],
-      "compactions": []
+      "compactions": [],
+      "hookFeedback": []
     },
     {
       "spanId": "00000000-0000-4000-8000-000000000000",
@@ -129,7 +139,8 @@
           "kind": "authentication_failed"
         }
       ],
-      "compactions": []
+      "compactions": [],
+      "hookFeedback": []
     }
   ]
 }

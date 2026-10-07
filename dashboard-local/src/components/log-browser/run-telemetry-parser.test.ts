@@ -72,6 +72,14 @@ describe("parseRunTelemetry", () => {
       },
     ],
     [
+      "a hook feedback entry without its hook event",
+      () => {
+        const telemetry = raw();
+        telemetry.spans[0].hookFeedback = [{ ts: 1 }];
+        return JSON.stringify(telemetry);
+      },
+    ],
+    [
       "totals without a count",
       () => {
         const telemetry = raw();

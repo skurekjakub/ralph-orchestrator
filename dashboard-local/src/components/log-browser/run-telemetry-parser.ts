@@ -56,7 +56,9 @@ function isSpan(value: unknown): value is RunTelemetrySpan {
     Array.isArray(value.apiErrors) &&
     value.apiErrors.every((e) => isRecord(e) && typeof e.kind === "string" && isOptional(e.ts, "number")) &&
     Array.isArray(value.compactions) &&
-    value.compactions.every((c) => isRecord(c) && isOptional(c.ts, "number") && isOptional(c.trigger, "string"))
+    value.compactions.every((c) => isRecord(c) && isOptional(c.ts, "number") && isOptional(c.trigger, "string")) &&
+    Array.isArray(value.hookFeedback) &&
+    value.hookFeedback.every((h) => isRecord(h) && typeof h.hook === "string" && isOptional(h.ts, "number"))
   );
 }
 
@@ -68,6 +70,7 @@ const TOTAL_COUNTS = [
   "modelCalls",
   "apiErrors",
   "compactions",
+  "hookFeedback",
   "malformedLines",
 ] as const;
 

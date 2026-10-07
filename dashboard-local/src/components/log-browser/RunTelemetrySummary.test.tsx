@@ -12,7 +12,7 @@ function fixture(): RunTelemetry {
 }
 
 describe("RunTelemetrySummary", () => {
-  it("shows the run's counts, failed calls, API errors by kind and unreadable log lines", () => {
+  it("shows the run's counts, failed calls, API errors by kind, hook blocks and unreadable log lines", () => {
     // Act
     render(<RunTelemetrySummary telemetry={fixture()} />);
 
@@ -26,6 +26,7 @@ describe("RunTelemetrySummary", () => {
       "1 failed",
       "API errors: authentication_failed ×1",
       "1 compaction",
+      "1 hook block",
       "1 unreadable session log line",
       "5m 0s",
     ]) {
@@ -36,7 +37,14 @@ describe("RunTelemetrySummary", () => {
   it("leaves out the problem counts of a clean run", () => {
     // Arrange
     const clean = fixture();
-    clean.totals = { ...clean.totals, failedToolCalls: 0, apiErrors: 0, compactions: 0, malformedLines: 0 };
+    clean.totals = {
+      ...clean.totals,
+      failedToolCalls: 0,
+      apiErrors: 0,
+      compactions: 0,
+      hookFeedback: 0,
+      malformedLines: 0,
+    };
     clean.spans = clean.spans.map((span) => ({ ...span, apiErrors: [] }));
 
     // Act
@@ -46,6 +54,7 @@ describe("RunTelemetrySummary", () => {
     expect(screen.queryByText(/failed/)).toBeNull();
     expect(screen.queryByText(/API errors/)).toBeNull();
     expect(screen.queryByText(/compaction/)).toBeNull();
+    expect(screen.queryByText(/hook block/)).toBeNull();
     expect(screen.queryByText(/unreadable/)).toBeNull();
   });
 });
