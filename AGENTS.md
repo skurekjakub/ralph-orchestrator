@@ -159,7 +159,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort`, and `requireResultBlock` (default true for variant stages, false for hook stages; a stage that requires the block fails with `FailureReason.MissingResultBlock` without one, see `resolveStatus`); `deriveStageProfile` applies the stage overrides.
   - `local` stages run `copilot` on the host with cwd = this repo root. They symlink rendered agents into `.github/agents/` and write `.ralph/` here.
   - `postTaskHooks` are local-only stage lists that run after teardown, and their failures never change the result. See `docs/dev-doc/multistage-pipelines.md`.
-- **Continuation.** A session can be retried with `--continue` (exponential backoff, 5 s base, 30 s cap) when it ends without a result block its stage requires (`requireResultBlock`). This requires **both** `enableContinuation: true` in `config.json` and `maxContinuations > 0` in `profile.json`. The loop lives in `ContinuationRunner`, invoked by `AgentSessionRunner`, and is skipped on timeout.
+- **Continuation.** A session can be resumed (exponential backoff, 5 s base, 30 s cap) when it ends without a result block its stage requires (`requireResultBlock`): Claude Code with `--resume <session id>`, Copilot with `--continue`. This requires **both** `enableContinuation: true` in `config.json` and `maxContinuations > 0` in `profile.json`. The loop lives in `ContinuationRunner`, invoked by `AgentSessionRunner`, and is skipped on timeout.
 
 ## Conventions
 
