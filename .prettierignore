@@ -40,5 +40,5 @@ containment/
 docs/conventions/
 docs/gotchas.md
 
-# Rewritten by the orchestrator on every poll
+# Orchestrator runtime state: the trigger cache, its clone of each profile's repo and the per-task workspaces
 cache/

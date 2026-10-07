@@ -47,6 +47,7 @@ export default [
       "containment/",
       ".claude/worktrees/",
       ".cache/",
+      "cache/",
     ],
   },
 
