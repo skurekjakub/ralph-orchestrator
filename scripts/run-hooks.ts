@@ -12,16 +12,15 @@
  * 2. Runs AppStartup to validate config and generate .build/ files
  * 3. Finds the matching profile by ID
  * 4. Builds a DI cradle for service access
- * 5. Executes hooks sequentially using local-only executors
+ * 5. Runs the hooks through the cradle's post-task hook runner, as a task does
  *
  * Pass --hook <name> to run only a specific hook instead of all.
  */
 import "dotenv/config";
-import { readFileSync, mkdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
 import { createCradle } from "../src/awilix-cradle";
-import { TaskStatus } from "../src/container/types";
 import { consoleLogger } from "../src/logger";
 import type { IPostTaskHook } from "../src/config/types";
 import type { TaskContext } from "../src/services/task-context";
@@ -141,70 +140,8 @@ async function main() {
     taskBranch: "",
   };
 
-  const result = {
-    taskId: manifest.taskId,
-    status: manifest.status as TaskStatus,
-    durationMs: 0,
-    exitCode: 0,
-    stdout: "",
-    stderr: "",
-    collectedLogs: manifest.collectedLogs,
-  };
-
   // 7. Execute hooks
-  for (const hook of hooks) {
-    const hookOutputDir = join(absOutputDir, "hooks", hook.name);
-    mkdirSync(hookOutputDir, { recursive: true });
-
-    logger.info(`[hook:${hook.name}] Starting (${hook.stages.length} stage${hook.stages.length > 1 ? "s" : ""})`);
-    const completedRoles: string[] = [];
-
-    try {
-      for (let i = 0; i < hook.stages.length; i++) {
-        const stage = hook.stages[i];
-        const stageLabel = `[hook:${hook.name}/${stage.role}]`;
-
-        logger.info(`${stageLabel} Rendering templates...`);
-        await cradle.profileSetup.prepareForStage(ctx, {
-          stage,
-          stageIndex: i,
-          stageCount: hook.stages.length,
-          previousStageRoles: completedRoles,
-          hook: {
-            collectedLogs: result.collectedLogs,
-            name: hook.name,
-            outputDir: hookOutputDir,
-          },
-        });
-
-        const { executor, sessionRunner } = cradle.containerFactory.createLocalSession(profile, stage);
-
-        logger.info(`${stageLabel} Executing ${stage.agent}...`);
-        const stageResult = await sessionRunner.run(
-          executor,
-          ctx.workItem,
-          { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams },
-          {
-            maxContinuations: 0,
-            enableContinuation: false,
-            requireResultBlock: stage.requireResultBlock,
-          },
-        );
-
-        if (stageResult.status !== TaskStatus.Completed) {
-          logger.warn(`${stageLabel} Failed (${stageResult.status}) — skipping remaining stages`);
-          break;
-        }
-
-        completedRoles.push(stage.role);
-        logger.info(`${stageLabel} Completed`);
-      }
-
-      logger.info(`[hook:${hook.name}] Finished`);
-    } catch (err) {
-      logger.warn(`[hook:${hook.name}] Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
+  await cradle.hookRunner.run(ctx, hooks, manifest.collectedLogs);
 
   logger.info("Hook replay complete");
 }

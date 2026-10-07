@@ -10,6 +10,7 @@ import { PromptBuilder } from "./prompt/prompt-builder";
 import { ActivityLog } from "./services/activity-log";
 import { ProfileRouter } from "./services/profile-router";
 import { TaskRunner } from "./services/task-runner";
+import { PostTaskHookRunner } from "./services/post-task-hook-runner";
 import { TaskResultWriter } from "./services/task-result-writer";
 import { RunArtifactsDeriver } from "./services/run-artifacts-deriver";
 import { HookRulesRedactor } from "./logs/text-redactor";
@@ -188,6 +189,7 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     textRedactor: asFunction(() => new HookRulesRedactor()).singleton(),
     runArtifacts: asClass(RunArtifactsDeriver).singleton(),
     resultWriter: asClass(TaskResultWriter).singleton(),
+    hookRunner: asClass(PostTaskHookRunner).singleton(),
     taskRunner: asClass(TaskRunner).singleton(),
 
     // ── Optional ──────────────────────────────────────────────────────────────

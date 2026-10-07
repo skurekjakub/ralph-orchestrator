@@ -9,10 +9,11 @@ import type { IIssueManager } from "./issue-manager";
 import type { IProfileSetupService } from "./profile-setup-service";
 import type { IAgentPipelineExecutor } from "./agent-pipeline-executor";
 import type { ITaskWorkspaceManager } from "./task-workspace-manager";
+import type { IPostTaskHookRunner } from "./post-task-hook-runner";
 import { TransitionPhase } from "../orchestrator-types";
 import type { TaskContext } from "./task-context";
 import { toErrorMessage } from "../util/error";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Public contract for the task execution pipeline. */
@@ -48,6 +49,7 @@ export class TaskRunner implements ITaskRunner {
   private readonly profileSetup: IProfileSetupService;
   private readonly pipelineExecutor: IAgentPipelineExecutor;
   private readonly workspaceManager: ITaskWorkspaceManager;
+  private readonly hookRunner: IPostTaskHookRunner;
 
   constructor({
     logger,
@@ -58,6 +60,7 @@ export class TaskRunner implements ITaskRunner {
     profileSetup,
     pipelineExecutor,
     workspaceManager,
+    hookRunner,
   }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
@@ -67,6 +70,7 @@ export class TaskRunner implements ITaskRunner {
     profileSetup: IProfileSetupService;
     pipelineExecutor: IAgentPipelineExecutor;
     workspaceManager: ITaskWorkspaceManager;
+    hookRunner: IPostTaskHookRunner;
   }) {
     this.logger = logger;
     this.containerFactory = containerFactory;
@@ -76,6 +80,7 @@ export class TaskRunner implements ITaskRunner {
     this.profileSetup = profileSetup;
     this.pipelineExecutor = pipelineExecutor;
     this.workspaceManager = workspaceManager;
+    this.hookRunner = hookRunner;
   }
 
   /**
@@ -230,12 +235,9 @@ export class TaskRunner implements ITaskRunner {
   }
 
   /**
-   * Execute post-task hook pipelines after the main pipeline is complete.
-   *
-   * Each hook runs its stages sequentially using local-only executors.
-   * A failing stage aborts the current hook but does not prevent subsequent
-   * hooks from running. Hook failures are logged as warnings — they never
-   * affect the task result or JIRA transitions.
+   * Run the variant's post-task hooks after the main pipeline is complete, or, with the `skip_hooks` trigger
+   * param, write the manifest that replays them later instead. Hook failures never affect the task result or
+   * the work item's transitions.
    */
   private async executePostTaskHooks(ctx: TaskContext, result: RalphResult): Promise<void> {
     const hooks = ctx.profile.postTaskHooks;
@@ -247,61 +249,7 @@ export class TaskRunner implements ITaskRunner {
       return;
     }
 
-    for (const hook of hooks) {
-      const hookOutputDir = join(ctx.outputDir, "hooks", hook.name);
-      mkdirSync(hookOutputDir, { recursive: true });
-
-      this.logger.info(
-        `[hook:${hook.name}] Starting (${hook.stages.length} stage${hook.stages.length > 1 ? "s" : ""})`,
-      );
-      const completedRoles: string[] = [];
-
-      try {
-        for (let i = 0; i < hook.stages.length; i++) {
-          const stage = hook.stages[i];
-          const stageLabel = `[hook:${hook.name}/${stage.role}]`;
-
-          this.logger.info(`${stageLabel} Rendering templates...`);
-          await this.profileSetup.prepareForStage(ctx, {
-            stage,
-            stageIndex: i,
-            stageCount: hook.stages.length,
-            previousStageRoles: completedRoles,
-            hook: {
-              collectedLogs: result.collectedLogs,
-              name: hook.name,
-              outputDir: hookOutputDir,
-            },
-          });
-
-          const { executor, sessionRunner } = this.containerFactory.createLocalSession(ctx.profile, stage);
-
-          this.logger.info(`${stageLabel} Executing ${stage.agent}...`);
-          const stageResult = await sessionRunner.run(
-            executor,
-            ctx.workItem,
-            { comments: [], isRevision: false, handoffContent: null, triggerParams: ctx.triggerParams },
-            {
-              maxContinuations: 0,
-              enableContinuation: false,
-              requireResultBlock: stage.requireResultBlock,
-            },
-          );
-
-          if (stageResult.status !== TaskStatus.Completed) {
-            this.logger.warn(`${stageLabel} Failed (${stageResult.status}) — skipping remaining stages in this hook`);
-            break;
-          }
-
-          completedRoles.push(stage.role);
-          this.logger.info(`${stageLabel} Completed`);
-        }
-
-        this.logger.info(`[hook:${hook.name}] Finished`);
-      } catch (err) {
-        this.logger.warn(`[hook:${hook.name}] Unexpected error: ${toErrorMessage(err)}`);
-      }
-    }
+    await this.hookRunner.run(ctx, hooks, result.collectedLogs);
   }
 
   /**

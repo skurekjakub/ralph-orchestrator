@@ -30,6 +30,7 @@ import type { IJitMcpConfigWriter } from "../../src/container/setup/jit-mcp-para
 import type { IComposeOverlayWriter } from "../../src/container/setup/compose-overlay-writer";
 import type { IProfileSetupService } from "../../src/services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
+import type { IPostTaskHookRunner } from "../../src/services/post-task-hook-runner";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer";
 import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-manager";
@@ -393,6 +394,16 @@ export function createMockWorkspaceManager(
   return {
     prepare: vi.fn().mockResolvedValue(undefined),
     cleanup: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/** Create a mock PostTaskHookRunner whose hooks finish without doing anything. */
+export function createMockHookRunner(
+  overrides: Partial<Mocked<IPostTaskHookRunner>> = {},
+): Mocked<IPostTaskHookRunner> {
+  return {
+    run: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

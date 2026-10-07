@@ -25,6 +25,7 @@ import type { IJitMcpConfigWriter } from "./container/setup/jit-mcp-params";
 import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
 import type { ITriggerScanner } from "./services/trigger-scanner";
 import type { ITaskRunner } from "./services/task-runner";
+import type { IPostTaskHookRunner } from "./services/post-task-hook-runner";
 import type { ITaskResultWriter } from "./services/task-result-writer";
 import type { IRunArtifactsDeriver } from "./services/run-artifacts-deriver";
 import type { ITextRedactor } from "./logs/text-redactor";
@@ -95,6 +96,7 @@ export interface OrchestratorCradle {
   textRedactor: ITextRedactor;
   runArtifacts: IRunArtifactsDeriver;
   resultWriter: ITaskResultWriter;
+  hookRunner: IPostTaskHookRunner;
   taskRunner: ITaskRunner;
 
   // Optional
