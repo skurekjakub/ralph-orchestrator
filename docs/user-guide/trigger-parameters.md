@@ -50,7 +50,7 @@ These parameters are recognized by the orchestrator itself (not just templates):
 
 ### source_branch
 
-Controls which branch the orchestrator syncs to before creating the task branch.
+Sets the base branch: the task's workspace is cloned on it, and a task branch the remote does not have yet is created from it.
 
 ```
 @Ralph(source_branch=release/30)
@@ -96,7 +96,7 @@ When hooks are skipped, the orchestrator writes a `hook-manifest.json` to the ta
   "isRevision": false,
   "outputDir": "output/logs/DOC-3189-1773218420974",
   "status": "completed",
-  "collectedLogs": { "primary-audit": "...", "primary-transcript": "..." },
+  "collectedLogs": { "audit": "...", "transcript": "...", "claude-run-telemetry": "..." },
   "hooks": [ { "name": "run-analysis", "stages": [...] } ],
   "createdAt": "2025-07-09T10:00:00.000Z"
 }
@@ -114,7 +114,7 @@ npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974
 npx tsx scripts/run-hooks.ts output/logs/DOC-3189-1773218420974 --hook run-analysis
 ```
 
-The script loads the current config (runs `AppStartup`), finds the matching profile, and executes hooks using local executors — identical to how `TaskRunner` runs them. This enables running analysis pipelines asynchronously or selectively.
+The script loads the current config (runs `AppStartup`), finds the matching profile, and runs the hooks through the same post-task hook runner a task uses: each stage on the host, in its own workspace under the output directory's `hooks/<hook>/<role>/`. This enables running analysis pipelines asynchronously or selectively.
 
 The JIRA start comment includes a notice when hooks are skipped, with the replay command.
 
@@ -124,17 +124,18 @@ These parameters are recognized by agent templates and workflow skills. Availabi
 
 ### ralph-docs Profile
 
-| Parameter       | Agent         | Description                                                                                                                                                  |
-| --------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `codesamples`   | `ralph.ralph` | Includes ASP.NET code project authoring instructions. When combined with `xpversion`, triggers the coder subagent to bootstrap the project before research.  |
-| `xpversion`     | `ralph.ralph` | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below.        |
-| `adminui`       | `ralph.ralph` | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
-| `branch_name`   | `ralph.ralph` | Xperience source branch for `git diff` context                                                                                                               |
-| `release_notes` | `ralph.ralph` | write release notes                                                                                                                                          |
-| `scope`         | `ralph.ralph` | Restricts file changes to a specified path                                                                                                                   |
-| `codesamples`   | `ralph.malph` | Adds code sample review checklist                                                                                                                            |
-| `branch_name`   | `ralph.malph` | Instructs reviewer to diff against specified Xperience branch                                                                                                |
-| `scope`         | `ralph.malph` | Restricts review scope to a specified path                                                                                                                   |
+| Parameter       | Agent          | Description                                                                                                                                                  |
+| --------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `codesamples`   | `ralph.ralph`  | Includes ASP.NET code project authoring instructions. When combined with `xpversion`, triggers the coder subagent to bootstrap the project before research.  |
+| `xpversion`     | `ralph.ralph`  | Version or URL for Xperience package installation. Only meaningful when `codesamples` is also set. See [xpversion formats](#xpversion-formats) below.        |
+| `adminui`       | `ralph.ralph`  | Enables admin UI interaction via Playwright. The coder verifies access; the writer can create admin objects. Only meaningful when `codesamples` is also set. |
+| `branch_name`   | `ralph.ralph`  | Xperience source branch for `git diff` context                                                                                                               |
+| `release_notes` | `ralph.ralph`  | Writes release notes                                                                                                                                         |
+| `scope`         | `ralph.ralph`  | Restricts file changes to a specified path                                                                                                                   |
+| `codesamples`   | `ralph.malph`  | Adds code sample review checklist                                                                                                                            |
+| `branch_name`   | `ralph.malph`  | Instructs reviewer to diff against specified Xperience branch                                                                                                |
+| `scope`         | `ralph.malph`  | Restricts review scope to a specified path                                                                                                                   |
+| `component`     | `ralph.stacky` | Names the component area the task targets; changes outside it are noted in the handoff                                                                       |
 
 ### xpversion Formats
 

@@ -4,21 +4,21 @@ All secrets and credentials are stored in `.env` at the project root. Never comm
 
 ## Required
 
-The credential of every CLI a stage runs must be set, plus each profile's `repoPat` variable. Startup validation reports what is missing. An agent container receives only the credential of each CLI its container stages run, as a `${VAR}` reference resolved at compose time. A host (`mode: "local"`) stage, post-task hooks included, gets the same one credential of its own CLI, chosen by `claudeAuth` for Claude Code, and from the rest of the orchestrator's environment only `PATH`, `HOME` and `LANG`.
+`ADO_PAT` must always be set. So must the credential of every CLI a stage runs, variant and post-task hook stages alike, and each profile's `repoPat` variable. Startup validation reports what is missing. An agent container receives only the credential of each CLI its container stages run, as a `${VAR}` reference resolved at compose time. A host (`mode: "local"`) stage, post-task hooks included, gets the same one credential of its own CLI, chosen by `claudeAuth` for Claude Code, and from the rest of the orchestrator's environment only `PATH`, `HOME` and `LANG`.
 
-| Variable                  | Description                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Claude Code OAuth token from `claude setup-token`. Required for stages on `cli: "claude"` (default `claudeAuth`)         |
-| `ANTHROPIC_API_KEY`       | Anthropic API key. Required instead of `CLAUDE_CODE_OAUTH_TOKEN` when `config.json` sets `claudeAuth: "api-key"`         |
-| `GH_TOKEN`                | GitHub PAT with **Copilot Requests** permission. Required for stages on `cli: "copilot"` and for `vcsProvider: "github"` |
-| `ADO_PAT`                 | Azure DevOps PAT for the target ADO org (Code: Read+Write). Default credential for `vcsProvider: "ado"` profiles         |
+| Variable                  | Description                                                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Claude Code OAuth token from `claude setup-token`. Required when any stage runs `cli: "claude"`, the default, under the default `claudeAuth: "oauth-token"`           |
+| `ANTHROPIC_API_KEY`       | Anthropic API key. Required instead of `CLAUDE_CODE_OAUTH_TOKEN` when `config.json` sets `claudeAuth: "api-key"`; only the one `claudeAuth` selects is passed on      |
+| `GH_TOKEN`                | GitHub PAT with **Copilot Requests** permission. Required when any stage runs `cli: "copilot"`, and as the default `repoPat` of `vcsProvider: "github"` profiles      |
+| `ADO_PAT`                 | Azure DevOps PAT for the target ADO org (Code: Read+Write). Used by the `ado` MCP server in the sidecar and as the default `repoPat` of `vcsProvider: "ado"` profiles |
 
 ## Optional
 
 | Variable               | Description                                                                                                                                                 |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ADO_PAT_XPERIENCE`    | ADO PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read). Agent skips related operations if unset                                        |
-| `DASHBOARD_URL`        | Ralph Status Dashboard URL. Required if `dashboard.enabled` is `true`                                                                                       |
+| `DASHBOARD_URL`        | Ralph Status Dashboard URL. Heartbeats are sent only when `dashboard.enabled` is `true` and both dashboard variables are set                                |
 | `DASHBOARD_SECRET`     | Shared secret for dashboard auth. Required alongside `DASHBOARD_URL`                                                                                        |
 | `DISCORD_BOT_TOKEN`    | Discord bot token for the `discord-hitl` MCP server                                                                                                         |
 | `DISCORD_CHANNEL_ID`   | Discord channel ID for human-in-the-loop threads. Paired with `DISCORD_BOT_TOKEN`                                                                           |
