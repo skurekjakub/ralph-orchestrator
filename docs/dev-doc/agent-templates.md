@@ -5,12 +5,13 @@ How agent templates are authored, rendered, and parameterized at runtime. The op
 ## Template Locations
 
 ```
-profiles/<id>/agents/*.agent.md      — Profile-specific agent templates (Liquid source)
-profiles/<id>/.build/<cli>/agents/   — Rendered output per CLI (gitignored, mounted into container)
+profiles/<id>/agents/*.agent.md      — Profile-specific agent templates (canonical frontmatter + Liquid body)
+profiles/<id>/.build/<cli>/agents/   — Rendered output of container stages per CLI (gitignored, mounted read-only)
 shared/agent-includes/               — Shared Liquid partials
   ├── ado-api.md                     — ADO MCP tool reference
   ├── ado-pr-format.md               — PR description template
   ├── agent-as-function-contract.md  — Subagent artifact contract
+  ├── headless-contract.md           — Never ask questions or wait for human input
   ├── prompt-security.md             — Prompt injection defense rules
   ├── ralphchives.md                 — Ralphchives usage
   ├── rules.md                       — Shared agent rules
@@ -27,13 +28,39 @@ shared/agent-includes/               — Shared Liquid partials
   └── ralph-vscode/                  — ralph-vscode workflow partials
 ```
 
+A `mode: "local"` stage renders into its own workspace on the host instead (see [multistage-pipelines.md](multistage-pipelines.md#local-mode-local)): Claude Code agents into the stage's `home/agents/`, Copilot agents into its `work/.github/agents/`.
+
+## Agent Frontmatter
+
+Every template carries one canonical, CLI-neutral frontmatter (`agentFrontmatterSchema` in `src/cli/agent-definition.ts`). `AgentCatalog` (`src/cli/agent-catalog.ts`) parses a profile's templates and holds the `subagents` graph. Unknown keys are rejected, including the Copilot agent-file keys `agents` (use `subagents`) and `user-invocable`.
+
+| Key             | Required | Meaning                                                                                                                                                                                                                                  |
+| --------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`          | yes      | Lowercase words joined by hyphens, unique in the profile. Claude Code resolves `--agent` and `Agent(...)` by it; it names the agent's artifact directory (`self.name`)                                                                   |
+| `description`   | yes      | Non-empty                                                                                                                                                                                                                                |
+| `model`         | no       | Claude Code alias (`opus`, `sonnet`, `haiku`, `fable`, with an optional `[1m]`) or full hyphenated id, or `inherit` for a subagent that runs its parent's model. A stage root must not `inherit`. Omitted: the CLI or the parent decides |
+| `subagents`     | no       | Names of the agents this agent may spawn; each must be an agent of the profile, and the graph must have no cycles                                                                                                                        |
+| `tools`         | no       | Claude Code built-in tools the agent may use (`Read`, `Write`, `Edit`, `Bash`, `Skill`, `TaskCreate`, `TaskGet`, `TaskList`, `TaskUpdate`, `WebFetch`, `WebSearch`). Omitted: every tool Ralph grants                                    |
+| `skills`        | no       | Skills the agent starts with on Claude Code. Each must be one of its stage's `skills`                                                                                                                                                    |
+| `effort`        | no       | Claude Code reasoning effort                                                                                                                                                                                                             |
+| `maxTurns`      | no       | Claude Code turn cap for one run of the agent                                                                                                                                                                                            |
+| `runtimes`      | no       | CLIs the agent can run on; default both `claude` and `copilot`. Every agent a stage can reach must run on the stage's CLI                                                                                                                |
+| `copilot.model` | no       | Copilot model id used instead of the mapping of `model`                                                                                                                                                                                  |
+
+Each CLI's runtime has an agent file writer that translates the canonical form:
+
+- **Claude Code** (`ClaudeAgentWriter`) writes `<name>.md`. `tools` becomes the built-in list (the agent's own, or all of them), an `Agent(...)` grant, and the allowlisted tools of the variant's MCP servers as `mcp__<server>__<tool>` (`mcp__<server>` for a server whose manifest lists no `tools`). Claude Code checks a nested spawn against the stage root's grant, so the root's `Agent(...)` names every agent reachable in the stage; a subagent's names its own `subagents`, and a leaf gets none. A subagent's `skills` stay in its frontmatter, where Claude Code preloads them. A stage root's `skills` become a `<startup-skills>` instruction at the top of its body to load each one with the `Skill` tool, so its `tools` must include `Skill`. `copilot` is dropped.
+- **Copilot CLI** (`CopilotAgentWriter`) writes `<fileId>.agent.md`. `subagents` becomes `agents`, the model becomes `copilot.model` or the Copilot equivalent of `model` (`inherit` leaves it out), every agent gets `user-invocable: false`, and `tools`, `skills`, `effort` and `maxTurns` are dropped.
+
+`npm run validate` checks all of this per stage (`src/validate/agents.ts`), and `npm run prompt:vis` prints the agent → include → skill graph.
+
 ## Rendering Pipeline
 
-1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params); `prepareForStage()` repeats this before each pipeline stage with stage overrides
+1. `ProfileSetupService.prepareForTask()` (called from `TaskRunner`) calls `buildTemplateContext()` with the `TaskContext` (profile, work item, revision flag, trigger params) for every container stage before the containers start; `prepareForStage()` repeats this before each stage of a multi-stage pipeline, each local stage and each post-task hook stage, with stage overrides and the stage's workspace
 2. `buildTemplateContext()` produces a `TemplateContext` — a typed object with all template variables
 3. `AgentTemplateRenderer.render()` takes the profile's `AgentCatalog` (canonical frontmatter, `subagents` graph) from `AgentCatalogProvider` and creates a LiquidJS engine with `shared/agent-includes/` as the root
 4. Each agent reachable from the stage's root agent has its body rendered with the context plus its own `self` — `{% render %}`, `{% if %}`, `{% section %}` tags are resolved
-5. The agent file writer of the stage CLI's runtime (`ICliRuntime.agentWriter`) serialises each agent; the output is synced into `profiles/<id>/.build/<cli>/agents/` and mounted read-only into the container
+5. The agent file writer of the stage CLI's runtime (`ICliRuntime.agentWriter`) serialises each agent; the output is synced in place into the stage workspace's agents directory. For a container stage that is `profiles/<id>/.build/<cli>/agents/`: Claude Code sees the whole directory, mounted read-only at `/workspace/.ralph/claude/agents/`; Copilot sees one read-only mount per agent file in `/workspace/.github/agents/`, so a re-render keeps every file an earlier stage mounted
 
 The Liquid engine uses `extname: ".md"` — partials are referenced without extensions (e.g. `{% render 'personality/ralph' %}` resolves to `shared/agent-includes/personality/ralph.md`).
 
@@ -45,16 +72,18 @@ All variables are available in templates via `{{ variableName }}` interpolation 
 
 ### Profile Metadata
 
-| Variable         | Type       | Example                                                                  | Description                                  |
-| ---------------- | ---------- | ------------------------------------------------------------------------ | -------------------------------------------- |
-| `profileId`      | `string`   | `"ralph-docs"`                                                           | Profile directory name                       |
-| `repo`           | `string`   | `"/home/user/ralph-orchestrator/cache/workspaces/DOC-123-1767225600000"` | Absolute host path of the task's workspace   |
-| `targetRepoPath` | `string`   | _(same as `repo`)_                                                       | Alias for `repo`                             |
-| `cli`            | `string`   | `"copilot"`                                                              | CLI type (`copilot` or `claude`)             |
-| `model`          | `string`   | `"claude-opus-4.6"`                                                      | Model override, empty string for CLI default |
-| `agentName`      | `string`   | `"ralph.ralph"`                                                          | Raw CLI agent name                           |
-| `displayName`    | `string`   | `"ralph"`                                                                | Human-friendly name (prefix stripped)        |
-| `mcpServers`     | `string[]` | `["jira-kentico", "ado"]`                                                | MCP servers available to this profile        |
+| Variable         | Type       | Example                                                                  | Description                                                                                                                                                                                                                       |
+| ---------------- | ---------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profileId`      | `string`   | `"ralph-docs"`                                                           | Profile directory name                                                                                                                                                                                                            |
+| `repo`           | `string`   | `"/home/user/ralph-orchestrator/cache/workspaces/DOC-123-1767225600000"` | Absolute host path of the task's workspace                                                                                                                                                                                        |
+| `targetRepoPath` | `string`   | _(same as `repo`)_                                                       | Alias for `repo`                                                                                                                                                                                                                  |
+| `cli`            | `string`   | `"claude"`                                                               | CLI the current stage runs (`claude` or `copilot`)                                                                                                                                                                                |
+| `cliTools`       | `object`   | `{ subagent: "Agent", … }`                                               | The stage CLI's names for the tools prose mentions: `subagent`, `skill`, `shell`, `read`, `askUser`                                                                                                                               |
+| `model`          | `string`   | `"opus"`                                                                 | The stage's model, else the variant's or profile's; empty string when the agent definition decides                                                                                                                                |
+| `agentName`      | `string`   | `"ralph.ralph"`                                                          | File id of the current stage's root agent                                                                                                                                                                                         |
+| `displayName`    | `string`   | `"ralph"`                                                                | `agentName` with the `ralph.` prefix stripped                                                                                                                                                                                     |
+| `mcpServers`     | `string[]` | `["jira-kentico", "ado"]`                                                | MCP servers available to this profile                                                                                                                                                                                             |
+| `self`           | `object`   | `{ name: "ralph", fileId: "ralph.ralph", … }`                            | The agent being rendered: `name`, `fileId`, `isStageRoot`, `subagents`, `model` (what the stage's CLI runs it on; empty when the CLI or the parent decides) and `subagentModels` by name. Agent templates and their partials only |
 
 ### Task Data
 
@@ -186,7 +215,7 @@ Rendered output:
 </security>
 ```
 
-Standard section names: `agent-identity`, `api-reference`, `security`, `workflow`, `error-handling`, `review-principles`, `ordering-constraints`, `known-failure-patterns`, `codesamples`, `source-branch`, `scope-restriction`.
+Common section names: `agent-identity`, `artifact-contract`, `orchestration`, `security`, `workflow`, `error-handling`, `ordering-constraints`, `known-failure-patterns`, `codesamples`, `source-branch`, `scope-restriction`.
 
 ## Whitespace Control
 
@@ -203,6 +232,7 @@ Without the `-`, a false condition leaves a blank line in the rendered output wh
 ## Template Development Workflow
 
 1. Edit the `.agent.md` source in `profiles/<id>/agents/`
-2. Run `npx vitest run tests/container/agent-includes.test.ts` to validate rendering
-3. To preview the rendered output with specific context, use the test pattern in `agent-includes.test.ts` — create a temp directory, copy the template, and call `resolveAgentIncludes()` with a custom context object
-4. Check `profiles/<id>/.build/<cli>/agents/` for the rendered output after a task run (or manual render)
+2. Run `npm run validate` to check the frontmatter and each stage's agent graph
+3. Run `npx vitest run tests/container/template-integration.test.ts tests/container/template-context-lint.test.ts`: they render the shipped templates for each CLI and fail on Liquid errors, unresolved tags and undeclared variables
+4. To preview the rendered output with specific context, follow `template-integration.test.ts`: build an `AgentCatalog`, a context with `makeTemplateContext()` (`tests/helpers/factories.ts`) and call `renderAgents()` into a temp directory
+5. Check `profiles/<id>/.build/<cli>/agents/` for a container stage's rendered output after a task run, or the stage workspace of a host stage (`<outputDir>/stages/<role>/` or `<outputDir>/hooks/<hook>/<role>/`)

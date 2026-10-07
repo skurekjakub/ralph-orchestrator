@@ -58,9 +58,9 @@ Each task gets a shared artifact directory. Every subagent writes to its own sub
 │   └── ...                    # any additional files
 ```
 
-Templates get the artifact root as the `artifactDir` template variable, which `buildTemplateContext()` (`src/container/setup/agent-includes.ts`) takes from the stage's workspace (`StageWorkspaceResolver`, `src/services/stage-workspace.ts`). The shared partial `agent-as-function-contract` tells subagents to write to `{{ artifactDir }}/{{ self.name }}/`.
+Templates get the artifact root as the `artifactDir` template variable, which `buildTemplateContext()` (`src/container/setup/agent-includes.ts`) takes from the stage's workspace (`StageWorkspaceResolver`, `src/services/stage-workspace.ts`). The shared partial `agent-as-function-contract` tells subagents to write to `{{ artifactDir }}/{{ self.name }}/`: `{agent-name}` throughout this page is the agent's frontmatter `name` (`self.name`, e.g. `ralph-reviewer`), not its template file id (`ralph.ralph-reviewer`).
 
-- **Container stages**: `.ralph/tasks/{task-id}/artifacts`, relative to the CLI's working directory `/workspace` (the target repo checkout), so artifacts land in `<target-repo>/.ralph/tasks/{task-id}/artifacts/`, alongside `state.md`. The orchestrator exports this folder into the task's log directory after the run.
+- **Container stages**: `.ralph/tasks/{task-id}/artifacts`, relative to the CLI's working directory `/workspace` (the task's workspace, its checkout of the target repo), so artifacts land in `<workspace>/.ralph/tasks/{task-id}/artifacts/`, alongside `state.md`. The orchestrator exports this folder into the task's log directory after the run.
 - **A variant's local stages**: the absolute host path of that same folder in the task's workspace, so they share the container stages' artifacts.
 - **Post-task hooks**: `<output.logDir>/<key>-<startTs>/hooks/<hook-name>/artifacts`, absolute and shared by all of the hook's stages, next to the hook output directory (`hook.outputDir`).
 
@@ -166,7 +166,7 @@ Every subagent follows the same contract:
 4. **Write** its primary artifact to `{{ artifactDir }}/{agent-name}/output.md` (or `output-v{N}.md` for iterations).
 5. **Write** `status.json` to its artifact directory.
 6. **Append** to `manifest.json` in the task artifact root.
-7. **Return** to the orchestrator with only: `"Done. Status: {status}, result: {result}."`
+7. **Return** to the orchestrator with only: `"Done. Status: {status}, result: {result}. → Read status.json and route."`
 
 The subagent's conversational return to the orchestrator is one line. The orchestrator's context window sees that line plus whatever it had before. No artifact content leaks into the conversation.
 
@@ -185,7 +185,7 @@ On **revisions** (fixing a previously-reviewed PR), the orchestrator dispatches 
 
 ## Post-Hook Agents
 
-Post-hooks (the `ralph.scientist` stage in the bundled profiles) run locally on the host (not in Docker) and use the same artifact contract. Their `artifactDir` is in the hook's output directory:
+Post-hooks (the `ralph.scientist` stage of the `run-analysis` hook in the bundled profiles) run on the host (not in Docker), each stage in its own workspace under the hook's output directory, and use the same artifact contract. Their `artifactDir` is in the hook's output directory:
 
 ```
 <output.logDir>/<key>-<startTs>/hooks/<hook-name>/artifacts/
@@ -225,7 +225,7 @@ Write `status.json`, append to `manifest.json`, then return one line: `"Done. St
 
 ### 4. Update downstream consumers
 
-Any subagent that previously received this agent's output through the orchestrator now reads it from the filesystem directly. The orchestrator gives downstream agents nothing but the task-id and a one-line dispatch directive.
+After the conversion, any subagent that got this agent's output through the orchestrator reads it from the filesystem directly. The orchestrator gives downstream agents nothing but the task-id and a one-line dispatch directive.
 
 ### 5. Don't change internals
 

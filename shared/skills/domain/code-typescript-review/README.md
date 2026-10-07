@@ -15,7 +15,7 @@ This skill helps Claude conduct thorough code reviews of TypeScript projects, id
 ## Skill Structure
 
 ```
-typescript-code-review/
+code-typescript-review/
 ├── SKILL.md                                    # Main skill instructions
 ├── README.md                                   # This file
 ├── references/                                 # Detailed reference materials

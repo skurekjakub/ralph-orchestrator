@@ -1,8 +1,8 @@
 # Template Variables
 
-All variables listed below are available in `.agent.md` Liquid templates via `{{ variableName }}` interpolation and `{% if variableName %}` conditionals.
+All variables listed below are available in `.agent.md` Liquid templates, the shared partials they render and runtime skills (`SKILL.md` and its other `.md` files) via `{{ variableName }}` interpolation and `{% if variableName %}` conditionals. `self` is the exception: only agent templates and their partials see it.
 
-Templates are rendered JIT before each task by the `AgentTemplateRenderer`. Output goes to `profiles/<id>/.build/` and is mounted read-only into the container.
+Templates are rendered JIT before each task and stage by `AgentTemplateRenderer` and `SkillTemplateRenderer`, in the file format of the stage's CLI. A container stage's output goes to `profiles/<id>/.build/<cli>/agents/` and `profiles/<id>/.build/skills/`, mounted read-only into the agent container. A `mode: "local"` stage's output goes into its own workspace on the host, where its CLI discovers it.
 
 ## Liquid Syntax
 
@@ -32,6 +32,8 @@ Templates use [LiquidJS](https://liquidjs.com/) with `.md` file extension for pa
 {% render 'ralph-docs/workflow' %}      → shared/agent-includes/ralph-docs/workflow.md
 ```
 
+Skills resolve partials from `shared/skills/` first, then `shared/agent-includes/`.
+
 Partials run in an **isolated scope** but receive all template variables as Liquid globals.
 
 ## Profile Metadata
@@ -43,7 +45,7 @@ Partials run in an **isolated scope** but receive all template variables as Liqu
 | `targetRepoPath` | `string`   | _(same as `repo`)_                                                       | Alias for `repo` (useful in `mode: "local"` stages, which run on the host in a workspace of their own)                                                                                                                                                                         |
 | `cli`            | `string`   | `"claude"`                                                               | CLI the current stage runs: `"copilot"` or `"claude"`                                                                                                                                                                                                                          |
 | `cliTools`       | `object`   | `{ subagent: "Agent", … }`                                               | The stage CLI's tool names: `subagent`, `skill`, `shell`, `read`, `askUser` (Claude Code `Agent`… / Copilot `task`…)                                                                                                                                                           |
-| `model`          | `string`   | `"claude-opus-4.6"`                                                      | The stage's model override. Empty string = the agent definition decides                                                                                                                                                                                                        |
+| `model`          | `string`   | `"opus"`                                                                 | The stage's `model`, else the variant's, else the profile's. Empty string = the agent definition decides                                                                                                                                                                       |
 | `agentName`      | `string`   | `"ralph.ralph"`                                                          | File id of the current stage's root agent. Use `self.name` for the rendering agent's own name                                                                                                                                                                                  |
 | `displayName`    | `string`   | `"ralph"`                                                                | `agentName` with the `ralph.` prefix stripped                                                                                                                                                                                                                                  |
 | `self`           | `object`   | `{ name: "malph-reviewer-opus", … }`                                     | Agent templates and their partials only: the rendering agent's `name`, `fileId`, `isStageRoot`, `subagents`, the `model` the stage's CLI runs it on (empty when the CLI or the parent decides) and its `subagentModels` by name (`self.subagentModels["malph-reviewer-opus"]`) |
