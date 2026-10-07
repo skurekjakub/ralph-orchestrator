@@ -178,6 +178,23 @@ describe("extractClaudeTelemetry", () => {
       ]);
     });
 
+    it("counts every subagent and places one whose metadata gives depth 0 at depth 1", () => {
+      // Arrange
+      const session = sessionWith([
+        { agentId: "z", agentType: "worker", events: [], malformedLines: 0, spawnDepth: 0 },
+      ]);
+
+      // Act
+      const telemetry = extractClaudeTelemetry([session]);
+
+      // Assert
+      expect(telemetry.spans.map((s) => [s.spanId, s.depth])).toEqual([
+        ["s", 0],
+        ["s/z", 1],
+      ]);
+      expect(telemetry.totals.subagents).toBe(1);
+    });
+
     it("yields an empty run for no sessions", () => {
       // Act
       const telemetry = extractClaudeTelemetry([]);

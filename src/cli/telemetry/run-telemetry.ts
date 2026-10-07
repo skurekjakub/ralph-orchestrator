@@ -45,7 +45,7 @@ export interface AgentSpan {
   readonly sessionId: string;
   /** The agent that ran: the session's agent name, or the subagent type. */
   readonly agent: string;
-  /** 0 for a main thread, the spawn depth for a subagent. */
+  /** 0 for a main thread, the spawn depth for a subagent, at least 1. */
   readonly depth: number;
   /** The tool call that spawned the subagent. */
   readonly toolUseId?: string;

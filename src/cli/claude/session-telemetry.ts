@@ -126,7 +126,7 @@ function sessionSpans(session: ClaudeSession): AgentSpan[] {
       spanId: subagentSpanId(sessionId, subagent.agentId),
       sessionId,
       agent: subagent.agentType,
-      depth: subagent.spawnDepth ?? 1,
+      depth: Math.max(1, subagent.spawnDepth ?? 1),
       parentSpanId,
       ...(subagent.toolUseId === undefined ? {} : { toolUseId: subagent.toolUseId }),
     };
@@ -155,7 +155,7 @@ export function extractClaudeTelemetry(sessions: readonly ClaudeSession[]): RunT
     sessionIds: sessions.map((s) => s.sessionId),
     totals: {
       sessions: sessions.length,
-      subagents: sum((s) => (s.depth > 0 ? 1 : 0)),
+      subagents: sessions.reduce((total, s) => total + s.subagents.length, 0),
       toolCalls: sum((s) => s.toolCalls.length),
       failedToolCalls: sum((s) => s.toolCalls.filter((c) => c.isError === true).length),
       modelCalls: sum((s) => s.modelCalls),
