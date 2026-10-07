@@ -221,7 +221,7 @@ export function createMockCliRuntime(
     },
     models: modelPolicyFor(cli),
     credentials: { required: [] },
-    agentWriter: { write: vi.fn().mockReturnValue(null) },
+    agentWriter: { write: vi.fn().mockReturnValue(null), modelOf: vi.fn().mockReturnValue(undefined) },
     toolNames: { subagent: "spawn", skill: "skill", shell: "sh", read: "read", askUser: "ask" },
     mountsEachRenderedItem: false,
     egressDomains: [],

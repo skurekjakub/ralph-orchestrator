@@ -109,7 +109,7 @@ After aggregation, post a single unified comment on **{{ taskId }}** with the re
 ```
 ## Review Panel Verdict: APPROVED | NEEDS REVISION
 
-**Panel:** 3 reviewers (Opus — architecture & requirements, Sonnet — runtime correctness, Fable — tests & user-facing behaviour)
+**Panel:** 3 reviewers ({{ self.subagentModels["malph-reviewer-opus"] }} — architecture & requirements, {{ self.subagentModels["malph-reviewer-sonnet"] }} — runtime correctness, {{ self.subagentModels["malph-reviewer-fable"] }} — tests & user-facing behaviour)
 **Scout:** Build PASS | FAIL
 
 ### Reviewer Verdicts
@@ -122,13 +122,13 @@ After aggregation, post a single unified comment on **{{ taskId }}** with the re
 ### Aggregated Findings
 
 #### Critical (must fix)
-- **[ARCH-001]** <file:line> — <description> *(flagged by: opus, sonnet)*
+- **[ARCH-001]** <file:line> — <description> *(flagged by: {{ self.subagentModels["malph-reviewer-opus"] }}, {{ self.subagentModels["malph-reviewer-sonnet"] }})*
 
 #### Style (should fix)
-- **[TS-003]** <file:line> — <description> *(flagged by: fable)*
+- **[TS-003]** <file:line> — <description> *(flagged by: {{ self.subagentModels["malph-reviewer-fable"] }})*
 
 #### Suggestions
-- **[SUG-001]** <description> *(flagged by: opus)*
+- **[SUG-001]** <description> *(flagged by: {{ self.subagentModels["malph-reviewer-opus"] }})*
 
 ### Summary
 <Brief overall assessment of the PR quality and key themes across reviewers>

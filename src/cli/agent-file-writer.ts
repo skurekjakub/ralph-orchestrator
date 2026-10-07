@@ -38,6 +38,12 @@ export interface IAgentFileWriter {
    * @returns The agent file, or null when the agent's `runtimes` exclude this CLI.
    */
   write(agent: AgentDefinition, context: AgentWriteContext): AgentFile | null;
+  /**
+   * The model this writer's CLI runs `agent` on, as its agent file names it.
+   *
+   * @returns Undefined when the agent names no model or inherits its parent's, so the CLI or the parent decides.
+   */
+  modelOf(agent: AgentFrontmatter): string | undefined;
 }
 
 /** Subagent edges between one profile's agents, keyed by agent file id. */

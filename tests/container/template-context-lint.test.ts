@@ -66,6 +66,8 @@ const SELF_FIELDS = {
   fileId: true,
   isStageRoot: true,
   subagents: true,
+  model: true,
+  subagentModels: true,
 } satisfies Record<keyof AgentSelf, true>;
 
 /**

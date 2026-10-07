@@ -170,6 +170,43 @@ describe("renderAgents", () => {
     }
   });
 
+  it("tells each agent the model the target CLI runs it and each of its subagents on", async () => {
+    // Arrange
+    const body = "model={{ self.model }} a={{ self.subagentModels['sub-a'] }} b={{ self.subagentModels['sub-b'] }}\n";
+    const input = await setupAgents({
+      "ralph.root": makeAgentTemplate("root", { model: "opus", subagents: ["sub-a", "sub-b"], body }),
+      "ralph.sub-a": makeAgentTemplate("sub-a", {
+        model: "sonnet",
+        extraLines: ["copilot:", "  model: gpt-5.3-codex"],
+        body,
+      }),
+      "ralph.sub-b": makeAgentTemplate("sub-b", { model: "inherit", body }),
+    });
+
+    // Act
+    await renderAgents({ ...input, context: makeTemplateContext({ model: "claude-sonnet-4.6" }) });
+
+    // Assert
+    const read = (file: string) => readFile(join(input.target.outDir, file), "utf-8");
+    expect(await read("ralph.root.agent.md")).toContain("model=claude-sonnet-4.6 a=gpt-5.3-codex b=\n");
+    expect(await read("ralph.sub-a.agent.md")).toContain("model=gpt-5.3-codex a= b=\n");
+    expect(await read("ralph.sub-b.agent.md")).toContain("model= a= b=\n");
+  });
+
+  it("tells a stage root without a stage model override the model its frontmatter names", async () => {
+    // Arrange
+    const input = await setupAgents(
+      { "ralph.root": makeAgentTemplate("root", { model: "fable", body: "model={{ self.model }}\n" }) },
+      { cli: CliType.Claude },
+    );
+
+    // Act
+    await renderAgents(input);
+
+    // Assert
+    expect(await readFile(join(input.target.outDir, "root.md"), "utf-8")).toContain("model=fable\n");
+  });
+
   it("names a Claude Code agent file after its frontmatter name and grants the root every reachable agent", async () => {
     // Arrange
     const input = await setupAgents(

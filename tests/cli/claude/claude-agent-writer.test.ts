@@ -136,6 +136,16 @@ describe("ClaudeAgentWriter", () => {
     expect(file!.content).not.toContain("model:");
   });
 
+  it.each([
+    ["fable", "fable"],
+    ["claude-haiku-4-5-20251001", "claude-haiku-4-5-20251001"],
+    ["inherit", undefined],
+    [undefined, undefined],
+  ])("runs canonical model %s as %s, leaving inherit and no model to Claude Code", (model, expected) => {
+    // Act & Assert
+    expect(writer.modelOf(makeAgentDefinition({ name: "x", model, copilot: { model: "gpt-5.4" } }))).toBe(expected);
+  });
+
   it("writes nothing for an agent whose runtimes exclude Claude Code", () => {
     // Act & Assert
     expect(writer.write(makeAgentDefinition({ name: "x", runtimes: [CliType.Copilot] }), LEAF)).toBeNull();

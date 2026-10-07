@@ -150,6 +150,13 @@ export interface AgentSelf {
   readonly isStageRoot: boolean;
   /** Names of the subagents the agent may spawn. */
   readonly subagents: readonly string[];
+  /**
+   * The model the stage's CLI runs the agent on (the stage's model override for the stage root); empty
+   * when the CLI or the parent agent picks it.
+   */
+  readonly model: string;
+  /** {@link model} of each of `subagents`, keyed by name. */
+  readonly subagentModels: Readonly<Record<string, string>>;
 }
 
 /** The pipeline or post-task hook stage a render is for, and where it sits in its pipeline. */
@@ -323,6 +330,13 @@ export async function renderAgents(input: RenderAgentsInput): Promise<string[]> 
   const { catalog, includesDir, context, target, writer, mcpTools, logger } = input;
   const reachable = catalog.reachableFrom(target.rootAgentFileId);
   const stageSubagents = reachable.slice(1).map((fileId) => catalog.get(fileId).frontmatter.name);
+  const modelByName = new Map(
+    reachable.map((fileId) => {
+      const { frontmatter } = catalog.get(fileId);
+      const stageModel = fileId === target.rootAgentFileId ? context.model : "";
+      return [frontmatter.name, stageModel || (writer.modelOf(frontmatter) ?? "")];
+    }),
+  );
   const engine = createTemplateEngine([includesDir]);
 
   const staging = await mkdtemp(join(tmpdir(), "ralph-agents-"));
@@ -331,7 +345,14 @@ export async function renderAgents(input: RenderAgentsInput): Promise<string[]> 
     for (const fileId of reachable) {
       const { frontmatter, bodyTemplate } = catalog.get(fileId);
       const isStageRoot = fileId === target.rootAgentFileId;
-      const self: AgentSelf = { name: frontmatter.name, fileId, isStageRoot, subagents: frontmatter.subagents };
+      const self: AgentSelf = {
+        name: frontmatter.name,
+        fileId,
+        isStageRoot,
+        subagents: frontmatter.subagents,
+        model: modelByName.get(frontmatter.name)!,
+        subagentModels: Object.fromEntries(frontmatter.subagents.map((name) => [name, modelByName.get(name)!])),
+      };
       const scope = { ...context, self };
       const body = await engine.parseAndRender(bodyTemplate, scope, { globals: scope });
 

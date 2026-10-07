@@ -1,4 +1,5 @@
 import { CliType } from "../../config/types";
+import { type AgentFrontmatter, INHERIT_MODEL } from "../agent-definition";
 import { yamlScalar, yamlSingleQuoted } from "../../util/frontmatter";
 import type { AgentDefinition, AgentFile, AgentWriteContext, IAgentFileWriter } from "../agent-file-writer";
 import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL, claudeMcpToolName } from "./claude-tools";
@@ -56,5 +57,10 @@ export class ClaudeAgentWriter implements IAgentFileWriter {
       fileName: claudeAgentFileName(agent.name),
       content: `---\n${lines.join("\n")}\n---\n${agent.body}`,
     };
+  }
+
+  /** The agent's canonical model; undefined when it names none or inherits its parent's. */
+  modelOf(agent: AgentFrontmatter): string | undefined {
+    return agent.model === INHERIT_MODEL ? undefined : agent.model;
   }
 }

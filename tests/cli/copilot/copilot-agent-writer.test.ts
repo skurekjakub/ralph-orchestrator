@@ -158,14 +158,19 @@ describe("CopilotAgentWriter", () => {
 
       // Assert
       expect(file!.content).toContain(`\nmodel: ${expected}\n`);
+      expect(writer.modelOf(agent)).toBe(expected);
     });
 
     it.each([["inherit"], [undefined]])("leaves the model to Copilot CLI for %s without copilot.model", (model) => {
+      // Arrange
+      const agent = makeAgentDefinition({ name: "x", model });
+
       // Act
-      const file = writer.write(makeAgentDefinition({ name: "x", model }));
+      const file = writer.write(agent);
 
       // Assert
       expect(file!.content).not.toContain("model:");
+      expect(writer.modelOf(agent)).toBeUndefined();
     });
 
     it("throws for a full Claude Code id with no Copilot equivalent", () => {

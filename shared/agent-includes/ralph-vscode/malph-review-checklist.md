@@ -174,7 +174,7 @@ Write `{{ artifactDir }}/{{ self.name }}/jira-findings.json`:
 ```json
 {
   "reviewer": "{{ self.name }}",
-  "model": "<your model name>",
+  "model": "{{ self.model }}",
   "verdict": "approved | needs-revision",
   "findings": [
     {
