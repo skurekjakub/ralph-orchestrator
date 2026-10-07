@@ -1,5 +1,5 @@
 import { execa, type ResultPromise } from "execa";
-import { resolve } from "node:path";
+import { sharedHooksDir } from "./setup/build-paths";
 
 /**
  * Configuration for the compose client — computed paths not available in `process.env`.
@@ -69,7 +69,7 @@ export class ComposeClient implements IComposeClient {
       ...(process.env as Record<string, string>),
       // Computed paths — not in .env, needed for volume mount interpolation.
       TARGET_REPO_PATH: envConfig.workspacePath,
-      SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
+      SHARED_HOOKS_PATH: sharedHooksDir(process.cwd()),
       SQUID_CONF_PATH: envConfig.squidConfPath,
       // Host UID/GID for sidecar build args — ensures the sidecar process owns
       // the bind-mounted workspace and can write to it without permission errors.

@@ -1,5 +1,6 @@
 import { execa, ExecaError } from "execa";
-import { resolve } from "node:path";
+import { join } from "node:path";
+import { sharedHooksDir } from "../container/setup/build-paths";
 import { toErrorMessage } from "../util/error";
 
 /** Scrubs credentials from text before the host stores or attaches it. */
@@ -34,7 +35,7 @@ export class HookRulesRedactor implements ITextRedactor {
    *   holds every secret from `.env`.
    */
   constructor({
-    scriptPath = resolve(process.cwd(), "shared/hooks/lib/redact.pl"),
+    scriptPath = join(sharedHooksDir(process.cwd()), "lib", "redact.pl"),
     env = process.env,
   }: { scriptPath?: string; env?: Readonly<Record<string, string | undefined>> } = {}) {
     this.scriptPath = scriptPath;

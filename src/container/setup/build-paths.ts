@@ -16,6 +16,15 @@ export interface ProfileBuildPaths {
 }
 
 /**
+ * `shared/hooks` of an orchestrator checkout: the audit hook scripts, the result gate and the redactor.
+ *
+ * @param rootDir The orchestrator checkout root.
+ */
+export function sharedHooksDir(rootDir: string): string {
+  return resolve(rootDir, "shared/hooks");
+}
+
+/**
  * The build paths of one profile.
  *
  * @param rootDir The orchestrator checkout root.
@@ -29,7 +38,7 @@ export function profileBuildPaths(rootDir: string, profileId: string): ProfileBu
     agentsDir: join(profileDir, "agents"),
     buildDir,
     skillsBuildDir: join(buildDir, "skills"),
-    hooksDir: resolve(rootDir, "shared/hooks"),
+    hooksDir: sharedHooksDir(rootDir),
   };
 }
 
