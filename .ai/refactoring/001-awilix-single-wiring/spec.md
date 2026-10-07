@@ -291,3 +291,8 @@ From the Task 9 review on 2026-10-07:
 
 9. **§2's `TaskCradle` left out `composeFiles`,** which §3 registers as a scoped token and `ComposeClient` takes as a dep. Without it, `t.service(ComposeClient)` cannot type-check. **Fix:** `TaskCradle` carries `composeFiles` (and §2 above names it).
 10. **The runtime test resolving every root, task and stage token had no plan task.** **Fix:** it lands with Task 11, once the stage scopes (Task 10) and the cradle-built orchestrator and dashboard server (Task 11) exist.
+
+From the Task 10 review on 2026-10-07:
+
+11. **§4's `IStageExecutorFactory` had only `create(stageProfile, stage)`,** but `ContainerManager.createExecutorForStage` also builds the executor of a variant's own `mode: "local"` stage (`agent-pipeline-executor.ts`, `scripts/run-agent.ts`). **Fix:** `createHost(stageProfile, stage, workspace)` opens the host stage cradle from the task scope; a post-task hook opens it from the root through `createLocalSession`. The host cradles name no task token, so either parent serves.
+12. **§4 registered `stageExecutors` only in `create`,** so a scope from `openTaskScope` was typed `TaskCradle` without holding every `TaskCradle` token. **Fix:** `openTaskScope` registers `stageExecutors` itself.
