@@ -550,12 +550,16 @@ describe("validateProfiles", () => {
   });
 
   describe("stage cli", () => {
-    it("accepts claude for a container stage but rejects it for a host stage", async () => {
+    it("accepts claude for a container stage, a variant's local stage and a post-task hook stage", async () => {
       // Arrange
       writeValidProfile("test", {
-        profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "claude" }], {
-          hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", cli: "claude" }],
-        }),
+        profileJson: profileWithStages(
+          [
+            { agent: "ralph", role: "primary", cli: "claude" },
+            { agent: "ralph", role: "reviewer", mode: "local", cli: "claude" },
+          ],
+          { hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", cli: "claude" }] },
+        ),
       });
       const c = collector();
 
@@ -563,12 +567,7 @@ describe("validateProfiles", () => {
       await validateProfiles(c);
 
       // Assert
-      const claudeErrors = c.errors.filter((e) => e.includes('cli "claude"'));
-      expect(claudeErrors).toEqual([
-        expect.stringContaining(
-          'variants[0]/postTaskHooks[0]/stages[0]: runs cli "claude" in mode "local", but host stages run only Copilot CLI',
-        ),
-      ]);
+      expect(c.errors.filter((e) => e.includes('cli "claude"'))).toEqual([]);
     });
 
     it("rejects a host stage whose role is not a safe directory name, since it names the stage's workspace", async () => {

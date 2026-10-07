@@ -7,7 +7,9 @@ import type { IAgentCatalogProvider } from "./setup/agent-catalogs";
 import type { ContainerExecResult, HostStageWorkspace } from "./types";
 import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor";
 import { CopilotExecutor } from "./cli-executors/copilot-executor";
+import { LocalClaudeCodeExecutor } from "./cli-executors/local-claude-code-executor";
 import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
+import { profileBuildPaths } from "./setup/build-paths";
 
 /**
  * Runs one pipeline stage's agent CLI.
@@ -100,6 +102,10 @@ export class CliExecutorFactory implements ICliExecutorFactory {
     }
   }
 
+  /**
+   * Claude Code also takes the frontmatter names of the agents the stage root can reach, which its permission
+   * rules let it spawn, and runs the audit hooks of the orchestrator's `shared/hooks`.
+   */
   async createLocal(
     stageProfile: IAgentProfile,
     stage: IStageConfig,
@@ -111,8 +117,22 @@ export class CliExecutorFactory implements ICliExecutorFactory {
     switch (stage.cli) {
       case CliType.Copilot:
         return new LocalCopilotExecutor({ profile: stageProfile, workspace, runtime, binary, logger: cliLogger });
-      case CliType.Claude:
-        throw new Error(`Stage "${stage.role}" runs cli "claude" on the host, but host stages run only Copilot CLI`);
+      case CliType.Claude: {
+        const catalog = await this.agentCatalogs.load(stageProfile.id);
+        const nameOf = (fileId: string): string => catalog.get(fileId).frontmatter.name;
+        return new LocalClaudeCodeExecutor({
+          profile: stageProfile,
+          stage,
+          agentName: nameOf(stage.agent),
+          subagentDepth: catalog.depthFrom(stage.agent),
+          subagents: catalog.reachableFrom(stage.agent).slice(1).map(nameOf),
+          workspace,
+          runtime,
+          binary,
+          hooksDir: profileBuildPaths(this.rootDir, stageProfile.id).hooksDir,
+          logger: cliLogger,
+        });
+      }
     }
   }
 }

@@ -5,6 +5,7 @@ import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
 import { CliExecutorFactory } from "../../src/container/cli-executor-factory";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
+import { LocalClaudeCodeExecutor } from "../../src/container/cli-executors/local-claude-code-executor";
 import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
 import { makeAgentSource, makeHostWorkspace, makeProfile, makeStage } from "../helpers/factories";
 import { createMockAgentCatalogProvider, createMockCompose, createMockLogger, fakeCliProcess } from "../helpers/mocks";
@@ -101,14 +102,32 @@ describe("CliExecutorFactory", () => {
       expect(executor).toBeInstanceOf(LocalCopilotExecutor);
     });
 
-    it("throws for a host stage that runs Claude Code", async () => {
+    it("creates a LocalClaudeCodeExecutor for a host stage that runs Claude Code, from the profile's agents", async () => {
+      // Arrange
+      const { factory, agentCatalogs } = createFactory();
+      const stage = makeStage({ agent: "ralph.root", role: "scientist", mode: StageMode.Local, cli: CliType.Claude });
+
+      // Act
+      const executor = await factory.createLocal(
+        makeProfile({ id: "docs" }),
+        stage,
+        makeHostWorkspace(),
+        createMockLogger(),
+      );
+
+      // Assert
+      expect(executor).toBeInstanceOf(LocalClaudeCodeExecutor);
+      expect(agentCatalogs.load).toHaveBeenCalledWith("docs");
+    });
+
+    it("rejects a host Claude Code stage whose agent has no template", async () => {
       // Arrange
       const { factory } = createFactory();
-      const stage = makeStage({ role: "scientist", mode: StageMode.Local, cli: CliType.Claude });
+      const stage = makeStage({ agent: "ralph.missing", mode: StageMode.Local, cli: CliType.Claude });
 
       // Act & Assert
       await expect(factory.createLocal(makeProfile(), stage, makeHostWorkspace(), createMockLogger())).rejects.toThrow(
-        'Stage "scientist" runs cli "claude" on the host',
+        /No agent template ralph.missing/,
       );
     });
   });

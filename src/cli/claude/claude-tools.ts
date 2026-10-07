@@ -26,6 +26,14 @@ export enum ClaudeBuiltinTool {
 /** Built-in tools of an agent that declares no `tools` of its own, and the `--tools` cap of a container session. */
 export const CLAUDE_BUILTIN_TOOLS: readonly ClaudeBuiltinTool[] = Object.values(ClaudeBuiltinTool);
 
+/**
+ * The `--tools` cap of a host session: the built-in tools without the web tools, since no egress proxy limits
+ * what a CLI on the host reaches.
+ */
+export const CLAUDE_HOST_TOOLS: readonly ClaudeBuiltinTool[] = CLAUDE_BUILTIN_TOOLS.filter(
+  (tool) => tool !== ClaudeBuiltinTool.WebFetch && tool !== ClaudeBuiltinTool.WebSearch,
+);
+
 /** The Claude Code tool that spawns a subagent; `Agent(a, b)` limits it to the named agents. */
 export const CLAUDE_SUBAGENT_TOOL = "Agent";
 

@@ -2,6 +2,22 @@ import { randomUUID } from "node:crypto";
 import type { ReasoningEffort } from "../../config/types";
 import { CLAUDE_SUBAGENT_TOOL } from "./claude-tools";
 
+/**
+ * Environment of every headless Claude Code session Ralph runs, in a container or on the host.
+ *
+ * Background tasks are off so subagents run in the foreground and the session ends once; non-essential
+ * traffic (telemetry, error reporting, auto-update checks) is off so the egress allowlist needs only the
+ * model API; tool search is off so every MCP tool is loaded up front.
+ */
+export const CLAUDE_HEADLESS_ENV: Readonly<Record<string, string>> = {
+  CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1",
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+  CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
+  DISABLE_AUTOUPDATER: "1",
+  DISABLE_COST_WARNINGS: "1",
+  ENABLE_TOOL_SEARCH: "false",
+};
+
 /** Claude Code permission modes Ralph runs sessions in. */
 export enum ClaudePermissionMode {
   /** Every tool call runs; the container, egress proxy, sidecar tool filter, `--tools` cap and hooks are the boundary. */

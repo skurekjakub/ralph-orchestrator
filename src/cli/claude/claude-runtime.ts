@@ -23,6 +23,7 @@ import {
   CLAUDE_SESSIONS_DIR,
   CLAUDE_USER_SETTINGS_PATH,
 } from "./claude-layout";
+import { CLAUDE_HEADLESS_ENV } from "./claude-session";
 import { sessionSettingsPath, userSettingsPath, writeClaudeSettings } from "./claude-settings";
 import { ClaudeStreamJsonDecoder } from "./stream-json-decoder";
 import { ClaudeAgentWriter } from "./claude-agent-writer";
@@ -34,21 +35,10 @@ import { renderClaudeTranscript } from "./transcript-renderer";
 /** Log id of the collected sessions folder. */
 const CLAUDE_SESSIONS_LOG_ID = "claude-sessions";
 
-/**
- * Environment of every Claude Code container session.
- *
- * Background tasks are off so subagents run in the foreground and the session ends once; non-essential
- * traffic (telemetry, error reporting, auto-update checks) is off so the egress allowlist needs only the
- * model API; tool search is off so every MCP tool is loaded up front.
- */
+/** Environment of every Claude Code container session: its home, and the variables every headless session gets. */
 const CLAUDE_CONTAINER_ENV: Readonly<Record<string, string>> = {
   CLAUDE_CONFIG_DIR: CLAUDE_CONTAINER_LAYOUT.configDir,
-  CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1",
-  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
-  CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
-  DISABLE_AUTOUPDATER: "1",
-  DISABLE_COST_WARNINGS: "1",
-  ENABLE_TOOL_SEARCH: "false",
+  ...CLAUDE_HEADLESS_ENV,
 };
 
 /**

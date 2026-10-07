@@ -86,9 +86,6 @@ export function validateStageClis(
   const stages = locateStages(variants);
 
   for (const { stage, path } of stages) {
-    if (stage.cli === CliType.Claude && stage.mode === StageMode.Local) {
-      errors.push(`${prefix}/${path}: runs cli "claude" in mode "local", but host stages run only Copilot CLI`);
-    }
     if (stage.cli === CliType.Claude) continue;
     for (const option of CLAUDE_ONLY_STAGE_OPTIONS) {
       if (stage[option] !== undefined) {
