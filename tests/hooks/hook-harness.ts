@@ -117,6 +117,3 @@ export class HookSandbox {
     rmSync(this.logDir, { recursive: true, force: true });
   }
 }
-
-/** Pattern dashboard-local uses to split tool-output.log into blocks (tool-log-timeline-parser.ts). */
-export const TOOL_OUTPUT_HEADER = /^──\s+\d{2}:\d{2}:\d{2}\s+(.+?)\s+\((\w+)\)\s+──$/;

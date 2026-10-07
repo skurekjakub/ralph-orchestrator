@@ -1,7 +1,11 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { HookSandbox, loadPayloads, TOOL_OUTPUT_HEADER } from "./hook-harness";
+import {
+  parsePreToolLog,
+  parseToolOutputLog,
+} from "../../dashboard-local/src/components/log-browser/tool-log-timeline-parser";
+import { HookSandbox, loadPayloads } from "./hook-harness";
 
 const claude = loadPayloads("claude");
 const copilot = loadPayloads("copilot");
@@ -81,6 +85,9 @@ describe("audit hook scripts", () => {
         tool: "skill",
         skill: "malph-vscode-workflow-setup",
       });
+      expect(parsePreToolLog(sandbox.read("pre-tool.log"))).toEqual([
+        expect.objectContaining({ ts: 1791321201000, tool: "skill", args: copilot.preToolUseSkill.toolArgs }),
+      ]);
     });
 
     it("writes the full tool output in the block format dashboard-local parses", async () => {
@@ -94,8 +101,10 @@ describe("audit hook scripts", () => {
 
       const utcClock = new Date(copilot.postToolUseBash.timestamp as number).toISOString().slice(11, 19);
 
-      expect(lines[0]).toMatch(TOOL_OUTPUT_HEADER);
       expect(lines[0]).toBe(`── ${utcClock} bash (success) ──`);
+      expect(parseToolOutputLog(sandbox.read("tool-output.log"))).toEqual([
+        { tool: "bash", status: "success", args: copilot.preToolUseTask.toolArgs, returnValue: longText },
+      ]);
       expect(lines.slice(1, 5).join("\n")).toBe(`args: ${copilot.preToolUseTask.toolArgs}`);
       expect(lines.slice(5).join("\n")).toBe(`${longText}\n\n`);
       expect((sandbox.audit()[0].resultText as string).endsWith("...[truncated]")).toBe(true);
@@ -141,7 +150,7 @@ describe("audit hook scripts", () => {
       await sandbox.runJson("log-pre-tool.sh", ["--cli", "claude"], pre);
       await sandbox.runJson("log-post-tool.sh", ["--cli", "claude"], claude.postToolUseBash);
       const [preRecord, postRecord] = sandbox.audit();
-      const output = sandbox.read("tool-output.log").split("\n");
+      const output = sandbox.read("tool-output.log");
 
       expect(preRecord.toolUseId).toBe("toolu_011Jt92sqkxnLQ29kBeyVTH8");
       expect(postRecord).toMatchObject({
@@ -150,9 +159,14 @@ describe("audit hook scripts", () => {
         durationMs: 412,
       });
       expect(sandbox.preTool()).toHaveLength(1);
-      expect(output[0]).toMatch(TOOL_OUTPUT_HEADER);
-      expect(output[0]).toMatch(/ Bash \(success\) ──$/);
-      expect(output[1]).toBe('args: {"command":"echo ralph-bash-ok","description":"Echo ralph-bash-ok"}');
+      expect(parseToolOutputLog(output)).toEqual([
+        {
+          tool: "Bash",
+          status: "success",
+          args: '{"command":"echo ralph-bash-ok","description":"Echo ralph-bash-ok"}',
+          returnValue: "ralph-bash-ok",
+        },
+      ]);
       expect(sandbox.read("ralph.log")).toBe("");
     });
 
@@ -165,7 +179,9 @@ describe("audit hook scripts", () => {
 
       expect(run.exitCode).toBe(0);
       expect(sandbox.audit()[0]).toMatchObject({ event: "post_tool", resultType: "failure", agent: "helper" });
-      expect(sandbox.read("tool-output.log").split("\n")[0]).toMatch(/ Agent \(failure\) ──$/);
+      expect(parseToolOutputLog(sandbox.read("tool-output.log"))).toEqual([
+        expect.objectContaining({ tool: "Agent", status: "failure" }),
+      ]);
       expect(sandbox.read("ralph.log")).toBe(
         "[RALPH] TOOL FAILURE: Agent — Agent type 'leaf' not found. Available agents: helper\n",
       );

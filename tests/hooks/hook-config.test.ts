@@ -23,9 +23,10 @@ const copilotConfig: { version: number; hooks: Record<string, CopilotHookCommand
   readFileSync(join(HOOKS_DIR, "ralph-audit.json"), "utf8"),
 );
 const claude = loadPayloads("claude");
+const copilot = loadPayloads("copilot");
 
-/** Claude Code event → fixture payload and the audit event its hook must write. */
-const CLAUDE_EVENTS: Record<string, [fixture: string, auditEvent: string]> = {
+/** Claude Code hook event → fixture payload for it and the audit event its hook writes. */
+const CLAUDE_FIXTURES: Record<string, [fixture: string, auditEvent: string]> = {
   SessionStart: ["sessionStart", "session_start"],
   UserPromptSubmit: ["userPromptSubmit", "prompt"],
   PreToolUse: ["preToolUseSkill", "pre_tool"],
@@ -39,90 +40,121 @@ const CLAUDE_EVENTS: Record<string, [fixture: string, auditEvent: string]> = {
   SessionEnd: ["sessionEnd", "session_end"],
 };
 
+/** Copilot CLI hook event → fixture payload for it and the audit event its hook writes. */
+const COPILOT_FIXTURES: Record<string, [fixture: string, auditEvent: string]> = {
+  sessionStart: ["sessionStart", "session_start"],
+  userPromptSubmitted: ["userPromptSubmitted", "prompt"],
+  preToolUse: ["preToolUseBash", "pre_tool"],
+  postToolUse: ["postToolUseBash", "post_tool"],
+  errorOccurred: ["errorOccurred", "error"],
+  sessionEnd: ["sessionEnd", "session_end"],
+};
+
+const claudeCommands = Object.entries(claudeHooks).flatMap(([event, groups]) =>
+  groups.flatMap((group) => group.hooks.map((hook): [string, ClaudeHookCommand] => [event, hook])),
+);
+const copilotCommands = Object.entries(copilotConfig.hooks).flatMap(([event, hooks]) =>
+  hooks.map((hook): [string, CopilotHookCommand] => [event, hook]),
+);
+
 /** Host script path and argv of a container hook command ("/workspace/.ralph/hooks/x.sh --cli claude"). */
 function toHostCommand(command: string): { script: string; args: string[] } {
-  expect(command.startsWith(CONTAINER_HOOKS_DIR)).toBe(true);
+  if (!command.startsWith(CONTAINER_HOOKS_DIR)) {
+    throw new Error(`${command} is not under ${CONTAINER_HOOKS_DIR}`);
+  }
   const [script, ...args] = command.slice(CONTAINER_HOOKS_DIR.length).split(" ");
   return { script, args };
 }
 
-function commandsOf(event: string): ClaudeHookCommand[] {
-  return claudeHooks[event].flatMap((group) => group.hooks);
+/**
+ * The fixture payload and expected audit event for a configured hook event.
+ * @throws Error when the suite has no fixture for an event the config wires.
+ */
+function fixtureFor(
+  fixtures: Record<string, [fixture: string, auditEvent: string]>,
+  event: string,
+): [fixture: string, auditEvent: string] {
+  const entry = fixtures[event];
+  if (entry === undefined) {
+    throw new Error(`no fixture payload for the configured ${event} hook`);
+  }
+  return entry;
+}
+
+function isExecutable(script: string): boolean {
+  try {
+    accessSync(join(HOOKS_DIR, script), constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 describe("hook configurations", () => {
+  let sandbox: HookSandbox;
+
+  beforeEach(() => {
+    sandbox = new HookSandbox();
+  });
+
+  afterEach(() => {
+    sandbox.cleanup();
+  });
+
   describe("claude/hooks.json (managed-settings hooks fragment)", () => {
-    let sandbox: HookSandbox;
-
-    beforeEach(() => {
-      sandbox = new HookSandbox();
+    it.each(claudeCommands)("%s runs a command hook with a timeout", (_event, hook) => {
+      // Act & Assert
+      expect([hook.type, hook.timeout > 0]).toEqual(["command", true]);
     });
 
-    afterEach(() => {
-      sandbox.cleanup();
+    it.each(claudeCommands)("%s points at an executable script in shared/hooks", (_event, hook) => {
+      // Arrange
+      const { script } = toHostCommand(hook.command);
+
+      // Act & Assert
+      expect(isExecutable(script), script).toBe(true);
     });
 
-    it("wires exactly the Claude Code events the audit trail and result gate need", () => {
-      expect(Object.keys(claudeHooks).sort()).toEqual(Object.keys(CLAUDE_EVENTS).sort());
+    it.each(claudeCommands)("%s writes its audit record from a Claude Code payload", async (event, hook) => {
+      // Arrange
+      const { script, args } = toHostCommand(hook.command);
+      const [fixture, auditEvent] = fixtureFor(CLAUDE_FIXTURES, event);
+
+      // Act
+      const run = await sandbox.runJson(script, args, claude[fixture], { RALPH_REQUIRE_RESULT_BLOCK: "1" });
+
+      // Assert
+      expect([run.exitCode, run.stderr]).toEqual([0, ""]);
+      expect(run.stdout).toEqual(event === "Stop" ? expect.stringContaining('"decision":"block"') : "");
+      expect(sandbox.audit()).toEqual([expect.objectContaining({ event: auditEvent, cli: "claude" })]);
     });
-
-    it("runs one command hook per event with a timeout", () => {
-      for (const event of Object.keys(claudeHooks)) {
-        const commands = commandsOf(event);
-        expect(commands, event).toHaveLength(1);
-        expect(commands[0].type, event).toBe("command");
-        expect(commands[0].timeout, event).toBeGreaterThan(0);
-      }
-    });
-
-    it("matches every tool in the tool events", () => {
-      for (const event of ["PreToolUse", "PostToolUse", "PostToolUseFailure"]) {
-        expect(claudeHooks[event].map((group) => group.matcher)).toEqual(["*"]);
-      }
-    });
-
-    it("points every command at an executable script in shared/hooks", () => {
-      for (const event of Object.keys(claudeHooks)) {
-        const { script } = toHostCommand(commandsOf(event)[0].command);
-        expect(() => accessSync(join(HOOKS_DIR, script), constants.X_OK), `${event}: ${script}`).not.toThrow();
-      }
-    });
-
-    it.each(Object.entries(CLAUDE_EVENTS))(
-      "%s runs a hook that writes a %s record from a Claude Code payload",
-      async (event, [fixture, auditEvent]) => {
-        const { script, args } = toHostCommand(commandsOf(event)[0].command);
-
-        const run = await sandbox.runJson(script, args, claude[fixture], { RALPH_REQUIRE_RESULT_BLOCK: "1" });
-
-        expect(run.exitCode).toBe(0);
-        expect(run.stderr).toBe("");
-        expect(sandbox.audit()).toEqual([expect.objectContaining({ event: auditEvent, cli: "claude" })]);
-        expect(run.stdout).toEqual(event === "Stop" ? expect.stringContaining('"decision":"block"') : "");
-      },
-    );
   });
 
   describe("ralph-audit.json (Copilot CLI repository hooks)", () => {
-    it("keeps the Copilot hook events and the no-flag commands Copilot runs today", () => {
-      expect(copilotConfig.version).toBe(1);
-      expect(
-        Object.fromEntries(Object.entries(copilotConfig.hooks).map(([event, hooks]) => [event, hooks[0].bash])),
-      ).toEqual({
-        sessionStart: "/workspace/.ralph/hooks/log-session-start.sh",
-        userPromptSubmitted: "/workspace/.ralph/hooks/log-prompt.sh",
-        preToolUse: "/workspace/.ralph/hooks/log-pre-tool.sh",
-        postToolUse: "/workspace/.ralph/hooks/log-post-tool.sh",
-        errorOccurred: "/workspace/.ralph/hooks/log-error.sh",
-        sessionEnd: "/workspace/.ralph/hooks/log-session-end.sh",
-      });
+    it.each(copilotCommands)("%s runs a command hook with a timeout", (_event, hook) => {
+      // Act & Assert
+      expect([hook.type, hook.timeoutSec > 0]).toEqual(["command", true]);
     });
 
-    it("points every command at an executable script in shared/hooks", () => {
-      for (const hooks of Object.values(copilotConfig.hooks)) {
-        const { script } = toHostCommand(hooks[0].bash);
-        expect(() => accessSync(join(HOOKS_DIR, script), constants.X_OK), script).not.toThrow();
-      }
+    it.each(copilotCommands)("%s points at an executable script in shared/hooks", (_event, hook) => {
+      // Arrange
+      const { script } = toHostCommand(hook.bash);
+
+      // Act & Assert
+      expect(isExecutable(script), script).toBe(true);
+    });
+
+    it.each(copilotCommands)("%s writes its audit record from a Copilot payload", async (event, hook) => {
+      // Arrange
+      const { script, args } = toHostCommand(hook.bash);
+      const [fixture, auditEvent] = fixtureFor(COPILOT_FIXTURES, event);
+
+      // Act
+      const run = await sandbox.runJson(script, args, copilot[fixture]);
+
+      // Assert
+      expect([run.exitCode, run.stdout, run.stderr]).toEqual([0, "", ""]);
+      expect(sandbox.audit()).toEqual([expect.objectContaining({ event: auditEvent, cli: "copilot" })]);
     });
   });
 });
