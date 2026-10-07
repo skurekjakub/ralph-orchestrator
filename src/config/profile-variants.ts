@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { resolvePath } from "../util/path";
 import { toErrorMessage } from "../util/error";
 import { profileFileSchema, type ProfileFile, type StageFile } from "./schemas";
 import { type CliType, type IAgentProfile, type IStageConfig, StageMode, VcsProvider } from "./types";
@@ -95,7 +94,7 @@ export function resolveProfileVariants(parsed: ProfileFile, profileId: string): 
     return {
       id: profileId,
       dataSource: parsed.dataSource,
-      repoPath: resolvePath(parsed.repo),
+      repoUrl: parsed.repoUrl,
       vcsProvider: parsed.vcsProvider,
       repoPat,
       composeFile: `profiles/${profileId}/docker-compose.yml`,

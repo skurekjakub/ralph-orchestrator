@@ -1,72 +1,85 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { execSync } from "node:child_process";
+import { existsSync, readdirSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { readProfileFile, resolveProfileVariants } from "../../src/config/profile-variants";
+import { gitAuthHeader, repoCachePaths } from "../../src/services/task-workspace-manager";
 import type { ResetContext } from "./types";
 
-function resolveRepoPath(rootDir: string): string | null {
-  const profileJson = resolve(rootDir, "profiles/ralph-docs/profile.json");
-  if (!existsSync(profileJson)) return null;
+const PROFILE_ID = "ralph-docs";
 
-  const profile = JSON.parse(readFileSync(profileJson, "utf-8"));
-  return (profile.repo as string).replace(/^~/, process.env.HOME || "~");
+/** Run git with the profile's PAT as a per-command auth header; git never prompts. */
+function authGit(authHeader: string, args: string[]): string {
+  return execFileSync("git", ["-c", `http.extraHeader=Authorization: ${authHeader}`, ...args], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+  });
 }
 
-export function cleanBranches(ctx: ResetContext) {
-  const repoPath = resolveRepoPath(ctx.rootDir);
-  if (!repoPath) {
-    console.log("  ⚠ profiles/ralph-docs/profile.json not found, skipping");
+/** Delete the issue's `ralph/<KEY>*` branches on the ralph-docs remote. */
+function deleteRemoteBranches(ctx: ResetContext): void {
+  const profileJson = resolve(ctx.rootDir, `profiles/${PROFILE_ID}/profile.json`);
+  if (!existsSync(profileJson)) {
+    console.log(`  ⚠ profiles/${PROFILE_ID}/profile.json not found, skipping remote branches`);
     return;
   }
-  if (!existsSync(repoPath)) {
-    console.log(`  ⚠ Repo not found at ${repoPath}, skipping`);
+  const [profile] = resolveProfileVariants(readProfileFile(profileJson), PROFILE_ID);
+  const pat = process.env[profile.repoPat];
+  if (!pat) {
+    console.log(`  ⚠ ${profile.repoPat} is not set, skipping remote branches`);
     return;
   }
+  const authHeader = gitAuthHeader(profile.vcsProvider, pat);
+  const prefix = `refs/heads/ralph/${ctx.issueKey}`;
 
-  const pattern = `ralph/${ctx.issueKey}`;
-  const opts = {
-    cwd: repoPath,
-    encoding: "utf-8" as const,
-    stdio: ["pipe", "pipe", "pipe"] as ["pipe", "pipe", "pipe"],
-  };
-
-  // Local branches
   try {
-    const locals = execSync(`git branch --list "${pattern}*"`, opts)
-      .trim()
+    const branches = authGit(authHeader, ["ls-remote", "--heads", profile.repoUrl])
       .split("\n")
-      .map((b) => b.trim().replace(/^\* /, ""))
-      .filter(Boolean);
+      .map((line) => line.split("\t")[1]?.trim())
+      .filter((ref): ref is string => Boolean(ref?.startsWith(prefix)))
+      .map((ref) => ref.slice("refs/heads/".length));
 
-    if (locals.length > 0) {
-      execSync("git checkout main 2>/dev/null || git checkout master 2>/dev/null || true", opts);
-      for (const branch of locals) {
-        execSync(`git branch -D "${branch}"`, opts);
-        console.log(`  ✓ Deleted local branch: ${branch}`);
-      }
-    } else {
-      console.log("  ✓ No local ralph branches to delete");
-    }
-  } catch {
-    console.log("  ✓ No local branches to clean");
-  }
-
-  // Remote branches
-  try {
-    const remotes = execSync(`git branch -r --list "origin/${pattern}*"`, opts)
-      .trim()
-      .split("\n")
-      .map((b) => b.trim().replace("origin/", ""))
-      .filter(Boolean);
-
-    if (remotes.length > 0) {
-      for (const branch of remotes) {
-        execSync(`git push origin --delete "${branch}" 2>&1`, opts);
-        console.log(`  ✓ Deleted remote branch: ${branch}`);
-      }
-    } else {
+    if (branches.length === 0) {
       console.log("  ✓ No remote ralph branches to delete");
+      return;
     }
-  } catch {
-    console.log("  ✓ No remote branches to clean");
+    for (const branch of branches) {
+      authGit(authHeader, ["push", profile.repoUrl, "--delete", branch]);
+      console.log(`  ✓ Deleted remote branch: ${branch}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message.replaceAll(authHeader, "***") : String(err);
+    console.log(`  ⚠ Could not clean remote branches: ${message}`);
   }
+}
+
+/** Delete the issue's task workspaces under `cache/workspaces/` (`<KEY>-<startTs>`). */
+function deleteWorkspaces(ctx: ResetContext): void {
+  const { workspacesDir } = repoCachePaths(ctx.rootDir);
+  const workspaces = existsSync(workspacesDir)
+    ? readdirSync(workspacesDir).filter((name) => name.startsWith(`${ctx.issueKey}-`))
+    : [];
+  if (workspaces.length === 0) {
+    console.log("  ✓ No workspaces to delete");
+    return;
+  }
+  for (const name of workspaces) {
+    const workspacePath = join(workspacesDir, name);
+    try {
+      rmSync(workspacePath, { recursive: true, force: true });
+      console.log(`  ✓ Deleted workspace: ${workspacePath}`);
+    } catch (err) {
+      console.log(`  ⚠ Could not delete ${workspacePath}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+}
+
+/**
+ * Delete the issue's `ralph/<KEY>*` branches on the ralph-docs remote and its task workspaces.
+ *
+ * The orchestrator's bare clone under `cache/repos/` drops the deleted branches on the next task's fetch.
+ */
+export function cleanBranches(ctx: ResetContext) {
+  deleteRemoteBranches(ctx);
+  deleteWorkspaces(ctx);
 }

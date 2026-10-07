@@ -29,7 +29,8 @@ export interface ContainerExecResult {
 import type { IAgentSessionRunner } from "./agent-session-runner";
 
 export interface ContainerManagerFactory {
-  create(profile: IAgentProfile): IContainerManager;
+  /** Create the container manager of one task, whose stack mounts `workspacePath` at `/workspace`. */
+  create(profile: IAgentProfile, workspacePath: string): IContainerManager;
   /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
   forceDown(profile: IAgentProfile): Promise<void>;
   /** Create a local executor + session runner pair for a hook stage (no container needed). */
@@ -90,7 +91,7 @@ export interface StageResult {
  * Derive a stage-scoped profile from a base profile and a specific stage config.
  *
  * Overrides `agentName`, `displayName`, `cli`, `model`, `timeoutMs`, and `skills`
- * with stage-specific values. Other profile fields (repo, compose, MCP, etc.)
+ * with stage-specific values. Other profile fields (repo URL, compose, MCP, etc.)
  * remain unchanged.
  */
 export function deriveStageProfile(profile: IAgentProfile, stage: IStageConfig): IAgentProfile {

@@ -11,7 +11,7 @@ describe("deriveStageProfile", () => {
     timeoutMs: 600000,
     skills: ["skill-a", "skill-b"],
     mcpServers: ["ado", "playwright"],
-    repoPath: "/home/user/repos/docs",
+    repoUrl: "https://dev.azure.com/org/project/_git/docs",
   });
 
   it("overrides agentName and displayName from stage", () => {
@@ -85,7 +85,7 @@ describe("deriveStageProfile", () => {
     const stage = makeStage({ agent: "ralph.reviewer", role: "reviewer" });
     const derived = deriveStageProfile(base, stage);
     expect(derived.id).toBe("ralph-docs");
-    expect(derived.repoPath).toBe("/home/user/repos/docs");
+    expect(derived.repoUrl).toBe("https://dev.azure.com/org/project/_git/docs");
     expect(derived.mcpServers).toEqual(["ado", "playwright"]);
     expect(derived.composeFile).toBe(base.composeFile);
     expect(derived.variantKey).toBe(base.variantKey);

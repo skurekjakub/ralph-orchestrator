@@ -1,7 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { describe, it, expect, vi } from "vitest";
 import { ExecaError } from "execa";
 import { ClaudeCodeExecutor } from "../../../src/container/cli-executors/claude-code-executor";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
@@ -54,16 +51,6 @@ function successfulSession(text: string): string {
 const RESULT_BLOCK = "===RALPH_RESULT_START===\nPR_URL: none\nSTATUS: completed\n===RALPH_RESULT_END===";
 
 describe("ClaudeCodeExecutor", () => {
-  let repoPath: string;
-
-  beforeEach(() => {
-    repoPath = mkdtempSync(join(tmpdir(), "claude-executor-"));
-  });
-
-  afterEach(() => {
-    rmSync(repoPath, { recursive: true, force: true });
-  });
-
   function createExecutor(
     options: {
       profile?: Partial<IAgentProfile>;
@@ -78,7 +65,6 @@ describe("ClaudeCodeExecutor", () => {
     );
     const stage = makeStage({ agent: "ralph.ralph", cli: CliType.Claude, ...options.stage });
     const profile = makeProfile({
-      repoPath,
       cli: CliType.Claude,
       stages: [stage],
       timeoutMs: 5000,
@@ -148,7 +134,7 @@ describe("ClaudeCodeExecutor", () => {
       expect(timeoutMs).toBe(5000);
     });
 
-    it("passes the prompt on stdin, not on the command line or in a file", async () => {
+    it("passes the prompt on stdin, not on the command line", async () => {
       // Arrange
       const { executor, compose } = createExecutor();
 
@@ -158,7 +144,6 @@ describe("ClaudeCodeExecutor", () => {
       // Assert
       expect(exec(compose).options).toEqual({ input: "a prompt longer than any argument should carry" });
       expect(exec(compose).args.join(" ")).not.toContain("a prompt longer");
-      expect(existsSync(join(repoPath, ".ralph"))).toBe(false);
     });
 
     it("passes the stage's model and effort only when set", async () => {

@@ -30,13 +30,13 @@ export interface TemplateContext {
 
   /** Profile directory name (e.g. `ralph-docs`). */
   profileId: string;
-  /** Absolute path to the target repository on the host. */
+  /** Absolute host path of the task's workspace: its checkout of the target repository. */
   repo: string;
   /**
-   * Alias for `repo` — absolute path to the target repository.
+   * Alias for `repo` — absolute host path of the task's workspace.
    *
    * Useful in local-mode stages where the CLI runs in the orchestrator repo
-   * and needs an explicit reference to the target repo the container agents work in.
+   * and needs an explicit reference to the checkout the container agents work in.
    */
   targetRepoPath: string;
   /** CLI the current stage runs (`copilot` or `claude`). */
@@ -194,8 +194,8 @@ export function buildTemplateContext(
 
   return {
     profileId: ctx.profile.id,
-    repo: ctx.profile.repoPath,
-    targetRepoPath: ctx.profile.repoPath,
+    repo: ctx.workspacePath,
+    targetRepoPath: ctx.workspacePath,
     cli: stage.cli,
     cliTools: cliRuntimes.get(stage.cli).toolNames,
     model: stage.model ?? ctx.profile.model ?? "",

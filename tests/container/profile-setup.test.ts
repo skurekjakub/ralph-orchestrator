@@ -11,7 +11,7 @@ import { makeAgentTemplate } from "../helpers/factories";
 /** A schema-valid profile.json with one single-stage variant running `ralph.ralph`, merged with `overrides`. */
 function profileJson(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
-    repo: "/tmp/test-repo",
+    repoUrl: "https://dev.azure.com/org/project/_git/test-repo",
     dataSource: "test-source",
     variants: [{ stages: [{ agent: "ralph.ralph", role: "primary" }], match: { commentTrigger: "@go" } }],
     ...overrides,

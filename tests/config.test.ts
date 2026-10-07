@@ -29,7 +29,7 @@ const VALID_GLOBAL_CONFIG = JSON.stringify({
 });
 
 const VALID_PROFILE = JSON.stringify({
-  repo: "/tmp/test-repo",
+  repoUrl: "https://dev.azure.com/org/project/_git/test-repo",
   dataSource: "test-source",
   variants: [
     {
@@ -149,7 +149,7 @@ describe("loadConfig", () => {
 
     expect(config.profiles.length).toBeGreaterThan(0);
     expect(config.profiles[0].id).toBe("ralph-docs");
-    expect(config.profiles[0].repoPath).toBe("/tmp/test-repo");
+    expect(config.profiles[0].repoUrl).toBe("https://dev.azure.com/org/project/_git/test-repo");
     expect(config.profiles[0].agentName).toBe("ralph");
     expect(config.profiles[0].match).toBeDefined();
     expect(config.profiles[0].dataSource).toBe("test-source");
@@ -164,36 +164,39 @@ describe("loadConfig", () => {
     expect(() => loadConfig()).toThrow("No profile directories found");
   });
 
-  it("resolves ~ in profile repo paths", () => {
+  it.each([
+    ["a local path", "~/repositories/test", "repoUrl must be an https:// URL"],
+    ["an http URL", "http://dev.azure.com/org/project/_git/test", "repoUrl must be an https:// URL"],
+    [
+      "a URL carrying credentials",
+      "https://pat:secret@dev.azure.com/org/project/_git/test",
+      "must not carry credentials",
+    ],
+  ])("rejects a profile whose repoUrl is %s", (_label, repoUrl, message) => {
+    // Arrange
     setRequiredEnv();
     stubProfiles(
       JSON.stringify({
-        repo: "~/repositories/test",
+        repoUrl,
         dataSource: "test-source",
         variants: [
           {
             stages: [{ agent: "ralph", role: "primary" }],
             match: { projects: [PROJECT], commentTrigger: TRIGGER },
-            beforeAgent: { targetStatus: "In Progress" },
-            afterAgent: { targetStatus: "Ready for Review" },
           },
         ],
       }),
     );
 
-    const config = loadConfig();
-
-    for (const profile of config.profiles) {
-      expect(profile.repoPath).toMatch(/^\//);
-      expect(profile.repoPath).not.toContain("~");
-    }
+    // Act & Assert
+    expect(() => loadConfig()).toThrow(message);
   });
 
   it("rejects variants with missing commentTrigger", () => {
     setRequiredEnv();
     stubProfiles(
       JSON.stringify({
-        repo: "/tmp/test",
+        repoUrl: "https://dev.azure.com/org/project/_git/test",
         dataSource: "test-source",
         variants: [
           {
@@ -214,7 +217,7 @@ describe("loadConfig", () => {
     setRequiredEnv();
     stubProfiles(
       JSON.stringify({
-        repo: "/tmp/test",
+        repoUrl: "https://dev.azure.com/org/project/_git/test",
         dataSource: "test-source",
         variants: [
           {
@@ -248,7 +251,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           model: "claude-sonnet-4",
           variants: [
@@ -272,7 +275,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           model: "claude-sonnet-4",
           variants: [
@@ -295,7 +298,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           variants: [
             {
@@ -317,7 +320,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           model: "claude-sonnet-4",
           variants: [
@@ -350,7 +353,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           mcpServers: ["jira-kentico", "ado"],
           variants: [
@@ -367,7 +370,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           mcpServers: [
             { name: "jira-kentico", env: { JIRA_ISSUE_KEY: "$task.id" } },
@@ -391,7 +394,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           mcpServers: [{ env: { FOO: "bar" } }],
           variants: [
@@ -406,7 +409,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           mcpServers: [{ name: "ado", env: {} }],
           variants: [
@@ -423,7 +426,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           mcpServers: ["ado", { name: "ado", env: { ADO_PROJECT: "Proj" } }],
           variants: [
@@ -447,7 +450,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           vcsProvider: "github",
           variants: [
@@ -464,7 +467,7 @@ describe("loadConfig", () => {
       setRequiredEnv();
       stubProfiles(
         JSON.stringify({
-          repo: "/tmp/test",
+          repoUrl: "https://dev.azure.com/org/project/_git/test",
           dataSource: "test-source",
           vcsProvider: "ado",
           repoPat: "CUSTOM_ADO_PAT",

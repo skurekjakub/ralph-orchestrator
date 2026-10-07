@@ -36,7 +36,7 @@ function writeFixture(config: Record<string, unknown>, cli: string) {
   writeFileSync(
     join(profileDir, "profile.json"),
     JSON.stringify({
-      repo: tempDir,
+      repoUrl: "https://dev.azure.com/org/project/_git/docs",
       dataSource: "jira",
       cli,
       variants: [

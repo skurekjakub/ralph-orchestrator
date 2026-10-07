@@ -31,6 +31,7 @@ import type { IProfileSetupService } from "../../src/services/profile-setup-serv
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer";
 import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
+import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-manager";
 import type { AppStartupDeps } from "../../src/app-startup";
 import type { RalphResult } from "../../src/container/types";
 import type { ICliExecutor } from "../../src/container/cli-executor-factory";
@@ -372,6 +373,17 @@ export function createMockProfileSetupService(
     prepareForStage: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as Mocked<IProfileSetupService>;
+}
+
+/** Create a mock TaskWorkspaceManager whose workspaces are prepared and cleaned up without touching the disk. */
+export function createMockWorkspaceManager(
+  overrides: Partial<Mocked<ITaskWorkspaceManager>> = {},
+): Mocked<ITaskWorkspaceManager> {
+  return {
+    prepare: vi.fn().mockResolvedValue(undefined),
+    cleanup: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
 }
 
 /** Create a mock AgentPipelineExecutor with a default success result. */

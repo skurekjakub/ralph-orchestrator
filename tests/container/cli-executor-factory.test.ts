@@ -1,7 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { describe, it, expect, vi } from "vitest";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
@@ -29,16 +26,6 @@ function createFactory() {
 }
 
 describe("CliExecutorFactory", () => {
-  let repoPath: string;
-
-  beforeEach(() => {
-    repoPath = mkdtempSync(join(tmpdir(), "executor-factory-"));
-  });
-
-  afterEach(() => {
-    rmSync(repoPath, { recursive: true, force: true });
-  });
-
   describe("create", () => {
     it("creates a CopilotExecutor for a stage that runs Copilot, without loading agents", async () => {
       // Arrange
@@ -60,7 +47,7 @@ describe("CliExecutorFactory", () => {
       const { compose } = createMockCompose();
       vi.mocked(compose.execWithTimeout).mockImplementation(() => fakeCliProcess(""));
       const stage = makeStage({ agent: "ralph.root", cli: CliType.Claude });
-      const profile = makeProfile({ id: "docs", repoPath, stages: [stage] });
+      const profile = makeProfile({ id: "docs", stages: [stage] });
 
       // Act
       const executor = await factory.create(compose, profile, stage, createMockLogger());

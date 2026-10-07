@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import type { ZodError } from "zod";
-import { resolvePath } from "../util/path";
 import { toErrorMessage } from "../util/error";
 import {
   discoverMcpServers,
@@ -20,8 +19,9 @@ import { locateStages, validateStageClis } from "./stages";
 import type { ValidationCollector } from "./types";
 
 /**
- * Validate every `profiles/<id>/profile.json`: its schema, the repo, compose file, agents, skills
- * and MCP servers it references, its stages' CLIs and models, and the repo-sync PAT.
+ * Validate every `profiles/<id>/profile.json`: its schema (including an https `repoUrl` without
+ * credentials), the compose file, agents, skills and MCP servers it references, its stages' CLIs and
+ * models, and the `repoPat` env var that clones the repo.
  *
  * A profile that breaks the schema gets only its schema errors reported.
  *
@@ -87,14 +87,6 @@ export async function validateProfiles({ errors, warnings }: ValidationCollector
     }
     const profile = parsed.data;
 
-    const repoPath = resolvePath(profile.repo);
-    if (!existsSync(repoPath)) {
-      errors.push(
-        `${prefix}: repo path does not exist: ${repoPath}\n` +
-          `  Clone the repository or update the path in profile.json`,
-      );
-    }
-
     let variants: IAgentProfile[];
     try {
       variants = resolveProfileVariants(profile, dirName);
@@ -137,7 +129,7 @@ export async function validateProfiles({ errors, warnings }: ValidationCollector
     const { repoPat } = variants[0];
     if (!process.env[repoPat]) {
       errors.push(
-        `${prefix}: env var ${repoPat} is not set (required for repo-sync hook)\n` +
+        `${prefix}: env var ${repoPat} is not set (required to clone and fetch ${profile.repoUrl})\n` +
           `  Set ${repoPat} in .env or change repoPat in profile.json`,
       );
     }

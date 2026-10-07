@@ -3,6 +3,7 @@ import type { WorkItem } from "../datasource/types";
 import { buildTriggerParams } from "../container/setup/agent-includes";
 import { join } from "node:path";
 import { slugifyBranchName } from "../util/branch";
+import { repoCachePaths } from "./task-workspace-manager";
 
 /** Computed per-task data that flows through the entire pipeline. */
 export interface TaskContext {
@@ -18,6 +19,11 @@ export interface TaskContext {
   readonly prUrl: string | null;
   /** Absolute path to this task's log directory. */
   readonly outputDir: string;
+  /**
+   * Absolute host path of this task's workspace, `cache/workspaces/<taskId>`: its own checkout of the
+   * target repository, mounted at `/workspace` in the agent container and the MCP sidecar.
+   */
+  readonly workspacePath: string;
   /** Cancellation signal — aborted when the orchestrator initiates shutdown. */
   readonly signal: AbortSignal;
   /** Optional callback invoked for each line of real-time tool output. */
@@ -38,8 +44,9 @@ export interface TaskCallbacks {
 /**
  * Build a {@link TaskContext} from raw orchestrator inputs.
  *
- * Converts raw trigger params (`string[]`) to a key-value `Record` and
- * determines whether the issue is in a revision status.
+ * Converts raw trigger params (`string[]`) to a key-value `Record`,
+ * determines whether the issue is in a revision status, and places the
+ * task's workspace under the orchestrator checkout's `cache/workspaces/`.
  */
 export function buildTaskContext(
   workItem: WorkItem,
@@ -73,6 +80,7 @@ export function buildTaskContext(
     ralphchivesEnabled: ralphchivesConfig.enabled,
     prUrl: prUrl ?? null,
     outputDir: logsDir ? join(logsDir, taskId) : "",
+    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, taskId),
     signal: signal ?? new AbortController().signal,
     onToolOutput,
     onPreToolUse,

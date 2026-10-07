@@ -191,7 +191,7 @@ export function makeProfile(
   const stages = overrides.stages ?? [makeStage({ agent: agentName })];
   return {
     id,
-    repoPath: "/tmp/test-repo",
+    repoUrl: "https://dev.azure.com/org/project/_git/test-repo",
     composeFile: "profiles/ralph-default/docker-compose.yml",
     agentName,
     displayName: agentName.replace(/^ralph\./, ""),
@@ -289,8 +289,8 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
   const cli = overrides.cli ?? CliType.Copilot;
   return {
     profileId: "ralph-default",
-    repo: "/tmp/test-repo",
-    targetRepoPath: "/tmp/test-repo",
+    repo: "/tmp/test-workspaces/DF-100-1234567890000",
+    targetRepoPath: "/tmp/test-workspaces/DF-100-1234567890000",
     cli,
     cliTools: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken).get(cli).toolNames,
     model: "",
@@ -395,6 +395,7 @@ export function makeTaskContext(overrides: Partial<TaskContext> = {}): TaskConte
     ralphchivesEnabled: false,
     prUrl: null,
     outputDir: "",
+    workspacePath: "/tmp/test-workspaces/DF-100-1234567890000",
     signal: new AbortController().signal,
     onToolOutput: undefined,
     onPreToolUse: undefined,

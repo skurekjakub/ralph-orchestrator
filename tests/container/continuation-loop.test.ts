@@ -90,6 +90,7 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
 
   return new ContainerManager({
     profile,
+    workspacePath: "/tmp/test-workspaces/DF-100-1234567890000",
     compose,
     cliRuntimes: new CliRuntimeRegistry({ runtimes: [createMockCliRuntime(CliType.Copilot)] }),
     executorFactory,

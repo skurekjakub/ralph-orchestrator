@@ -1,7 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { describe, it, expect, vi } from "vitest";
 import { CopilotExecutor } from "../../../src/container/cli-executors/copilot-executor";
 import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime";
 import { DEFAULT_COPILOT_MODEL } from "../../../src/cli/model-catalog";
@@ -10,20 +7,10 @@ import { makeProfile } from "../../helpers/factories";
 import { createMockCompose, createMockLogger, fakeCliProcess } from "../../helpers/mocks";
 
 describe("CopilotExecutor", () => {
-  let repoPath: string;
-
-  beforeEach(() => {
-    repoPath = mkdtempSync(join(tmpdir(), "copilot-executor-"));
-  });
-
-  afterEach(() => {
-    rmSync(repoPath, { recursive: true, force: true });
-  });
-
   function createExecutor(overrides: Partial<IAgentProfile> = {}, stdout = "done\n") {
     const { compose } = createMockCompose();
     vi.mocked(compose.execWithTimeout).mockImplementation(() => fakeCliProcess(stdout));
-    const profile = makeProfile({ repoPath, agentName: "ralph.ralph", ...overrides });
+    const profile = makeProfile({ agentName: "ralph.ralph", ...overrides });
     const executor = new CopilotExecutor({
       compose,
       profile,
@@ -97,17 +84,6 @@ describe("CopilotExecutor", () => {
 
       // Assert
       expect(exec(compose).args.join(" ")).toContain(`--model ${DEFAULT_COPILOT_MODEL}`);
-    });
-
-    it("writes no prompt file into the target repo", async () => {
-      // Arrange
-      const { executor } = createExecutor();
-
-      // Act
-      await executor.run("test prompt");
-
-      // Assert
-      expect(existsSync(join(repoPath, ".ralph"))).toBe(false);
     });
 
     it("returns its stdout as the agent text", async () => {

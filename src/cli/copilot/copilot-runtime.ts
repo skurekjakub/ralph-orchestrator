@@ -31,10 +31,7 @@ export class CopilotRuntime implements ICliRuntime {
   readonly toolNames = COPILOT_TOOL_NAMES;
   readonly mountsEachRenderedItem = true;
   readonly egressDomains = [".githubcopilot.com", "api.github.com", "github.com"];
-  /**
-   * The agents and skills directories count whole: the mount points Docker leaves behind in them outlive
-   * the run, and a later task mounts a different set.
-   */
+  /** The agents and skills directories count whole: they hold one mount point per agent and skill the task mounts. */
   readonly workspaceMountTargets = [
     workspaceMountTarget(COPILOT_SETTINGS_PATH, false),
     workspaceMountTarget(COPILOT_HOOKS_CONFIG_PATH, false),

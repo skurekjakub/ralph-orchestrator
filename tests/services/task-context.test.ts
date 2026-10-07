@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { join } from "node:path";
 import { buildTaskContext } from "../../src/services/task-context";
 import { makeWorkItem, makeProfile } from "../helpers/factories";
 import type { IRalphchivesConfig } from "../../src/config/types";
@@ -23,6 +24,14 @@ describe("buildTaskContext", () => {
     expect(ctx.taskBranch).toBe("ralph/DF-100-test-work-item-df-100");
     expect(ctx.isRevision).toBe(false);
     expect(ctx.ralphchivesEnabled).toBe(false);
+  });
+
+  it("places the task's workspace under the checkout's cache/workspaces, named after the task id", () => {
+    // Act
+    const ctx = buildTaskContext(makeWorkItem(KEY), makeProfile(), "DF-100-123", ralphchivesConfig);
+
+    // Assert
+    expect(ctx.workspacePath).toBe(join(process.cwd(), "cache", "workspaces", "DF-100-123"));
   });
 
   it("converts string[] triggerParams to Record", () => {

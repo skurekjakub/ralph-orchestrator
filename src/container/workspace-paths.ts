@@ -1,6 +1,6 @@
 import { join, posix } from "node:path";
 
-/** The target repo's root inside the agent container; the repo is bind-mounted here. */
+/** The workspace root inside the agent container and the MCP sidecar; the task's workspace is bind-mounted here. */
 export const CONTAINER_WORKSPACE_DIR = "/workspace";
 
 /** Ralph's runtime directory inside the workspace: MCP config, CLI homes, logs and task artifacts. */
@@ -24,12 +24,26 @@ export function workspaceMountTarget(containerPath: string, isDirectory: boolean
 }
 
 /**
- * The host path a container path inside the workspace maps to through the target-repo bind mount.
+ * The host path a container path inside the workspace maps to through the workspace bind mount.
  *
+ * @param workspacePath The task's workspace on the host.
  * @throws Error when `containerPath` is not inside `/workspace`.
  */
-export function hostWorkspacePath(repoPath: string, containerPath: string): string {
+export function hostWorkspacePath(workspacePath: string, containerPath: string): string {
   const rel = workspaceRelative(containerPath);
   if (rel === undefined) throw new Error(`${containerPath} is not inside ${CONTAINER_WORKSPACE_DIR}`);
-  return join(repoPath, ...rel.split("/"));
+  return join(workspacePath, ...rel.split("/"));
+}
+
+/**
+ * The container paths of the directories that hold `mountTargets`: a directory target itself, a file
+ * target's parent. The workspace root is left out, and each directory is listed once.
+ *
+ * @param mountTargets Paths relative to `/workspace` as {@link workspaceMountTarget} returns them.
+ */
+export function mountTargetDirs(mountTargets: readonly string[]): string[] {
+  const dirs = mountTargets
+    .map((target) => (target.endsWith("/") ? target.slice(0, -1) : posix.dirname(target)))
+    .filter((dir) => dir !== ".");
+  return [...new Set(dirs)].map((dir) => `${CONTAINER_WORKSPACE_DIR}/${dir}`);
 }

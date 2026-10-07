@@ -28,7 +28,7 @@ describe("LocalCopilotExecutor", () => {
   });
 
   function createExecutor(): LocalCopilotExecutor {
-    const profile = makeProfile({ id: "docs", agentName: "ralph.scientist", repoPath: "/target" });
+    const profile = makeProfile({ id: "docs", agentName: "ralph.scientist" });
     return new LocalCopilotExecutor(profile, root, createMockLogger());
   }
 

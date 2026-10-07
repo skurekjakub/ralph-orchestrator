@@ -6,13 +6,13 @@ import type { IContainerManager } from "../container/manager";
 import type { IResourceManager } from "./task-resource-manager";
 import type { ITaskResultWriter } from "./task-result-writer";
 import type { IIssueManager } from "./issue-manager";
-import type { ILifecycleHook } from "../container/lifecycle";
 import type { IProfileSetupService } from "./profile-setup-service";
 import type { IAgentPipelineExecutor } from "./agent-pipeline-executor";
+import type { ITaskWorkspaceManager } from "./task-workspace-manager";
 import { TransitionPhase } from "../orchestrator-types";
 import type { TaskContext } from "./task-context";
 import { toErrorMessage } from "../util/error";
-import { rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** Public contract for the task execution pipeline. */
@@ -27,10 +27,12 @@ export interface ITaskRunner {
  * Processes a single work item end-to-end:
  *
  * 1. Transition to "In Progress" + post start comment
- * 2. Start the containers for the matched profile
- * 3. Execute the agent inside the container
- * 4. Save CLI output + collect audit logs
- * 5. Save execution summary
+ * 2. Create the task's workspace on the task branch
+ * 3. Start the containers for the matched profile, with the workspace mounted at `/workspace`
+ * 4. Execute the agent inside the container
+ * 5. Save CLI output + collect audit logs
+ * 6. Save execution summary, run post-task hooks
+ * 7. Delete the workspace when the task succeeded, keep it otherwise
  *
  * Also provides lifecycle helpers called by the Orchestrator after `run()` completes:
  * - {@link transitionToReview} — move issue to "Ready for Review"
@@ -45,7 +47,7 @@ export class TaskRunner implements ITaskRunner {
   private readonly issueManager: IIssueManager;
   private readonly profileSetup: IProfileSetupService;
   private readonly pipelineExecutor: IAgentPipelineExecutor;
-  private readonly preExecuteHooks: readonly ILifecycleHook[];
+  private readonly workspaceManager: ITaskWorkspaceManager;
 
   constructor({
     logger,
@@ -55,7 +57,7 @@ export class TaskRunner implements ITaskRunner {
     issueManager,
     profileSetup,
     pipelineExecutor,
-    preExecuteHooks = [],
+    workspaceManager,
   }: {
     logger: Logger;
     containerFactory: ContainerManagerFactory;
@@ -64,7 +66,7 @@ export class TaskRunner implements ITaskRunner {
     issueManager: IIssueManager;
     profileSetup: IProfileSetupService;
     pipelineExecutor: IAgentPipelineExecutor;
-    preExecuteHooks?: readonly ILifecycleHook[];
+    workspaceManager: ITaskWorkspaceManager;
   }) {
     this.logger = logger;
     this.containerFactory = containerFactory;
@@ -73,7 +75,7 @@ export class TaskRunner implements ITaskRunner {
     this.issueManager = issueManager;
     this.profileSetup = profileSetup;
     this.pipelineExecutor = pipelineExecutor;
-    this.preExecuteHooks = preExecuteHooks;
+    this.workspaceManager = workspaceManager;
   }
 
   /**
@@ -102,12 +104,20 @@ export class TaskRunner implements ITaskRunner {
   }
 
   /**
-   * Run the full pipeline for a single issue + profile combination.
+   * Run the full pipeline for a single issue + profile combination, then delete the task's workspace when
+   * the task succeeded. A failed task keeps its workspace for inspection.
    *
    * @returns The task result (status, duration, PR URL, etc.)
    */
   async run(ctx: TaskContext): Promise<RalphResult> {
-    const container = this.containerFactory.create(ctx.profile);
+    const result = await this.runPipeline(ctx);
+    await this.workspaceManager.cleanup(ctx, result.status);
+    return result;
+  }
+
+  /** Run every phase of the task; a phase that throws ends it with an error result. */
+  private async runPipeline(ctx: TaskContext): Promise<RalphResult> {
+    const container = this.containerFactory.create(ctx.profile, ctx.workspacePath);
     container.onToolOutput = ctx.onToolOutput;
     container.onPreToolUse = ctx.onPreToolUse;
 
@@ -171,9 +181,7 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
-    const ralphDir = join(ctx.profile.repoPath, ".ralph");
-    this.logger.info(`Cleaning ${ralphDir}...`);
-    rmSync(ralphDir, { recursive: true, force: true });
+    await this.workspaceManager.prepare(ctx);
 
     // The container registers an abort listener internally — it will stop itself
     // when ctx.signal fires, allowing shutdown() to cancel without needing a
@@ -197,11 +205,6 @@ export class TaskRunner implements ITaskRunner {
     container.registerLogSources(ctx.taskId, ctx.workItem.id, ctx.outputDir);
 
     await container.setup();
-
-    for (const hook of this.preExecuteHooks) {
-      this.logger.info(`Running lifecycle hook: ${hook.name}...`);
-      await hook.execute(container, ctx, this.logger);
-    }
   }
 
   private async executeAgent(ctx: TaskContext, container: IContainerManager): Promise<RalphResult> {

@@ -10,8 +10,11 @@ import { resolve } from "node:path";
  * that are computed at runtime.
  */
 export interface ComposeEnvConfig {
-  /** Absolute path to the target repository on the host (mounted as /workspace in the container). */
-  targetRepoPath: string;
+  /**
+   * Absolute host path of the task's workspace, its checkout of the target repository, interpolated as
+   * `TARGET_REPO_PATH` and mounted at `/workspace` in the agent container and the MCP sidecar.
+   */
+  workspacePath: string;
   /** Absolute path to the profile-specific squid.conf (generated at startup from baseline + MCP proxy domains). */
   squidConfPath: string;
 }
@@ -65,7 +68,7 @@ export class ComposeClient implements IComposeClient {
     this.env = {
       ...(process.env as Record<string, string>),
       // Computed paths — not in .env, needed for volume mount interpolation.
-      TARGET_REPO_PATH: envConfig.targetRepoPath,
+      TARGET_REPO_PATH: envConfig.workspacePath,
       SHARED_HOOKS_PATH: resolve(process.cwd(), "shared/hooks"),
       SQUID_CONF_PATH: envConfig.squidConfPath,
       // Host UID/GID for sidecar build args — ensures the sidecar process owns

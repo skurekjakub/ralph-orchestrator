@@ -16,7 +16,7 @@ import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
 import type { ILogSourceRegistry } from "./log-source-registry";
 import type { IAgentSessionRunner } from "./agent-session-runner";
-import { hostWorkspacePath, RALPH_CONTAINER_DIR } from "./workspace-paths";
+import { hostWorkspacePath, mountTargetDirs, RALPH_CONTAINER_DIR } from "./workspace-paths";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {
@@ -83,8 +83,8 @@ export interface IContainerManager {
  * Manages the full container lifecycle for a single agent profile using
  * `docker compose` directly.
  *
- * Each ContainerManager is bound to one {@link IAgentProfile} (repo, compose file,
- * stages, timeout). The Orchestrator creates one per task.
+ * Each ContainerManager is bound to one {@link IAgentProfile} (compose file, stages,
+ * timeout) and one task's workspace. The Orchestrator creates one per task.
  *
  * Delegates low-level concerns to:
  * - {@link ComposeClient} — docker compose process spawning and env injection
@@ -104,6 +104,8 @@ export class ContainerManager implements IContainerManager {
   private readonly logger: Logger;
   private readonly containerLogger: Logger;
   private readonly profile: IAgentProfile;
+  /** The task's workspace on the host, bind-mounted at `/workspace`. */
+  private readonly workspacePath: string;
   private readonly logRegistry: ILogSourceRegistry;
   private readonly enableContinuation: boolean;
   private readonly cliRuntimes: ICliRuntimeRegistry;
@@ -132,6 +134,7 @@ export class ContainerManager implements IContainerManager {
 
   constructor({
     profile,
+    workspacePath,
     compose,
     cliRuntimes,
     executorFactory,
@@ -144,6 +147,7 @@ export class ContainerManager implements IContainerManager {
     enableContinuation = false,
   }: {
     profile: IAgentProfile;
+    workspacePath: string;
     compose: IComposeClient;
     cliRuntimes: ICliRuntimeRegistry;
     executorFactory: ICliExecutorFactory;
@@ -156,6 +160,7 @@ export class ContainerManager implements IContainerManager {
     enableContinuation?: boolean;
   }) {
     this.profile = profile;
+    this.workspacePath = workspacePath;
     this.logger = logger;
     this.containerLogger = containerLogger ?? logger;
     this.compose = compose;
@@ -181,14 +186,20 @@ export class ContainerManager implements IContainerManager {
   /**
    * Build and start the containers (`docker compose up -d --build`).
    *
-   * Creates `.ralph/` and each CLI home that lives in the target repo on the host first. Docker creates the
-   * mount points of files mounted into them as root, inside a root-owned directory when the directory does
-   * not exist yet, and the host could then no longer delete `.ralph/` before the next task.
+   * Creates `.ralph/`, each CLI home and every directory the CLIs mount into in the workspace on the host
+   * first. Docker creates a mount point's missing parent directories as root, and the host could then not
+   * delete the workspace once the task is done.
    */
   async start(signal: AbortSignal): Promise<void> {
     await this.compose.checkDocker();
-    for (const dir of [RALPH_CONTAINER_DIR, ...this.layouts.map((layout) => layout.configDir)]) {
-      mkdirSync(hostWorkspacePath(this.profile.repoPath, dir), { recursive: true });
+    const mountTargets = this.containerRuntimes.flatMap((runtime) => runtime.workspaceMountTargets);
+    const dirs = [
+      RALPH_CONTAINER_DIR,
+      ...this.layouts.map((layout) => layout.configDir),
+      ...mountTargetDirs(mountTargets),
+    ];
+    for (const dir of dirs) {
+      mkdirSync(hostWorkspacePath(this.workspacePath, dir), { recursive: true });
     }
     this.logger.info(`Starting containers (compose: ${this.profile.composeFile})...`);
 
@@ -270,8 +281,8 @@ export class ContainerManager implements IContainerManager {
    * Create the executor of a pipeline stage's CLI.
    *
    * For `mode: "container"`, the executor runs the CLI inside the Docker container.
-   * For `mode: "local"`, it runs the CLI on the host in the orchestrator repo directory. The target repo
-   * path is available to the agent via the `{{ repo }}` template variable.
+   * For `mode: "local"`, it runs the CLI on the host in the orchestrator repo directory. The task's
+   * workspace path is available to the agent via the `{{ repo }}` template variable.
    */
   async createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor> {
     const stageProfile = deriveStageProfile(this.profile, stage);
@@ -305,7 +316,7 @@ export class ContainerManager implements IContainerManager {
   }
 
   async sessionStartAudited(cli: CliType, sessionId: string): Promise<boolean | undefined> {
-    const auditPath = hostWorkspacePath(this.profile.repoPath, this.profile.auditLogPath);
+    const auditPath = hostWorkspacePath(this.workspacePath, this.profile.auditLogPath);
     const audit = await readFile(auditPath, "utf-8").catch((err: NodeJS.ErrnoException) => {
       if (err.code === "ENOENT") return "";
       throw err;

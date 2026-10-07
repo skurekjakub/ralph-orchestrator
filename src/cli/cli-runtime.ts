@@ -99,8 +99,9 @@ export interface ICliRuntime {
   /** Domains the CLI itself reaches (its model API), added to the task's Squid allowlist. */
   readonly egressDomains: readonly string[];
   /**
-   * Paths relative to `/workspace` that the CLI's mounts create inside the target repo; a trailing `/` marks a
-   * directory. Those outside `.ralph/` go into the target repo's git exclude.
+   * Paths relative to `/workspace` that the CLI's mounts create inside the task's workspace; a trailing `/`
+   * marks a directory. Their directories are created on the host before compose up, and those outside
+   * `.ralph/` go into the workspace's git exclude.
    */
   readonly workspaceMountTargets: readonly string[];
   /** Mounts and environment the CLI adds to the `app` service for one task. */

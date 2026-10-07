@@ -95,7 +95,7 @@ async function main() {
   clearTriggerCache(ctx);
   clearLogFiles(ctx);
 
-  console.log("\n7. Cleaning git branches in target repo...");
+  console.log("\n7. Cleaning the issue's branches on the remote and its workspaces...");
   cleanBranches(ctx);
 
   console.log("\n8. Cleaning orphaned Docker containers...");

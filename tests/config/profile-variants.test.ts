@@ -10,7 +10,7 @@ import { CliType, ReasoningEffort, StageMode } from "../../src/config/types";
 /** A schema-valid profile.json with one single-stage variant, merged with `overrides`. */
 function profileFile(overrides: Record<string, unknown> = {}) {
   return profileFileSchema.parse({
-    repo: "/tmp/repo",
+    repoUrl: "https://dev.azure.com/org/project/_git/repo",
     dataSource: "jira",
     variants: [{ stages: [{ agent: "ralph.ralph", role: "primary" }], match: { commentTrigger: "@Ralph" } }],
     ...overrides,
@@ -43,6 +43,27 @@ describe("resolveProfileVariants", () => {
     expect(variants.map((v) => v.variantKey)).toEqual([
       "ralph-docs:ralph.ralph:@Ralph",
       "ralph-docs:ralph.malph:@Malph",
+    ]);
+  });
+
+  it("gives every variant the profile's repoUrl and the repoPat its VCS provider defaults to", () => {
+    // Arrange
+    const parsed = profileFile({
+      repoUrl: "https://github.com/org/docs",
+      vcsProvider: "github",
+      variants: [
+        { stages: [{ agent: "ralph.ralph", role: "primary" }], match: { commentTrigger: "@Ralph" } },
+        { stages: [{ agent: "ralph.malph", role: "primary" }], match: { commentTrigger: "@Malph" } },
+      ],
+    });
+
+    // Act
+    const variants = resolveProfileVariants(parsed, "ralph-docs");
+
+    // Assert
+    expect(variants.map((v) => [v.repoUrl, v.repoPat])).toEqual([
+      ["https://github.com/org/docs", "GH_TOKEN"],
+      ["https://github.com/org/docs", "GH_TOKEN"],
     ]);
   });
 
@@ -314,7 +335,7 @@ describe("readProfileFile", () => {
 
   it("throws a ZodError when the profile breaks the schema", () => {
     // Arrange
-    const path = writeProfileJson(JSON.stringify({ repo: "/tmp/repo" }));
+    const path = writeProfileJson(JSON.stringify({ repoUrl: "https://dev.azure.com/org/project/_git/repo" }));
 
     // Act & Assert
     expect(() => readProfileFile(path)).toThrow(ZodError);

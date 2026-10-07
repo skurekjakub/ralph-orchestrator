@@ -1,5 +1,5 @@
 {
-  "repo": "~/repositories/ralph-repositories/kentico-docs-jekyll",
+  "repoUrl": "https://dev.azure.com/KenticoCustomerSuccess/CustomerEducation/_git/kentico-docs-jekyll",
   "dataSource": "kentico-jira",
   "vcsProvider": "ado",
   "cli": "copilot",
@@ -15,7 +15,6 @@
     ".pypi.org",
     ".pythonhosted.org"
   ],
-  "cleanPaths": ["/workspace/.ralph/tasks"],
   "maxContinuations": 3,
   "mcpServers": [
     {

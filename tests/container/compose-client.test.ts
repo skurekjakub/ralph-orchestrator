@@ -21,7 +21,7 @@ const SVC_SIDECAR = "mcp-sidecar";
 
 describe("ComposeClient", () => {
   const testConfig = {
-    targetRepoPath: "/home/user/repos/target-repo",
+    workspacePath: "/home/user/ralph/cache/workspaces/DF-100-1234567890000",
     squidConfPath: "/fake/squid.conf",
   };
 
@@ -36,7 +36,7 @@ describe("ComposeClient", () => {
     const callArgs = mockExeca.mock.calls[0];
     const env = callArgs[2]?.env as Record<string, string>;
 
-    expect(env.TARGET_REPO_PATH).toBe("/home/user/repos/target-repo");
+    expect(env.TARGET_REPO_PATH).toBe("/home/user/ralph/cache/workspaces/DF-100-1234567890000");
     expect(env.SHARED_HOOKS_PATH).toMatch(/shared\/hooks$/);
     expect(env.SQUID_CONF_PATH).toBe("/fake/squid.conf");
   });

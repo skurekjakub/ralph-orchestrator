@@ -15,6 +15,7 @@ import { validateProfiles } from "../../src/validate/profiles";
 import { CliType } from "../../src/config/types";
 import { makeAgentTemplate } from "../helpers/factories";
 const PROJECT = "DF";
+const REPO_URL = "https://dev.azure.com/org/project/_git/docs";
 
 let tempDir: string;
 let origCwd: string;
@@ -49,7 +50,7 @@ function writeValidProfile(
   }
 
   const defaultJson = {
-    repo: tempDir,
+    repoUrl: REPO_URL,
     variants: [
       {
         stages: [{ agent: agentFiles[0]?.replace(".agent.md", "") ?? "ralph", role: "primary" }],
@@ -72,7 +73,7 @@ function profileWithStages(
   } = {},
 ): Record<string, unknown> {
   return {
-    repo: tempDir,
+    repoUrl: REPO_URL,
     ...extra.profile,
     variants: [
       {
@@ -150,7 +151,8 @@ describe("validateProfiles", () => {
     expect(c.errors.some((e) => e.includes("not valid JSON"))).toBe(true);
   });
 
-  it("errors when repo path is missing", async () => {
+  it("errors when repoUrl is missing", async () => {
+    // Arrange
     writeValidProfile("test", {
       profileJson: {
         variants: [
@@ -159,29 +161,64 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
+
+    // Act
     await validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("repo path is required"))).toBe(true);
+
+    // Assert
+    expect(c.errors).toContain("profiles/test/repoUrl: repoUrl is required");
   });
 
-  it("errors when repo path does not exist", async () => {
+  it.each([
+    ["a local path", "/home/user/repos/docs", "repoUrl must be an https:// URL"],
+    ["an ssh remote", "git@ssh.dev.azure.com:v3/org/project/docs", "repoUrl must be an https:// URL"],
+    ["an http URL", "http://dev.azure.com/org/project/_git/docs", "repoUrl must be an https:// URL"],
+    [
+      "a URL carrying credentials",
+      "https://user:secret@dev.azure.com/org/project/_git/docs",
+      "repoUrl must not carry credentials; the orchestrator authenticates with the repoPat env var",
+    ],
+    [
+      "a URL carrying a user name",
+      "https://org@dev.azure.com/org/project/_git/docs",
+      "repoUrl must not carry credentials; the orchestrator authenticates with the repoPat env var",
+    ],
+  ])("errors when repoUrl is %s", async (_label, repoUrl, message) => {
+    // Arrange
     writeValidProfile("test", {
       profileJson: {
-        repo: "/nonexistent/path/12345",
+        repoUrl,
         variants: [
           { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
         ],
       },
     });
     const c = collector();
+
+    // Act
     await validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("repo path does not exist"))).toBe(true);
+
+    // Assert
+    expect(c.errors).toContain(`profiles/test/repoUrl: ${message}`);
+  });
+
+  it("accepts an https repoUrl without checking that the repository is reachable", async () => {
+    // Arrange
+    writeValidProfile("test");
+    const c = collector();
+
+    // Act
+    await validateProfiles(c);
+
+    // Assert
+    expect(c.errors).toEqual([]);
   });
 
   it("accepts cli claude for a profile whose stages run in the container", async () => {
     // Arrange
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         cli: "claude",
         variants: [
           { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
@@ -206,7 +243,7 @@ describe("validateProfiles", () => {
 
   it("errors when no variants are defined", async () => {
     writeValidProfile("test", {
-      profileJson: { repo: tempDir, variants: [] },
+      profileJson: { repoUrl: REPO_URL, variants: [] },
     });
     const c = collector();
     await validateProfiles(c);
@@ -215,7 +252,7 @@ describe("validateProfiles", () => {
 
   it("errors when variants is not an array", async () => {
     writeValidProfile("test", {
-      profileJson: { repo: tempDir, variants: "nope" },
+      profileJson: { repoUrl: REPO_URL, variants: "nope" },
     });
     const c = collector();
     await validateProfiles(c);
@@ -225,7 +262,7 @@ describe("validateProfiles", () => {
   it("errors when stage agent name is missing", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [{ stages: [{ role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } }],
       },
     });
@@ -237,7 +274,7 @@ describe("validateProfiles", () => {
   it("errors when variant agent does not match an .agent.md file", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [
           {
             stages: [{ agent: "nonexistent", role: "primary" }],
@@ -256,7 +293,7 @@ describe("validateProfiles", () => {
   it("warns when variant has no match.projects", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { commentTrigger: "@go" } }],
       },
     });
@@ -268,7 +305,7 @@ describe("validateProfiles", () => {
   it("errors when variant has no commentTrigger", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [{ stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT] } }],
       },
     });
@@ -280,7 +317,7 @@ describe("validateProfiles", () => {
   it("errors when revisionStatuses has values not in statuses", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [
           {
             stages: [{ agent: "ralph", role: "primary" }],
@@ -302,7 +339,7 @@ describe("validateProfiles", () => {
   it("passes when revisionStatuses is a subset of statuses", async () => {
     writeValidProfile("test", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [
           {
             stages: [{ agent: "ralph", role: "primary" }],
@@ -327,7 +364,7 @@ describe("validateProfiles", () => {
       mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           variants: [
             {
               stages: [{ agent: "ralph", role: "primary", skills: ["nonexistent-skill"] }],
@@ -347,7 +384,7 @@ describe("validateProfiles", () => {
       writeFileSync(join(skillDir, "SKILL.md"), "# Skill");
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           variants: [
             {
               stages: [{ agent: "ralph", role: "primary", skills: ["my-skill"] }],
@@ -407,7 +444,7 @@ describe("validateProfiles", () => {
       mkdirSync(join(tempDir, "shared", "mcp-servers"), { recursive: true });
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           mcpServers: ["nonexistent-server"],
           variants: [
             { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
@@ -426,7 +463,7 @@ describe("validateProfiles", () => {
 
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           mcpServers: ["my-server"],
           variants: [
             { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },
@@ -440,18 +477,26 @@ describe("validateProfiles", () => {
   });
 
   it("errors when repoPat env var is not set", async () => {
+    // Arrange
     delete process.env.ADO_PAT;
     writeValidProfile("ralph-docs");
     const c = collector();
+
+    // Act
     await validateProfiles(c);
-    expect(c.errors.some((e) => e.includes("ADO_PAT") && e.includes("not set"))).toBe(true);
+
+    // Assert
+    expect(c.errors).toContain(
+      `profiles/ralph-docs: env var ADO_PAT is not set (required to clone and fetch ${REPO_URL})\n` +
+        "  Set ADO_PAT in .env or change repoPat in profile.json",
+    );
   });
 
   it("validates multiple profiles in a single run", async () => {
     writeValidProfile("profile-a");
     writeValidProfile("profile-b", {
       profileJson: {
-        repo: tempDir,
+        repoUrl: REPO_URL,
         variants: [
           { stages: [{ agent: "ralph", role: "primary" }], match: { projects: ["DOC"], commentTrigger: "@docs" } },
         ],
@@ -494,7 +539,7 @@ describe("validateProfiles", () => {
   it("returns the resolved variants of every valid profile", async () => {
     // Arrange
     writeValidProfile("profile-a");
-    writeValidProfile("profile-b", { profileJson: { repo: "/nonexistent/path/12345", variants: "nope" } });
+    writeValidProfile("profile-b", { profileJson: { repoUrl: REPO_URL, variants: "nope" } });
     const c = collector();
 
     // Act
@@ -648,7 +693,7 @@ describe("validateProfiles", () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           model: "opus",
           variants: [
             {
@@ -805,7 +850,7 @@ describe("validateProfiles", () => {
       writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT"] });
       writeValidProfile("test", {
         profileJson: {
-          repo: tempDir,
+          repoUrl: REPO_URL,
           mcpServers: ["ado"],
           variants: [
             { stages: [{ agent: "ralph", role: "primary" }], match: { projects: [PROJECT], commentTrigger: "@go" } },

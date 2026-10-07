@@ -500,7 +500,6 @@ describe("buildTemplateContext", () => {
   it("builds context from profile and issue", () => {
     const profile = makeProfile({
       id: "ralph-docs",
-      repoPath: "/home/user/repos/docs",
       agentName: "ralph.ralph",
       displayName: "ralph",
       model: "claude-opus-4.6",
@@ -515,10 +514,19 @@ describe("buildTemplateContext", () => {
       components: ["Frontend", "API"],
     });
 
-    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: issue, isRevision: false }), RUNTIMES);
+    const ctx = buildTemplateContext(
+      makeTaskContext({
+        profile,
+        workItem: issue,
+        isRevision: false,
+        workspacePath: "/ralph/cache/workspaces/DOC-500-1",
+      }),
+      RUNTIMES,
+    );
 
     expect(ctx.profileId).toBe("ralph-docs");
-    expect(ctx.repo).toBe("/home/user/repos/docs");
+    expect(ctx.repo).toBe("/ralph/cache/workspaces/DOC-500-1");
+    expect(ctx.targetRepoPath).toBe("/ralph/cache/workspaces/DOC-500-1");
     expect(ctx.cli).toBe("copilot");
     expect(ctx.model).toBe("claude-opus-4.6");
     expect(ctx.agentName).toBe("ralph.ralph");

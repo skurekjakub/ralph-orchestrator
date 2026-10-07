@@ -165,12 +165,22 @@ export const resourcesSchema = z
   .optional();
 
 export const profileFileSchema = z.object({
-  repo: z.string("repo path is required").min(1, "repo path is required"),
+  /** HTTPS URL of the target repository, without credentials: the orchestrator clones it and tasks push to it. */
+  repoUrl: z
+    .url({
+      protocol: /^https$/,
+      error: (issue) => (issue.input === undefined ? "repoUrl is required" : "repoUrl must be an https:// URL"),
+    })
+    .refine((url) => {
+      // Zod runs this check even after the URL check failed, on input `URL` cannot parse.
+      const parsed = URL.parse(url);
+      return parsed === null || (parsed.username === "" && parsed.password === "");
+    }, "repoUrl must not carry credentials; the orchestrator authenticates with the repoPat env var"),
   /** Data source key — must reference an entry in config.json `dataSources`. */
   dataSource: z.string("dataSource is required").min(1, "dataSource is required"),
   /** VCS platform for the repo (determines git auth format). */
   vcsProvider: z.enum(VcsProvider).default(VcsProvider.Ado),
-  /** Env var name containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  /** Env var name holding the git PAT that clones and fetches `repoUrl`. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
   repoPat: z.string().optional(),
   /** Default CLI for the profile's stages; `stages[].cli` overrides it per stage. */
   cli: z.enum(CliType).default(CliType.Copilot),

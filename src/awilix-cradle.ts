@@ -24,7 +24,6 @@ import { SkillTemplateRenderer } from "./container/setup/skill-includes";
 import { JitMcpConfigWriter } from "./container/setup/jit-mcp-params";
 import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
 import { CliExecutorFactory } from "./container/cli-executor-factory";
-import { RepoSyncHook, type ILifecycleHook } from "./container/lifecycle";
 import { ProfileSetupService } from "./services/profile-setup-service";
 import { AgentPipelineExecutor } from "./services/agent-pipeline-executor";
 import { VcsSourceClient } from "./services/vcs-source-client";
@@ -36,22 +35,21 @@ import { AgentSessionRunner } from "./container/agent-session-runner";
 import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
 import { AgentCatalogProvider } from "./container/setup/agent-catalogs";
 import { profileBuildPaths } from "./container/setup/build-paths";
+import { repoCachePaths, TaskWorkspaceManager } from "./services/task-workspace-manager";
 
 /**
- * The compose client of a profile's stack, whose Squid mounts the profile's generated `squid.conf`.
+ * The compose client of a profile's stack, whose Squid mounts the profile's generated `squid.conf` and whose
+ * agent and sidecar mount `workspacePath` at `/workspace`.
  *
  * @throws Error when profile setup has not written the profile's `squid.conf`.
  */
-function buildComposeClient(profile: IAgentProfile): IComposeClient {
+function buildComposeClient(profile: IAgentProfile, workspacePath: string): IComposeClient {
   const composeFiles = new ComposeFileResolver().resolve(profile);
   const squidConfPath = join(profileBuildPaths(process.cwd(), profile.id).buildDir, "squid.conf");
   if (!existsSync(squidConfPath)) {
     throw new Error(`Profile squid.conf not found at ${squidConfPath}; profile setup has not run for ${profile.id}`);
   }
-  return new ComposeClient(composeFiles, {
-    targetRepoPath: profile.repoPath,
-    squidConfPath,
-  });
+  return new ComposeClient(composeFiles, { workspacePath, squidConfPath });
 }
 
 /**
@@ -79,8 +77,8 @@ function buildContainerFactory({
   | "containerLogger"
 >): ContainerManagerFactory {
   return {
-    create: (profile) => {
-      const compose = buildComposeClient(profile);
+    create: (profile, workspacePath) => {
+      const compose = buildComposeClient(profile, workspacePath);
       const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
       const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
       const logRegistry = new LogSourceRegistry();
@@ -88,6 +86,7 @@ function buildContainerFactory({
       const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return new ContainerManager({
         profile,
+        workspacePath,
         compose,
         cliRuntimes,
         executorFactory,
@@ -101,7 +100,8 @@ function buildContainerFactory({
       });
     },
     forceDown: async (profile) => {
-      const compose = buildComposeClient(profile);
+      // `down` never reads the workspace mount's source, but compose refuses to load a mount with an empty one.
+      const compose = buildComposeClient(profile, repoCachePaths(process.cwd()).workspacesDir);
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
     },
     createLocalSession: (profile, stage) => {
@@ -140,9 +140,6 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     ralphchivesConfig: asValue(config.ralphchives),
     enableContinuation: asValue(config.enableContinuation),
     claudeAuth: asValue(config.claudeAuth),
-    preExecuteHooks: asFunction(({ cliRuntimes }: Pick<OrchestratorCradle, "cliRuntimes">) => [
-      new RepoSyncHook({ cliRuntimes }) as ILifecycleHook,
-    ]).singleton(),
 
     // ── Infrastructure ────────────────────────────────────────────────────────
     activityLog: asClass(ActivityLog).singleton(),
@@ -174,6 +171,14 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     jitMcpConfig: asClass(JitMcpConfigWriter).singleton(),
     overlayWriter: asClass(ComposeOverlayWriter).singleton(),
     containerFactory: asFunction(buildContainerFactory).singleton(),
+    workspaceManager: asFunction(
+      ({ logger, cliRuntimes }: Pick<OrchestratorCradle, "logger" | "cliRuntimes">) =>
+        new TaskWorkspaceManager({
+          logger,
+          cliRuntimes,
+          sourceReposDir: repoCachePaths(process.cwd()).sourceReposDir,
+        }),
+    ).singleton(),
     profileSetup: asClass(ProfileSetupService).singleton(),
     pipelineExecutor: asClass(AgentPipelineExecutor).singleton(),
 

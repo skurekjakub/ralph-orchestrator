@@ -10,19 +10,21 @@
  * The script:
  * 1. Runs AppStartup (validation, MCP server builds, profile setup) and finds the variant matching the trigger
  * 2. Renders the variant's task artifacts (agents, skills, compose overlay, JIT MCP config) as a task does
- * 3. Starts the stack, prepares the CLI homes, registers the log sources and runs the profile's setup script
- * 4. Runs the first stage's CLI, Claude Code or Copilot, on the prompt as given, without the task prompt template
- * 5. Collects logs and tears the stack down
+ * 3. Creates a workspace from the profile's repoUrl, on a local branch `local-run-<timestamp>` from `main`
+ * 4. Starts the stack, prepares the CLI homes, registers the log sources and runs the profile's setup script
+ * 5. Runs the first stage's CLI, Claude Code or Copilot, on the prompt as given, without the task prompt template
+ * 6. Collects logs and tears the stack down
  *
- * It does not sync the target repo to a task branch. Logs are saved to output/logs/local-run-<timestamp>/.
+ * Logs are saved to output/logs/local-run-<timestamp>/; the workspace is kept at cache/workspaces/local-run-<timestamp>/.
  */
 import "dotenv/config";
-import { mkdirSync, rmSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { AppStartup } from "../src/app-startup";
 import { createCradle } from "../src/awilix-cradle";
 import { consoleLogger } from "../src/logger";
 import type { TaskContext } from "../src/services/task-context";
+import { repoCachePaths } from "../src/services/task-workspace-manager";
 
 const [trigger, ...promptParts] = process.argv.slice(2);
 const prompt = promptParts.join(" ");
@@ -72,20 +74,21 @@ async function main() {
     profile,
     taskId,
     triggerParams: {},
-    sourceBranch: "",
-    taskBranch: "",
+    sourceBranch: "main",
+    taskBranch: taskId,
     isRevision: false,
     ralphchivesEnabled: config.ralphchives.enabled,
     prUrl: null,
     outputDir,
+    workspacePath: join(repoCachePaths(process.cwd()).workspacesDir, taskId),
     signal: new AbortController().signal,
   };
 
   logger.info("Rendering the variant's task artifacts...");
   await cradle.profileSetup.prepareForTask(ctx);
-  rmSync(join(profile.repoPath, ".ralph"), { recursive: true, force: true });
+  await cradle.workspaceManager.prepare(ctx);
 
-  const container = cradle.containerFactory.create(profile);
+  const container = cradle.containerFactory.create(profile, ctx.workspacePath);
   try {
     await container.start(ctx.signal);
     for (const layout of container.layouts) {
@@ -109,7 +112,7 @@ async function main() {
   } finally {
     logger.info("Tearing down containers...");
     await container.stop();
-    logger.info("Done");
+    logger.info(`Done; workspace kept at ${ctx.workspacePath}`);
   }
 }
 

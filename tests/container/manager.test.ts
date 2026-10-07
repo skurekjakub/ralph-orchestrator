@@ -5,11 +5,11 @@
  * executors, log collection and the session runner are mocks, the CLI runtimes are mock runtimes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ContainerManager } from "../../src/container/manager";
-import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
+import { CliRuntimeRegistry, type ICliRuntime } from "../../src/cli/cli-runtime";
 import { CliType, StageMode, type IAgentProfile } from "../../src/config/types";
 import type { IComposeClient } from "../../src/container/compose-client";
 import type { ICliExecutorFactory } from "../../src/container/cli-executor-factory";
@@ -83,6 +83,9 @@ function createMockSessionRunner(): Mocked<IAgentSessionRunner> {
 const claudeRuntime = createMockCliRuntime(CliType.Claude);
 const copilotRuntime = createMockCliRuntime(CliType.Copilot);
 
+/** The task's workspace on the host: a fresh temp directory per test. */
+let workspaceDir: string;
+
 interface Harness {
   manager: ContainerManager;
   compose: Mocked<IComposeClient>;
@@ -95,7 +98,10 @@ interface Harness {
 
 function createHarness(
   profile: IAgentProfile,
-  overrides: Partial<Omit<Harness, "manager">> & { enableContinuation?: boolean } = {},
+  overrides: Partial<Omit<Harness, "manager">> & {
+    enableContinuation?: boolean;
+    runtimes?: readonly ICliRuntime[];
+  } = {},
 ): Harness {
   const compose = overrides.compose ?? createMockComposeClient();
   const executorFactory = overrides.executorFactory ?? createMockExecutorFactory();
@@ -106,8 +112,9 @@ function createHarness(
 
   const manager = new ContainerManager({
     profile,
+    workspacePath: workspaceDir,
     compose,
-    cliRuntimes: new CliRuntimeRegistry({ runtimes: [claudeRuntime, copilotRuntime] }),
+    cliRuntimes: new CliRuntimeRegistry({ runtimes: overrides.runtimes ?? [claudeRuntime, copilotRuntime] }),
     executorFactory,
     logs,
     cleaner: createMockCleaner(),
@@ -121,15 +128,13 @@ function createHarness(
 }
 
 describe("ContainerManager", () => {
-  let tempDir: string;
-  /** A Claude Code container stage followed by a Copilot container stage, on a repo in `tempDir`. */
+  /** A Claude Code container stage followed by a Copilot container stage. */
   let mixedProfile: IAgentProfile;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tempDir = mkdtempSync(join(tmpdir(), "manager-test-"));
+    workspaceDir = mkdtempSync(join(tmpdir(), "manager-test-"));
     mixedProfile = makeProfile({
-      repoPath: tempDir,
       stages: [
         makeStage({ role: "write", agent: "ralph.ralph", cli: CliType.Claude }),
         makeStage({ role: "review", agent: "ralph.malph", cli: CliType.Copilot }),
@@ -138,7 +143,7 @@ describe("ContainerManager", () => {
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    rmSync(workspaceDir, { recursive: true, force: true });
   });
 
   describe("checkPrerequisites", () => {
@@ -177,15 +182,15 @@ describe("ContainerManager", () => {
       expect(manager.isRunning).toBe(true);
     });
 
-    it("creates .ralph and each container CLI's home in the target repo on the host before compose up", async () => {
+    it("creates .ralph and each container CLI's home in the workspace on the host before compose up", async () => {
       // Arrange
       const compose = createMockComposeClient();
       const dirsAtComposeUp: boolean[] = [];
       compose.compose.mockImplementation(() => {
         dirsAtComposeUp.push(
-          existsSync(join(tempDir, ".ralph")),
-          existsSync(join(tempDir, ".cfg-claude")),
-          existsSync(join(tempDir, ".cfg-copilot")),
+          existsSync(join(workspaceDir, ".ralph")),
+          existsSync(join(workspaceDir, ".cfg-claude")),
+          existsSync(join(workspaceDir, ".cfg-copilot")),
         );
         return fakeResultPromise();
       });
@@ -196,6 +201,45 @@ describe("ContainerManager", () => {
 
       // Assert
       expect(dirsAtComposeUp).toEqual([true, true, true]);
+    });
+
+    it("creates the directories the container CLIs mount into on the host before compose up", async () => {
+      // Arrange
+      const compose = createMockComposeClient();
+      const mounting = createMockCliRuntime(CliType.Copilot, {
+        workspaceMountTargets: [".github/agents/", ".github/hooks/audit.json", "top-level.json"],
+      });
+      const dirsAtComposeUp: string[] = [];
+      compose.compose.mockImplementation(() => {
+        dirsAtComposeUp.push(...readdirSync(workspaceDir, { recursive: true, encoding: "utf-8" }).sort());
+        return fakeResultPromise();
+      });
+      const copilotOnly = makeProfile({ stages: [makeStage({ cli: CliType.Copilot })] });
+      const { manager } = createHarness(copilotOnly, { compose, runtimes: [mounting] });
+
+      // Act
+      await manager.start(new AbortController().signal);
+
+      // Assert
+      expect(dirsAtComposeUp).toEqual([".cfg-copilot", ".github", ".github/agents", ".github/hooks", ".ralph"]);
+    });
+
+    it("leaves the CLIs of host stages out of the directories it creates", async () => {
+      // Arrange
+      const mounting = createMockCliRuntime(CliType.Claude, { workspaceMountTargets: [".claude-only/"] });
+      const hostClaude = makeProfile({
+        stages: [
+          makeStage({ cli: CliType.Copilot }),
+          makeStage({ role: "local", cli: CliType.Claude, mode: StageMode.Local }),
+        ],
+      });
+      const { manager } = createHarness(hostClaude, { runtimes: [mounting, copilotRuntime] });
+
+      // Act
+      await manager.start(new AbortController().signal);
+
+      // Assert
+      expect(existsSync(join(workspaceDir, ".claude-only"))).toBe(false);
     });
 
     it("propagates a compose up failure without marking the container running", async () => {
@@ -297,7 +341,7 @@ describe("ContainerManager", () => {
       const { manager, logRegistry, logs } = createHarness(mixedProfile);
 
       // Act
-      manager.registerLogSources(KEY, "DF-100", tempDir);
+      manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
       expect(logRegistry.registerAll).toHaveBeenCalledWith(
@@ -319,7 +363,7 @@ describe("ContainerManager", () => {
       manager.onPreToolUse = onPreToolUse;
 
       // Act
-      manager.registerLogSources(KEY, "DF-100", tempDir);
+      manager.registerLogSources(KEY, "DF-100", workspaceDir);
 
       // Assert
       const callbacks = logRegistry.registerAll.mock.calls[0][4];
@@ -428,10 +472,10 @@ describe("ContainerManager", () => {
   describe("sessionStartAudited", () => {
     const AUDIT = '{"event":"session_start","session":"s-1"}\n';
 
-    it("asks the stage CLI's runtime about the target repo's audit log", async () => {
+    it("asks the stage CLI's runtime about the workspace's audit log", async () => {
       // Arrange
-      mkdirSync(join(tempDir, ".ralph", "logs"), { recursive: true });
-      writeFileSync(join(tempDir, ".ralph", "logs", "audit.jsonl"), AUDIT);
+      mkdirSync(join(workspaceDir, ".ralph", "logs"), { recursive: true });
+      writeFileSync(join(workspaceDir, ".ralph", "logs", "audit.jsonl"), AUDIT);
       claudeRuntime.sessionStartAudited.mockReturnValue(true);
       const { manager } = createHarness(mixedProfile);
 

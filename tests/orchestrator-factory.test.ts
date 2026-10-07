@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createCradle } from "../src/awilix-cradle";
 import { ClaudeAuthMode, CliType } from "../src/config/types";
 import { makeConfig, makeProfile } from "./helpers/factories";
+import { TaskWorkspaceManager } from "../src/services/task-workspace-manager";
 
 // Ensure built-in data source factories are registered
 import "../src/datasource/connectors/jira/factory";
@@ -86,14 +87,14 @@ describe("createCradle", () => {
     expect(runtime.credentials.required.map((c) => c.envVar)).toEqual(["ANTHROPIC_API_KEY"]);
   });
 
-  it("resolves the executor factory, overlay writer and repo sync hook with their CLI runtime dependencies", () => {
+  it("resolves the executor factory, overlay writer and workspace manager with their CLI runtime dependencies", () => {
     // Arrange
     const cradle = createCradle(makeConfig());
 
     // Act & Assert
     expect(cradle.executorFactory).toBeDefined();
     expect(cradle.overlayWriter).toBeDefined();
-    expect(cradle.preExecuteHooks.map((h) => h.name)).toEqual(["repo-sync"]);
+    expect(cradle.workspaceManager).toBeInstanceOf(TaskWorkspaceManager);
   });
 
   it("exposes claudeAuth from the config", () => {
@@ -113,7 +114,7 @@ describe("createCradle", () => {
     const profile = makeProfile({ id: "never-set-up" });
 
     // Act & Assert
-    expect(() => cradle.containerFactory.create(profile)).toThrow(
+    expect(() => cradle.containerFactory.create(profile, "/tmp/test-workspaces/DF-100-1")).toThrow(
       /Profile squid.conf not found at .*never-set-up.*squid\.conf/,
     );
   });

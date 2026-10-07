@@ -123,10 +123,11 @@ export interface IAgentProfile {
   readonly id: string;
   /** Data source key — must reference an entry in `IAppConfig.dataSources`. */
   readonly dataSource: string;
-  readonly repoPath: string;
-  /** VCS platform for the repo. Determines how the git sync hook authenticates. */
+  /** HTTPS URL of the target repository: each task's workspace is cloned from it and pushes its branch to it. */
+  readonly repoUrl: string;
+  /** VCS platform for the repo. Determines the auth header the workspace's git commands send. */
   readonly vcsProvider: VcsProvider;
-  /** Name of the env var containing the git PAT for repo sync. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
+  /** Name of the env var holding the git PAT that clones and fetches `repoUrl`. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
   readonly repoPat: string;
   /** Path to docker-compose.yml relative to the orchestrator root. Defaults to `profiles/<id>/docker-compose.yml`. */
   readonly composeFile: string;

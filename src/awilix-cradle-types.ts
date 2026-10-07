@@ -30,10 +30,10 @@ import type { IHeartbeatSender } from "./services/heartbeat";
 import type { ContainerManagerFactory } from "./container/types";
 import type { IDataSourceConnector } from "./datasource/connector";
 import type { IWorkItemPoller } from "./datasource/poller";
-import type { ILifecycleHook } from "./container/lifecycle";
 import type { IProfileSetupService } from "./services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor";
 import type { IVcsSourceClient } from "./services/vcs-source-client";
+import type { ITaskWorkspaceManager } from "./services/task-workspace-manager";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -85,7 +85,7 @@ export interface OrchestratorCradle {
   jitMcpConfig: IJitMcpConfigWriter;
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
-  preExecuteHooks: readonly ILifecycleHook[];
+  workspaceManager: ITaskWorkspaceManager;
   profileSetup: IProfileSetupService;
   pipelineExecutor: IAgentPipelineExecutor;
 
