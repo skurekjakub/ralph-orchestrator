@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ActivityLog } from "../../src/services/activity-log";
 import { LogLevel, LogSource } from "../../src/orchestrator-types";
 import { readFileSync, rmSync, existsSync } from "node:fs";
@@ -24,6 +24,7 @@ describe("ActivityLog", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     if (existsSync(logDir)) {
       rmSync(logDir, { recursive: true, force: true });
     }
@@ -70,6 +71,24 @@ describe("ActivityLog", () => {
     expect(existsSync(containerFile)).toBe(true);
     const content = readFileSync(containerFile, "utf-8").trim();
     expect(content).toMatch(/\[INFO\] container-msg$/);
+  });
+
+  it("writes each persisted line with a UTC ISO-8601 timestamp, whatever the host time zone", () => {
+    // Arrange
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-07T23:59:58.123Z"));
+    const log = new ActivityLog({ outputConfig: outputConfigWithLogDir(logDir) });
+    const taskFile = log.startTaskLog("DF-1");
+
+    // Act
+    log.push(LogLevel.Info, "orchestrator-msg");
+    log.push(LogLevel.Warn, "container-msg", LogSource.Container);
+
+    // Assert
+    const containerFile = join(logDir, "container-2026-03-07.log");
+    expect(readFileSync(log.activityFilePath, "utf-8")).toBe("2026-03-07T23:59:58.123Z [INFO] orchestrator-msg\n");
+    expect(readFileSync(containerFile, "utf-8")).toBe("2026-03-07T23:59:58.123Z [WARN] container-msg\n");
+    expect(readFileSync(taskFile, "utf-8")).toBe("2026-03-07T23:59:58.123Z [WARN] container-msg\n");
   });
 
   it("calls onChange callback on every push", () => {

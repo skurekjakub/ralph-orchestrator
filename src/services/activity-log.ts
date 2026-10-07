@@ -4,10 +4,9 @@ import type { IOutputConfig } from "../config/types";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-/** Format a log entry as a human-readable single line: `HH:MM:SS [LEVEL] message` */
+/** Format a log entry as a single line: `<ISO-8601 UTC timestamp> [LEVEL] message` */
 function formatLine(entry: LogEntry): string {
-  const d = new Date(entry.timestamp);
-  const time = d.toLocaleTimeString("en-GB", { hour12: false });
+  const time = new Date(entry.timestamp).toISOString();
   const tag = entry.level === LogLevel.Info ? "INFO" : entry.level === LogLevel.Warn ? "WARN" : "ERR ";
   return `${time} [${tag}] ${entry.message}`;
 }
