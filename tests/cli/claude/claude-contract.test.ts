@@ -23,6 +23,7 @@ import {
   CLAUDE_HEADLESS_ENV,
   ClaudePermissionMode,
   ClaudeSessionIds,
+  ClaudeSettingSources,
   claudeSessionArgs,
   claudeSessionEnv,
   claudeSessionTools,
@@ -300,7 +301,7 @@ class ContractSandbox {
       writeFileSync(settingsPath, JSON.stringify(options.editSettings(settings)));
     }
     return this.runSession(options, {
-      settingSources: "user",
+      settingSources: ClaudeSettingSources.User,
       settingsPath,
       permissionMode: ClaudePermissionMode.DontAsk,
       tools: claudeSessionTools(CLAUDE_HOST_TOOLS, FIXTURE_AGENTS.depthFrom(root)),
@@ -327,7 +328,7 @@ class ContractSandbox {
     const mcpConfigPath = join(this.root, "mcp-config.json");
     writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: {} }));
     return this.runSession(options, {
-      settingSources: "user",
+      settingSources: ClaudeSettingSources.User,
       settingsPath: sessionSettingsPath(paths),
       mcpConfigPath,
       permissionMode: ClaudePermissionMode.BypassPermissions,
