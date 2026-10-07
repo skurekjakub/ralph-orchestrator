@@ -3,18 +3,30 @@ import { resolve, isAbsolute } from "node:path";
 import type { Plugin } from "vite";
 import { parseCliDebugTree, attributeEntriesToTree } from "./components/log-browser/cli-debug-subagent-parser";
 import { parseContextWindowEntries, parseAssistantUsageEntries } from "./components/log-browser/context-window-parser";
+import {
+  buildTelemetryRunSummary,
+  buildTelemetryTree,
+  parseRunTelemetry,
+} from "./components/log-browser/run-telemetry-parser";
 import type {
   ContextWindowEntry,
   ParsedTree,
+  RunAnalysis,
   RunSummary,
   AgentBreakdownEntry,
   SubagentTreeNode,
 } from "./components/log-browser/tool-timeline-types";
 
+/** Ending of the run telemetry files the explorer reads (`<taskId>-<ts>-<cli>-run-telemetry.json`). */
+const RUN_TELEMETRY_SUFFIX = "-run-telemetry.json";
+
+/** Ending of Claude Code's debug log, which the Copilot debug-log parser cannot read. */
+const CLAUDE_DEBUG_LOG_SUFFIX = "-claude-cli-debug.log";
+
 /**
  * Vite plugin serving GET /api/fractal-log?path=<abs-path>.
- * Reads the log from disk, runs tree parser + context/usage parsers,
- * returns JSON with tree and summary.
+ * Reads a Copilot cli-debug log or a run telemetry file from disk and
+ * returns JSON with its subagent tree and run summary.
  */
 export function fractalLogPlugin(): Plugin {
   return {
@@ -31,7 +43,7 @@ export function fractalLogPlugin(): Plugin {
           return;
         }
 
-        // Path validation: must be absolute, canonical, and end with .log
+        // Path validation: must be absolute, canonical, and a .log or run telemetry file
         if (!isAbsolute(filePath)) {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Path must be absolute" }));
@@ -45,23 +57,36 @@ export function fractalLogPlugin(): Plugin {
           return;
         }
 
-        if (!filePath.endsWith(".log")) {
+        if (filePath.endsWith(CLAUDE_DEBUG_LOG_SUFFIX)) {
           res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Only .log files are supported" }));
+          res.end(
+            JSON.stringify({
+              error: "The Claude Code debug log holds no subagent tree; load the run's -claude-run-telemetry.json",
+            }),
+          );
+          return;
+        }
+
+        const isRunTelemetry = filePath.endsWith(RUN_TELEMETRY_SUFFIX);
+        if (!filePath.endsWith(".log") && !isRunTelemetry) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({ error: "Only Copilot cli-debug .log files and *-run-telemetry.json files are supported" }),
+          );
           return;
         }
 
         try {
           const content = readFileSync(filePath, "utf-8");
-          const tree = parseCliDebugTree(content);
-          const contextEntries = parseContextWindowEntries(content);
-          const usageEntries = parseAssistantUsageEntries(content);
-          attributeEntriesToTree(tree, contextEntries, usageEntries);
-          synthesizeContextFromUsage(tree, contextEntries);
-          const summary = buildRunSummary(tree, contextEntries);
+          const analysis = isRunTelemetry ? analyzeRunTelemetry(content) : analyzeCliDebugLog(content);
+          if (!analysis) {
+            res.writeHead(422, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Not run telemetry of a schema version this dashboard reads" }));
+            return;
+          }
 
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ tree: serializeTree(tree), summary }));
+          res.end(JSON.stringify({ tree: serializeTree(analysis.tree), summary: analysis.summary }));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           res.writeHead(500, { "Content-Type": "application/json" });
@@ -70,6 +95,26 @@ export function fractalLogPlugin(): Plugin {
       });
     },
   };
+}
+
+/** The subagent tree and run summary of a Copilot CLI debug log. */
+export function analyzeCliDebugLog(content: string): RunAnalysis {
+  const tree = parseCliDebugTree(content);
+  const contextEntries = parseContextWindowEntries(content);
+  const usageEntries = parseAssistantUsageEntries(content);
+  attributeEntriesToTree(tree, contextEntries, usageEntries);
+  synthesizeContextFromUsage(tree, contextEntries);
+  return { tree, summary: buildRunSummary(tree, contextEntries) };
+}
+
+/**
+ * The subagent tree and run summary of a run telemetry file.
+ *
+ * @returns null when the file is not run telemetry of the schema version this dashboard reads.
+ */
+export function analyzeRunTelemetry(content: string): RunAnalysis | null {
+  const telemetry = parseRunTelemetry(content);
+  return telemetry && { tree: buildTelemetryTree(telemetry), summary: buildTelemetryRunSummary(telemetry) };
 }
 
 /**
@@ -159,11 +204,9 @@ export function buildRunSummary(
     }
   }
 
-  const agentBreakdown: AgentBreakdownEntry[] = [];
-  for (const [name, data] of agentMap) {
-    agentBreakdown.push({ name, ...data });
-  }
-  agentBreakdown.sort((a, b) => b.totalTokens - a.totalTokens);
+  const agentBreakdown: AgentBreakdownEntry[] = [...agentMap]
+    .sort(([, a], [, b]) => b.totalTokens - a.totalTokens)
+    .map(([name, data]) => ({ name, ...data }));
 
   return {
     totalDurationMs: tree.root.durationMs ?? 0,

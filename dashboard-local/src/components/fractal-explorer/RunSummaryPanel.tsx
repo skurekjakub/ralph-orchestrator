@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { RunSummary } from "../log-browser/tool-timeline-types";
-import { formatMs } from "../log-browser/tool-timeline-shared";
+import { formatMs, NO_TOKEN_USAGE_MESSAGE } from "../log-browser/tool-timeline-shared";
+import { UnavailableNotice } from "../log-browser/UnavailableNotice";
 
 interface RunSummaryPanelProps {
   summary: RunSummary;
@@ -8,8 +9,16 @@ interface RunSummaryPanelProps {
 
 type SortKey = "name" | "count" | "totalDurationMs" | "totalTokens" | "compactionCount" | "maxDepth";
 
+/** Shown in place of a token figure the run's logs do not record. */
+const NOT_RECORDED = "n/a";
+
+function formatTokenCount(count: number | null): string {
+  return count === null ? NOT_RECORDED : count.toLocaleString();
+}
+
 export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("totalTokens");
+  const tokensRecorded = summary.totalPromptTokens !== null;
+  const [sortKey, setSortKey] = useState<SortKey>(tokensRecorded ? "totalTokens" : "totalDurationMs");
   const [sortAsc, setSortAsc] = useState(false);
 
   const handleSort = (key: SortKey) => {
@@ -23,19 +32,22 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
   const sorted = [...summary.agentBreakdown].sort((a, b) => {
     const mul = sortAsc ? 1 : -1;
     if (sortKey === "name") return mul * a.name.localeCompare(b.name);
-    return mul * ((a[sortKey] as number) - (b[sortKey] as number));
+    return mul * ((a[sortKey] ?? -1) - (b[sortKey] ?? -1));
   });
 
-  const totalTokens = summary.totalPromptTokens + summary.totalCompletionTokens;
+  const totalTokens =
+    summary.totalPromptTokens === null || summary.totalCompletionTokens === null
+      ? null
+      : summary.totalPromptTokens + summary.totalCompletionTokens;
 
   const stats = [
     { label: "Duration", value: formatMs(summary.totalDurationMs) },
     { label: "Invocations", value: summary.totalInvocations.toLocaleString() },
     { label: "Max Depth", value: summary.maxDepth },
-    { label: "Total Tokens", value: totalTokens.toLocaleString() },
-    { label: "Prompt", value: summary.totalPromptTokens.toLocaleString() },
-    { label: "Completion", value: summary.totalCompletionTokens.toLocaleString() },
-    { label: "Cached", value: summary.totalCachedTokens.toLocaleString() },
+    { label: "Total Tokens", value: formatTokenCount(totalTokens) },
+    { label: "Prompt", value: formatTokenCount(summary.totalPromptTokens) },
+    { label: "Completion", value: formatTokenCount(summary.totalCompletionTokens) },
+    { label: "Cached", value: formatTokenCount(summary.totalCachedTokens) },
     { label: "Compactions", value: summary.compactionCount },
   ];
 
@@ -52,6 +64,8 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
           </div>
         ))}
       </div>
+
+      {!tokensRecorded && <UnavailableNotice title="Token usage" message={NO_TOKEN_USAGE_MESSAGE} />}
 
       {/* Agent breakdown table */}
       <div>
@@ -86,7 +100,7 @@ export function RunSummaryPanel({ summary }: RunSummaryPanelProps) {
                 <td className="py-1 px-2 font-medium">{row.name}</td>
                 <td className="py-1 px-2 tabular-nums">{row.count}</td>
                 <td className="py-1 px-2 tabular-nums">{formatMs(row.totalDurationMs)}</td>
-                <td className="py-1 px-2 tabular-nums">{row.totalTokens.toLocaleString()}</td>
+                <td className="py-1 px-2 tabular-nums">{formatTokenCount(row.totalTokens)}</td>
                 <td className="py-1 px-2 tabular-nums">{row.compactionCount}</td>
                 <td className="py-1 px-2 tabular-nums">{row.maxDepth}</td>
               </tr>

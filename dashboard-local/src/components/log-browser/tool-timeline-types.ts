@@ -67,21 +67,25 @@ export interface ToolOutputEntry {
   returnValue: string;
 }
 
-/** A single tool call made by a subagent, extracted from cli-debug.log. */
+/** A single tool call made by a subagent, extracted from cli-debug.log or run telemetry. */
 export interface SubagentToolCall {
-  /** ISO timestamp string from the log line. */
+  /** ISO timestamp string from the log line; empty when the log has none. */
   ts: string;
-  /** Epoch millisecond timestamp. */
+  /** Epoch millisecond timestamp; 0 when the log has none. */
   tsMs: number;
-  /** Tool name (e.g. "bash", "view", "ado-ado_list_pull_requests"). */
+  /** Tool name (e.g. "bash", "view", "ado-ado_list_pull_requests", "Write"). */
   tool: string;
   /** Tool arguments JSON string (from the model response). */
   argsJson?: string;
   /** Raw return value text from the cli-debug log. */
   returnValue?: string;
+  /** From the call to its result (run telemetry). */
+  durationMs?: number;
+  /** Whether the result was an error (run telemetry). */
+  isError?: boolean;
 }
 
-/** Parsed subagent lifecycle entry from cli-debug.log. */
+/** Parsed subagent lifecycle entry from cli-debug.log or run telemetry. */
 export interface SubagentSpan {
   /** Subagent name (e.g. "malph-scout", stripped of "ralph." prefix). */
   name: string;
@@ -109,6 +113,8 @@ export interface SubagentSpan {
   modelCallCount: number;
   /** Extracted tool calls with names and timestamps. */
   toolCalls: SubagentToolCall[];
+  /** The tool call that spawned the subagent (run telemetry). */
+  toolUseId?: string;
 }
 
 /** Context window utilization snapshot from CompactionProcessor log lines. */
@@ -187,8 +193,8 @@ export interface AgentBreakdownEntry {
   count: number;
   /** Total duration across all invocations (ms). */
   totalDurationMs: number;
-  /** Total tokens consumed. */
-  totalTokens: number;
+  /** Total tokens consumed; null when the logs record no token usage (Claude Code run telemetry). */
+  totalTokens: number | null;
   /** Total compaction events detected across this agent type. */
   compactionCount: number;
   /** Max depth reached by this agent type. */
@@ -203,14 +209,104 @@ export interface RunSummary {
   totalInvocations: number;
   /** Maximum nesting depth. */
   maxDepth: number;
-  /** Total prompt tokens across all invocations. */
-  totalPromptTokens: number;
-  /** Total completion tokens across all invocations. */
-  totalCompletionTokens: number;
-  /** Total cached tokens across all invocations. */
-  totalCachedTokens: number;
+  /** Total prompt tokens across all invocations; null when the logs record no token usage. */
+  totalPromptTokens: number | null;
+  /** Total completion tokens across all invocations; null when the logs record no token usage. */
+  totalCompletionTokens: number | null;
+  /** Total cached tokens across all invocations; null when the logs record no token usage. */
+  totalCachedTokens: number | null;
   /** Number of compaction events detected. */
   compactionCount: number;
   /** Per-agent-type breakdown. */
   agentBreakdown: AgentBreakdownEntry[];
+}
+
+/** A run's subagent tree and summary, as the fractal explorer shows them. */
+export interface RunAnalysis {
+  tree: ParsedTree;
+  summary: RunSummary;
+}
+
+/** Log files the tool timeline reads, relative to the log directory; it needs pre-tool.log or run telemetry. */
+export interface TimelineFiles {
+  preTool?: string;
+  toolOutput?: string;
+  /** Copilot CLI debug log, read for Copilot subagents and context-window charts. */
+  cliDebug?: string;
+  runTelemetry?: string;
+}
+
+/**
+ * Telemetry the orchestrator derives on the host from an agent CLI's session logs
+ * (`<taskId>-<ts>-<cli>-run-telemetry.json`), mirroring `RunTelemetry` at schema version 1 in the
+ * orchestrator's `src/cli/telemetry/run-telemetry.ts`. Timestamps are epoch ms, left out when the logs carry
+ * none. It records no token usage.
+ */
+export interface RunTelemetry {
+  schemaVersion: 1;
+  /** The CLI whose sessions it describes (`claude`). */
+  cli: string;
+  /** Session ids in start order. */
+  sessionIds: string[];
+  totals: RunTelemetryTotals;
+  /** The main thread and every subagent of every session; `parentSpanId` makes them a tree per session. */
+  spans: RunTelemetrySpan[];
+}
+
+/** Counts over every span of a run. */
+export interface RunTelemetryTotals {
+  sessions: number;
+  subagents: number;
+  toolCalls: number;
+  /** Tool calls whose result was an error, a denied call included. */
+  failedToolCalls: number;
+  /** Model responses: distinct assistant messages. */
+  modelCalls: number;
+  apiErrors: number;
+  compactions: number;
+  /** Session log lines that were not JSON objects and were skipped. */
+  malformedLines: number;
+  /** From the first to the last timestamp of any session. */
+  durationMs?: number;
+}
+
+/** One agent thread: a session's main thread or one subagent run. */
+export interface RunTelemetrySpan {
+  /** The session id for a main thread, `<session id>/<agent id>` for a subagent. */
+  spanId: string;
+  /** The span whose tool call spawned this subagent; absent for a main thread. */
+  parentSpanId?: string;
+  sessionId: string;
+  /** The session's agent name, or the subagent type. */
+  agent: string;
+  /** 0 for a main thread, the spawn depth for a subagent. */
+  depth: number;
+  /** The tool call that spawned the subagent. */
+  toolUseId?: string;
+  /** Models that answered, in order of first use. */
+  models: string[];
+  startTs?: number;
+  endTs?: number;
+  durationMs?: number;
+  /** Model responses: distinct assistant messages. */
+  modelCalls: number;
+  toolCalls: RunTelemetryToolCall[];
+  /** API errors, such as a failed authentication, by the kind the CLI reports. */
+  apiErrors: { ts?: number; kind: string }[];
+  /** Context compactions and what triggered them (`auto`, `manual`). */
+  compactions: { ts?: number; trigger?: string }[];
+}
+
+/** One tool call of a span. */
+export interface RunTelemetryToolCall {
+  toolUseId: string;
+  tool: string;
+  /** When the model asked for the call. */
+  ts?: number;
+  /** From the call to its result; absent when the log holds no result. */
+  durationMs?: number;
+  /** Whether the result was an error; absent when the log holds no result. */
+  isError?: boolean;
+  /** The span of the subagent the call spawned. */
+  spawnedSpanId?: string;
 }

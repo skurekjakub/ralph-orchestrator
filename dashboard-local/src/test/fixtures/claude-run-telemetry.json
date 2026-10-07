@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "cli": "claude",
+  "sessionIds": ["11111111-2222-4333-8444-555555555555", "00000000-0000-4000-8000-000000000000"],
+  "totals": {
+    "sessions": 2,
+    "subagents": 3,
+    "toolCalls": 4,
+    "failedToolCalls": 1,
+    "modelCalls": 8,
+    "apiErrors": 1,
+    "compactions": 1,
+    "malformedLines": 1,
+    "durationMs": 300000
+  },
+  "spans": [
+    {
+      "spanId": "11111111-2222-4333-8444-555555555555",
+      "sessionId": "11111111-2222-4333-8444-555555555555",
+      "agent": "ralph",
+      "depth": 0,
+      "models": ["claude-opus-5-5", "claude-sonnet-5-5"],
+      "startTs": 1791352801000,
+      "endTs": 1791352870000,
+      "durationMs": 69000,
+      "modelCalls": 3,
+      "toolCalls": [
+        {
+          "toolUseId": "toolu_bash",
+          "tool": "Bash",
+          "ts": 1791352803000,
+          "durationMs": 1500,
+          "isError": false
+        },
+        {
+          "toolUseId": "toolu_agent",
+          "tool": "Agent",
+          "ts": 1791352805000,
+          "durationMs": 60000,
+          "isError": false,
+          "spawnedSpanId": "11111111-2222-4333-8444-555555555555/a1"
+        }
+      ],
+      "apiErrors": [],
+      "compactions": [
+        {
+          "ts": 1791352866000,
+          "trigger": "auto"
+        }
+      ]
+    },
+    {
+      "spanId": "11111111-2222-4333-8444-555555555555/a1",
+      "sessionId": "11111111-2222-4333-8444-555555555555",
+      "agent": "writer",
+      "depth": 1,
+      "parentSpanId": "11111111-2222-4333-8444-555555555555",
+      "toolUseId": "toolu_agent",
+      "models": ["claude-haiku-4-5-20251001"],
+      "startTs": 1791352806000,
+      "endTs": 1791352860000,
+      "durationMs": 54000,
+      "modelCalls": 3,
+      "toolCalls": [
+        {
+          "toolUseId": "toolu_write",
+          "tool": "Write",
+          "ts": 1791352807000,
+          "durationMs": 250,
+          "isError": true
+        },
+        {
+          "toolUseId": "toolu_review",
+          "tool": "Agent",
+          "ts": 1791352808000,
+          "durationMs": 22000,
+          "isError": false,
+          "spawnedSpanId": "11111111-2222-4333-8444-555555555555/a2"
+        }
+      ],
+      "apiErrors": [],
+      "compactions": []
+    },
+    {
+      "spanId": "11111111-2222-4333-8444-555555555555/a2",
+      "sessionId": "11111111-2222-4333-8444-555555555555",
+      "agent": "reviewer",
+      "depth": 2,
+      "parentSpanId": "11111111-2222-4333-8444-555555555555/a1",
+      "toolUseId": "toolu_review",
+      "models": ["claude-haiku-4-5-20251001"],
+      "startTs": 1791352809000,
+      "endTs": 1791352829000,
+      "durationMs": 20000,
+      "modelCalls": 1,
+      "toolCalls": [],
+      "apiErrors": [],
+      "compactions": []
+    },
+    {
+      "spanId": "11111111-2222-4333-8444-555555555555/a3",
+      "sessionId": "11111111-2222-4333-8444-555555555555",
+      "agent": "unknown",
+      "depth": 1,
+      "parentSpanId": "11111111-2222-4333-8444-555555555555",
+      "models": ["claude-haiku-4-5-20251001"],
+      "startTs": 1791352920000,
+      "endTs": 1791352920000,
+      "durationMs": 0,
+      "modelCalls": 1,
+      "toolCalls": [],
+      "apiErrors": [],
+      "compactions": []
+    },
+    {
+      "spanId": "00000000-0000-4000-8000-000000000000",
+      "sessionId": "00000000-0000-4000-8000-000000000000",
+      "agent": "ralph-reviewer",
+      "depth": 0,
+      "models": [],
+      "startTs": 1791353100000,
+      "endTs": 1791353101000,
+      "durationMs": 1000,
+      "modelCalls": 0,
+      "toolCalls": [],
+      "apiErrors": [
+        {
+          "ts": 1791353101000,
+          "kind": "authentication_failed"
+        }
+      ],
+      "compactions": []
+    }
+  ]
+}

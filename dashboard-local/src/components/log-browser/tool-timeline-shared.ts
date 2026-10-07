@@ -10,6 +10,9 @@ export const CAT_HEX: Record<ToolCategory, string> = {
   other: "#e6edf3",
 };
 
+/** Why token and context-window views stay empty for a run read from run telemetry. */
+export const NO_TOKEN_USAGE_MESSAGE = "Not available for Claude Code runs: the run telemetry records no token usage.";
+
 /** A duration as `850ms`, `12.4s` or `3m 7s`. */
 export function formatMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;

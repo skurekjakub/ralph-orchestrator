@@ -65,6 +65,7 @@ describe("ToolTimelineCallList", () => {
         onToggle={() => {}}
         maxDuration={162960}
         subagentByName={new Map([[span.name, span]])}
+        subagentByToolUseId={new Map()}
       />,
     );
 
@@ -105,6 +106,7 @@ describe("ToolTimelineCallList", () => {
         onToggle={() => {}}
         maxDuration={1000}
         subagentByName={new Map()}
+        subagentByToolUseId={new Map()}
       />,
     );
 

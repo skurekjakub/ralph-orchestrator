@@ -19,11 +19,53 @@ describe("ExecutionRow", () => {
     await user.click(screen.getByRole("button", { name: /Timeline/ }));
 
     expect(onSelectFile).toHaveBeenCalledWith("DOC-3141/summary.json");
-    expect(onOpenTimeline).toHaveBeenCalledWith(
-      "DOC-3141/pre-tool.log",
-      "DOC-3141/tool-output.log",
-      "DOC-3141/cli-debug.log",
-    );
+    expect(onOpenTimeline).toHaveBeenCalledWith({
+      preTool: "DOC-3141/pre-tool.log",
+      toolOutput: "DOC-3141/tool-output.log",
+      cliDebug: "DOC-3141/cli-debug.log",
+    });
+  });
+
+  it("opens the timeline of a Claude Code run that has run telemetry but no pre-tool log", async () => {
+    // Arrange
+    const user = userEvent.setup();
+    const onOpenTimeline = vi.fn();
+    const group = makeTaskLogGroup({
+      files: { summary: "DF-1/summary.json", claudeRunTelemetry: "DF-1/claude-run-telemetry.json" },
+    });
+    render(<ExecutionRow group={group} onSelectFile={() => {}} onOpenTimeline={onOpenTimeline} />);
+
+    // Act
+    await user.click(screen.getByRole("button", { name: /Timeline/ }));
+
+    // Assert
+    expect(onOpenTimeline).toHaveBeenCalledWith({ runTelemetry: "DF-1/claude-run-telemetry.json" });
+  });
+
+  it("offers the Claude Code transcript, debug log and run telemetry as files", async () => {
+    // Arrange
+    const user = userEvent.setup();
+    const onSelectFile = vi.fn();
+    const group = makeTaskLogGroup({
+      files: {
+        claudeTranscript: "DF-1/claude-transcript.md",
+        claudeCliDebug: "DF-1/claude-cli-debug.log",
+        claudeRunTelemetry: "DF-1/claude-run-telemetry.json",
+      },
+    });
+    render(<ExecutionRow group={group} onSelectFile={onSelectFile} />);
+
+    // Act
+    for (const name of ["Claude Transcript", "Claude Debug Log", "Run Telemetry"]) {
+      await user.click(screen.getByRole("button", { name: new RegExp(name) }));
+    }
+
+    // Assert
+    expect(onSelectFile.mock.calls).toEqual([
+      ["DF-1/claude-transcript.md"],
+      ["DF-1/claude-cli-debug.log"],
+      ["DF-1/claude-run-telemetry.json"],
+    ]);
   });
 });
 

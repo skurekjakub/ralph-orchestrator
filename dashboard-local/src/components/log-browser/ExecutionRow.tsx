@@ -3,6 +3,7 @@ import { formatMs } from "./tool-timeline-shared";
 import { formatDate, statusBadge, fileLabels } from "./utils";
 import { Button, ButtonVariant, ButtonSize } from "../Button";
 import { SessionFileList } from "./SessionFileList";
+import type { TimelineFiles } from "./tool-timeline-types";
 
 export function ExecutionRow({
   group,
@@ -11,7 +12,7 @@ export function ExecutionRow({
 }: {
   group: TaskLogGroup;
   onSelectFile: (filename: string) => void;
-  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => void;
+  onOpenTimeline?: (files: TimelineFiles) => void;
 }) {
   const status = group.summary?.status ?? "unknown";
   const badge = statusBadge[status] ?? "bg-border text-dim";
@@ -55,9 +56,16 @@ export function ExecutionRow({
             </Button>
           );
         })}
-        {group.files.preTool && onOpenTimeline && (
+        {(group.files.preTool || group.files.claudeRunTelemetry) && onOpenTimeline && (
           <Button
-            onClick={() => onOpenTimeline(group.files.preTool!, group.files.toolOutput, group.files.cliDebug)}
+            onClick={() =>
+              onOpenTimeline({
+                preTool: group.files.preTool,
+                toolOutput: group.files.toolOutput,
+                cliDebug: group.files.cliDebug,
+                runTelemetry: group.files.claudeRunTelemetry,
+              })
+            }
             variant={ButtonVariant.Subtle}
             size={ButtonSize.XS}
             className="flex items-center gap-1 !bg-purple-500/20 !text-purple-400 hover:!bg-purple-500/30"

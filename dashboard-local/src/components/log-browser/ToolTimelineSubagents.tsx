@@ -8,9 +8,11 @@ export function SubagentOverview({ spans }: { spans: SubagentSpan[] }) {
 
   if (spans.length === 0) return null;
 
-  const totalStart = spans[0].startMs;
-  const totalEnd = spans[spans.length - 1].endMs ?? spans[spans.length - 1].startMs;
+  const totalStart = Math.min(...spans.map((span) => span.startMs));
+  const totalEnd = Math.max(...spans.map((span) => span.endMs ?? span.startMs));
   const totalDuration = totalEnd - totalStart;
+  // A subagent runs more than once in a run, so its name alone does not key a row.
+  const rowKey = (span: SubagentSpan, index: number) => `${span.fullName}-${span.startMs}-${index}`;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -29,12 +31,12 @@ export function SubagentOverview({ spans }: { spans: SubagentSpan[] }) {
       {expanded && (
         <>
           <div className="flex flex-col gap-0.5">
-            {spans.map((span) => {
+            {spans.map((span, index) => {
               const offset = totalDuration > 0 ? ((span.startMs - totalStart) / totalDuration) * 100 : 0;
               const width = totalDuration > 0 ? Math.max(((span.durationMs ?? 0) / totalDuration) * 100, 2) : 100;
 
               return (
-                <div key={span.name} className="flex items-center gap-2 h-5">
+                <div key={rowKey(span, index)} className="flex items-center gap-2 h-5">
                   <span className="w-36 text-[10px] font-mono text-cyan-400 truncate shrink-0">{span.name}</span>
                   <div className="flex-1 h-3 rounded-sm bg-border/20 relative overflow-hidden">
                     <div
@@ -57,9 +59,9 @@ export function SubagentOverview({ spans }: { spans: SubagentSpan[] }) {
           </div>
 
           <div className="flex gap-2 flex-wrap mt-0.5">
-            {spans.map((span) => (
+            {spans.map((span, index) => (
               <span
-                key={span.name}
+                key={rowKey(span, index)}
                 className="text-[10px] px-1.5 py-0.5 rounded font-mono inline-flex items-center gap-1"
                 style={{
                   backgroundColor: span.didFallback ? "#f59e0b22" : "#22d3ee22",
@@ -219,6 +221,10 @@ function SubagentCallTable({ toolCalls, spanStartMs }: { toolCalls: SubagentSpan
               >
                 <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
                 {toolCall.tool}
+                {toolCall.durationMs != null && <span className="text-dim">{formatMs(toolCall.durationMs)}</span>}
+                {toolCall.isError && (
+                  <span className="text-[9px] px-1 py-px rounded bg-error/15 text-error">failure</span>
+                )}
               </span>
               <span className="w-4 text-[10px] text-dim text-center">{hasDetails ? (isExpanded ? "▾" : "▸") : ""}</span>
             </button>

@@ -2,14 +2,17 @@ import type { SubagentTreeNode } from "../log-browser/tool-timeline-types";
 import { ZoomableUtilizationChart } from "./ZoomableUtilizationChart";
 import { NodeTokenCostChart } from "./NodeTokenCostChart";
 import { CompactionEventList } from "./CompactionEventList";
-import { formatMs } from "../log-browser/tool-timeline-shared";
+import { formatMs, NO_TOKEN_USAGE_MESSAGE } from "../log-browser/tool-timeline-shared";
+import { UnavailableNotice } from "../log-browser/UnavailableNotice";
 
 interface NodeDetailPanelProps {
   node: SubagentTreeNode;
   ancestorChain: string[];
+  /** Whether the run's logs record token usage; Claude Code run telemetry does not. */
+  tokensRecorded: boolean;
 }
 
-export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
+export function NodeDetailPanel({ node, ancestorChain, tokensRecorded }: NodeDetailPanelProps) {
   const label = node.depth === 0 ? "orchestrator" : `${node.name} #${node.invocationIndex}`;
 
   return (
@@ -41,6 +44,8 @@ export function NodeDetailPanel({ node, ancestorChain }: NodeDetailPanelProps) {
           )}
         </div>
       </div>
+
+      {!tokensRecorded && <UnavailableNotice title="Context window and token usage" message={NO_TOKEN_USAGE_MESSAGE} />}
 
       {/* Utilization chart */}
       {node.contextWindowEntries.length > 0 && (

@@ -5,6 +5,8 @@ import { NodeDetailPanel } from "./fractal-explorer/NodeDetailPanel";
 import { RunSummaryPanel } from "./fractal-explorer/RunSummaryPanel";
 import { FlameChart } from "./fractal-explorer/FlameChart";
 import { TokenSankey } from "./fractal-explorer/TokenSankey";
+import { UnavailableNotice } from "./log-browser/UnavailableNotice";
+import { NO_TOKEN_USAGE_MESSAGE } from "./log-browser/tool-timeline-shared";
 
 type SubView = "detail" | "flame" | "summary" | "sankey";
 
@@ -12,6 +14,7 @@ export function FractalExplorer() {
   const { tree, allNodes, summary, loading, error, selectedNodeId, setSelectedNodeId, loadLog } = useFractalExplorer();
   const [pathInput, setPathInput] = useState("");
   const [subView, setSubView] = useState<SubView>("detail");
+  const tokensRecorded = summary?.totalPromptTokens != null;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -43,7 +46,7 @@ export function FractalExplorer() {
           type="text"
           value={pathInput}
           onChange={(e) => setPathInput(e.target.value)}
-          placeholder="/absolute/path/to/cli-debug.log"
+          placeholder="/absolute/path/to/cli-debug.log or …-claude-run-telemetry.json"
           className="flex-1 px-2 py-1 text-xs bg-bg-primary border border-border rounded font-mono text-fg-primary placeholder:text-dim"
         />
         <button
@@ -61,7 +64,7 @@ export function FractalExplorer() {
       {/* Empty state */}
       {!tree && !loading && !error && (
         <div className="flex items-center justify-center flex-1 text-dim text-sm">
-          Enter a cli-debug.log path to explore the context window
+          Enter a Copilot cli-debug.log or a Claude Code run telemetry path to explore the run
         </div>
       )}
 
@@ -103,7 +106,11 @@ export function FractalExplorer() {
             <div className="flex-1 min-h-0 overflow-auto p-4">
               {subView === "detail" &&
                 (selectedNode ? (
-                  <NodeDetailPanel node={selectedNode} ancestorChain={ancestorChain(selectedNodeId)} />
+                  <NodeDetailPanel
+                    node={selectedNode}
+                    ancestorChain={ancestorChain(selectedNodeId)}
+                    tokensRecorded={tokensRecorded}
+                  />
                 ) : (
                   <div className="text-dim text-sm">Select a node in the sidebar</div>
                 ))}
@@ -111,7 +118,13 @@ export function FractalExplorer() {
                 <FlameChart root={tree} allNodes={allNodes} onSelectNode={setSelectedNodeId} />
               )}
               {subView === "summary" && summary && <RunSummaryPanel summary={summary} />}
-              {subView === "sankey" && summary && <TokenSankey allNodes={allNodes} />}
+              {subView === "sankey" &&
+                summary &&
+                (tokensRecorded ? (
+                  <TokenSankey allNodes={allNodes} />
+                ) : (
+                  <UnavailableNotice title="Token flow" message={NO_TOKEN_USAGE_MESSAGE} />
+                ))}
             </div>
           </div>
         </div>

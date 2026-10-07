@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildRunSummary } from "../fractalLogPlugin";
+import telemetryJson from "../test/fixtures/claude-run-telemetry.json?raw";
+import { analyzeCliDebugLog, analyzeRunTelemetry, buildRunSummary } from "../fractalLogPlugin";
 import { parseCliDebugTree } from "../components/log-browser/cli-debug-subagent-parser";
 import type { ContextWindowEntry } from "../components/log-browser/tool-timeline-types";
 
@@ -129,5 +130,38 @@ describe("buildRunSummary", () => {
     expect(writerEntry?.count).toBe(2);
     const reviewerEntry = summary.agentBreakdown.find((a) => a.name === "reviewer");
     expect(reviewerEntry?.count).toBe(1);
+  });
+});
+
+describe("analyzeRunTelemetry", () => {
+  it("builds the tree and summary of a Claude Code run from its telemetry", () => {
+    // Act
+    const analysis = analyzeRunTelemetry(telemetryJson);
+
+    // Assert
+    expect(analysis?.tree.root.children.map((n) => n.name)).toEqual(["ralph", "ralph-reviewer"]);
+    expect(analysis?.summary).toMatchObject({ totalInvocations: 3, totalPromptTokens: null });
+  });
+
+  it("returns null for a file that is not run telemetry", () => {
+    // Act & Assert
+    expect(analyzeRunTelemetry('{"schemaVersion": 99}')).toBeNull();
+  });
+});
+
+describe("analyzeCliDebugLog", () => {
+  it("builds the tree and summary of a Copilot debug log, token totals included", () => {
+    // Arrange
+    const log = [
+      makeLine("2026-01-01T00:00:00.000Z", "startup"),
+      makeSubagentBlock("2026-01-01T00:01:00.000Z", "2026-01-01T00:02:00.000Z", "ralph.scout"),
+    ].join("\n");
+
+    // Act
+    const { tree, summary } = analyzeCliDebugLog(log);
+
+    // Assert
+    expect(tree.root.children.map((n) => n.name)).toEqual(["scout"]);
+    expect(summary.totalPromptTokens).toBe(0);
   });
 });

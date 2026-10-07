@@ -5,20 +5,17 @@ import { IssueGroupSection } from "./log-browser/IssueGroupSection";
 import { DailyLogsSection } from "./log-browser/DailyLogsSection";
 import { FileViewer } from "./log-browser/FileViewer";
 import { ToolTimeline } from "./log-browser/ToolTimeline";
+import type { TimelineFiles } from "./log-browser/tool-timeline-types";
 import { Button, ButtonVariant } from "./Button";
 
 export function LogBrowser() {
   const { groups, loading, selectedFile, fileContent, fileLoading, selectFile, refresh } = useLogBrowser();
 
-  const [timelineFiles, setTimelineFiles] = useState<{
-    preTool: string;
-    toolOutput?: string;
-    cliDebug?: string;
-  } | null>(null);
+  const [timelineFiles, setTimelineFiles] = useState<TimelineFiles | null>(null);
 
   const openTimeline = useCallback(
-    (preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => {
-      setTimelineFiles({ preTool: preToolFile, toolOutput: toolOutputFile, cliDebug: cliDebugFile });
+    (files: TimelineFiles) => {
+      setTimelineFiles(files);
       selectFile(null); // Clear file view when opening timeline
     },
     [selectFile],
@@ -76,11 +73,7 @@ export function LogBrowser() {
         {loading ? (
           <div className="text-dim text-sm p-4">Loading logs...</div>
         ) : timelineFiles ? (
-          <ToolTimeline
-            preToolFile={timelineFiles.preTool}
-            toolOutputFile={timelineFiles.toolOutput}
-            cliDebugFile={timelineFiles.cliDebug}
-          />
+          <ToolTimeline files={timelineFiles} />
         ) : selectedFile ? (
           <FileViewer filename={selectedFile} content={fileContent} loading={fileLoading} />
         ) : (

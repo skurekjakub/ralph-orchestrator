@@ -9,12 +9,15 @@ export function ToolTimelineCallList({
   onToggle,
   maxDuration,
   subagentByName,
+  subagentByToolUseId,
 }: {
   timeline: ToolCallEntry[];
   expandedIndex: number | null;
   onToggle: (index: number) => void;
   maxDuration: number;
   subagentByName: Map<string, SubagentSpan>;
+  /** Subagents by the call that spawned them; a call's own id beats its subagent's name, which repeats. */
+  subagentByToolUseId: Map<string, SubagentSpan>;
 }) {
   const startTs = timeline[0].ts;
 
@@ -77,7 +80,11 @@ export function ToolTimelineCallList({
             {isExpanded && (
               <ExpandedDetail
                 entry={entry}
-                subagentSpan={entry.isSubagent ? subagentByName.get(entry.subagentName ?? "") : undefined}
+                subagentSpan={
+                  entry.isSubagent
+                    ? (subagentByToolUseId.get(entry.toolUseId ?? "") ?? subagentByName.get(entry.subagentName ?? ""))
+                    : undefined
+                }
               />
             )}
           </div>

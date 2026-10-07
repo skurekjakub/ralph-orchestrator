@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatMs } from "./tool-timeline-shared";
 import { formatDate, statusBadge, type IssueGroup } from "./utils";
 import { ExecutionRow } from "./ExecutionRow";
+import type { TimelineFiles } from "./tool-timeline-types";
 import { Button, ButtonVariant } from "../Button";
 
 export function IssueGroupSection({
@@ -11,7 +12,7 @@ export function IssueGroupSection({
 }: {
   group: IssueGroup;
   onSelectFile: (filename: string) => void;
-  onOpenTimeline?: (preToolFile: string, toolOutputFile?: string, cliDebugFile?: string) => void;
+  onOpenTimeline?: (files: TimelineFiles) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const latest = group.executions[0];
