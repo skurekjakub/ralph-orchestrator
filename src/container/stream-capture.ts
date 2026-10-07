@@ -2,6 +2,7 @@ import type { ResultPromise } from "execa";
 import type { CliRunOutcome, ICliOutputDecoder } from "../cli/output-decoder";
 import { PlainTextDecoder } from "../cli/plain-text-decoder";
 import type { Logger } from "../logger";
+import { hasResultBlock } from "./result-parser";
 
 /** Marker line that signals the end of the agent's result block. */
 const RESULT_END_MARKER = "===RALPH_RESULT_END===";
@@ -12,17 +13,18 @@ const RESULT_END_MARKER = "===RALPH_RESULT_END===";
  * Splits stdout into lines and runs each through a decoder, which turns it into log lines and the agent's
  * own text; stderr lines are logged as warnings. The raw chunks of both streams are kept for later retrieval.
  *
- * Also watches the decoded agent text for the `===RALPH_RESULT_END===` marker so callers can react (e.g.
- * terminate an idle CLI) without waiting for the process to exit on its own. The marker inside a tool
- * input or a subagent's output does not count.
+ * Also watches the decoded agent text for a complete result block so callers can react (e.g. terminate an
+ * idle CLI) without waiting for the process to exit on its own. A block inside a tool input or a subagent's
+ * output does not count.
  */
 export class StreamCapture {
   readonly stdoutChunks: string[] = [];
   readonly stderrChunks: string[] = [];
 
   /**
-   * Resolves when `===RALPH_RESULT_END===` appears in the agent's text.
-   * Never rejects — stays pending if the marker is never seen.
+   * Resolves once the agent's text so far holds a result block with a recognised STATUS
+   * ({@link hasResultBlock}); an end marker alone, e.g. quoted in prose, does not resolve it.
+   * Never rejects — stays pending if no such block is seen.
    */
   readonly resultBlockDetected: Promise<void>;
 
@@ -30,6 +32,7 @@ export class StreamCapture {
   private readonly logger: Logger;
   private readonly tag: string;
   private stdoutBuf = "";
+  private readonly agentTexts: string[] = [];
   private _resolveResultBlock!: () => void;
   private _resultBlockResolved = false;
 
@@ -102,7 +105,13 @@ export class StreamCapture {
       if (trimmed) this.logger.info(`[${this.tag}] ${trimmed}`);
     }
     for (const warning of decoded.warnings ?? []) this.logger.warn(`[${this.tag}] ${warning}`);
-    if (!this._resultBlockResolved && decoded.agentText?.includes(RESULT_END_MARKER)) {
+    if (decoded.agentText === undefined) return;
+    this.agentTexts.push(decoded.agentText);
+    if (
+      !this._resultBlockResolved &&
+      decoded.agentText.includes(RESULT_END_MARKER) &&
+      hasResultBlock(this.agentTexts.join("\n"))
+    ) {
       this._resultBlockResolved = true;
       this._resolveResultBlock();
     }

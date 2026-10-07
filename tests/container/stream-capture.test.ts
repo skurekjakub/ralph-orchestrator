@@ -159,7 +159,7 @@ describe("StreamCapture", () => {
     expect(resolved).toBe(false);
   });
 
-  it("resolves resultBlockDetected only once even with multiple markers", async () => {
+  it("resolves resultBlockDetected only once even with multiple blocks", async () => {
     const { proc, stdout } = makeFakeProc();
     const capture = new StreamCapture(proc, createMockLogger(), "test");
 
@@ -168,11 +168,64 @@ describe("StreamCapture", () => {
       resolveCount++;
     });
 
-    stdout.emit("data", "===RALPH_RESULT_END===\n");
-    stdout.emit("data", "===RALPH_RESULT_END===\n");
+    stdout.emit("data", "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n");
+    stdout.emit("data", "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n");
 
     await Promise.resolve();
     expect(resolveCount).toBe(1);
+  });
+
+  it("does not resolve resultBlockDetected on an end marker quoted in prose", async () => {
+    // Arrange
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+    let resolved = false;
+    void capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
+
+    // Act
+    stdout.emit("data", "When I am done I will close the block with ===RALPH_RESULT_END===, so keep going.\n");
+    await Promise.resolve();
+
+    // Assert
+    expect(resolved).toBe(false);
+  });
+
+  it("does not resolve resultBlockDetected on a block whose STATUS is not recognised", async () => {
+    // Arrange
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+    let resolved = false;
+    void capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
+
+    // Act
+    stdout.emit("data", "===RALPH_RESULT_START===\nSTATUS: <completed|partial|blocked>\n===RALPH_RESULT_END===\n");
+    await Promise.resolve();
+
+    // Assert
+    expect(resolved).toBe(false);
+  });
+
+  it("resolves resultBlockDetected on the real block after the end marker was quoted in prose", async () => {
+    // Arrange
+    const { proc, stdout } = makeFakeProc();
+    const capture = new StreamCapture(proc, createMockLogger(), "test");
+    let resolved = false;
+    void capture.resultBlockDetected.then(() => {
+      resolved = true;
+    });
+    stdout.emit("data", "The block ends with ===RALPH_RESULT_END===.\n");
+    await Promise.resolve();
+
+    // Act
+    stdout.emit("data", "===RALPH_RESULT_START===\nPR_URL: none\nSTATUS: partial\n===RALPH_RESULT_END===\n");
+    await Promise.resolve();
+
+    // Assert
+    expect(resolved).toBe(true);
   });
 
   describe("with a stream-json decoder", () => {
@@ -235,7 +288,9 @@ describe("StreamCapture", () => {
         event({
           type: "assistant",
           parent_tool_use_id: null,
-          message: { content: [{ type: "text", text: "===RALPH_RESULT_START===\n===RALPH_RESULT_END===" }] },
+          message: {
+            content: [{ type: "text", text: "===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===" }],
+          },
         }),
       );
 

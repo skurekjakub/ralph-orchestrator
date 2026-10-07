@@ -51,9 +51,9 @@ export function writePromptFile(repoPath: string, prompt: string): string {
 /**
  * Execute a CLI command in the `app` container with stream capture, output decoding and error handling.
  *
- * When the agent's `===RALPH_RESULT_END===` marker appears in its decoded text but the CLI process doesn't
- * exit within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM. This prevents the CLI from
- * idling indefinitely after printing a valid result block.
+ * When the agent's decoded text holds a complete result block with a recognised STATUS but the CLI process
+ * doesn't exit within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM. This prevents the CLI
+ * from idling indefinitely after printing a valid result block.
  *
  * A non-zero exit or a timeout resolves to a result with the exit code and whatever the CLI printed and
  * reported before it ended.

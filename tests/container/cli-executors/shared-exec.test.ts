@@ -141,22 +141,29 @@ describe("executeCliCommand", () => {
       vi.useRealTimers();
     });
 
-    it("terminates a CLI that is still running 10 s after printing the block", async () => {
-      // Arrange
+    /** A CLI process that never exits on its own; `kill` or `exit` ends it with `exitCode`. */
+    function runningProcess(exitCode: number) {
       const out = new PassThrough();
       const err = new PassThrough();
-      let exit!: () => void;
+      let resolveExit!: () => void;
       const settled = new Promise((resolve) => {
-        exit = () => resolve({ exitCode: 143, stdout: "", stderr: "" });
+        resolveExit = () => resolve({ exitCode, stdout: "", stderr: "" });
       });
-      const kill = vi.fn(() => {
+      const exit = (): boolean => {
         out.end();
         err.end();
-        exit();
+        resolveExit();
         return true;
-      });
+      };
+      const kill = vi.fn(exit);
       const process = Object.assign(settled, { stdout: out, stderr: err, kill }) as unknown as ResultPromise;
-      out.write("===RALPH_RESULT_END===\n");
+      return { process, out, kill, exit };
+    }
+
+    it("terminates a CLI that is still running 10 s after printing the block", async () => {
+      // Arrange
+      const { process, out, kill } = runningProcess(143);
+      out.write("===RALPH_RESULT_START===\nSTATUS: completed\n===RALPH_RESULT_END===\n");
       const pending = executeCliCommand(command(process));
 
       // Act
@@ -165,6 +172,21 @@ describe("executeCliCommand", () => {
       // Assert
       expect(kill).toHaveBeenCalledWith("SIGTERM");
       await expect(pending).resolves.toMatchObject({ exitCode: 143 });
+    });
+
+    it("leaves a CLI running whose text only quotes the end marker", async () => {
+      // Arrange
+      const { process, out, kill, exit } = runningProcess(0);
+      out.write("I will finish with ===RALPH_RESULT_END=== once the docs are written.\n");
+      const pending = executeCliCommand(command(process));
+
+      // Act
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      // Assert
+      expect(kill).not.toHaveBeenCalled();
+      exit();
+      await expect(pending).resolves.toMatchObject({ exitCode: 0 });
     });
   });
 });

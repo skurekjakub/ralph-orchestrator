@@ -25,7 +25,7 @@ export interface CliRunUsage {
   readonly terminalReason?: string;
 }
 
-/** Terminal error a CLI reported for its session (e.g. subtype `error_max_budget_usd`). */
+/** Terminal error a CLI reported for its session (e.g. subtype `error_max_turns`). */
 export interface CliError {
   readonly subtype: string;
   readonly message?: string;
@@ -43,7 +43,10 @@ export interface DecodedLine {
 
 /** Everything decoded from one CLI process once it has exited. */
 export interface CliRunOutcome {
-  /** All main-thread assistant text, in order. */
+  /**
+   * The agent text the result block is read from: the final result the CLI reports when that holds a valid
+   * result block, otherwise all main-thread assistant text, in order.
+   */
   readonly agentText: string;
   readonly usage?: CliRunUsage;
   /** CLI session id, for resuming the session and correlating logs. */
