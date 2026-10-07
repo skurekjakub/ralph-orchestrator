@@ -107,7 +107,7 @@ Single source of truth for all agent knowledge. NodeBB provides:
 
 ### MCP Servers
 
-Both servers follow the standard Ralph MCP server pattern: TypeScript source in `src/`, webpack-bundled to `dist/bundle.js`, manifest in `mcp-server.json`, stdio + Streamable HTTP transport.
+Both servers follow the standard Ralph MCP server pattern: TypeScript source in `src/`, esbuild-bundled to `dist/bundle.js` (with `--splitting`, so the tool modules they `import()` after resolving the category are chunks beside it), manifest in `mcp-server.json`, stdio + Streamable HTTP transport through `shared/mcp-servers/common/http-launch.ts`.
 
 #### Write Path (`shared/mcp-servers/ralphchives-write/`)
 

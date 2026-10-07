@@ -5,7 +5,7 @@ description: "Adds, deploys, and debugs MCP servers that Ralph exposes to agent 
 
 # MCP Server Deployment
 
-MCP servers never run in the agent container. The agent gets a URL-only `mcp-config.json`; every server runs as a child process of the gateway (`shared/mcp-sidecar/src/gateway.ts`) in the `mcp-sidecar` container, which holds the credentials and has direct internet access via `ralph-sidecar-external`. The agent container stays on `ralph-internal` behind Squid. Keep that split intact: secrets go only to the sidecar, and the agent sees only what the manifest's `tools` list allows.
+MCP servers never run in the agent container. The agent gets a URL-only `mcp-config.json`; every server runs as a child process of the gateway (`shared/mcp-sidecar/src/gateway.ts`) in the `mcp-sidecar` container, which holds the credentials and has direct internet access via `ralph-sidecar-external`. The agent container stays on `ralph-internal` behind Squid. Keep that split intact: secrets go only to the sidecar, and the agent sees only what the manifest's `tools` list allows — the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves each filtered server's `sidecarPort`, hides other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`.
 
 Detailed reference (read the relevant section rather than re-deriving it):
 
@@ -18,12 +18,12 @@ Detailed reference (read the relevant section rather than re-deriving it):
 
 ## Choose the server type
 
-| Type     | Use for                   | Code                                                                                              | Sidecar rebuild? |
-| -------- | ------------------------- | ------------------------------------------------------------------------------------------------- | ---------------- |
-| `custom` | Our own TypeScript server | `shared/mcp-servers/<name>/` → bundled to `dist/`, mounted read-only at `/opt/mcp/servers/<name>` | No               |
-| `npm`    | Third-party package       | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile`                                | Yes              |
+| Type     | Use for                   | Code                                                                                                     | Sidecar rebuild? |
+| -------- | ------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------- |
+| `custom` | Our own TypeScript server | `shared/mcp-servers/<name>/` → esbuild bundle in `dist/`, mounted read-only at `/opt/mcp/servers/<name>` | No               |
+| `npm`    | Third-party package       | `npm install -g <pkg>@<pinned>` in `shared/mcp-sidecar/Dockerfile`                                       | Yes              |
 
-The gateway launches `custom` servers as `<command> <containerPath>/<args...> --transport http --port <sidecarPort>`, so the server must parse those flags and serve Streamable HTTP on `/mcp` (copy the pattern from `shared/mcp-servers/web-fetch/src/index.ts`). `npm` servers speak stdio and are wrapped by `supergateway --stdio "<command args>" --outputTransport streamableHttp --port <sidecarPort>`.
+The gateway launches `custom` servers as `<command> <containerPath>/<args...> --transport http --host <address> --port <port>`: `127.0.0.1` and `sidecarPort + 10000` behind the tool-filter proxy when the manifest lists `tools`, `0.0.0.0` and `sidecarPort` otherwise. The server must honour all three flags and serve stateless Streamable HTTP on `/mcp`; use `parseLaunchArgs` and `serveStatelessHttp` from `shared/mcp-servers/common/http-launch.ts` (pattern: `shared/mcp-servers/web-fetch/src/index.ts`). `npm` servers speak stdio and are wrapped by `supergateway --stdio "<command args>" --outputTransport streamableHttp --port <port>`; supergateway has no bind-address option, so they listen on every interface.
 
 ## Add a server
 
@@ -32,10 +32,10 @@ The gateway launches `custom` servers as `<command> <containerPath>/<args...> --
    - `custom`: set `"command": "node"`, `"args": ["dist/bundle.js"]` (relative — joined with `containerPath`), `"containerPath": "/opt/mcp/servers/<name>"`.
    - `requiredEnv` / `optionalEnv`: host `.env` vars copied into `gateway.json` (sidecar only).
    - `requiredConfig`: keys every profile using the server must supply in its `mcpServers[].env`; checked by `src/validate/profiles.ts`.
-   - `tools`: becomes the agent-side allowlist in `mcp-config.json`. A tool missing here is invisible to the agent even if the server implements it. Verify real names first (see `references/troubleshooting.md`).
+   - `tools`: becomes the agent-side allowlist in `mcp-config.json` and the allowlist the sidecar's tool-filter proxy enforces. A tool missing here is invisible to the agent, and calls to it are refused, even if the server implements it. `/health` reports allowlisted names the server does not expose as drift. Verify real names first (see `references/troubleshooting.md`).
    - `initScript` (optional): relative path to a script run by `shared/mcp-sidecar/entrypoint.sh` before the gateway starts; failures are logged and ignored. Must be idempotent and fast.
 2. **Code / install**
-   - `custom`: `package.json` with `build`, `lint` (and ideally `test`) scripts; bundle per `references/bundling.md`. The orchestrator runs `npm install && npm run build` for every custom server and the gateway at startup (`src/container/setup/mcp-builder.ts`).
+   - `custom`: `package.json` with `build` (esbuild), `lint` (`tsc --noEmit`) and `test` (vitest, including `tests/http-launch.test.ts`) scripts; bundle per `references/bundling.md`. The orchestrator runs `npm install && npm run build` for every custom server and the gateway at startup (`src/container/setup/mcp-builder.ts`).
    - `npm`: add a pinned global install (plus any system packages) to `shared/mcp-sidecar/Dockerfile`.
 3. **Profile wiring** — add the server to `mcpServers` in `profiles/<id>/profile.json`, at profile level (all variants) or variant level (that variant only; the effective set is the union). Object form adds:
    - `env` — per-server child-process env in `gateway.json`; values starting with `$` are runtime macros resolved per task by `src/container/setup/jit-mcp-params.ts`. Unknown macros throw.

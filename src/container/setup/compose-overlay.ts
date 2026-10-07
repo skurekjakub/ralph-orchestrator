@@ -96,7 +96,7 @@ export function generateComposeOverlay(
     lines.push("    volumes:");
     lines.push("      # MCP server code (read-only, inaccessible to agent)");
     lines.push(`      - ${mcpServersDir}:/opt/mcp/servers:ro`);
-    lines.push("      # Gateway compiled code (read-only, avoids image rebuild for code changes)");
+    lines.push("      # Gateway bundle (read-only, avoids image rebuild for code changes)");
     lines.push(`      - ${join(sidecarDir, "dist")}:/opt/mcp/gateway/dist:ro`);
     lines.push("      # Entrypoint script (mounted to pick up changes without image rebuild)");
     lines.push(`      - ${join(sidecarDir, "entrypoint.sh")}:/opt/mcp/entrypoint.sh:ro`);

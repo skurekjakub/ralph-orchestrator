@@ -24,18 +24,26 @@
     `isolatedModules`), esbuild bundling `src/index.tsx` into
     `dist/index.js`, awilix 13 (`InjectionMode.PROXY`,
     `strict`), execa 10, zod 4 (not the v3 API), liquidjs 10, ws 8, ink 8 +
-    React 19 (`src/cli-dashboard/`), Docker Compose multi-file merge rules,
+    React 19.3 (`src/cli-dashboard/`), Docker Compose multi-file merge rules,
     Squid ACL syntax (`shared/security/squid.conf`).
   - Copilot CLI (the only runtime CLI today):
     `docs/research/copilot-cli-internals.md`.
-  - MCP: `@modelcontextprotocol/sdk` 1.x (`shared/mcp-servers/*`),
-    supergateway 3 (`shared/mcp-sidecar/Dockerfile`).
-  - `dashboard-local/`: React 19.2, Vite 7, Tailwind CSS 4 (CSS-first
-    `@theme`), `@xyflow/react` 12, `d3-sankey` 0.12, Testing Library (React
-    16), jsdom.
-  - `ralph-dashboard/`: Next.js 16 App Router, `@upstash/redis`, Tailwind
-    CSS 4.
-  - Tests in every package: Vitest 4.
+  - MCP: SDK v2 — `@modelcontextprotocol/server` + `@modelcontextprotocol/node`
+    in `shared/mcp-servers/*`, `@modelcontextprotocol/client` +
+    `@modelcontextprotocol/core` in `shared/mcp-sidecar`; supergateway 4.1
+    and `@playwright/mcp` 0.0.83 (`shared/mcp-sidecar/Dockerfile`).
+  - Sub-projects `shared/mcp-servers/*`, `shared/mcp-sidecar`,
+    `ralphchives/sync`: TypeScript 7.0 as a type-checker only
+    (`moduleResolution: "bundler"`, `isolatedModules`, `noEmit`), esbuild
+    bundles, extensionless relative imports. Custom MCP servers launch
+    through `shared/mcp-servers/common/http-launch.ts`
+    (`--transport http --port <port> --host <address>`).
+  - `dashboard-local/`: React 19.3, Vite 8, TypeScript 7.0, Tailwind CSS 4
+    (CSS-first `@theme`), `@xyflow/react` 12, `d3-sankey` 0.12, Testing
+    Library (React 16), jsdom.
+  - `ralph-dashboard/`: Next.js 16 App Router, React 19.3, TypeScript 7.0,
+    `@upstash/redis`, Tailwind CSS 4.
+  - Tests in every package: Vitest 5.
 - **Skills to load** (`.claude/skills/`; the path-scoped `.claude/rules/` load
   themselves):
   - `tests/**`: `test-patterns`, plus `vitest` for runner API questions.
@@ -75,7 +83,7 @@
     `types.ts` + `loader.ts` + `config.json.sample` + `docs/user-guide/`.
   - Commented-out code or an ad hoc env check toggling behaviour → a real
     config flag.
-  - `child_process` or shell strings → `execa` v9 with an argument array.
+  - `child_process` or shell strings → `execa` v10 with an argument array.
   - A JIRA/ADO SDK, axios, or `fetch` from a consumer → native `fetch` inside
     the service client (`JiraClient`, `VcsSourceClient`), retried with
     `withRetry` (`src/retry.ts`), never a hand-rolled retry loop.
@@ -198,8 +206,7 @@
     `context-window-chart-shared.ts`, `CAT_HEX` in `tool-timeline-shared.ts`),
     never repeated inline. Inline `style` only for dynamic values.
   - Log-browser charts are raw SVG; graphs use `@xyflow/react`; the token
-    Sankey uses `d3-sankey`. No new charting dependency without asking
-    (`recharts` is declared but unused).
+    Sankey uses `d3-sankey`. No new charting dependency without asking.
   - One component per file; split past ~150 lines behind an orchestrator
     parent. Types in `tool-timeline-types.ts`, parsers in `*-parser.ts`, data
     hooks in `use*.ts`, `formatTokens()` / `formatMs()` for display.

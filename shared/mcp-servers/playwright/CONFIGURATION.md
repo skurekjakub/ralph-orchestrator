@@ -3,7 +3,7 @@
 Browser automation via Playwright — navigate, screenshot, interact with web pages. This is an npm-packaged server (`playwright-mcp`), not a custom-built one.
 
 **Sidecar port:** 9103  
-**Type:** `npm` (installed via `npm install -g playwright-mcp` in the sidecar)
+**Type:** `npm` (`@playwright/mcp` 0.0.83 installed globally in the sidecar image, with the Chromium build it expects from `playwright-mcp install-browser --with-deps chromium`). The manifest launches it as `playwright-mcp --browser chromium`; without the flag it looks for Google Chrome, which the image does not install. The gateway runs it under supergateway.
 
 ## Environment Variables
 

@@ -132,7 +132,8 @@ Details: `docs/dev-doc/dependency-injection.md`.
 - **Target repo.** `RepoSyncHook` (`src/container/lifecycle.ts`) writes `.ralph/`, `.github/skills/` and `.github/agents/` to `.git/info/exclude`, then fetches, checks out and runs `reset --hard` to the task branch. `TaskRunner` deletes `<repo>/.ralph` before each run.
 - **Templates.** `AgentTemplateRenderer` (`src/container/setup/agent-includes.ts`) renders `profiles/<id>/agents/*.agent.md` (Liquid; partials from `shared/agent-includes/**`; `{% section "x" %}` → `<x>…</x>`) into `.build/`. `SkillTemplateRenderer` renders `shared/skills/<name>` into `shared/skills/.build/<name>/`. Both re-render per task and per stage, and the output is mounted read-only. Template variables: the `TemplateContext` interface in `agent-includes.ts` and `docs/user-guide/template-variables.md`.
 - **MCP.** The effective servers are the union of profile- and variant-level `mcpServers`. Secrets live in `gateway.json` inside the sidecar (`shared/mcp-sidecar/src/gateway.ts`, which serves `/health`).
-  - `type: "npm"` servers are bridged through supergateway. `type: "custom"` servers must serve HTTP themselves on their `sidecarPort`.
+  - `type: "npm"` servers are bridged through supergateway. `type: "custom"` servers serve Streamable HTTP themselves on the `--host` and `--port` the gateway passes (`shared/mcp-servers/common/http-launch.ts`).
+  - A server whose manifest lists `tools` runs on `127.0.0.1:<sidecarPort + 10000>`; the gateway's tool-filter proxy serves `sidecarPort`, hides other tools from `tools/list` and refuses calls to them.
   - `JitMcpConfigWriter` (`src/container/setup/jit-mcp-params.ts`) resolves `$task.*`, `$trigger.<key>` and `$variantEnv.PREFIX` in `env` per task. Unknown macros or missing variant env vars throw.
   - `sidecarEnv` sets sidecar container env. A manifest `initScript` runs before the gateway via `.build/pre-init.sh`.
   - See `MCP.md` and `docs/user-guide/runtime-macros.md`.
@@ -149,8 +150,8 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 ## Conventions
 
-- ESM only (`"type": "module"`). esbuild bundles the orchestrator; `tsconfig.json` only type-checks (`moduleResolution: "bundler"`, `isolatedModules`).
-- **Relative imports are extensionless**: `./foo`, `../dir/index`, never `./foo.js` or `./foo.ts`. esbuild, tsx and Vitest resolve them, and ESLint rejects an extension. `.json` imports keep theirs.
+- ESM only (`"type": "module"`). esbuild bundles the orchestrator and every sub-project except the dashboards; their tsconfigs only type-check (`moduleResolution: "bundler"`, `isolatedModules`).
+- **Relative imports are extensionless**: `./foo`, `../dir/index`, never `./foo.js` or `./foo.ts`. esbuild, tsx and Vitest resolve them, and ESLint rejects an extension in `src/`, `tests/` and `ralphchives/`. `.json` imports keep theirs.
 - `execa` v10 for subprocesses. Native `fetch` against JIRA REST v3, no SDK.
 - **Never re-export** (`export … from`). Update the import site to the defining module.
 - **No backward-compat wrappers, adapters or shims.** When something moves, update every call site.
@@ -176,13 +177,13 @@ Details: `docs/dev-doc/dependency-injection.md`.
 
 Each has its own `package.json` and `npm ci`. Root `npm run lint` and `npm test` skip them, except that root eslint does lint `ralphchives/**`. `.github/workflows/pr-validation.yml` covers all of them.
 
-| Path                        | Stack                                                          | Commands                                                                                                                                              |
-| --------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `shared/mcp-servers/<name>` | custom TS MCP servers (webpack; `discord-hitl`: tsc + esbuild) | `lint` (tsc), `build`, `test` (vitest) in ado, jira-kentico, ralphchives-read/-write. `playwright` and `codegraphcontext` are npm-type, manifest only |
-| `shared/mcp-sidecar`        | gateway process manager                                        | `lint`, `build` (no tests)                                                                                                                            |
-| `dashboard-local`           | Vite + React 19 + Tailwind log/graph UI                        | `dev`, `lint`, `test`, `test:watch`, `build`; see `dashboard-local/AGENTS.md`                                                                         |
-| `ralph-dashboard`           | Next.js status dashboard (Vercel + Upstash Redis)              | `dev`, `lint`, `build`; `deploy` pushes to Vercel production (side-effecting)                                                                         |
-| `ralphchives/sync`          | NodeBB → Neo4j sync pipeline                                   | `build`, `test`, `dev`, `sync:full` (writes to live stores)                                                                                           |
+| Path                        | Stack                                                                                   | Commands                                                                                                                                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shared/mcp-servers/<name>` | custom TS MCP servers on MCP SDK v2 (esbuild bundle, TS 7 type-check)                   | `lint` (tsc), `test` (vitest; builds and launches the bundle), `build` in every custom server. `common/` is their shared launcher, not a server. `playwright` and `codegraphcontext` are npm-type, manifest only |
+| `shared/mcp-sidecar`        | gateway: process manager, tool-filter proxy, health (esbuild bundle, MCP SDK v2 client) | `lint`, `test` (vitest), `build`                                                                                                                                                                                 |
+| `dashboard-local`           | Vite + React 19 + Tailwind log/graph UI                                                 | `dev`, `lint`, `test`, `test:watch`, `build`; see `dashboard-local/AGENTS.md`                                                                                                                                    |
+| `ralph-dashboard`           | Next.js status dashboard (Vercel + Upstash Redis)                                       | `dev`, `lint`, `build`; `deploy` pushes to Vercel production (side-effecting)                                                                                                                                    |
+| `ralphchives/sync`          | NodeBB → Neo4j sync pipeline (esbuild bundle)                                           | `lint`, `build`, `test`, `dev`, `sync:full` (writes to live stores)                                                                                                                                              |
 
 ## Dev tooling vs runtime artifacts
 

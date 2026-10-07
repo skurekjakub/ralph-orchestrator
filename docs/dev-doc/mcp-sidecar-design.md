@@ -1,6 +1,11 @@
 # MCP Sidecar Design — Agent Filesystem Isolation
 
-> **Status:** Implemented. Some sections below reflect the original design proposal. Key post-implementation changes: custom servers now use **stateless per-request** `StreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), sidecar PID limit raised to 300, Playwright uses the pre-installed `playwright-mcp` binary, and the sidecar connects to `ralph-sidecar-external` for **direct internet access** (does NOT route through Squid). See [001-ado-server-crash-session-loss.md](../past-issues/001-ado-server-crash-session-loss.md) for details.
+> **Status:** Implemented. This document records the design; [MCP.md](../../MCP.md) is the reference for the running system, and the Migration Path and Files to Change sections record the rollout plan. Where the implementation differs from the proposal:
+>
+> - Custom servers serve **stateless per-request** Streamable HTTP (a fresh `McpServer` and `NodeStreamableHTTPServerTransport`, `sessionIdGenerator: undefined`, per request) through the shared launcher `shared/mcp-servers/common/http-launch.ts`, and bind the address the gateway passes in `--host`. See [001-ado-server-crash-session-loss.md](../past-issues/001-ado-server-crash-session-loss.md) for why they are stateless.
+> - The gateway fronts every server whose manifest lists `tools` with a **tool-filter proxy** on its `sidecarPort`; the server listens on `127.0.0.1:<sidecarPort + 10000>`. The proxy removes other tools from `tools/list` and refuses calls to them with JSON-RPC `-32602`.
+> - Servers and gateway are esbuild bundles on MCP SDK v2. The gateway bundle and the server code are mounted into the image at runtime.
+> - The sidecar PID limit is 300, Playwright runs the pre-installed `playwright-mcp` binary, and the sidecar reaches the internet **directly** through `ralph-sidecar-external` (not through Squid).
 
 ## Problem
 
@@ -24,7 +29,7 @@ Replace stdio-based MCP server invocation with HTTP-based (Streamable HTTP trans
 ┌──────────────────────────────────────┐    ┌──────────────────────────────────────┐
 │       Agent Container (vscode)       │    │     MCP Sidecar Container (mcp)      │
 │                                      │    │                                      │
-│  CLI (copilot/claude)                │    │  Process Manager (gateway.ts)        │
+│  CLI (copilot/claude)                │    │  Gateway (gateway.ts): tool filter   │
 │    ├── mcp-config.json               │    │    ├── jira-kentico  :9100 (HTTP)    │
 │    │   { "jira-kentico": {           │    │    ├── ado           :9101 (HTTP)    │
 │    │       "type": "http",           │    │    ├── discord-hitl  :9102 (HTTP)    │
@@ -37,8 +42,8 @@ Replace stdio-based MCP server invocation with HTTP-based (Streamable HTTP trans
 │  Network: ralph-internal only        │    │    └── playwright (pre-installed)    │
 │                                      │    │                                      │
 └──────────────────────────────────────┘    │  Secrets: gateway.json (mounted file) │
-                                            │  Proxy: routes through Squid         │
-                                            │  Network: ralph-internal             │
+                                            │  Egress: direct, not through Squid   │
+                                            │  Networks: internal + sidecar-ext.   │
                                             │                                      │
                                             │  Health: GET /health → 200 OK        │
                                             └──────────────────────────────────────┘
@@ -53,7 +58,7 @@ Both CLIs support remote MCP servers:
 - **Copilot CLI**: `"type": "http", "url": "http://mcp-sidecar:PORT/mcp"` in `--additional-mcp-config`
 - **Claude Code CLI**: `"url": "http://mcp-sidecar:PORT/mcp"` in `--mcp-config`
 
-The MCP SDK v1.x (currently used by our custom servers at `^1.26.0`) includes `StreamableHTTPServerTransport`. No SDK version bump required.
+The custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/server` and `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node` for Streamable HTTP on Node. The gateway's tool-filter proxy and upstream monitor use `@modelcontextprotocol/client` and `@modelcontextprotocol/core`.
 
 ### What Changes
 
@@ -72,7 +77,7 @@ The MCP SDK v1.x (currently used by our custom servers at `^1.26.0`) includes `S
 - Security overlay — `cap_drop: ALL`, `no-new-privileges`, resource limits apply to sidecar too
 - MCP sidecar has direct internet access via `ralph-sidecar-external` network (does not route through Squid)
 - Profile's `mcpServers` declaration — still controls which servers are available
-- Tool allowlists in manifests — enforced via `tools` field in mcp-config.json
+- Tool allowlists in manifests — written into `mcp-config.json` for the CLI and enforced in the sidecar by the gateway's tool-filter proxy
 - Compose three-file merge — overlay now generates sidecar config too
 
 ## Design Decisions
@@ -113,46 +118,14 @@ The sidecar starts and stops as part of the compose stack. Each profile's `gatew
 
 Use the MCP spec's [Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) (2025-03-26). This is the current standard, replacing the deprecated SSE transport.
 
-- **Custom servers** (jira-kentico, ado, discord-hitl): Add native Streamable HTTP mode using `StreamableHTTPServerTransport` from `@modelcontextprotocol/sdk`. Server accepts `--transport http --port PORT` flags.
-- **npm servers** (playwright): Use [`supergateway`](https://www.npmjs.com/package/supergateway) (v3.4.3, 23K weekly downloads) as a stdio→Streamable HTTP bridge. The gateway spawns `supergateway --stdio "node /opt/mcp/playwright/..." --outputTransport streamableHttp --port PORT`.
+- **Custom servers**: native Streamable HTTP mode with `NodeStreamableHTTPServerTransport` (MCP SDK v2). Servers accept `--transport http --port <port> --host <address>`.
+- **npm servers** (playwright, codegraphcontext): [`supergateway`](https://www.npmjs.com/package/supergateway) 4.1.0 as a stdio→Streamable HTTP bridge. The gateway spawns `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <port>`. supergateway has no bind-address option, so these listen on every interface.
 
 ## Implementation Plan
 
-### 1. Custom Server HTTP Transport (~15 lines per server)
+### 1. Custom Server HTTP Transport
 
-Each custom server (jira-kentico, ado, discord-hitl) adds a transport switch at the entry point:
-
-```typescript
-// Before:
-const transport = new StdioServerTransport();
-await server.connect(transport);
-
-// After:
-if (process.argv.includes("--transport") && process.argv[process.argv.indexOf("--transport") + 1] === "http") {
-  const port = parseInt(process.argv[process.argv.indexOf("--port") + 1]);
-  const app = express();
-  app.use(express.json());
-
-  app.all("/mcp", async (req, res) => {
-    // Stateless per-request pattern — crash resilient
-    const mcpServer = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => {
-      transport.close();
-      mcpServer.close();
-    });
-    await mcpServer.connect(transport);
-    await transport.handleRequest(req, res);
-  });
-
-  app.listen(port, "0.0.0.0", () => console.log(`MCP HTTP server on port ${port}`));
-} else {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
-```
-
-Custom servers use `node:http` with `StreamableHTTPServerTransport` from `@modelcontextprotocol/sdk` (already a dependency) to serve `/mcp` and `/health` HTTP endpoints.
+Each custom server's entry point (`shared/mcp-servers/<name>/src/index.ts`) passes its arguments to `parseLaunchArgs` from `shared/mcp-servers/common/http-launch.ts`. Without `--transport http` it connects a server to `StdioServerTransport`. With it, `serveStatelessHttp` binds the `--host` address (default `0.0.0.0`) and `--port` with `node:http`, serves `/health`, and answers each `/mcp` request with a fresh `McpServer` connected to a fresh `NodeStreamableHTTPServerTransport` (`sessionIdGenerator: undefined`), so a restart is invisible to clients. The code is in [MCP.md § Custom Server HTTP Transport](../../MCP.md#custom-server-http-transport).
 
 ### 2. Gateway Process Manager
 
@@ -160,21 +133,31 @@ Custom servers use `node:http` with `StreamableHTTPServerTransport` from `@model
 
 ```
 shared/mcp-sidecar/
-├── package.json
-├── tsconfig.json
+├── package.json         # build: esbuild bundles src/gateway.ts into dist/gateway.js
+├── tsconfig.json        # type-check only
 ├── Dockerfile
+├── entrypoint.sh
 └── src/
-    └── gateway.ts       # Process manager: spawn servers, health endpoint
+    ├── gateway.ts           # Entry: load gateway.json, start SidecarGateway
+    ├── sidecar-gateway.ts   # Servers, tool-filter proxies, health endpoint
+    ├── managed-server.ts    # Child process lifecycle and launch command
+    ├── tool-filter-proxy.ts # Allowlist enforcement on the agent-facing port
+    ├── tool-policy.ts       # JSON-RPC inspection and tools/list filtering
+    ├── upstream-monitor.ts  # Allowlist drift and upstream exposure checks
+    └── health.ts            # GET /health on port 9000
 ```
+
+npm packages stay external in the bundle; the image installs them into `/opt/mcp/gateway/node_modules` from the lockfile, and the bundle is mounted at `/opt/mcp/gateway/dist`.
 
 The gateway:
 
 1. Reads `/opt/mcp/config/gateway.json` (list of servers to start)
 2. Spawns each server as a child process with its env vars
-3. Custom servers: `node /opt/mcp/servers/<name>/dist/bundle.js --transport http --port <PORT>`
+3. Custom servers: `node /opt/mcp/servers/<name>/dist/bundle.js --transport http --host <HOST> --port <PORT>`
 4. npm servers: `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <PORT>`
-5. Monitors child processes, restarts on crash (max 3 retries)
-6. Exposes `GET /health` on port 9000
+5. For a server with `allowedTools`, listens on its `port` with the tool-filter proxy and starts the server on `127.0.0.1:<port + 10000>`; otherwise starts the server on `0.0.0.0:<port>`
+6. Monitors child processes, restarts on crash (max 3 retries), and checks each filtered server for allowlist drift and for an upstream port reachable off loopback
+7. Exposes `GET /health` on port 9000
 
 #### Gateway Config (generated at startup)
 
@@ -186,16 +169,18 @@ The gateway:
       "type": "custom",
       "port": 9100,
       "command": "node",
-      "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js", "--transport", "http", "--port", "9100"],
-      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "..." }
+      "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js"],
+      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "..." },
+      "allowedTools": ["jira_add_comment", "jira_add_attachment"]
     },
     {
       "name": "playwright",
       "type": "npm",
       "port": 9103,
       "command": "playwright-mcp",
-      "args": [],
-      "env": {}
+      "args": ["--browser", "chromium"],
+      "env": {},
+      "allowedTools": ["browser_navigate", "browser_click", "..."]
     }
   ]
 }
@@ -203,49 +188,14 @@ The gateway:
 
 ### 3. Sidecar Dockerfile
 
-```dockerfile
-FROM node:24-bookworm-slim
+`shared/mcp-sidecar/Dockerfile` builds from `node:24-bookworm-slim` and, as root:
 
-# Dedicated non-root user
-RUN groupadd -r mcp && useradd -r -g mcp -m -s /bin/false mcp
+- installs `supergateway@4.1.0` and `@playwright/mcp@0.0.83` globally, then the Chromium build that Playwright MCP expects with `playwright-mcp install-browser --with-deps chromium` (into `/opt/playwright-browsers`);
+- installs git, CA certificates (ADO git tools) and Python 3 with pip and venv (CodeGraphContext);
+- installs the gateway's npm dependencies with `npm ci --omit=dev` from `package-lock.json`;
+- hands `/opt/mcp`, the npm prefix and the browsers to `HOST_UID:HOST_GID` and switches to that user.
 
-# Server directory (owned by mcp, unreadable by others)
-RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway \
-    && chown -R mcp:mcp /opt/mcp \
-    && chmod 700 /opt/mcp
-
-# npm prefix for global installs
-RUN mkdir -p /home/mcp/.npm-global && chown mcp:mcp /home/mcp/.npm-global
-ENV NPM_CONFIG_PREFIX=/home/mcp/.npm-global
-ENV PATH="/home/mcp/.npm-global/bin:$PATH"
-
-# Pre-install supergateway (for npm server bridging)
-RUN npm install -g supergateway
-
-# Pre-install playwright MCP server (no runtime download)
-RUN npm install -g @playwright/mcp
-
-# Gateway dependencies
-COPY --chown=mcp:mcp package.json package-lock.json /opt/mcp/gateway/
-RUN cd /opt/mcp/gateway && npm ci --production
-
-# Gateway code
-COPY --chown=mcp:mcp dist/ /opt/mcp/gateway/dist/
-
-# Note: proxy env vars removed in implementation — sidecar has direct internet
-# via ralph-sidecar-external network instead of routing through Squid.
-# ENV HTTP_PROXY="http://egress-proxy:3128"
-# ENV HTTPS_PROXY="http://egress-proxy:3128"
-# ENV NO_PROXY="localhost,127.0.0.1,app,egress-proxy"
-
-USER mcp
-WORKDIR /opt/mcp
-
-HEALTHCHECK --interval=5s --timeout=3s --retries=3 \
-  CMD node -e "fetch('http://localhost:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
-
-CMD ["node", "/opt/mcp/gateway/dist/gateway.js", "/opt/mcp/config/gateway.json"]
-```
+The gateway bundle (`dist/`), `entrypoint.sh`, the server code and `gateway.json` are mounted by the compose overlay, so code changes need no image rebuild. The healthcheck polls `http://localhost:9000/health`.
 
 ### 4. Compose Changes
 
@@ -357,7 +307,7 @@ Note: `containerPath` changes from `/workspace/.ralph/mcp-servers/<name>` to `/o
 
 ### Residual Risks
 
-- **Agent can send raw HTTP to sidecar**: The agent is on the same internal network and could construct HTTP requests to sidecar ports. This is the intended interface — MCP tool calls go through HTTP. The CLI enforces tool allowlists. Direct HTTP calls bypass tool allowlists but the agent already has tool access through the CLI.
+- **Agent can send raw HTTP to sidecar**: The agent is on the same internal network and could construct HTTP requests to sidecar ports. This is the intended interface — MCP tool calls go through HTTP. The tool-filter proxy on each filtered server's port applies the manifest's `tools` allowlist to direct requests too, and the custom servers behind it listen on loopback only. npm servers run under supergateway, which listens on every interface, so their upstream ports (`sidecarPort + 10000`) are reachable from the internal network; `/health` reports them as exposed.
 - **Sidecar has no request authentication**: MCP Streamable HTTP supports session management but not authentication. Any container on `ralph-internal` can call the sidecar. Mitigation: only `app` and `mcp-sidecar` are on the internal network.
 
 ## Migration Path

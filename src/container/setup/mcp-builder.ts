@@ -51,7 +51,7 @@ async function buildServer(name: string, serverDir: string, logger: Logger): Pro
 /**
  * Build the MCP sidecar gateway (`shared/mcp-sidecar/`).
  *
- * The compiled `dist/` is volume-mounted into the sidecar container at runtime,
+ * The bundled `dist/` is volume-mounted into the sidecar container at runtime,
  * so it must be built before `docker compose up` runs.
  */
 async function buildSidecarGateway(root: string, logger: Logger): Promise<void> {

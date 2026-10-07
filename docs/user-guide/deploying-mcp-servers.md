@@ -64,17 +64,17 @@ Create `shared/mcp-servers/<name>/mcp-server.json`:
 
 **Fields:**
 
-| Field            | Required | Description                                                                                       |
-| ---------------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `name`           | Yes      | Must match the directory name                                                                     |
-| `type`           | Yes      | `"npm"` for external packages                                                                     |
-| `command`        | Yes      | The binary/npx command to run                                                                     |
-| `args`           | Yes      | Command-line arguments (can be `[]`)                                                              |
-| `sidecarPort`    | Yes      | Unique port — see [Port Allocation](#port-allocation)                                             |
-| `requiredEnv`    | No       | Env vars needed in `.env` on the host                                                             |
-| `tools`          | No       | Tool names the server exposes (for agent tool filtering)                                          |
-| `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`                                       |
-| `initScript`     | No       | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`) |
+| Field            | Required | Description                                                                                             |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `name`           | Yes      | Must match the directory name                                                                           |
+| `type`           | Yes      | `"npm"` for external packages                                                                           |
+| `command`        | Yes      | The binary/npx command to run                                                                           |
+| `args`           | Yes      | Command-line arguments (can be `[]`)                                                                    |
+| `sidecarPort`    | Yes      | Unique port — see [Port Allocation](#port-allocation)                                                   |
+| `requiredEnv`    | No       | Env vars needed in `.env` on the host                                                                   |
+| `tools`          | No       | Tool allowlist: listed in the agent's `mcp-config.json` and enforced by the sidecar's tool-filter proxy |
+| `requiredConfig` | No       | Env var keys that profiles must provide in `mcpServers.env`                                             |
+| `initScript`     | No       | Relative path to a shell script executed at sidecar startup before the gateway (e.g. `"init.sh"`)       |
 
 > **Tip:** Don't trust documentation for tool names — verify them by querying the server directly. See [Verifying Tool Names](#verifying-tool-names).
 
@@ -166,10 +166,12 @@ Use this when building your own MCP server with TypeScript.
 shared/mcp-servers/<name>/
 ├── mcp-server.json
 ├── package.json
-├── webpack.config.js
 ├── tsconfig.json
-└── src/
-    └── index.ts
+├── vitest.config.ts
+├── src/
+│   └── index.ts
+└── tests/
+    └── http-launch.test.ts
 ```
 
 Use `"type": "custom"` in the manifest, modelled on `shared/mcp-servers/web-fetch/mcp-server.json`:
@@ -189,21 +191,21 @@ Use `"type": "custom"` in the manifest, modelled on `shared/mcp-servers/web-fetc
 }
 ```
 
-For custom servers, the gateway config joins each `args` entry onto `containerPath` (`dist/bundle.js` → `/opt/mcp/servers/my-custom-server/dist/bundle.js`), and the gateway appends `--transport http --port <sidecarPort>` when it spawns the process. Without `containerPath`, the args are used as-is, so `args: []` would launch a bare `node`.
+For custom servers, the gateway config joins each `args` entry onto `containerPath` (`dist/bundle.js` → `/opt/mcp/servers/my-custom-server/dist/bundle.js`), and the gateway appends `--transport http --host <address> --port <port>` when it spawns the process: `127.0.0.1` and `sidecarPort + 10000` when the manifest lists `tools` (the sidecar's tool-filter proxy then serves `sidecarPort`), `0.0.0.0` and `sidecarPort` otherwise. Without `containerPath`, the args are used as-is, so `args: []` would launch a bare `node`.
 
 ### Step 2: Implement the server
 
-Build with `@modelcontextprotocol/sdk`. Support both stdio (for local testing) and HTTP transport (for sidecar deployment). Look at existing servers in `shared/mcp-servers/ado/` or `shared/mcp-servers/web-fetch/` for the pattern.
+Build with MCP SDK v2 (`@modelcontextprotocol/server`, plus `@modelcontextprotocol/node` for `NodeStreamableHTTPServerTransport`). Hand the launch flags to `parseLaunchArgs` and `serveStatelessHttp` from `shared/mcp-servers/common/http-launch.ts`: they serve stdio when started without `--transport http` (local testing) and stateless Streamable HTTP on the `--host` address otherwise (sidecar deployment). Copy `shared/mcp-servers/web-fetch/` for the pattern, including `tests/http-launch.test.ts`, which starts the built bundle the way the sidecar does. See [MCP.md](../../MCP.md#custom-server-http-transport).
 
 ### Step 3: Build the bundle
 
 ```bash
 cd shared/mcp-servers/<name>
 npm install
-npx webpack
+npm run build
 ```
 
-Produces `dist/bundle.js`. The gateway runs this directly with `node`.
+esbuild bundles `src/index.ts` and its npm dependencies into `dist/bundle.js`; the gateway runs it directly with `node`. `npm run lint` type-checks with `tsc --noEmit` and `npm test` runs vitest.
 
 ### Step 4: Declare in profile
 
@@ -211,7 +213,7 @@ Same as npm servers — add to `profile.json`.
 
 ### No Dockerfile changes needed
 
-Custom server code is volume-mounted from `shared/mcp-servers/` to `/opt/mcp/servers/` inside the sidecar. No rebuild required — just build the webpack bundle and restart.
+Custom server code is volume-mounted from `shared/mcp-servers/` to `/opt/mcp/servers/` inside the sidecar. No image rebuild required — run `npm run build` and restart.
 
 ## Port Allocation
 
@@ -271,13 +273,13 @@ cgc index --path "$CGC_INDEX_PATH"
 
 ## Verifying Tool Names
 
-npm packages may use different tool names than their docs suggest. Query the server directly:
+npm packages may use different tool names than their docs suggest. Query the server directly over stdio. For a custom server, build it and use `command: 'node'`, `args: ['../mcp-servers/<name>/dist/bundle.js']`:
 
 ```bash
-cd shared/mcp-servers/<name>
-node -e "
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+cd shared/mcp-sidecar   # has the MCP SDK v2 client after npm ci
+node --input-type=module -e "
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 const transport = new StdioClientTransport({
   command: '<command>',
   args: [<args>],
@@ -308,7 +310,7 @@ process.exit(0);
 
 ### Custom server bundle missing
 
-- Run `npx webpack` in the server directory
+- Run `npm run build` in the server directory
 - Verify `dist/bundle.js` exists
 - The volume mount is read-only — changes require restart
 

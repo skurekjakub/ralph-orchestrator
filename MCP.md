@@ -20,7 +20,7 @@ profile.json → mcpServers: ["jira-kentico", "ado", "playwright"]
      container    container  merge       proxy
 ```
 
-Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar gateway does not filter tools: it exposes every tool a server registers, so the `tools` allowlist takes effect only if the CLI reading `mcp-config.json` applies it.
+Both Copilot CLI and Claude Code CLI consume the same `mcp-config.json`. Copilot loads it via `--additional-mcp-config @/workspace/.ralph/mcp-config.json`; Claude Code loads it explicitly via `--mcp-config`. Each entry holds the server's sidecar URL (`type: "http"`, `url`) and, when the manifest lists `tools`, a `tools` allowlist — no secrets. The sidecar enforces the same allowlist whatever the CLI does with it. For a server whose manifest lists `tools`, the gateway's tool-filter proxy (`shared/mcp-sidecar/src/tool-filter-proxy.ts`) serves the agent-facing `sidecarPort`, removes every other tool from `tools/list` responses, and answers a `tools/call` for any other tool with JSON-RPC error `-32602` (`Unknown tool: <name>`) without forwarding it. The server itself listens on `127.0.0.1:<sidecarPort + 10000>` inside the sidecar. A server without `tools` is not filtered and serves every tool it registers on `sidecarPort` directly.
 
 ## Server Registry
 
@@ -37,10 +37,13 @@ shared/mcp-servers/
   ralphchives-write/ — Ralphchives knowledge base write path (custom, NodeBB)
   ralphchives-read/  — Ralphchives knowledge base read path (custom, NodeBB)
   codegraphcontext/  — Code graph analysis and structural queries (npm, CodeGraphContext)
+  common/            — Code shared by the custom servers, not a server: the launcher (http-launch.ts)
+                       and the built-bundle test harness (testing/built-server.ts)
 shared/mcp-sidecar/
-  Dockerfile        — Sidecar container image
-  src/gateway.ts    — Process manager + health endpoint
-  package.json      — Gateway dependencies (supergateway)
+  Dockerfile        — Sidecar image: supergateway, Playwright MCP + Chromium, git, Python
+  src/gateway.ts    — Process manager + health endpoint (entry of the dist/gateway.js bundle)
+  src/tool-filter-proxy.ts — Enforces each server's `tools` allowlist on its agent-facing port
+  package.json      — Gateway dependencies (MCP SDK v2 client and core)
 ```
 
 ### Current Servers
@@ -61,17 +64,19 @@ shared/mcp-sidecar/
 
 ### npm (`type: "npm"`)
 
-Uses a pre-installed npm package. No local code — just the manifest. In sidecar mode, `supergateway` bridges the stdio-based server to Streamable HTTP:
+Uses a package installed globally in the sidecar image (`shared/mcp-sidecar/Dockerfile`, pinned version). No local code — just the manifest. The gateway runs it under `supergateway --stdio "<command> <args>" --outputTransport streamableHttp --port <port>`, which bridges the stdio server to Streamable HTTP. supergateway has no bind-address option, so it listens on every interface:
 
 ```json
 {
   "name": "playwright",
   "type": "npm",
   "command": "playwright-mcp",
-  "args": [],
+  "args": ["--browser", "chromium"],
   "sidecarPort": 9103
 }
 ```
+
+`--browser chromium` selects the Chromium build the image installs with `playwright-mcp install-browser --with-deps chromium`; without it Playwright MCP looks for Google Chrome, which the image does not have.
 
 ### Custom (`type: "custom"`)
 
@@ -91,7 +96,13 @@ Locally built server with source in `src/`, bundled to `dist/`. The `containerPa
 }
 ```
 
-Custom servers support both stdio and HTTP transport modes. In sidecar mode, the gateway spawns them with `--transport http --port <sidecarPort>`. Custom servers use `@modelcontextprotocol/sdk` with `StreamableHTTPServerTransport` and are bundled for single-file deployment (webpack or esbuild, depending on server). Build with `npm run build` inside the server directory.
+Custom servers support both stdio and HTTP transport modes. The gateway starts them with the launch contract `--transport http --port <port> --host <address>`:
+
+- A server whose manifest lists `tools` gets `--host 127.0.0.1 --port <sidecarPort + 10000>`, and the tool-filter proxy takes `sidecarPort`.
+- A server without `tools` gets `--host 0.0.0.0 --port <sidecarPort>`.
+- Without `--host` a server binds `0.0.0.0`; without `--transport http` it speaks stdio.
+
+Custom servers use MCP SDK v2: `McpServer` from `@modelcontextprotocol/server` and `NodeStreamableHTTPServerTransport` from `@modelcontextprotocol/node`. They parse the flags and serve HTTP through the shared launcher `shared/mcp-servers/common/http-launch.ts` (see [Custom Server HTTP Transport](#custom-server-http-transport)). `npm run build` in the server directory bundles `src/index.ts` with esbuild into the file the manifest's `args` names, npm dependencies included, so the sidecar runs it without `node_modules`. `tsc --noEmit` (`npm run lint`) only type-checks, and relative imports are extensionless.
 
 ## Manifest Schema
 
@@ -106,7 +117,7 @@ Custom servers support both stdio and HTTP transport modes. In sidecar mode, the
 | `containerPath`  | Absolute path inside the sidecar container where custom server code is mounted (e.g. `/opt/mcp/servers/<name>`)                                                 | Custom only |
 | `requiredEnv`    | Env vars read from the orchestrator's environment (`.env`) and embedded in gateway.json, not in the agent container                                             | No          |
 | `optionalEnv`    | Optional env vars the server supports (embedded in gateway.json when set)                                                                                       | No          |
-| `tools`          | Tool names. Written into the agent's `mcp-config.json` as the server's `tools` allowlist; the sidecar does not filter                                           | No          |
+| `tools`          | Tool allowlist. Written into the agent's `mcp-config.json` and enforced by the sidecar's tool-filter proxy; absent or empty means every tool is exposed         | No          |
 | `requiredConfig` | Array of env var names that a profile must provide via `mcpServers` env blocks. Validated at startup — missing keys cause a descriptive error.                  | No          |
 | `initScript`     | Relative path to a shell script in the server directory, executed at sidecar startup before the gateway launches. Path must not contain `..` or start with `/`. | No          |
 
@@ -257,13 +268,14 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
       "port": 9100,
       "command": "node",
       "args": ["/opt/mcp/servers/jira-kentico/dist/bundle.js"],
-      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "...", "JIRA_ISSUE_KEY": "DOC-3143" }
+      "env": { "JIRA_PAT_KENTICO_JIRA": "...", "JIRA_EMAIL_KENTICO_JIRA": "...", "JIRA_ISSUE_KEY": "DOC-3143" },
+      "allowedTools": ["jira_add_comment", "jira_add_attachment"]
     }
   ]
 }
 ```
 
-(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.)
+(The task-scoped `JIRA_ISSUE_KEY` is merged in by JitMcpConfigWriter before each task.) `allowedTools` is the manifest's `tools`; the gateway starts a tool-filter proxy for every entry that has it.
 
 ### `docker-compose.overlay.yml`
 
@@ -289,10 +301,13 @@ Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` 
 ```
 Agent container (internal-only network)
   → HTTP request to MCP sidecar (http://mcp-sidecar:PORT/mcp)
-    → Sidecar gateway dispatches to MCP server process
-      → Server makes API call directly (sidecar has unrestricted internet via ralph-sidecar-external)
-        → External API
+    → Tool-filter proxy on PORT (servers with a `tools` allowlist) checks the request
+      → MCP server process on 127.0.0.1:(PORT + 10000)
+        → Server makes API call directly (sidecar has unrestricted internet via ralph-sidecar-external)
+          → External API
 ```
+
+A server without a `tools` allowlist listens on PORT itself and gets requests directly.
 
 The agent container has no direct internet access and no MCP credentials. The agent talks to MCP servers via HTTP URLs on the internal Docker network. MCP servers inside the sidecar reach external APIs **directly** via the `ralph-sidecar-external` bridge network — they do not route through the Squid proxy. The Squid proxy only filters the **agent container's own** outbound traffic (AI providers, package registries).
 
@@ -300,61 +315,53 @@ The agent container has no direct internet access and no MCP credentials. The ag
 
 1. Create `shared/mcp-servers/<name>/mcp-server.json` with a unique `sidecarPort` (1–65535)
 2. For npm servers: set `type: "npm"`, `command`, `args` — no local code needed
-3. For custom servers: add `package.json`, `tsconfig.json`, `src/index.ts` with HTTP transport support (`--transport http --port PORT`), set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
+3. For custom servers: add `package.json` (esbuild `build`, `tsc --noEmit` `lint`, vitest `test`), `tsconfig.json`, `src/index.ts` using the shared launcher (below), and `tests/http-launch.test.ts` modelled on another server's; set `containerPath` to `/opt/mcp/servers/<name>`, build with `npm run build`
 4. Add `"<name>"` to the profile or variant `mcpServers` arrays that should use this server
 5. List `requiredEnv` / `optionalEnv` in the manifest and set them in `.env` — they're embedded in `gateway.json` (sidecar-only)
-6. List the server's tools in `tools` — this becomes the agent's tool allowlist for the server
+6. List the server's tools in `tools` — this becomes the agent's tool allowlist for the server, enforced by the sidecar
 
 No squid.conf edits (the sidecar has direct internet access), compose file edits, or env var wiring needed. The orchestrator discovers manifests automatically and generates all configuration at startup.
 
 ### Custom Server HTTP Transport
 
-Custom servers must support the Streamable HTTP transport for sidecar mode. Each request creates a fresh `McpServer` + `StreamableHTTPServerTransport` pair (stateless — no session tracking). This ensures crash resilience: if the gateway restarts a server, clients reconnect transparently without session errors.
+Custom servers must support the Streamable HTTP transport for sidecar mode. Each request creates a fresh `McpServer` + `NodeStreamableHTTPServerTransport` pair (stateless — no session tracking). This ensures crash resilience: if the gateway restarts a server, clients reconnect transparently without session errors.
 
-Parse `--transport http --port PORT` from argv:
+Every custom server's entry point hands its launch flags to the shared launcher in `shared/mcp-servers/common/http-launch.ts`, which esbuild bundles into the server:
 
 ```typescript
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createServer } from "node:http";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { LaunchTransport, parseLaunchArgs, serveStatelessHttp } from "../../common/http-launch";
 
-function startHttpTransport(createMcpServer: () => McpServer, port: number): void {
-  const httpServer = createServer(async (req, res) => {
-    if (req.url === "/health") {
-      res.writeHead(200);
-      res.end('{"status":"ok"}');
-      return;
-    }
-    if (req.url !== "/mcp") {
-      res.writeHead(404);
-      res.end();
-      return;
-    }
-    let body;
-    if (req.method === "POST") {
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      try {
-        body = JSON.parse(Buffer.concat(chunks).toString());
-      } catch {
-        res.writeHead(400);
-        res.end('{"error":"Invalid JSON"}');
-        return;
-      }
-    }
-    const mcpServer = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    res.on("close", () => {
-      transport.close();
-      mcpServer.close();
-    });
-    await mcpServer.connect(transport);
-    await transport.handleRequest(req, res, body);
-  });
-  httpServer.listen(port, "0.0.0.0");
+function createMcpServer(): McpServer {
+  const server = new McpServer({ name: "my-server", version: "1.0.0" });
+  // server.registerTool(...)
+  return server;
 }
+
+async function main(): Promise<void> {
+  const launch = parseLaunchArgs(process.argv.slice(2));
+  if (launch.transport === LaunchTransport.Stdio) {
+    await createMcpServer().connect(new StdioServerTransport());
+    return;
+  }
+  await serveStatelessHttp(launch, "my-server", {
+    createServer: createMcpServer,
+    createTransport: () => new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined }),
+  });
+}
+
+main().catch((err) => {
+  console.error("my-server MCP server failed:", err);
+  process.exit(1);
+});
 ```
 
-The `main()` function should check for `--transport http` and fall back to stdio for local development.
+- `parseLaunchArgs` reads `--transport http --port <port> [--host <address>]`. `--host` defaults to `0.0.0.0`, and `--port 0` binds a free port. A missing or invalid `--port`, an empty `--host` or an unknown `--transport` throws, so the server exits with an error.
+- `serveStatelessHttp` binds the address, serves `/mcp` with a fresh server and transport per request and `/health` with `{"status":"ok"}`, answers a handler error with HTTP 500, and logs `<name> MCP HTTP server listening on <address>:<port>`, the line the gateway treats as started.
+- The launcher uses only `node:http`: a file outside a server package cannot resolve that package's `node_modules`, so each server constructs its own SDK transport.
+- `shared/mcp-servers/common/testing/built-server.ts` starts a built bundle the way the sidecar does (manifest `command` and `args`, from a directory without `node_modules`). Each server's `tests/http-launch.test.ts` uses it to check the served tools against the manifest and that `--host 127.0.0.1` leaves the port unreachable on every other address.
 
 ## Agent Include Files
 

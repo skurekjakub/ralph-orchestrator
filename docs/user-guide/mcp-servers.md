@@ -56,19 +56,19 @@ Values starting with `$` are runtime macros resolved per-task. See [Runtime Macr
 ```
 Agent container (ralph-internal network, Squid-proxied)
      │
-     │  HTTP (StreamableHTTP)
+     │  HTTP (Streamable HTTP) to http://mcp-sidecar:<sidecarPort>/mcp
      ▼
-MCP Sidecar (ralph-internal + ralph-sidecar-external)
-     │
-     │  stdio → supergateway → HTTP bridge
+MCP sidecar gateway (ralph-internal + ralph-sidecar-external)
+     │  tool-filter proxy on <sidecarPort> when the manifest lists `tools`
      ▼
-MCP Server processes (direct internet access)
+MCP server process on 127.0.0.1:<sidecarPort + 10000> (direct internet access)
 ```
 
 - **Agent** runs on `ralph-internal` (internal Docker network, proxied through Squid)
 - **MCP sidecar** bridges both networks — receives tool calls from agent, runs server processes with direct internet
 - Agent sees tools via `mcp-config.json` (URL-only). Credentials live in `gateway.json` inside the sidecar
-- `supergateway` bridges each server's stdio to Streamable HTTP on a fixed port
+- The tool-filter proxy enforces the manifest's `tools`: other tools are dropped from `tools/list` and calls to them get JSON-RPC error `-32602`
+- Custom servers serve Streamable HTTP themselves; npm servers speak stdio and run behind `supergateway`, which bridges them to Streamable HTTP
 
 ## Server Manifests
 
@@ -84,7 +84,7 @@ Each server has a `mcp-server.json` manifest in `shared/mcp-servers/<name>/`.
 | `containerPath`  | `string`                  | No       | Mount path inside sidecar (for `"custom"` type)                                     |
 | `sidecarPort`    | `number`                  | Yes      | Fixed port (1–65535), must be unique across servers                                 |
 | `requiredEnv`    | `string[]`                | No       | Env vars that must be in `.env` for the server to work                              |
-| `tools`          | `string[]`                | No       | Tool names this server provides                                                     |
+| `tools`          | `string[]`                | No       | Tool allowlist: given to the CLI and enforced by the sidecar's tool-filter proxy    |
 | `requiredConfig` | `string[]`                | No       | Env var names that profiles must provide via `mcpServers.env`. Validated at startup |
 
 ## Available Servers

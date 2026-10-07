@@ -370,7 +370,7 @@ The MCP sidecar has **unrestricted direct internet access** via the `ralph-sidec
 **Server types:**
 
 - `"npm"` — Pre-installed npm packages. No local code needed (e.g. Playwright). Bridged to HTTP via `supergateway`.
-- `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Must support `--transport http --port PORT` for sidecar mode. Set `containerPath` to `/opt/mcp/servers/<name>`.
+- `"custom"` — locally built servers with source in `src/` and bundle in `dist/`. Must honour the launch contract `--transport http --port <port> --host <address>` (default host `0.0.0.0`) for sidecar mode; `shared/mcp-servers/common/http-launch.ts` implements it. Set `containerPath` to `/opt/mcp/servers/<name>`.
 
 **Port assignment:** Each server must declare a unique `sidecarPort` in its manifest. Ports are validated at startup — duplicates or out-of-range values cause a startup error.
 

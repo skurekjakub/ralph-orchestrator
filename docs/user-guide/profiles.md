@@ -38,7 +38,7 @@ shared/
 │   └── ralph-docs/
 │       └── ralph-standard-workflow.md
 ├── mcp-servers/<name>/       — MCP server manifests + source code
-├── mcp-sidecar/              — Gateway container (supergateway process manager)
+├── mcp-sidecar/              — Gateway container (process manager + tool-filter proxy)
 └── skills/                   — Shared agent skill folders
     ├── workflow/
     │   └── ralph-workflow-setup/

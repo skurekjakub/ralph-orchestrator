@@ -9,12 +9,12 @@
 
 ## Discover real tool names
 
-Docs and client UIs often show renamed or client-prefixed names, and names change between package versions. Ask the server directly. Run this from a server directory that has `@modelcontextprotocol/sdk` installed (e.g. `shared/mcp-servers/jira-kentico/`), substituting values from its `mcp-server.json`:
+Docs and client UIs often show renamed or client-prefixed names, and names change between package versions. Ask the server directly over stdio. Run this from `shared/mcp-sidecar/` (after `npm ci`; it has the MCP SDK v2 client), substituting values from the server's `mcp-server.json` — for a custom server, `command: 'node'` and `args: ['../mcp-servers/<name>/dist/bundle.js']` after `npm run build` there:
 
 ```bash
 node --input-type=module -e "
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from '@modelcontextprotocol/client';
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 const transport = new StdioClientTransport({
   command: '<command>',
   args: [<args>],
@@ -32,13 +32,15 @@ await client.close();
 
 The sidecar log is collected per task as `output/logs/<taskId>/<taskId>-<ts>-sidecar.log`.
 
-| Symptom in sidecar log                                                                                                           | Cause                                                           | Fix                                                                                                 |
-| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `[gateway] <name> exited (... code=...)` then `exceeded max restarts (3)`                                                        | Server crashes on start (bad args, missing env, missing bundle) | Run the server locally with the same args; check `dist/` exists (`npm run build` in the server dir) |
-| `[gateway] Failed to spawn <name>`, or `[<name>]` stderr saying the command was not found (npm servers run under `supergateway`) | Package not installed in the image                              | Add pinned `npm install -g` to `shared/mcp-sidecar/Dockerfile`; compose rebuilds on next start      |
-| `Cannot find module` for a custom server                                                                                         | Bundle not self-contained, or `args` / `containerPath` wrong    | See `bundling.md`; `args` are joined with `containerPath`                                           |
-| `EADDRINUSE`                                                                                                                     | Duplicate `sidecarPort`                                         | `npm run validate` reports duplicates                                                               |
-| `[entrypoint] pre-init had failures`                                                                                             | An `initScript` failed (non-fatal)                              | Run the script by hand inside the sidecar; check its `sidecarEnv` inputs                            |
+| Symptom in sidecar log                                                                                                           | Cause                                                            | Fix                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `[gateway] <name> exited (... code=...)` then `exceeded max restarts (3)`                                                        | Server crashes on start (bad args, missing env, missing bundle)  | Run the server locally with the same args; check `dist/` exists (`npm run build` in the server dir)                          |
+| `[gateway] Failed to spawn <name>`, or `[<name>]` stderr saying the command was not found (npm servers run under `supergateway`) | Package not installed in the image                               | Add pinned `npm install -g` to `shared/mcp-sidecar/Dockerfile`; compose rebuilds on next start                               |
+| `Cannot find module` for a custom server                                                                                         | Bundle not self-contained, or `args` / `containerPath` wrong     | See `bundling.md`; `args` are joined with `containerPath`                                                                    |
+| `EADDRINUSE`                                                                                                                     | Duplicate `sidecarPort`                                          | `npm run validate` reports duplicates                                                                                        |
+| `[entrypoint] pre-init had failures`                                                                                             | An `initScript` failed (non-fatal)                               | Run the script by hand inside the sidecar; check its `sidecarEnv` inputs                                                     |
+| `[guard] <name>: allowlist drift: <tools> not exposed by the server`                                                             | Manifest `tools` names a tool the server does not register       | Fix `tools` in its `mcp-server.json` from the real names (above)                                                             |
+| `[guard] <name>: upstream port <port> accepts connections on <address>`                                                          | The server binds every interface, so the allowlist is bypassable | Custom server: launch through `common/http-launch.ts`, which honours `--host`. npm servers under supergateway always do this |
 
 The gateway restarts a crashed server up to 3 times, 1 s apart, and reports per-server status on `:9000/health`, which the compose healthcheck uses.
 
