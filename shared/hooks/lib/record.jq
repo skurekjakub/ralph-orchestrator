@@ -64,7 +64,7 @@ def result_block_body:
     end;
 
 # JavaScript's \s, so the status token ends where the orchestrator's regex ends it.
-def js_space: "\t\n\u000b\f\r    -     　﻿";
+def js_space: "\t\n\u000b\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
 
 # The STATUS value parseResultBlock (src/container/result-parser.ts) reads from
 # the text, or null. The key is ASCII case-insensitive, like its /i flag.
