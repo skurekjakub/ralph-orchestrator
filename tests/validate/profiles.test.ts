@@ -641,7 +641,11 @@ describe("validateProfiles", () => {
 
     it.each([["effort", { effort: "high" }]])("rejects %s on a Copilot stage", async (option, setting) => {
       // Arrange
-      writeValidProfile("test", { profileJson: profileWithStages([{ agent: "ralph", role: "primary", ...setting }]) });
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary", ...setting }], {
+          profile: { cli: "copilot" },
+        }),
+      });
       const c = collector();
 
       // Act
@@ -693,7 +697,9 @@ describe("validateProfiles", () => {
     it("rejects a stage model the stage cli does not accept, with the replacement", async () => {
       // Arrange
       writeValidProfile("test", {
-        profileJson: profileWithStages([{ agent: "ralph", role: "primary", model: "opus" }]),
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary", model: "opus" }], {
+          profile: { cli: "copilot" },
+        }),
       });
       const c = collector();
 
@@ -711,6 +717,7 @@ describe("validateProfiles", () => {
       writeValidProfile("test", {
         profileJson: {
           repoUrl: REPO_URL,
+          cli: "copilot",
           model: "opus",
           variants: [
             {
@@ -738,6 +745,7 @@ describe("validateProfiles", () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          profile: { cli: "copilot" },
           variant: { model: "claude-opus-4-6" },
         }),
       });
@@ -759,7 +767,7 @@ describe("validateProfiles", () => {
             { agent: "ralph", role: "primary" },
             { agent: "ralph", role: "reviewer", cli: "claude" },
           ],
-          { profile: { model: "claude-sonnet-4" } },
+          { profile: { cli: "copilot", model: "claude-sonnet-4" } },
         ),
       });
       const c = collector();
@@ -794,6 +802,7 @@ describe("validateProfiles", () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
+          profile: { cli: "copilot" },
           hookStages: [{ agent: "ralph", role: "analyzer", mode: "local", model: "sonnet" }],
         }),
       });

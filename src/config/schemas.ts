@@ -183,7 +183,7 @@ export const profileFileSchema = z.object({
   /** Env var name holding the git PAT that clones and fetches `repoUrl`. Defaults to `ADO_PAT` (ado) or `GH_TOKEN` (github). */
   repoPat: z.string().optional(),
   /** Default CLI for the profile's stages; `stages[].cli` overrides it per stage. */
-  cli: z.enum(CliType).default(CliType.Copilot),
+  cli: z.enum(CliType).default(CliType.Claude),
   model: z.string().optional(),
   timeoutMs: z.number().positive().default(1_800_000),
   setupScript: z.string().default("/usr/local/bin/setup.sh"),

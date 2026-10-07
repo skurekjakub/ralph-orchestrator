@@ -119,7 +119,7 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 
 **Prompt construction:** Before CLI execution, the prompt is built via the `PromptBuilder`, which normalizes untrusted content (stripping invisible characters, hidden HTML comments, non-standard whitespace) and places it after a `JIRA Issue:` / `Title:` header. There are no delimiters around the untrusted data; the agent template's `prompt-security` include tells the agent to treat it as task information. The labelled untrusted sections are passed through the prompt injection auditor.
 
-**CLI selection:** Based on the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
+**CLI selection:** Per stage: the stage's `cli`, else the profile's (`"claude"` by default, or `"copilot"`). Startup validation requires each chosen CLI's credential; there is no fallback to the other CLI.
 
 ### Orchestrator (`src/orchestrator.ts`)
 

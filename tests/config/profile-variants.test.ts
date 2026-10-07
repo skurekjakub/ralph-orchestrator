@@ -68,7 +68,7 @@ describe("resolveProfileVariants", () => {
   });
 
   describe("stage cli", () => {
-    it("runs every stage on Copilot when neither the profile nor the stage sets a cli", () => {
+    it("runs every stage on Claude Code when neither the profile nor the stage sets a cli", () => {
       // Arrange
       const parsed = profileFile();
 
@@ -76,19 +76,19 @@ describe("resolveProfileVariants", () => {
       const [variant] = resolveProfileVariants(parsed, "p");
 
       // Assert
-      expect(variant.cli).toBe(CliType.Copilot);
-      expect(variant.stages[0].cli).toBe(CliType.Copilot);
+      expect(variant.cli).toBe(CliType.Claude);
+      expect(variant.stages[0].cli).toBe(CliType.Claude);
     });
 
     it("inherits the profile cli", () => {
       // Arrange
-      const parsed = profileFile({ cli: "claude" });
+      const parsed = profileFile({ cli: "copilot" });
 
       // Act
       const [variant] = resolveProfileVariants(parsed, "p");
 
       // Assert
-      expect(variant.stages[0].cli).toBe(CliType.Claude);
+      expect(variant.stages[0].cli).toBe(CliType.Copilot);
     });
 
     it("lets a stage override the profile cli", () => {
@@ -321,7 +321,7 @@ describe("readProfileFile", () => {
     const parsed = readProfileFile(path);
 
     // Assert
-    expect(parsed.cli).toBe(CliType.Copilot);
+    expect(parsed.cli).toBe(CliType.Claude);
     expect(parsed.variants[0].stages[0].mode).toBe(StageMode.Container);
   });
 

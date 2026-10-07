@@ -2,7 +2,7 @@
   "repoUrl": "https://dev.azure.com/KenticoCustomerSuccess/CustomerEducation/_git/kentico-docs-jekyll",
   "dataSource": "kentico-jira",
   "vcsProvider": "ado",
-  "cli": "copilot",
+  "cli": "claude",
   "timeoutMs": 36000000,
   "allowlistDomains": [
     ".aka.ms",
@@ -54,7 +54,6 @@
       }
     }
   ],
-  "githubMcpTools": ["get_file_contents"],
   "resources": {
     "mountBase": "./ralph/ralph-resources"
   },
@@ -107,7 +106,7 @@
               "role": "scientist",
               "mode": "local",
               "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
-              "model": "claude-opus-4.6"
+              "model": "opus"
             }
           ]
         }
@@ -148,7 +147,7 @@
               "role": "scientist",
               "mode": "local",
               "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
-              "model": "claude-opus-4.6"
+              "model": "opus"
             }
           ]
         }
@@ -193,7 +192,7 @@
               "role": "scientist",
               "mode": "local",
               "skills": ["agent-eval", "run-telemetry-analysis", "skill-creator", "mcp-builder"],
-              "model": "claude-opus-4.6"
+              "model": "opus"
             }
           ]
         }

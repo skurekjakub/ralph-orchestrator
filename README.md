@@ -37,7 +37,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
    {
      "repoUrl": "https://dev.azure.com/my-org/my-project/_git/kentico-docs-jekyll",
      "dataSource": "my-jira",
-     "cli": "copilot",
+     "cli": "claude",
      "timeoutMs": 3600000,
      "variants": [
        {
@@ -128,7 +128,7 @@ Press `Ctrl+C` to gracefully stop (kills active container, cleans up resources).
 2. **Scans comments** for trigger strings (`commentTrigger`) on matching issues. Trigger comments can include parenthesized parameters (e.g. `@RalphDf(codesamples, verbose)`). Uses cached `updated` timestamps to skip unchanged issues — only issues with new JIRA activity trigger API calls.
 3. **Plans operations** in the persistent ledger — each trigger comment is consumed exactly once per variant. Trigger parameters (including key-value pairs like `branch_name=xyz`) are persisted and passed to agent templates as `triggerParams` (`Record<string, string>`). See [docs/dev-doc/agent-templates.md](docs/dev-doc/agent-templates.md) for the template parameterization system.
 4. **Routes to a profile** — matches the issue's project key and status against profile variants. Unmatched issues are skipped.
-5. **Selects CLI** — uses the profile's `cli` preference (`"copilot"` or `"claude"`). Falls back to the other CLI if the preferred one's credential is missing.
+5. **Selects the CLI per stage** — the stage's `cli`, else the profile's (`"claude"` by default, or `"copilot"`). Startup validation requires each chosen CLI's credential; there is no fallback to the other CLI.
 6. **Processes one at a time:**
    - Renders agent templates (JIT) and resolves task-scoped MCP macros into `gateway.json`
    - Resolves existing PR metadata for revision tasks when the profile's `vcsProvider` supports it, allowing the task's workspace and `$task.branch` to reuse the PR's real source/target branches

@@ -120,8 +120,8 @@ shared/
 {
   "repoUrl": "https://dev.azure.com/KenticoCustomerSuccess/CustomerEducation/_git/kentico-docs-jekyll",
   "dataSource": "kentico-jira",
-  "cli": "copilot",
-  "model": "claude-opus-4.6",
+  "cli": "claude",
+  "model": "opus",
   "timeoutMs": 3600000,
   "setupScript": "/usr/local/bin/setup.sh",
   "auditLogPath": "/workspace/.ralph/logs/audit.jsonl",
@@ -161,7 +161,7 @@ shared/
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | `repoUrl`             | `https://` URL of the target repository, without credentials (`user@` or `user:secret@` fails validation). The orchestrator keeps a bare clone of it in `cache/repos/<id>` and runs each task in its own clone, `cache/workspaces/<key>-<startTs>`; see [Task Workspaces](#task-workspaces).                                                                                                                                                                                                                    |
 | `dataSource`          | Key of the `config.json` `dataSources` entry this profile polls. Startup fails if the key doesn't exist.                                                                                                                                                                                                                                                                                                                                                                                                        | — (required)                           |
-| `cli`                 | Which CLI to use: `"copilot"` or `"claude"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `"copilot"`                            |
+| `cli`                 | Which CLI to use: `"claude"` or `"copilot"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `"claude"`                             |
 | `model`               | Model override (profile-level default for all variants). Copilot uses GitHub model IDs (e.g. `claude-opus-4.6`), Claude Code uses Anthropic IDs.                                                                                                                                                                                                                                                                                                                                                                | — (optional)                           |
 | `timeoutMs`           | Maximum execution time in milliseconds                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `1800000` (30 min)                     |
 | `setupScript`         | Absolute path to the setup script inside the container                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `"/usr/local/bin/setup.sh"`            |
@@ -282,7 +282,7 @@ active  → completed | error
 
 #### CLI Selection
 
-Each stage runs one CLI: its `cli`, else the profile's `cli`, else `copilot`. Startup validation requires the credential of every CLI a stage runs (`GH_TOKEN` for Copilot; `CLAUDE_CODE_OAUTH_TOKEN`, or `ANTHROPIC_API_KEY` with `claudeAuth: "api-key"`, for Claude Code). There is no fallback to the other CLI.
+Each stage runs one CLI: its `cli`, else the profile's `cli`, else `claude`. Startup validation requires the credential of every CLI a stage runs (`GH_TOKEN` for Copilot; `CLAUDE_CODE_OAUTH_TOKEN`, or `ANTHROPIC_API_KEY` with `claudeAuth: "api-key"`, for Claude Code). There is no fallback to the other CLI.
 
 **Copilot CLI** runs, with `COPILOT_HOME=/workspace/.ralph` and the prompt on stdin: `/usr/local/bin/copilot --additional-mcp-config @/workspace/.ralph/mcp-config.json --agent <agent> --model <model> --log-level debug --log-dir <dir> --allow-all-tools --allow-all-paths --share <transcript> [--continue]`
 
@@ -544,7 +544,7 @@ When an issue is in "Defect Found" status and triggered, the agent receives a `M
 {
   "repoUrl": "https://dev.azure.com/KenticoCustomerSuccess/CustomerEducation/_git/kentico-docs-jekyll",
   "dataSource": "kentico-jira",
-  "cli": "copilot",
+  "cli": "claude",
   "timeoutMs": 3600000,
   "variants": [
     {
