@@ -10,6 +10,10 @@ export const MCP_PATH = "/mcp";
 /** The SDK's `DEFAULT_MAX_REQUEST_BODY_SIZE`; the proxy buffers whole POST bodies to inspect them. */
 const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_LOGGED_NAME_LENGTH = 200;
+/** Charset labels that mean UTF-8, the only encoding the proxy inspects bodies in. */
+const UTF8_LABELS = new Set(["utf-8", "utf8"]);
+/** Fails on invalid UTF-8 and keeps a byte order mark, which JSON.parse then rejects. */
+const STRICT_UTF8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
 /** HTTP methods of the Streamable HTTP transport. */
 export enum McpHttpMethod {
@@ -22,8 +26,8 @@ export enum McpHttpMethod {
 export interface AcceptedBody {
   /** The parsed JSON-RPC message or batch. */
   parsed: unknown;
-  /** The parsed value re-serialised, so an HTTP upstream parses exactly what was inspected. */
-  serialized: string;
+  /** The body exactly as the client sent it: UTF-8 JSON with no repeated keys, so it parses to `parsed`. */
+  raw: Buffer;
   /** Keys (`requestIdKey`) of the `tools/list` requests in the body, whose responses must be filtered. */
   listToolsIds: readonly string[];
   /** Id to answer with when the body is a single request and the upstream fails; otherwise `null`. */
@@ -65,9 +69,12 @@ export interface ToolFilterProxyOptions {
 /**
  * Streamable HTTP front of a server with a tool allowlist.
  *
- * Every POST body is parsed and checked before anything reaches the server: a `tools/call` for a tool
- * outside the allowlist is answered by the proxy with a JSON-RPC error (see `inspectInbound`). Accepted
- * requests, and GET and DELETE, go to the {@link ProxyUpstream}, which filters `tools/list` responses.
+ * Every POST body is read (up to `maxBodyBytes`, else HTTP 413), decoded and checked before anything
+ * reaches the server. Its `Content-Type` must be `application/json` with no charset other than UTF-8
+ * (else HTTP 415), and its bytes must be valid UTF-8 JSON, so the proxy and the server cannot read the
+ * same bytes differently. A `tools/call` for a tool outside the allowlist is answered by the proxy
+ * with a JSON-RPC error (see `inspectInbound`). Accepted requests, and GET and DELETE, go to the
+ * {@link ProxyUpstream}, which filters `tools/list` responses.
  */
 export class ToolFilterProxy {
   private readonly server: Server;
@@ -150,8 +157,15 @@ export class ToolFilterProxy {
 
   private async handlePost(req: IncomingMessage, res: ServerResponse, sessionId: string | undefined): Promise<void> {
     const { allowlist, serverName, logger, upstream } = this.options;
-    const body = await readBody(req, this.maxBodyBytes);
-    if (body === undefined) {
+    const mediaTypeProblem = unsupportedMediaType(req.headers["content-type"]);
+    if (mediaTypeProblem !== undefined) {
+      req.resume();
+      sendJson(res, 415, errorPayload(null, ProtocolErrorCode.InvalidRequest, mediaTypeProblem));
+      return;
+    }
+
+    const raw = await readBody(req, this.maxBodyBytes);
+    if (raw === undefined) {
       sendJson(
         res,
         413,
@@ -164,7 +178,15 @@ export class ToolFilterProxy {
       return;
     }
 
-    const verdict = inspectInbound(body, allowlist);
+    let text: string;
+    try {
+      text = STRICT_UTF8.decode(raw);
+    } catch {
+      sendJson(res, 400, errorPayload(null, ProtocolErrorCode.ParseError, "Parse error: the body is not valid UTF-8"));
+      return;
+    }
+
+    const verdict = inspectInbound(text, allowlist);
     if (verdict.kind === "reject") {
       if (verdict.deniedTools.length > 0) {
         this.denied += verdict.deniedTools.length;
@@ -179,12 +201,7 @@ export class ToolFilterProxy {
     await upstream.forward(req, res, {
       method: McpHttpMethod.Post,
       sessionId,
-      body: {
-        parsed: verdict.parsed,
-        serialized: verdict.body,
-        listToolsIds: verdict.listToolsIds,
-        replyId: verdict.replyId,
-      },
+      body: { parsed: verdict.parsed, raw, listToolsIds: verdict.listToolsIds, replyId: verdict.replyId },
     });
   }
 
@@ -211,11 +228,33 @@ export function sendJson(
 }
 
 /**
+ * Why a POST `Content-Type` cannot be accepted, or `undefined` when it is `application/json` with
+ * no charset parameter, or only UTF-8 ones.
+ */
+function unsupportedMediaType(header: string | undefined): string | undefined {
+  const [mediaType, ...parameters] = (header ?? "").split(";");
+  if (mediaType.trim().toLowerCase() !== "application/json") {
+    return "Unsupported Media Type: Content-Type must be application/json";
+  }
+  for (const parameter of parameters) {
+    const separator = parameter.indexOf("=");
+    if (separator === -1 || parameter.slice(0, separator).trim().toLowerCase() !== "charset") continue;
+    const charset = parameter
+      .slice(separator + 1)
+      .trim()
+      .replace(/^"(.*)"$/, "$1")
+      .toLowerCase();
+    if (!UTF8_LABELS.has(charset)) return `Unsupported Media Type: charset ${JSON.stringify(charset)} is not UTF-8`;
+  }
+  return undefined;
+}
+
+/**
  * Read a request body.
  *
  * @returns The body, or `undefined` when it exceeds `limit` bytes (the rest is drained and discarded).
  */
-function readBody(req: IncomingMessage, limit: number): Promise<string | undefined> {
+function readBody(req: IncomingMessage, limit: number): Promise<Buffer | undefined> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
@@ -230,7 +269,7 @@ function readBody(req: IncomingMessage, limit: number): Promise<string | undefin
       }
       chunks.push(chunk);
     });
-    req.on("end", () => resolve(tooLarge ? undefined : Buffer.concat(chunks).toString("utf8")));
+    req.on("end", () => resolve(tooLarge ? undefined : Buffer.concat(chunks)));
     req.on("error", reject);
   });
 }

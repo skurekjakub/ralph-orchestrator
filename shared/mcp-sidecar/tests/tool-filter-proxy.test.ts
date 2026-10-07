@@ -4,11 +4,14 @@ import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import { HttpUpstream } from "../src/http-upstream";
 import { ToolFilterProxy } from "../src/tool-filter-proxy";
 import { ToolAllowlist } from "../src/tool-policy";
+import { startExpressJsonUpstream } from "./helpers/express-json-upstream";
 import { createRecordingLogger, type RecordingLogger } from "./helpers/logger";
-import { connectClient, postRaw, readMessages, type ConnectedClient } from "./helpers/mcp-client";
+import { connectClient, postBytes, postRaw, readMessages, type ConnectedClient } from "./helpers/mcp-client";
 import { listen, PROGRESS_TOOL, startUpstream, UpstreamMode, type TestUpstream } from "./helpers/upstream";
 
 const ALLOWED = ["echo", PROGRESS_TOOL];
+/** Calls `echo` read as UTF-8, and `secret_tool` read as UTF-7 (`+ACIALAAi-` is `","`, `+ACIAOgAi-` is `":"`). */
+const UTF7_SMUGGLED_CALL = String.raw`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","x":"+ACIALAAi-name+ACIAOgAi-secret_tool"}}`;
 const UPSTREAM_TOOLS = ["echo", PROGRESS_TOOL, "secret_tool"];
 
 interface Harness {
@@ -269,6 +272,134 @@ describe("ToolFilterProxy", () => {
 
       expect((await fetch(new URL("/health", url))).status).toBe(404);
       expect((await fetch(url, { method: "PUT", body: "{}" })).status).toBe(405);
+    });
+  });
+
+  describe("request bodies", () => {
+    async function startCharsetHonouringHarness() {
+      const upstream = await startExpressJsonUpstream();
+      cleanups.push(() => upstream.close());
+      return { upstream, ...(await startProxy(upstream.port)) };
+    }
+
+    it("is needed: a server that honours the charset reads the UTF-7 body as a call to another tool", async () => {
+      // Arrange
+      const { upstream } = await startCharsetHonouringHarness();
+
+      // Act
+      const response = await postRaw(upstream.url, UTF7_SMUGGLED_CALL, {
+        "content-type": "application/json; charset=utf-7",
+      });
+
+      // Assert
+      expect(await response.json()).toMatchObject({ result: { content: [{ text: "called secret_tool" }] } });
+    });
+
+    it.each(["utf-7", "UTF-16", '"latin1"'])(
+      "rejects charset %s with HTTP 415 before anything reaches the server",
+      async (charset) => {
+        // Arrange
+        const { url, upstream } = await startCharsetHonouringHarness();
+
+        // Act
+        const response = await postRaw(url, UTF7_SMUGGLED_CALL, {
+          "content-type": `application/json; charset=${charset}`,
+        });
+
+        // Assert
+        expect(response.status).toBe(415);
+        expect(await response.json()).toMatchObject({
+          id: null,
+          error: { code: ProtocolErrorCode.InvalidRequest, message: expect.stringContaining("is not UTF-8") },
+        });
+        expect(upstream.received).toEqual([]);
+      },
+    );
+
+    it.each([
+      ["text/plain", { "content-type": "text/plain" }],
+      ["a missing content type", {}],
+    ])("rejects %s with HTTP 415", async (_label, headers: Record<string, string>) => {
+      // Arrange
+      const { url, upstream } = await startCharsetHonouringHarness();
+
+      // Act
+      const response = await postBytes(url, Buffer.from(UTF7_SMUGGLED_CALL), headers);
+
+      // Assert
+      expect(response.status).toBe(415);
+      expect(upstream.received).toEqual([]);
+    });
+
+    it("forwards an accepted body byte for byte, declared as plain application/json", async () => {
+      // Arrange
+      const { url, upstream } = await startCharsetHonouringHarness();
+      const body =
+        '{ "jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": { "name": "echo", "arguments": { "ticket": 12345678901234567890, "ratio": 0.10000000000000001 } } }';
+
+      // Act
+      const response = await postRaw(url, body, { "content-type": "Application/JSON; Charset=UTF-8" });
+
+      // Assert
+      expect(response.status).toBe(200);
+      expect(upstream.received).toEqual([
+        { contentType: "application/json", raw: Buffer.from(body), body: expect.objectContaining({ id: 4 }) },
+      ]);
+    });
+
+    it("rejects a request id beyond the safe integer range, as the MCP SDK's JSON-RPC schema does", async () => {
+      // Arrange
+      const { url, upstream } = await startCharsetHonouringHarness();
+
+      // Act
+      const response = await postRaw(url, '{"jsonrpc":"2.0","id":9007199254740993,"method":"tools/list"}');
+
+      // Assert
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: ProtocolErrorCode.InvalidRequest } });
+      expect(upstream.received).toEqual([]);
+    });
+
+    it.each([
+      [
+        "invalid UTF-8",
+        Buffer.concat([
+          Buffer.from('{"jsonrpc":"2.0","id":1,"method":"tools/list","x":"'),
+          Buffer.from([0xc3, 0x28]),
+          Buffer.from('"}'),
+        ]),
+      ],
+      [
+        "a byte order mark",
+        Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('{"jsonrpc":"2.0","id":1,"method":"tools/list"}')]),
+      ],
+    ])("rejects a body with %s as a parse error", async (_label, body) => {
+      // Arrange
+      const { url, upstream } = await startCharsetHonouringHarness();
+
+      // Act
+      const response = await postBytes(url, body, { "content-type": "application/json" });
+
+      // Assert
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: { code: ProtocolErrorCode.ParseError } });
+      expect(upstream.received).toEqual([]);
+    });
+
+    it("rejects a body whose object repeats a key, whichever repeat names an allowlisted tool", async () => {
+      // Arrange
+      const { url, upstream } = await startCharsetHonouringHarness();
+      const bodies = [
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"secret_tool","name":"echo"}}',
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","na\\u006de":"secret_tool"}}',
+      ];
+
+      // Act
+      const responses = await Promise.all(bodies.map((body) => postRaw(url, body)));
+
+      // Assert
+      expect(responses.map((response) => response.status)).toEqual([400, 400]);
+      expect(upstream.received).toEqual([]);
     });
   });
 

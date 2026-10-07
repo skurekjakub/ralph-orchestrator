@@ -23,30 +23,45 @@ function rejected(verdict: InboundVerdict): Extract<InboundVerdict, { kind: "rej
 
 describe("tool policy", () => {
   describe("inspectInbound", () => {
-    it("forwards the inspected value, so a duplicated key cannot smuggle a different tool name upstream", () => {
-      const smuggled = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"secret","name":"echo"}}';
+    it.each([
+      [
+        "the denied name first",
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"secret","name":"echo"}}',
+      ],
+      [
+        "the denied name last",
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","name":"secret"}}',
+      ],
+      [
+        "an escaped repeat",
+        '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","na\\u006de":"secret"}}',
+      ],
+      [
+        "a repeat in a nested object",
+        '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"a":1,"a":2}}}',
+      ],
+      [
+        "a repeat inside a batch",
+        '[{"jsonrpc":"2.0","id":1,"method":"ping"},{"jsonrpc":"2.0","jsonrpc":"2.0","id":2,"method":"ping"}]',
+      ],
+    ])("rejects a body whose object repeats a key (%s)", (_label, body) => {
+      // Act
+      const verdict = rejected(inspectInbound(body, allowlist));
 
-      const verdict = forwarded(inspectInbound(smuggled, allowlist));
-
-      expect(JSON.parse(verdict.body)).toEqual({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name: "echo" },
-      });
+      // Assert
+      expect(verdict.httpStatus).toBe(400);
+      expect(verdict.payload).toMatchObject({ id: null, error: { code: ProtocolErrorCode.InvalidRequest } });
     });
 
-    it("denies a call whose last duplicated name is outside the allowlist", () => {
-      const smuggled = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"echo","name":"secret"}}';
+    it("accepts the same key in sibling objects and key-like text inside strings", () => {
+      // Arrange
+      const body = JSON.stringify([
+        { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "echo", arguments: { name: "x" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "echo", arguments: { q: '"name":"secret"' } } },
+      ]);
 
-      const verdict = rejected(inspectInbound(smuggled, allowlist));
-
-      expect(verdict.deniedTools).toEqual(["secret"]);
-      expect(verdict.payload).toEqual({
-        jsonrpc: "2.0",
-        id: 1,
-        error: { code: ProtocolErrorCode.InvalidParams, message: "Unknown tool: secret" },
-      });
+      // Act & Assert
+      expect(inspectInbound(body, allowlist).kind).toBe("forward");
     });
 
     it("tracks tools/list request ids, keeping numeric and string ids apart", () => {

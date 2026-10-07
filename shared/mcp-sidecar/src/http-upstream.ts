@@ -29,8 +29,18 @@ const HOP_BY_HOP_HEADERS = new Set([
   "upgrade",
 ]);
 
-/** The proxy re-serialises POST bodies and must read upstream bodies uncompressed. */
-const REPLACED_REQUEST_HEADERS = new Set(["host", "content-length", "content-encoding", "accept-encoding", "expect"]);
+/**
+ * Set by the proxy instead: the body it forwards is the inspected UTF-8 JSON, declared without a
+ * charset the server could decode differently, and it must read upstream bodies uncompressed.
+ */
+const REPLACED_REQUEST_HEADERS = new Set([
+  "host",
+  "content-type",
+  "content-length",
+  "content-encoding",
+  "accept-encoding",
+  "expect",
+]);
 
 /** Construction options for {@link HttpUpstream}. */
 export interface HttpUpstreamOptions {
@@ -66,7 +76,7 @@ export class HttpUpstream implements ProxyUpstream {
       port: address.port,
       method,
       path: req.url,
-      headers: upstreamRequestHeaders(req.headers, body?.serialized),
+      headers: upstreamRequestHeaders(req.headers, body?.raw),
       agent: this.agent,
     });
 
@@ -91,7 +101,7 @@ export class HttpUpstream implements ProxyUpstream {
         errorPayload(body?.replyId ?? null, ProtocolErrorCode.InternalError, "Upstream MCP server unavailable"),
       );
     });
-    upstreamReq.end(body?.serialized);
+    upstreamReq.end(body?.raw);
   }
 
   async close(): Promise<void> {
@@ -220,7 +230,7 @@ function rewriteJson(text: string, rewrite: (message: unknown) => unknown): stri
   return replaced === undefined ? undefined : JSON.stringify(replaced);
 }
 
-function upstreamRequestHeaders(incoming: IncomingHttpHeaders, body: string | undefined): OutgoingHttpHeaders {
+function upstreamRequestHeaders(incoming: IncomingHttpHeaders, body: Buffer | undefined): OutgoingHttpHeaders {
   const headers: OutgoingHttpHeaders = {};
   for (const [name, value] of Object.entries(incoming)) {
     if (value !== undefined && !HOP_BY_HOP_HEADERS.has(name) && !REPLACED_REQUEST_HEADERS.has(name)) {
@@ -228,7 +238,10 @@ function upstreamRequestHeaders(incoming: IncomingHttpHeaders, body: string | un
     }
   }
   headers["accept-encoding"] = "identity";
-  if (body !== undefined) headers["content-length"] = Buffer.byteLength(body);
+  if (body !== undefined) {
+    headers["content-type"] = "application/json";
+    headers["content-length"] = body.length;
+  }
   return headers;
 }
 

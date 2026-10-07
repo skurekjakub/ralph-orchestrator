@@ -24,6 +24,15 @@ export function postRaw(url: URL, body: string, headers: Record<string, string> 
   return fetch(url, { method: "POST", headers: { ...MCP_POST_HEADERS, ...headers }, body });
 }
 
+/** POST bytes to an MCP endpoint with exactly `headers` besides `accept`, so no Content-Type unless given. */
+export function postBytes(
+  url: URL,
+  body: Uint8Array<ArrayBuffer>,
+  headers: Record<string, string> = {},
+): Promise<Response> {
+  return fetch(url, { method: "POST", headers: { accept: MCP_POST_HEADERS.accept, ...headers }, body });
+}
+
 /** Parse an MCP POST response body, whether JSON or a `text/event-stream` of message events. */
 export async function readMessages(response: Response): Promise<unknown[]> {
   const text = await response.text();

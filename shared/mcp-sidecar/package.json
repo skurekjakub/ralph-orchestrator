@@ -20,7 +20,9 @@
     "node": ">=24"
   },
   "devDependencies": {
+    "@types/body-parser": "^1.19.6",
     "@types/node": "^24.19.1",
+    "body-parser": "^2.3.0",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"

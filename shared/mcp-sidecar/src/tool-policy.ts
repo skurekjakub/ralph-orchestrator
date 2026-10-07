@@ -22,8 +22,6 @@ export type InboundVerdict =
       kind: "forward";
       /** The inspected message or batch. */
       parsed: unknown;
-      /** Body to send upstream: the parsed JSON re-serialised, so upstream parses exactly what was inspected. */
-      body: string;
       /** Keys ({@link requestIdKey}) of the `tools/list` requests in the body, whose responses must be filtered. */
       listToolsIds: string[];
       /** Id to answer with when the body is a single request and the proxy must reply itself; otherwise `null`. */
@@ -68,10 +66,12 @@ export function requestIdKey(id: RequestId): string {
 }
 
 /**
- * Inspect the raw body of a client POST to the MCP endpoint.
+ * Inspect the decoded body of a client POST to the MCP endpoint.
  *
- * Rejects bodies that are not JSON (HTTP 400, -32700), not JSON-RPC 2.0 messages or an empty batch
- * (HTTP 400, -32600), and any `tools/call` that is not a request naming an allowlisted tool. A denied
+ * Rejects bodies that are not JSON (HTTP 400, -32700); that repeat a key within an object, not
+ * JSON-RPC 2.0 messages or an empty batch (HTTP 400, -32600); and any `tools/call` that is not a
+ * request naming an allowlisted tool. Repeated keys are refused because the body is forwarded as
+ * sent, and parsers disagree on which repeat wins, so the server could read another tool name. A denied
  * single request gets an HTTP 200 JSON-RPC error (-32602 `Unknown tool`, the same error a server
  * gives for a tool it does not have). A batch with any denied call is rejected whole: every request
  * in it gets an error and nothing reaches the server.
@@ -82,6 +82,13 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
     parsed = JSON.parse(rawBody);
   } catch {
     return reject(400, errorPayload(null, ProtocolErrorCode.ParseError, "Parse error: Invalid JSON"), []);
+  }
+  if (hasDuplicateKey(rawBody)) {
+    return reject(
+      400,
+      errorPayload(null, ProtocolErrorCode.InvalidRequest, "Invalid Request: an object repeats a key"),
+      [],
+    );
   }
 
   const isBatch = Array.isArray(parsed);
@@ -109,7 +116,6 @@ export function inspectInbound(rawBody: string, allowlist: ToolAllowlist): Inbou
     return {
       kind: "forward",
       parsed,
-      body: JSON.stringify(parsed),
       listToolsIds: messages
         .filter((m): m is JSONRPCRequest => isRequest(m) && m.method === TOOLS_LIST)
         .map((m) => requestIdKey(m.id)),
@@ -196,6 +202,48 @@ function toolNameOf(message: JSONRPCMessage): string | undefined {
 
 function isRequest(message: JSONRPCMessage): message is JSONRPCRequest {
   return "method" in message && "id" in message;
+}
+
+/**
+ * Whether any object in `json` repeats a key, comparing keys after unescaping (`"name"` and
+ * `"na\u006de"` are the same key). `json` must be valid JSON.
+ */
+function hasDuplicateKey(json: string): boolean {
+  const scopes: (Set<string> | null)[] = [];
+  let expectKey = false;
+  for (let i = 0; i < json.length; i++) {
+    const char = json[i];
+    if (char === '"') {
+      const end = closingQuote(json, i);
+      const keys = scopes[scopes.length - 1];
+      if (expectKey && keys) {
+        const key = JSON.parse(json.slice(i, end + 1)) as string;
+        if (keys.has(key)) return true;
+        keys.add(key);
+        expectKey = false;
+      }
+      i = end;
+    } else if (char === "{") {
+      scopes.push(new Set());
+      expectKey = true;
+    } else if (char === "[") {
+      scopes.push(null);
+    } else if (char === "}" || char === "]") {
+      scopes.pop();
+    } else if (char === ",") {
+      expectKey = scopes[scopes.length - 1] !== null;
+    }
+  }
+  return false;
+}
+
+/** Index of the quote that closes the JSON string opening at `start`. */
+function closingQuote(json: string, start: number): number {
+  for (let i = start + 1; i < json.length; i++) {
+    if (json[i] === "\\") i++;
+    else if (json[i] === '"') return i;
+  }
+  return json.length - 1;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
