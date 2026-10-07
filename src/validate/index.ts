@@ -24,6 +24,8 @@ import { validateSkills } from "./skills";
  * - Security infrastructure (Squid proxy, network isolation)
  * - Docker daemon is reachable
  * - Perl is installed, for transcript redaction
+ * - Each CLI a host stage runs is the pinned one under `node_modules/.bin`, and jq is installed when a host
+ *   stage runs Claude Code
  *
  * Returns a result with errors (fatal) and warnings (non-fatal).
  */
@@ -34,7 +36,7 @@ export async function validatePrerequisites(logger?: Logger): Promise<Validation
   logger?.info("Validating .env file");
   validateEnvFile({ errors, warnings });
   logger?.info("Validating config.json");
-  await validateConfigFile({ errors, warnings });
+  const profiles = await validateConfigFile({ errors, warnings });
   logger?.info("Validating runtime skills");
   validateSkills(resolve(process.cwd(), "shared/skills"), { errors, warnings });
   logger?.info("Validating security infrastructure");
@@ -42,7 +44,7 @@ export async function validatePrerequisites(logger?: Logger): Promise<Validation
   logger?.info("Validating Docker availability");
   await validateDocker({ errors, warnings });
   logger?.info("Validating host tools");
-  await validateHostTools({ errors, warnings });
+  await validateHostTools(profiles, { errors, warnings });
 
   return { ok: errors.length === 0, errors, warnings };
 }

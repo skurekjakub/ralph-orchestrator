@@ -37,8 +37,8 @@ ENV PATH="/home/vscode/.npm-global/bin:$PATH"
 
 # ============================================================
 # 4. Agent CLIs
-#    Versions come from `agentCliVersions` in the orchestrator's
-#    package.json (passed by the generated compose overlay).
+#    Versions are the exact CLI package versions in the orchestrator's
+#    package.json dependencies (passed by the generated compose overlay).
 #    Installed root-owned under /usr/local so the agent cannot
 #    replace or patch its own CLI.
 # ============================================================

@@ -3,13 +3,17 @@ import { resolve } from "node:path";
 import { configFileSchema } from "../config/schemas";
 import { validateCliCredentials } from "./credentials";
 import { validateProfiles } from "./profiles";
+import type { IAgentProfile } from "../config/types";
 import type { ValidationCollector } from "./types";
 
 /**
  * Validate config.json, the profiles, and the credentials of the CLIs the profiles' stages run
  * under the configured `claudeAuth`.
+ *
+ * @returns The resolved variants of every profile that passed the schema; none when config.json is missing
+ *   or not JSON.
  */
-export async function validateConfigFile(collector: ValidationCollector): Promise<void> {
+export async function validateConfigFile(collector: ValidationCollector): Promise<IAgentProfile[]> {
   const configPath = resolve(process.cwd(), "config.json");
 
   if (!existsSync(configPath)) {
@@ -18,7 +22,7 @@ export async function validateConfigFile(collector: ValidationCollector): Promis
         `  Copy config.json.sample to config.json and adjust as needed:\n` +
         `  cp config.json.sample config.json`,
     );
-    return;
+    return [];
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validating unknown JSON structure
@@ -27,7 +31,7 @@ export async function validateConfigFile(collector: ValidationCollector): Promis
     raw = JSON.parse(readFileSync(configPath, "utf-8"));
   } catch (e) {
     collector.errors.push(`config.json is not valid JSON: ${e instanceof Error ? e.message : String(e)}`);
-    return;
+    return [];
   }
 
   if (!raw.dataSources || typeof raw.dataSources !== "object" || Object.keys(raw.dataSources).length === 0) {
@@ -56,4 +60,5 @@ export async function validateConfigFile(collector: ValidationCollector): Promis
   if (claudeAuth.success) {
     validateCliCredentials(profiles, claudeAuth.data, process.env, collector);
   }
+  return profiles;
 }
