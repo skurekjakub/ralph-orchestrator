@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { HookSandbox, loadCapturedPreToolUse, loadPayloads, type AuditRecord, type HookRun } from "./hook-harness";
+import { HookSandbox, loadCapturedPreToolUse, loadPayloads, type AuditRecord } from "./hook-harness";
 
 const claude = loadPayloads("claude");
 const copilot = loadPayloads("copilot");
@@ -8,7 +8,7 @@ const copilot = loadPayloads("copilot");
 const COMMON_KEYS = ["schemaVersion", "event", "timestamp", "session", "cli", "agent", "agentId"];
 const TOOL_KEYS = ["tool", "toolUseId", "toolKind", "mcpServer", "mcpTool", "subagent", "skill", "args"];
 
-describe("lib/normalize.sh", () => {
+describe("lib/adapters (payload → v2 audit record)", () => {
   let sandbox: HookSandbox;
 
   beforeEach(() => {
@@ -19,25 +19,31 @@ describe("lib/normalize.sh", () => {
     sandbox.cleanup();
   });
 
-  async function normalize(
+  /** Runs the real entry script for `cli` and returns the record it wrote. */
+  function recordFrom(
     cli: "claude" | "copilot",
-    event: string,
+    script: string,
     payload: unknown,
-    options: { failure?: boolean; env?: Record<string, string> } = {},
+    env: Record<string, string> = {},
   ): Promise<AuditRecord> {
-    const args = options.failure ? [cli, event, "--failure"] : [cli, event];
-    const run: HookRun = await sandbox.runJson("lib/normalize.sh", args, payload, options.env);
-    expect(run.stderr).toBe("");
-    expect(run.exitCode).toBe(0);
-    return JSON.parse(run.stdout);
+    return sandbox.recordOf(script, cli === "claude" ? ["--cli", "claude"] : [], payload, env);
   }
 
   describe("Claude Code adapter", () => {
     it("maps every captured PreToolUse payload to a v2 pre_tool record", async () => {
-      for (const payload of loadCapturedPreToolUse()) {
-        const record = await normalize("claude", "pre_tool", payload);
-        const input = payload.tool_input as Record<string, unknown>;
+      // Arrange
+      const payloads = loadCapturedPreToolUse();
 
+      // Act
+      const records: AuditRecord[] = [];
+      for (const payload of payloads) {
+        records.push(await recordFrom("claude", "log-pre-tool.sh", payload));
+      }
+
+      // Assert
+      records.forEach((record, index) => {
+        const payload = payloads[index];
+        const input = payload.tool_input as Record<string, unknown>;
         expect(record).toMatchObject({
           schemaVersion: 2,
           event: "pre_tool",
@@ -51,27 +57,34 @@ describe("lib/normalize.sh", () => {
         });
         expect(record.toolKind).toBe(payload.tool_name === "Agent" ? "subagent" : "shell");
         expect(record.subagent).toBe(payload.tool_name === "Agent" ? input.subagent_type : null);
-      }
+      });
     });
 
     it("stamps records with the hook's clock because Claude Code payloads carry no timestamp", async () => {
+      // Arrange
       const before = Date.now();
-      const record = await normalize("claude", "pre_tool", claude.preToolUseSkill);
-      const after = Date.now();
 
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", claude.preToolUseSkill);
+
+      // Assert
       expect(record.timestamp).toBeGreaterThanOrEqual(before);
-      expect(record.timestamp).toBeLessThanOrEqual(after);
+      expect(record.timestamp).toBeLessThanOrEqual(Date.now());
     });
 
     it("names the skill of a Skill call", async () => {
-      const record = await normalize("claude", "pre_tool", claude.preToolUseSkill);
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", claude.preToolUseSkill);
 
+      // Assert
       expect(record).toMatchObject({ toolKind: "skill", skill: "ralph-echo", subagent: null, agent: "orch" });
     });
 
     it("splits an MCP tool name into server and tool", async () => {
-      const record = await normalize("claude", "pre_tool", claude.preToolUseMcp);
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", claude.preToolUseMcp);
 
+      // Assert
       expect(record).toMatchObject({
         tool: "mcp__ado__ado_push_progress",
         toolKind: "mcp",
@@ -83,11 +96,13 @@ describe("lib/normalize.sh", () => {
     });
 
     it("keeps double underscores inside the MCP tool part", async () => {
-      const record = await normalize("claude", "pre_tool", {
-        ...claude.preToolUseMcp,
-        tool_name: "mcp__jira-kentico__jira__get_issue",
-      });
+      // Arrange
+      const payload = { ...claude.preToolUseMcp, tool_name: "mcp__jira-kentico__jira__get_issue" };
 
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", payload);
+
+      // Assert
       expect(record).toMatchObject({ mcpServer: "jira-kentico", mcpTool: "jira__get_issue" });
     });
 
@@ -101,15 +116,19 @@ describe("lib/normalize.sh", () => {
       ["TaskCreate", "other"],
       ["WebFetch", "other"],
     ])("classifies %s as %s", async (tool, kind) => {
-      const record = await normalize("claude", "pre_tool", { ...claude.preToolUseSkill, tool_name: tool });
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", { ...claude.preToolUseSkill, tool_name: tool });
 
+      // Assert
       expect(record.toolKind).toBe(kind);
       expect(record.mcpServer).toBeNull();
     });
 
     it("takes the Bash result from stdout and the duration from duration_ms", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseBash);
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseBash);
 
+      // Assert
       expect(record).toMatchObject({
         event: "post_tool",
         tool: "Bash",
@@ -121,43 +140,58 @@ describe("lib/normalize.sh", () => {
     });
 
     it("joins stderr after stdout when a command writes both", async () => {
-      const record = await normalize("claude", "post_tool", {
+      // Arrange
+      const payload = {
         ...claude.postToolUseBash,
         tool_response: { stdout: "out", stderr: "warn", interrupted: false },
-      });
+      };
 
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", payload);
+
+      // Assert
       expect(record.resultText).toBe("out\nwarn");
     });
 
     it("takes a subagent result from its text content blocks", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseAgent);
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseAgent);
 
+      // Assert
       expect(record).toMatchObject({ toolKind: "subagent", subagent: "helper", resultText: "4", durationMs: 3120 });
     });
 
     it("joins the text blocks of an MCP result", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseMcp);
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseMcp);
 
+      // Assert
       expect(record.resultText).toBe("Pushed 2 files to ralph/DOC-3141");
     });
 
     it("takes a Read result from the file content", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseRead);
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseRead);
 
+      // Assert
       expect(record).toMatchObject({ toolKind: "file", resultText: "# Docs\n" });
     });
 
     it("serialises other structured results without the pre-edit file body", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseEdit);
-      const result = JSON.parse(record.resultText as string);
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseEdit);
 
+      // Assert
+      const result = JSON.parse(record.resultText as string);
       expect(result).toMatchObject({ filePath: "/workspace/README.md", newString: "# Product docs" });
       expect(result).not.toHaveProperty("originalFile");
     });
 
-    it("records a PostToolUseFailure as a failure carrying the error text", async () => {
-      const record = await normalize("claude", "post_tool", claude.postToolUseFailure, { failure: true });
+    it("records a PostToolUseFailure payload as a failure carrying the error text", async () => {
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseFailure);
 
+      // Assert
       expect(record).toMatchObject({
         resultType: "failure",
         resultText: "Agent type 'leaf' not found. Available agents: helper",
@@ -169,8 +203,26 @@ describe("lib/normalize.sh", () => {
       });
     });
 
+    it("takes the result type from hook_event_name rather than from the payload's fields", async () => {
+      // Arrange
+      const payload = { ...claude.postToolUseFailure, hook_event_name: "PostToolUse" };
+
+      // Act
+      const record = await recordFrom("claude", "log-post-tool.sh", payload);
+
+      // Assert
+      expect(record).toMatchObject({ resultType: "success", resultText: "" });
+    });
+
     it("maps session, prompt and stop-failure payloads captured from Claude Code", async () => {
-      await expect(normalize("claude", "session_start", claude.sessionStart)).resolves.toMatchObject({
+      // Act
+      const start = await recordFrom("claude", "log-session-start.sh", claude.sessionStart);
+      const prompt = await recordFrom("claude", "log-prompt.sh", claude.userPromptSubmit);
+      const error = await recordFrom("claude", "log-error.sh", claude.stopFailure);
+      const end = await recordFrom("claude", "log-session-end.sh", claude.sessionEnd);
+
+      // Assert
+      expect(start).toMatchObject({
         event: "session_start",
         session: "1211139f-0de2-419c-964c-b5017fd1ccc2",
         source: "startup",
@@ -178,31 +230,29 @@ describe("lib/normalize.sh", () => {
         cwd: "/workspace",
         agent: null,
       });
-      await expect(normalize("claude", "prompt", claude.userPromptSubmit)).resolves.toMatchObject({
-        event: "prompt",
-        prompt: "say hi\n",
-      });
-      await expect(normalize("claude", "error", claude.stopFailure)).resolves.toMatchObject({
+      expect(prompt).toMatchObject({ event: "prompt", prompt: "say hi\n" });
+      expect(error).toMatchObject({
         event: "error",
         errorName: "authentication_failed",
         errorMsg: "Not logged in · Please run /login",
         errorStack: "",
       });
-      await expect(normalize("claude", "session_end", claude.sessionEnd)).resolves.toMatchObject({
-        event: "session_end",
-        reason: "other",
-        cwd: "/workspace",
-      });
+      expect(end).toMatchObject({ event: "session_end", reason: "other", cwd: "/workspace" });
     });
 
-    it("attributes subagent lifecycle records to the subagent", async () => {
-      await expect(normalize("claude", "subagent_start", claude.subagentStart)).resolves.toMatchObject({
+    it("derives subagent start and stop from hook_event_name and attributes them to the subagent", async () => {
+      // Act
+      const start = await recordFrom("claude", "log-subagent.sh", claude.subagentStart);
+      const stop = await recordFrom("claude", "log-subagent.sh", claude.subagentStop);
+
+      // Assert
+      expect(start).toMatchObject({
         event: "subagent_start",
         agent: "helper",
         agentId: "a2d45f3a31ba3dd20",
         subagent: "helper",
       });
-      await expect(normalize("claude", "subagent_stop", claude.subagentStop)).resolves.toMatchObject({
+      expect(stop).toMatchObject({
         event: "subagent_stop",
         subagent: "helper",
         agentId: "a2d45f3a31ba3dd20",
@@ -211,13 +261,21 @@ describe("lib/normalize.sh", () => {
     });
 
     it("records the compaction trigger", async () => {
-      const record = await normalize("claude", "compact", claude.preCompact);
+      // Act
+      const record = await recordFrom("claude", "log-compact.sh", claude.preCompact);
 
+      // Assert
       expect(record).toMatchObject({ event: "compact", trigger: "auto", agent: "orch" });
     });
 
-    it("falls back to defaults when fields are missing", async () => {
-      await expect(normalize("claude", "pre_tool", {})).resolves.toMatchObject({
+    it("falls back to defaults when fields other than hook_event_name are missing", async () => {
+      // Act
+      const pre = await recordFrom("claude", "log-pre-tool.sh", { hook_event_name: "PreToolUse" });
+      const post = await recordFrom("claude", "log-post-tool.sh", { hook_event_name: "PostToolUse" });
+      const end = await recordFrom("claude", "log-session-end.sh", { hook_event_name: "SessionEnd" });
+
+      // Assert
+      expect(pre).toMatchObject({
         session: "unknown",
         agent: null,
         agentId: null,
@@ -226,29 +284,28 @@ describe("lib/normalize.sh", () => {
         toolKind: "other",
         args: "{}",
       });
-      await expect(normalize("claude", "post_tool", {})).resolves.toMatchObject({
-        resultType: "success",
-        resultText: "",
-        durationMs: null,
-      });
-      await expect(normalize("claude", "session_end", {})).resolves.toMatchObject({ reason: "unknown", cwd: "" });
+      expect(post).toMatchObject({ resultType: "success", resultText: "", durationMs: null });
+      expect(end).toMatchObject({ reason: "unknown", cwd: "" });
     });
 
     it("serialises unexpected field types instead of breaking the record shape", async () => {
-      const record = await normalize("claude", "pre_tool", {
-        ...claude.preToolUseSkill,
-        tool_name: { nested: true },
-        session_id: 42,
-      });
+      // Arrange
+      const payload = { ...claude.preToolUseSkill, tool_name: { nested: true }, session_id: 42 };
 
+      // Act
+      const record = await recordFrom("claude", "log-pre-tool.sh", payload);
+
+      // Assert
       expect(record).toMatchObject({ tool: '{"nested":true}', session: "42" });
     });
   });
 
   describe("Copilot CLI adapter", () => {
     it("keeps the payload timestamp and today's v1 keys", async () => {
-      const record = await normalize("copilot", "post_tool", copilot.postToolUseBash);
+      // Act
+      const record = await recordFrom("copilot", "log-post-tool.sh", copilot.postToolUseBash);
 
+      // Assert
       expect(record).toMatchObject({
         schemaVersion: 2,
         event: "post_tool",
@@ -268,18 +325,23 @@ describe("lib/normalize.sh", () => {
     });
 
     it("takes the session from the id minted at sessionStart", async () => {
-      await sandbox.run("log-session-start.sh", [], JSON.stringify(copilot.sessionStart));
+      // Arrange
+      await sandbox.runJson("log-session-start.sh", [], copilot.sessionStart);
       const minted = sandbox.read(".current-session-id").trim();
 
-      const record = await normalize("copilot", "pre_tool", copilot.preToolUseBash);
+      // Act
+      const record = await recordFrom("copilot", "log-pre-tool.sh", copilot.preToolUseBash);
 
+      // Assert
       expect(minted).toMatch(/^ralph-\d{8}-\d{6}$/);
       expect(record.session).toBe(minted);
     });
 
     it("names the subagent of a task call and keeps pretty-printed arguments verbatim", async () => {
-      const record = await normalize("copilot", "pre_tool", copilot.preToolUseTask);
+      // Act
+      const record = await recordFrom("copilot", "log-pre-tool.sh", copilot.preToolUseTask);
 
+      // Assert
       expect(record).toMatchObject({
         toolKind: "subagent",
         subagent: "ralph.malph-scout",
@@ -288,8 +350,10 @@ describe("lib/normalize.sh", () => {
     });
 
     it("names the skill of a skill call", async () => {
-      const record = await normalize("copilot", "pre_tool", copilot.preToolUseSkill);
+      // Act
+      const record = await recordFrom("copilot", "log-pre-tool.sh", copilot.preToolUseSkill);
 
+      // Assert
       expect(record).toMatchObject({ toolKind: "skill", skill: "malph-vscode-workflow-setup" });
     });
 
@@ -301,114 +365,93 @@ describe("lib/normalize.sh", () => {
       ["ado-ado_push_progress", "other"],
       ["web_fetch", "other"],
     ])("classifies %s as %s", async (tool, kind) => {
-      const record = await normalize("copilot", "pre_tool", { ...copilot.preToolUseMcp, toolName: tool });
+      // Act
+      const record = await recordFrom("copilot", "log-pre-tool.sh", { ...copilot.preToolUseMcp, toolName: tool });
 
+      // Assert
       expect(record).toMatchObject({ toolKind: kind, mcpServer: null, mcpTool: null });
     });
 
     it("maps errors and session boundaries", async () => {
-      await expect(normalize("copilot", "error", copilot.errorOccurred)).resolves.toMatchObject({
+      // Arrange
+      const stack = (copilot.errorOccurred.error as Record<string, string>).stack;
+
+      // Act
+      const error = await recordFrom("copilot", "log-error.sh", copilot.errorOccurred);
+      const start = await recordFrom("copilot", "log-session-start.sh", copilot.sessionStart);
+      const end = await recordFrom("copilot", "log-session-end.sh", copilot.sessionEnd);
+
+      // Assert
+      expect(error).toMatchObject({
         event: "error",
         errorName: "RateLimitError",
         errorMsg: "429 Too Many Requests",
-        errorStack: copilot.errorOccurred.error ? (copilot.errorOccurred.error as Record<string, string>).stack : "",
+        errorStack: stack,
       });
-      await expect(normalize("copilot", "session_start", copilot.sessionStart)).resolves.toMatchObject({
-        source: "new",
-        initialPrompt: "Process DOC-3141",
-        cwd: "/workspace",
-      });
-      await expect(normalize("copilot", "session_end", copilot.sessionEnd)).resolves.toMatchObject({
-        reason: "complete",
-      });
+      expect(start).toMatchObject({ source: "new", initialPrompt: "Process DOC-3141", cwd: "/workspace" });
+      expect(end).toMatchObject({ reason: "complete" });
     });
 
     it("parses a string timestamp and falls back to the hook clock without one", async () => {
+      // Arrange
       const before = Date.now();
-      const parsed = await normalize("copilot", "prompt", {
+
+      // Act
+      const parsed = await recordFrom("copilot", "log-prompt.sh", {
         ...copilot.userPromptSubmitted,
         timestamp: "1791321200500",
       });
-      const missing = await normalize("copilot", "prompt", { prompt: "x" });
+      const missing = await recordFrom("copilot", "log-prompt.sh", { prompt: "x" });
 
+      // Assert
       expect(parsed.timestamp).toBe(1791321200500);
       expect(missing.timestamp).toBeGreaterThanOrEqual(before);
     });
 
     it("falls back to today's defaults when fields are missing", async () => {
-      await expect(normalize("copilot", "post_tool", {})).resolves.toMatchObject({
-        tool: "unknown",
-        args: "{}",
-        resultType: "unknown",
-        resultText: "",
-      });
-      await expect(normalize("copilot", "error", {})).resolves.toMatchObject({
-        errorName: "UnknownError",
-        errorMsg: "",
-        errorStack: "",
-      });
+      // Act
+      const post = await recordFrom("copilot", "log-post-tool.sh", {});
+      const error = await recordFrom("copilot", "log-error.sh", {});
+
+      // Assert
+      expect(post).toMatchObject({ tool: "unknown", args: "{}", resultType: "unknown", resultText: "" });
+      expect(error).toMatchObject({ errorName: "UnknownError", errorMsg: "", errorStack: "" });
     });
   });
 
   describe("record shape across CLIs", () => {
-    const pairs: [string, string, string, boolean][] = [
-      ["session_start", "sessionStart", "sessionStart", false],
-      ["prompt", "userPromptSubmit", "userPromptSubmitted", false],
-      ["pre_tool", "preToolUseSkill", "preToolUseSkill", false],
-      ["post_tool", "postToolUseBash", "postToolUseBash", false],
-      ["post_tool", "postToolUseFailure", "postToolUseFailure", true],
-      ["error", "stopFailure", "errorOccurred", false],
-      ["session_end", "sessionEnd", "sessionEnd", false],
-    ];
+    it.each([
+      ["log-session-start.sh", "sessionStart", "sessionStart"],
+      ["log-prompt.sh", "userPromptSubmit", "userPromptSubmitted"],
+      ["log-pre-tool.sh", "preToolUseSkill", "preToolUseSkill"],
+      ["log-post-tool.sh", "postToolUseBash", "postToolUseBash"],
+      ["log-post-tool.sh", "postToolUseFailure", "postToolUseFailure"],
+      ["log-error.sh", "stopFailure", "errorOccurred"],
+      ["log-session-end.sh", "sessionEnd", "sessionEnd"],
+    ])("gives %s records the same keys for both CLIs (%s)", async (script, claudeKey, copilotKey) => {
+      // Act
+      const fromClaude = await recordFrom("claude", script, claude[claudeKey]);
+      const fromCopilot = await recordFrom("copilot", script, copilot[copilotKey]);
 
-    it.each(pairs)("gives %s records the same keys for both CLIs", async (event, claudeKey, copilotKey, failure) => {
-      const fromClaude = await normalize("claude", event, claude[claudeKey], { failure });
-      const fromCopilot = await normalize("copilot", event, copilot[copilotKey]);
-
+      // Assert
       expect(Object.keys(fromClaude)).toEqual(Object.keys(fromCopilot));
       expect(Object.keys(fromClaude).slice(0, COMMON_KEYS.length)).toEqual(COMMON_KEYS);
     });
 
     it("describes the same logical tool call identically apart from CLI identity", async () => {
-      const fromClaude = await normalize("claude", "post_tool", claude.postToolUseBash);
-      const fromCopilot = await normalize("copilot", "post_tool", copilot.postToolUseBash);
+      // Arrange
       const cliIndependent = ["event", "toolKind", "mcpServer", "mcpTool", "subagent", "skill", "resultType"];
 
+      // Act
+      const fromClaude = await recordFrom("claude", "log-post-tool.sh", claude.postToolUseBash);
+      const fromCopilot = await recordFrom("copilot", "log-post-tool.sh", copilot.postToolUseBash);
+
+      // Assert
       for (const key of [...cliIndependent, "resultText"]) {
         expect(fromClaude[key], key).toEqual(fromCopilot[key]);
       }
       expect(JSON.parse(fromClaude.args as string)).toEqual(JSON.parse(fromCopilot.args as string));
       expect(Object.keys(fromClaude)).toEqual([...COMMON_KEYS, ...TOOL_KEYS, "resultType", "resultText", "durationMs"]);
-    });
-  });
-
-  describe("unhappy paths", () => {
-    it("exits non-zero for a payload that is not a JSON object", async () => {
-      const run = await sandbox.run("lib/normalize.sh", ["claude", "pre_tool"], "[1,2]");
-
-      expect(run.exitCode).not.toBe(0);
-      expect(run.stderr).toContain("payload is not a JSON object");
-    });
-
-    it("exits non-zero for malformed JSON", async () => {
-      const run = await sandbox.run("lib/normalize.sh", ["copilot", "pre_tool"], '{"toolName": ');
-
-      expect(run.exitCode).not.toBe(0);
-      expect(run.stdout).toBe("");
-    });
-
-    it("rejects events the CLI never emits", async () => {
-      const run = await sandbox.runJson("lib/normalize.sh", ["copilot", "subagent_start"], {});
-
-      expect(run.exitCode).not.toBe(0);
-      expect(run.stderr).toContain("Copilot CLI emits no subagent_start hook");
-    });
-
-    it("prints usage for an unknown CLI", async () => {
-      const run = await sandbox.runJson("lib/normalize.sh", ["gemini", "pre_tool"], {});
-
-      expect(run.exitCode).toBe(64);
-      expect(run.stderr).toContain("usage:");
     });
   });
 });

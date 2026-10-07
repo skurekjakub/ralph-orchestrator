@@ -83,8 +83,10 @@ describe("claude/result-gate.sh", () => {
 
   describe("when the stage does not require a result block", () => {
     it.each([[{}], [{ RALPH_REQUIRE_RESULT_BLOCK: "0" }]])("allows every stop (env %j)", async (env) => {
+      // Act
       const run = await runGate({}, env);
 
+      // Assert
       expectAllowed(run);
       expect(sandbox.read("audit.jsonl")).toBe("");
     });
@@ -92,8 +94,10 @@ describe("claude/result-gate.sh", () => {
 
   describe("when the result block is missing", () => {
     it("blocks the stop and records why", async () => {
+      // Act
       const run = await runGate();
 
+      // Assert
       expectBlocked(run);
       expect(sandbox.audit()).toEqual([
         expect.objectContaining({
@@ -111,11 +115,13 @@ describe("claude/result-gate.sh", () => {
     });
 
     it("blocks at most RALPH_RESULT_GATE_MAX times per session, then allows the stop", async () => {
+      // Act
       const first = await runGate();
       const second = await runGate({ stop_hook_active: true });
       const third = await runGate({ stop_hook_active: true });
       const later = await runGate({ stop_hook_active: false });
 
+      // Assert
       expectBlocked(first);
       expectBlocked(second);
       expectAllowed(third);
@@ -129,32 +135,52 @@ describe("claude/result-gate.sh", () => {
     });
 
     it("blocks once, then allows, with RALPH_RESULT_GATE_MAX=1", async () => {
+      // Arrange
       const env = { ...GATE_ON, RALPH_RESULT_GATE_MAX: "1" };
 
-      expectBlocked(await runGate({}, env));
-      expectAllowed(await runGate({ stop_hook_active: true }, env));
+      // Act
+      const first = await runGate({}, env);
+      const second = await runGate({ stop_hook_active: true }, env);
+
+      // Assert
+      expectBlocked(first);
+      expectAllowed(second);
     });
 
     it("never blocks with RALPH_RESULT_GATE_MAX=0", async () => {
+      // Act
       const run = await runGate({}, { ...GATE_ON, RALPH_RESULT_GATE_MAX: "0" });
 
+      // Assert
       expectAllowed(run);
       expect(sandbox.audit()).toEqual([expect.objectContaining({ event: "result_gate_exhausted", blocks: 0, max: 0 })]);
     });
 
     it("falls back to two blocks for an invalid RALPH_RESULT_GATE_MAX", async () => {
+      // Arrange
       const env = { ...GATE_ON, RALPH_RESULT_GATE_MAX: "lots" };
 
-      expectBlocked(await runGate({}, env));
-      expectBlocked(await runGate({ stop_hook_active: true }, env));
-      expectAllowed(await runGate({ stop_hook_active: true }, env));
+      // Act
+      const runs = [
+        await runGate({}, env),
+        await runGate({ stop_hook_active: true }, env),
+        await runGate({ stop_hook_active: true }, env),
+      ];
+
+      // Assert
+      expect(runs.map(decisionOf)).toEqual(["blocks", "blocks", "allows"]);
     });
 
     it("counts blocks per session", async () => {
+      // Arrange
       await runGate();
       await runGate({ stop_hook_active: true });
 
-      expectBlocked(await runGate({ session_id: "11111111-2222-3333-4444-555555555555" }));
+      // Act
+      const run = await runGate({ session_id: "11111111-2222-3333-4444-555555555555" });
+
+      // Assert
+      expectBlocked(run);
     });
 
     it.each([
@@ -162,33 +188,49 @@ describe("claude/result-gate.sh", () => {
       ["only the end marker", "STATUS: completed\n===RALPH_RESULT_END==="],
       ["the markers in the wrong order", "===RALPH_RESULT_END===\n===RALPH_RESULT_START==="],
     ])("blocks a last message with %s", async (_label, text) => {
-      expectBlocked(await runGate({ last_assistant_message: text }));
+      // Act
+      const run = await runGate({ last_assistant_message: text });
+
+      // Assert
+      expectBlocked(run);
     });
 
     it("decides on the last message alone when the transcript is missing", async () => {
-      expectBlocked(await runGate({ transcript_path: join(sandbox.logDir, "missing.jsonl") }));
+      // Act
+      const run = await runGate({ transcript_path: join(sandbox.logDir, "missing.jsonl") });
+
+      // Assert
+      expectBlocked(run);
     });
   });
 
   describe("when the result block exists", () => {
     it("allows a last message that holds the block", async () => {
+      // Act
       const run = await runGate({ last_assistant_message: `Done. ✓ Résumé below.\n${RESULT_BLOCK}` });
 
+      // Assert
       expectAllowed(run);
       expect(sandbox.read("audit.jsonl")).toBe("");
     });
 
     it("allows when an earlier main-thread turn printed the block", async () => {
+      // Arrange
       const transcript = writeTranscript([
         transcriptMessage("user", PROMPT),
         assistantText(`All done.\n${RESULT_BLOCK}`),
         assistantText("Anything else? 🚀"),
       ]);
 
-      expectAllowed(await runGate({ transcript_path: transcript, last_assistant_message: "Anything else? 🚀" }));
+      // Act
+      const run = await runGate({ transcript_path: transcript, last_assistant_message: "Anything else? 🚀" });
+
+      // Assert
+      expectAllowed(run);
     });
 
     it("reads past malformed transcript lines", async () => {
+      // Arrange
       const transcript = writeTranscript([
         "{not json",
         transcriptMessage("user", PROMPT),
@@ -196,7 +238,11 @@ describe("claude/result-gate.sh", () => {
         '{"type":"assistant","isSidechain":false,"message":{"content":[{"type":"te',
       ]);
 
-      expectAllowed(await runGate({ transcript_path: transcript }));
+      // Act
+      const run = await runGate({ transcript_path: transcript });
+
+      // Assert
+      expectAllowed(run);
     });
   });
 
@@ -282,6 +328,7 @@ describe("claude/result-gate.sh", () => {
     });
 
     it("ignores the markers quoted in the user prompt and queue entries", async () => {
+      // Arrange
       const transcript = writeTranscript([
         JSON.stringify({ type: "queue-operation", operation: "enqueue", content: RESULT_BLOCK, sessionId: SESSION }),
         transcriptMessage("user", RESULT_BLOCK),
@@ -289,16 +336,26 @@ describe("claude/result-gate.sh", () => {
         assistantText("Working on it."),
       ]);
 
-      expectBlocked(await runGate({ transcript_path: transcript }));
+      // Act
+      const run = await runGate({ transcript_path: transcript });
+
+      // Assert
+      expectBlocked(run);
     });
 
     it("ignores a block printed by a subagent", async () => {
+      // Arrange
       const transcript = writeTranscript([transcriptMessage("user", PROMPT), assistantText(RESULT_BLOCK, true)]);
 
-      expectBlocked(await runGate({ transcript_path: transcript }));
+      // Act
+      const run = await runGate({ transcript_path: transcript });
+
+      // Assert
+      expectBlocked(run);
     });
 
     it("ignores a block inside a tool call input", async () => {
+      // Arrange
       const transcript = writeTranscript([
         transcriptMessage("assistant", [
           {
@@ -310,61 +367,97 @@ describe("claude/result-gate.sh", () => {
         ]),
       ]);
 
-      expectBlocked(await runGate({ transcript_path: transcript }));
+      // Act
+      const run = await runGate({ transcript_path: transcript });
+
+      // Assert
+      expectBlocked(run);
     });
   });
 
   describe("background tasks", () => {
     it("allows the stop while a background task is still running", async () => {
-      const run = await runGate({
-        background_tasks: [
-          { id: "b1", status: "completed" },
-          { id: "b2", status: "running" },
-        ],
-      });
+      // Arrange
+      const backgroundTasks = [
+        { id: "b1", status: "completed" },
+        { id: "b2", status: "running" },
+      ];
 
+      // Act
+      const run = await runGate({ background_tasks: backgroundTasks });
+
+      // Assert
       expectAllowed(run);
     });
 
     it("still blocks when every background task has finished", async () => {
-      expectBlocked(await runGate({ background_tasks: [{ id: "b1", status: "completed" }] }));
+      // Act
+      const run = await runGate({ background_tasks: [{ id: "b1", status: "completed" }] });
+
+      // Assert
+      expectBlocked(run);
     });
   });
 
   describe("loop safety", () => {
     it("allows a stop that continues a block it has no count for", async () => {
+      // Act
       const run = await runGate({ stop_hook_active: true });
 
+      // Assert
       expectAllowed(run);
       expect(sandbox.read("audit.jsonl")).toBe("");
     });
 
     it("allows the stop when the stored block count is corrupt", async () => {
+      // Arrange
       writeFileSync(join(sandbox.logDir, `.result-gate-${SESSION}`), "garbage\n");
 
-      expectAllowed(await runGate());
+      // Act
+      const run = await runGate();
+
+      // Assert
+      expectAllowed(run);
       expect(sandbox.audit()).toEqual([expect.objectContaining({ event: "result_gate_exhausted", blocks: 2 })]);
     });
 
     it("allows the stop when the block count cannot be stored", async () => {
+      // Arrange
       mkdirSync(join(sandbox.logDir, `.result-gate-${SESSION}`));
 
+      // Act
       const run = await runGate();
 
+      // Assert
       expectAllowed(run);
       expect(run.stderr).toContain("ralph hook result_gate (claude)");
     });
 
     it("allows the stop and records hook_error for a malformed payload", async () => {
+      // Act
       const run = await sandbox.run(GATE, [], '{"session_id": ', GATE_ON);
 
+      // Assert
       expectAllowed(run);
       expect(sandbox.audit()).toEqual([expect.objectContaining({ event: "hook_error", hook: "result_gate" })]);
     });
 
+    it("allows the stop and records hook_error for a payload from another hook", async () => {
+      // Act
+      const run = await runGate({ hook_event_name: "SubagentStop" });
+
+      // Assert
+      expectAllowed(run);
+      expect(run.stderr).toContain("SubagentStop payload sent to the result_gate hook");
+      expect(sandbox.audit()).toEqual([expect.objectContaining({ event: "hook_error", hook: "result_gate" })]);
+      expect(sandbox.read(`.result-gate-${SESSION}`)).toBe("");
+    });
+
     it("keeps session ids from escaping the log directory", async () => {
+      // Act
       await runGate({ session_id: "../../etc/passwd" });
 
+      // Assert
       expect(sandbox.read(".result-gate-______etc_passwd")).toBe("1\n");
     });
   });

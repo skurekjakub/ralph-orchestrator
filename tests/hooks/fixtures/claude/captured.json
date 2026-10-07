@@ -1,0 +1,38 @@
+{
+  "sessionStart": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "hook_event_name": "SessionStart",
+    "source": "startup"
+  },
+  "userPromptSubmit": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "permission_mode": "auto",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "say hi\n"
+  },
+  "stopFailure": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "effort": {
+      "level": "medium"
+    },
+    "hook_event_name": "StopFailure",
+    "error": "authentication_failed",
+    "last_assistant_message": "Not logged in · Please run /login"
+  },
+  "sessionEnd": {
+    "session_id": "1211139f-0de2-419c-964c-b5017fd1ccc2",
+    "transcript_path": "/workspace/.ralph/claude/projects/-workspace/1211139f-0de2-419c-964c-b5017fd1ccc2.jsonl",
+    "cwd": "/workspace",
+    "prompt_id": "d0d3aa0f-00ee-4db1-ba02-5484b3f7f3e2",
+    "hook_event_name": "SessionEnd",
+    "reason": "other"
+  }
+}

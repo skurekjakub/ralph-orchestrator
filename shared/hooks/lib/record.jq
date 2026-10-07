@@ -1,9 +1,8 @@
 # Building blocks shared by the CLI adapters (lib/adapters/*.jq).
 #
-# The container images ship jq 1.6 (Ubuntu 22.04, Debian bookworm), so this file
-# avoids jq 1.7-only syntax: every `if` has an `else`, and substring checks use
-# literal split/contains because jq 1.6 `index` returns byte offsets that do not
-# line up with codepoint slicing on non-ASCII text.
+# Stays within jq 1.6: every `if` has an `else`, and substring checks use literal
+# split/contains because jq 1.6 `index` returns byte offsets that do not line up
+# with codepoint slicing on non-ASCII text.
 
 # Version of the audit record layout written to every record.
 def schema_version: 2;
@@ -79,8 +78,8 @@ def tool_fields($tool; $toolUseId; $kind; $input; $subagentKey; $args):
       args: $args
     };
 
-# The human-readable block appended to tool-output.log. The header format is parsed
-# by dashboard-local (tool-log-timeline-parser.ts), so it must not change.
+# The human-readable block appended to tool-output.log: a "── HH:MM:SS <tool>
+# (<resultType>) ──" header in UTC, the arguments, then the full text.
 def tool_output_block($timestamp; $tool; $resultType; $args; $text):
   "── \($timestamp / 1000 | floor | strftime("%H:%M:%S")) \($tool) (\($resultType)) ──\nargs: \($args)\n\($text)\n\n";
 

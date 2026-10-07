@@ -1,14 +1,12 @@
 # shellcheck shell=bash
 # Shared runtime of the Ralph audit hooks, sourced by every entry script.
 #
-# Flow of an entry script: ralph_hook_init <event> "$@" → ralph_log_event.
-# ralph_hook_init reads the raw payload from stdin and parses
-#   --cli copilot|claude   adapter to use (default copilot, for ralph-audit.json)
-#   --failure              post_tool only: the payload is a PostToolUseFailure
-#   one positional word    subagent only (log-subagent.sh): start | stop
+# Flow of an entry script: ralph_hook_init <event family> "$@" → ralph_log_event.
+# ralph_hook_init reads the raw payload from stdin and accepts one option,
+#   --cli copilot|claude   adapter to use (default copilot)
 # and fails on anything else, so a misspelt hook command shows up as hook_error.
-# ralph_log_event normalises the payload through lib/adapters/<cli>.jq and hands
-# the v2 record to ralph_write, the single audit writer.
+# ralph_log_event normalises the payload through lib/adapters/<cli>.jq and
+# lib/redact.pl and hands the v2 record to ralph_write, the single audit writer.
 #
 # Failure policy: an entry script always exits 0. Claude Code reads exit 2 as
 # "block the tool / prompt / stop", and jq itself exits 2 on malformed input, so
@@ -20,8 +18,6 @@
 RALPH_HOOKS_LIB=$(dirname "${BASH_SOURCE[0]}")
 RALPH_LOG_DIR=${RALPH_LOG_DIR:-/workspace/.ralph/logs}
 RALPH_CLI=copilot
-RALPH_FAILURE=false
-RALPH_POSITIONAL=""
 RALPH_HOOK_EVENT=""
 RALPH_INPUT=""
 RALPH_NOW_MS=""
@@ -89,15 +85,15 @@ ralph_copilot_new_session() {
 }
 
 # Runs the adapter for RALPH_CLI over RALPH_INPUT and prints the result of the
-# jq filter $1 applied to the envelope. $2 = event, $3 = extra JSON object.
+# jq filter $1 applied to the envelope. $2 = record event, $3 = extra JSON object.
 ralph_adapt() {
   local extra=${3:-}
   [[ -n $extra ]] || extra='{}'
   jq -r -L "$RALPH_HOOKS_LIB" \
+    --arg hook "$RALPH_HOOK_EVENT" \
     --arg event "$2" \
     --arg session "$RALPH_SESSION" \
     --argjson now "$RALPH_NOW_MS" \
-    --argjson failure "$RALPH_FAILURE" \
     --argjson extra "$extra" \
     "include \"record\"; include \"adapters/$RALPH_CLI\"; adapt | $1" <<<"$RALPH_INPUT"
 }
@@ -120,7 +116,7 @@ ralph_normalize() {
 
 # The single audit writer: appends the v2 record to audit.jsonl and fans out the
 # per-event side logs. pre-tool.log carries the same record with "ts" in place of
-# "timestamp" (the key the live stream and dashboard-local read).
+# "timestamp".
 ralph_write() {
   ralph_append "$RALPH_LOG_DIR/audit.jsonl" "$RALPH_RECORD"$'\n'
   if [[ $RALPH_HOOK_EVENT == pre_tool ]]; then
@@ -178,7 +174,7 @@ ralph__on_exit() {
 }
 
 # Installs the failure policy, reads the payload and parses the arguments.
-# $1 = canonical event name, remaining arguments as described at the top.
+# $1 = event family of the entry script, remaining arguments as described at the top.
 ralph_hook_init() {
   RALPH_HOOK_EVENT=$1
   shift
@@ -196,28 +192,14 @@ ralph_hook_init() {
         RALPH_CLI=${1#--cli=}
         shift
         ;;
-      --failure)
-        RALPH_FAILURE=true
-        shift
-        ;;
       -*) ralph_fail "unknown option $1" ;;
-      *)
-        [[ -z $RALPH_POSITIONAL ]] || ralph_fail "unexpected argument $1"
-        RALPH_POSITIONAL=$1
-        shift
-        ;;
+      *) ralph_fail "unexpected argument $1" ;;
     esac
   done
   case $RALPH_CLI in
     claude | copilot) ;;
     *) ralph_fail "unsupported --cli value '$RALPH_CLI'" ;;
   esac
-  if [[ $RALPH_FAILURE == true && $RALPH_HOOK_EVENT != post_tool ]]; then
-    ralph_fail "--failure only applies to log-post-tool.sh"
-  fi
-  if [[ -n $RALPH_POSITIONAL && $RALPH_HOOK_EVENT != subagent ]]; then
-    ralph_fail "unexpected argument $RALPH_POSITIONAL"
-  fi
   [[ -d $RALPH_LOG_DIR ]] || mkdir -p "$RALPH_LOG_DIR"
   ralph_now_ms
 }

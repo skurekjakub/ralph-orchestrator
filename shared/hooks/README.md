@@ -2,17 +2,16 @@
 
 Audit hooks for the agent CLIs and the Claude Code result gate. The security overlay mounts this directory read-only at `/workspace/.ralph/hooks` (`${SHARED_HOOKS_PATH}`).
 
-| Path                               | Role                                                                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)             |
-| `claude/hooks.json`                | Claude Code `hooks` object for managed settings                                                                     |
-| `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                              |
-| `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                                     |
-| `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                                        |
-| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record, `ralph.log` line and tool-output block, before redaction                             |
-| `lib/record.jq`                    | Helpers shared by the adapters: record layout, MCP name split, result-block detection, the envelope lines           |
-| `lib/redact.pl`                    | Scrubs credentials from every string of the envelope, cuts long audit text, prints the shell assignments            |
-| `lib/normalize.sh`                 | `normalize.sh <cli> <event> [--failure] < payload` prints the v2 record without writing logs (replay and debugging) |
+| Path                               | Role                                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)   |
+| `claude/hooks.json`                | Claude Code `hooks` object for managed settings                                                           |
+| `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                    |
+| `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                           |
+| `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                              |
+| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record, `ralph.log` line and tool-output block, before redaction                   |
+| `lib/record.jq`                    | Helpers shared by the adapters: record layout, MCP name split, result-block detection, the envelope lines |
+| `lib/redact.pl`                    | Scrubs credentials from every string of the envelope, cuts long audit text, prints the shell assignments  |
 
 ## Contract for the Claude Code settings writer
 
@@ -28,7 +27,8 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 
 - **Exit status is always 0.** Claude Code reads exit 2 as "block", and jq exits 2 on malformed input. A hook that fails reports the failure on stderr, in `ralph.log` and as a `hook_error` audit record, then exits 0.
 - **Stdout stays empty.** Claude Code adds `SessionStart` and `UserPromptSubmit` stdout to the model context. Only the result gate prints, and only its block decision.
-- **Arguments are strict.** An unknown flag, a stray word, `--failure` outside `log-post-tool.sh` or an event the CLI never emits becomes a `hook_error`, so a misspelt command is visible in the audit trail.
+- **Arguments are strict.** An unknown flag, a stray word or an event the CLI never emits becomes a `hook_error`, so a misspelt command is visible in the audit trail.
+- **Claude Code payloads name their event.** The record event, `resultType` (`PostToolUseFailure` → `failure`) and the subagent start or stop come from `hook_event_name`. A payload without one, or one meant for another script (a `PostToolUse` payload sent to `log-pre-tool.sh`, a `SubagentStop` sent to the result gate), becomes a `hook_error`, so a miswired `claude/hooks.json` entry shows up in the audit trail.
 - **Redaction.** `lib/redact.pl` scrubs every string of the record, the `ralph.log` line and the tool-output block of: the literal values of credential variables in the hook environment (names containing `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`, or a `PAT` segment), `sk-ant-…`, `gh[pousr]_…` and `github_pat_…` tokens, `Authorization: Bearer|Basic|token …` values, URL passwords, `*TOKEN=…`-style assignments and `"…token": "…"`-style JSON fields. Literal values are replaced longest first, so one that contains another goes whole. Each pattern is a single scan, so the cost grows with the text length and not with the number of matches. `resultText` and `lastMessage` are cut after scrubbing, so a secret across the cut leaves no prefix behind.
 
 Files written to `RALPH_LOG_DIR`:
@@ -78,8 +78,4 @@ Per event:
 
 ## Result gate
 
-`claude/result-gate.sh` allows the stop when the gate is off, when a background task is still running, or when `last_assistant_message`, or else the main-thread assistant text of `transcript_path` joined in order, holds a result block the orchestrator accepts. The gate reads it the way `parseResultBlock` (`src/container/result-parser.ts`) does: only the first `===RALPH_RESULT_START===` and the first `===RALPH_RESULT_END===` after it count, and the text between them needs a `STATUS:` (any case) whose value is exactly `completed`, `partial` or `blocked`. A reply that only quotes the markers does not count. User prompts, queue entries, sidechain (subagent) messages and tool inputs do not count either. The block reason describes the block without reproducing the markers. Otherwise it records `result_gate_block` and prints `{"decision":"block","reason":…}` until the session has used `RALPH_RESULT_GATE_MAX` blocks, after which it records `result_gate_exhausted` and allows the stop; the orchestrator's result contract decides from there. The count is never reset, so a `--resume` continuation shares the budget. Any failure allows the stop, and a `stop_hook_active` stop with no stored count is allowed because the gate cannot show it is under the limit.
-
-## Payload provenance
-
-The fixtures in `tests/hooks/fixtures/claude/` are captured from Claude Code 2.1.292 for PreToolUse, SessionStart, UserPromptSubmit, StopFailure and SessionEnd. The PostToolUse, PostToolUseFailure, SubagentStart, SubagentStop, PreCompact and Stop payloads follow the documented hook input shapes with values from captured stream-json and have not been captured from a live run yet.
+`claude/result-gate.sh` allows the stop when the gate is off, when a background task is still running, or when `last_assistant_message`, or else the main-thread assistant text of `transcript_path` joined in order, holds a result block the orchestrator accepts. The gate reads it the way `parseResultBlock` (`src/container/result-parser.ts`) does: only the first `===RALPH_RESULT_START===` and the first `===RALPH_RESULT_END===` after it count, and the text between them needs a `STATUS:` (any case) whose value is exactly `completed`, `partial` or `blocked`. A reply that only quotes the markers does not count. User prompts, queue entries, sidechain (subagent) messages and tool inputs do not count either. Otherwise it records `result_gate_block` and prints `{"decision":"block","reason":…}`, whose reason describes the block without reproducing the markers, until the session has used `RALPH_RESULT_GATE_MAX` blocks, after which it records `result_gate_exhausted` and allows the stop; the orchestrator's result contract decides from there. The count is never reset, so a `--resume` continuation shares the budget. Any failure allows the stop, and a `stop_hook_active` stop with no stored count is allowed because the gate cannot show it is under the limit.

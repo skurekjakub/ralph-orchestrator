@@ -29,7 +29,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "/workspace/.ralph/hooks/log-post-tool.sh --cli claude --failure",
+          "command": "/workspace/.ralph/hooks/log-post-tool.sh --cli claude",
           "timeout": 5
         }
       ]
@@ -37,16 +37,12 @@
   ],
   "SubagentStart": [
     {
-      "hooks": [
-        { "type": "command", "command": "/workspace/.ralph/hooks/log-subagent.sh --cli claude start", "timeout": 5 }
-      ]
+      "hooks": [{ "type": "command", "command": "/workspace/.ralph/hooks/log-subagent.sh --cli claude", "timeout": 5 }]
     }
   ],
   "SubagentStop": [
     {
-      "hooks": [
-        { "type": "command", "command": "/workspace/.ralph/hooks/log-subagent.sh --cli claude stop", "timeout": 5 }
-      ]
+      "hooks": [{ "type": "command", "command": "/workspace/.ralph/hooks/log-subagent.sh --cli claude", "timeout": 5 }]
     }
   ],
   "PreCompact": [

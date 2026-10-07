@@ -1,9 +1,9 @@
 import { execa } from "execa";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-/** Host path of `shared/hooks`, mounted read-only at `/workspace/.ralph/hooks` in agent containers. */
+/** Host path of `shared/hooks`. */
 export const HOOKS_DIR = resolve(import.meta.dirname, "../../shared/hooks");
 
 /** Container path prefix every hook command in the CLI hook configs starts with. */
@@ -22,9 +22,23 @@ export interface HookRun {
   readonly stderr: string;
 }
 
-/** Loads `tests/hooks/fixtures/<cli>/payloads.json`. */
+/**
+ * Loads every `tests/hooks/fixtures/<cli>/*.json` file into one map of payloads.
+ * @throws Error when two files define the same scenario name.
+ */
 export function loadPayloads(cli: "claude" | "copilot"): PayloadFixtures {
-  return JSON.parse(readFileSync(resolve(import.meta.dirname, "fixtures", cli, "payloads.json"), "utf8"));
+  const dir = resolve(import.meta.dirname, "fixtures", cli);
+  const payloads: PayloadFixtures = {};
+  for (const file of readdirSync(dir).filter((name) => name.endsWith(".json"))) {
+    const fixtures: PayloadFixtures = JSON.parse(readFileSync(join(dir, file), "utf8"));
+    for (const [name, payload] of Object.entries(fixtures)) {
+      if (name in payloads) {
+        throw new Error(`fixture ${name} is defined twice (${file})`);
+      }
+      payloads[name] = payload;
+    }
+  }
+  return payloads;
 }
 
 /** Loads the PreToolUse payloads captured from Claude Code 2.1.292, one per line. */

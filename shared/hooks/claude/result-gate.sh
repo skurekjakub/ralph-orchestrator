@@ -1,23 +1,13 @@
 #!/bin/bash
-# Claude Code Stop hook: keeps a main-pipeline stage from ending its turn before it
-# has printed the ===RALPH_RESULT_START=== ... ===RALPH_RESULT_END=== block.
+# Claude Code Stop hook that keeps a stage from ending its turn before it has
+# printed the Ralph result block. Decision order, block budget and failure
+# policy: shared/hooks/README.md § Result gate.
 #
 # Usage: claude/result-gate.sh < Stop payload
-# Environment (per exec, set by the orchestrator):
+# Environment (per exec):
 #   RALPH_REQUIRE_RESULT_BLOCK  "1" turns the gate on; anything else allows every stop
 #   RALPH_RESULT_GATE_MAX       blocks allowed per session (default 2, 0 = never block)
 #   RALPH_LOG_DIR               audit/log directory (default /workspace/.ralph/logs)
-#
-# Decision order: gate off → allow; background task still running (the session
-# resumes) → allow; result block in last_assistant_message or in main-thread
-# assistant text of transcript_path → allow; MAX blocks already spent → allow and
-# record result_gate_exhausted; otherwise persist the new count, record
-# result_gate_block and print {"decision":"block"}.
-#
-# The block count lives in $RALPH_LOG_DIR/.result-gate-<session_id> and is never
-# reset (a --resume keeps the session id), so a stage gets at most MAX blocks in
-# total. Every failure path allows the stop: with stop_hook_active set and no
-# count on disk the gate cannot prove it is still under MAX, so it lets go too.
 set -Eeuo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh" || exit 0
 ralph_hook_init result_gate --cli claude
@@ -28,8 +18,9 @@ max=${RALPH_RESULT_GATE_MAX:-2}
 [[ $max =~ ^[0-9]+$ ]] || max=2
 
 session="" stop_active="" running="" found="" transcript=""
-fields=$(jq -r -L "$RALPH_HOOKS_LIB" 'include "record";
+fields=$(jq -r -L "$RALPH_HOOKS_LIB" 'include "record"; include "adapters/claude";
   if type != "object" then error("payload is not a JSON object") else . end
+  | claude_record_event("result_gate"; "result_gate") as $checked
   | @sh "session=\(.session_id | str_or("unknown"))",
     @sh "stop_active=\(.stop_hook_active == true)",
     @sh "running=\([.background_tasks[]? | objects | select(.status == "running")] | length)",
@@ -65,9 +56,9 @@ if [[ $stop_active == true && ! -e $counter ]]; then
   exit 0
 fi
 
-exec 9>>"$counter"
+exec {counter_fd}>>"$counter"
 if [[ -n $RALPH__HAVE_FLOCK ]]; then
-  flock -w 2 9 || true
+  flock -w 2 "$counter_fd" || true
 fi
 blocks=""
 IFS= read -r blocks <"$counter" || true

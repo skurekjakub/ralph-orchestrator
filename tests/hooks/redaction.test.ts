@@ -213,7 +213,7 @@ describe("lib/redact.pl", () => {
       const payload = { ...claude.subagentStop, last_assistant_message: `${GITHUB_TOKEN} ${"y".repeat(2500)}` };
 
       // Act
-      const record = await sandbox.recordOf("log-subagent.sh", ["--cli", "claude", "stop"], payload);
+      const record = await sandbox.recordOf("log-subagent.sh", CLAUDE, payload);
 
       // Assert
       expect(record.lastMessage).toBe(`[REDACTED] ${"y".repeat(1989)}...[truncated]`);

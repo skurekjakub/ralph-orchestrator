@@ -6,9 +6,40 @@
 # PostToolUse adds tool_response and duration_ms, PostToolUseFailure adds error.
 # Payloads carry no timestamp, so records use the hook's clock ($now).
 #
-# Arguments: $event, $session (unused), $now (epoch ms), $failure (true for
-# PostToolUseFailure), $extra ({blocks, max}, merged into result_gate_* records).
+# Arguments: $hook (event family of the entry script), $event (record event),
+# $session (unused), $now (epoch ms), $extra ({blocks, max}, merged into
+# result_gate_* records).
 include "record";
+
+# hook_event_name → the event family of the entry script that handles it.
+def claude_hook_families:
+  {
+    SessionStart: "session_start",
+    UserPromptSubmit: "prompt",
+    PreToolUse: "pre_tool",
+    PostToolUse: "post_tool",
+    PostToolUseFailure: "post_tool",
+    StopFailure: "error",
+    SessionEnd: "session_end",
+    SubagentStart: "subagent",
+    SubagentStop: "subagent",
+    PreCompact: "compact",
+    Stop: "result_gate"
+  };
+
+# The record event for this payload. Errors when hook_event_name is missing,
+# unknown, or belongs to another family than $hook, so a miswired command
+# shows up as a hook_error record.
+def claude_record_event($hook; $event):
+  (.hook_event_name | str_or("")) as $name
+  | (claude_hook_families | .[$name]) as $family
+  | if $name == "" then error("payload has no hook_event_name")
+    elif $family == null then error("unknown hook_event_name \($name)")
+    elif $family != $hook then error("\($name) payload sent to the \($hook) hook")
+    elif $name == "SubagentStart" then "subagent_start"
+    elif $name == "SubagentStop" then "subagent_stop"
+    else $event
+    end;
 
 def claude_tool_kind:
   if . == "Agent" or . == "Task" then "subagent"
@@ -40,6 +71,8 @@ def response_text:
 
 def adapt:
   if type != "object" then error("payload is not a JSON object") else . end
+  | claude_record_event($hook; $event) as $event
+  | (.hook_event_name == "PostToolUseFailure") as $failure
   | (.session_id | str_or("unknown")) as $sessionId
   | (.agent_type | str_or_null) as $agent
   | base_record("claude"; $event; $now; $sessionId; $agent; (.agent_id | str_or_null)) as $base
