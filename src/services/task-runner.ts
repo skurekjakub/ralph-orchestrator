@@ -171,13 +171,9 @@ export class TaskRunner implements ITaskRunner {
   }
 
   private async prepareContainer(ctx: TaskContext, container: IContainerManager): Promise<void> {
-    // Clean the .ralph runtime directory on the host before compose up.
-    // This removes stale logs/session-state from prior runs. Docker will
-    // recreate it (owned by host UID) when mounting config files into it.
     const ralphDir = join(ctx.profile.repoPath, ".ralph");
     this.logger.info(`Cleaning ${ralphDir}...`);
     rmSync(ralphDir, { recursive: true, force: true });
-    mkdirSync(ralphDir, { recursive: true });
 
     // The container registers an abort listener internally — it will stop itself
     // when ctx.signal fires, allowing shutdown() to cancel without needing a

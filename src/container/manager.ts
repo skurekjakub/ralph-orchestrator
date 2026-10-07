@@ -16,7 +16,7 @@ import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";
 import type { ILogSourceRegistry } from "./log-source-registry";
 import type { IAgentSessionRunner } from "./agent-session-runner";
-import { hostWorkspacePath } from "./workspace-paths";
+import { hostWorkspacePath, RALPH_CONTAINER_DIR } from "./workspace-paths";
 
 /** Public contract for log collection on a container. */
 export interface IContainerLogs {
@@ -181,14 +181,14 @@ export class ContainerManager implements IContainerManager {
   /**
    * Build and start the containers (`docker compose up -d --build`).
    *
-   * Creates each CLI home that lives in the target repo on the host first. Docker creates the mount points
-   * of files mounted into a CLI home as root, inside a root-owned directory when the home does not exist
-   * yet, and the host could then no longer delete `.ralph/` before the next task.
+   * Creates `.ralph/` and each CLI home that lives in the target repo on the host first. Docker creates the
+   * mount points of files mounted into them as root, inside a root-owned directory when the directory does
+   * not exist yet, and the host could then no longer delete `.ralph/` before the next task.
    */
   async start(signal: AbortSignal): Promise<void> {
     await this.compose.checkDocker();
-    for (const { configDir } of this.layouts) {
-      mkdirSync(hostWorkspacePath(this.profile.repoPath, configDir), { recursive: true });
+    for (const dir of [RALPH_CONTAINER_DIR, ...this.layouts.map((layout) => layout.configDir)]) {
+      mkdirSync(hostWorkspacePath(this.profile.repoPath, dir), { recursive: true });
     }
     this.logger.info(`Starting containers (compose: ${this.profile.composeFile})...`);
 

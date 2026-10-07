@@ -1,7 +1,8 @@
 import { join } from "node:path";
+import { RALPH_CONTAINER_DIR } from "../workspace-paths";
 
 /** URL-only MCP config inside the agent container, read by every agent CLI. */
-export const MCP_CONFIG_CONTAINER_PATH = "/workspace/.ralph/mcp-config.json";
+export const MCP_CONFIG_CONTAINER_PATH = `${RALPH_CONTAINER_DIR}/mcp-config.json`;
 
 /**
  * Build args injected into every service that bind-mounts the host workspace.
@@ -79,7 +80,7 @@ export function generateComposeOverlay(options: ComposeOverlayOptions): string {
   lines.push("      # Generated MCP config — contains HTTP URLs for servers inside mcp-sidecar");
   lines.push(`      - ${join(buildDir, "mcp-config.json")}:${MCP_CONFIG_CONTAINER_PATH}:ro`);
   lines.push("      # Hides .ralph/ from git (blocks everything including itself)");
-  lines.push(`      - ${join(buildDir, ".gitignore")}:/workspace/.ralph/.gitignore:ro`);
+  lines.push(`      - ${join(buildDir, ".gitignore")}:${RALPH_CONTAINER_DIR}/.gitignore:ro`);
   if (appVolumes.length > 0) {
     lines.push("      # Agent CLI settings, agents, skills and resource files");
     lines.push(...appVolumes.map((volume) => `      - ${volume}`));

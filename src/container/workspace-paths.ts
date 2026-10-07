@@ -3,6 +3,9 @@ import { join, posix } from "node:path";
 /** The target repo's root inside the agent container; the repo is bind-mounted here. */
 export const CONTAINER_WORKSPACE_DIR = "/workspace";
 
+/** Ralph's runtime directory inside the workspace: MCP config, CLI homes, logs and task artifacts. */
+export const RALPH_CONTAINER_DIR = `${CONTAINER_WORKSPACE_DIR}/.ralph`;
+
 /** `containerPath` relative to the container workspace, or undefined when it lies outside it. */
 function workspaceRelative(containerPath: string): string | undefined {
   const rel = posix.relative(CONTAINER_WORKSPACE_DIR, containerPath);

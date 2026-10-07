@@ -177,12 +177,16 @@ describe("ContainerManager", () => {
       expect(manager.isRunning).toBe(true);
     });
 
-    it("creates each container CLI's home in the target repo on the host before compose up", async () => {
+    it("creates .ralph and each container CLI's home in the target repo on the host before compose up", async () => {
       // Arrange
       const compose = createMockComposeClient();
-      const homesAtComposeUp: boolean[] = [];
+      const dirsAtComposeUp: boolean[] = [];
       compose.compose.mockImplementation(() => {
-        homesAtComposeUp.push(existsSync(join(tempDir, ".cfg-claude")), existsSync(join(tempDir, ".cfg-copilot")));
+        dirsAtComposeUp.push(
+          existsSync(join(tempDir, ".ralph")),
+          existsSync(join(tempDir, ".cfg-claude")),
+          existsSync(join(tempDir, ".cfg-copilot")),
+        );
         return fakeResultPromise();
       });
       const { manager } = createHarness(mixedProfile, { compose });
@@ -191,7 +195,7 @@ describe("ContainerManager", () => {
       await manager.start(new AbortController().signal);
 
       // Assert
-      expect(homesAtComposeUp).toEqual([true, true]);
+      expect(dirsAtComposeUp).toEqual([true, true, true]);
     });
 
     it("propagates a compose up failure without marking the container running", async () => {
