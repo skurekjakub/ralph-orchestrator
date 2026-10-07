@@ -206,7 +206,6 @@ describe("ClaudeStreamJsonDecoder", () => {
 
   describe("failed sessions", () => {
     it.each([
-      ["error_max_budget_usd", { subtype: "error_max_budget_usd", is_error: true, errors: ["Budget of $5 exceeded"] }],
       ["error_max_turns", { subtype: "error_max_turns", is_error: true, errors: ["Reached max turns"] }],
       ["error_during_execution", { subtype: "error_during_execution" }],
     ])("reports subtype %s as the CLI error", (subtype, result) => {

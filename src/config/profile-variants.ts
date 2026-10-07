@@ -42,7 +42,6 @@ function resolveStage(stage: StageFile, profileCli: CliType, requireResultBlockB
     skills: stage.skills,
     model: stage.model,
     effort: stage.effort,
-    maxBudgetUsd: stage.maxBudgetUsd,
     requireResultBlock: stage.requireResultBlock ?? requireResultBlockByDefault,
     timeoutMs: stage.timeoutMs,
   };

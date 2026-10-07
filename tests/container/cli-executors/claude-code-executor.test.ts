@@ -167,11 +167,11 @@ describe("ClaudeCodeExecutor", () => {
       expect(exec(compose).args.join(" ")).not.toContain("a prompt longer");
     });
 
-    it("passes the stage's model, effort and budget cap only when set", async () => {
+    it("passes the stage's model and effort only when set", async () => {
       // Arrange
       const { executor: tuned, compose: tunedCompose } = createExecutor({
         profile: { model: "opus" },
-        stage: { effort: ReasoningEffort.High, maxBudgetUsd: 5 },
+        stage: { effort: ReasoningEffort.High },
       });
       const { executor: plain, compose: plainCompose } = createExecutor();
 
@@ -181,11 +181,10 @@ describe("ClaudeCodeExecutor", () => {
 
       // Assert
       const tunedArgs = exec(tunedCompose).args.join(" ");
-      expect(tunedArgs).toContain("--model opus --effort high --max-budget-usd 5 --setting-sources user");
+      expect(tunedArgs).toContain("--model opus --effort high --setting-sources user");
       const plainArgs = exec(plainCompose).args;
       expect(plainArgs).not.toContain("--model");
       expect(plainArgs).not.toContain("--effort");
-      expect(plainArgs).not.toContain("--max-budget-usd");
     });
 
     it("leaves Agent out of the tools and the spawn depth unset for an agent without subagents", async () => {

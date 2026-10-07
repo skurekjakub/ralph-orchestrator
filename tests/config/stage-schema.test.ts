@@ -11,14 +11,12 @@ describe("stageSchema", () => {
       ...BASE_STAGE,
       cli: "claude",
       effort: "xhigh",
-      maxBudgetUsd: 5,
       requireResultBlock: false,
     });
 
     // Assert
     expect(stage.cli).toBe(CliType.Claude);
     expect(stage.effort).toBe(ReasoningEffort.XHigh);
-    expect(stage.maxBudgetUsd).toBe(5);
     expect(stage.requireResultBlock).toBe(false);
   });
 
@@ -42,14 +40,6 @@ describe("stageSchema", () => {
 
     // Assert
     expect(result.error?.issues[0].path).toEqual(["effort"]);
-  });
-
-  it.each([0, -1])("rejects maxBudgetUsd %d", (maxBudgetUsd) => {
-    // Act
-    const result = stageSchema.safeParse({ ...BASE_STAGE, maxBudgetUsd });
-
-    // Assert
-    expect(result.error?.issues[0].path).toEqual(["maxBudgetUsd"]);
   });
 
   it("explains a missing agent name", () => {

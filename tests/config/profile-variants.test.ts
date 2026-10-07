@@ -207,7 +207,7 @@ describe("resolveProfileVariants", () => {
     // Arrange
     const parsed = profileFile({
       cli: "claude",
-      variants: [variantWith([{ agent: "a", role: "one", effort: "high", maxBudgetUsd: 2.5 }])],
+      variants: [variantWith([{ agent: "a", role: "one", effort: "high" }])],
     });
 
     // Act
@@ -215,7 +215,6 @@ describe("resolveProfileVariants", () => {
 
     // Assert
     expect(variant.stages[0].effort).toBe(ReasoningEffort.High);
-    expect(variant.stages[0].maxBudgetUsd).toBe(2.5);
   });
 
   describe("MCP servers", () => {

@@ -577,10 +577,7 @@ describe("validateProfiles", () => {
       expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]\/stages\[0\]\/cli: /);
     });
 
-    it.each([
-      ["effort", { effort: "high" }],
-      ["maxBudgetUsd", { maxBudgetUsd: 5 }],
-    ])("rejects %s on a Copilot stage", (option, setting) => {
+    it.each([["effort", { effort: "high" }]])("rejects %s on a Copilot stage", (option, setting) => {
       // Arrange
       writeValidProfile("test", { profileJson: profileWithStages([{ agent: "ralph", role: "primary", ...setting }]) });
       const c = collector();

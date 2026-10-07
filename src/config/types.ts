@@ -61,8 +61,6 @@ export interface IStageConfig {
   readonly model?: string;
   /** Claude Code reasoning effort for this stage. Claude stages only. */
   readonly effort?: ReasoningEffort;
-  /** Claude Code spend cap for one session of this stage, in USD. Claude stages only. */
-  readonly maxBudgetUsd?: number;
   /** Whether the stage fails when the agent ends without a `===RALPH_RESULT_START===` block. */
   readonly requireResultBlock: boolean;
   /** Timeout override in ms for this stage. Falls back to profile-level timeout. */

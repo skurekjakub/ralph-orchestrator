@@ -97,8 +97,6 @@ export const stageSchema = z.object({
   model: z.string().optional(),
   /** Claude Code reasoning effort (`--effort`). Claude stages only. */
   effort: z.enum(ReasoningEffort).optional(),
-  /** Claude Code spend cap per session in USD (`--max-budget-usd`). Claude stages only. */
-  maxBudgetUsd: z.number().positive().optional(),
   /** Fail the stage when the agent ends without a result block. Defaults to true for variant stages, false for post-task hook stages. */
   requireResultBlock: z.boolean().optional(),
   /** Timeout override in ms for this stage. */

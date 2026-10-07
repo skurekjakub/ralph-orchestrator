@@ -19,7 +19,7 @@ export interface ClaudeCodeExecutorDeps {
   readonly compose: IComposeClient;
   /** The variant with the stage's overrides applied (`deriveStageProfile`): repo path, model, timeout. */
   readonly profile: IAgentProfile;
-  /** The stage: effort, budget cap and whether the result gate is on. */
+  /** The stage: effort and whether the result gate is on. */
   readonly stage: IStageConfig;
   /** Frontmatter `name` of the stage's root agent, which `--agent` resolves. */
   readonly agentName: string;
@@ -83,7 +83,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
   private async exec(prompt: string, sessionArgs: readonly string[]): Promise<ContainerExecResult> {
     const promptPath = writePromptFile(this.profile.repoPath, prompt);
     const { model } = this.profile;
-    const { effort, maxBudgetUsd, requireResultBlock } = this.stage;
+    const { effort, requireResultBlock } = this.stage;
     const spawnsSubagents = this.subagentDepth > 0;
     const tools = spawnsSubagents ? [...CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL] : [...CLAUDE_BUILTIN_TOOLS];
 
@@ -104,7 +104,6 @@ export class ClaudeCodeExecutor implements ICliExecutor {
       this.agentName,
       ...(model === undefined ? [] : ["--model", model]),
       ...(effort === undefined ? [] : ["--effort", effort]),
-      ...(maxBudgetUsd === undefined ? [] : ["--max-budget-usd", String(maxBudgetUsd)]),
       "--setting-sources",
       this.profile.claude.loadRepoInstructions ? "user,project" : "user",
       "--mcp-config",

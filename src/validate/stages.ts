@@ -16,7 +16,7 @@ interface ModelSource {
 }
 
 /** Claude Code options that a stage running another CLI must not set. */
-const CLAUDE_ONLY_STAGE_OPTIONS = ["effort", "maxBudgetUsd"] as const;
+const CLAUDE_ONLY_STAGE_OPTIONS = ["effort"] as const;
 
 /** Every variant and post-task hook stage of `variants`, in profile.json order. */
 export function locateStages(variants: readonly IAgentProfile[]): LocatedStage[] {
