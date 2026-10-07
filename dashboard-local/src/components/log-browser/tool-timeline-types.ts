@@ -1,36 +1,62 @@
+/** Category a tool call is coloured and counted by in the timeline. */
+export type ToolCategory = "skill" | "mcp" | "edit" | "shell" | "nav" | "subagent" | "other";
+
+/** Kind of tool an audit v2 record names (`toolKind`, `shared/hooks/README.md`). */
+export type AuditToolKind = "subagent" | "skill" | "shell" | "file" | "mcp" | "other";
+
 /** Parsed tool call entry for the main timeline visualization. */
 export interface ToolCallEntry {
   /** Index in the overall call sequence. */
   index: number;
   /** Epoch millisecond timestamp from pre-tool.log (when the call started). */
   ts: number;
-  /** Tool name (e.g. "bash", "skill", "ralphchives-read-search_ralphchives"). */
+  /** Tool name (e.g. "bash", "skill", "ralphchives-read-search_ralphchives", "Bash", "mcp__ado__ado_push_progress"). */
   tool: string;
-  /** Parsed args object. */
+  /** Parsed args object; empty when the source records no arguments (run telemetry). */
   args: Record<string, unknown>;
-  /** Whether this is a skill invocation (tool === "skill"). */
+  /** Kind of tool from the audit v2 record; absent for older records. */
+  toolKind?: AuditToolKind;
+  /** The call's id; Claude Code audit records and run telemetry carry it. */
+  toolUseId?: string;
+  /** Display name of the subagent that made the call; absent for a main-thread call or when the log does not say. */
+  agent?: string;
+  /** Whether this is a skill invocation: audit v2 `toolKind`, else tool === "skill". */
   isSkill: boolean;
-  /** Skill name if isSkill (extracted from args.skill). */
+  /** Skill name if isSkill: audit v2 `skill`, else args.skill. */
   skillName?: string;
-  /** Whether this is a subagent invocation (tool === "task"). */
+  /** Whether this is a subagent invocation: audit v2 `toolKind`, else tool === "task". */
   isSubagent: boolean;
-  /** Subagent name if isSubagent (extracted from args.agent_type, prefix-stripped). */
+  /** Subagent name if isSubagent, prefix-stripped: audit v2 `subagent`, else args.agent_type. */
   subagentName?: string;
-  /** Execution status from tool-output.log (e.g. "success"). */
+  /** Execution status from tool-output.log or run telemetry (`success`, `failure`). */
   status?: string;
   /** Return value text from tool-output.log. */
   returnValue?: string;
-  /** Duration in ms (computed from gap to next entry's timestamp). */
+  /** Duration in ms: from run telemetry when it has the call, else the gap to the next entry's timestamp. */
   durationMs?: number;
 }
 
-/** Raw pre-tool.log JSONL entry. */
+/** Raw pre-tool.log JSONL entry; the optional fields come only in audit v2 records (`schemaVersion: 2`). */
 export interface PreToolEntry {
   event: string;
   ts: number;
   session: string;
   tool: string;
   args: string;
+  schemaVersion?: number;
+  /** The CLI that ran the call (`claude`, `copilot`). */
+  cli?: string;
+  /** The running agent's name; null on Copilot. */
+  agent?: string | null;
+  /** Set when a subagent made the call; null for a main-thread call and on Copilot. */
+  agentId?: string | null;
+  /** The call's id; null on Copilot. */
+  toolUseId?: string | null;
+  toolKind?: AuditToolKind;
+  /** The subagent a `subagent` call starts. */
+  subagent?: string | null;
+  /** The skill a `skill` call loads. */
+  skill?: string | null;
 }
 
 /** Parsed tool-output.log entry. */

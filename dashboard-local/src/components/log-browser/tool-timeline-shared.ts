@@ -1,6 +1,6 @@
-import { getToolCategory } from "./tool-timeline-categories";
+import type { ToolCategory } from "./tool-timeline-types";
 
-export const CAT_HEX: Record<ReturnType<typeof getToolCategory>, string> = {
+export const CAT_HEX: Record<ToolCategory, string> = {
   skill: "#a855f7",
   subagent: "#22d3ee",
   mcp: "#58a6ff",

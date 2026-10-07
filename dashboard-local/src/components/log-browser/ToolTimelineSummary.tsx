@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { getToolCategory } from "./tool-timeline-categories";
-import type { ToolCallEntry } from "./tool-timeline-types";
+import type { ToolCallEntry, ToolCategory } from "./tool-timeline-types";
 import { CAT_HEX } from "./tool-timeline-shared";
 
 export function ToolTimelineSummary({ timeline, totalDuration }: { timeline: ToolCallEntry[]; totalDuration: number }) {
@@ -43,9 +43,9 @@ function TimelineHeader({ timeline, totalDuration }: { timeline: ToolCallEntry[]
 
 function CategoryLegend({ timeline }: { timeline: ToolCallEntry[] }) {
   const categories = useMemo(() => {
-    const counts = new Map<ReturnType<typeof getToolCategory>, number>();
+    const counts = new Map<ToolCategory, number>();
     for (const entry of timeline) {
-      const category = getToolCategory(entry.tool);
+      const category = getToolCategory(entry.tool, entry.toolKind);
       counts.set(category, (counts.get(category) ?? 0) + 1);
     }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]);

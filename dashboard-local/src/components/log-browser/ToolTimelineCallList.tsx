@@ -30,14 +30,11 @@ export function ToolTimelineCallList({
       </div>
 
       {timeline.map((entry) => {
-        const category = getToolCategory(entry.tool);
+        const category = getToolCategory(entry.tool, entry.toolKind);
         const isExpanded = expandedIndex === entry.index;
         const offset = entry.ts - startTs;
-        const displayName = entry.isSkill
-          ? `skill → ${entry.skillName ?? "?"}`
-          : entry.isSubagent
-            ? `task → ${entry.subagentName ?? "?"}`
-            : entry.tool;
+        const target = entry.isSkill ? entry.skillName : entry.subagentName;
+        const displayName = entry.isSkill || entry.isSubagent ? `${entry.tool} → ${target ?? "?"}` : entry.tool;
         const barPct = maxDuration > 0 ? Math.max(((entry.durationMs ?? 0) / maxDuration) * 100, 1) : 0;
 
         return (
@@ -62,6 +59,7 @@ export function ToolTimelineCallList({
                 style={{ color: CAT_HEX[category] }}
               >
                 <span className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: CAT_HEX[category] }} />
+                {entry.agent && <span className="text-dim">{entry.agent} ›</span>}
                 {displayName}
               </span>
               <span className="w-16 text-center">

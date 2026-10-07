@@ -71,4 +71,45 @@ describe("ToolTimelineCallList", () => {
     expect(screen.queryByText("wanted claude-sonnet-4.5")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /hide 1 tool calls/i })).not.toBeNull();
   });
+
+  it("names a Claude Code subagent call by its tool and a subagent's own call by its agent", () => {
+    // Arrange
+    const timeline: ToolCallEntry[] = [
+      {
+        index: 0,
+        ts: 1000,
+        tool: "Agent",
+        args: {},
+        toolKind: "subagent",
+        isSkill: false,
+        isSubagent: true,
+        subagentName: "writer",
+      },
+      {
+        index: 1,
+        ts: 2000,
+        tool: "Bash",
+        args: {},
+        toolKind: "shell",
+        agent: "writer",
+        isSkill: false,
+        isSubagent: false,
+      },
+    ];
+
+    // Act
+    render(
+      <ToolTimelineCallList
+        timeline={timeline}
+        expandedIndex={null}
+        onToggle={() => {}}
+        maxDuration={1000}
+        subagentByName={new Map()}
+      />,
+    );
+
+    // Assert
+    expect(screen.queryByText("Agent → writer")).not.toBeNull();
+    expect(screen.queryByText("writer ›")).not.toBeNull();
+  });
 });
