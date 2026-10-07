@@ -3,15 +3,7 @@ import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { IOutputConfig } from "../config/types";
 import { TaskStatus } from "../container/types";
-
-/** Work item IDs are used as filenames — reject anything with path-traversal characters. */
-const SAFE_ID_RE = /^[A-Za-z0-9][\w-]*$/;
-
-function assertSafeItemId(id: string): void {
-  if (!SAFE_ID_RE.test(id)) {
-    throw new Error(`Unsafe work item ID for filesystem use: "${id}"`);
-  }
-}
+import { assertSafeItemId } from "../util/safe-id";
 
 /** Operation lifecycle state. See {@link VALID_TRANSITIONS} for the allowed edges. */
 export enum OperationStatus {

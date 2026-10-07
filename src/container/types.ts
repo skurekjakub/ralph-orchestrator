@@ -64,6 +64,14 @@ export enum TaskStatus {
   Error = "error",
 }
 
+/**
+ * Whether a task that ended with `status` succeeded: the ledger records its operation as completed, the
+ * issue moves on to the variant's `afterAgent` status, and its workspace is deleted.
+ */
+export function isSuccessfulStatus(status: TaskStatus): boolean {
+  return status === TaskStatus.Completed || status === TaskStatus.Partial;
+}
+
 /** Result of a single pipeline stage execution. */
 export interface StageResult {
   /** Stage role identifier (e.g. `primary`, `reviewer`). */

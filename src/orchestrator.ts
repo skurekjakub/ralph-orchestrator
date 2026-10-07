@@ -1,5 +1,5 @@
 import type { IAgentProfile, IDataSourceConfig, IOutputConfig, IRalphchivesConfig } from "./config/types";
-import { TaskStatus } from "./container/types";
+import { isSuccessfulStatus, TaskStatus } from "./container/types";
 import { LogLevel, TransitionPhase, type ActiveTask } from "./orchestrator-types";
 import { OperationStatus, type Operation, type IOperationLedger } from "./services/operation-ledger";
 import { OrchestratorObserver } from "./orchestrator-observer";
@@ -430,7 +430,7 @@ export class Orchestrator {
 
       this.log(`Done ${workItem.id}: ${result.status} (${Math.round((result.durationMs || 0) / 1000)}s)`);
 
-      const isSuccess = result.status === TaskStatus.Completed || result.status === TaskStatus.Partial;
+      const isSuccess = isSuccessfulStatus(result.status);
 
       this.ledger.transition(
         operation.dataSource,
