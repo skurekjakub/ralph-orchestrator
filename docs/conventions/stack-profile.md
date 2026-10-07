@@ -171,8 +171,9 @@
     orchestrator loop, `services/`, `container/` (+ `setup/`,
     `cli-executors/`), `datasource/`, `prompt/`, `logs/`, `validate/`,
     `util/`.
-  - `tests/**` (root Vitest suite) and `scripts/**` (tsx scripts, neither
-    type-checked nor linted).
+  - `tests/**` (root Vitest suite) and `scripts/**` (tsx scripts,
+    type-checked through `scripts/tsconfig.json` and linted, but run by no
+    test).
   - `profiles/<id>/` infrastructure: `profile.json`, `Dockerfile`,
     `docker-compose.yml`, `setup.sh`. Templates and runtime skills
     (`profiles/*/agents/`, `shared/agent-includes/`, `shared/skills/`) are
