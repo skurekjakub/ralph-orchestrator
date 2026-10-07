@@ -25,6 +25,8 @@ echo "🔧 Configuring git..."
 git config --global --add safe.directory "$WORKSPACE"
 git config --global credential.useHttpPath true
 git config --global push.autoSetupRemote true
+git config --global user.name "Ralph"
+git config --global user.email "Wiggum@kentico.com"
 
 # ── Summary ───────────────────────────────────────────────
 echo ""
@@ -32,5 +34,3 @@ echo "✅ Ralph development environment ready!"
 echo "   Node:   $(node --version 2>/dev/null || echo 'not found')"
 echo "   NPM:    $(npm --version 2>/dev/null || echo 'not found')"
 echo ""
-
-git config --global user.email "Wiggum@kentico.com"

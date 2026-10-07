@@ -42,6 +42,8 @@ fi
 echo "🔧 Configuring git..."
 git config --global --add safe.directory "$WORKSPACE"
 git config --global credential.useHttpPath true
+git config --global user.name "Ralph"
+git config --global user.email "ralph@noreply.dev"
 
 # ── Summary ───────────────────────────────────────────────
 echo ""
