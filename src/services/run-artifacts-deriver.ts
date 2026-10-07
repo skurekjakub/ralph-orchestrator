@@ -28,8 +28,9 @@ export interface IRunArtifactsDeriver {
    * Telemetry takes `<cli>-run-telemetry`. Each file is named `<taskId>-<ts>-<id>` in the task's output
    * directory, `.md` for a transcript and `.json` for telemetry.
    *
-   * Never throws. A transcript that cannot be redacted is neither written nor kept in `collectedLogs`, so
-   * it is never attached; any other failure is logged and skips only its own artifact.
+   * Never throws. A transcript that cannot be redacted is dropped from `collectedLogs`, so it is never
+   * attached or summarised, but its file stays in the output directory unredacted; any other failure is logged
+   * and skips only its own artifact.
    */
   derive(ctx: TaskContext, result: RalphResult): Promise<void>;
 }

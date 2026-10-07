@@ -378,6 +378,29 @@ describe("validateProfiles", () => {
       expect(c.errors.some((e) => e.includes('skill "nonexistent-skill" not found'))).toBe(true);
     });
 
+    it("tells where to create a missing skill: a category folder holding a SKILL.md", async () => {
+      // Arrange
+      mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
+      writeValidProfile("test", {
+        profileJson: {
+          repoUrl: REPO_URL,
+          variants: [
+            {
+              stages: [{ agent: "ralph", role: "primary", skills: ["nonexistent-skill"] }],
+              match: { projects: [PROJECT], commentTrigger: "@go" },
+            },
+          ],
+        },
+      });
+      const c = collector();
+
+      // Act
+      await validateProfiles(c);
+
+      // Assert
+      expect(c.errors.join("\n")).toContain("Create shared/skills/<category>/nonexistent-skill/SKILL.md");
+    });
+
     it("passes when referenced skill exists", async () => {
       const skillDir = join(tempDir, "shared", "skills", "my-skill");
       mkdirSync(skillDir, { recursive: true });

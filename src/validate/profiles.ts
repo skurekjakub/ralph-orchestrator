@@ -156,7 +156,7 @@ function formatSchemaIssues(prefix: string, error: ZodError): string[] {
   });
 }
 
-/** Validate that every skill a variant or post-task hook stage mounts exists in shared/skills/. */
+/** Validate that every skill a variant or post-task hook stage mounts exists, in any folder under shared/skills/. */
 function validateVariantSkills(
   variants: readonly IAgentProfile[],
   skillsDir: string,
@@ -168,7 +168,7 @@ function validateVariantSkills(
     for (const skill of stage.skills) {
       if (!available.has(skill)) {
         errors.push(
-          `${prefix}/${path}: skill "${skill}" not found in shared/skills/\n  Create shared/skills/${skill}/`,
+          `${prefix}/${path}: skill "${skill}" not found under shared/skills/\n  Create shared/skills/<category>/${skill}/SKILL.md`,
         );
       }
     }

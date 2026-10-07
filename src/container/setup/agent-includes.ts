@@ -35,8 +35,8 @@ export interface TemplateContext {
   /**
    * Alias for `repo` — absolute host path of the task's workspace.
    *
-   * Useful in local-mode stages where the CLI runs in the orchestrator repo
-   * and needs an explicit reference to the checkout the container agents work in.
+   * Lets a local-mode stage, which runs on the host in a workspace of its own, name the checkout the
+   * container agents work in.
    */
   targetRepoPath: string;
   /** CLI the current stage runs (`copilot` or `claude`). */

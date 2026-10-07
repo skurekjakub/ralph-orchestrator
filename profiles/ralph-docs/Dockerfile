@@ -110,7 +110,8 @@ USER root
 COPY --chown=vscode:vscode setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh
 
-# User-writable npm global prefix so setup.sh can install CLIs without sudo
+# User-writable npm global prefix so setup.sh can run global npm installs (e.g. updating npm) without sudo.
+# The agent CLIs are installed root-owned under /usr/local further down.
 RUN mkdir -p /home/vscode/.npm-global && chown vscode:vscode /home/vscode/.npm-global
 ENV NPM_CONFIG_PREFIX=/home/vscode/.npm-global
 ENV PATH="/home/vscode/.npm-global/bin:$PATH"

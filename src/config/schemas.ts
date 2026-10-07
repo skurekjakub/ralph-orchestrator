@@ -57,7 +57,7 @@ export const configFileSchema = z.object({
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,
   ralphchives: rawRalphchivesSchema,
-  /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
+  /** Allow agents to resume a session when no result block is produced (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
   enableContinuation: z.boolean().default(false),
   /** Credential Claude Code stages authenticate with: `CLAUDE_CODE_OAUTH_TOKEN` or `ANTHROPIC_API_KEY`. */
   claudeAuth: z.enum(ClaudeAuthMode).default(ClaudeAuthMode.OAuthToken),

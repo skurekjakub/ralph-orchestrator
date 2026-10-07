@@ -84,7 +84,7 @@ export interface IJiraConnectionConfig {
   readonly excludeFields: readonly string[];
   /** Atlassian account IDs allowed to trigger agent invocations. Empty = unrestricted. */
   readonly allowedUsers: readonly string[];
-  /** JIRA credentials (injected from env vars by the loader — never stored in config.json). */
+  /** JIRA credentials (read from env vars by the JIRA connector factory — never stored in config.json). */
   readonly email: string;
   readonly apiToken: string;
 }
@@ -243,7 +243,7 @@ export interface IAppConfig {
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;
   readonly ralphchives: IRalphchivesConfig;
-  /** Allow agents to retry via --continue when no result block is produced. Requires maxContinuations > 0 in the profile. */
+  /** Allow agents to resume a session when no result block is produced (`--continue` on Copilot CLI, `--resume <session id>` on Claude Code). Requires maxContinuations > 0 in the profile. */
   readonly enableContinuation: boolean;
   /** Credential Claude Code stages authenticate with. */
   readonly claudeAuth: ClaudeAuthMode;

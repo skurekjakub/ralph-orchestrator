@@ -10,8 +10,8 @@ import type { IAgentProfile } from "../../config/types";
  * 2. **Security overlay** — `shared/security/docker-compose.security.yml`
  * 3. **Resources overlay** — `profiles/<id>/.build/docker-compose.overlay.yml` (if present)
  *
- * The resources overlay is auto-generated at startup by {@link resolveAllProfileSetup}
- * and only included when the file exists on disk.
+ * The resources overlay is written at startup by {@link resolveAllProfileSetup} and rewritten for each task
+ * by `ComposeOverlayWriter`; it is only included when the file exists on disk.
  */
 export class ComposeFileResolver {
   private readonly rootDir: string;
