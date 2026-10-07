@@ -20,6 +20,8 @@ export interface ContinuationResult {
   combinedStdout: string;
   /** Combined stderr across all invocations. */
   combinedStderr: string;
+  /** The distinct session ids the invocations reported, in order; an invocation that reports none adds none. */
+  sessionIds: readonly string[];
 }
 
 /** Public contract for the continuation runner. */
@@ -66,6 +68,11 @@ export class ContinuationRunner implements IContinuationRunner {
     let combinedAgentText = result.agentText;
     let combinedStdout = result.stdout;
     let combinedStderr = result.stderr;
+    const sessionIds: string[] = [];
+    const recordSession = ({ sessionId }: ContainerExecResult): void => {
+      if (sessionId !== undefined && !sessionIds.includes(sessionId)) sessionIds.push(sessionId);
+    };
+    recordSession(result);
     const resultText = (): string => (hasResultBlock(result.agentText) ? result.agentText : combinedAgentText);
 
     if (maxContinuations > 0) {
@@ -99,6 +106,7 @@ export class ContinuationRunner implements IContinuationRunner {
           `Original issue: ${workItem.id} — ${workItem.title}`;
 
         result = await executor.continueSession(continuationPrompt);
+        recordSession(result);
         combinedAgentText += "\n" + result.agentText;
         combinedStdout += "\n" + result.stdout;
         combinedStderr += "\n" + result.stderr;
@@ -109,7 +117,14 @@ export class ContinuationRunner implements IContinuationRunner {
       }
     }
 
-    return { lastResult: result, combinedAgentText, resultText: resultText(), combinedStdout, combinedStderr };
+    return {
+      lastResult: result,
+      combinedAgentText,
+      resultText: resultText(),
+      combinedStdout,
+      combinedStderr,
+      sessionIds,
+    };
   }
 
   /**

@@ -161,7 +161,7 @@ export interface RalphResult {
   failureReason?: FailureReason;
   /** Terminal error the CLI reported for the run's last session. */
   cliError?: CliError;
-  /** CLI session ids in run order, one per stage whose CLI reports one. */
+  /** The distinct CLI session ids the run's invocations reported, continuations included, in run order. */
   sessionIds?: string[];
   /**
    * Session ids of container stages whose audit log has no `session_start` record: Ralph's hooks did not

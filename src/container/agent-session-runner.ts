@@ -79,7 +79,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
 
     const startTime = Date.now();
 
-    const { lastResult, combinedAgentText, resultText, combinedStdout, combinedStderr } =
+    const { lastResult, combinedAgentText, resultText, combinedStdout, combinedStderr, sessionIds } =
       await this.continuationRunner.run(
         executor,
         prompt,
@@ -113,7 +113,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
       prUrl,
       ...(failureReason === undefined ? {} : { failureReason }),
       ...(lastResult.cliError === undefined ? {} : { cliError: lastResult.cliError }),
-      ...(lastResult.sessionId === undefined ? {} : { sessionIds: [lastResult.sessionId] }),
+      ...(sessionIds.length === 0 ? {} : { sessionIds: [...sessionIds] }),
     };
   }
 }

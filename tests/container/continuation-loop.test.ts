@@ -289,6 +289,37 @@ describe("ContainerManager.executeWithExecutor — continuation loop", () => {
     expect(result.stderr).toContain("err3");
   });
 
+  it("keeps the first run's session id when a continuation reports none", async () => {
+    // Arrange
+    const executor = createMockExecutor();
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block", sessionId: "s-1" }));
+    executor.continueSession.mockResolvedValue(plainTextResult({ stdout: "died before init" }));
+    const manager = buildManager(1, executor);
+
+    // Act
+    const result = await manager.executeWithExecutor(executor, STAGE, makeWorkItem(KEY));
+
+    // Assert
+    expect(executor.continueSession).toHaveBeenCalledOnce();
+    expect(result.sessionIds).toEqual(["s-1"]);
+  });
+
+  it("records each distinct session id across continuations, in order", async () => {
+    // Arrange
+    const executor = createMockExecutor();
+    executor.run.mockResolvedValue(plainTextResult({ stdout: "no block", sessionId: "s-1" }));
+    executor.continueSession
+      .mockResolvedValueOnce(plainTextResult({ stdout: "still no block", sessionId: "s-1" }))
+      .mockResolvedValueOnce(plainTextResult({ stdout: RESULT_BLOCK, sessionId: "s-2" }));
+    const manager = buildManager(3, executor);
+
+    // Act
+    const result = await manager.executeWithExecutor(executor, STAGE, makeWorkItem(KEY));
+
+    // Assert
+    expect(result.sessionIds).toEqual(["s-1", "s-2"]);
+  });
+
   it("passes continuation prompt with attempt number and issue key", async () => {
     const executor = createMockExecutor();
     executor.run.mockResolvedValue(plainTextResult({ stdout: "no block" }));

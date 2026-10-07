@@ -21,6 +21,7 @@ function createMockContinuationRunner(): Mocked<IContinuationRunner> {
       resultText: "",
       combinedStdout: "",
       combinedStderr: "",
+      sessionIds: [],
     }),
   };
 }
@@ -83,6 +84,7 @@ describe("AgentSessionRunner", () => {
         "===RALPH_RESULT_START===\nPR_URL: https://dev.azure.com/pr/1\nSTATUS: completed\n===RALPH_RESULT_END===",
       combinedStdout: '{"type":"assistant","message":{"content":[{"type":"text","text":"STATUS: blocked"}]}}',
       combinedStderr: "",
+      sessionIds: [],
     });
 
     // Act
@@ -106,6 +108,7 @@ describe("AgentSessionRunner", () => {
       resultText: block,
       combinedStdout: block,
       combinedStderr: "some warning",
+      sessionIds: [],
     });
 
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-400"), undefined, {
@@ -122,14 +125,15 @@ describe("AgentSessionRunner", () => {
     expect(result.stderr).toBe("some warning");
   });
 
-  it("returns the session id the last CLI run reported", async () => {
+  it("returns the session ids of every CLI invocation the continuation runner reports", async () => {
     // Arrange
     continuationRunner.run.mockResolvedValue({
-      lastResult: makeExecResult({ sessionId: "s-1" }),
+      lastResult: makeExecResult(),
       combinedAgentText: "",
       resultText: "",
       combinedStdout: "",
       combinedStderr: "",
+      sessionIds: ["s-1", "s-2"],
     });
 
     // Act
@@ -140,7 +144,7 @@ describe("AgentSessionRunner", () => {
     });
 
     // Assert
-    expect(result.sessionIds).toEqual(["s-1"]);
+    expect(result.sessionIds).toEqual(["s-1", "s-2"]);
   });
 
   it("records no session id when the CLI reports none", async () => {
@@ -196,6 +200,7 @@ describe("AgentSessionRunner", () => {
         resultText: agentText,
         combinedStdout: "",
         combinedStderr: lastResult.stderr ?? "",
+        sessionIds: [],
       });
       return runner.run(createMockExecutor(), makeWorkItem("DF-900"), undefined, {
         maxContinuations: 0,
@@ -267,6 +272,7 @@ describe("AgentSessionRunner", () => {
       resultText: "",
       combinedStdout: "",
       combinedStderr: "fail",
+      sessionIds: [],
     });
 
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-700"), undefined, {
@@ -286,6 +292,7 @@ describe("AgentSessionRunner", () => {
       resultText: "",
       combinedStdout: "",
       combinedStderr: "",
+      sessionIds: [],
     });
 
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-800"), undefined, {
