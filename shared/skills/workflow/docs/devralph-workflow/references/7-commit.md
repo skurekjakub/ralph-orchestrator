@@ -43,10 +43,7 @@
    git commit -m "dev({{ taskId }}): <summary>" -m "- detail 1" -m "- detail 2"
    ```
 
-6. **Push to remote:**
-   ```bash
-   git push origin HEAD
-   ```
+6. **Push to remote** with the `ado_push_progress` MCP tool, passing the commit message. The container holds no repository credential, so a plain `push` from the shell fails.
 
 ## Before moving to Phase 8
 

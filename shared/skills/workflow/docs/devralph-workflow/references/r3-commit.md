@@ -23,10 +23,7 @@
    git commit -m "fix({{ taskId }}): address review defects" -m "<details of fixes>"
    ```
 
-3. **Push:**
-   ```bash
-   git push origin HEAD
-   ```
+3. **Push** with the `ado_push_progress` MCP tool, passing the commit message. The container holds no repository credential, so a plain `push` from the shell fails.
 
 4. The existing PR auto-updates with the new commit.
 
