@@ -53,11 +53,14 @@ describe("UpstreamMonitor", () => {
 
   describe("drift", () => {
     it("reports ok when the server exposes every allowlisted tool", async () => {
+      // Arrange
       const { port } = await upstream();
       const { monitor, logger } = monitorFor(port, ["echo", "search"]);
 
+      // Act
       await monitor.check();
 
+      // Assert
       expect(monitor.drift).toMatchObject({
         status: DriftStatus.Ok,
         missingTools: [],
@@ -70,11 +73,14 @@ describe("UpstreamMonitor", () => {
     });
 
     it("reports allowlisted tools the server does not expose", async () => {
+      // Arrange
       const { port } = await upstream();
       const { monitor, logger } = monitorFor(port, ["echo", "ghost", "phantom"]);
 
+      // Act
       await monitor.check();
 
+      // Assert
       expect(monitor.drift).toMatchObject({ status: DriftStatus.Drift, missingTools: ["ghost", "phantom"] });
       expect(logger.messages("warn")).toEqual([
         expect.stringContaining("[guard] test: allowlist drift: ghost, phantom"),
@@ -82,11 +88,14 @@ describe("UpstreamMonitor", () => {
     });
 
     it("follows tools/list pagination", async () => {
+      // Arrange
       const { port } = await upstream({ pageSize: 1 });
       const { monitor } = monitorFor(port, ["secret"]);
 
+      // Act
       await monitor.check();
 
+      // Assert
       expect(monitor.drift).toMatchObject({ status: DriftStatus.Ok, upstreamToolCount: 3 });
     });
 
@@ -106,34 +115,44 @@ describe("UpstreamMonitor", () => {
     });
 
     it("leaves the state pending when a round is cancelled", async () => {
+      // Arrange
       const { monitor } = monitorFor(await deadPort(), ["echo"]);
-
       const round = monitor.check();
+
+      // Act
       monitor.cancel();
       await round;
 
+      // Assert
       expect(monitor.drift.status).toBe(DriftStatus.Pending);
+      expect(monitor.exposure.status).toBe(ExposureStatus.Pending);
     });
   });
 
   describe("exposure", () => {
     it("reports a server bound to loopback as loopback-only", async () => {
+      // Arrange
       const { port } = await upstream();
       const { monitor } = monitorFor(port, ["echo"]);
 
+      // Act
       await monitor.check();
 
+      // Assert
       expect(monitor.exposure).toMatchObject({ status: ExposureStatus.LoopbackOnly, addresses: [] });
     });
 
     it.skipIf(nonLoopbackAddresses().length === 0)(
       "reports a server bound to every interface as exposed, naming the addresses",
       async () => {
+        // Arrange
         const { port } = await upstream({ host: "0.0.0.0" });
         const { monitor, logger } = monitorFor(port, ["echo"]);
 
+        // Act
         await monitor.check();
 
+        // Assert
         expect(monitor.exposure.status).toBe(ExposureStatus.Exposed);
         expect(monitor.exposure.addresses.length).toBeGreaterThan(0);
         expect(logger.messages("error")).toEqual([
@@ -188,9 +207,14 @@ describe("UpstreamMonitor", () => {
 
   describe("listUpstreamToolNames", () => {
     it("ends the session it opened on a stateful server", async () => {
+      // Arrange
       const { url, closedSessions } = await upstream({ mode: UpstreamMode.Stateful });
 
-      expect(await listUpstreamToolNames(url, 2000)).toEqual(["echo", "search", "secret"]);
+      // Act
+      const names = await listUpstreamToolNames(url, 2000);
+
+      // Assert
+      expect(names).toEqual(["echo", "search", "secret"]);
       expect(closedSessions).toHaveLength(1);
     });
   });

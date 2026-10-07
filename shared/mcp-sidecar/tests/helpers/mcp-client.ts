@@ -1,3 +1,4 @@
+import { request, type IncomingHttpHeaders } from "node:http";
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 
 export interface ConnectedClient {
@@ -44,4 +45,30 @@ export async function readMessages(response: Response): Promise<unknown[]> {
   }
   const parsed: unknown = JSON.parse(text);
   return Array.isArray(parsed) ? parsed : [parsed];
+}
+
+/** A response read whole by {@link httpRequest}. */
+export interface RawResponse {
+  status: number;
+  headers: IncomingHttpHeaders;
+  body: string;
+}
+
+/** Send a request with `node:http`, which, unlike fetch, may set any header (`Connection` included). */
+export function httpRequest(
+  url: URL,
+  options: { method: string; headers: Record<string, string>; body?: string },
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const req = request(url, { method: options.method, headers: options.headers }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () =>
+        resolve({ status: res.statusCode ?? 0, headers: res.headers, body: Buffer.concat(chunks).toString() }),
+      );
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.end(options.body);
+  });
 }

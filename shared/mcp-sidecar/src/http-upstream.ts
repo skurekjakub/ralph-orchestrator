@@ -9,6 +9,7 @@ import {
 import { pipeline } from "node:stream";
 import { ProtocolErrorCode } from "@modelcontextprotocol/client";
 import type { ListenAddress } from "./http-listen";
+import { MAX_MESSAGE_BYTES } from "./limits";
 import type { Logger } from "./logger";
 import { SseEventFilter } from "./sse-filter";
 import { McpHttpMethod, sendJson, type AcceptedRequest, type ProxyUpstream } from "./tool-filter-proxy";
@@ -49,6 +50,11 @@ export interface HttpUpstreamOptions {
   address: ListenAddress;
   allowlist: ToolAllowlist;
   logger: Logger;
+  /**
+   * Largest JSON response, or SSE event, buffered to filter it; a larger one fails the request
+   * (HTTP 502, or a cut stream). Defaults to {@link MAX_MESSAGE_BYTES}.
+   */
+  maxMessageBytes?: number;
 }
 
 /**
@@ -61,9 +67,11 @@ export class HttpUpstream implements ProxyUpstream {
   readonly description: string;
   private readonly agent = new Agent({ keepAlive: true });
   private readonly sessions = new SessionListRequests();
+  private readonly maxMessageBytes: number;
 
   constructor(private readonly options: HttpUpstreamOptions) {
     this.description = `${options.address.host}:${options.address.port}`;
+    this.maxMessageBytes = options.maxMessageBytes ?? MAX_MESSAGE_BYTES;
   }
 
   async forward(req: IncomingMessage, res: ServerResponse, accepted: AcceptedRequest): Promise<void> {
@@ -89,7 +97,7 @@ export class HttpUpstream implements ProxyUpstream {
 
     upstreamReq.on("response", (upRes) => this.relay(upRes, res, accepted));
     upstreamReq.on("error", (err) => {
-      if (clientGone) return;
+      if (clientGone || res.writableEnded) return;
       if (res.headersSent) {
         res.destroy(err);
         return;
@@ -121,9 +129,28 @@ export class HttpUpstream implements ProxyUpstream {
 
     if (rewrite && contentType.includes("application/json")) {
       const chunks: Buffer[] = [];
-      upRes.on("data", (chunk: Buffer) => chunks.push(chunk));
-      upRes.on("error", (err) => res.destroy(err));
+      let size = 0;
+      upRes.on("data", (chunk: Buffer) => {
+        if (res.writableEnded) return;
+        size += chunk.length;
+        if (size <= this.maxMessageBytes) {
+          chunks.push(chunk);
+          return;
+        }
+        const { serverName, logger } = this.options;
+        logger.warn(`[proxy] ${serverName}: upstream JSON response exceeds ${this.maxMessageBytes} bytes`);
+        sendJson(
+          res,
+          502,
+          errorPayload(accepted.body?.replyId ?? null, ProtocolErrorCode.InternalError, "Upstream response too large"),
+        );
+        upRes.destroy();
+      });
+      upRes.on("error", (err) => {
+        if (!res.writableEnded) res.destroy(err);
+      });
       upRes.on("end", () => {
+        if (res.writableEnded) return;
         const text = Buffer.concat(chunks).toString("utf8");
         const body = rewriteJson(text, rewrite) ?? text;
         headers["content-length"] = Buffer.byteLength(body);
@@ -137,7 +164,9 @@ export class HttpUpstream implements ProxyUpstream {
       delete headers["content-length"];
       res.writeHead(status, upRes.statusMessage, headers);
       res.flushHeaders();
-      pipeline(upRes, new SseEventFilter((data) => rewriteJson(data, rewrite)), res, (err) => this.onStreamEnd(err));
+      pipeline(upRes, new SseEventFilter((data) => rewriteJson(data, rewrite), this.maxMessageBytes), res, (err) =>
+        this.onStreamEnd(err),
+      );
       return;
     }
 
@@ -231,12 +260,7 @@ function rewriteJson(text: string, rewrite: (message: unknown) => unknown): stri
 }
 
 function upstreamRequestHeaders(incoming: IncomingHttpHeaders, body: Buffer | undefined): OutgoingHttpHeaders {
-  const headers: OutgoingHttpHeaders = {};
-  for (const [name, value] of Object.entries(incoming)) {
-    if (value !== undefined && !HOP_BY_HOP_HEADERS.has(name) && !REPLACED_REQUEST_HEADERS.has(name)) {
-      headers[name] = value;
-    }
-  }
+  const headers = endToEndHeaders(incoming, REPLACED_REQUEST_HEADERS);
   headers["accept-encoding"] = "identity";
   if (body !== undefined) {
     headers["content-type"] = "application/json";
@@ -246,9 +270,24 @@ function upstreamRequestHeaders(incoming: IncomingHttpHeaders, body: Buffer | un
 }
 
 function clientResponseHeaders(incoming: IncomingHttpHeaders): OutgoingHttpHeaders {
+  return endToEndHeaders(incoming, new Set());
+}
+
+/**
+ * `incoming` without hop-by-hop headers, which a proxy must not forward (RFC 9110 section 7.6.1):
+ * the standard ones and every header the `Connection` header names, plus `alsoDrop`.
+ */
+function endToEndHeaders(incoming: IncomingHttpHeaders, alsoDrop: ReadonlySet<string>): OutgoingHttpHeaders {
+  const named = new Set(
+    String(incoming.connection ?? "")
+      .split(",")
+      .map((token) => token.trim().toLowerCase())
+      .filter((token) => token !== ""),
+  );
   const headers: OutgoingHttpHeaders = {};
   for (const [name, value] of Object.entries(incoming)) {
-    if (value !== undefined && !HOP_BY_HOP_HEADERS.has(name)) headers[name] = value;
+    if (value === undefined || HOP_BY_HOP_HEADERS.has(name) || named.has(name) || alsoDrop.has(name)) continue;
+    headers[name] = value;
   }
   return headers;
 }

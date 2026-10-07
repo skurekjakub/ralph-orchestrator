@@ -12,6 +12,7 @@ import {
 } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { ServerConfig } from "./gateway-config";
+import { MAX_MESSAGE_BYTES } from "./limits";
 import type { Logger } from "./logger";
 import type { InstanceObserver, ServerInstance, ServerLauncher } from "./managed-server";
 
@@ -50,12 +51,14 @@ export interface StdioUpstreamOptions {
   logger: Logger;
   /** How long a new process may take to answer `initialize`. */
   handshakeTimeoutMs?: number;
-  /** Longest message the server may write; a longer one ends the connection (and so restarts the server). */
+  /**
+   * Longest message the server may write; a longer one ends the connection (and so restarts the
+   * server). Defaults to {@link MAX_MESSAGE_BYTES}.
+   */
   maxMessageBytes?: number;
 }
 
 const DEFAULT_HANDSHAKE_TIMEOUT_MS = 60_000;
-const DEFAULT_MAX_MESSAGE_BYTES = 16 * 1024 * 1024;
 const MAX_LIST_PAGES = 100;
 const CLIENT_INFO = { name: "ralph-mcp-sidecar", version: "1.0.0" };
 
@@ -89,7 +92,7 @@ export class StdioUpstream implements ServerLauncher {
     const connection = new StdioConnection({
       config,
       logger,
-      maxMessageBytes: this.options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES,
+      maxMessageBytes: this.options.maxMessageBytes ?? MAX_MESSAGE_BYTES,
       onNotification: (notification) => {
         for (const listener of this.listeners) listener(notification);
       },

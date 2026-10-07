@@ -8,7 +8,7 @@ export enum ServerType {
   Npm = "npm",
 }
 
-/** One server entry of `gateway.json`, written by the orchestrator (`generateGatewayConfig`). */
+/** One server entry of `gateway.json`. */
 export interface ServerConfig {
   name: string;
   type: ServerType;

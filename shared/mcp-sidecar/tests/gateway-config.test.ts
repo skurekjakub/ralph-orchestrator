@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   HEALTH_PORT,
   loadGatewayConfig,
@@ -43,9 +43,9 @@ describe("gateway config", () => {
       expect(config.servers[0].upstreamPort).toBeNull();
     });
 
-    it("accepts a config without servers", () => {
-      expect(parseGatewayConfig({}).servers).toEqual([]);
-      expect(parseGatewayConfig({ servers: [] }).servers).toEqual([]);
+    it.each([{}, { servers: [] }])("accepts a config without servers (%j)", (raw) => {
+      // Act & Assert
+      expect(parseGatewayConfig(raw).servers).toEqual([]);
     });
 
     it.each([
@@ -78,33 +78,41 @@ describe("gateway config", () => {
         "collides with",
       ],
     ])("rejects %s", (_label, raw, message) => {
+      // Act & Assert
       expect(() => parseGatewayConfig(raw)).toThrow(message);
     });
   });
 
   describe("loadGatewayConfig", () => {
-    it("reads and validates the file", () => {
-      const dir = mkdtempSync(join(tmpdir(), "gateway-config-"));
-      try {
-        const path = join(dir, "gateway.json");
-        writeFileSync(path, JSON.stringify({ servers: [server({ allowedTools: ["a"] })] }));
+    let dir: string;
 
-        expect(loadGatewayConfig(path).servers[0].upstreamPort).toBe(9101 + UPSTREAM_PORT_OFFSET);
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "gateway-config-"));
+    });
+
+    afterEach(() => {
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("reads and validates the file", () => {
+      // Arrange
+      const path = join(dir, "gateway.json");
+      writeFileSync(path, JSON.stringify({ servers: [server({ allowedTools: ["a"] })] }));
+
+      // Act
+      const config = loadGatewayConfig(path);
+
+      // Assert
+      expect(config.servers[0].upstreamPort).toBe(9101 + UPSTREAM_PORT_OFFSET);
     });
 
     it("throws for a file that is not JSON", () => {
-      const dir = mkdtempSync(join(tmpdir(), "gateway-config-"));
-      try {
-        const path = join(dir, "gateway.json");
-        writeFileSync(path, "{ nope");
+      // Arrange
+      const path = join(dir, "gateway.json");
+      writeFileSync(path, "{ nope");
 
-        expect(() => loadGatewayConfig(path)).toThrow(SyntaxError);
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
+      // Act & Assert
+      expect(() => loadGatewayConfig(path)).toThrow(SyntaxError);
     });
   });
 });

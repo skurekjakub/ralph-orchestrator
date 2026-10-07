@@ -15,15 +15,19 @@ export type SseDataRewriter = (data: string) => string | undefined;
  * Every event is forwarded as soon as its terminating blank line arrives. Events the rewriter
  * leaves alone, comments, `id:`/`retry:` fields and line endings pass through byte for byte.
  * A rewritten event keeps its non-data fields in order and carries the new data in place of its
- * first `data:` line.
+ * first `data:` line. An event that grows past `maxEventLength` characters fails the stream.
  */
 export class SseEventFilter extends Transform {
   private readonly decoder = new StringDecoder("utf8");
   private pending = "";
   private scanOffset = 0;
   private eventLines: string[] = [];
+  private eventLength = 0;
 
-  constructor(private readonly rewrite: SseDataRewriter) {
+  constructor(
+    private readonly rewrite: SseDataRewriter,
+    private readonly maxEventLength: number = Number.POSITIVE_INFINITY,
+  ) {
     super();
   }
 
@@ -31,6 +35,7 @@ export class SseEventFilter extends Transform {
     try {
       this.pending += this.decoder.write(chunk);
       this.drainLines(false);
+      this.checkLength(this.pending.length);
       callback();
     } catch (err) {
       callback(err as Error);
@@ -83,8 +88,18 @@ export class SseEventFilter extends Transform {
     if (line === "") {
       this.push(this.renderEvent() + terminator);
       this.eventLines = [];
+      this.eventLength = 0;
     } else {
       this.eventLines.push(line + terminator);
+      this.eventLength += line.length + terminator.length;
+      this.checkLength(0);
+    }
+  }
+
+  /** Fail when the current event, plus `unterminated` characters of a line still arriving, exceeds the cap. */
+  private checkLength(unterminated: number): void {
+    if (this.eventLength + unterminated > this.maxEventLength) {
+      throw new Error(`SSE event longer than ${this.maxEventLength} characters`);
     }
   }
 

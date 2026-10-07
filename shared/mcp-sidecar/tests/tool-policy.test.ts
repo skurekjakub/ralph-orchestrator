@@ -65,43 +65,52 @@ describe("tool policy", () => {
     });
 
     it("tracks tools/list request ids, keeping numeric and string ids apart", () => {
+      // Arrange
       const body = JSON.stringify([
         { jsonrpc: "2.0", id: 1, method: "tools/list" },
         { jsonrpc: "2.0", id: "1", method: "tools/list" },
         { jsonrpc: "2.0", id: 2, method: "prompts/list" },
       ]);
 
-      expect(forwarded(inspectInbound(body, allowlist)).listToolsIds).toEqual([requestIdKey(1), requestIdKey("1")]);
+      // Act
+      const verdict = forwarded(inspectInbound(body, allowlist));
+
+      // Assert
+      expect(verdict.listToolsIds).toEqual([requestIdKey(1), requestIdKey("1")]);
       expect(requestIdKey(1)).not.toBe(requestIdKey("1"));
     });
 
-    it("names the reply id only for a single request", () => {
-      const single = JSON.stringify({ jsonrpc: "2.0", id: "a", method: "ping" });
-      const batch = JSON.stringify([{ jsonrpc: "2.0", id: "a", method: "ping" }]);
-      const notification = JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" });
+    it.each([
+      ["a single request", { jsonrpc: "2.0", id: "a", method: "ping" }, "a"],
+      ["a batch", [{ jsonrpc: "2.0", id: "a", method: "ping" }], null],
+      ["a notification", { jsonrpc: "2.0", method: "notifications/initialized" }, null],
+    ])("names the reply id only for a single request (%s)", (_label, message, replyId) => {
+      // Act
+      const verdict = forwarded(inspectInbound(JSON.stringify(message), allowlist));
 
-      expect(forwarded(inspectInbound(single, allowlist)).replyId).toBe("a");
-      expect(forwarded(inspectInbound(batch, allowlist)).replyId).toBeNull();
-      expect(forwarded(inspectInbound(notification, allowlist)).replyId).toBeNull();
+      // Assert
+      expect(verdict.replyId).toBe(replyId);
     });
 
-    it("passes methods other than tools/call through, whatever they name", () => {
-      const body = JSON.stringify({ jsonrpc: "2.0", id: 3, method: "resources/read", params: { name: "secret" } });
+    it.each([
+      ["methods other than tools/call, whatever they name", { method: "resources/read", params: { name: "secret" } }],
+      ["client responses to server requests", { result: { action: "accept" } }],
+    ])("passes %s through", (_label, message) => {
+      // Arrange
+      const body = JSON.stringify({ jsonrpc: "2.0", id: 3, ...message });
 
-      expect(inspectInbound(body, allowlist).kind).toBe("forward");
-    });
-
-    it("passes client responses to server requests through", () => {
-      const body = JSON.stringify({ jsonrpc: "2.0", id: 4, result: { action: "accept" } });
-
+      // Act & Assert
       expect(inspectInbound(body, allowlist).kind).toBe("forward");
     });
 
     it("rejects a non-string tool name", () => {
+      // Arrange
       const body = JSON.stringify({ jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: ["echo"] } });
 
+      // Act
       const verdict = rejected(inspectInbound(body, allowlist));
 
+      // Assert
       expect(verdict.deniedTools).toEqual(["<missing>"]);
       expect(verdict.payload).toMatchObject({ id: 5, error: { code: ProtocolErrorCode.InvalidParams } });
     });
@@ -109,40 +118,53 @@ describe("tool policy", () => {
 
   describe("filterListToolsResponse", () => {
     it("keeps allowlisted tools and every other field of the result", () => {
+      // Arrange
       const response = {
         jsonrpc: "2.0",
         id: 1,
         result: { tools: [{ name: "echo" }, { name: "secret" }, "junk"], nextCursor: "2", _meta: { x: 1 } },
       };
 
-      expect(filterListToolsResponse(response, allowlist)).toEqual({
+      // Act
+      const filtered = filterListToolsResponse(response, allowlist);
+
+      // Assert
+      expect(filtered).toEqual({
         jsonrpc: "2.0",
         id: 1,
         result: { tools: [{ name: "echo" }], nextCursor: "2", _meta: { x: 1 } },
       });
     });
 
-    it("returns undefined for messages that carry no tool list", () => {
-      expect(filterListToolsResponse({ jsonrpc: "2.0", id: 1, result: { content: [] } }, allowlist)).toBeUndefined();
-      expect(
-        filterListToolsResponse({ jsonrpc: "2.0", id: 1, error: { code: 1, message: "x" } }, allowlist),
-      ).toBeUndefined();
-      expect(filterListToolsResponse("text", allowlist)).toBeUndefined();
+    it.each([
+      ["a result without tools", { jsonrpc: "2.0", id: 1, result: { content: [] } }],
+      ["an error", { jsonrpc: "2.0", id: 1, error: { code: 1, message: "x" } }],
+      ["a non-object", "text"],
+    ])("returns undefined for %s", (_label, message) => {
+      // Act & Assert
+      expect(filterListToolsResponse(message, allowlist)).toBeUndefined();
     });
   });
 
   describe("responseIdKey", () => {
-    it("keys results and errors by id and ignores requests and notifications", () => {
-      expect(responseIdKey({ jsonrpc: "2.0", id: 1, result: {} })).toBe(requestIdKey(1));
-      expect(responseIdKey({ jsonrpc: "2.0", id: "x", error: { code: 1, message: "m" } })).toBe(requestIdKey("x"));
-      expect(responseIdKey({ jsonrpc: "2.0", id: 1, method: "tools/list" })).toBeUndefined();
-      expect(responseIdKey({ jsonrpc: "2.0", method: "notifications/progress" })).toBeUndefined();
+    it.each([
+      ["a result", { jsonrpc: "2.0", id: 1, result: {} }, requestIdKey(1)],
+      ["an error", { jsonrpc: "2.0", id: "x", error: { code: 1, message: "m" } }, requestIdKey("x")],
+      ["a request", { jsonrpc: "2.0", id: 1, method: "tools/list" }, undefined],
+      ["a notification", { jsonrpc: "2.0", method: "notifications/progress" }, undefined],
+    ])("keys %s by its id, and only responses", (_label, message, key) => {
+      // Act & Assert
+      expect(responseIdKey(message)).toBe(key);
     });
   });
 
   describe("ToolAllowlist", () => {
     it("reports allowlisted names the server does not expose, in allowlist order", () => {
-      expect(new ToolAllowlist(["c", "a", "b"]).missingFrom(["a", "z"])).toEqual(["c", "b"]);
+      // Arrange
+      const allowlisted = new ToolAllowlist(["c", "a", "b"]);
+
+      // Act & Assert
+      expect(allowlisted.missingFrom(["a", "z"])).toEqual(["c", "b"]);
     });
   });
 });

@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Server + gateway directories
 RUN mkdir -p /opt/mcp/servers /opt/mcp/config /opt/mcp/gateway
 
-# Gateway dependencies, from the lockfile so the MCP SDK the tool-filter proxy runs is the one its tests ran
+# Gateway runtime dependencies, installed from the lockfile
 COPY package.json package-lock.json /opt/mcp/gateway/
 RUN cd /opt/mcp/gateway && npm ci --omit=dev
 
@@ -45,6 +45,6 @@ USER ${HOST_UID}:${HOST_GID}
 WORKDIR /opt/mcp
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=300s --retries=3 \
-  CMD node -e "fetch('http://localhost:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
+  CMD node -e "fetch('http://127.0.0.1:9000/health').then(r=>{if(!r.ok)process.exit(1)})"
 
 CMD ["/opt/mcp/entrypoint.sh"]

@@ -28,7 +28,7 @@ const LOOPBACK_HOST = "127.0.0.1";
 export interface SidecarGatewayOptions {
   config: ResolvedGatewayConfig;
   logger: Logger;
-  /** Defaults to `0.0.0.0:9000`. */
+  /** Defaults to `127.0.0.1:9000`: only the container's own HEALTHCHECK reads it. */
   healthListen?: ListenAddress;
   processOptions?: Pick<ManagedServerOptions, "maxRestarts" | "restartDelayMs"> &
     Pick<HttpServerLauncherOptions, "startupGraceMs"> &
@@ -106,7 +106,7 @@ export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }>
     }
 
     this.healthServer = await startHealthServer(
-      this.options.healthListen ?? { host: PUBLIC_HOST, port: HEALTH_PORT },
+      this.options.healthListen ?? { host: LOOPBACK_HOST, port: HEALTH_PORT },
       () => this.healthReport(),
       logger,
     );

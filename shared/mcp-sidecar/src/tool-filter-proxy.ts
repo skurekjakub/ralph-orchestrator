@@ -1,14 +1,13 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { ProtocolErrorCode, type RequestId } from "@modelcontextprotocol/client";
 import { listenOn, type ListenAddress } from "./http-listen";
+import { MAX_CONNECTIONS, MAX_REQUEST_BODY_BYTES } from "./limits";
 import type { Logger } from "./logger";
 import { errorPayload, inspectInbound, type JsonRpcErrorPayload, type ToolAllowlist } from "./tool-policy";
 
 /** Path of the Streamable HTTP endpoint, on the proxy and on HTTP upstream servers. */
 export const MCP_PATH = "/mcp";
 
-/** The SDK's `DEFAULT_MAX_REQUEST_BODY_SIZE`; the proxy buffers whole POST bodies to inspect them. */
-const DEFAULT_MAX_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_LOGGED_NAME_LENGTH = 200;
 /** Charset labels that mean UTF-8, the only encoding the proxy inspects bodies in. */
 const UTF8_LABELS = new Set(["utf-8", "utf8"]);
@@ -63,7 +62,10 @@ export interface ToolFilterProxyOptions {
   upstream: ProxyUpstream;
   allowlist: ToolAllowlist;
   logger: Logger;
+  /** Largest POST body accepted; a larger one gets HTTP 413. Defaults to {@link MAX_REQUEST_BODY_BYTES}. */
   maxBodyBytes?: number;
+  /** Concurrent connections accepted; more are dropped. Defaults to {@link MAX_CONNECTIONS}. */
+  maxConnections?: number;
 }
 
 /**
@@ -83,10 +85,11 @@ export class ToolFilterProxy {
   private refusal: string | null = null;
 
   constructor(private readonly options: ToolFilterProxyOptions) {
-    this.maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+    this.maxBodyBytes = options.maxBodyBytes ?? MAX_REQUEST_BODY_BYTES;
     this.server = createServer((req, res) => {
       this.handle(req, res).catch((err: unknown) => this.failRequest(res, err));
     });
+    this.server.maxConnections = options.maxConnections ?? MAX_CONNECTIONS;
   }
 
   /** Number of `tools/call` messages denied since start. */

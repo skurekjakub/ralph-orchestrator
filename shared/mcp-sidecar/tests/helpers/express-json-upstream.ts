@@ -1,9 +1,10 @@
-import { createServer, type IncomingMessage } from "node:http";
+import { createServer, type IncomingHttpHeaders, type IncomingMessage } from "node:http";
 import bodyParser from "body-parser";
 import { listen } from "./upstream";
 
 /** One request as the upstream received it. */
 export interface ReceivedRequest {
+  headers: IncomingHttpHeaders;
   contentType: string | undefined;
   /** The body bytes, before decoding. */
   raw: Buffer;
@@ -34,7 +35,12 @@ export async function startExpressJsonUpstream(): Promise<ExpressJsonUpstream> {
         return;
       }
       const body = (req as IncomingMessage & { body: ReceivedRequest["body"] }).body;
-      received.push({ contentType: req.headers["content-type"], raw: raws.get(req) ?? Buffer.alloc(0), body });
+      received.push({
+        headers: req.headers,
+        contentType: req.headers["content-type"],
+        raw: raws.get(req) ?? Buffer.alloc(0),
+        body,
+      });
       const answer = { content: [{ type: "text", text: `called ${String(body.params?.name)}` }] };
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id ?? null, result: answer }));
