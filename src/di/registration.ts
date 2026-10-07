@@ -43,7 +43,12 @@ export function wiring<C extends object>(): {
   };
 }
 
-/** A value registration of each property of `values`, under the property's name: the values a scope opens with. */
-export function asValues<V extends object>(values: V): Registrations<V> {
+/**
+ * A value registration of each property of `values`, under the property's name.
+ *
+ * @param values A plain object whose every key is an own enumerable string property: `Object.entries` reads no other,
+ *   so a class instance would lose its prototype members. The `Record` bound rejects class and interface types.
+ */
+export function asValues<V extends Record<string, unknown>>(values: V): Registrations<V> {
   return Object.fromEntries(Object.entries(values).map(([name, value]) => [name, asValue(value)])) as Registrations<V>;
 }

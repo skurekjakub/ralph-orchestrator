@@ -12,7 +12,7 @@ import { ContainerManager } from "../../src/container/manager";
 import { CliRuntimeRegistry, type ICliRuntime } from "../../src/cli/cli-runtime";
 import { CliType, StageMode, type IAgentProfile } from "../../src/config/types";
 import type { IComposeClient } from "../../src/container/compose-client";
-import type { IStageExecutorFactory } from "../../src/container/cli-executor-factory";
+import type { IStageExecutorFactory } from "../../src/container/stage-executor-factory";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";
 import { registerLogSources } from "../../src/container/log-source-registry";

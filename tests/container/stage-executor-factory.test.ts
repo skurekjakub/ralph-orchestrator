@@ -5,12 +5,7 @@ import { asValue, createContainer, InjectionMode, type AwilixContainer } from "a
 import { execa } from "execa";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrchestratorCradle, TaskCradle } from "../../src/awilix-cradle-types";
-import {
-  claudeHostStageRegistrations,
-  claudeStageRegistrations,
-  copilotHostStageRegistrations,
-  copilotStageRegistrations,
-} from "../../src/awilix-cradle";
+import { registerScopedServices } from "../../src/awilix-cradle";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { claudeAgentFileName } from "../../src/cli/claude/claude-agent-writer";
 import { hostSettingsPath } from "../../src/cli/claude/claude-host-settings";
@@ -63,7 +58,7 @@ let logger: Logger;
 /** The logger of the stage CLIs' output. */
 let containerLogger: Logger;
 
-/** A root container holding the stage registrations and the root tokens the executors read. */
+/** A root container holding the scoped registrations and the root tokens the executors read. */
 function createRoot(): AwilixContainer<OrchestratorCradle> {
   const root = createContainer<OrchestratorCradle>({ injectionMode: InjectionMode.PROXY, strict: true });
   root.register({
@@ -72,10 +67,7 @@ function createRoot(): AwilixContainer<OrchestratorCradle> {
     logger: asValue(logger),
     containerLogger: asValue(containerLogger),
   });
-  root.register(claudeStageRegistrations);
-  root.register(copilotStageRegistrations);
-  root.register(claudeHostStageRegistrations);
-  root.register(copilotHostStageRegistrations);
+  registerScopedServices(root);
   return root;
 }
 

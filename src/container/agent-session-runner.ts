@@ -4,7 +4,7 @@ import type { Logger } from "../logger";
 import type { PromptBuilder } from "../prompt/prompt-builder";
 import type { IssueContext } from "../prompt/prompt";
 import { readReportedResult, resolveStatus } from "./result-parser";
-import type { ICliExecutor } from "./cli-executor-factory";
+import type { ICliExecutor } from "./cli-executor";
 import type { IContinuationRunner } from "./continuation-runner";
 
 /** Options controlling a single agent session execution. */

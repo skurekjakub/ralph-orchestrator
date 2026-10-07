@@ -14,10 +14,10 @@
  * 3. See `docs/dev-doc/data-source-registration.md` for the full guide
  */
 
-import { asValue, type AwilixContainer } from "awilix";
+import type { AwilixContainer } from "awilix";
 import type { IAppConfig } from "../config/types";
 import type { DataSourceCradle, OrchestratorCradle } from "../awilix-cradle-types";
-import type { Registrations } from "../di/registration";
+import { asValues } from "../di/registration";
 import type { IDataSourceConnector } from "./connector";
 import type { IWorkItemPoller } from "./poller";
 
@@ -78,11 +78,8 @@ export function buildDataSourceMaps(
       );
     }
 
-    const values: Registrations<Omit<DataSourceCradle, keyof OrchestratorCradle>> = {
-      sourceKey: asValue(sourceKey),
-      dataSourceConfig: asValue(dataSourceConfig),
-    };
-    const { connector, poller } = factory(container.createScope().register(values));
+    const values: Omit<DataSourceCradle, keyof OrchestratorCradle> = { sourceKey, dataSourceConfig };
+    const { connector, poller } = factory(container.createScope().register(asValues(values)));
     connectors.set(sourceKey, connector);
     pollers.set(sourceKey, poller);
   }

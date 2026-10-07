@@ -7,7 +7,7 @@ import { copilotHostEnv } from "../../cli/copilot/copilot-host-env";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { ContainerExecResult, HostStageWorkspace } from "../types";
 import { prepareHostStage } from "./host-stage";
 import { executeCliCommand, killActiveProcess } from "./shared-exec";

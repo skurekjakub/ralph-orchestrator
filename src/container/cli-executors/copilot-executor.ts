@@ -4,7 +4,7 @@ import { githubMcpArgs } from "../../cli/copilot/copilot-args";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";

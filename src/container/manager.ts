@@ -10,7 +10,8 @@ import { deriveStageProfile, type RalphResult, type StageWorkspace } from "./typ
 import type { Logger } from "../logger";
 import type { IssueContext } from "../prompt/prompt";
 import type { IComposeClient } from "./compose-client";
-import type { ICliExecutor, IStageExecutorFactory } from "./cli-executor-factory";
+import type { ICliExecutor } from "./cli-executor";
+import type { IStageExecutorFactory } from "./stage-executor-factory";
 import { StreamCapture } from "./stream-capture";
 import type { IContainerLogCollector, CollectedLog } from "./log-collector";
 import type { IContainerWorkspaceCleaner } from "./workspace-cleaner";

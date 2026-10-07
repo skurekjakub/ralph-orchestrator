@@ -1,6 +1,6 @@
 import { asClass, asValue, AwilixResolutionError, createContainer, InjectionMode } from "awilix";
 import { describe, expect, it } from "vitest";
-import { wiring, type Registrations } from "../../src/di/registration";
+import { asValues, wiring, type Registrations } from "../../src/di/registration";
 
 interface Greeter {
   greet(): string;
@@ -154,5 +154,31 @@ describe("wiring", () => {
 
     // Assert
     expect(() => container.resolve("shout")).toThrow(AwilixResolutionError);
+  });
+});
+
+describe("asValues", () => {
+  it("registers each property of a plain object as a value under its name", () => {
+    // Arrange
+    const container = newContainer();
+
+    // Act
+    container.register(asValues({ name: "ralph", shout: "HI" }));
+
+    // Assert
+    expect(container.resolve("name")).toBe("ralph");
+    expect(container.resolve("shout")).toBe("HI");
+  });
+
+  it("rejects at compile time a class instance, whose prototype members are not its own properties", () => {
+    // Arrange
+    const greeter = new NamedGreeter({ name: "ralph" });
+
+    // Act
+    // @ts-expect-error a class instance type has no string index signature
+    const registrations = asValues(greeter);
+
+    // Assert
+    expect(Object.keys(registrations)).toEqual(["deps", "suffix"]);
   });
 });

@@ -13,7 +13,7 @@ import {
 } from "../helpers/mocks";
 import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
 import { CliType } from "../../src/config/types";
-import type { ICliExecutor } from "../../src/container/cli-executor-factory";
+import type { ICliExecutor } from "../../src/container/cli-executor";
 import type { IComposeClient } from "../../src/container/compose-client";
 import type { IContainerLogCollector } from "../../src/container/log-collector";
 import type { IContainerWorkspaceCleaner } from "../../src/container/workspace-cleaner";

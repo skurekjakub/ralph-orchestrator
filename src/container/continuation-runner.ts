@@ -2,7 +2,7 @@ import type { ContainerExecResult } from "./types";
 import type { WorkItem } from "../datasource/types";
 import type { Logger } from "../logger";
 import { hasAcceptedStatus, hasResultBlock, readReportedResult, type ReportedResult } from "./result-parser";
-import { ICliExecutor } from "./cli-executor-factory";
+import type { ICliExecutor } from "./cli-executor";
 
 /** Accumulated output from the initial run plus any continuation attempts. */
 export interface ContinuationResult {

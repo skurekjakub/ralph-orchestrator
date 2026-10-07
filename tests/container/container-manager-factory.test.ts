@@ -26,17 +26,12 @@ vi.mock("../../src/container/compose-client", async (importOriginal) => {
 });
 
 import type { OrchestratorCradle } from "../../src/awilix-cradle-types";
-import {
-  claudeHostStageRegistrations,
-  claudeStageRegistrations,
-  copilotHostStageRegistrations,
-  copilotStageRegistrations,
-  taskRegistrations,
-} from "../../src/awilix-cradle";
-import { createContainerManagerFactory } from "../../src/container/container-manager-factory";
+import { registerScopedServices } from "../../src/awilix-cradle";
+import { createContainerManagerFactory, openTaskScope } from "../../src/container/container-manager-factory";
 import { CliRuntimeRegistry } from "../../src/cli/cli-runtime";
 import { claudeAgentFileName } from "../../src/cli/claude/claude-agent-writer";
 import { CliType, StageMode } from "../../src/config/types";
+import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
 import { LocalClaudeCodeExecutor } from "../../src/container/cli-executors/local-claude-code-executor";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import {
@@ -86,11 +81,7 @@ function createRoot(
     cliRuntimes: asValue(new CliRuntimeRegistry({ runtimes })),
     sessionRunner: asValue(sessionRunner),
   });
-  container.register(taskRegistrations);
-  container.register(claudeStageRegistrations);
-  container.register(copilotStageRegistrations);
-  container.register(claudeHostStageRegistrations);
-  container.register(copilotHostStageRegistrations);
+  registerScopedServices(container);
   return container;
 }
 
@@ -99,26 +90,41 @@ function dockerEnv(index: number): Record<string, string> {
   return mockExeca.mock.calls[index][2].env;
 }
 
+beforeEach(() => {
+  mockExeca.mockClear();
+  composeClientBuilt.mockClear();
+  rootDir = mkdtempSync(join(tmpdir(), "container-manager-factory-"));
+  const buildDir = join(rootDir, "profiles", SET_UP.id, ".build");
+  mkdirSync(buildDir, { recursive: true });
+  writeFileSync(join(buildDir, "squid.conf"), "");
+  const agentsDir = join(rootDir, "profiles", SET_UP.id, "agents");
+  mkdirSync(agentsDir, { recursive: true });
+  writeFileSync(join(agentsDir, "ralph.scientist.agent.md"), makeAgentTemplate("scientist"));
+  const hooksDir = join(rootDir, "shared", "hooks", "claude");
+  mkdirSync(hooksDir, { recursive: true });
+  writeFileSync(join(hooksDir, "hooks.json"), "{}");
+});
+
+afterEach(() => {
+  rmSync(rootDir, { recursive: true, force: true });
+});
+
+describe("openTaskScope", () => {
+  it("holds every task token: its container manager resolves and builds the stages' executors", async () => {
+    // Arrange
+    const scope = openTaskScope(createRoot(), { profile: SET_UP, workspacePath: "/workspaces/DF-1-1000" });
+
+    // Act
+    const executor = await scope
+      .resolve("containerManager")
+      .createExecutorForStage(COPILOT_STAGE, makeContainerWorkspace());
+
+    // Assert
+    expect(executor).toBeInstanceOf(CopilotExecutor);
+  });
+});
+
 describe("createContainerManagerFactory", () => {
-  beforeEach(() => {
-    mockExeca.mockClear();
-    composeClientBuilt.mockClear();
-    rootDir = mkdtempSync(join(tmpdir(), "container-manager-factory-"));
-    const buildDir = join(rootDir, "profiles", SET_UP.id, ".build");
-    mkdirSync(buildDir, { recursive: true });
-    writeFileSync(join(buildDir, "squid.conf"), "");
-    const agentsDir = join(rootDir, "profiles", SET_UP.id, "agents");
-    mkdirSync(agentsDir, { recursive: true });
-    writeFileSync(join(agentsDir, "ralph.scientist.agent.md"), makeAgentTemplate("scientist"));
-    const hooksDir = join(rootDir, "shared", "hooks", "claude");
-    mkdirSync(hooksDir, { recursive: true });
-    writeFileSync(join(hooksDir, "hooks.json"), "{}");
-  });
-
-  afterEach(() => {
-    rmSync(rootDir, { recursive: true, force: true });
-  });
-
   describe("create", () => {
     it("runs each task's stack on that task's workspace", async () => {
       // Arrange

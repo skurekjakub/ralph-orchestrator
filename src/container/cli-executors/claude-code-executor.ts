@@ -13,7 +13,7 @@ import type { ICliRuntime } from "../../cli/cli-runtime";
 import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
 import { AGENT_RESULT_JSON_SCHEMA } from "../agent-result";
-import type { ICliExecutor } from "../cli-executor-factory";
+import type { ICliExecutor } from "../cli-executor";
 import type { IComposeClient } from "../compose-client";
 import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";

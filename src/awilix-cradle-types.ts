@@ -14,7 +14,8 @@ import type { Logger } from "./logger";
 import type { IOperationLedger } from "./services/operation-ledger";
 import type { ILogCollector } from "./logs/collector";
 import type { PromptBuilder } from "./prompt/prompt-builder";
-import type { ICliExecutor, IStageExecutorFactory } from "./container/cli-executor-factory";
+import type { ICliExecutor } from "./container/cli-executor";
+import type { IStageExecutorFactory } from "./container/stage-executor-factory";
 import type { IProfileRouter } from "./services/profile-router";
 import type { IIssueManager } from "./services/issue-manager";
 import type { IResourceManager } from "./services/task-resource-manager";
@@ -114,10 +115,10 @@ export interface OrchestratorCradle {
 export type DataSourceCradle = OrchestratorCradle & { sourceKey: string; dataSourceConfig: IDataSourceConfig };
 
 /** The values a task scope opens with: the variant the task runs and its workspace on the host. */
-export interface TaskValues {
+export type TaskValues = {
   profile: IAgentProfile;
   workspacePath: string;
-}
+};
 
 /** The cradle of one task's scope: the root cradle, the task's values and the task's container stack. */
 export type TaskCradle = OrchestratorCradle &
@@ -132,36 +133,37 @@ export type TaskCradle = OrchestratorCradle &
   };
 
 /** The values every stage scope opens with. */
-export interface StageValues {
+export type StageValues = {
   stage: IStageConfig;
   /** The variant with the stage's overrides applied (`deriveStageProfile`). */
   stageProfile: IAgentProfile;
   /** The runtime of the stage's CLI. */
   runtime: ICliRuntime;
-}
+};
 
-/** The values a Claude Code stage scope opens with, read from the profile's agent catalog. */
-export interface ClaudeStageValues extends StageValues {
-  /** Frontmatter `name` of the stage's root agent. */
+/** The values a Claude Code stage scope opens with. */
+export type ClaudeStageValues = StageValues & {
+  /** Frontmatter `name` of the stage's root agent, from the profile's agent catalog. */
   agentName: string;
-  /** Length of the longest subagent chain below the stage's root agent. */
+  /** Length of the longest subagent chain below the stage's root agent, from the profile's agent catalog. */
   subagentDepth: number;
-}
+};
 
 /** The values a host stage scope opens with. */
-export interface HostStageValues extends StageValues {
+export type HostStageValues = StageValues & {
   workspace: HostStageWorkspace;
   /** The pinned CLI the orchestrator installed (`node_modules/.bin/<cli>`). */
   binary: string;
-}
+};
 
 /** The values a host Claude Code stage scope opens with. */
-export interface ClaudeHostStageValues extends ClaudeStageValues, HostStageValues {
-  /** Host path of `shared/hooks`, whose audit hooks the session runs. */
-  hooksDir: string;
-  /** Frontmatter names of every agent the stage root can reach, root excluded. */
-  subagents: readonly string[];
-}
+export type ClaudeHostStageValues = ClaudeStageValues &
+  HostStageValues & {
+    /** Host path of `shared/hooks`, whose audit hooks the session runs. */
+    hooksDir: string;
+    /** Frontmatter names of every agent the stage root can reach, root excluded, from the profile's agent catalog. */
+    subagents: readonly string[];
+  };
 
 /** The cradle of a Claude Code container stage's scope, a child of its task's scope. */
 export type ClaudeStageCradle = TaskCradle & ClaudeStageValues & { claudeCodeExecutor: ICliExecutor };
@@ -170,14 +172,14 @@ export type ClaudeStageCradle = TaskCradle & ClaudeStageValues & { claudeCodeExe
 export type CopilotStageCradle = TaskCradle & StageValues & { copilotExecutor: ICliExecutor };
 
 /**
- * The cradle of a host Claude Code stage's scope. It needs no task token, so it opens from the root for a post-task
- * hook stage, which runs after the task's scope is gone.
+ * The cradle of a host Claude Code stage's scope. It needs no task token, so any container holding the root tokens
+ * can parent it.
  */
 export type ClaudeHostStageCradle = OrchestratorCradle &
   ClaudeHostStageValues & { localClaudeCodeExecutor: ICliExecutor };
 
 /**
- * The cradle of a host Copilot stage's scope. It needs no task token, so it opens from the root for a post-task hook
- * stage, which runs after the task's scope is gone.
+ * The cradle of a host Copilot stage's scope. It needs no task token, so any container holding the root tokens can
+ * parent it.
  */
 export type CopilotHostStageCradle = OrchestratorCradle & HostStageValues & { localCopilotExecutor: ICliExecutor };

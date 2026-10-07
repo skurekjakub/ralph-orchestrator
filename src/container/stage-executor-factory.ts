@@ -14,10 +14,31 @@ import type {
 import { hostCliBinary } from "../cli/cli-versions";
 import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 import { asValues } from "../di/registration";
-import type { ICliExecutor, IStageExecutorFactory } from "./cli-executor-factory";
+import type { ICliExecutor } from "./cli-executor";
 import { loadAgentCatalog } from "./setup/agent-catalogs";
 import { profileBuildPaths } from "./setup/build-paths";
 import type { HostStageWorkspace } from "./types";
+
+/** Creates the executors of one task's stages. Credentials are checked by startup validation, not here. */
+export interface IStageExecutorFactory {
+  /**
+   * Executor for a `mode: "container"` stage, running inside the task's `app` container.
+   *
+   * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
+   * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the
+   *   stage's agent.
+   */
+  create(stageProfile: IAgentProfile, stage: IStageConfig): Promise<ICliExecutor>;
+  /**
+   * Executor for a `mode: "local"` stage, running the pinned CLI the orchestrator installed
+   * (`node_modules/.bin/<cli>`) on the host in the stage's `workspace`.
+   *
+   * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
+   * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the
+   *   stage's agent.
+   */
+  createHost(stageProfile: IAgentProfile, stage: IStageConfig, workspace: HostStageWorkspace): Promise<ICliExecutor>;
+}
 
 /** A Claude Code container stage's scope of its task's scope, holding the stage's values. */
 function openClaudeStageScope(
@@ -88,8 +109,8 @@ export function createStageExecutorFactory(taskScope: AwilixContainer<TaskCradle
  * frontmatter names of the agents the stage root can reach, which its permission rules let it spawn, and runs the
  * audit hooks of the orchestrator's `shared/hooks`.
  *
- * @param parent The root container for a post-task hook stage, which runs after its task's scope is gone; the task's
- *   scope for a stage of the variant's pipeline.
+ * @param parent The container the stage's scope opens from: any whose cradle holds the root tokens and the host stage
+ *   registrations. The scope reads no task token.
  * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
  * @throws Error when the stage runs Claude Code and the profile's agent templates are invalid or lack the stage's
  *   agent.

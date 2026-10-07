@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { createContainer, asValue, InjectionMode } from "awilix";
+import { createContainer, asValue, InjectionMode, type AwilixContainer } from "awilix";
 import type { IAppConfig } from "./config/types";
 import type {
   ClaudeHostStageCradle,
@@ -60,7 +60,7 @@ import { StageWorkspaceResolver } from "./services/stage-workspace";
 const t = wiring<TaskCradle>();
 
 /** Scoped task registrations; `squidConfPath` throws when profile setup has not written the profile's squid.conf. */
-export const taskRegistrations: Registrations<
+const taskRegistrations: Registrations<
   Omit<TaskCradle, keyof OrchestratorCradle | keyof TaskValues | "stageExecutors">
 > = {
   composeFiles: t.factory(({ profile, rootDir }) => resolveComposeFiles(profile, rootDir)).scoped(),
@@ -80,31 +80,42 @@ export const taskRegistrations: Registrations<
 };
 
 /** The scoped executor of a Claude Code container stage, resolved only from the stage's scope. */
-export const claudeStageRegistrations: Registrations<
-  Omit<ClaudeStageCradle, keyof TaskCradle | keyof ClaudeStageValues>
-> = {
+const claudeStageRegistrations: Registrations<Omit<ClaudeStageCradle, keyof TaskCradle | keyof ClaudeStageValues>> = {
   claudeCodeExecutor: wiring<ClaudeStageCradle>().service(ClaudeCodeExecutor).scoped(),
 };
 
 /** The scoped executor of a Copilot container stage, resolved only from the stage's scope. */
-export const copilotStageRegistrations: Registrations<Omit<CopilotStageCradle, keyof TaskCradle | keyof StageValues>> =
-  {
-    copilotExecutor: wiring<CopilotStageCradle>().service(CopilotExecutor).scoped(),
-  };
+const copilotStageRegistrations: Registrations<Omit<CopilotStageCradle, keyof TaskCradle | keyof StageValues>> = {
+  copilotExecutor: wiring<CopilotStageCradle>().service(CopilotExecutor).scoped(),
+};
 
 /** The scoped executor of a host Claude Code stage, resolved only from the stage's scope. */
-export const claudeHostStageRegistrations: Registrations<
+const claudeHostStageRegistrations: Registrations<
   Omit<ClaudeHostStageCradle, keyof OrchestratorCradle | keyof ClaudeHostStageValues>
 > = {
   localClaudeCodeExecutor: wiring<ClaudeHostStageCradle>().service(LocalClaudeCodeExecutor).scoped(),
 };
 
 /** The scoped executor of a host Copilot stage, resolved only from the stage's scope. */
-export const copilotHostStageRegistrations: Registrations<
+const copilotHostStageRegistrations: Registrations<
   Omit<CopilotHostStageCradle, keyof OrchestratorCradle | keyof HostStageValues>
 > = {
   localCopilotExecutor: wiring<CopilotHostStageCradle>().service(LocalCopilotExecutor).scoped(),
 };
+
+/**
+ * Register the scoped task services and stage executors at the root. Each resolves only in a task or stage scope,
+ * which caches the instance.
+ *
+ * @param container The root container.
+ */
+export function registerScopedServices(container: AwilixContainer<OrchestratorCradle>): void {
+  container.register(taskRegistrations);
+  container.register(claudeStageRegistrations);
+  container.register(copilotStageRegistrations);
+  container.register(claudeHostStageRegistrations);
+  container.register(copilotHostStageRegistrations);
+}
 
 /**
  * Create the awilix DI container: register the root services, among them the container manager factory, and the
@@ -181,11 +192,7 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
       .singleton(),
   };
   container.register(root);
-  container.register(taskRegistrations);
-  container.register(claudeStageRegistrations);
-  container.register(copilotStageRegistrations);
-  container.register(claudeHostStageRegistrations);
-  container.register(copilotHostStageRegistrations);
+  registerScopedServices(container);
   const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 
