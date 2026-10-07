@@ -249,18 +249,24 @@ describe("LogSourceRegistry", () => {
     });
 
     it("uses the Copilot transcript path for the transcript source", () => {
+      // Arrange
       const collector = createFakeCollector();
 
+      // Act
       registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
+      // Assert
       expect(source(collector, "transcript")?.containerPath).toBe(COPILOT_CONTAINER_LAYOUT.transcriptPath);
     });
 
     it("uses the Copilot debug log directory in cli-debug glob patterns", () => {
+      // Arrange
       const collector = createFakeCollector();
 
+      // Act
       registry.registerAll(collector, profile, TASK_ID, WORK_ITEM_ID, {}, [COPILOT]);
 
+      // Assert
       const cliDebug = source(collector, "cli-debug")!;
       expect(cliDebug.collectArgs?.join(" ")).toContain(COPILOT_CONTAINER_LAYOUT.debugLog.path);
       expect(cliDebug.streamArgs?.join(" ")).toContain(COPILOT_CONTAINER_LAYOUT.debugLog.path);

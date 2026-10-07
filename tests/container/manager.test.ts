@@ -69,8 +69,8 @@ function createMockCleaner(): Mocked<IContainerWorkspaceCleaner> {
 
 function createMockExecutorFactory(): Mocked<ICliExecutorFactory> {
   return {
-    create: vi.fn().mockImplementation(async (_compose, _profile, stage) => createMockExecutor(stage.cli)),
-    createLocal: vi.fn().mockImplementation((_profile, stage) => createMockExecutor(stage.cli)),
+    create: vi.fn().mockImplementation(async () => createMockExecutor()),
+    createLocal: vi.fn().mockImplementation(() => createMockExecutor()),
   };
 }
 
@@ -334,7 +334,7 @@ describe("ContainerManager", () => {
       const executor = await manager.createExecutorForStage(stage);
 
       // Assert
-      expect(executor.cli).toBe(CliType.Claude);
+      expect(executor).toBe(await executorFactory.create.mock.results[0].value);
       expect(executorFactory.create).toHaveBeenCalledWith(
         compose,
         expect.objectContaining({ agentName: "ralph.ralph", cli: CliType.Claude }),

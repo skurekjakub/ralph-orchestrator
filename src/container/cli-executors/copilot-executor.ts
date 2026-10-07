@@ -1,7 +1,7 @@
 import type { ResultPromise } from "execa";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
-import { CliType, type IAgentProfile } from "../../config/types";
+import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
@@ -29,7 +29,6 @@ export interface CopilotExecutorDeps {
  * - Active process tracking for graceful shutdown
  */
 export class CopilotExecutor implements ICliExecutor {
-  readonly cli = CliType.Copilot;
   activeProcess: ResultPromise | null = null;
 
   private readonly compose: IComposeClient;

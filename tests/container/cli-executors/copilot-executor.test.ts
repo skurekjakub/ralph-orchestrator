@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { CopilotExecutor } from "../../../src/container/cli-executors/copilot-executor";
 import { CopilotRuntime } from "../../../src/cli/copilot/copilot-runtime";
 import { DEFAULT_COPILOT_MODEL } from "../../../src/cli/model-catalog";
-import { CliType, type IAgentProfile } from "../../../src/config/types";
+import type { IAgentProfile } from "../../../src/config/types";
 import { makeProfile } from "../../helpers/factories";
 import { createMockCompose, createMockLogger, fakeCliProcess } from "../../helpers/mocks";
 
@@ -38,11 +38,6 @@ describe("CopilotExecutor", () => {
     const [args, timeoutMs, options] = vi.mocked(compose.execWithTimeout).mock.calls[call];
     return { args, timeoutMs, options };
   }
-
-  it("runs Copilot CLI", () => {
-    // Act & Assert
-    expect(createExecutor().executor.cli).toBe(CliType.Copilot);
-  });
 
   describe("run", () => {
     it("runs the exact Copilot command line, without a shell, with the prompt on stdin", async () => {

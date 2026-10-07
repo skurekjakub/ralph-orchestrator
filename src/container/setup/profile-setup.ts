@@ -58,8 +58,8 @@ export interface ProfileSetupInput {
 }
 
 /**
- * One profile standing for all of its variants: the union of their MCP servers, sidecar env, skills and
- * container-stage CLIs, so startup artifacts cover whichever variant runs first.
+ * One profile standing for all of its variants at startup: the union of their MCP servers, sidecar env,
+ * skills and container-stage CLIs, with every other field, stages included, from the first variant.
  */
 function allVariantsOf(variants: readonly IAgentProfile[]): IAgentProfile {
   const unique = <T>(values: readonly T[]): T[] => [...new Set(values)];

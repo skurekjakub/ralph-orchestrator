@@ -155,7 +155,7 @@ describe("ContainerManager.executeWithExecutor — continuation loop", () => {
 
   it("continues when the block is only in raw stdout, such as inside a tool call, not in the agent text", async () => {
     // Arrange
-    const executor = createMockExecutor(CliType.Claude);
+    const executor = createMockExecutor();
     executor.run.mockResolvedValue(makeExecResult({ stdout: `{"input":"${RESULT_BLOCK}"}`, agentText: "working..." }));
     executor.continueSession.mockResolvedValue(makeExecResult({ agentText: RESULT_BLOCK }));
     const manager = buildManager(3, executor);

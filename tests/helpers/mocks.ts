@@ -190,9 +190,8 @@ export function fakeCliProcess(
 }
 
 /** Create a mock CLI executor whose runs exit cleanly without output. */
-export function createMockExecutor(cli: CliType = CliType.Copilot): ICliExecutor & Mocked<ICliExecutor> {
+export function createMockExecutor(): ICliExecutor & Mocked<ICliExecutor> {
   return {
-    cli,
     run: vi.fn().mockResolvedValue(makeExecResult()),
     continueSession: vi.fn().mockResolvedValue(makeExecResult()),
     killActive: vi.fn(),

@@ -20,7 +20,7 @@ const MESSAGE_PREVIEW_CHARS = 300;
 /** Tool-input fields that name what a tool call acts on, in preference order. */
 const TOOL_SUBJECT_FIELDS = ["command", "file_path", "path", "skill", "pattern", "url", "query"] as const;
 
-/** Tools that spawn a subagent: `Agent` in Claude Code 2.1, `Task` before it. */
+/** Claude Code tool names that spawn a subagent. */
 const SUBAGENT_TOOLS = new Set(["Agent", "Task"]);
 
 function asRecord(value: unknown): JsonRecord | undefined {

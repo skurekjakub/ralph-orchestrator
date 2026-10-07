@@ -25,6 +25,3 @@ export const CLAUDE_SESSIONS_DIR = `${CLAUDE_CONFIG_DIR}/projects`;
  * credential's organisation delivers server-managed settings, Claude Code uses those instead.
  */
 export const CLAUDE_MANAGED_SETTINGS_PATH = "/etc/claude-code/managed-settings.json";
-
-/** Directory the audit hooks write their logs to (`RALPH_LOG_DIR`). */
-export const CLAUDE_HOOK_LOG_DIR = "/workspace/.ralph/logs";

@@ -66,6 +66,7 @@ describe("AgentSessionRunner", () => {
   });
 
   it("parses the result block from the combined agent text, not from raw stdout", async () => {
+    // Arrange
     continuationRunner.run.mockResolvedValue({
       lastResult: makeExecResult(),
       combinedAgentText:
@@ -74,11 +75,13 @@ describe("AgentSessionRunner", () => {
       combinedStderr: "",
     });
 
+    // Act
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-300"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
     });
 
+    // Assert
     expect(result.prUrl).toBe("https://dev.azure.com/pr/1");
     expect(result.status).toBe(TaskStatus.Completed);
   });

@@ -13,8 +13,8 @@ export const AGENT_NAME_PATTERN = /^[a-z][a-z0-9-]*$/;
 /** Canonical model value for a subagent that runs its parent's model. */
 export const INHERIT_MODEL = "inherit";
 
-/** Frontmatter keys of the Copilot CLI agent format, with what replaces each in the canonical format. */
-const LEGACY_KEY_HINTS: Readonly<Record<string, string>> = {
+/** Copilot CLI agent-format keys the canonical frontmatter rejects, with the fix each error suggests. */
+const COPILOT_FORMAT_KEY_HINTS: Readonly<Record<string, string>> = {
   agents: "rename it to `subagents`",
   "user-invocable": "remove it; the Copilot writer always emits `user-invocable: false`",
 };
@@ -129,7 +129,7 @@ export function parseAgentSource(fileId: string, source: string): AgentSource {
 function describeIssue(issue: z.core.$ZodIssue): string[] {
   if (issue.code === "unrecognized_keys") {
     return issue.keys.map((key) => {
-      const hint = LEGACY_KEY_HINTS[key];
+      const hint = COPILOT_FORMAT_KEY_HINTS[key];
       return hint ? `unknown key "${key}": ${hint}` : `unknown key "${key}"`;
     });
   }

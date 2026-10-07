@@ -142,11 +142,6 @@ export class AgentCatalog implements AgentGraph {
     return source;
   }
 
-  /** The agent named `name`, or undefined. */
-  findByName(name: string): AgentSource | undefined {
-    return this.byName.get(name);
-  }
-
   reachableFrom(rootFileId: string): readonly string[] {
     const seen = new Set<string>();
     const order: string[] = [];

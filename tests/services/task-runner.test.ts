@@ -690,7 +690,6 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -738,7 +737,6 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -783,7 +781,6 @@ describe("TaskRunner", () => {
 
       vi.mocked(factory.createLocalSession).mockReturnValueOnce({
         executor: {
-          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),
@@ -848,7 +845,6 @@ describe("TaskRunner", () => {
       const factory = createMockFactory(container);
       vi.mocked(factory.createLocalSession).mockReturnValue({
         executor: {
-          cli: CliType.Copilot,
           run: vi.fn(),
           continueSession: vi.fn(),
           killActive: vi.fn(),

@@ -132,14 +132,12 @@ describe("AgentCatalog", () => {
   });
 
   describe("lookups", () => {
-    it("finds agents by file id and by name", () => {
+    it("finds agents by file id", () => {
       // Arrange
       const catalog = new AgentCatalog(PROFILE_AGENTS);
 
       // Act & Assert
       expect(catalog.get("ralph.scientist-run-analyzer").frontmatter.name).toBe("run-analyzer");
-      expect(catalog.findByName("run-analyzer")?.fileId).toBe("ralph.scientist-run-analyzer");
-      expect(catalog.findByName("nobody")).toBeUndefined();
       expect(catalog.fileIds).toEqual([
         "ralph.ralph",
         "ralph.scientist-run-analyzer",

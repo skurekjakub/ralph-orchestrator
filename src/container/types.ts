@@ -13,7 +13,7 @@ export interface ContainerExecResult {
   stderr: string;
   /** True if the process was killed because it exceeded the configured timeout. */
   timedOut: boolean;
-  /** The agent's own text decoded from stdout: all of it for a plain-text CLI, main-thread assistant text for Claude Code. */
+  /** The agent text the result block is read from, as the CLI's output decoder reports it (`CliRunOutcome.agentText`). */
   agentText: string;
   /** Token, cost and turn usage the CLI reported. */
   usage?: CliRunUsage;

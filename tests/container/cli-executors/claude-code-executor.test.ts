@@ -103,11 +103,6 @@ describe("ClaudeCodeExecutor", () => {
     return { args, timeoutMs, options };
   }
 
-  it("runs Claude Code", () => {
-    // Act & Assert
-    expect(createExecutor().executor.cli).toBe(CliType.Claude);
-  });
-
   describe("run", () => {
     it("execs claude headless with stream-json, the stage's agent, policy flags and a new session id", async () => {
       // Arrange

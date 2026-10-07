@@ -15,8 +15,6 @@ import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
  * process lifecycle.
  */
 export interface ICliExecutor {
-  /** The CLI this executor runs. */
-  readonly cli: CliType;
   /** Execute the agent CLI with the given prompt. */
   run(prompt: string): Promise<ContainerExecResult>;
   /** Resume the previous CLI session with a continuation prompt. */

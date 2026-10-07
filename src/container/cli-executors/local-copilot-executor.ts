@@ -25,7 +25,6 @@ import { copilotAgentFileName } from "../../cli/copilot/copilot-agent-writer";
  * removes the symlinks afterwards.
  */
 export class LocalCopilotExecutor implements ICliExecutor {
-  readonly cli = CliType.Copilot;
   activeProcess: ResultPromise | null = null;
 
   /** Copilot debug log directory, relative to `cwd`. */

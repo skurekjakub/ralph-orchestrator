@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ResultPromise } from "execa";
 import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
-import { CliType, type IAgentProfile, type IStageConfig } from "../../config/types";
+import type { IAgentProfile, IStageConfig } from "../../config/types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
 import type { IComposeClient } from "../compose-client";
@@ -39,7 +39,6 @@ export interface ClaudeCodeExecutorDeps {
  * session going until the agent prints its result block.
  */
 export class ClaudeCodeExecutor implements ICliExecutor {
-  readonly cli = CliType.Claude;
   activeProcess: ResultPromise | null = null;
 
   private readonly compose: IComposeClient;

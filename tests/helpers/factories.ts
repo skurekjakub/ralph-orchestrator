@@ -332,8 +332,6 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
   };
 }
 
-// ── Agent templates ──────────────────────────────────────────────────────────
-
 /** Frontmatter fields of {@link makeAgentTemplate}; arrays are written as flow sequences. */
 export interface AgentTemplateFields {
   readonly description?: string;
