@@ -7,7 +7,7 @@ import {
   type CliCommand,
 } from "../../../src/container/cli-executors/shared-exec";
 import { PlainTextDecoder } from "../../../src/cli/plain-text-decoder";
-import { createMockCompose, createMockLogger, fakeCliProcess } from "../../helpers/mocks";
+import { createMockLogger, fakeCliProcess } from "../../helpers/mocks";
 
 function makeExecaError(overrides: { exitCode?: number; stderr?: string; timedOut?: boolean } = {}): ExecaError {
   return Object.assign(Object.create(ExecaError.prototype) as ExecaError, {
@@ -20,14 +20,10 @@ function makeExecaError(overrides: { exitCode?: number; stderr?: string; timedOu
   });
 }
 
-/** A command whose compose client returns `process`. */
+/** A command that spawns `process`. */
 function command(process: ResultPromise, overrides: Partial<CliCommand> = {}): CliCommand {
-  const { compose } = createMockCompose();
-  vi.mocked(compose.execWithTimeout).mockReturnValue(process);
   return {
-    compose,
-    args: ["--user", "vscode", "app", "cli"],
-    timeoutMs: 60_000,
+    spawn: () => process,
     logger: createMockLogger(),
     tag: "test",
     tracker: { activeProcess: null },
@@ -51,19 +47,6 @@ describe("executeCliCommand", () => {
       stderr: "note\n",
       timedOut: false,
       agentText: "hello\nworld",
-    });
-  });
-
-  it("passes the args, timeout and stdin input to compose exec", async () => {
-    // Arrange
-    const cmd = command(fakeCliProcess(""), { input: "the prompt", timeoutMs: 42 });
-
-    // Act
-    await executeCliCommand(cmd);
-
-    // Assert
-    expect(cmd.compose.execWithTimeout).toHaveBeenCalledWith(["--user", "vscode", "app", "cli"], 42, {
-      input: "the prompt",
     });
   });
 
@@ -93,11 +76,11 @@ describe("executeCliCommand", () => {
 
   it("returns an empty agent text when the process failed before any output was captured", async () => {
     // Arrange
-    const { compose } = createMockCompose();
-    vi.mocked(compose.execWithTimeout).mockImplementation(() => {
-      throw makeExecaError({ exitCode: 127 });
+    const cmd = command(fakeCliProcess(""), {
+      spawn: () => {
+        throw makeExecaError({ exitCode: 127 });
+      },
     });
-    const cmd = command(fakeCliProcess(""), { compose });
 
     // Act
     const result = await executeCliCommand(cmd);

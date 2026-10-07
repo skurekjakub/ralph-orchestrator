@@ -1,7 +1,6 @@
 import { ExecaError, type ResultPromise } from "execa";
 import type { ICliOutputDecoder } from "../../cli/output-decoder";
 import type { Logger } from "../../logger";
-import type { IComposeClient } from "../compose-client";
 import type { ContainerExecResult } from "../types";
 import { StreamCapture } from "../stream-capture";
 import { truncate } from "../../util/text";
@@ -17,24 +16,23 @@ export interface ProcessTracker {
  */
 const RESULT_GRACE_MS = 10_000;
 
-/** One agent CLI invocation inside the running `app` container. */
+/** One agent CLI invocation, in the `app` container or on the host. */
 export interface CliCommand {
-  readonly compose: IComposeClient;
-  /** `docker compose exec` arguments: exec options, service, command and its arguments. */
-  readonly args: readonly string[];
-  readonly timeoutMs: number;
+  /**
+   * Starts the CLI process with its prompt on stdin and its timeout set: `docker compose exec` into the `app`
+   * container, or the CLI itself on the host.
+   */
+  readonly spawn: () => ResultPromise;
   readonly logger: Logger;
   /** Prefix of the CLI's log lines (`claude`, `copilot`). */
   readonly tag: string;
   readonly tracker: ProcessTracker;
   /** Fresh decoder for this process's stdout. */
   readonly decoder: ICliOutputDecoder;
-  /** Text written to the CLI's stdin, which is then closed: the prompt. */
-  readonly input?: string;
 }
 
 /**
- * Execute a CLI command in the `app` container with stream capture, output decoding and error handling.
+ * Run one agent CLI process with stream capture, output decoding and error handling.
  *
  * When the agent's decoded text holds a complete result block with a recognised STATUS but the CLI process
  * doesn't exit within {@link RESULT_GRACE_MS}, the process is terminated with SIGTERM. This prevents the CLI
@@ -46,10 +44,10 @@ export interface CliCommand {
  * @throws Error when the process cannot be spawned for a reason other than its own exit.
  */
 export async function executeCliCommand(command: CliCommand): Promise<ContainerExecResult> {
-  const { compose, args, timeoutMs, logger, tag, tracker, decoder, input } = command;
+  const { spawn, logger, tag, tracker, decoder } = command;
   let capture: StreamCapture | undefined;
   try {
-    tracker.activeProcess = compose.execWithTimeout([...args], timeoutMs, { input });
+    tracker.activeProcess = spawn();
     capture = new StreamCapture(tracker.activeProcess, logger, tag, decoder);
 
     // Auto-kill the CLI if it idles after printing the result block.

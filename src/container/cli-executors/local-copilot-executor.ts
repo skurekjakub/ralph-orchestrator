@@ -3,6 +3,7 @@ import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync 
 import { join } from "node:path";
 import { CliType, type IAgentProfile } from "../../config/types";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import { githubMcpArgs } from "../../cli/copilot/copilot-args";
 import type { ContainerExecResult } from "../types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
@@ -50,15 +51,6 @@ export class LocalCopilotExecutor implements ICliExecutor {
     }
   }
 
-  /**
-   * Build CLI flags to control the bundled GitHub MCP server.
-   */
-  private githubMcpFlags(): string[] {
-    const tools = this.profile.githubMcpTools;
-    if (tools === false) return ["--disable-builtin-mcps"];
-    return tools.flatMap((t) => ["--add-github-mcp-tool", t]);
-  }
-
   async run(prompt: string): Promise<ContainerExecResult> {
     return this.exec(["-p", prompt]);
   }
@@ -75,7 +67,7 @@ export class LocalCopilotExecutor implements ICliExecutor {
       this.profile.agentName,
       "--model",
       this.profile.model ?? DEFAULT_COPILOT_MODEL,
-      ...this.githubMcpFlags(),
+      ...githubMcpArgs(this.profile.githubMcpTools),
       "--log-level",
       "debug",
       "--log-dir",

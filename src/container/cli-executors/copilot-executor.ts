@@ -1,5 +1,6 @@
 import type { ResultPromise } from "execa";
 import type { ICliRuntime } from "../../cli/cli-runtime";
+import { githubMcpArgs } from "../../cli/copilot/copilot-args";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
@@ -48,18 +49,6 @@ export class CopilotExecutor implements ICliExecutor {
     killActiveProcess(this);
   }
 
-  /**
-   * Build CLI flags to control the bundled GitHub MCP server.
-   *
-   * - `false` → `--disable-builtin-mcps` (server disabled)
-   * - `["tool1"]` → `--add-github-mcp-tool tool1` (only listed tools enabled)
-   */
-  private githubMcpFlags(): string[] {
-    const tools = this.profile.githubMcpTools;
-    if (tools === false) return ["--disable-builtin-mcps"];
-    return tools.flatMap((t) => ["--add-github-mcp-tool", t]);
-  }
-
   async run(prompt: string): Promise<ContainerExecResult> {
     return this.exec([], prompt);
   }
@@ -84,7 +73,7 @@ export class CopilotExecutor implements ICliExecutor {
       this.profile.agentName,
       "--model",
       this.profile.model ?? DEFAULT_COPILOT_MODEL,
-      ...this.githubMcpFlags(),
+      ...githubMcpArgs(this.profile.githubMcpTools),
       "--log-level",
       "debug",
       "--log-dir",
@@ -95,15 +84,13 @@ export class CopilotExecutor implements ICliExecutor {
       ...sessionFlags,
     ];
 
+    const args = ["-T", "--user", "vscode", "app", ...cliArgs];
     return executeCliCommand({
-      compose: this.compose,
-      args: ["-T", "--user", "vscode", "app", ...cliArgs],
-      timeoutMs: this.profile.timeoutMs,
+      spawn: () => this.compose.execWithTimeout(args, this.profile.timeoutMs, { input: prompt }),
       logger: this.logger,
       tag: "copilot",
       tracker: this,
       decoder: this.runtime.createOutputDecoder(),
-      input: prompt,
     });
   }
 }
