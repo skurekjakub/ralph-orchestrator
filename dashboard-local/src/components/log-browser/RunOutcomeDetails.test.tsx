@@ -27,7 +27,7 @@ describe("RunOutcomeDetails", () => {
     // Assert
     const warning = screen.getByRole("alert");
     expect(warning.textContent).toContain("hooks did not run for sessions s1, s2");
-    expect(warning.textContent).toContain("result gate did not run");
+    expect(warning.textContent).toContain("Run telemetry and the session logs still cover them");
   });
 
   it("shows the failure reason, category and the CLI's error", () => {

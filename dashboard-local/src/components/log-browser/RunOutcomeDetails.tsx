@@ -18,7 +18,7 @@ export function RunOutcomeDetails({ summary }: { summary: ExecutionSummary }) {
         <div role="alert" className="text-[10px] px-2 py-1 rounded border border-warn/30 bg-warn/10 text-warn">
           ⚠ Ralph's hooks did not run for {hookless.length === 1 ? "session" : "sessions"}{" "}
           <span className="font-mono">{hookless.join(", ")}</span>: the audit, pre-tool and tool-output logs miss their
-          calls and the result gate did not run. Run telemetry and the session logs still cover them.
+          calls. Run telemetry and the session logs still cover them.
         </div>
       )}
 

@@ -39,7 +39,7 @@ export function RunTelemetrySummary({ telemetry }: { telemetry: RunTelemetry }) 
       )}
       {totals.compactions > 0 && <span>{plural(totals.compactions, "compaction")}</span>}
       {totals.hookFeedback > 0 && (
-        <span className="text-warn" title="Times a blocking hook, such as the result gate, sent the model back to work">
+        <span className="text-warn" title="Times a blocking hook sent the model back to work">
           {plural(totals.hookFeedback, "hook block")}
         </span>
       )}
