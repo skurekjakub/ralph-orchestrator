@@ -111,7 +111,6 @@ export function loadConfig(): IAppConfig {
   return {
     dataSources,
     profiles,
-    plugins: parsed.plugins ?? [],
     output: {
       logDir: resolve(process.cwd(), parsed.output?.logDir ?? "./output/logs"),
       handoffDir: resolve(process.cwd(), parsed.output?.handoffDir ?? "./output/handoffs"),

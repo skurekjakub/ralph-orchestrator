@@ -57,7 +57,7 @@ Side-effecting. Run these only when the user asks:
 
 ```
 src/index.tsx
-  AppStartup.run(): validate → loadConfig → import data-source plugins → [ralphchives stack]
+  AppStartup.run(): validate → loadConfig → import data-source connectors → [ralphchives stack]
                     → build custom MCP servers + sidecar → resolveAllProfileSetup (profiles/*/.build/)
   createCradle(config) → new Orchestrator(cradle) + DashboardServer (ws :3100) + Ink TUI (src/cli-dashboard/)
 
@@ -88,7 +88,7 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 | `src/`                                                          | `index.tsx` entry, `app-startup.ts`, `orchestrator.ts` (+ `-observer`, `-types` enums), `awilix-cradle.ts` + `awilix-cradle-types.ts`, `logger.ts`, `retry.ts`                                                                                                          |
 | `src/config/`                                                   | zod `schemas.ts`, `types.ts`, `loader.ts`, `profile-variants.ts` (`resolveProfileVariants`: profile.json → one `IAgentProfile` per variant, shared by loader, validators and profile setup)                                                                             |
 | `src/cli/`                                                      | per-CLI knowledge: `ICliRuntime` + `CliRuntimeRegistry` (`cli-runtime.ts`), `copilot/` runtime and container layout, `model-catalog.ts` (model validation, `DEFAULT_COPILOT_MODEL`), `credential-catalog.ts`, interfaces for agent file writers and output decoders     |
-| `src/datasource/`                                               | `WorkItem` types, `IDataSourceConnector` + optional capabilities and type guards (`connector.ts`), `IWorkItemPoller`, plugin `registry.ts`                                                                                                                              |
+| `src/datasource/`                                               | `WorkItem` types, `IDataSourceConnector` + optional capabilities and type guards (`connector.ts`), `IWorkItemPoller`, factory `registry.ts`                                                                                                                             |
 | `src/datasource/connectors/jira/`                               | REST v3 client (native `fetch`), JQL builder, ADF converter, mapper, poller, self-registering `factory.ts`                                                                                                                                                              |
 | `src/services/`                                                 | trigger scanner, operation ledger, profile router, task runner, `agent-pipeline-executor.ts`, `profile-setup-service.ts`, result writer, issue/resource managers, `preflight.ts`, VCS PR lookup, activity log, heartbeat, dashboard WebSocket server, comment templates |
 | `src/container/`                                                | `manager.ts`, `compose-client.ts`, `lifecycle.ts` (RepoSyncHook), `agent-session-runner.ts`, `continuation-runner.ts`, log collector + source registry, workspace cleaner, stream capture, result parser, `cli-executor-factory.ts`, `types.ts` (`deriveStageProfile`)  |
@@ -112,7 +112,7 @@ Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `secrets`, `pro
 
 - `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
 - Per-task objects (compose client, executors, `ContainerManager`, session runners) are built in `buildContainerFactory`.
-- Data-source plugin factories build their own connector and poller.
+- Data-source connector factories build their own connector and poller.
 - `PromptBuilder` is registered without an interface.
 
 Details: `docs/dev-doc/dependency-injection.md`.
@@ -141,7 +141,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - On restart, active operations are marked `error`.
   - Each trigger is consumed once per `variantKey`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.
-- **Data-source plugins.** `BUILTIN_PLUGINS` (`src/app-startup.ts`) imports each built-in with a literal `import()`, so the bundle includes it. `config.plugins` entries are `import()`ed at runtime: relative paths resolve against the working directory, anything else as a package. Each module calls `registerDataSourceFactory()`, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
+- **Data-source connectors.** Connectors are built in: each lives under `src/datasource/connectors/<name>/`, and `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`) imports its factory module with a literal `import()`, so the bundle includes it. Each factory module calls `registerDataSourceFactory()` on import, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
 - **Stages and post-task hooks.**
   - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort` and `maxBudgetUsd`, and `requireResultBlock` (default true for variant stages, false for hook stages); `deriveStageProfile` applies the stage overrides.
   - `local` stages run `copilot` on the host with cwd = this repo root. They symlink rendered agents into `.github/agents/` and write `.ralph/` here.

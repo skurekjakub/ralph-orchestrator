@@ -46,7 +46,6 @@ The JIRA connector factory (`resolveJiraCredentials` in `src/datasource/connecto
       "pollIntervalMs": 60000
     }
   },
-  "plugins": [],
   "output": { ... },
   "dashboard": { ... },
   "promptAudit": { ... },
@@ -87,17 +86,7 @@ Each entry in `dataSources` defines a connection to an external work item source
 
 **Finding your JIRA Cloud ID:** Visit `https://<your-site>.atlassian.net/_edge/tenant_info` — the `cloudId` field is what you need.
 
-### Plugins
-
-Additional data source connector modules to load at startup. Each module must call `registerDataSourceFactory()` as a side effect on import. A relative path (`./my-datasource/factory.js`) resolves against the working directory, an absolute path is used as is, and any other entry is a package specifier resolved from `node_modules`.
-
-```json
-"plugins": [
-  "my-datasource-package/factory.js"
-]
-```
-
-Built-in connectors (JIRA) are loaded automatically — they don't need to be listed here. See [docs/dev-doc/data-source-registration.md](docs/dev-doc/data-source-registration.md) for the full integration guide.
+Data source connectors are built in; JIRA (`"jira"`) is the only one today. To add another, see [docs/dev-doc/data-source-registration.md](docs/dev-doc/data-source-registration.md).
 
 ### Agent Profiles (`profiles/*/profile.json`)
 

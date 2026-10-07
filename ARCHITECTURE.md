@@ -73,7 +73,7 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 
 1. Validates prerequisites (env vars, config, Docker, profiles, security)
 2. Loads `IAppConfig` (`loadConfig()`)
-3. Loads data source plugins (built-in JIRA plus `config.plugins`)
+3. Loads the built-in data source connector modules (JIRA), whose factories self-register
 4. Starts the Ralphchives compose stack when `ralphchives.enabled` is true
 5. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
 6. Generates per-profile files in `.build/` (`mcp-config.json`, `gateway.json`, compose overlay, `squid.conf`, `copilot-config.json`)
@@ -299,7 +299,7 @@ Ralph communicates with JIRA via MCP tools (`jira_add_comment`, `jira_add_attach
 
 See [CONFIGURATION.md](CONFIGURATION.md) and [docs/user-guide/](docs/user-guide/README.md) for the full reference.
 
-- **`config.json`** — Global settings: data sources (JIRA connection, polling interval, `allowedUsers`, `excludeFields`), plugins, output paths, dashboard toggle, prompt audit mode, Ralphchives, `enableContinuation`.
+- **`config.json`** — Global settings: data sources (JIRA connection, polling interval, `allowedUsers`, `excludeFields`), output paths, dashboard toggle, prompt audit mode, Ralphchives, `enableContinuation`.
 - **`profiles/<id>/profile.json`** — Per-profile config: target repo, data source, CLI preference, model, timeout, JIRA transitions, MCP servers, `allowlistDomains`, resources, and variants (match rules, stages, post-task hooks).
 - **`.env`** — Secrets: `JIRA_PAT_<KEY>` / `JIRA_EMAIL_<KEY>` per JIRA data source, GitHub PAT, Anthropic API key, ADO PATs, Discord and NodeBB tokens, dashboard URL/secret.
 

@@ -245,7 +245,6 @@ export function makeConfig(profiles?: IAgentProfile[]): IAppConfig {
       neo4jUri: "bolt://localhost:7687",
       neo4jUser: "neo4j",
     },
-    plugins: [],
     secrets: {
       ghToken: "test-gh-token",
       adoPat: "test-ado-pat",

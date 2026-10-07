@@ -1,8 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { AppStartup, userPluginModule } from "../src/app-startup";
+import { describe, it, expect, vi } from "vitest";
+import { AppStartup, loadDataSourceConnectorModules } from "../src/app-startup";
 import { registerDataSourceFactory } from "../src/datasource/registry";
 import { makeConfig } from "./helpers/factories";
 import { createMockLogger, createMockStartupDeps } from "./helpers/mocks";
@@ -24,7 +21,7 @@ describe("AppStartup", () => {
           callOrder.push("loadConfig");
           return makeConfig();
         }),
-        loadPlugins: vi.fn().mockImplementation(async () => callOrder.push("loadPlugins")),
+        loadDataSourceConnectors: vi.fn().mockImplementation(async () => callOrder.push("loadDataSourceConnectors")),
         buildMcpServers: vi.fn().mockImplementation(async () => callOrder.push("buildMcpServers")),
         resolveMcpConfigs: vi.fn().mockImplementation(() => callOrder.push("resolveMcpConfigs")),
       });
@@ -36,7 +33,7 @@ describe("AppStartup", () => {
         "validate",
         "printResults",
         "loadConfig",
-        "loadPlugins",
+        "loadDataSourceConnectors",
         "buildMcpServers",
         "resolveMcpConfigs",
       ]);
@@ -143,98 +140,44 @@ describe("AppStartup", () => {
       expect(deps.startRalphchives).not.toHaveBeenCalled();
     });
 
-    it("loads the built-in plugins first, then the configured plugins in config order", async () => {
+    it("hands the built-in data-source connector modules to the loader", async () => {
       // Arrange
-      const config = { ...makeConfig(), plugins: ["./local-plugin.mjs", "some-plugin-package"] };
-      const deps = createMockStartupDeps({ loadConfig: vi.fn().mockReturnValue(config) });
+      const deps = createMockStartupDeps();
 
       // Act
       await new AppStartup(deps).run(createMockLogger());
 
       // Assert
-      const [plugins] = vi.mocked(deps.loadPlugins).mock.calls[0];
-      expect(plugins.map((plugin) => plugin.name)).toEqual(["jira", "./local-plugin.mjs", "some-plugin-package"]);
+      const [connectors] = vi.mocked(deps.loadDataSourceConnectors).mock.calls[0];
+      expect(connectors.map((connector) => connector.name)).toEqual(["jira"]);
     });
 
-    it("registers the built-in JIRA data source factory through the default plugin loader", async () => {
+    it("registers the built-in JIRA data source factory through the default connector loader", async () => {
       // Arrange
-      const { loadPlugins: _defaultLoader, ...deps } = createMockStartupDeps();
+      const { loadDataSourceConnectors: _defaultLoader, ...deps } = createMockStartupDeps();
       const logger = createMockLogger();
 
       // Act
       await new AppStartup(deps).run(logger);
 
       // Assert
-      expect(logger.info).toHaveBeenCalledWith("Loaded plugin: jira");
+      expect(logger.info).toHaveBeenCalledWith("Loaded data-source connector: jira");
       expect(() => registerDataSourceFactory("jira", vi.fn())).toThrow('already registered for type "jira"');
-    });
-
-    it("fails with the plugin name when a configured plugin cannot be imported", async () => {
-      // Arrange
-      const config = { ...makeConfig(), plugins: ["./no-such-plugin.mjs"] };
-      const { loadPlugins: _defaultLoader, ...deps } = createMockStartupDeps({
-        loadConfig: vi.fn().mockReturnValue(config),
-      });
-
-      // Act & Assert
-      await expect(new AppStartup(deps).run(createMockLogger())).rejects.toThrow(
-        'Failed to load plugin "./no-such-plugin.mjs"',
-      );
     });
   });
 });
 
-describe("userPluginModule", () => {
-  let pluginDir: string;
-
-  beforeEach(() => {
-    pluginDir = mkdtempSync(join(tmpdir(), "plugin-module-"));
-    writeFileSync(join(pluginDir, "plugin.mjs"), 'export const marker = "loaded";\n');
-  });
-
-  afterEach(() => {
-    rmSync(pluginDir, { recursive: true, force: true });
-  });
-
-  it("imports a relative path from the given working directory", async () => {
+describe("loadDataSourceConnectorModules", () => {
+  it("fails with the connector name and loads none after it when a module cannot be imported", async () => {
     // Arrange
-    const plugin = userPluginModule("./plugin.mjs", pluginDir);
+    const broken = { name: "broken", load: vi.fn().mockRejectedValue(new Error("module not found")) };
+    const next = { name: "next", load: vi.fn().mockResolvedValue({}) };
 
     // Act
-    const loaded = (await plugin.load()) as { marker: string };
+    const loading = loadDataSourceConnectorModules([broken, next], createMockLogger());
 
     // Assert
-    expect(plugin.name).toBe("./plugin.mjs");
-    expect(loaded.marker).toBe("loaded");
-  });
-
-  it("imports an absolute path as given", async () => {
-    // Arrange
-    const plugin = userPluginModule(join(pluginDir, "plugin.mjs"), "/nonexistent-cwd");
-
-    // Act
-    const loaded = (await plugin.load()) as { marker: string };
-
-    // Assert
-    expect(loaded.marker).toBe("loaded");
-  });
-
-  it("leaves a package specifier for Node to resolve", async () => {
-    // Arrange
-    const plugin = userPluginModule("node:path", pluginDir);
-
-    // Act
-    const loaded = (await plugin.load()) as { join: unknown };
-
-    // Assert
-    expect(loaded.join).toBe(join);
-  });
-
-  it("rejects when a relative path does not exist under the working directory", async () => {
-    // Arrange
-    const plugin = userPluginModule("./missing.mjs", pluginDir);
-
-    // Act & Assert
-    await expect(plugin.load()).rejects.toThrow(/missing\.mjs/);
+    await expect(loading).rejects.toThrow('Failed to load data-source connector "broken": module not found');
+    expect(next.load).not.toHaveBeenCalled();
   });
 });

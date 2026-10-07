@@ -23,7 +23,7 @@ export class JiraClient implements IJiraClient {
 
 2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that still constructs concrete classes:
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
-   - Data source plugin factories build their own connector and poller (`src/datasource/connectors/jira/factory.ts` creates `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`).
+   - Data source connector factories build their own connector and poller (`src/datasource/connectors/jira/factory.ts` creates `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`).
    - `*Factory` classes and the per-task container factory build their products (`CliExecutorFactory` creates executors; `buildContainerFactory` in `awilix-cradle.ts` creates `ContainerManager` and its collaborators per task).
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.

@@ -1,18 +1,20 @@
 # Data Source Registration
 
-Ralph Orchestrator uses a plugin-based architecture for data source connectors. Each data source type (JIRA, GitHub Issues, ADO Work Items, etc.) is an independent module that self-registers with the orchestrator at startup. This design allows third-party integrations without modifying orchestrator internals.
+Data source connectors are built into the orchestrator. Each data source type (JIRA today; GitHub Issues, ADO Work Items, etc.) is a module under `src/datasource/connectors/<name>/` whose factory registers itself with the data source registry when it is imported. The orchestrator core never imports connector-specific code: it reaches connectors only through the registry and the `IDataSourceConnector` / `IWorkItemPoller` interfaces.
 
 ## How It Works
 
 ```
-config.json plugins → dynamic import() → factory self-registers → createCradle() builds connectors
+DATA_SOURCE_CONNECTORS → literal import() → factory self-registers → createCradle() builds connectors
 ```
 
-1. **Plugin discovery** — At startup, `AppStartup` loads built-in plugins first (JIRA), then any modules listed in `config.json` `plugins`.
-2. **Self-registration** — Each plugin module calls `registerDataSourceFactory(type, factory)` as a side effect on import.
-3. **Connector creation** — When the DI container is built, `buildDataSourceMaps()` iterates `config.dataSources`, looks up the registered factory for each entry's `type`, and calls it to create a connector + poller pair.
+1. **Connector loading** — After `loadConfig()`, `AppStartup` imports each module listed in `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`), in order. Each entry names its module in a literal `import()`, so esbuild includes it in the `dist/index.js` bundle.
+2. **Self-registration** — Each factory module calls `registerDataSourceFactory(type, factory)` at top level, as a side effect of its import.
+3. **Connector creation** — When the DI container is built, `buildDataSourceMaps()` (`src/datasource/registry.ts`) iterates `config.dataSources`, looks up the registered factory for each entry's `type`, and calls it to create a connector + poller pair.
 
 ## Adding a New Data Source
+
+Create `src/datasource/connectors/<name>/` beside `jira/`. The samples below build a `my-source` connector in `src/datasource/connectors/my-source/`.
 
 ### 1. Implement the Connector
 
@@ -29,8 +31,9 @@ Optionally implement additional capability interfaces:
 The orchestrator checks capabilities at runtime via type guards (`supportsTransitions()`, `supportsAttachments()`).
 
 ```ts
-import type { IDataSourceConnector, ISupportsTransitions } from "ralph-orchestrator/datasource/connector";
-import type { WorkItem, WorkItemComment } from "ralph-orchestrator/datasource/types";
+// src/datasource/connectors/my-source/my-connector.ts
+import type { IDataSourceConnector, ISupportsTransitions } from "../../connector";
+import type { WorkItem, WorkItemComment } from "../../types";
 
 export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
   readonly name = "My Source";
@@ -78,12 +81,16 @@ export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
 }
 ```
 
+Put external API calls behind a client interface (as `IJiraClient` does for `JiraConnector`) so tests can mock it and calls can go through `withRetry` (`src/retry.ts`).
+
 ### 2. Implement a Poller
 
 Create a class that implements `IWorkItemPoller` (from `src/datasource/poller.ts`):
 
 ```ts
-import type { IWorkItemPoller } from "ralph-orchestrator/datasource/poller";
+// src/datasource/connectors/my-source/my-poller.ts
+import type { IWorkItemPoller } from "../../poller";
+import type { MyConnector } from "./my-connector";
 
 export class MyPoller implements IWorkItemPoller {
   readonly sourceKey: string;
@@ -112,41 +119,55 @@ export class MyPoller implements IWorkItemPoller {
 
 ### 3. Create a Factory Module
 
-The factory module creates connector + poller from config and self-registers:
+The factory module validates the connection config, creates the connector + poller, and registers itself. Define the connection schema in `src/config/schemas.ts` beside `jiraConnectionSchema`, so the connection is validated the same way the rest of `config.json` is.
 
 ```ts
-import { registerDataSourceFactory } from "ralph-orchestrator/datasource/registry";
-import type { DataSourceFactory } from "ralph-orchestrator/datasource/registry";
-import type { IDataSourceConfig, IAgentProfile } from "ralph-orchestrator/config/types";
+// src/datasource/connectors/my-source/factory.ts
+import type { IAgentProfile, IDataSourceConfig } from "../../../config/types";
+import { myConnectionSchema } from "../../../config/schemas";
+import type { IDataSourceConnector } from "../../connector";
+import type { IWorkItemPoller } from "../../poller";
+import { registerDataSourceFactory } from "../../registry";
 import { MyConnector } from "./my-connector";
 import { MyPoller } from "./my-poller";
 
 function createMyDataSource(
   sourceKey: string,
   dsConfig: IDataSourceConfig,
-  profiles: readonly IAgentProfile[],
+  _profiles: readonly IAgentProfile[],
   logger?: { info: (msg: string) => void },
-) {
-  const conn = dsConfig.connection as MyConnectionConfig;
+): { connector: IDataSourceConnector; poller: IWorkItemPoller } {
+  const conn = myConnectionSchema.parse(dsConfig.connection);
   const connector = new MyConnector(sourceKey, conn);
   const poller = new MyPoller(connector, dsConfig.pollIntervalMs);
   logger?.info(`Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`);
   return { connector, poller };
 }
 
-// Self-register at import time
 registerDataSourceFactory("my-source", createMyDataSource);
 ```
 
 The type string (`"my-source"`) must match the `type` field in `config.json` data source entries.
 
-### 4. Configure
+### 4. Load the Module at Startup
 
-Add the plugin to `config.json`:
+Add the factory module to `DATA_SOURCE_CONNECTORS` in `src/app-startup.ts`:
+
+```ts
+const DATA_SOURCE_CONNECTORS: readonly DataSourceConnectorModule[] = [
+  { name: "jira", load: () => import("./datasource/connectors/jira/factory") },
+  { name: "my-source", load: () => import("./datasource/connectors/my-source/factory") },
+];
+```
+
+Keep the specifier a string literal. The orchestrator runs from the single esbuild bundle `dist/index.js`, and esbuild only bundles modules it can resolve at build time.
+
+### 5. Configure
+
+Add a data source entry to `config.json`:
 
 ```json
 {
-  "plugins": ["my-datasource-package/factory.js"],
   "dataSources": {
     "my-instance": {
       "type": "my-source",
@@ -170,18 +191,19 @@ Then reference the data source key in a profile:
 }
 ```
 
-## Plugin Loading Order
+### 6. Test
 
-1. **Built-in plugins** — `BUILTIN_PLUGINS` array in `app-startup.ts` (currently just JIRA)
-2. **User plugins** — `config.plugins` array, in declaration order. Relative paths resolve against the working directory; other entries are package specifiers resolved from `node_modules`
+Put the connector's tests in `tests/datasource/connectors/<name>/`, mirroring `tests/datasource/connectors/jira/`. Run the connector through `runConnectorComplianceTests` in `tests/datasource/connector-compliance.test.ts`, which checks the `IDataSourceConnector` contract and the capability guards.
 
-All plugins are loaded via dynamic `import()` before the DI container is created. Each plugin must self-register synchronously during module evaluation (top-level `registerDataSourceFactory()` call).
+## Loading Order
 
-Duplicate type registrations throw immediately — two plugins cannot claim the same type string.
+Connector modules load in `DATA_SOURCE_CONNECTORS` order, all before the DI container is created. Each must register synchronously during module evaluation (a top-level `registerDataSourceFactory()` call).
+
+A module whose import throws stops startup with `Failed to load data-source connector "<name>"`. Duplicate type registrations throw immediately — two connectors cannot claim the same type string.
 
 ## Built-in JIRA Connector
 
-The JIRA connector follows the exact same registration pattern as third-party plugins. Its factory lives at `src/datasource/connectors/jira/factory.ts` and is loaded as a built-in plugin: `BUILTIN_PLUGINS` imports it with a literal `import()`, so the esbuild bundle includes it and it still loads in the startup order above.
+The JIRA connector in `src/datasource/connectors/jira/` is the reference implementation. Its factory (`factory.ts`) parses the connection with `jiraConnectionSchema`, injects credentials from `.env`, builds `JiraClient`, `JiraConnector` and `JiraWorkItemPoller`, and registers the `"jira"` type.
 
 ## Key Interfaces
 
@@ -210,4 +232,4 @@ The `type` field is a plain string — not a closed enum. Any value is accepted 
 
 ## Credential Injection
 
-Data source credentials should come from environment variables, not `config.json`. The loader passes `connection` through untouched; each factory resolves its own credentials. The JIRA factory (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`) reads `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the data source key uppercased with dashes replaced by underscores, and throws if either is missing. It merges them into the connection as `apiToken` and `email` when the connector is created at startup. Third-party connectors should follow the same pattern by reading from `process.env` in their factory function.
+Data source credentials come from environment variables, not `config.json`. The loader passes `connection` through untouched; each factory resolves its own credentials. The JIRA factory (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`) reads `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the data source key uppercased with dashes replaced by underscores, and throws if either is missing. It merges them into the connection as `apiToken` and `email` when the connector is created at startup. Other connectors follow the same pattern, reading `process.env` in their factory function.

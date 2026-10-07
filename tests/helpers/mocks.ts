@@ -373,7 +373,7 @@ export function createMockStartupDeps(overrides: Partial<AppStartupDeps> = {}): 
     validate: vi.fn().mockResolvedValue({ ok: true, errors: [], warnings: [] }),
     printResults: vi.fn().mockReturnValue(true),
     loadConfig: vi.fn().mockReturnValue(makeConfig()),
-    loadPlugins: vi.fn().mockResolvedValue(undefined),
+    loadDataSourceConnectors: vi.fn().mockResolvedValue(undefined),
     buildMcpServers: vi.fn().mockResolvedValue(undefined),
     resolveMcpConfigs: vi.fn(),
     startRalphchives: vi.fn().mockResolvedValue(undefined),

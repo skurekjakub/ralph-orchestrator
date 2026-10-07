@@ -33,6 +33,8 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 | `pollIntervalMs` | `number` | `60000` | Poll interval in milliseconds                   |
 | `maxResults`     | `number` | `100`   | Maximum results per poll cycle                  |
 
+Data source connectors are built into the orchestrator. Adding a new type is a code change: see [Data Source Registration](../dev-doc/data-source-registration.md).
+
 ### JIRA Connection Fields
 
 | Field           | Type       | Required | Description                                                                   |
@@ -41,20 +43,6 @@ Each key (e.g. `kentico-jira`) is referenced by profiles via `dataSource`. Crede
 | `cloudId`       | `string`   | Yes      | Atlassian Cloud ID (find at `https://<site>.atlassian.net/_edge/tenant_info`) |
 | `excludeFields` | `string[]` | No       | Custom field IDs to exclude from agent prompts                                |
 | `allowedUsers`  | `string[]` | No       | Atlassian account IDs allowed to trigger invocations. Empty = unrestricted    |
-
-## Plugins
-
-```json
-{
-  "plugins": ["./my-datasource/factory.js"]
-}
-```
-
-| Field     | Type       | Default | Description                                                                                                                                                                                              |
-| --------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugins` | `string[]` | `[]`    | Module specifiers loaded at startup. Each must call `registerDataSourceFactory()` on import. Relative paths resolve against the working directory; other entries resolve as packages from `node_modules` |
-
-Built-in plugins (JIRA) are loaded automatically.
 
 ## Output
 

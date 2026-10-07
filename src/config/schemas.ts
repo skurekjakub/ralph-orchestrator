@@ -55,8 +55,6 @@ export const configFileSchema = z.object({
   dataSources: z
     .record(z.string(), dataSourceConfigSchema)
     .refine((ds) => Object.keys(ds).length > 0, "At least one data source must be defined"),
-  /** Module specifiers loaded before the DI container is created. Each module should self-register (e.g. call registerDataSourceFactory). */
-  plugins: z.array(z.string()).default([]),
   output: rawOutputSchema,
   dashboard: rawDashboardSchema,
   promptAudit: rawPromptAuditSchema,

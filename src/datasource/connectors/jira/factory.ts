@@ -2,8 +2,7 @@
  * Jira data source factory.
  *
  * Creates a {@link JiraConnector} and {@link JiraWorkItemPoller} from config.
- * Self-registers with the data source registry at import time — the same
- * pattern available to third-party integrations.
+ * Self-registers with the data source registry at import time.
  */
 
 import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "../../../config/types";

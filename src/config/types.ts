@@ -221,8 +221,6 @@ export interface IAppConfig {
   /** Named data source configurations (e.g. "kentico-jira" → JIRA instance). */
   readonly dataSources: Readonly<Record<string, IDataSourceConfig>>;
   readonly profiles: readonly IAgentProfile[];
-  /** Plugin module specifiers — loaded before the DI container is created. */
-  readonly plugins: readonly string[];
   readonly output: IOutputConfig;
   readonly dashboard: IDashboardConfig;
   readonly promptAudit: IPromptAuditConfig;

@@ -5,11 +5,10 @@ import { loadConfig } from "./config/loader";
 import type { IAppConfig } from "./config/types";
 import { validatePrerequisites, printValidationResults, type ValidationResult } from "./validate/index";
 import { execa } from "execa";
-import { isAbsolute, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 
-/** A plugin module that self-registers (e.g. calls `registerDataSourceFactory()`) when imported. */
-export interface PluginModule {
+/** A built-in data-source connector module whose factory calls `registerDataSourceFactory()` when imported. */
+export interface DataSourceConnectorModule {
   /** Name shown in logs and load errors. */
   readonly name: string;
   /** Imports the module, which runs its self-registration. */
@@ -17,31 +16,19 @@ export interface PluginModule {
 }
 
 /**
- * Built-in plugin modules, loaded before any user-specified plugins.
+ * Built-in data-source connector modules.
  * Each `import()` names its module literally so the bundle includes it.
  */
-const BUILTIN_PLUGINS: readonly PluginModule[] = [
+const DATA_SOURCE_CONNECTORS: readonly DataSourceConnectorModule[] = [
   { name: "jira", load: () => import("./datasource/connectors/jira/factory") },
 ];
-
-/**
- * Build the runtime import for one `config.plugins` entry.
- *
- * A relative or absolute path resolves against `cwd` and is imported by file URL.
- * Any other entry is a package specifier that Node resolves from `node_modules`.
- */
-export function userPluginModule(specifier: string, cwd: string = process.cwd()): PluginModule {
-  const isPath = specifier.startsWith("./") || specifier.startsWith("../") || isAbsolute(specifier);
-  const target = isPath ? pathToFileURL(resolve(cwd, specifier)).href : specifier;
-  return { name: specifier, load: () => import(target) };
-}
 
 /** Injectable hooks for the startup pipeline steps. */
 export interface AppStartupDeps {
   validate(logger?: Logger): Promise<ValidationResult>;
   printResults(result: ValidationResult): boolean;
   loadConfig(): IAppConfig;
-  loadPlugins(plugins: readonly PluginModule[], logger: Logger): Promise<void>;
+  loadDataSourceConnectors(connectors: readonly DataSourceConnectorModule[], logger: Logger): Promise<void>;
   buildMcpServers(logger: Logger): Promise<void>;
   resolveMcpConfigs(logger?: Logger): void;
   startRalphchives(logger: Logger): Promise<void>;
@@ -71,17 +58,20 @@ async function startRalphchivesStack(logger: Logger): Promise<void> {
 }
 
 /**
- * Import plugin modules in order, so each one self-registers as a side effect.
+ * Import data-source connector modules in order, so each factory self-registers as a side effect.
  *
- * @throws Error naming the plugin when its import fails
+ * @throws Error naming the connector when its import fails
  */
-async function loadPluginModules(plugins: readonly PluginModule[], logger: Logger): Promise<void> {
-  for (const plugin of plugins) {
+export async function loadDataSourceConnectorModules(
+  connectors: readonly DataSourceConnectorModule[],
+  logger: Logger,
+): Promise<void> {
+  for (const connector of connectors) {
     try {
-      await plugin.load();
-      logger.info(`Loaded plugin: ${plugin.name}`);
+      await connector.load();
+      logger.info(`Loaded data-source connector: ${connector.name}`);
     } catch (err) {
-      throw new Error(`Failed to load plugin "${plugin.name}": ${(err as Error).message}`);
+      throw new Error(`Failed to load data-source connector "${connector.name}": ${(err as Error).message}`);
     }
   }
 }
@@ -92,7 +82,7 @@ function defaultDeps(): AppStartupDeps {
     validate: (logger) => validatePrerequisites(logger),
     printResults: printValidationResults,
     loadConfig,
-    loadPlugins: loadPluginModules,
+    loadDataSourceConnectors: loadDataSourceConnectorModules,
     buildMcpServers: buildCustomMcpServers,
     resolveMcpConfigs: (logger) => resolveAllProfileSetup(undefined, logger),
     startRalphchives: startRalphchivesStack,
@@ -131,8 +121,7 @@ export class AppStartup implements IAppStartup {
     const config = this.deps.loadConfig();
     log.info("Loaded configuration");
 
-    const userPlugins = config.plugins.map((specifier) => userPluginModule(specifier));
-    await this.deps.loadPlugins([...BUILTIN_PLUGINS, ...userPlugins], log);
+    await this.deps.loadDataSourceConnectors(DATA_SOURCE_CONNECTORS, log);
 
     if (config.ralphchives?.enabled) {
       await this.deps.startRalphchives(log);

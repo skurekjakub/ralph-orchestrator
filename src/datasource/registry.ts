@@ -1,17 +1,17 @@
 /**
  * Data source factory registry.
  *
- * Public API for registering data source connector/poller factories.
+ * Registers data source connector/poller factories.
  * Each data source type (e.g. `"jira"`, `"github"`) registers a factory
  * via {@link registerDataSourceFactory}. The awilix cradle calls
  * {@link buildDataSourceMaps} to instantiate connectors from config —
  * it never imports connector-specific code directly.
  *
  * To add a new data source:
- * 1. Create a factory module that calls {@link registerDataSourceFactory}
- * 2. Add the module path to `config.plugins` in `config.json`
- *    (built-ins are listed in `BUILTIN_PLUGINS` in `app-startup.ts`)
- * 3. See `docs/dev-doc/data-source-registration.md` for the full integration guide
+ * 1. Create `src/datasource/connectors/<name>/factory.ts` that calls {@link registerDataSourceFactory}
+ * 2. Add it to `DATA_SOURCE_CONNECTORS` in `app-startup.ts` with a literal `import()`,
+ *    so the bundle includes it
+ * 3. See `docs/dev-doc/data-source-registration.md` for the full guide
  */
 
 import type { IAppConfig, IAgentProfile, IDataSourceConfig } from "../config/types";
