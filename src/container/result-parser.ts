@@ -19,7 +19,7 @@ export interface ReportedResult {
 }
 
 /** The output of a run that the agent's result is read from. */
-export interface ResultSource {
+interface ResultSource {
   /** The agent text a result block is read from. */
   readonly agentText: string;
   /** The result the CLI returned as structured output; undefined when it returned none. */

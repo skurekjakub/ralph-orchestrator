@@ -65,8 +65,7 @@ export interface ClaudeSessionOptions {
  * @param sessionArgs The arguments that start (`--session-id`) or resume (`--resume`) the session.
  */
 export function claudeSessionArgs(options: ClaudeSessionOptions, sessionArgs: readonly string[]): string[] {
-  const { agentName, model, effort, settingSources, settingsPath, mcpConfigPath, permissionMode, tools, resultSchema } =
-    options;
+  const { agentName, model, effort, settingSources, settingsPath, mcpConfigPath, permissionMode, tools } = options;
   return [
     "-p",
     "--output-format",
@@ -87,7 +86,7 @@ export function claudeSessionArgs(options: ClaudeSessionOptions, sessionArgs: re
     "--tools",
     tools.join(","),
     ...(options.additionalDirs ?? []).flatMap((dir) => ["--add-dir", dir]),
-    ...(resultSchema === undefined ? [] : ["--json-schema", resultSchema]),
+    ...(options.resultSchema === undefined ? [] : ["--json-schema", options.resultSchema]),
     ...sessionArgs,
     "--debug-file",
     options.debugFile,
