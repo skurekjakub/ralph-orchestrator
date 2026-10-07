@@ -71,12 +71,27 @@ export interface TaskLogGroup {
   taskId: string;
   timestamp?: number;
   files: TaskLogFiles;
-  summary?: {
-    taskId?: string;
-    status?: string;
-    durationMs?: number;
-    exitCode?: number;
-    prUrl?: string;
-    timestamp?: string;
-  };
+  summary?: ExecutionSummary;
+}
+
+/** The `<taskId>-<ts>-summary.json` of one execution, as the orchestrator's `LogCollector` writes it. */
+export interface ExecutionSummary {
+  taskId?: string;
+  status?: string;
+  durationMs?: number;
+  exitCode?: number;
+  prUrl?: string;
+  timestamp?: string;
+  /** Set on a run that did not complete: `infra`, `task`, `timeout`, `contract` or `unknown`. */
+  failureCategory?: string;
+  /** Why the run ended in error, e.g. `auth-failed`, `cli-error`, `missing-result-block`. */
+  failureReason?: string;
+  /** The terminal error the CLI reported for the run's last session. */
+  cliError?: { subtype: string; message?: string };
+  /** CLI session ids in run order. */
+  sessionIds?: string[];
+  /** Container sessions whose audit log has no `session_start` record: Ralph's hooks did not run for them. */
+  hooklessSessions?: string[];
+  /** Set on a run that did not complete: the start of the agent's own text. */
+  agentText?: string;
 }

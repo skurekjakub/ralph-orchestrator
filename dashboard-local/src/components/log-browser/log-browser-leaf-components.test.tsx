@@ -81,6 +81,26 @@ describe("IssueGroupSection", () => {
 
     expect(screen.queryByRole("button", { name: /Timeline/ })).not.toBeNull();
   });
+
+  it("flags the latest run's failure reason and sessions without hooks in its header", () => {
+    // Arrange
+    const latest = makeTaskLogGroup({
+      summary: { status: "error", failureReason: "missing-result-block", hooklessSessions: ["s1"] },
+    });
+
+    // Act
+    render(
+      <IssueGroupSection
+        group={makeIssueGroup({ executions: [latest], latestStatus: "error" })}
+        onSelectFile={() => {}}
+      />,
+    );
+
+    // Assert
+    const header = screen.getByRole("button", { name: /DOC-3141/ });
+    expect(header.textContent).toContain("missing-result-block");
+    expect(header.textContent).toContain("hooks did not run");
+  });
 });
 
 describe("DailyLogsSection", () => {

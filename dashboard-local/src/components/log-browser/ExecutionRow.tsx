@@ -2,6 +2,7 @@ import type { TaskLogFileKey, TaskLogGroup } from "../../types";
 import { formatMs } from "./tool-timeline-shared";
 import { formatDate, statusBadge, fileLabels } from "./utils";
 import { Button, ButtonVariant, ButtonSize } from "../Button";
+import { RunOutcomeDetails } from "./RunOutcomeDetails";
 import { SessionFileList } from "./SessionFileList";
 import type { TimelineFiles } from "./tool-timeline-types";
 
@@ -36,6 +37,8 @@ export function ExecutionRow({
           </a>
         )}
       </div>
+
+      {group.summary && <RunOutcomeDetails summary={group.summary} />}
 
       <div className="flex gap-1.5 flex-wrap">
         {(Object.keys(fileLabels) as TaskLogFileKey[]).map((key) => {

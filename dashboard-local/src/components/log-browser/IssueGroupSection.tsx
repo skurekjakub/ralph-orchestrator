@@ -29,6 +29,19 @@ export function IssueGroupSection({
         <span className={`text-[10px] transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}>▶</span>
         <span className="font-semibold font-mono text-[13px] text-info">{group.taskId}</span>
         <span className={`text-[10px] px-1.5 py-px rounded-full font-medium ${badge}`}>{status}</span>
+        {latest?.summary?.failureReason && (
+          <span className="text-[10px] px-1.5 py-px rounded-full font-mono bg-error/15 text-error">
+            {latest.summary.failureReason}
+          </span>
+        )}
+        {(latest?.summary?.hooklessSessions?.length ?? 0) > 0 && (
+          <span
+            className="text-[10px] px-1.5 py-px rounded-full bg-warn/15 text-warn"
+            title="Ralph's hooks did not run for some of the latest run's sessions"
+          >
+            ⚠ hooks did not run
+          </span>
+        )}
         <span className="text-dim text-[10px]">
           {group.executions.length} run{group.executions.length !== 1 ? "s" : ""}
         </span>
