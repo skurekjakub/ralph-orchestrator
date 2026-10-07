@@ -116,14 +116,19 @@ function buildContainerFactory({
 }
 
 /**
- * Create the awilix DI container with all registered services.
+ * Create the awilix DI container: register the root services, then build each data source's connector and poller
+ * in a scope of its own.
  *
- * Returns the full cradle proxy — services are lazily resolved on access.
- * The Orchestrator picks what it needs; other callers (e.g. index.tsx)
- * can access any registered service.
+ * The data-source scopes resolve here, together with the root services they depend on (`activityLog`, `logger`);
+ * every other root service resolves on first access through the returned cradle.
  *
+ * @param config The loaded config: its slices become root tokens, and each `dataSources` entry gets a scope.
  * @param options.rootDir The orchestrator checkout: the profile build directories, `shared/` sources, `cache/` and
  *   the output directory resolve against it.
+ * @returns The root cradle.
+ * @throws Error with `resolveJiraCredentials`' message when a JIRA data source's `JIRA_PAT_<KEY>` or
+ *   `JIRA_EMAIL_<KEY>` is unset, or when a data source's type has no registered factory; ZodError when a JIRA
+ *   data source's connection fails its schema.
  */
 export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string }): OrchestratorCradle {
   const container = createContainer<OrchestratorCradle>({

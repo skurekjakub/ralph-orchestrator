@@ -128,6 +128,7 @@ describe("JiraClient", () => {
     });
 
     it("retries on transient fetch failure", async () => {
+      // Arrange
       const mockResponse = {
         issues: [makeIssue(KEY)],
         total: 1,
@@ -148,8 +149,11 @@ describe("JiraClient", () => {
         { jiraConnection: mockConnection, logger: createSilentLogger() },
         { delayMs: 1 },
       );
+
+      // Act
       const issues = await retryClient.searchIssues("project = DF");
 
+      // Assert
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(issues).toHaveLength(1);
     });

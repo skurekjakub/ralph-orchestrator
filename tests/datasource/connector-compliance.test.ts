@@ -159,7 +159,6 @@ function runConnectorComplianceTests(
 describe("Connector compliance", () => {
   let client: ReturnType<typeof createMockJiraClient>;
 
-  // Client is created once before all JIRA compliance tests
   beforeEach(() => {
     client = createMockJiraClient();
   });

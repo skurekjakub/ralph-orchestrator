@@ -111,11 +111,12 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 
 Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
 
+A data-source connector's classes register in its own `factory.ts`, not in `createCradle()`: each data source gets an awilix scope, and the factory registers its classes there and resolves the connector and poller (`docs/dev-doc/data-source-registration.md`).
+
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
 - `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
 - Per-task objects (compose client, executors, `ContainerManager`, session runners) are built in `buildContainerFactory`.
-- Data-source connector factories register their classes in one awilix scope per data source and resolve the connector and poller there.
 - `PromptBuilder` is registered without an interface.
 
 Details: `docs/dev-doc/dependency-injection.md`.

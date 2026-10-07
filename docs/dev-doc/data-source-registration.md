@@ -32,6 +32,7 @@ The orchestrator checks capabilities at runtime via type guards (`supportsTransi
 
 ```ts
 // src/datasource/connectors/my-source/my-connector.ts
+import type { MyConnectionConfig } from "../../../config/types";
 import type { IDataSourceConnector, ISupportsTransitions } from "../../connector";
 import type { WorkItem, WorkItemComment } from "../../types";
 
@@ -127,18 +128,19 @@ The factory receives the data source's awilix scope, typed `AwilixContainer<Data
 - Make every registration `.scoped()`. A `.singleton()` on a scope throws, and `asFunction` defaults to transient, which awilix's strict mode refuses as the dependency of a scoped service.
 - A test-only constructor override (such as `JiraClient`'s `retryOptions`) stays an optional second positional parameter: the awilix proxy throws when a constructor reads a deps key the cradle lacks.
 
-Define the connection schema in `src/config/schemas.ts` beside `jiraConnectionSchema`, so the connection is validated the same way the rest of `config.json` is.
+Define the connection schema in `src/config/schemas.ts` beside `jiraConnectionSchema`, and its type (`MyConnectionConfig` below) in `src/config/types.ts` beside `IJiraConnectionConfig`, so the connection is validated the same way the rest of `config.json` is.
 
 ```ts
 // src/datasource/connectors/my-source/factory.ts
 import type { AwilixContainer } from "awilix";
 import type { DataSourceCradle } from "../../../awilix-cradle-types";
 import { myConnectionSchema } from "../../../config/schemas";
+import type { MyConnectionConfig } from "../../../config/types";
 import { wiring, type Registrations } from "../../../di/registration";
 import type { IDataSourceConnector } from "../../connector";
 import type { IWorkItemPoller } from "../../poller";
 import { registerDataSourceFactory } from "../../registry";
-import { MyConnector, type MyConnectionConfig } from "./my-connector";
+import { MyConnector } from "./my-connector";
 import { MyPoller } from "./my-poller";
 
 type MySourceCradle = DataSourceCradle & {

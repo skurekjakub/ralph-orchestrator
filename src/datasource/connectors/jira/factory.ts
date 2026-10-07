@@ -89,5 +89,4 @@ export function createJiraDataSource(scope: AwilixContainer<DataSourceCradle>): 
   return { connector, poller };
 }
 
-// Self-register — imported as side-effect in app-startup.ts
 registerDataSourceFactory("jira", createJiraDataSource);
