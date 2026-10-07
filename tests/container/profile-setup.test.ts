@@ -124,10 +124,10 @@ describe("Profile Setup", () => {
       expect(overlay).toContain("/etc/claude-code/managed-settings.json:ro");
       expect(JSON.parse(built("claude/managed-settings.json")).allowManagedHooksOnly).toBe(true);
       expect(built("squid.conf")).toContain("acl allowed_domains dstdomain .anthropic.com");
-      expect(existsSync(join(buildDir, "copilot-config.json"))).toBe(false);
+      expect(existsSync(join(buildDir, "copilot-settings.json"))).toBe(false);
     });
 
-    it("generates copilot-config.json from the Copilot and profile domains in squid.conf", async () => {
+    it("generates the Copilot settings from the Copilot and profile domains in squid.conf", async () => {
       // Arrange
       writeFileSync(
         join(profileDir, "profile.json"),
@@ -138,10 +138,10 @@ describe("Profile Setup", () => {
       await setup();
 
       // Assert
-      const config = JSON.parse(built("copilot-config.json"));
-      expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
-      expect(config.allowed_urls).toContain("https://*.npmjs.org");
-      expect(config.allowed_urls).not.toContain("https://*.anthropic.com");
+      const settings = JSON.parse(built("copilot-settings.json"));
+      expect(settings.allowedUrls).toContain("https://*.githubcopilot.com");
+      expect(settings.allowedUrls).toContain("https://*.npmjs.org");
+      expect(settings.allowedUrls).not.toContain("https://*.anthropic.com");
     });
 
     it("injects allowlistDomains from profile.json into squid.conf", async () => {

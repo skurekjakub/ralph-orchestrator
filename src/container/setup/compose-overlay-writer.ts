@@ -33,7 +33,8 @@ export interface ComposeArtifactsInput {
  * `squid.conf` is written first because Copilot's URL allowlist is derived from it. Only the credential of
  * a CLI some container stage runs reaches the agent container.
  *
- * @throws Error when a CLI's artifact inputs are missing or malformed (see `ICliRuntime.writeTaskArtifacts`).
+ * @throws Error when the baseline `shared/security/squid.conf` is missing, or a CLI's artifact inputs are
+ * missing or malformed (see `ICliRuntime.writeTaskArtifacts`).
  */
 export function writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, logger }: ComposeArtifactsInput): void {
   const paths = profileBuildPaths(rootDir, profile.id);
@@ -42,17 +43,16 @@ export function writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, l
   mkdirSync(paths.buildDir, { recursive: true });
 
   const baselineSquidPath = resolve(rootDir, "shared/security/squid.conf");
-  if (existsSync(baselineSquidPath)) {
-    const squidConf = generateProfileSquidConf(baselineSquidPath, {
-      cliDomains: runtimes.flatMap((r) => r.egressDomains),
-      profileDomains: profile.allowlistDomains,
-    });
-    writeFileSync(join(paths.buildDir, "squid.conf"), squidConf, "utf-8");
-    const domains = parseSquidDomains(squidConf);
-    logger.info(`Wrote squid.conf with ${domains.length} allowed domains: ${domains.join(", ")}`);
-  } else {
-    logger.warn(`Baseline squid.conf not found at ${baselineSquidPath}; squid.conf not generated`);
+  if (!existsSync(baselineSquidPath)) {
+    throw new Error(`Baseline squid.conf not found at ${baselineSquidPath}`);
   }
+  const squidConf = generateProfileSquidConf(baselineSquidPath, {
+    cliDomains: runtimes.flatMap((r) => r.egressDomains),
+    profileDomains: profile.allowlistDomains,
+  });
+  writeFileSync(join(paths.buildDir, "squid.conf"), squidConf, "utf-8");
+  const domains = parseSquidDomains(squidConf);
+  logger.info(`Wrote squid.conf with ${domains.length} allowed domains: ${domains.join(", ")}`);
 
   for (const runtime of runtimes) runtime.writeTaskArtifacts(input, logger);
 
@@ -77,7 +77,6 @@ export function writeComposeArtifacts({ rootDir, cliRuntimes, profile, agents, l
   const mcpConfig = generateMcpConfig(mcpServersDir, serverNames);
   writeFileSync(join(paths.buildDir, "mcp-config.json"), JSON.stringify(mcpConfig, null, 2) + "\n", "utf-8");
 
-  // JitMcpConfigWriter runs after this to inject task-scoped env vars.
   const gatewayConfig = generateGatewayConfig(mcpServersDir, serverNames, process.env);
   writeFileSync(join(paths.buildDir, "gateway.json"), JSON.stringify(gatewayConfig, null, 2) + "\n", "utf-8");
 

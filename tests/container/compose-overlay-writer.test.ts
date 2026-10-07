@@ -8,7 +8,7 @@ import { ComposeOverlayWriter, writeComposeArtifacts } from "../../src/container
 import type { IAgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
 import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
 import { createTempDir } from "../helpers/mcp-fs";
-import { createMockLogger, createSilentLogger, type Mocked } from "../helpers/mocks";
+import { createSilentLogger, type Mocked } from "../helpers/mocks";
 
 const PID = "docs";
 
@@ -138,7 +138,7 @@ describe("writeComposeArtifacts", () => {
       expect(JSON.parse(built("claude/user-settings.json"))).toEqual({});
       expect(existsSync(join(buildDir, "claude", "agents"))).toBe(true);
       expect(existsSync(join(buildDir, "skills"))).toBe(true);
-      expect(existsSync(join(buildDir, "copilot-config.json"))).toBe(false);
+      expect(existsSync(join(buildDir, "copilot-settings.json"))).toBe(false);
     });
 
     it("allows the Anthropic API but no Copilot domain through the egress proxy", () => {
@@ -183,7 +183,8 @@ describe("writeComposeArtifacts", () => {
       // Assert
       const overlay = built("docker-compose.overlay.yml");
       const agentsDir = join(buildDir, "copilot", "agents");
-      expect(overlay).toContain(`- ${buildDir}/copilot-config.json:/workspace/.ralph/config.json:ro`);
+      expect(overlay).toContain('COPILOT_HOME: "/workspace/.ralph"');
+      expect(overlay).toContain(`- ${buildDir}/copilot-settings.json:/workspace/.ralph/settings.json:ro`);
       expect(overlay).toContain(
         `- ${join(root, "shared", "hooks")}/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro`,
       );
@@ -198,7 +199,7 @@ describe("writeComposeArtifacts", () => {
       expect(overlay).not.toContain("/workspace/.ralph/claude");
     });
 
-    it("allows the Copilot domains but not the Anthropic API, and derives copilot-config.json from them", () => {
+    it("allows the Copilot domains but not the Anthropic API, and derives the Copilot settings from them", () => {
       // Act
       write(variant(CliType.Copilot));
 
@@ -207,8 +208,8 @@ describe("writeComposeArtifacts", () => {
       expect(squid).toContain("acl allowed_domains dstdomain .githubcopilot.com");
       expect(squid).toContain("acl allowed_domains dstdomain api.github.com");
       expect(squid).not.toContain("anthropic");
-      const config = JSON.parse(built("copilot-config.json"));
-      expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
+      const settings = JSON.parse(built("copilot-settings.json"));
+      expect(settings.allowedUrls).toContain("https://*.githubcopilot.com");
       expect(existsSync(join(buildDir, "claude"))).toBe(false);
     });
   });
@@ -285,23 +286,13 @@ describe("writeComposeArtifacts", () => {
     expect(JSON.parse(built("gateway.json")).servers).toEqual([]);
   });
 
-  it("warns and writes no squid.conf when the baseline is missing", () => {
+  it("throws and writes no squid.conf when the baseline is missing", () => {
     // Arrange
     rmSync(join(root, "shared", "security", "squid.conf"));
-    const logger = createMockLogger();
 
-    // Act
-    writeComposeArtifacts({
-      rootDir: root,
-      cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
-      profile: variant(CliType.Claude),
-      agents: AGENTS,
-      logger,
-    });
-
-    // Assert
+    // Act & Assert
+    expect(() => write(variant(CliType.Claude))).toThrow(/Baseline squid.conf not found/);
     expect(existsSync(join(buildDir, "squid.conf"))).toBe(false);
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Baseline squid.conf not found"));
   });
 });
 
@@ -315,6 +306,8 @@ describe("ComposeOverlayWriter", () => {
     root = createTempDir();
     mkdirSync(join(root, "profiles", PID), { recursive: true });
     mkdirSync(join(root, "shared", "mcp-servers"), { recursive: true });
+    mkdirSync(join(root, "shared", "security"), { recursive: true });
+    writeFileSync(join(root, "shared", "security", "squid.conf"), "# {{PROFILE_DOMAINS}}\nhttp_access deny all\n");
     process.chdir(root);
     agentCatalogs = { load: vi.fn().mockResolvedValue(AGENTS) };
   });

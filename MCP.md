@@ -241,7 +241,7 @@ The JIT write happens after templates are rendered but before the container star
 
 ## Startup Resolution
 
-At startup, `resolveAllProfileSetup()` processes each profile, deletes and recreates `profiles/<id>/.build/`, and writes `mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `squid.conf`, `copilot-config.json`, `pre-init.sh` (only when a server declares `initScript`), a `.gitignore` and an `attachments/` exchange directory. Startup files cover the union of all variants' servers and skills; before each task `ComposeOverlayWriter` regenerates `mcp-config.json`, `gateway.json` and the overlay for the matched variant only.
+At startup, `resolveAllProfileSetup()` processes each profile, deletes and recreates `profiles/<id>/.build/`, and writes `mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `squid.conf`, each container-stage CLI's own files (`copilot-settings.json`, `claude/`), `pre-init.sh` (only when a server declares `initScript`), a `.gitignore` and an `attachments/` exchange directory. Startup files cover the union of all variants' servers and skills; before each task `ComposeOverlayWriter` regenerates `mcp-config.json`, `gateway.json` and the overlay for the matched variant only.
 
 ### `mcp-config.json`
 
@@ -290,10 +290,10 @@ Sidecar gateway configuration with commands, args, and embedded secrets. Mounted
 
 Compose overlay merged as the third file. Generates:
 
-- **Agent container** — base env vars (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`), read-only mounts for `mcp-config.json`, `copilot-config.json`, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
+- **Agent container** — the credential and env of each CLI a container stage runs, read-only mounts for `mcp-config.json`, that CLI's settings, rendered agents, skills and resources, the shared `attachments/` directory, and `depends_on: mcp-sidecar`
 - **MCP sidecar container** (when servers declared) — builds from `shared/mcp-sidecar/Dockerfile`, mounts server code read-only at `/opt/mcp/servers`, mounts `gateway.json`, joins `ralph-internal` and `ralph-sidecar-external`, hardened with `no-new-privileges`, `cap_drop: ALL`, resource limits (24G memory, 8 CPUs, 300 PIDs), mounts the target repo at `/workspace` for git-powered tools (`REPO_ROOT` env var), plus `sidecarEnv` values and the optional `pre-init.sh`
 
-No MCP server code, secrets, or gateway config is mounted into the agent container. `GH_TOKEN` and `ANTHROPIC_API_KEY` are set in every agent container's environment; see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container).
+No MCP server code, secrets, or gateway config is mounted into the agent container. Only the credential of a CLI some container stage runs reaches it; see [SECURITY.md](SECURITY.md#credentials-in-the-agent-container).
 
 ### `squid.conf`
 
@@ -301,9 +301,9 @@ Profile-specific squid proxy configuration: the shared baseline `shared/security
 
 The MCP sidecar has **direct internet access** via the `ralph-sidecar-external` Docker network and bypasses Squid entirely. MCP servers need no Squid entries.
 
-### `copilot-config.json`
+### `copilot-settings.json`
 
-Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` (`.example.com` → `https://*.example.com`) plus `http://host.docker.internal:<port>/*` for each host loopback port. Domain-level only — no path restrictions. Mounted at `/workspace/.ralph/config.json`. See [SECURITY.md](SECURITY.md) for details.
+Copilot CLI settings with `allowedUrls` derived from the domains in `squid.conf` (`.example.com` → `https://*.example.com`) plus `http://host.docker.internal:<port>/*` for each host loopback port. Domain-level only — no path restrictions. Written only when a container stage runs Copilot, and mounted at `/workspace/.ralph/settings.json`, which the CLI reads through `COPILOT_HOME=/workspace/.ralph`. See [SECURITY.md](SECURITY.md) for details.
 
 ## Network Flow
 

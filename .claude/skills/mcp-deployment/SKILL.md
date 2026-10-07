@@ -44,7 +44,7 @@ The gateway launches `custom` servers as `<command> <containerPath>/<args...> --
 5. **Docs** — add the server to the port and server tables in `docs/user-guide/deploying-mcp-servers.md`, `docs/user-guide/mcp-servers.md`, and `MCP.md` § Current Servers.
 6. **Verify** — `npm run validate`, then start the orchestrator and confirm `profiles/<id>/.build/` lists the server in `mcp-config.json` and `gateway.json`. In a run's `*-sidecar.log`, look for `[gateway] Starting <name>` with no later `[gateway] <name> exited` or `exceeded max restarts`.
 
-Generated files in `profiles/<id>/.build/` (`mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, `copilot-config.json`) are rewritten on every start — fix the source, never these files.
+Generated files in `profiles/<id>/.build/` (`mcp-config.json`, `gateway.json`, `docker-compose.overlay.yml`, `pre-init.sh`, `squid.conf`, `copilot-settings.json`) are rewritten on every start — fix the source, never these files.
 
 ## Port allocation
 

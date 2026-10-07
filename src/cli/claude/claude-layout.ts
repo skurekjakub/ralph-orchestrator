@@ -1,16 +1,11 @@
 import { CliDebugLogKind, type CliContainerLayout } from "../cli-runtime";
 
-/**
- * Claude Code binary in the agent images. It is installed root-owned at image build time and invoked by
- * absolute path, so a user-level npm install that lands earlier on `PATH` cannot stand in for it.
- */
-export const CLAUDE_CONTAINER_BINARY = "/usr/local/bin/claude";
-
 /** Claude Code home (`CLAUDE_CONFIG_DIR`) inside the agent container, under the git-excluded `.ralph/`. */
 const CLAUDE_CONFIG_DIR = "/workspace/.ralph/claude";
 
-/** Where Claude Code keeps its home, agents, skills and debug log inside the agent container. */
+/** Where Claude Code's binary, home, agents, skills and debug log are inside the agent container. */
 export const CLAUDE_CONTAINER_LAYOUT = {
+  binary: "/usr/local/bin/claude",
   configDir: CLAUDE_CONFIG_DIR,
   writableDirs: ["/workspace/.ralph/logs", "/workspace/.ralph/logs/cli-debug"],
   agentsDir: `${CLAUDE_CONFIG_DIR}/agents`,

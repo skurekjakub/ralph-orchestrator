@@ -76,7 +76,7 @@ Pre-orchestrator startup pipeline. Runs before the main loop:
 3. Loads the built-in data source connector modules (JIRA), whose factories self-register
 4. Starts the Ralphchives compose stack when `ralphchives.enabled` is true
 5. Builds custom MCP servers (`npm run build`) and the MCP sidecar gateway
-6. Generates per-profile files in `.build/` (`mcp-config.json`, `gateway.json`, compose overlay, `squid.conf`, `copilot-config.json`)
+6. Generates per-profile files in `.build/` (`mcp-config.json`, `gateway.json`, compose overlay, `squid.conf`, `copilot-settings.json`)
 
 Agent templates are **not** resolved at startup — they are rendered JIT before each task by the `AgentTemplateRenderer` (see TaskRunner below). After startup, `src/index.tsx` builds the cradle (`createCradle()`), constructs the `Orchestrator`, and starts the dashboard server and Ink UI.
 
@@ -112,8 +112,8 @@ Orchestrates the full container lifecycle for a single task: build → setup →
 - **ComposeClient** — Low-level `docker compose` wrapper. Turns the file list from `ComposeFileResolver` into `-f` flags and passes the process environment plus computed paths (`TARGET_REPO_PATH`, `SQUID_CONF_PATH`, `SHARED_HOOKS_PATH`) for compose interpolation.
 - **Lifecycle hooks** — Pre-execution hooks (`ILifecycleHook`) that run between `setup()` and agent execution. The `RepoSyncHook` runs git on the host against the profile's `repo` checkout. It first writes orchestrator-managed exclusion patterns (`.ralph/`, `.github/skills/`, `.github/agents/`) to `.git/info/exclude` so Docker bind-mount artifacts don't block checkout or appear in status/add, then fetches and hard-resets to the resolved base branch (`source_branch`, inferred PR target branch on revisions when available, else `main`) before checking out the resolved task branch. The PAT (`repoPat`) is passed per command via `http.extraHeader`, never written to git config.
 - **Stage-based execution** — `createExecutorForStage(stage)` returns the appropriate CLI executor based on the stage's `mode`: `StageMode.Container` → standard `CopilotExecutor`/`ClaudeCodeExecutor` (inside Docker), `StageMode.Local` → `LocalCopilotExecutor` (on the host). `executeWithExecutor(executor, workItem, issueContext)` delegates to the `AgentSessionRunner` (`src/container/agent-session-runner.ts`) for prompt building, injection audit, and CLI invocation; the `ContinuationRunner` (`src/container/continuation-runner.ts`) handles the `--continue` loop.
-- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor exposes a `CliPaths` interface (`configDir`, `writableDirs`, `transcriptPath`, `logDir`) for path resolution.
-- **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker, with the orchestrator repo root as cwd. It symlinks the profile's rendered agents into `<orchestrator-repo>/.github/agents/` for the run and passes `--agent`, `--model`, `--log-dir .ralph/logs/cli-debug`, `--allow-all-tools` and `--allow-all-paths`, but no `--config-dir`, `--additional-mcp-config` or `--share`, so relative `.ralph/` paths resolve inside the orchestrator repo.
+- **CopilotExecutor / ClaudeCodeExecutor** — CLI-specific command builders, sharing a common `executeCliCommand()` helper for stream capture and error handling. Each executor reads its container layout (absolute binary path, CLI home, debug log, transcript) from its `ICliRuntime`.
+- **LocalCopilotExecutor** — Host-side CLI executor for `mode: "local"` stages. Runs the Copilot CLI directly via `execa()` on the orchestrator host, bypassing Docker, with the orchestrator repo root as cwd. It symlinks the profile's rendered agents into `<orchestrator-repo>/.github/agents/` for the run and passes `--agent`, `--model`, `--log-dir .ralph/logs/cli-debug`, `--allow-all-tools` and `--allow-all-paths`, but no `--additional-mcp-config` or `--share`, so relative `.ralph/` paths resolve inside the orchestrator repo.
 - **ContainerLogCollector** — Per-task log collection from `app` and sidecar containers via streaming (`tail -f`), batch (`exec cat`), or compose logs (for stdout-based services like the MCP gateway).
 - **StreamCapture** — Line-buffered streaming for child processes, piped to the logger with tag prefixes.
 
@@ -205,7 +205,7 @@ All Docker, agent, and hook infrastructure is centralized in the orchestrator re
 │   │   ├── setup.sh                     # Post-create setup (CLI installs, git config)
 │   │   ├── .build/                      # Generated (gitignored): <cli>/agents/ and skills/ per stage,
 │   │   │                                #   mcp-config.json, gateway.json, docker-compose.overlay.yml,
-│   │   │                                #   squid.conf, copilot-config.json, pre-init.sh, attachments/
+│   │   │                                #   squid.conf, copilot-settings.json, pre-init.sh, attachments/
 │   │   └── agents/                      # Liquid agent templates (*.agent.md), e.g.
 │   │       ├── ralph.ralph.agent.md     # Documentation orchestrator (researcher, planner, writer,
 │   │       │                            #   validator, coder, reviewer-technical/style/ia, scribe subagents)
@@ -350,9 +350,9 @@ Each profile declares MCP servers in `profile.json` (`mcpServers` array). Varian
 
 1. **`mcp-config.json`** — URL-based config shared by both CLIs. Contains `{ type, url }` entries plus each manifest's `tools` allowlist — no secrets. Copilot reads it via `--additional-mcp-config @<path>`; Claude Code via `--mcp-config --strict-mcp-config`. The sidecar enforces the same allowlist: for each server with `tools`, the gateway's tool-filter proxy serves `sidecarPort`, drops other tools from `tools/list` and refuses calls to them (JSON-RPC `-32602`), while the server listens on `127.0.0.1:<sidecarPort + 10000>`.
 2. **`gateway.json`** — Per-profile sidecar config with server commands, args, ports, and embedded secrets. The sidecar only starts servers the profile declares — a profile with `["jira-kentico", "ado"]` never spawns `discord-hitl`.
-3. **`docker-compose.overlay.yml`** — Injects base env vars into the agent container (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, Copilot CLI config, rendered agents, skills and resource files.
+3. **`docker-compose.overlay.yml`** — Injects base env vars into the agent container (`GH_TOKEN`, `ANTHROPIC_API_KEY`, `CLAUDE_CODE_DISABLE_*`). Defines the `mcp-sidecar` service (when MCP servers are declared), mounts `mcp-config.json`, the Copilot CLI settings, rendered agents, skills and resource files.
 4. **`squid.conf`** — The shared baseline (`shared/security/squid.conf`) with the profile's `allowlistDomains` inserted. MCP servers need no entries; the sidecar has direct internet access.
-5. **`copilot-config.json`** — Copilot CLI config with `allowed_urls` derived from the domains in `squid.conf` and its host loopback ports. Domain-level only.
+5. **`copilot-settings.json`** — Copilot CLI settings with `allowedUrls` derived from the domains in `squid.conf` and its host loopback ports. Domain-level only.
 
 Startup files cover the union of all variants. Before each task, `ComposeOverlayWriter` (`compose-overlay-writer.ts`) regenerates `mcp-config.json`, `gateway.json` and the overlay for the matched variant's servers and skills, and `JitMcpConfigWriter` merges task-scoped env values into `gateway.json`.
 
@@ -364,7 +364,7 @@ Server types: `npm` (pre-installed stdio packages, bridged in the gateway proces
 
 Squid's domain filtering is backed by two CLI-side mechanisms in the container:
 
-1. **Copilot CLI URL allowlist** (`copilot-config.json`, `src/container/setup/url-restrictions.ts`) — the same domains as the profile's `squid.conf`, as `https://*.domain` / `https://domain` patterns, plus host loopback ports. It does not restrict paths, so it does not prevent cross-org use of an allowlisted API.
+1. **Copilot CLI URL allowlist** (`copilot-settings.json`, `src/cli/copilot/copilot-settings.ts`) — the same domains as the profile's `squid.conf`, as `https://*.domain` / `https://domain` patterns, plus host loopback ports. It does not restrict paths, so it does not prevent cross-org use of an allowlisted API.
 2. **Pre-tool hook audit logging** (`shared/hooks/log-pre-tool.sh`) — logs every tool invocation to `pre-tool.log` (JSONL, streamed to host in real-time) for observability. It never blocks a call.
 
 Local-mode stages get neither. See [SECURITY.md](SECURITY.md) for the full threat model and defense layering.

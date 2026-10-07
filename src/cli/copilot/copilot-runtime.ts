@@ -4,7 +4,7 @@ import { CaptureMode } from "../../container/log-collector";
 import { workspaceMountTarget } from "../../container/workspace-paths";
 import { agentFileMounts, skillDirMounts } from "../../container/setup/artifact-mounts";
 import { agentsBuildDir } from "../../container/setup/build-paths";
-import { writeCopilotConfig } from "../../container/setup/url-restrictions";
+import { COPILOT_SETTINGS_FILE, writeCopilotSettings } from "./copilot-settings";
 import type { Logger } from "../../logger";
 import type { CliLogSources, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
 import { COPILOT_CREDENTIALS } from "../credential-catalog";
@@ -13,7 +13,7 @@ import type { ICliOutputDecoder } from "../output-decoder";
 import { PlainTextDecoder } from "../plain-text-decoder";
 import { copilotAgentFileName } from "./copilot-agent-writer";
 import {
-  COPILOT_CONFIG_PATH,
+  COPILOT_SETTINGS_PATH,
   COPILOT_CONTAINER_LAYOUT,
   COPILOT_HOOKS_CONFIG_PATH,
   COPILOT_SESSION_DB_PATH,
@@ -32,27 +32,28 @@ export class CopilotRuntime implements ICliRuntime {
    * the run, and a later task mounts a different set.
    */
   readonly workspaceMountTargets = [
-    workspaceMountTarget(COPILOT_CONFIG_PATH, false),
+    workspaceMountTarget(COPILOT_SETTINGS_PATH, false),
     workspaceMountTarget(COPILOT_HOOKS_CONFIG_PATH, false),
     workspaceMountTarget(COPILOT_CONTAINER_LAYOUT.agentsDir, true),
     workspaceMountTarget(COPILOT_CONTAINER_LAYOUT.skillsDir, true),
   ];
 
   /**
-   * Mounts the URL-allowlist config, the audit hook config, and file by file into the target repo's
-   * `.github/`, the agents reachable from each container stage that runs Copilot and those stages' skills,
-   * so the target repo's own agents and skills stay visible. Passes `GH_TOKEN` by name.
+   * Points `COPILOT_HOME` at the layout's home and mounts the settings file, the audit hook config, and file
+   * by file into the target repo's `.github/`, the agents reachable from each container stage that runs
+   * Copilot and those stages' skills, so the target repo's own agents and skills stay visible. Passes
+   * `GH_TOKEN` by name.
    */
   composeContribution({ profile, paths, agents }: CliTaskInput): ComposeContribution {
     const stages = profile.stages.filter((s) => s.mode === StageMode.Container && s.cli === this.cli);
     const agentFiles = [...new Set(stages.flatMap((s) => agents.reachableFrom(s.agent)))].map(copilotAgentFileName);
     const skills = [...new Set(stages.flatMap((s) => s.skills))];
-    const env: Record<string, string> = {};
+    const env: Record<string, string> = { COPILOT_HOME: this.layout.configDir };
     for (const { envVar } of this.credentials.required) env[envVar] = `\${${envVar}}`;
 
     return {
       volumes: [
-        `${join(paths.buildDir, "copilot-config.json")}:${COPILOT_CONFIG_PATH}:ro`,
+        `${join(paths.buildDir, COPILOT_SETTINGS_FILE)}:${COPILOT_SETTINGS_PATH}:ro`,
         `${join(paths.hooksDir, "ralph-audit.json")}:${COPILOT_HOOKS_CONFIG_PATH}:ro`,
         ...agentFileMounts(agentFiles, agentsBuildDir(paths, this.cli), this.layout.agentsDir),
         ...skillDirMounts(skills, paths.skillsBuildDir, this.layout.skillsDir),
@@ -61,9 +62,13 @@ export class CopilotRuntime implements ICliRuntime {
     };
   }
 
-  /** Writes `copilot-config.json`, whose URL allowlist mirrors the task's generated `squid.conf`. */
+  /**
+   * Writes the Copilot settings file, whose URL allowlist mirrors the task's generated `squid.conf`.
+   *
+   * @throws Error when the task's `squid.conf` has not been written.
+   */
   writeTaskArtifacts({ paths }: CliTaskInput, logger: Logger): void {
-    writeCopilotConfig(paths.buildDir, logger);
+    writeCopilotSettings(paths.buildDir, logger);
   }
 
   /** The `--share` transcript, the debug log directory, the session state directory and the session database. */

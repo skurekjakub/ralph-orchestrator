@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { ResultPromise } from "execa";
-import { CLAUDE_CONTAINER_BINARY } from "../../cli/claude/claude-layout";
 import { CLAUDE_BUILTIN_TOOLS, CLAUDE_SUBAGENT_TOOL } from "../../cli/claude/claude-tools";
 import type { ICliRuntime } from "../../cli/cli-runtime";
 import { CliType, type IAgentProfile, type IStageConfig } from "../../config/types";
@@ -95,7 +94,7 @@ export class ClaudeCodeExecutor implements ICliExecutor {
       `RALPH_REQUIRE_RESULT_BLOCK=${requireResultBlock ? "1" : "0"}`,
       ...(spawnsSubagents ? ["-e", `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=${this.subagentDepth}`] : []),
       "app",
-      CLAUDE_CONTAINER_BINARY,
+      this.runtime.layout.binary,
       "-p",
       "--output-format",
       "stream-json",

@@ -135,9 +135,9 @@ If the gateway HTTP server has any command injection, path traversal, or prototy
 
 ### H6 — Copilot CLI Config Tamper (URL Restriction Bypass)
 
-**Root cause:** `src/container/setup/url-restrictions.ts` writes a `copilot-config.json` to `.build/` and mounts it into the container. The agent's working directory includes `.ralph/` configuration paths.
+**Root cause:** `src/cli/copilot/copilot-settings.ts` writes a `copilot-settings.json` to `.build/` and mounts it into the container. The agent's working directory includes `.ralph/` configuration paths.
 
-If the agent can overwrite the config file (depends on mount mode and filesystem permissions), it can disable or modify the `allowed_urls` list entirely. The config is read by the Copilot CLI at runtime; Squid would still enforce its allowlist, but the CLI-level restriction disappears.
+If the agent can overwrite the config file (depends on mount mode and filesystem permissions), it can disable or modify the `allowedUrls` list entirely. The config is read by the Copilot CLI at runtime; Squid would still enforce its allowlist, but the CLI-level restriction disappears.
 
 **Impact:** CLI-layer URL filtering removed. Combined with H1/H2 this enables unrestricted egress to any Squid-allowed domain.
 

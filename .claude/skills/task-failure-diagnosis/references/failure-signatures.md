@@ -17,7 +17,7 @@ Catalog of observed failure patterns. Each entry describes the signature (what y
 
 **Common underlying causes:**
 
-- Invalid `--config-dir` path (Copilot CLI)
+- A flag that persists a setting (e.g. `--experimental`) makes Copilot CLI exit 1 without output, since its `settings.json` is mounted read-only
 - MCP config JSON syntax error
 - Missing environment variable referenced in CLI flags
 - Copilot CLI version incompatibility

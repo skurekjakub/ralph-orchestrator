@@ -1,6 +1,5 @@
 import type { ResultPromise } from "execa";
 import type { ICliRuntime } from "../../cli/cli-runtime";
-import { COPILOT_CONTAINER_LAYOUT } from "../../cli/copilot/copilot-layout";
 import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
 import { CliType, type IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
@@ -18,7 +17,7 @@ export interface CopilotExecutorDeps {
   readonly compose: IComposeClient;
   /** The variant with the stage's overrides applied (`deriveStageProfile`): agent, model, timeout, repo path. */
   readonly profile: IAgentProfile;
-  /** The Copilot runtime, for its output decoder. */
+  /** The Copilot runtime: container layout and output decoder. */
   readonly runtime: ICliRuntime;
   readonly logger: Logger;
 }
@@ -91,13 +90,11 @@ export class CopilotExecutor implements ICliExecutor {
    */
   private async exec(promptFlags: string[], prompt: string): Promise<ContainerExecResult> {
     writePromptFile(this.profile.repoPath, prompt);
-    const layout = COPILOT_CONTAINER_LAYOUT;
+    const { layout } = this.runtime;
 
     const shellCmd = [
       "exec",
-      "copilot",
-      "--config-dir",
-      layout.configDir,
+      layout.binary,
       "--additional-mcp-config",
       `@${MCP_CONFIG_CONTAINER_PATH}`,
       "--agent",
@@ -109,11 +106,9 @@ export class CopilotExecutor implements ICliExecutor {
       "debug",
       "--log-dir",
       layout.debugLog.path,
-      "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
-      "--share",
-      layout.transcriptPath,
+      ...(layout.transcriptPath === null ? [] : ["--share", layout.transcriptPath]),
       ...promptFlags,
       `"$(cat ${PROMPT_FILE})"`,
     ].join(" ");

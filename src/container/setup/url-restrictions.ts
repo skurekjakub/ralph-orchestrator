@@ -1,9 +1,3 @@
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import type { Logger } from "../../logger";
-
-// ── Copilot CLI config generation (URL allowlist) ────────────────────────────
-
 /**
  * Extract allowed domains from a profile's squid.conf.
  *
@@ -53,7 +47,7 @@ function squidDomainToUrlPattern(domain: string): string {
 }
 
 /**
- * Generate `allowed_urls` for the Copilot CLI config.
+ * Generate the Copilot CLI URL allowlist (`allowedUrls`).
  *
  * Converts squid domain entries to Copilot URL patterns. For host loopback
  * ports, emits `http://host.docker.internal:<port>/*` patterns.
@@ -71,29 +65,7 @@ export function generateAllowedUrls(squidDomains: string[], hostLoopbackPorts: n
   return [...new Set(urls)].sort();
 }
 
-/**
- * Generate and write the Copilot CLI config file with URL restrictions.
- *
- * Reads the profile's squid.conf to discover all allowed domains and
- * converts them to Copilot URL patterns. The resulting config.json is
- * mounted at `/workspace/.ralph/config.json` and read by the Copilot CLI
- * via `--config-dir /workspace/.ralph`. Writes nothing when the build directory has no `squid.conf`.
- *
- * @param buildDir Profile build directory (`.build/`).
- */
-export function writeCopilotConfig(buildDir: string, logger: Logger): void {
-  const squidConfPath = join(buildDir, "squid.conf");
-  if (!existsSync(squidConfPath)) {
-    logger.warn(`No squid.conf in ${buildDir}, skipping copilot-config.json`);
-    return;
-  }
-
-  const squidConf = readFileSync(squidConfPath, "utf-8");
-  const squidDomains = parseSquidDomains(squidConf);
-  const hostLoopbackPorts = parseSquidHostLoopbackPorts(squidConf);
-  const allowedUrls = generateAllowedUrls(squidDomains, hostLoopbackPorts);
-
-  const config = { allowed_urls: allowedUrls };
-  writeFileSync(join(buildDir, "copilot-config.json"), JSON.stringify(config, null, 2) + "\n", "utf-8");
-  logger.info(`Wrote copilot-config.json with ${allowedUrls.length} allowed URLs: ${allowedUrls.join(", ")}`);
+/** Copilot URL patterns for every domain and host loopback port a squid.conf allows. */
+export function allowedUrlsOf(squidConf: string): string[] {
+  return generateAllowedUrls(parseSquidDomains(squidConf), parseSquidHostLoopbackPorts(squidConf));
 }

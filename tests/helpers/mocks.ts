@@ -215,6 +215,7 @@ export function createMockCliRuntime(
       skillsDir: `/workspace/.cfg-${cli}/skills`,
       debugLog: { kind: CliDebugLogKind.File, path: `/workspace/.cfg-${cli}/debug.log` },
       transcriptPath: null,
+      binary: `/usr/local/bin/${cli}`,
     },
     models: modelPolicyFor(cli),
     credentials: { required: [] },

@@ -227,24 +227,24 @@ The scripts are mounted by the security overlay at `/workspace/.ralph/hooks/`. E
 - Run by Copilot CLI and Claude Code in the container. Local-mode stages don't get these hooks.
 - Audit-only — the hook never blocks a tool call.
 
-### Copilot CLI URL Allowlist (`copilot-config.json`)
+### Copilot CLI URL Allowlist (`copilot-settings.json`)
 
-The Copilot CLI's built-in URL permission system, configured via a generated config file. The CLI checks URLs at its own permission layer before tools execute.
+The Copilot CLI's built-in URL permission system, configured via a generated settings file. The CLI checks URLs at its own permission layer before tools execute.
 
-At startup, `writeCopilotConfig()` (`src/container/setup/url-restrictions.ts`):
+Before each task, `writeCopilotSettings()` (`src/cli/copilot/copilot-settings.ts`):
 
 1. Parses the profile's generated `squid.conf` for allowed domains
 2. Converts each domain to a URL pattern: `.example.com` → `https://*.example.com`, `api.github.com` → `https://api.github.com`
 3. Adds `http://host.docker.internal:<port>/*` for each host loopback port in the squid config
-4. Writes `copilot-config.json` with the `allowed_urls` patterns
+4. Writes `copilot-settings.json` with the `allowedUrls` patterns and `experimental: true`
 
-The allowlist therefore mirrors the Squid domain allowlist. It adds no path scoping.
+It throws when the profile's `squid.conf` is missing. The allowlist therefore mirrors the Squid domain allowlist. It adds no path scoping.
 
-The config is mounted read-only at `/workspace/.ralph/config.json` and read by the CLI via `--config-dir /workspace/.ralph`. The CLI runs with `--allow-all-tools --allow-all-paths` instead of `--yolo` (which includes `--allow-all-urls`), so URL checks stay active.
+The settings are mounted read-only at `/workspace/.ralph/settings.json`, and `COPILOT_HOME=/workspace/.ralph` makes the CLI read them. The CLI runs with `--allow-all-tools --allow-all-paths` instead of `--yolo` (which includes `--allow-all-urls`), so URL checks stay active.
 
 **Limitations:**
 
-- Applies only to the Copilot CLI running in the container, which reads it via `--config-dir`. Local-mode stages don't get it.
+- Applies only to the Copilot CLI running in the container. Local-mode stages don't get it.
 - Domain-level only — any path on an allowlisted domain is permitted.
 
 ### Defense Layering Summary
@@ -268,7 +268,7 @@ The config is mounted read-only at `/workspace/.ralph/config.json` and read by t
 
 ### Local-Mode Stages
 
-Stages with `mode: "local"` — including every post-task hook stage — run the Copilot CLI directly on the orchestrator host via `LocalCopilotExecutor`. They run in the orchestrator repo root with `--allow-all-tools --allow-all-paths` and inherit the orchestrator's environment, including the secrets loaded from `.env`. They get no `--config-dir`, so no `copilot-config.json` URL allowlist or audit hooks. None of the container controls in this document (network isolation, Squid, capability drop, resource limits) apply to them.
+Stages with `mode: "local"` — including every post-task hook stage — run the Copilot CLI directly on the orchestrator host via `LocalCopilotExecutor`. They run in the orchestrator repo root with `--allow-all-tools --allow-all-paths` and inherit the orchestrator's environment, including the secrets loaded from `.env`. They read the host user's own Copilot settings, so they get neither the `copilot-settings.json` URL allowlist nor the audit hooks. None of the container controls in this document (network isolation, Squid, capability drop, resource limits) apply to them.
 
 ## What the Agent Can Still Do
 
@@ -311,7 +311,7 @@ For all profiles, add it to the baseline allowlist in `shared/security/squid.con
 acl allowed_domains dstdomain .example.com
 ```
 
-Restart the orchestrator so it regenerates the profile's `squid.conf` and `copilot-config.json`. The domain will appear in proxy logs for verification.
+Restart the orchestrator so it regenerates the profile's `squid.conf` and `copilot-settings.json`. The domain will appear in proxy logs for verification.
 
 ### How do I expose a host service (e.g. local RAG endpoint) to the agent?
 

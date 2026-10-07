@@ -66,13 +66,13 @@ describe("CopilotRuntime", () => {
 
       // Assert
       expect(volumes).toEqual([
-        `${PATHS.buildDir}/copilot-config.json:/workspace/.ralph/config.json:ro`,
+        `${PATHS.buildDir}/copilot-settings.json:/workspace/.ralph/settings.json:ro`,
         "/repo/shared/hooks/ralph-audit.json:/workspace/.github/hooks/ralph-audit.json:ro",
         `${PATHS.buildDir}/copilot/agents/ralph.ralph.agent.md:/workspace/.github/agents/ralph.ralph.agent.md:ro`,
         `${PATHS.buildDir}/copilot/agents/ralph.writer.agent.md:/workspace/.github/agents/ralph.writer.agent.md:ro`,
         `${PATHS.buildDir}/skills/code-review:/workspace/.github/skills/code-review:ro`,
       ]);
-      expect(env).toEqual({ GH_TOKEN: "${GH_TOKEN}" });
+      expect(env).toEqual({ COPILOT_HOME: "/workspace/.ralph", GH_TOKEN: "${GH_TOKEN}" });
     });
 
     it("mounts each agent once when two stages reach it", () => {
@@ -107,10 +107,10 @@ describe("CopilotRuntime", () => {
     expect(runtime.egressDomains).toEqual([".githubcopilot.com", "api.github.com", "github.com"]);
   });
 
-  it("reports its config, its hook config and the whole agents and skills directories as mount targets", () => {
+  it("reports its settings, its hook config and the whole agents and skills directories as mount targets", () => {
     // Act & Assert
     expect(runtime.workspaceMountTargets).toEqual([
-      ".ralph/config.json",
+      ".ralph/settings.json",
       ".github/hooks/ralph-audit.json",
       ".github/agents/",
       ".github/skills/",

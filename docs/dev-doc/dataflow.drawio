@@ -92,7 +92,7 @@
         </mxCell>
 
         <!-- Profile Setup (startup) -->
-        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (baseline + allowlistDomains)&lt;br&gt;copilot-config.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="profilesetup" value="&lt;b&gt;ProfileSetup&lt;/b&gt; (startup)&lt;br&gt;&lt;font size=&quot;1&quot;&gt;mcp-config.json (URL-only)&lt;br&gt;gateway.json (secrets)&lt;br&gt;compose overlay&lt;br&gt;squid.conf (baseline + allowlistDomains)&lt;br&gt;copilot-settings.json&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="160" y="440" width="160" height="85" as="geometry" />
         </mxCell>
 
@@ -143,7 +143,7 @@
         </mxCell>
 
         <!-- .build directory -->
-        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf, copilot-config.json&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="builddir" value="&lt;b&gt;profiles/&amp;lt;id&amp;gt;/.build/&lt;/b&gt;&lt;br&gt;&lt;font size=&quot;1&quot;&gt;• gateway.json (JIT-mutated)&lt;br&gt;• mcp-config.json (URL-only)&lt;br&gt;• docker-compose.overlay.yml&lt;br&gt;• squid.conf, copilot-settings.json&lt;br&gt;• rendered agent templates&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1050" y="310" width="180" height="140" as="geometry" />
         </mxCell>
 

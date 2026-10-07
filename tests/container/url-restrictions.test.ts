@@ -1,26 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { describe, it, expect } from "vitest";
 import {
   parseSquidDomains,
   parseSquidHostLoopbackPorts,
   generateAllowedUrls,
-  writeCopilotConfig,
+  allowedUrlsOf,
 } from "../../src/container/setup/url-restrictions";
-import { createTempDir } from "../helpers/mcp-fs";
-import { createMockLogger } from "../helpers/mocks";
 
 describe("URL Restrictions", () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = createTempDir();
-  });
-
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
   describe("parseSquidDomains", () => {
     it("extracts domains from acl allowed_domains dstdomain lines", () => {
       const conf = [
@@ -103,46 +89,25 @@ describe("URL Restrictions", () => {
     });
   });
 
-  describe("writeCopilotConfig", () => {
-    it("writes copilot-config.json with allowed_urls derived from squid.conf", () => {
-      const buildDir = join(tempDir, "build");
-      mkdirSync(buildDir, { recursive: true });
-
-      writeFileSync(
-        join(buildDir, "squid.conf"),
-        [
-          "acl allowed_domains dstdomain .githubcopilot.com",
-          "acl allowed_domains dstdomain .anthropic.com",
-          "acl allowed_domains dstdomain .npmjs.org",
-          "acl host_loopback dstdomain host.docker.internal",
-          "acl host_loopback_ports port 4500",
-        ].join("\n"),
-      );
-
-      writeCopilotConfig(buildDir, createMockLogger());
-
-      const outPath = join(buildDir, "copilot-config.json");
-      expect(existsSync(outPath)).toBe(true);
-
-      const config = JSON.parse(readFileSync(outPath, "utf-8"));
-      expect(config.allowed_urls).toContain("https://*.githubcopilot.com");
-      expect(config.allowed_urls).toContain("https://*.anthropic.com");
-      expect(config.allowed_urls).toContain("https://*.npmjs.org");
-      expect(config.allowed_urls).toContain("http://host.docker.internal:4500/*");
-    });
-
-    it("writes nothing and warns when squid.conf does not exist", () => {
+  describe("allowedUrlsOf", () => {
+    it("converts every allowed domain and host loopback port of a squid.conf", () => {
       // Arrange
-      const buildDir = join(tempDir, "build");
-      mkdirSync(buildDir, { recursive: true });
-      const logger = createMockLogger();
+      const conf = [
+        "acl allowed_domains dstdomain .githubcopilot.com",
+        "acl allowed_domains dstdomain api.github.com",
+        "acl host_loopback dstdomain host.docker.internal",
+        "acl host_loopback_ports port 4500",
+      ].join("\n");
 
       // Act
-      writeCopilotConfig(buildDir, logger);
+      const urls = allowedUrlsOf(conf);
 
       // Assert
-      expect(existsSync(join(buildDir, "copilot-config.json"))).toBe(false);
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("No squid.conf"));
+      expect(urls).toEqual([
+        "http://host.docker.internal:4500/*",
+        "https://*.githubcopilot.com",
+        "https://api.github.com",
+      ]);
     });
   });
 });

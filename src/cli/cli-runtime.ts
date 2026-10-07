@@ -15,7 +15,12 @@ export enum CliDebugLogKind {
 
 /** Filesystem layout of one CLI inside the agent container. All paths are absolute container paths. */
 export interface CliContainerLayout {
-  /** CLI home directory (Copilot `--config-dir`, Claude Code `CLAUDE_CONFIG_DIR`). */
+  /**
+   * The CLI binary, installed root-owned in the agent images and run by absolute path so a user-level
+   * npm install that lands earlier on `PATH` cannot stand in for it.
+   */
+  readonly binary: string;
+  /** CLI home directory (Copilot `COPILOT_HOME`, Claude Code `CLAUDE_CONFIG_DIR`). */
   readonly configDir: string;
   /** Directories that must exist and be writable by the `vscode` user before the CLI starts. */
   readonly writableDirs: readonly string[];

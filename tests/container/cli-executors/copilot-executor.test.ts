@@ -55,9 +55,9 @@ describe("CopilotExecutor", () => {
 
       // Assert
       expect(shellCmd(compose)).toBe(
-        "exec copilot --config-dir /workspace/.ralph --additional-mcp-config @/workspace/.ralph/mcp-config.json " +
+        "exec /usr/local/bin/copilot --additional-mcp-config @/workspace/.ralph/mcp-config.json " +
           "--agent ralph.ralph --model claude-opus-4.6 --disable-builtin-mcps --log-level debug " +
-          "--log-dir /workspace/.ralph/logs/cli-debug --experimental --allow-all-tools --allow-all-paths " +
+          "--log-dir /workspace/.ralph/logs/cli-debug --allow-all-tools --allow-all-paths " +
           '--share /workspace/.ralph/logs/session-transcript.md -p "$(cat /workspace/.ralph/prompt.txt)"',
       );
       expect(vi.mocked(compose.execWithTimeout).mock.calls[0][1]).toBe(1234);
