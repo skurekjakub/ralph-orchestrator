@@ -34,7 +34,7 @@ import type { IDataSourceConnector } from "./datasource/connector";
 import type { IWorkItemPoller } from "./datasource/poller";
 import type { IProfileSetupService } from "./services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor";
-import type { IVcsSourceClient } from "./services/vcs-source-client";
+import type { IVcsSourceClient, IVcsSourceProviderClient } from "./services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "./services/task-workspace-manager";
 import type { IStageWorkspaceResolver } from "./services/stage-workspace";
 
@@ -73,6 +73,7 @@ export interface OrchestratorCradle {
   // Services
   issueManager: IIssueManager;
   resources: IResourceManager;
+  vcsProviderClients: readonly IVcsSourceProviderClient[];
   vcsSourceClient: IVcsSourceClient;
 
   // Orchestration

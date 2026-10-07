@@ -1,11 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VcsProvider } from "../../src/config/types";
-import { VcsSourceClient } from "../../src/services/vcs-source-client";
+import {
+  VcsSourceClient,
+  adoVcsSourceProviderClient,
+  githubVcsSourceProviderClient,
+} from "../../src/services/vcs-source-client";
 import { makeProfile } from "../helpers/factories";
 import { createMockLogger } from "../helpers/mocks";
 
 describe("VcsSourceClient", () => {
-  const client = new VcsSourceClient();
+  const client = new VcsSourceClient({
+    vcsProviderClients: [adoVcsSourceProviderClient, githubVcsSourceProviderClient],
+  });
 
   beforeEach(() => {
     vi.unstubAllGlobals();
@@ -104,7 +110,7 @@ describe("VcsSourceClient", () => {
   });
 
   it("returns null when no implementation is registered for the configured vcsProvider", async () => {
-    const clientWithoutImplementations = new VcsSourceClient([]);
+    const clientWithoutImplementations = new VcsSourceClient({ vcsProviderClients: [] });
     const profile = makeProfile({ vcsProvider: VcsProvider.Ado, repoPat: "ADO_PAT" });
     const logger = createMockLogger();
 

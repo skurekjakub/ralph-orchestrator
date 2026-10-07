@@ -22,7 +22,8 @@ export interface IVcsSourceClient {
   ): Promise<PullRequestBranchInfo | null>;
 }
 
-interface IVcsSourceProviderClient {
+/** One VCS provider's pull-request lookup, selected by {@link VcsProvider}. */
+export interface IVcsSourceProviderClient {
   readonly provider: VcsProvider;
   resolvePullRequestBranches(
     profile: IAgentProfile,
@@ -68,8 +69,8 @@ function buildAuthHeaders(provider: VcsProvider, pat: string): Record<string, st
   }
 }
 
-class AdoVcsSourceProviderClient implements IVcsSourceProviderClient {
-  readonly provider = VcsProvider.Ado;
+export const adoVcsSourceProviderClient: IVcsSourceProviderClient = {
+  provider: VcsProvider.Ado,
 
   async resolvePullRequestBranches(
     _profile: IAgentProfile,
@@ -104,11 +105,11 @@ class AdoVcsSourceProviderClient implements IVcsSourceProviderClient {
       sourceBranch: stripRefPrefix(data.sourceRefName),
       targetBranch: stripRefPrefix(data.targetRefName),
     };
-  }
-}
+  },
+};
 
-class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
-  readonly provider = VcsProvider.GitHub;
+export const githubVcsSourceProviderClient: IVcsSourceProviderClient = {
+  provider: VcsProvider.GitHub,
 
   async resolvePullRequestBranches(
     _profile: IAgentProfile,
@@ -139,8 +140,8 @@ class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
       sourceBranch: data.head.ref,
       targetBranch: data.base.ref,
     };
-  }
-}
+  },
+};
 
 /**
  * Provider-selecting facade for pull-request metadata lookup.
@@ -151,13 +152,8 @@ class GitHubVcsSourceProviderClient implements IVcsSourceProviderClient {
 export class VcsSourceClient implements IVcsSourceClient {
   private readonly clients: ReadonlyMap<VcsProvider, IVcsSourceProviderClient>;
 
-  constructor(
-    clients: readonly IVcsSourceProviderClient[] = [
-      new AdoVcsSourceProviderClient(),
-      new GitHubVcsSourceProviderClient(),
-    ],
-  ) {
-    this.clients = new Map(clients.map((client) => [client.provider, client]));
+  constructor({ vcsProviderClients }: { vcsProviderClients: readonly IVcsSourceProviderClient[] }) {
+    this.clients = new Map(vcsProviderClients.map((client) => [client.provider, client]));
   }
 
   /** Resolve branches using the implementation registered for `profile.vcsProvider`. */

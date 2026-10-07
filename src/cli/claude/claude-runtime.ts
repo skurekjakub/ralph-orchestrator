@@ -26,7 +26,7 @@ import {
 import { CLAUDE_HEADLESS_ENV } from "./claude-session";
 import { sessionSettingsPath, userSettingsPath, writeClaudeSettings } from "./claude-settings";
 import { ClaudeStreamJsonDecoder } from "./stream-json-decoder";
-import { ClaudeAgentWriter } from "./claude-agent-writer";
+import { claudeAgentWriter } from "./claude-agent-writer";
 import { CLAUDE_TOOL_NAMES } from "./claude-tools";
 import { readClaudeSessions } from "./session-log";
 import { extractClaudeTelemetry } from "./session-telemetry";
@@ -50,7 +50,7 @@ export class ClaudeCodeRuntime implements ICliRuntime {
   readonly layout = CLAUDE_CONTAINER_LAYOUT;
   readonly models = CLAUDE_MODEL_POLICY;
   readonly credentials: ICliCredentialPolicy;
-  readonly agentWriter = new ClaudeAgentWriter();
+  readonly agentWriter = claudeAgentWriter;
   readonly toolNames = CLAUDE_TOOL_NAMES;
   readonly mountsEachRenderedItem = false;
   readonly egressDomains = ["api.anthropic.com"];

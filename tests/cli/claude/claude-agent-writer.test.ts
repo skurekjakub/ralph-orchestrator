@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ClaudeAgentWriter } from "../../../src/cli/claude/claude-agent-writer";
+import { claudeAgentWriter } from "../../../src/cli/claude/claude-agent-writer";
 import { ClaudeBuiltinTool } from "../../../src/cli/claude/claude-tools";
 import type { AgentWriteContext } from "../../../src/cli/agent-file-writer";
 import { splitFrontmatter } from "../../../src/util/frontmatter";
@@ -14,8 +14,8 @@ function frontmatterOf(content: string): string[] {
   return splitFrontmatter(content).frontmatter.trimEnd().split("\n");
 }
 
-describe("ClaudeAgentWriter", () => {
-  const writer = new ClaudeAgentWriter();
+describe("claudeAgentWriter", () => {
+  const writer = claudeAgentWriter;
 
   it("writes <name>.md with the canonical keys and the body unchanged", () => {
     // Arrange

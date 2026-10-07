@@ -30,7 +30,11 @@ import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
 import { CliExecutorFactory } from "./container/cli-executor-factory";
 import { ProfileSetupService } from "./services/profile-setup-service";
 import { AgentPipelineExecutor } from "./services/agent-pipeline-executor";
-import { VcsSourceClient } from "./services/vcs-source-client";
+import {
+  VcsSourceClient,
+  adoVcsSourceProviderClient,
+  githubVcsSourceProviderClient,
+} from "./services/vcs-source-client";
 import { ContainerLogCollector } from "./container/log-collector";
 import { ContainerWorkspaceCleaner } from "./container/workspace-cleaner";
 import { LogSourceRegistry } from "./container/log-source-registry";
@@ -157,7 +161,8 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
 
     issueManager: w.service(IssueManager).singleton(),
     resources: w.service(TaskResourceManager).singleton(),
-    vcsSourceClient: w.factory(() => new VcsSourceClient()).singleton(),
+    vcsProviderClients: asValue([adoVcsSourceProviderClient, githubVcsSourceProviderClient]),
+    vcsSourceClient: w.service(VcsSourceClient).singleton(),
 
     ledger: w.service(OperationLedger).singleton(),
     router: w.service(ProfileRouter).singleton(),

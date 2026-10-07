@@ -2,15 +2,15 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { CopilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
+import { copilotAgentWriter } from "../../../src/cli/copilot/copilot-agent-writer";
 import { renderAgents } from "../../../src/container/setup/agent-includes";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeBuiltinTool } from "../../../src/cli/claude/claude-tools";
 import { CliType, ReasoningEffort } from "../../../src/config/types";
 import { makeAgentDefinition, makeTemplateContext } from "../../helpers/factories";
 
-describe("CopilotAgentWriter", () => {
-  const writer = new CopilotAgentWriter();
+describe("copilotAgentWriter", () => {
+  const writer = copilotAgentWriter;
 
   describe("rendered agent files (golden)", () => {
     let dir: string;

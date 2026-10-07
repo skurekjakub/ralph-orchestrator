@@ -19,7 +19,7 @@ import { COPILOT_CREDENTIALS } from "../credential-catalog";
 import { COPILOT_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
 import { PlainTextDecoder } from "../plain-text-decoder";
-import { CopilotAgentWriter, copilotAgentFileName } from "./copilot-agent-writer";
+import { copilotAgentFileName, copilotAgentWriter } from "./copilot-agent-writer";
 import { COPILOT_TOOL_NAMES } from "./copilot-tools";
 import {
   COPILOT_SETTINGS_PATH,
@@ -35,7 +35,7 @@ export class CopilotRuntime implements ICliRuntime {
   readonly layout = COPILOT_CONTAINER_LAYOUT;
   readonly models = COPILOT_MODEL_POLICY;
   readonly credentials = COPILOT_CREDENTIALS;
-  readonly agentWriter = new CopilotAgentWriter();
+  readonly agentWriter = copilotAgentWriter;
   readonly toolNames = COPILOT_TOOL_NAMES;
   readonly mountsEachRenderedItem = true;
   readonly egressDomains = [".githubcopilot.com", "api.github.com", "github.com"];

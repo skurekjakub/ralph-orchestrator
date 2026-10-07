@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AgentCatalog } from "../../../src/cli/agent-catalog";
 import { ClaudeCodeRuntime } from "../../../src/cli/claude/claude-runtime";
-import { ClaudeAgentWriter } from "../../../src/cli/claude/claude-agent-writer";
+import { claudeAgentWriter } from "../../../src/cli/claude/claude-agent-writer";
 import { ClaudeStreamJsonDecoder } from "../../../src/cli/claude/stream-json-decoder";
 import { ClaudeAuthMode, CliType } from "../../../src/config/types";
 import { CaptureMode } from "../../../src/container/log-collector";
@@ -53,7 +53,7 @@ describe("ClaudeCodeRuntime", () => {
     const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
 
     // Act & Assert
-    expect(runtime.agentWriter).toBeInstanceOf(ClaudeAgentWriter);
+    expect(runtime.agentWriter).toBe(claudeAgentWriter);
     expect(runtime.mountsEachRenderedItem).toBe(false);
     expect(runtime.toolNames).toEqual({
       subagent: "Agent",
