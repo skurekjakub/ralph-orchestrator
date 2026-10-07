@@ -2,16 +2,16 @@
 
 Audit hooks for the agent CLIs and the Claude Code result gate. The security overlay mounts this directory read-only at `/workspace/.ralph/hooks` (`${SHARED_HOOKS_PATH}`).
 
-| Path                               | Role                                                                                                      |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)   |
-| `claude/hooks.json`                | Claude Code `hooks` object for Ralph's session settings                                                   |
-| `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                    |
-| `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                           |
-| `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                              |
-| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record, `ralph.log` line and tool-output block, before redaction                   |
-| `lib/record.jq`                    | Helpers shared by the adapters: record layout, MCP name split, result-block detection, the envelope lines |
-| `lib/redact.pl`                    | Scrubs credentials from every string of the envelope, cuts long audit text, prints the shell assignments  |
+| Path                               | Role                                                                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `log-*.sh`                         | Hook entry points, one per event. `--cli copilot\|claude` picks the payload adapter (default `copilot`)                                                                |
+| `claude/hooks.json`                | Claude Code `hooks` object for Ralph's session settings                                                                                                                        |
+| `claude/result-gate.sh`            | Claude Code `Stop` hook that enforces the result block                                                                                                                 |
+| `ralph-audit.json`                 | Copilot CLI hook config, mounted at `/workspace/.github/hooks/ralph-audit.json`                                                                                        |
+| `lib/common.sh`                    | Argument parsing, failure policy and the single audit writer                                                                                                           |
+| `lib/adapters/{claude,copilot}.jq` | Raw payload → v2 audit record, `ralph.log` line and tool-output block, before redaction                                                                                |
+| `lib/record.jq`                    | Helpers shared by the adapters: record layout, MCP name split, result-block detection, the envelope lines                                                              |
+| `lib/redact.pl`                    | Scrubs credentials from every string of the envelope, cuts long audit text, prints the shell assignments; with `--text`, scrubs stdin whole for the host's transcripts |
 
 ## Contract for the Claude Code settings writer
 
@@ -29,7 +29,7 @@ Audit hooks for the agent CLIs and the Claude Code result gate. The security ove
 - **Stdout stays empty.** Claude Code adds `SessionStart` and `UserPromptSubmit` stdout to the model context. Only the result gate prints, and only its block decision.
 - **Arguments are strict.** An unknown flag, a stray word or an event the CLI never emits becomes a `hook_error`, so a misspelt command is visible in the audit trail.
 - **Claude Code payloads name their event.** The record event, `resultType` (`PostToolUseFailure` → `failure`) and the subagent start or stop come from `hook_event_name`. A payload without one, or one meant for another script (a `PostToolUse` payload sent to `log-pre-tool.sh`, a `SubagentStop` sent to the result gate), becomes a `hook_error`, so a miswired `claude/hooks.json` entry shows up in the audit trail.
-- **Redaction.** `lib/redact.pl` scrubs every string of the record, the `ralph.log` line and the tool-output block of: the literal values of credential variables in the hook environment (names containing `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`, or a `PAT` segment), `sk-ant-…`, `gh[pousr]_…` and `github_pat_…` tokens, `Authorization: Bearer|Basic|token …` values, URL passwords, `*TOKEN=…`-style assignments and `"…token": "…"`-style JSON fields. Literal values are replaced longest first, so one that contains another goes whole. Each pattern is a single scan, so the cost grows with the text length and not with the number of matches. `resultText` and `lastMessage` are cut after scrubbing, so a secret across the cut leaves no prefix behind.
+- **Redaction.** `lib/redact.pl` scrubs every string of the record, the `ralph.log` line and the tool-output block of: the literal values of credential variables in the hook environment (names containing `TOKEN`, `SECRET`, `PASSWORD`, `API_KEY`, `PRIVATE_KEY`, `CREDENTIAL`, or a `PAT` segment), `sk-ant-…`, `gh[pousr]_…` and `github_pat_…` tokens, `Authorization: Bearer|Basic|token …` values, URL passwords, `*TOKEN=…`-style assignments and `"…token": "…"`-style JSON fields. Literal values are replaced longest first, so one that contains another goes whole. Each pattern is a single scan, so the cost grows with the text length and not with the number of matches. `resultText` and `lastMessage` are cut after scrubbing, so a secret across the cut leaves no prefix behind. The orchestrator runs the same script on the host as `perl redact.pl --text`, which scrubs all of stdin as one UTF-8 text and prints it whole and uncut, so the transcripts it stores and attaches follow these rules too; it passes its own environment, which holds every secret from `.env`.
 
 Files written to `RALPH_LOG_DIR`:
 

@@ -4,6 +4,9 @@
 # and prints RALPH_RECORD, RALPH_LOG_LINE and RALPH_TOOL_OUTPUT as shell
 # assignments. Every pass is one regex scan, so the cost grows with the text
 # length and not with the number of secrets in it.
+#
+# With --text it scrubs all of stdin as one UTF-8 text and prints it whole,
+# for the transcripts the orchestrator stores and attaches on the host.
 use strict;
 use warnings;
 
@@ -73,6 +76,17 @@ sub sh_quote {
   utf8::encode($text);
   $text =~ s/'/'\\''/g;
   return "'$text'";
+}
+
+if (@ARGV) {
+  die "usage: redact.pl [--text]\n" unless @ARGV == 1 && $ARGV[0] eq '--text';
+  local $/;
+  my $text = <STDIN> // '';
+  utf8::decode($text);
+  $text = redact($text);
+  utf8::encode($text);
+  print $text;
+  exit 0;
 }
 
 my (@record, %text);

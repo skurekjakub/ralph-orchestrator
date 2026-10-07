@@ -4,7 +4,7 @@ import { CaptureMode } from "../../container/log-collector";
 import { workspaceMountTarget } from "../../container/workspace-paths";
 import { agentsBuildDir } from "../../container/setup/build-paths";
 import type { Logger } from "../../logger";
-import type { CliLogSources, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
+import type { CliLogSources, CliRunArtifacts, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
 import { claudeCodeCredentials, type ICliCredentialPolicy } from "../credential-catalog";
 import { CLAUDE_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
@@ -18,6 +18,12 @@ import { sessionSettingsPath, userSettingsPath, writeClaudeSettings } from "./cl
 import { ClaudeStreamJsonDecoder } from "./stream-json-decoder";
 import { ClaudeAgentWriter } from "./claude-agent-writer";
 import { CLAUDE_TOOL_NAMES } from "./claude-tools";
+import { readClaudeSessions } from "./session-log";
+import { extractClaudeTelemetry } from "./session-telemetry";
+import { renderClaudeTranscript } from "./transcript-renderer";
+
+/** Log id of the collected sessions folder. */
+const CLAUDE_SESSIONS_LOG_ID = "claude-sessions";
 
 /**
  * Environment of every Claude Code container session.
@@ -105,12 +111,21 @@ export class ClaudeCodeRuntime implements ICliRuntime {
           onLine: onDebugLine,
         },
       ],
-      exports: [{ id: "claude-sessions", service: "app", containerPath: CLAUDE_SESSIONS_DIR }],
+      exports: [{ id: CLAUDE_SESSIONS_LOG_ID, service: "app", containerPath: CLAUDE_SESSIONS_DIR }],
     };
   }
 
   createOutputDecoder(): ICliOutputDecoder {
     return new ClaudeStreamJsonDecoder();
+  }
+
+  /** Renders the transcript and extracts the telemetry of every session in the collected sessions folder. */
+  async deriveRunArtifacts(collectedLogs: Readonly<Record<string, string>>): Promise<CliRunArtifacts> {
+    const exportDir = collectedLogs[CLAUDE_SESSIONS_LOG_ID];
+    if (exportDir === undefined) return { transcript: null, telemetry: null };
+    const sessions = await readClaudeSessions(exportDir);
+    if (sessions.length === 0) return { transcript: null, telemetry: null };
+    return { transcript: renderClaudeTranscript(sessions), telemetry: extractClaudeTelemetry(sessions) };
   }
 
   /** Ralph's `SessionStart` hook records Claude Code's own session id; unparsable lines are skipped. */

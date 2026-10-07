@@ -26,6 +26,8 @@ import type { IComposeOverlayWriter } from "./container/setup/compose-overlay-wr
 import type { ITriggerScanner } from "./services/trigger-scanner";
 import type { ITaskRunner } from "./services/task-runner";
 import type { ITaskResultWriter } from "./services/task-result-writer";
+import type { IRunArtifactsDeriver } from "./services/run-artifacts-deriver";
+import type { ITextRedactor } from "./logs/text-redactor";
 import type { IHeartbeatSender } from "./services/heartbeat";
 import type { ContainerManagerFactory } from "./container/types";
 import type { IDataSourceConnector } from "./datasource/connector";
@@ -90,6 +92,8 @@ export interface OrchestratorCradle {
   pipelineExecutor: IAgentPipelineExecutor;
 
   // Task runner
+  textRedactor: ITextRedactor;
+  runArtifacts: IRunArtifactsDeriver;
   resultWriter: ITaskResultWriter;
   taskRunner: ITaskRunner;
 

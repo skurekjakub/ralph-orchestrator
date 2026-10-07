@@ -1,0 +1,16 @@
+{"type":"agent-setting","agentSetting":"ralph","sessionId":"11111111-2222-4333-8444-555555555555"}
+{"type":"queue-operation","operation":"enqueue","timestamp":"2026-10-07T06:00:00.000Z","sessionId":"11111111-2222-4333-8444-555555555555"}
+{"type":"user","isSidechain":false,"uuid":"u1","parentUuid":null,"timestamp":"2026-10-07T06:00:01.000Z","message":{"role":"user","content":"Document the widget for DF-1."}}
+{"type":"attachment","isSidechain":false,"uuid":"at1","timestamp":"2026-10-07T06:00:01.100Z","attachment":{"type":"skill_listing"}}
+{"type":"assistant","isSidechain":false,"uuid":"a1","timestamp":"2026-10-07T06:00:02.000Z","message":{"id":"msg_1","model":"claude-opus-5-5","role":"assistant","content":[{"type":"thinking","thinking":""}]}}
+{"type":"assistant","isSidechain":false,"uuid":"a2","timestamp":"2026-10-07T06:00:02.500Z","message":{"id":"msg_1","model":"claude-opus-5-5","role":"assistant","content":[{"type":"text","text":"I'll check the repo, then delegate the draft."}]}}
+{"type":"assistant","isSidechain":false,"uuid":"a3","timestamp":"2026-10-07T06:00:03.000Z","message":{"id":"msg_1","model":"claude-opus-5-5","role":"assistant","content":[{"type":"tool_use","id":"toolu_bash","name":"Bash","input":{"command":"git status","description":"Check the tree"}}]}}
+{"type":"user","isSidechain":false,"uuid":"u2","timestamp":"2026-10-07T06:00:04.500Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_bash","content":"clean, remote token ghp_0123456789abcdefghijABCDEFGHIJ","is_error":false}]}}
+{"type":"assistant","isSidechain":false,"uuid":"a4","timestamp":"2026-10-07T06:00:05.000Z","message":{"id":"msg_2","model":"claude-opus-5-5","role":"assistant","content":[{"type":"tool_use","id":"toolu_agent","name":"Agent","input":{"subagent_type":"writer","description":"Draft the page","prompt":"Draft docs/widget.md"}}]}}
+this line is not JSON {
+{"type":"user","isSidechain":false,"uuid":"u3","timestamp":"2026-10-07T06:01:05.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_agent","content":[{"type":"text","text":"Drafted docs/widget.md"}]}]}}
+{"type":"system","subtype":"compact_boundary","timestamp":"2026-10-07T06:01:06.000Z","compactMetadata":{"trigger":"auto"}}
+{"type":"user","isCompactSummary":true,"timestamp":"2026-10-07T06:01:07.000Z","message":{"role":"user","content":"Summary of the conversation so far."}}
+{"type":"user","isMeta":true,"timestamp":"2026-10-07T06:01:07.500Z","message":{"role":"user","content":"<system-reminder>injected</system-reminder>"}}
+{"type":"assistant","isSidechain":false,"uuid":"a5","timestamp":"2026-10-07T06:01:10.000Z","message":{"id":"msg_3","model":"claude-sonnet-5-5","role":"assistant","content":[{"type":"text","text":"===RALPH_RESULT_START===\nSTATUS: completed\nPR_URL: none\n===RALPH_RESULT_END==="}]}}
+{"type":"last-prompt","lastPrompt":"Document the widget for DF-1.","sessionId":"11111111-2222-4333-8444-555555555555"}

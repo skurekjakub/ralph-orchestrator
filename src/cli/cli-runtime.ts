@@ -7,6 +7,7 @@ import type { CliToolNames } from "./cli-tools";
 import type { ICliCredentialPolicy } from "./credential-catalog";
 import type { ICliModelPolicy } from "./model-catalog";
 import type { ICliOutputDecoder } from "./output-decoder";
+import type { RunTelemetry } from "./telemetry/run-telemetry";
 
 /** Whether a CLI writes its debug log to one file or to files inside a directory. */
 export enum CliDebugLogKind {
@@ -76,6 +77,14 @@ export interface CliLogSources {
   readonly exports: readonly FolderExportDef[];
 }
 
+/** What the host derives from the logs one CLI left for a task. */
+export interface CliRunArtifacts {
+  /** Markdown transcript, not yet redacted; null when the CLI writes its own or left no session log. */
+  readonly transcript: string | null;
+  /** Telemetry of the CLI's sessions; null when its logs yield none. */
+  readonly telemetry: RunTelemetry | null;
+}
+
 /** What the orchestrator needs to know to run one agent CLI. One implementation per supported CLI. */
 export interface ICliRuntime {
   /** The CLI this runtime describes. */
@@ -120,6 +129,13 @@ export interface ICliRuntime {
   logSources(onDebugLine?: (line: string) => void): CliLogSources;
   /** A fresh decoder for the stdout of one CLI process. */
   createOutputDecoder(): ICliOutputDecoder;
+  /**
+   * Derives the transcript and telemetry of the task's sessions from its collected logs.
+   *
+   * @param collectedLogs Local paths of the collected logs, keyed by log source id.
+   * @throws Error when a collected session log exists but cannot be read.
+   */
+  deriveRunArtifacts(collectedLogs: Readonly<Record<string, string>>): Promise<CliRunArtifacts>;
   /**
    * Whether `auditJsonl`, the container's audit log, holds the `session_start` record Ralph's hooks write for
    * the CLI session `sessionId`.

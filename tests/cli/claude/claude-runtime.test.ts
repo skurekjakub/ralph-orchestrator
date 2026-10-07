@@ -226,4 +226,48 @@ describe("ClaudeCodeRuntime", () => {
     expect(first).toBeInstanceOf(ClaudeStreamJsonDecoder);
     expect(runtime.createOutputDecoder()).not.toBe(first);
   });
+
+  describe("deriveRunArtifacts", () => {
+    const runtime = new ClaudeCodeRuntime({ claudeAuth: ClaudeAuthMode.OAuthToken });
+    const SESSIONS = join(import.meta.dirname, "fixtures", "claude-sessions");
+
+    it("renders the transcript and extracts the telemetry of the collected sessions", async () => {
+      // Act
+      const { transcript, telemetry } = await runtime.deriveRunArtifacts({ "claude-sessions": SESSIONS });
+
+      // Assert
+      expect(transcript).toContain("## Session `11111111-2222-4333-8444-555555555555`");
+      expect(telemetry?.sessionIds).toEqual([
+        "11111111-2222-4333-8444-555555555555",
+        "00000000-0000-4000-8000-000000000000",
+      ]);
+    });
+
+    it("derives nothing when no sessions folder was collected", async () => {
+      // Act & Assert
+      await expect(runtime.deriveRunArtifacts({ audit: "/tmp/audit.jsonl" })).resolves.toEqual({
+        transcript: null,
+        telemetry: null,
+      });
+    });
+
+    it("derives nothing from a collected folder that holds no session", async () => {
+      // Arrange
+      const dir = createTempDir();
+
+      // Act
+      const artifacts = await runtime.deriveRunArtifacts({ "claude-sessions": dir });
+
+      // Assert
+      expect(artifacts).toEqual({ transcript: null, telemetry: null });
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("throws when the collected folder cannot be read", async () => {
+      // Act & Assert
+      await expect(runtime.deriveRunArtifacts({ "claude-sessions": "/nonexistent/claude-sessions" })).rejects.toThrow(
+        /ENOENT/,
+      );
+    });
+  });
 });

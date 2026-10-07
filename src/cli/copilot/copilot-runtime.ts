@@ -6,7 +6,7 @@ import { agentFileMounts, skillDirMounts } from "../../container/setup/artifact-
 import { agentsBuildDir } from "../../container/setup/build-paths";
 import { COPILOT_SETTINGS_FILE, writeCopilotSettings } from "./copilot-settings";
 import type { Logger } from "../../logger";
-import type { CliLogSources, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
+import type { CliLogSources, CliRunArtifacts, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
 import { COPILOT_CREDENTIALS } from "../credential-catalog";
 import { COPILOT_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
@@ -108,6 +108,11 @@ export class CopilotRuntime implements ICliRuntime {
 
   createOutputDecoder(): ICliOutputDecoder {
     return new PlainTextDecoder();
+  }
+
+  /** Copilot writes its own transcript (`--share`), collected as the `transcript` log, and no telemetry is derived. */
+  async deriveRunArtifacts(): Promise<CliRunArtifacts> {
+    return { transcript: null, telemetry: null };
   }
 
   /** Copilot's audit records carry a session id the hooks mint, and Copilot CLI reports none to tie it to. */

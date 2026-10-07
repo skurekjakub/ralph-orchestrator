@@ -7,6 +7,7 @@ Autonomous orchestrator that polls JIRA for documentation tasks, routes them to 
 - Node.js 24+
 - Docker Desktop running
 - git on the host, and a PAT that can clone and push the target repos your profiles reference (e.g. `kentico-docs-jekyll`). The orchestrator clones them itself; you don't prepare a checkout.
+- perl 5 on the host, for transcript redaction (preinstalled on Linux and macOS)
 
 ## Setup
 
@@ -182,7 +183,9 @@ output/
     ├── <key>-<startTs>/                              # Per-task directory (one per agent run)
     │   ├── <key>-<startTs>-<ts>.log                  # Per-task streaming log (real-time container output)
     │   ├── <key>-<startTs>-<ts>-audit.jsonl          # Audit trail from hooks
-    │   ├── <key>-<startTs>-<ts>-transcript.md        # Copilot CLI session transcript
+    │   ├── <key>-<startTs>-<ts>-transcript.md        # Session transcript, credentials redacted (Copilot's own, or rendered from the Claude Code sessions)
+    │   ├── <key>-<startTs>-<ts>-claude-sessions/     # Exported Claude Code session logs (main threads and subagents, JSONL)
+    │   ├── <key>-<startTs>-<ts>-claude-run-telemetry.json # Claude Code spans, tool calls, durations and errors, derived from the session logs
     │   ├── <key>-<startTs>-<ts>-pre-tool.log         # Tool invocations logged by the pre-tool hook
     │   ├── <key>-<startTs>-<ts>-tool-output.log      # Untruncated tool output from hooks
     │   ├── <key>-<startTs>-<ts>-cli-debug.log        # CLI debug log
@@ -213,7 +216,7 @@ cache/
 
 A failed task's workspace stays until you delete it, so you can inspect what the agent left behind.
 
-Each task gets its own timestamped directory (`<key>-<startTs>/`). Collected files are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`; in multi-stage pipelines the stage role is inserted before the source ID (`<key>-<startTs>-<collectTs>-<role>-<sourceId>.<ext>`). The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are also attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
+Each task gets its own timestamped directory (`<key>-<startTs>/`). Collected files are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`; in multi-stage pipelines the stage role is inserted before the source ID (`<key>-<startTs>-<collectTs>-<role>-<sourceId>.<ext>`). The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are scrubbed of credentials with the audit hooks' rules (`shared/hooks/lib/redact.pl`, so the host needs perl) and attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 
 The ledger lives at `<output.logDir>/history/<dataSource>/<issueKey>.json` (`output.logDir` defaults to `./output/logs`). Operation states move `pending → active | rejected | error` and `active → completed | error`.
 

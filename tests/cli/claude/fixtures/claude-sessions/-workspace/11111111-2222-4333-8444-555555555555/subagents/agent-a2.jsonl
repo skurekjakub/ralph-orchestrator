@@ -1,0 +1,2 @@
+{"type":"user","isSidechain":true,"agentId":"a2","timestamp":"2026-10-07T06:00:09.000Z","message":{"role":"user","content":"Review it"}}
+{"type":"assistant","isSidechain":true,"agentId":"a2","timestamp":"2026-10-07T06:00:29.000Z","message":{"id":"msg_r1","model":"claude-haiku-4-5-20251001","role":"assistant","content":[{"type":"text","text":"Looks good"}]}}

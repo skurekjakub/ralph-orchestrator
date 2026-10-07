@@ -230,6 +230,7 @@ export function createMockCliRuntime(
     writeTaskArtifacts: vi.fn(),
     logSources: vi.fn().mockReturnValue({ sources: [], exports: [] }),
     createOutputDecoder: vi.fn().mockImplementation(() => new PlainTextDecoder()),
+    deriveRunArtifacts: vi.fn().mockResolvedValue({ transcript: null, telemetry: null }),
     sessionStartAudited: vi.fn().mockReturnValue(undefined),
     ...overrides,
   } as ICliRuntime & Mocked<ICliRuntime>;

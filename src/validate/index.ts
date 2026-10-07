@@ -9,6 +9,7 @@ import { validateEnvFile } from "./env";
 import { validateConfigFile } from "./config";
 import { validateSecurityInfra } from "./security";
 import { validateDocker } from "./docker";
+import { validateHostTools } from "./host-tools";
 import { validateSkills } from "./skills";
 
 /**
@@ -22,6 +23,7 @@ import { validateSkills } from "./skills";
  * - Credentials of the CLIs the profiles' stages run
  * - Security infrastructure (Squid proxy, network isolation)
  * - Docker daemon is reachable
+ * - Perl is installed, for transcript redaction
  *
  * Returns a result with errors (fatal) and warnings (non-fatal).
  */
@@ -39,6 +41,8 @@ export async function validatePrerequisites(logger?: Logger): Promise<Validation
   validateSecurityInfra({ errors, warnings });
   logger?.info("Validating Docker availability");
   await validateDocker({ errors, warnings });
+  logger?.info("Validating host tools");
+  await validateHostTools({ errors, warnings });
 
   return { ok: errors.length === 0, errors, warnings };
 }

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { HookSandbox, loadPayloads } from "./hook-harness";
+import { execa } from "execa";
+import { join } from "node:path";
+import { HOOKS_DIR, HookSandbox, loadPayloads } from "./hook-harness";
 
 const claude = loadPayloads("claude");
 const copilot = loadPayloads("copilot");
@@ -161,6 +163,21 @@ describe("lib/redact.pl", () => {
         expect(sandbox.read(file), file).toContain("[REDACTED]");
         expect(sandbox.read(file), file).not.toContain(GITHUB_TOKEN);
       }
+    });
+  });
+
+  describe("command line", () => {
+    it.each([["--json"], ["--text", "extra"]])("refuses the arguments %j", async (...args) => {
+      // Act
+      const run = await execa("perl", [join(HOOKS_DIR, "lib", "redact.pl"), ...args], {
+        input: `token ${GITHUB_TOKEN}`,
+        reject: false,
+      });
+
+      // Assert
+      expect(run.exitCode).not.toBe(0);
+      expect(run.stdout).toBe("");
+      expect(run.stderr).toContain("usage: redact.pl [--text]");
     });
   });
 

@@ -169,4 +169,9 @@ describe("CopilotRuntime", () => {
     // Act & Assert
     expect(runtime.createOutputDecoder()).toBeInstanceOf(PlainTextDecoder);
   });
+
+  it("derives no transcript or telemetry, since the CLI writes its own transcript", async () => {
+    // Act & Assert
+    await expect(runtime.deriveRunArtifacts()).resolves.toEqual({ transcript: null, telemetry: null });
+  });
 });

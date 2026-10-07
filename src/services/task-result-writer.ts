@@ -3,32 +3,40 @@ import type { Logger } from "../logger";
 import type { IContainerManager } from "../container/manager";
 import type { ILogCollector } from "../logs/collector";
 import type { IResourceManager } from "./task-resource-manager";
+import type { IRunArtifactsDeriver } from "./run-artifacts-deriver";
 import type { TaskContext } from "./task-context";
 
-/** Collects container logs, attaches transcripts, and saves execution summaries. */
+/** Collects container logs, derives transcripts and telemetry, attaches the transcript, and saves execution summaries. */
 export interface ITaskResultWriter {
   /** Collect all container logs and record their paths on the result. */
   collectLogs(container: IContainerManager, result: RalphResult): Promise<void>;
-  /** Full result collection: logs + transcript attachment + execution summary. */
+  /**
+   * Full result collection: logs, the redacted transcript and telemetry derived from them, the transcript
+   * attachment and the execution summary.
+   */
   collectResults(ctx: TaskContext, container: IContainerManager, result: RalphResult): Promise<void>;
 }
 
 export class TaskResultWriter implements ITaskResultWriter {
   private readonly logCollector: ILogCollector;
   private readonly resources: IResourceManager;
+  private readonly runArtifacts: IRunArtifactsDeriver;
   private readonly logger: Logger;
 
   constructor({
     logCollector,
     resources,
+    runArtifacts,
     logger,
   }: {
     logCollector: ILogCollector;
     resources: IResourceManager;
+    runArtifacts: IRunArtifactsDeriver;
     logger: Logger;
   }) {
     this.logCollector = logCollector;
     this.resources = resources;
+    this.runArtifacts = runArtifacts;
     this.logger = logger;
   }
 
@@ -56,6 +64,9 @@ export class TaskResultWriter implements ITaskResultWriter {
   async collectResults(ctx: TaskContext, container: IContainerManager, result: RalphResult): Promise<void> {
     this.logger.info("Collecting logs from containers...");
     await this.collectLogs(container, result);
+
+    this.logger.info("Deriving transcripts and run telemetry...");
+    await this.runArtifacts.derive(ctx, result);
 
     const transcriptPath = result.collectedLogs["transcript"];
     if (transcriptPath) {
