@@ -54,7 +54,7 @@ describe("writeComposeArtifacts", () => {
     mkdirSync(join(root, "shared", "hooks", "claude"), { recursive: true });
     writeFileSync(
       join(root, "shared", "security", "squid.conf"),
-      "acl allowed_domains dstdomain .baseline.example\n# {{PROFILE_DOMAINS}}\nhttp_access deny all\n",
+      "# {{PROFILE_DOMAINS}}\nhttp_access allow allowed_domains\nhttp_access deny all\n",
     );
     writeFileSync(join(root, "shared", "hooks", "claude", "hooks.json"), JSON.stringify({ Stop: [] }));
   });
@@ -252,7 +252,7 @@ describe("writeComposeArtifacts", () => {
     // Assert
     const overlay = built("docker-compose.overlay.yml");
     expect(overlay).not.toContain("environment:");
-    expect(built("squid.conf")).toContain("# (no extra domains)");
+    expect(built("squid.conf")).toContain("acl allowed_domains src 0.0.0.0/32");
   });
 
   it("pins the agent CLI versions in the image build args", () => {
