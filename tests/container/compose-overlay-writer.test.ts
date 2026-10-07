@@ -307,7 +307,7 @@ describe("ComposeOverlayWriter", () => {
     mkdirSync(join(root, "shared", "mcp-servers"), { recursive: true });
     mkdirSync(join(root, "shared", "security"), { recursive: true });
     writeFileSync(join(root, "shared", "security", "squid.conf"), "# {{PROFILE_DOMAINS}}\nhttp_access deny all\n");
-    vi.mocked(loadAgentCatalog).mockResolvedValue(AGENTS);
+    vi.mocked(loadAgentCatalog).mockReset().mockResolvedValue(AGENTS);
   });
 
   afterEach(() => {

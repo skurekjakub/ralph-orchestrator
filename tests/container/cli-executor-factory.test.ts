@@ -21,7 +21,7 @@ const CATALOG = new AgentCatalog([
 vi.mock("../../src/container/setup/agent-catalogs");
 
 function createFactory() {
-  vi.mocked(loadAgentCatalog).mockResolvedValue(CATALOG);
+  vi.mocked(loadAgentCatalog).mockReset().mockResolvedValue(CATALOG);
   const factory = new CliExecutorFactory({
     cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
     rootDir: "/repo",
