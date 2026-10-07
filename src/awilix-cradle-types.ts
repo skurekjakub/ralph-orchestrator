@@ -52,11 +52,11 @@ import type { DashboardServer } from "./services/dashboard-server";
  * checked against this type through `Registrations` (`src/di/registration.ts`).
  */
 export interface OrchestratorCradle {
-  // Orchestrator checkout
+  /** The orchestrator checkout. */
   rootDir: string;
+  /** `cache/repos` under {@link rootDir}: one bare clone of each profile's `repoUrl`. */
   sourceReposDir: string;
 
-  // Config slices
   dataSources: Readonly<Record<string, IDataSourceConfig>>;
   outputConfig: IOutputConfig;
   dashboardConfig: IDashboardConfig;
@@ -66,29 +66,26 @@ export interface OrchestratorCradle {
   enableContinuation: boolean;
   claudeAuth: ClaudeAuthMode;
 
-  // Infrastructure
   activityLog: IActivityLog;
   logger: Logger;
   containerLogger: Logger;
 
-  // Data sources — per-source maps keyed by data source name
+  /** Keyed by `dataSources` key. */
   connectors: ReadonlyMap<string, IDataSourceConnector>;
+  /** Keyed by `dataSources` key. */
   pollers: ReadonlyMap<string, IWorkItemPoller>;
 
-  // Services
   issueManager: IIssueManager;
   resources: IResourceManager;
   vcsProviderClients: readonly IVcsSourceProviderClient[];
   vcsSourceClient: IVcsSourceClient;
 
-  // Orchestration
   ledger: IOperationLedger;
   router: IProfileRouter;
   triggerScanner: ITriggerScanner;
   orchestrator: Orchestrator;
   dashboardServer: DashboardServer;
 
-  // Execution infrastructure
   cliRuntimes: ICliRuntimeRegistry;
   logCollector: ILogCollector;
   promptBuilder: PromptBuilder;
@@ -102,14 +99,13 @@ export interface OrchestratorCradle {
   profileSetup: IProfileSetupService;
   pipelineExecutor: IAgentPipelineExecutor;
 
-  // Task runner
   textRedactor: ITextRedactor;
   runArtifacts: IRunArtifactsDeriver;
   resultWriter: ITaskResultWriter;
   hookRunner: IPostTaskHookRunner;
   taskRunner: ITaskRunner;
 
-  // Optional
+  /** `null` unless the dashboard is enabled. */
   heartbeat: IHeartbeatSender | null;
 }
 

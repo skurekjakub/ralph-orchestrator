@@ -105,19 +105,27 @@ Orchestrator loop: one operation at a time; it sleeps until poller.onItems / led
 
 ## Adding a DI service
 
-1. In the same file, define `IFoo` and `class Foo implements IFoo`. The constructor takes **one destructured deps object** whose keys are cradle tokens (awilix `InjectionMode.PROXY`, `strict: true`). Depend on interfaces and config slices, never on the whole `IAppConfig`. A test-only override is an optional second positional parameter, never an optional deps key: the cradle proxy throws on a key it lacks.
+1. In the same file, define `IFoo` and `class Foo implements IFoo`. The constructor takes **one destructured deps object** whose keys are cradle tokens (awilix `InjectionMode.PROXY`, `strict: true`). Depend on interfaces and config slices, never on the whole `IAppConfig`. An optional deps key that is no cradle token (a test-only override) becomes an optional second positional parameter: the PROXY cradle throws on a key it lacks.
 2. Add `foo: IFoo` to the cradle type of the container `Foo` lives in (`src/awilix-cradle-types.ts`): `OrchestratorCradle` for the root, `TaskCradle` for one task's container stack, the stage cradle of its executor kind, or a connector's own cradle in its `factory.ts`.
 3. Register it with `wiring<…>().service(Foo)` (`src/di/registration.ts`) in that cradle's registration object: `.singleton()` in the root object of `createRootContainer()` (`src/awilix-cradle.ts`), `.scoped()` in a scope's. `tsc` rejects the registration until the cradle provides every dep, and the object until it holds every token.
 4. Tests construct `Foo` directly with mocks, not with the container. Add `createMockFoo(overrides)` returning `Mocked<IFoo>` to `tests/helpers/mocks.ts` when more than one suite needs it. `tests/orchestrator-factory.test.ts` resolves every root, task and stage token under strict mode; its expectation tables are typed by those cradles, so `tsc` asks for the entry of a token added to one.
 
 Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `promptAuditConfig`, `ralphchivesConfig`, `enableContinuation`, `claudeAuth`.
 
-`createRootContainer(config, { rootDir })` is the one entry point; callers take its `.cradle`. It registers the root, then the scoped task and stage registrations (`registerScopedServices`), then builds each data source's connector and poller in a scope of its own and registers the maps as values. Scopes open in plain functions, never inside a registration:
+The container:
 
-- A task's container stack resolves in a task scope (`openTaskScope`, `src/container/container-manager-factory.ts`). Each stage's executor resolves in a stage scope of it (`src/container/stage-executor-factory.ts`); a post-task hook stage's opens from the root.
-- A data-source connector's classes register in its own `factory.ts`, in its data source's scope (`docs/dev-doc/data-source-registration.md`).
+- `createRootContainer(config, { rootDir })` is the one entry point; callers take its `.cradle`.
+- It registers the root, then the scoped task and stage registrations (`registerScopedServices`), then builds each data source's connector and poller in a scope of its own and registers the maps as values.
+- Scopes open in plain functions, never inside a registration:
+  - A task's container stack resolves in a task scope (`openTaskScope`, `src/container/container-manager-factory.ts`).
+  - Each stage's executor resolves in a stage scope (`src/container/stage-executor-factory.ts`): a container stage's of the task scope, a host stage's of the task scope or, for a post-task hook stage, of the root.
+  - A data-source connector's classes register in its own `factory.ts`, in its data source's scope (`docs/dev-doc/data-source-registration.md`).
 
-Outside the registrations, `index.tsx` and the scripts build `AppStartup`, which runs before the container exists. Stateless logic is a module function, not a service. `PromptBuilder` is registered without an interface.
+Outside the registrations:
+
+- `index.tsx`, `scripts/run-agent.ts` and `scripts/run-hooks.ts` build `AppStartup`, which runs before the container exists.
+- Code whose only cradle token would be `rootDir`, or none, is a module function, not a service, unless it spawns an external process (`HookRulesRedactor` spawns `perl`).
+- `PromptBuilder` is registered without an interface.
 
 Details: `docs/dev-doc/dependency-injection.md`.
 

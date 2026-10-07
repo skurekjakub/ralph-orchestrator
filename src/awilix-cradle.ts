@@ -201,7 +201,10 @@ export function createRootContainer(
   container.register(root);
   registerScopedServices(container);
   const { connectors, pollers } = buildDataSourceMaps(container, config);
-  container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
+  container.register({
+    connectors: asValue(connectors),
+    pollers: asValue(pollers),
+  } satisfies Registrations<Pick<OrchestratorCradle, "connectors" | "pollers">>);
 
   return container;
 }

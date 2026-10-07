@@ -1,6 +1,6 @@
 import { asValue, type AwilixContainer } from "awilix";
 import type { OrchestratorCradle, TaskCradle, TaskValues } from "../awilix-cradle-types";
-import { asValues } from "../di/registration";
+import { asValues, type Registrations } from "../di/registration";
 import { repoCachePaths } from "../services/task-workspace-manager";
 import { createHostStageExecutor, createStageExecutorFactory } from "./stage-executor-factory";
 import { deriveStageProfile, type ContainerManagerFactory } from "./types";
@@ -21,8 +21,10 @@ export function openTaskScope(
   const scope = container.createScope<TaskCradle>().register(asValues(values));
   // A scoped registration caches in the scope that resolves it (node_modules/awilix/lib/container.js:348-351 in
   // awilix 13.0.5); as a value, this compose client is the one every child scope resolves.
-  scope.register({ compose: asValue(scope.resolve("compose")) });
-  return scope.register({ stageExecutors: asValue(createStageExecutorFactory(scope)) });
+  scope.register({ compose: asValue(scope.resolve("compose")) } satisfies Registrations<Pick<TaskCradle, "compose">>);
+  return scope.register({
+    stageExecutors: asValue(createStageExecutorFactory(scope)),
+  } satisfies Registrations<Pick<TaskCradle, "stageExecutors">>);
 }
 
 /**

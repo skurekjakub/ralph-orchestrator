@@ -83,22 +83,27 @@
     (`createRootContainer()`, `src/awilix-cradle.ts`), `.scoped()` in a
     scope.
   - A bare `asClass` / `asFunction`, or a registration object not typed
-    `Registrations<…>` → `wiring<C>().service` / `.factory` and a typed
-    object (`src/di/registration.ts`), so `tsc` checks deps and completeness.
+    `Registrations<…>` → `wiring<C>().service` / `.factory` and an object
+    declared `Registrations<Omit<…>>`, or a literal that
+    `satisfies Registrations<Pick<…>>` (`src/di/registration.ts`), so `tsc`
+    checks deps, tokens and resolver types.
   - Constructor taking `IAppConfig` or positional deps → one destructured deps
     object of cradle tokens and config slices.
   - An optional deps-object key that is no cradle token (a test-only
     override) → an optional second positional parameter; the PROXY cradle
     throws on a key it lacks.
-  - A registration resolved in a scope that is `.singleton()` or keeps
-    awilix's transient default → `.scoped()`; per-scope inputs are
+  - A registration that reads a scope's values but is `.singleton()` or
+    keeps awilix's transient default → `.scoped()`; per-scope inputs are
     values (`asValues`).
   - A scope opened inside a registration's factory → a plain function
     (`openTaskScope`, `buildDataSourceMaps`): strict mode refuses a scoped
     resolve while a root singleton resolves.
-  - A class holding no state beyond a root directory or constants → a module
-    function or module object (`resolveComposeFiles`, `claudeAgentWriter`),
-    mocked with `vi.mock` of its module.
+  - A class whose only cradle token is `rootDir`, or none, and that spawns
+    no external process → a module function or module object
+    (`resolveComposeFiles`, `claudeAgentWriter`), its other inputs
+    parameters; callers' tests `vi.mock` its module or use fixture files.
+    `HookRulesRedactor` stays a service: it spawns `perl` behind
+    `ITextRedactor`.
   - String-literal union for a fixed set → TS `enum`, with `z.enum` validating
     the raw JSON.
   - A config key added only to `types.ts` → `src/config/schemas.ts` (zod) +

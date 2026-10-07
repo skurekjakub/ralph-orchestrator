@@ -3,9 +3,9 @@
  *
  * Registers data source connector/poller factories.
  * Each data source type (e.g. `"jira"`, `"github"`) registers a factory
- * via {@link registerDataSourceFactory}. `createRootContainer` calls
- * {@link buildDataSourceMaps} to build connectors from config —
- * it never imports connector-specific code directly.
+ * via {@link registerDataSourceFactory}; {@link buildDataSourceMaps} builds
+ * the connectors from config through those factories, so the registry never
+ * imports connector-specific code.
  *
  * To add a new data source:
  * 1. Create `src/datasource/connectors/<name>/factory.ts` that calls {@link registerDataSourceFactory}
