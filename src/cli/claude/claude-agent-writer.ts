@@ -55,8 +55,10 @@ function stageRootSkillsInstruction(skills: readonly string[]): string {
  * Copilot-only `copilot` block is dropped.
  *
  * Claude Code preloads frontmatter `skills` only into an agent it spawns as a subagent, not into the
- * `--agent` session root. A subagent's skills therefore stay in its frontmatter, and a stage root's
- * become {@link stageRootSkillsInstruction} at the top of its body.
+ * `--agent` session root, which takes on only the agent's prompt, tools and model
+ * (https://code.claude.com/docs/en/sub-agents; observed on Claude Code 2.1.292). A subagent's skills
+ * therefore stay in its frontmatter, and a stage root's become {@link stageRootSkillsInstruction} at the
+ * top of its body.
  */
 export class ClaudeAgentWriter implements IAgentFileWriter {
   write(agent: AgentDefinition, context: AgentWriteContext): AgentFile | null {

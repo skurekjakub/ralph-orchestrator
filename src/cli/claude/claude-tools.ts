@@ -6,7 +6,8 @@ import type { CliToolNames } from "../cli-tools";
  *
  * `WebSearch` runs server-side at Anthropic, so the egress proxy's allowlist does not apply to it.
  * `WebFetch` fetches from the container through the egress proxy, so it reaches only allowlisted
- * domains; its domain safety check goes to `api.anthropic.com`.
+ * domains; before each fetch it sends the hostname to `api.anthropic.com` for a safety check
+ * (https://code.claude.com/docs/en/data-usage#webfetch-domain-safety-check).
  */
 export enum ClaudeBuiltinTool {
   Read = "Read",
@@ -28,7 +29,10 @@ export const CLAUDE_BUILTIN_TOOLS: readonly ClaudeBuiltinTool[] = Object.values(
 /** The Claude Code tool that spawns a subagent; `Agent(a, b)` limits it to the named agents. */
 export const CLAUDE_SUBAGENT_TOOL = "Agent";
 
-/** Whether a Claude Code tool call spawns a subagent; the CLI reports {@link CLAUDE_SUBAGENT_TOOL} as `Task` in places. */
+/**
+ * Whether a Claude Code tool call spawns a subagent: {@link CLAUDE_SUBAGENT_TOOL}, or `Task`, its name
+ * before Claude Code 2.1.63 and still an alias (https://code.claude.com/docs/en/sub-agents).
+ */
 export function isClaudeSubagentTool(name: string): boolean {
   return name === CLAUDE_SUBAGENT_TOOL || name === "Task";
 }

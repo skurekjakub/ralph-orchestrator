@@ -4,9 +4,9 @@ import type { CliType } from "../../config/types";
 export const RUN_TELEMETRY_SCHEMA_VERSION = 1;
 
 /**
- * Telemetry of the agent CLI sessions of one task, derived on the host from the CLI's session logs and
- * written as `<taskId>-<ts>-<cli>-run-telemetry.json`. Timestamps are epoch milliseconds (UTC); one that
- * the logs do not carry is left out. Holds no free text, so it needs no redaction.
+ * Telemetry of the agent CLI sessions of one task, derived on the host from the CLI's session logs.
+ * Timestamps are epoch milliseconds (UTC); one that the logs do not carry is left out. Holds no free text,
+ * so it needs no redaction.
  */
 export interface RunTelemetry {
   readonly schemaVersion: typeof RUN_TELEMETRY_SCHEMA_VERSION;

@@ -37,17 +37,9 @@ export interface IAgentSessionRunner {
 }
 
 /**
- * Runs a single agent CLI session end-to-end.
- *
- * Extracted from {@link ContainerManager} so it can be reused with any
- * {@link ICliExecutor} — container-bound or local.
- *
- * Responsibilities:
- * 1. Build the prompt via {@link PromptBuilder}
- * 2. Delegate to {@link IContinuationRunner} for the retry loop
- * 3. Parse the `===RALPH_RESULT_START===` block from the agent text the continuation runner picks
- * 4. Resolve the final task status and, for a failed run, its failure reason
- * 5. Assemble and return the {@link RalphResult}
+ * Runs one agent CLI session, container-bound or local, resuming it while it lacks a result block its
+ * stage requires, and returns a {@link RalphResult} with the status {@link resolveStatus} gives it, the
+ * failure reason of a failed run and the session ids of every invocation.
  */
 export class AgentSessionRunner implements IAgentSessionRunner {
   private readonly continuationRunner: IContinuationRunner;

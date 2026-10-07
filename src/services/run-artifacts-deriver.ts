@@ -25,7 +25,8 @@ export interface IRunArtifactsDeriver {
    * a redacted transcript for each CLI that writes none of its own and each CLI's run telemetry, and
    * records them on `result.collectedLogs`. A derived transcript takes the `transcript` id, which is
    * attached to the work item, unless a CLI's own transcript holds it; it then takes `<cli>-transcript`.
-   * Telemetry takes `<cli>-run-telemetry`.
+   * Telemetry takes `<cli>-run-telemetry`. Each file is named `<taskId>-<ts>-<id>` in the task's output
+   * directory, `.md` for a transcript and `.json` for telemetry.
    *
    * Never throws. A transcript that cannot be redacted is neither written nor kept in `collectedLogs`, so
    * it is never attached; any other failure is logged and skips only its own artifact.

@@ -5,8 +5,8 @@ import { truncate } from "../util/text";
 const CLI_MESSAGE_CHARS = 500;
 
 /**
- * Why a run did not succeed, in plain language, for the ledger and the work item's error comment: the
- * failure reason with the CLI's own message, else the run's stderr, else its status.
+ * Why a run did not succeed, in plain language: the failure reason with the CLI's own message, else the
+ * run's stderr, else its status.
  */
 export function describeFailure(result: RalphResult): string {
   const message = result.cliError?.message ? `: ${truncate(result.cliError.message, CLI_MESSAGE_CHARS)}` : "";
