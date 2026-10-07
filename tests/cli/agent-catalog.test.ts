@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AgentCatalog, findAgentCatalogIssues } from "../../src/cli/agent-catalog";
+import { AgentCatalog, findAgentCatalogIssues, scanAgentSources } from "../../src/cli/agent-catalog";
 import { AgentDefinitionError } from "../../src/cli/agent-definition";
 import { makeAgentSource, makeAgentTemplate } from "../helpers/factories";
 
@@ -195,5 +195,39 @@ describe("AgentCatalog", () => {
       // Act & Assert
       await expect(AgentCatalog.load(join(dir, "missing"))).rejects.toThrow(/ENOENT/);
     });
+  });
+});
+
+describe("scanAgentSources", () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "agent-scan-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("parses the valid templates and collects the error of every invalid one", async () => {
+    // Arrange
+    await writeFile(join(dir, "ralph.a-bad.agent.md"), "---\nname: a-bad\n---\n");
+    await writeFile(join(dir, "ralph.good.agent.md"), makeAgentTemplate("good"));
+    await writeFile(join(dir, "ralph.z-bad.agent.md"), "---\nname: z-bad\n---\n");
+    await writeFile(join(dir, "notes.md"), "not an agent");
+
+    // Act
+    const scan = await scanAgentSources(dir);
+
+    // Assert
+    expect(scan.fileIds).toEqual(["ralph.a-bad", "ralph.good", "ralph.z-bad"]);
+    expect(scan.sources.map((s) => s.fileId)).toEqual(["ralph.good"]);
+    expect(scan.errors.map((e) => e.fileId)).toEqual(["ralph.a-bad", "ralph.z-bad"]);
+    expect(scan.errors.every((e) => e instanceof AgentDefinitionError)).toBe(true);
+  });
+
+  it("throws when the directory does not exist", async () => {
+    // Act & Assert
+    await expect(scanAgentSources(join(dir, "missing"))).rejects.toThrow(/ENOENT/);
   });
 });

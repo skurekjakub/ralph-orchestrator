@@ -1,14 +1,6 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { AgentCatalog, findAgentCatalogIssues } from "../cli/agent-catalog";
-import {
-  AGENT_SOURCE_SUFFIX,
-  AgentDefinitionError,
-  agentFileIdOf,
-  type AgentSource,
-  INHERIT_MODEL,
-  parseAgentSource,
-} from "../cli/agent-definition";
+import { existsSync } from "node:fs";
+import { AgentCatalog, findAgentCatalogIssues, scanAgentSources } from "../cli/agent-catalog";
+import { AGENT_SOURCE_SUFFIX, INHERIT_MODEL } from "../cli/agent-definition";
 import { COPILOT_MODEL_POLICY } from "../cli/model-catalog";
 import { CliType, type IAgentProfile } from "../config/types";
 import { toErrorMessage } from "../util/error";
@@ -67,12 +59,12 @@ function stageGraphProblems(catalog: AgentCatalog, { stage }: LocatedStage): str
  * @param agentsDir The profile's `agents/` directory.
  * @param prefix Location prefix for messages (`profiles/<id>`).
  */
-export function validateAgentGraph(
+export async function validateAgentGraph(
   variants: readonly IAgentProfile[],
   agentsDir: string,
   prefix: string,
   errors: string[],
-): void {
+): Promise<void> {
   if (!existsSync(agentsDir)) {
     errors.push(
       `${prefix}: agents/ directory not found\n  Create ${prefix}/agents/ with the profile's agent templates`,
@@ -80,22 +72,12 @@ export function validateAgentGraph(
     return;
   }
 
-  const sources: AgentSource[] = [];
-  const fileIds: string[] = [];
-  let allParsed = true;
-  for (const fileName of readdirSync(agentsDir).sort()) {
-    const fileId = agentFileIdOf(fileName);
-    if (fileId === null) continue;
-    fileIds.push(fileId);
-    try {
-      sources.push(parseAgentSource(fileId, readFileSync(join(agentsDir, fileName), "utf-8")));
-    } catch (err) {
-      if (!(err instanceof AgentDefinitionError)) throw err;
-      allParsed = false;
-      errors.push(...err.problems.map((problem) => `${prefix}/agents/${fileName}: ${problem}`));
-    }
+  const { fileIds, sources, errors: templateErrors } = await scanAgentSources(agentsDir);
+  for (const { fileId, problems } of templateErrors) {
+    errors.push(...problems.map((problem) => `${prefix}/agents/${fileId}${AGENT_SOURCE_SUFFIX}: ${problem}`));
   }
 
+  const allParsed = templateErrors.length === 0;
   const graphIssues = allParsed ? findAgentCatalogIssues(sources) : [];
   errors.push(...graphIssues.map((issue) => `${prefix}/agents: ${issue}`));
   const catalog = allParsed && graphIssues.length === 0 ? new AgentCatalog(sources) : undefined;

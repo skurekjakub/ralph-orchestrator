@@ -28,7 +28,7 @@ import type { ValidationCollector } from "./types";
  * @returns The resolved variants of every profile that passed the schema, for checks that span
  *   profiles.
  */
-export function validateProfiles({ errors, warnings }: ValidationCollector): IAgentProfile[] {
+export async function validateProfiles({ errors, warnings }: ValidationCollector): Promise<IAgentProfile[]> {
   const profilesDir = resolve(process.cwd(), "profiles");
 
   if (!existsSync(profilesDir)) {
@@ -132,7 +132,7 @@ export function validateProfiles({ errors, warnings }: ValidationCollector): IAg
     });
 
     validateStageClis(profile, variants, prefix, errors);
-    validateAgentGraph(variants, join(profilesDir, dirName, "agents"), prefix, errors);
+    await validateAgentGraph(variants, join(profilesDir, dirName, "agents"), prefix, errors);
 
     const { repoPat } = variants[0];
     if (!process.env[repoPat]) {

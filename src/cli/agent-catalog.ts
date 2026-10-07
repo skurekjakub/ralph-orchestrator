@@ -1,7 +1,41 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { agentFileIdOf, type AgentSource, parseAgentSource } from "./agent-definition";
+import { AgentDefinitionError, agentFileIdOf, type AgentSource, parseAgentSource } from "./agent-definition";
 import type { AgentGraph } from "./agent-file-writer";
+
+/** Every agent template of one directory: the ones that parse, and the error of each one that does not. */
+export interface AgentSourceScan {
+  /** File ids of every `*.agent.md`, sorted. */
+  readonly fileIds: readonly string[];
+  /** The templates that parse, in file id order. */
+  readonly sources: readonly AgentSource[];
+  /** One error per template whose frontmatter is invalid, in file id order. */
+  readonly errors: readonly AgentDefinitionError[];
+}
+
+/**
+ * Reads and parses every `*.agent.md` template in `agentsDir`, collecting each invalid template's error
+ * instead of stopping at the first.
+ *
+ * @throws Error when the directory or a template file cannot be read.
+ */
+export async function scanAgentSources(agentsDir: string): Promise<AgentSourceScan> {
+  const fileIds: string[] = [];
+  const sources: AgentSource[] = [];
+  const errors: AgentDefinitionError[] = [];
+  for (const fileName of (await readdir(agentsDir)).sort()) {
+    const fileId = agentFileIdOf(fileName);
+    if (fileId === null) continue;
+    fileIds.push(fileId);
+    try {
+      sources.push(parseAgentSource(fileId, await readFile(join(agentsDir, fileName), "utf-8")));
+    } catch (err) {
+      if (!(err instanceof AgentDefinitionError)) throw err;
+      errors.push(err);
+    }
+  }
+  return { fileIds, sources, errors };
+}
 
 /**
  * Structural problems of one profile's agent set: names used twice, `subagents` naming no agent of
@@ -85,13 +119,8 @@ export class AgentCatalog implements AgentGraph {
    *   directory is unreadable or the templates do not form a valid agent graph.
    */
   static async load(agentsDir: string): Promise<AgentCatalog> {
-    const fileNames = (await readdir(agentsDir)).sort();
-    const sources: AgentSource[] = [];
-    for (const fileName of fileNames) {
-      const fileId = agentFileIdOf(fileName);
-      if (fileId === null) continue;
-      sources.push(parseAgentSource(fileId, await readFile(join(agentsDir, fileName), "utf-8")));
-    }
+    const { sources, errors } = await scanAgentSources(agentsDir);
+    if (errors.length > 0) throw errors[0];
     return new AgentCatalog(sources);
   }
 

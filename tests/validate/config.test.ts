@@ -68,65 +68,65 @@ afterEach(() => {
 });
 
 describe("validateConfigFile", () => {
-  it("passes when the Copilot stages' GH_TOKEN is set", () => {
+  it("passes when the Copilot stages' GH_TOKEN is set", async () => {
     // Arrange
     writeFixture({}, "copilot");
     process.env.GH_TOKEN = "ghp";
     const c = collector();
 
     // Act
-    validateConfigFile(c);
+    await validateConfigFile(c);
 
     // Assert
     expect(c.errors).toEqual([]);
   });
 
-  it("requires GH_TOKEN when a stage runs Copilot", () => {
+  it("requires GH_TOKEN when a stage runs Copilot", async () => {
     // Arrange
     writeFixture({}, "copilot");
     const c = collector();
 
     // Act
-    validateConfigFile(c);
+    await validateConfigFile(c);
 
     // Assert
     expect(c.errors).toHaveLength(1);
     expect(c.errors[0]).toContain('Missing env var GH_TOKEN for cli "copilot" (used by profiles/docs)');
   });
 
-  it("requires the OAuth token for Claude stages by default", () => {
+  it("requires the OAuth token for Claude stages by default", async () => {
     // Arrange
     writeFixture({}, "claude");
     const c = collector();
 
     // Act
-    validateConfigFile(c);
+    await validateConfigFile(c);
 
     // Assert
     expect(c.errors.some((e) => e.includes("Missing env var CLAUDE_CODE_OAUTH_TOKEN"))).toBe(true);
     expect(c.errors.some((e) => e.includes("GH_TOKEN"))).toBe(false);
   });
 
-  it("requires the API key for Claude stages when claudeAuth is api-key", () => {
+  it("requires the API key for Claude stages when claudeAuth is api-key", async () => {
     // Arrange
     writeFixture({ claudeAuth: "api-key" }, "claude");
     process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth";
     const c = collector();
 
     // Act
-    validateConfigFile(c);
+    await validateConfigFile(c);
 
     // Assert
     expect(c.errors.some((e) => e.includes("Missing env var ANTHROPIC_API_KEY"))).toBe(true);
   });
 
-  it("reports an unknown claudeAuth and skips the credential check", () => {
+  it("reports an unknown claudeAuth and skips the credential check", async () => {
     // Arrange
     writeFixture({ claudeAuth: "password" }, "copilot");
     const c = collector();
 
     // Act
-    validateConfigFile(c);
+    await validateConfigFile(c);
 
     // Assert
     expect(c.errors).toHaveLength(1);

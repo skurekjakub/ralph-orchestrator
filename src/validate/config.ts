@@ -9,7 +9,7 @@ import type { ValidationCollector } from "./types";
  * Validate config.json, the profiles, and the credentials of the CLIs the profiles' stages run
  * under the configured `claudeAuth`.
  */
-export function validateConfigFile(collector: ValidationCollector): void {
+export async function validateConfigFile(collector: ValidationCollector): Promise<void> {
   const configPath = resolve(process.cwd(), "config.json");
 
   if (!existsSync(configPath)) {
@@ -52,7 +52,7 @@ export function validateConfigFile(collector: ValidationCollector): void {
     collector.errors.push(...claudeAuth.error.issues.map((issue) => `config.json: claudeAuth: ${issue.message}`));
   }
 
-  const profiles = validateProfiles(collector);
+  const profiles = await validateProfiles(collector);
   if (claudeAuth.success) {
     validateCliCredentials(profiles, claudeAuth.data, process.env, collector);
   }

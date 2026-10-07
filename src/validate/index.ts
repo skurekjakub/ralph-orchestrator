@@ -32,7 +32,7 @@ export async function validatePrerequisites(logger?: Logger): Promise<Validation
   logger?.info("Validating .env file");
   validateEnvFile({ errors, warnings });
   logger?.info("Validating config.json");
-  validateConfigFile({ errors, warnings });
+  await validateConfigFile({ errors, warnings });
   logger?.info("Validating runtime skills");
   validateSkills(resolve(process.cwd(), "shared/skills"), { errors, warnings });
   logger?.info("Validating security infrastructure");

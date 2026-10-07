@@ -109,48 +109,48 @@ afterEach(() => {
 });
 
 describe("validateProfiles", () => {
-  it("passes for a valid profile", () => {
+  it("passes for a valid profile", async () => {
     writeValidProfile("ralph-docs");
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors).toHaveLength(0);
   });
 
-  it("errors when profiles/ directory does not exist", () => {
+  it("errors when profiles/ directory does not exist", async () => {
     // tempDir has no profiles/ subdirectory
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors).toHaveLength(1);
     expect(c.errors[0]).toContain("profiles/ directory not found");
   });
 
-  it("errors when profiles/ directory is empty", () => {
+  it("errors when profiles/ directory is empty", async () => {
     mkdirSync(join(tempDir, "profiles"));
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors).toHaveLength(1);
     expect(c.errors[0]).toContain("No profile directories found");
   });
 
-  it("errors when profile.json is missing", () => {
+  it("errors when profile.json is missing", async () => {
     const dir = join(tempDir, "profiles", "bad");
     mkdirSync(dir, { recursive: true });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors).toHaveLength(1);
     expect(c.errors[0]).toContain("profile.json not found");
   });
 
-  it("errors when profile.json is invalid JSON", () => {
+  it("errors when profile.json is invalid JSON", async () => {
     const dir = join(tempDir, "profiles", "bad");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "profile.json"), "not json {{{");
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("not valid JSON"))).toBe(true);
   });
 
-  it("errors when repo path is missing", () => {
+  it("errors when repo path is missing", async () => {
     writeValidProfile("test", {
       profileJson: {
         variants: [
@@ -159,11 +159,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("repo path is required"))).toBe(true);
   });
 
-  it("errors when repo path does not exist", () => {
+  it("errors when repo path does not exist", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: "/nonexistent/path/12345",
@@ -173,11 +173,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("repo path does not exist"))).toBe(true);
   });
 
-  it("accepts cli claude for a profile whose stages run in the container", () => {
+  it("accepts cli claude for a profile whose stages run in the container", async () => {
     // Arrange
     writeValidProfile("test", {
       profileJson: {
@@ -191,38 +191,38 @@ describe("validateProfiles", () => {
     const c = collector();
 
     // Act
-    validateProfiles(c);
+    await validateProfiles(c);
 
     // Assert
     expect(c.errors.filter((e) => e.includes("claude"))).toEqual([]);
   });
 
-  it("errors when docker-compose.yml is missing", () => {
+  it("errors when docker-compose.yml is missing", async () => {
     writeValidProfile("test", { skipCompose: true });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("docker-compose.yml not found"))).toBe(true);
   });
 
-  it("errors when no variants are defined", () => {
+  it("errors when no variants are defined", async () => {
     writeValidProfile("test", {
       profileJson: { repo: tempDir, variants: [] },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("at least one variant is required"))).toBe(true);
   });
 
-  it("errors when variants is not an array", () => {
+  it("errors when variants is not an array", async () => {
     writeValidProfile("test", {
       profileJson: { repo: tempDir, variants: "nope" },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("at least one variant is required"))).toBe(true);
   });
 
-  it("errors when stage agent name is missing", () => {
+  it("errors when stage agent name is missing", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -230,11 +230,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("agent name is required"))).toBe(true);
   });
 
-  it("errors when variant agent does not match an .agent.md file", () => {
+  it("errors when variant agent does not match an .agent.md file", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -248,12 +248,12 @@ describe("validateProfiles", () => {
       agentFiles: ["ralph.agent.md"],
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes('agent "nonexistent" not found'))).toBe(true);
     expect(c.errors.some((e) => e.includes("Available agents: ralph"))).toBe(true);
   });
 
-  it("warns when variant has no match.projects", () => {
+  it("warns when variant has no match.projects", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -261,11 +261,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.warnings.some((w) => w.includes("no match.projects defined"))).toBe(true);
   });
 
-  it("errors when variant has no commentTrigger", () => {
+  it("errors when variant has no commentTrigger", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -273,11 +273,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("commentTrigger is required"))).toBe(true);
   });
 
-  it("errors when revisionStatuses has values not in statuses", () => {
+  it("errors when revisionStatuses has values not in statuses", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -295,11 +295,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes('revisionStatuses value "Reopened" is not in statuses'))).toBe(true);
   });
 
-  it("passes when revisionStatuses is a subset of statuses", () => {
+  it("passes when revisionStatuses is a subset of statuses", async () => {
     writeValidProfile("test", {
       profileJson: {
         repo: tempDir,
@@ -317,13 +317,13 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     // Should not have any revisionStatuses errors
     expect(c.errors.filter((e) => e.includes("revisionStatuses"))).toHaveLength(0);
   });
 
   describe("skill validation", () => {
-    it("errors when referenced skill does not exist", () => {
+    it("errors when referenced skill does not exist", async () => {
       mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
       writeValidProfile("test", {
         profileJson: {
@@ -337,11 +337,11 @@ describe("validateProfiles", () => {
         },
       });
       const c = collector();
-      validateProfiles(c);
+      await validateProfiles(c);
       expect(c.errors.some((e) => e.includes('skill "nonexistent-skill" not found'))).toBe(true);
     });
 
-    it("passes when referenced skill exists", () => {
+    it("passes when referenced skill exists", async () => {
       const skillDir = join(tempDir, "shared", "skills", "my-skill");
       mkdirSync(skillDir, { recursive: true });
       writeFileSync(join(skillDir, "SKILL.md"), "# Skill");
@@ -357,11 +357,11 @@ describe("validateProfiles", () => {
         },
       });
       const c = collector();
-      validateProfiles(c);
+      await validateProfiles(c);
       expect(c.errors.filter((e) => e.includes("skill"))).toHaveLength(0);
     });
 
-    it("checks post-task hook stage skills too", () => {
+    it("checks post-task hook stage skills too", async () => {
       // Arrange
       mkdirSync(join(tempDir, "shared", "skills"), { recursive: true });
       writeValidProfile("test", {
@@ -372,7 +372,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toContainEqual(
@@ -382,7 +382,7 @@ describe("validateProfiles", () => {
   });
 
   describe("agent graph", () => {
-    it("reports a subagent no template defines", () => {
+    it("reports a subagent no template defines", async () => {
       // Arrange
       writeValidProfile("test");
       writeFileSync(
@@ -392,7 +392,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toEqual([
@@ -402,7 +402,7 @@ describe("validateProfiles", () => {
   });
 
   describe("MCP server validation", () => {
-    it("errors when referenced MCP server does not exist", () => {
+    it("errors when referenced MCP server does not exist", async () => {
       // Create shared/mcp-servers/ but leave it empty
       mkdirSync(join(tempDir, "shared", "mcp-servers"), { recursive: true });
       writeValidProfile("test", {
@@ -415,11 +415,11 @@ describe("validateProfiles", () => {
         },
       });
       const c = collector();
-      validateProfiles(c);
+      await validateProfiles(c);
       expect(c.errors.some((e) => e.includes('MCP server "nonexistent-server" not found'))).toBe(true);
     });
 
-    it("passes when referenced MCP server exists", () => {
+    it("passes when referenced MCP server exists", async () => {
       const serverDir = join(tempDir, "shared", "mcp-servers", "my-server");
       mkdirSync(serverDir, { recursive: true });
       writeFileSync(join(serverDir, "mcp-server.json"), JSON.stringify({ command: "node", args: ["dist/index.js"] }));
@@ -434,20 +434,20 @@ describe("validateProfiles", () => {
         },
       });
       const c = collector();
-      validateProfiles(c);
+      await validateProfiles(c);
       expect(c.errors.filter((e) => e.includes("MCP server"))).toHaveLength(0);
     });
   });
 
-  it("errors when repoPat env var is not set", () => {
+  it("errors when repoPat env var is not set", async () => {
     delete process.env.ADO_PAT;
     writeValidProfile("ralph-docs");
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors.some((e) => e.includes("ADO_PAT") && e.includes("not set"))).toBe(true);
   });
 
-  it("validates multiple profiles in a single run", () => {
+  it("validates multiple profiles in a single run", async () => {
     writeValidProfile("profile-a");
     writeValidProfile("profile-b", {
       profileJson: {
@@ -458,11 +458,11 @@ describe("validateProfiles", () => {
       },
     });
     const c = collector();
-    validateProfiles(c);
+    await validateProfiles(c);
     expect(c.errors).toHaveLength(0);
   });
 
-  it("reports schema errors with their profile.json location", () => {
+  it("reports schema errors with their profile.json location", async () => {
     // Arrange
     writeValidProfile("test", {
       profileJson: { ...profileWithStages([{ agent: "ralph", role: "primary" }]), dataSource: "" },
@@ -470,13 +470,13 @@ describe("validateProfiles", () => {
     const c = collector();
 
     // Act
-    validateProfiles(c);
+    await validateProfiles(c);
 
     // Assert
     expect(c.errors).toEqual(["profiles/test/dataSource: dataSource is required"]);
   });
 
-  it("reports a profile that lists an MCP server twice", () => {
+  it("reports a profile that lists an MCP server twice", async () => {
     // Arrange
     writeMcpServer("srv", 9100);
     writeValidProfile("test", {
@@ -485,27 +485,27 @@ describe("validateProfiles", () => {
     const c = collector();
 
     // Act
-    validateProfiles(c);
+    await validateProfiles(c);
 
     // Assert
     expect(c.errors.some((e) => e.includes("duplicate MCP server(s): srv"))).toBe(true);
   });
 
-  it("returns the resolved variants of every valid profile", () => {
+  it("returns the resolved variants of every valid profile", async () => {
     // Arrange
     writeValidProfile("profile-a");
     writeValidProfile("profile-b", { profileJson: { repo: "/nonexistent/path/12345", variants: "nope" } });
     const c = collector();
 
     // Act
-    const resolved = validateProfiles(c);
+    const resolved = await validateProfiles(c);
 
     // Assert
     expect(resolved.map((p) => p.variantKey)).toEqual(["profile-a:ralph:@ralph"]);
   });
 
   describe("stage cli", () => {
-    it("accepts claude for a container stage but rejects it for a host stage", () => {
+    it("accepts claude for a container stage but rejects it for a host stage", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "claude" }], {
@@ -515,7 +515,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       const claudeErrors = c.errors.filter((e) => e.includes('cli "claude"'));
@@ -526,7 +526,7 @@ describe("validateProfiles", () => {
       ]);
     });
 
-    it("rejects claude.loadRepoInstructions when no container stage runs claude", () => {
+    it("rejects claude.loadRepoInstructions when no container stage runs claude", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: {
@@ -537,7 +537,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toContainEqual(
@@ -545,7 +545,7 @@ describe("validateProfiles", () => {
       );
     });
 
-    it("accepts claude.loadRepoInstructions for a profile with a claude container stage", () => {
+    it("accepts claude.loadRepoInstructions for a profile with a claude container stage", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: {
@@ -556,13 +556,13 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors.filter((e) => e.includes("loadRepoInstructions"))).toEqual([]);
     });
 
-    it("reports an unknown stage cli", () => {
+    it("reports an unknown stage cli", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary", cli: "gemini" }]),
@@ -570,20 +570,20 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
       expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]\/stages\[0\]\/cli: /);
     });
 
-    it.each([["effort", { effort: "high" }]])("rejects %s on a Copilot stage", (option, setting) => {
+    it.each([["effort", { effort: "high" }]])("rejects %s on a Copilot stage", async (option, setting) => {
       // Arrange
       writeValidProfile("test", { profileJson: profileWithStages([{ agent: "ralph", role: "primary", ...setting }]) });
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toEqual([
@@ -591,7 +591,7 @@ describe("validateProfiles", () => {
       ]);
     });
 
-    it("rejects githubMcpTools when no stage runs Copilot", () => {
+    it("rejects githubMcpTools when no stage runs Copilot", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
@@ -601,7 +601,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors.some((e) => e.startsWith("profiles/test: githubMcpTools only affects Copilot stages"))).toBe(
@@ -609,7 +609,7 @@ describe("validateProfiles", () => {
       );
     });
 
-    it("accepts githubMcpTools when a post-task hook stage runs Copilot", () => {
+    it("accepts githubMcpTools when a post-task hook stage runs Copilot", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
@@ -620,7 +620,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors.filter((e) => e.includes("githubMcpTools"))).toEqual([]);
@@ -628,7 +628,7 @@ describe("validateProfiles", () => {
   });
 
   describe("models", () => {
-    it("rejects a stage model the stage cli does not accept, with the replacement", () => {
+    it("rejects a stage model the stage cli does not accept, with the replacement", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary", model: "opus" }]),
@@ -636,7 +636,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
@@ -644,7 +644,7 @@ describe("validateProfiles", () => {
       expect(c.errors[0]).toContain('"claude-opus-4.6"');
     });
 
-    it("reports an invalid profile-level model once, at the profile", () => {
+    it("reports an invalid profile-level model once, at the profile", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: {
@@ -665,14 +665,14 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
       expect(c.errors[0]).toMatch(/^profiles\/test: model "opus" is a Claude Code alias/);
     });
 
-    it("reports an invalid variant-level model at the variant", () => {
+    it("reports an invalid variant-level model at the variant", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
@@ -682,14 +682,14 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
       expect(c.errors[0]).toMatch(/^profiles\/test\/variants\[0\]: model "claude-opus-4-6" is a Claude Code model id/);
     });
 
-    it("rejects a stage that switches cli but inherits the model chosen for the profile cli", () => {
+    it("rejects a stage that switches cli but inherits the model chosen for the profile cli", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages(
@@ -703,7 +703,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       const modelErrors = c.errors.filter((e) => e.includes("model"));
@@ -712,7 +712,7 @@ describe("validateProfiles", () => {
       expect(modelErrors[0]).toContain('model "claude-sonnet-4" chosen for cli "copilot"');
     });
 
-    it("accepts a stage that switches cli and sets a model for it", () => {
+    it("accepts a stage that switches cli and sets a model for it", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "reviewer", cli: "claude", model: "sonnet" }], {
@@ -722,13 +722,13 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors.filter((e) => e.includes("model"))).toEqual([]);
     });
 
-    it("validates post-task hook stage models", () => {
+    it("validates post-task hook stage models", async () => {
       // Arrange
       writeValidProfile("test", {
         profileJson: profileWithStages([{ agent: "ralph", role: "primary" }], {
@@ -738,7 +738,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
@@ -747,7 +747,7 @@ describe("validateProfiles", () => {
   });
 
   describe("variant-level MCP servers", () => {
-    it("enforces requiredConfig for a server declared only on the variant", () => {
+    it("enforces requiredConfig for a server declared only on the variant", async () => {
       // Arrange
       writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT", "ADO_REPO"] });
       writeValidProfile("test", {
@@ -756,7 +756,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
@@ -764,7 +764,7 @@ describe("validateProfiles", () => {
       expect(c.errors[0]).toContain("variants[0]");
     });
 
-    it("accepts requiredConfig provided by the variant-level entry", () => {
+    it("accepts requiredConfig provided by the variant-level entry", async () => {
       // Arrange
       writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT"] });
       writeValidProfile("test", {
@@ -775,13 +775,13 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toEqual([]);
     });
 
-    it("rejects a variant entry whose env drops config the profile entry provided", () => {
+    it("rejects a variant entry whose env drops config the profile entry provided", async () => {
       // Arrange
       writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT", "ADO_REPO"] });
       writeValidProfile("test", {
@@ -793,14 +793,14 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
       expect(c.errors[0]).toContain('MCP server "ado" requires config [ADO_PROJECT]');
     });
 
-    it("reports missing profile-level config once, naming every affected variant", () => {
+    it("reports missing profile-level config once, naming every affected variant", async () => {
       // Arrange
       writeMcpServer("ado", 9100, { requiredConfig: ["ADO_PROJECT"] });
       writeValidProfile("test", {
@@ -816,14 +816,14 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors).toHaveLength(1);
       expect(c.errors[0]).toContain("variants[0], variants[1]");
     });
 
-    it("errors when a variant-level server does not exist", () => {
+    it("errors when a variant-level server does not exist", async () => {
       // Arrange
       writeMcpServer("ado", 9100);
       writeValidProfile("test", {
@@ -832,7 +832,7 @@ describe("validateProfiles", () => {
       const c = collector();
 
       // Act
-      validateProfiles(c);
+      await validateProfiles(c);
 
       // Assert
       expect(c.errors.some((e) => e.includes('MCP server "missing" not found'))).toBe(true);
@@ -840,19 +840,19 @@ describe("validateProfiles", () => {
   });
 
   describe("sidecar ports", () => {
-    function validateWithServers(...servers: [string, number, Record<string, unknown>?][]): string[] {
+    async function validateWithServers(...servers: [string, number, Record<string, unknown>?][]): Promise<string[]> {
       for (const [name, port, manifest] of servers) writeMcpServer(name, port, manifest);
       writeValidProfile("test", {
         profileJson: { ...profileWithStages([{ agent: "ralph", role: "primary" }]), mcpServers: [servers[0][0]] },
       });
       const c = collector();
-      validateProfiles(c);
+      await validateProfiles(c);
       return c.errors;
     }
 
-    it("reports two servers on the same sidecarPort", () => {
+    it("reports two servers on the same sidecarPort", async () => {
       // Act
-      const errors = validateWithServers(["jira", 9100], ["ado", 9100]);
+      const errors = await validateWithServers(["jira", 9100], ["ado", 9100]);
 
       // Assert
       expect(errors).toHaveLength(1);
@@ -861,9 +861,9 @@ describe("validateProfiles", () => {
       expect(errors[0]).toContain('MCP server "ado"');
     });
 
-    it("reports a server on the port a filtered custom server's upstream uses", () => {
+    it("reports a server on the port a filtered custom server's upstream uses", async () => {
       // Act
-      const errors = validateWithServers(["jira", 9100, { tools: ["jira_add_comment"] }], ["late", 19100]);
+      const errors = await validateWithServers(["jira", 9100, { tools: ["jira_add_comment"] }], ["late", 19100]);
 
       // Assert
       expect(errors).toEqual([
@@ -873,9 +873,9 @@ describe("validateProfiles", () => {
       ]);
     });
 
-    it("reports a server on the gateway health port", () => {
+    it("reports a server on the gateway health port", async () => {
       // Act
-      const errors = validateWithServers(["jira", 9000]);
+      const errors = await validateWithServers(["jira", 9000]);
 
       // Assert
       expect(errors).toEqual([
@@ -885,9 +885,9 @@ describe("validateProfiles", () => {
       ]);
     });
 
-    it("reports a filtered custom server whose upstream port would pass 65535", () => {
+    it("reports a filtered custom server whose upstream port would pass 65535", async () => {
       // Act
-      const errors = validateWithServers(["jira", 60000, { tools: ["jira_add_comment"] }]);
+      const errors = await validateWithServers(["jira", 60000, { tools: ["jira_add_comment"] }]);
 
       // Assert
       expect(errors).toEqual([expect.stringContaining('MCP server "jira": sidecarPort 60000 leaves no room')]);
@@ -896,9 +896,9 @@ describe("validateProfiles", () => {
     it.each([
       ["an unfiltered custom server", { type: "custom" }],
       ["an npm server, which the sidecar reaches over stdio", { type: "npm", tools: ["browser_navigate"] }],
-    ])("claims no upstream port for %s", (_label, manifest) => {
+    ])("claims no upstream port for %s", async (_label, manifest) => {
       // Act
-      const errors = validateWithServers(["first", 9103, manifest], ["second", 19103]);
+      const errors = await validateWithServers(["first", 9103, manifest], ["second", 19103]);
 
       // Assert
       expect(errors).toEqual([]);

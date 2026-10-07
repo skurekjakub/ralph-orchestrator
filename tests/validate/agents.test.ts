@@ -34,14 +34,14 @@ function variant(stages: IStageConfig[], hookStages: IStageConfig[] = []): IAgen
 }
 
 /** Errors `validateAgentGraph` reports for `variants`. */
-function validate(...variants: IAgentProfile[]): string[] {
+async function validate(...variants: IAgentProfile[]): Promise<string[]> {
   const errors: string[] = [];
-  validateAgentGraph(variants, agentsDir, PREFIX, errors);
+  await validateAgentGraph(variants, agentsDir, PREFIX, errors);
   return errors;
 }
 
 describe("validateAgentGraph", () => {
-  it("passes a valid graph on both CLIs", () => {
+  it("passes a valid graph on both CLIs", async () => {
     // Arrange
     writeAgents({
       ralph: { model: "opus", subagents: ["writer"] },
@@ -51,20 +51,20 @@ describe("validateAgentGraph", () => {
 
     // Act
     const errors = [
-      ...validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })])),
-      ...validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Copilot })])),
+      ...(await validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })]))),
+      ...(await validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Copilot })]))),
     ];
 
     // Assert
     expect(errors).toEqual([]);
   });
 
-  it("reports a subagent that no template defines (dangling reviewer)", () => {
+  it("reports a subagent that no template defines (dangling reviewer)", async () => {
     // Arrange
     writeAgents({ ralph: { subagents: ["ralph-reviewer-technical-gpt"] } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph" })]));
 
     // Assert
     expect(errors).toEqual([
@@ -72,30 +72,30 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
-  it("reports two templates sharing a name", () => {
+  it("reports two templates sharing a name", async () => {
     // Arrange
     writeAgents({ a: {} });
     writeFileSync(join(agentsDir, "ralph.a-copy.agent.md"), makeAgentTemplate("a"));
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.a" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.a" })]));
 
     // Assert
     expect(errors).toEqual([`${PREFIX}/agents: agents ralph.a-copy and ralph.a share the name "a"`]);
   });
 
-  it("reports a subagent cycle", () => {
+  it("reports a subagent cycle", async () => {
     // Arrange
     writeAgents({ a: { subagents: ["b"] }, b: { subagents: ["a"] } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.a" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.a" })]));
 
     // Assert
     expect(errors).toEqual([`${PREFIX}/agents: subagent cycle: a → b → a`]);
   });
 
-  it("reports every frontmatter problem with its file and skips graph checks", () => {
+  it("reports every frontmatter problem with its file and skips graph checks", async () => {
     // Arrange
     writeFileSync(
       join(agentsDir, "ralph.old.agent.md"),
@@ -105,7 +105,7 @@ describe("validateAgentGraph", () => {
     writeAgents({ ralph: { subagents: ["old"] } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph" })]));
 
     // Assert
     expect(errors).toEqual([
@@ -114,12 +114,12 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
-  it("reports a variant or hook stage whose agent has no template, listing the available ones", () => {
+  it("reports a variant or hook stage whose agent has no template, listing the available ones", async () => {
     // Arrange
     writeAgents({ ralph: {} });
 
     // Act
-    const errors = validate(
+    const errors = await validate(
       variant(
         [makeStage({ agent: "ralph.missing" })],
         [makeStage({ agent: "ralph.scientist", role: "scientist", mode: StageMode.Local })],
@@ -137,12 +137,12 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
-  it("reports a reachable agent that does not run on the stage's CLI", () => {
+  it("reports a reachable agent that does not run on the stage's CLI", async () => {
     // Arrange
     writeAgents({ ralph: { subagents: ["copilot-only"] }, "copilot-only": { runtimes: ["copilot"] } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })]));
 
     // Assert
     expect(errors).toEqual([
@@ -152,23 +152,23 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
-  it("reports a stage root that inherits its model", () => {
+  it("reports a stage root that inherits its model", async () => {
     // Arrange
     writeAgents({ ralph: { model: "inherit" } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph" })]));
 
     // Assert
     expect(errors).toEqual([`${PREFIX}: agent ralph.ralph runs as the stage root, so its model cannot be "inherit"`]);
   });
 
-  it("reports skills an agent preloads that its stage does not mount", () => {
+  it("reports skills an agent preloads that its stage does not mount", async () => {
     // Arrange
     writeAgents({ ralph: { subagents: ["writer"] }, writer: { skills: ["ralph-workflow", "style"] } });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph", skills: ["style"] })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph", skills: ["style"] })]));
 
     // Assert
     expect(errors).toEqual([
@@ -176,37 +176,37 @@ describe("validateAgentGraph", () => {
     ]);
   });
 
-  it("reports a model with no Copilot equivalent only for Copilot stages", () => {
+  it("reports a model with no Copilot equivalent only for Copilot stages", async () => {
     // Arrange
     writeAgents({ ralph: { model: "claude-opus-5-5-1" } });
 
     // Act
-    const copilot = validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Copilot })]));
-    const claude = validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })]));
+    const copilot = await validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Copilot })]));
+    const claude = await validate(variant([makeStage({ agent: "ralph.ralph", cli: CliType.Claude })]));
 
     // Assert
     expect(copilot).toEqual([expect.stringMatching(/agent ralph\.ralph: .*no Copilot CLI equivalent/)]);
     expect(claude).toEqual([]);
   });
 
-  it("reports a finding shared by several variants once", () => {
+  it("reports a finding shared by several variants once", async () => {
     // Arrange
     writeAgents({ ralph: { model: "inherit" } });
     const stage = makeStage({ agent: "ralph.ralph" });
 
     // Act
-    const errors = validate(variant([stage]), variant([stage]));
+    const errors = await validate(variant([stage]), variant([stage]));
 
     // Assert
     expect(errors).toHaveLength(1);
   });
 
-  it("reports a missing agents directory", () => {
+  it("reports a missing agents directory", async () => {
     // Arrange
     rmSync(agentsDir, { recursive: true });
 
     // Act
-    const errors = validate(variant([makeStage({ agent: "ralph.ralph" })]));
+    const errors = await validate(variant([makeStage({ agent: "ralph.ralph" })]));
 
     // Assert
     expect(errors).toEqual([expect.stringMatching(/^profiles\/docs: agents\/ directory not found/)]);
