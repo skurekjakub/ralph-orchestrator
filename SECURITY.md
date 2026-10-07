@@ -48,13 +48,16 @@ Both the `app` and `egress-proxy` containers have `extra_hosts: ["host.docker.in
 
 ### Domain Allowlist
 
-Each profile gets its own `squid.conf` (`profiles/<id>/.build/squid.conf`), generated at startup from the shared baseline plus the profile's `allowlistDomains` (`src/container/setup/squid-config.ts`).
+Each profile gets its own `squid.conf` (`profiles/<id>/.build/squid.conf`), regenerated before every task from the shared baseline, the domains of the agent CLIs the variant's container stages run, and the profile's `allowlistDomains` (`src/container/setup/squid-config.ts`).
 
-The baseline (`shared/security/squid.conf`) allows only the AI/LLM backends:
+The baseline (`shared/security/squid.conf`) allows no AI provider. Each agent CLI adds its own backend, only for tasks whose container stages run it (`ICliRuntime.egressDomains`):
 
-| Category                                 | Domains                                                                |
-| ---------------------------------------- | ---------------------------------------------------------------------- |
-| AI/LLM backends (baseline, all profiles) | `.githubcopilot.com`, `api.github.com`, `github.com`, `.anthropic.com` |
+| Agent CLI   | Domains                                              |
+| ----------- | ---------------------------------------------------- |
+| Claude Code | `.anthropic.com`                                     |
+| Copilot CLI | `.githubcopilot.com`, `api.github.com`, `github.com` |
+
+Claude Code's built-in web tools are allowed in container sessions. `WebSearch` runs server-side at Anthropic, so this allowlist does not apply to it. `WebFetch` fetches from the container through Squid, so it reaches only allowlisted domains, unless Claude Code fetches server-side.
 
 Profiles add what their agent needs via `allowlistDomains` in `profile.json`. The bundled profiles add:
 
@@ -214,11 +217,14 @@ An attacker embeds a PAT (personal access token) in a JIRA issue description, or
 
 A Copilot CLI `preToolUse` hook that runs before every tool execution. It logs every tool invocation to `pre-tool.log` (JSONL, streamed to the host in real time) and `audit.jsonl` for post-task analysis. The other hooks in `shared/hooks/` log session start/end, prompts, tool output and errors.
 
-The hook configuration (`shared/hooks/ralph-audit.json`) uses the Copilot CLI hook format and is mounted by the security overlay at `/workspace/.github/hooks/ralph-audit.json`, the location Copilot CLI reads repository hooks from; the scripts are mounted at `/workspace/.ralph/hooks/`.
+The scripts are mounted by the security overlay at `/workspace/.ralph/hooks/`. Each CLI's hook configuration comes from the generated overlay, only when a container stage runs that CLI:
+
+- **Copilot CLI:** `shared/hooks/ralph-audit.json` at `/workspace/.github/hooks/ralph-audit.json`, the location Copilot CLI reads repository hooks from.
+- **Claude Code:** `shared/hooks/claude/hooks.json`, embedded as the `hooks` of the managed settings at `/etc/claude-code/managed-settings.json` (read-only). The managed settings also set `allowManagedHooksOnly` (hooks from the target repo or written by the agent never run) and remove Claude Code's commit and PR attribution. No user, project or flag settings can override them.
 
 **Limitations:**
 
-- Read only by Copilot CLI running in the container. Local-mode stages don't get these hooks.
+- Run by Copilot CLI and Claude Code in the container. Local-mode stages don't get these hooks.
 - Audit-only — the hook never blocks a tool call.
 
 ### Copilot CLI URL Allowlist (`copilot-config.json`)

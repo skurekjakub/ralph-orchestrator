@@ -3,13 +3,11 @@ import { join } from "node:path";
 import type { ProfileBuildPaths } from "../../container/setup/build-paths";
 import type { Logger } from "../../logger";
 import { toErrorMessage } from "../../util/error";
-import { CLAUDE_DENIED_TOOLS } from "./claude-tools";
 
 /** Claude Code managed settings for container sessions. */
 export interface ClaudeManagedSettings {
   /** Only managed hooks run; hooks in the target repo or written by the agent are ignored. */
   readonly allowManagedHooksOnly: true;
-  readonly permissions: { readonly deny: readonly string[] };
   /** Empty texts leave commits and PRs without Claude Code attribution. */
   readonly attribution: { readonly commit: ""; readonly pr: "" };
   /** The audit hooks and the result gate. */
@@ -33,14 +31,13 @@ export function userSettingsPath(paths: ProfileBuildPaths): string {
 
 /**
  * Managed settings for container sessions: the audit hooks and result gate are the only hooks that run,
- * the web tools are denied, and commits and PRs carry no Claude Code attribution.
+ * and commits and PRs carry no Claude Code attribution.
  *
  * @param hooks The content of `shared/hooks/claude/hooks.json`, embedded unchanged.
  */
 export function buildManagedSettings(hooks: Readonly<Record<string, unknown>>): ClaudeManagedSettings {
   return {
     allowManagedHooksOnly: true,
-    permissions: { deny: [...CLAUDE_DENIED_TOOLS] },
     attribution: { commit: "", pr: "" },
     hooks,
   };
@@ -75,8 +72,5 @@ export function writeClaudeSettings(paths: ProfileBuildPaths, logger: Logger): v
   mkdirSync(claudeBuildDir(paths), { recursive: true });
   writeFileSync(managedSettingsPath(paths), JSON.stringify(settings, null, 2) + "\n", "utf-8");
   writeFileSync(userSettingsPath(paths), "{}\n", "utf-8");
-  logger.info(
-    `Wrote Claude Code managed settings: ${Object.keys(settings.hooks).length} hook events, ` +
-      `denied tools ${settings.permissions.deny.join(", ")}`,
-  );
+  logger.info(`Wrote Claude Code managed settings: ${Object.keys(settings.hooks).length} hook events`);
 }

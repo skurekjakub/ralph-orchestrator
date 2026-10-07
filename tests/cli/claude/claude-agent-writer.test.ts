@@ -7,7 +7,7 @@ import { CliType, ReasoningEffort } from "../../../src/config/types";
 import { makeAgentDefinition } from "../../helpers/factories";
 
 const LEAF: AgentWriteContext = { isStageRoot: false, stageSubagents: [], mcpTools: {} };
-const BUILTINS = "Read, Write, Edit, Bash, Skill, TaskCreate, TaskGet, TaskList, TaskUpdate";
+const BUILTINS = "Read, Write, Edit, Bash, Skill, TaskCreate, TaskGet, TaskList, TaskUpdate, WebFetch, WebSearch";
 
 /** The frontmatter lines of a written agent file. */
 function frontmatterOf(content: string): string[] {

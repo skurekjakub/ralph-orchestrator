@@ -4,18 +4,19 @@ All secrets and credentials are stored in `.env` at the project root. Never comm
 
 ## Required
 
-At least one of `GH_TOKEN` or `ANTHROPIC_API_KEY` must be set.
+The credential of every CLI a stage runs must be set, plus each profile's `repoPat` variable. Startup validation reports what is missing. An agent container receives only the credential of each CLI its container stages run, as a `${VAR}` reference resolved at compose time.
 
-| Variable   | Description                                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------------------------- |
-| `GH_TOKEN` | GitHub PAT with **Copilot Requests** permission. Required for `cli: "copilot"` profiles                          |
-| `ADO_PAT`  | Azure DevOps PAT for the target ADO org (Code: Read+Write). Default credential for `vcsProvider: "ado"` profiles |
+| Variable                  | Description                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Claude Code OAuth token from `claude setup-token`. Required for stages on `cli: "claude"` (default `claudeAuth`)         |
+| `ANTHROPIC_API_KEY`       | Anthropic API key. Required instead of `CLAUDE_CODE_OAUTH_TOKEN` when `config.json` sets `claudeAuth: "api-key"`         |
+| `GH_TOKEN`                | GitHub PAT with **Copilot Requests** permission. Required for stages on `cli: "copilot"` and for `vcsProvider: "github"` |
+| `ADO_PAT`                 | Azure DevOps PAT for the target ADO org (Code: Read+Write). Default credential for `vcsProvider: "ado"` profiles         |
 
 ## Optional
 
 | Variable               | Description                                                                                                                                                 |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`    | Anthropic API key. Required for `cli: "claude"` profiles                                                                                                    |
 | `ADO_PAT_XPERIENCE`    | ADO PAT for kenticoxperience org (Code: Read, Packaging: Read, Build: Read). Agent skips related operations if unset                                        |
 | `DASHBOARD_URL`        | Ralph Status Dashboard URL. Required if `dashboard.enabled` is `true`                                                                                       |
 | `DASHBOARD_SECRET`     | Shared secret for dashboard auth. Required alongside `DASHBOARD_URL`                                                                                        |

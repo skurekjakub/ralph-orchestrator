@@ -11,7 +11,7 @@ import { MCP_CONFIG_CONTAINER_PATH } from "../setup/compose-overlay";
 import type { ContainerExecResult } from "../types";
 import { executeCliCommand, killActiveProcess, writePromptFile } from "./shared-exec";
 
-/** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, managed deny rules and hooks are the boundary. */
+/** Permission mode of container sessions: the container, egress proxy, sidecar tool filter, `--tools` cap and managed hooks are the boundary. */
 const CONTAINER_PERMISSION_MODE = "bypassPermissions";
 
 /** Dependencies of one stage's Claude Code executor. */

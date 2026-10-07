@@ -320,7 +320,7 @@ Agent container   → ralph-internal (internal: true) → Squid proxy → AI pro
 MCP Sidecar       → ralph-internal + ralph-sidecar-external → direct internet (unrestricted)
 ```
 
-**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, which enforces a domain allowlist: the AI provider backends from the shared baseline (GitHub Copilot, GitHub, Anthropic) plus the profile's `allowlistDomains` (for the bundled profiles: package registries, Azure DevOps hosts and feeds). Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
+**Agent:** Runs on `ralph-internal` only. All HTTP/HTTPS traffic routes through Squid, which enforces a domain allowlist: the backends of the agent CLIs the task's container stages run (Anthropic for Claude Code; GitHub Copilot and GitHub for Copilot CLI) plus the profile's `allowlistDomains` (for the bundled profiles: package registries, Azure DevOps hosts and feeds). Even if the agent unsets `HTTPS_PROXY` env vars, direct egress fails — there's no route from the internal network to the internet. The proxy is the only bridge.
 
 **MCP Sidecar:** Connected to both `ralph-internal` (to accept tool calls from the agent) and `ralph-sidecar-external` (a bridge network with direct internet access). The sidecar has no proxy configured — it reaches external APIs directly. JIRA, ADO REST, git push, documentation sites and web fetches are designed to go through MCP tools rather than the agent's own requests.
 

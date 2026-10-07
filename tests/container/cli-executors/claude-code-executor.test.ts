@@ -144,7 +144,7 @@ describe("ClaudeCodeExecutor", () => {
         "--permission-mode",
         "bypassPermissions",
         "--tools",
-        "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,Agent",
+        "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,WebFetch,WebSearch,Agent",
         "--session-id",
         sessionId,
         "--debug-file",
@@ -198,7 +198,7 @@ describe("ClaudeCodeExecutor", () => {
       // Assert
       const { args } = exec(compose);
       expect(args[args.indexOf("--tools") + 1]).toBe(
-        "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate",
+        "Read,Write,Edit,Bash,Skill,TaskCreate,TaskGet,TaskList,TaskUpdate,WebFetch,WebSearch",
       );
       expect(args.join(" ")).not.toContain("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH");
     });

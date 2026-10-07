@@ -11,14 +11,13 @@ const HOOKS = {
 };
 
 describe("buildManagedSettings", () => {
-  it("allows only managed hooks, denies the web tools, hides attribution and embeds the hooks unchanged", () => {
+  it("allows only managed hooks, hides attribution, denies no tool and embeds the hooks unchanged", () => {
     // Act
     const settings = buildManagedSettings(HOOKS);
 
     // Assert
     expect(settings).toEqual({
       allowManagedHooksOnly: true,
-      permissions: { deny: ["WebSearch", "WebFetch"] },
       attribution: { commit: "", pr: "" },
       hooks: HOOKS,
     });

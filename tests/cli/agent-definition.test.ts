@@ -115,7 +115,7 @@ describe("parseAgentSource", () => {
     ["an uppercase name", makeAgentTemplate("Ralph"), /^name: /],
     ["a missing description", "---\nname: x\n---\n", /^description: /],
     ["a repeated subagent", makeAgentTemplate("x", { subagents: ["a", "a"] }), /^subagents: must not repeat/],
-    ["a tool Ralph never grants", makeAgentTemplate("x", { extraLines: ["tools: [WebSearch]"] }), /^tools\.0: /],
+    ["a tool Ralph never grants", makeAgentTemplate("x", { extraLines: ["tools: [CronCreate]"] }), /^tools\.0: /],
     ["an unknown runtime", makeAgentTemplate("x", { runtimes: ["codex"] }), /^runtimes\.0: /],
     ["no runtime", makeAgentTemplate("x", { runtimes: [] }), /^runtimes: must name at least one CLI/],
     ["a zero turn cap", makeAgentTemplate("x", { extraLines: ["maxTurns: 0"] }), /^maxTurns: /],
