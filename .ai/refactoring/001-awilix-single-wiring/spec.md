@@ -100,7 +100,7 @@ export type Registrations<C> = { [K in keyof C]: Resolver<C[K]> };
     - `secrets` (nothing reads it, `awilix-cradle.ts:141`);
     - `executorFactory` (per stage kind now);
     - `agentCatalogs`, `skillRenderer`, `jitMcpConfig` (their classes become functions).
-- **`TaskCradle = OrchestratorCradle & TaskValues & { squidConfPath; compose; containerLogs; workspaceCleaner; containerManager; stageExecutors }`**, where `TaskValues = { profile; workspacePath }`.
+- **`TaskCradle = OrchestratorCradle & TaskValues & { composeFiles; squidConfPath; compose; containerLogs; workspaceCleaner; containerManager; stageExecutors }`**, where `TaskValues = { profile; workspacePath }`.
 - **Stage cradles, one per executor kind,** because the per-stage values differ by CLI. Today Copilot stages never load the agent catalog, and `tests/container/cli-executor-factory.test.ts:32-44` checks that.
   - `ClaudeStageCradle = TaskCradle & { stage; stageProfile; runtime; agentName; subagentDepth; claudeCodeExecutor }`
   - `CopilotStageCradle = TaskCradle & { stage; stageProfile; runtime; copilotExecutor }`
@@ -286,3 +286,8 @@ From the spec review on 2026-10-07: two reviewers, rubber-duk-review and rubber-
    - the executor-factory tests had no destination.
 
    All are fixed in the sections above.
+
+From the Task 9 review on 2026-10-07:
+
+9. **§2's `TaskCradle` left out `composeFiles`,** which §3 registers as a scoped token and `ComposeClient` takes as a dep. Without it, `t.service(ComposeClient)` cannot type-check. **Fix:** `TaskCradle` carries `composeFiles` (and §2 above names it).
+10. **The runtime test resolving every root, task and stage token had no plan task.** **Fix:** it lands with Task 11, once the stage scopes (Task 10) and the cradle-built orchestrator and dashboard server (Task 11) exist.
