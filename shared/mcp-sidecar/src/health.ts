@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Logger } from "./logger";
-import type { ListenAddress, ServerStatus } from "./managed-server";
+import { ServerStatus, type ListenAddress } from "./managed-server";
 import { DriftStatus, ExposureStatus, type DriftReport, type ExposureReport } from "./upstream-monitor";
 
 /** Tool-filter state of a server that has an allowlist. */
@@ -26,11 +26,27 @@ export interface ServerHealth {
 
 /** Body of `GET /health`. */
 export interface HealthReport {
-  /** True when every server is running; drives the HTTP status (200 or 503) and the compose healthcheck. */
+  /**
+   * True when every server {@link isServerReady | is ready}; drives the HTTP status (200 or 503) and
+   * the compose healthcheck, so the agent container does not start until it holds.
+   */
   healthy: boolean;
   servers: Record<string, ServerHealth>;
-  /** Tool-filter findings that need an operator (allowlist drift, bypassable upstream ports). They do not affect `healthy`. */
+  /** Tool-filter findings that need an operator (allowlist drift, unlistable tools, bypassable upstream ports). */
   warnings: string[];
+}
+
+/**
+ * Whether a server may be offered to the agent: it is running and, when it has a tool filter, its
+ * tools were listed through loopback and its upstream port was verified unreachable off loopback.
+ * Unverified (pending) checks count as not ready, so the gateway fails closed.
+ */
+export function isServerReady(server: ServerHealth): boolean {
+  if (server.status !== ServerStatus.Running) return false;
+  if (!server.toolFilter) return true;
+  const { drift, exposure } = server.toolFilter;
+  const listed = drift.status === DriftStatus.Ok || drift.status === DriftStatus.Drift;
+  return listed && exposure.status === ExposureStatus.LoopbackOnly;
 }
 
 /** Human-readable warnings for a server's tool-filter state; empty when there is nothing to fix. */

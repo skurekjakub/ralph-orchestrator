@@ -1,11 +1,12 @@
+import { EventEmitter } from "node:events";
 import type { Server } from "node:http";
 import { HEALTH_PORT, type ResolvedGatewayConfig, type ResolvedServerConfig } from "./gateway-config";
-import { startHealthServer, toolFilterWarnings, type HealthReport, type ServerHealth } from "./health";
+import { isServerReady, startHealthServer, toolFilterWarnings, type HealthReport, type ServerHealth } from "./health";
 import type { Logger } from "./logger";
 import { ManagedServer, ServerStatus, type ListenAddress, type ManagedServerOptions } from "./managed-server";
 import { ToolFilterProxy } from "./tool-filter-proxy";
 import { ToolAllowlist } from "./tool-policy";
-import { UpstreamMonitor, type UpstreamMonitorOptions } from "./upstream-monitor";
+import { DriftStatus, ExposureStatus, UpstreamMonitor, type UpstreamMonitorOptions } from "./upstream-monitor";
 
 /** Interface servers bind when the agent connects to them directly. */
 const PUBLIC_HOST = "0.0.0.0";
@@ -19,7 +20,13 @@ export interface SidecarGatewayOptions {
   /** Defaults to `0.0.0.0:9000`. */
   healthListen?: ListenAddress;
   processOptions?: Pick<ManagedServerOptions, "maxRestarts" | "restartDelayMs" | "startupGraceMs">;
-  monitorOptions?: Pick<UpstreamMonitorOptions, "maxAttempts" | "retryDelayMs" | "timeoutMs">;
+  monitorOptions?: Pick<UpstreamMonitorOptions, "maxAttempts" | "retryDelayMs" | "timeoutMs" | "sleep">;
+}
+
+/** Events a {@link SidecarGateway} emits. */
+export enum GatewayEvent {
+  /** A server's status or tool-filter state changed, so {@link SidecarGateway.healthReport} may differ. */
+  Changed = "changed",
 }
 
 interface ToolFilter {
@@ -41,12 +48,16 @@ interface GatewayEntry {
  * The sidecar's MCP gateway: runs every configured server, fronts servers that have an `allowedTools`
  * list with a {@link ToolFilterProxy} on their agent-facing port (the server itself then listens on
  * loopback at its upstream port), and serves the health endpoint.
+ *
+ * It fails closed: a filtered server counts as ready only once its upstream port is verified
+ * loopback-only, and a server found reachable off loopback is stopped and refused for good.
  */
-export class SidecarGateway {
+export class SidecarGateway extends EventEmitter<{ [GatewayEvent.Changed]: [] }> {
   private readonly entries: GatewayEntry[];
   private healthServer: Server | null = null;
 
   constructor(private readonly options: SidecarGatewayOptions) {
+    super();
     this.entries = options.config.servers.map((config) => this.createEntry(config));
   }
 
@@ -70,6 +81,7 @@ export class SidecarGateway {
         } catch (err) {
           entry.filter.startError = `tool-filter proxy failed to listen on port ${entry.config.port}: ${err instanceof Error ? err.message : String(err)}`;
           logger.error(`[gateway] ${entry.config.name}: ${entry.filter.startError}`);
+          this.emit(GatewayEvent.Changed);
           continue;
         }
       }
@@ -125,12 +137,13 @@ export class SidecarGateway {
       }
       servers[config.name] = health;
     }
-    const healthy = Object.values(servers).every((server) => server.status === ServerStatus.Running);
+    const healthy = Object.values(servers).every(isServerReady);
     return { healthy, servers, warnings };
   }
 
   private createEntry(config: ResolvedServerConfig): GatewayEntry {
     const { logger, processOptions, monitorOptions } = this.options;
+    const onStatusChange = (): void => void this.emit(GatewayEvent.Changed);
     if (config.upstreamPort === null || config.allowedTools === undefined) {
       return {
         config,
@@ -139,6 +152,7 @@ export class SidecarGateway {
           config,
           listen: { host: PUBLIC_HOST, port: config.port },
           logger,
+          onStatusChange,
         }),
         filter: null,
       };
@@ -154,17 +168,39 @@ export class SidecarGateway {
       allowlist,
       logger,
     });
-    const managed = new ManagedServer({
-      ...processOptions,
+    const filter: ToolFilter = { proxy, monitor, allowlist, upstreamPort: config.upstreamPort, startError: null };
+    const entry: GatewayEntry = {
       config,
-      listen: upstream,
-      logger,
-      onRunning: () => void monitor.check(),
-    });
-    return {
-      config,
-      managed,
-      filter: { proxy, monitor, allowlist, upstreamPort: config.upstreamPort, startError: null },
+      managed: new ManagedServer({
+        ...processOptions,
+        config,
+        listen: upstream,
+        logger,
+        onStatusChange,
+        onRunning: () => void this.verify(entry, filter),
+      }),
+      filter,
     };
+    return entry;
+  }
+
+  /** Check a freshly (re)started filtered server and refuse it when its upstream is reachable off loopback. */
+  private async verify(entry: GatewayEntry, filter: ToolFilter): Promise<void> {
+    const round = filter.monitor.check();
+    this.emit(GatewayEvent.Changed);
+    await round;
+    const { drift, exposure } = filter.monitor;
+    if (exposure.status === ExposureStatus.Exposed) {
+      const unreachable =
+        drift.status === DriftStatus.Error ? `, and it does not answer MCP on 127.0.0.1: ${drift.error}` : "";
+      const reason =
+        `refusing to serve ${entry.config.name}: its upstream port ${filter.upstreamPort} accepts connections on ` +
+        `${exposure.addresses.join(", ")}${unreachable}, so agents could bypass the tool allowlist; ` +
+        `the server must bind only the --host address ${LOOPBACK_HOST}`;
+      this.options.logger.error(`[guard] ${entry.config.name}: ${reason}`);
+      filter.proxy.refuse(reason);
+      entry.managed.refuse(reason);
+    }
+    this.emit(GatewayEvent.Changed);
   }
 }

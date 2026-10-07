@@ -11,7 +11,7 @@ import {
 import { createRecordingLogger } from "./helpers/logger";
 import { listen, startUpstream, UpstreamMode, type UpstreamOptions } from "./helpers/upstream";
 
-const FAST = { maxAttempts: 2, retryDelayMs: 1, timeoutMs: 2000 };
+const FAST = { maxAttempts: 2, timeoutMs: 2000, sleep: () => Promise.resolve() };
 
 describe("UpstreamMonitor", () => {
   const cleanups: (() => Promise<unknown>)[] = [];
@@ -88,13 +88,16 @@ describe("UpstreamMonitor", () => {
       expect(monitor.drift).toMatchObject({ status: DriftStatus.Ok, upstreamToolCount: 3 });
     });
 
-    it("reports an error once every attempt to reach the server failed", async () => {
+    it("reports an error once every attempt to reach the server failed, and still probes exposure", async () => {
+      // Arrange
       const { monitor, logger } = monitorFor(await deadPort(), ["echo"]);
 
+      // Act
       await monitor.check();
 
+      // Assert
       expect(monitor.drift).toMatchObject({ status: DriftStatus.Error, error: expect.any(String) });
-      expect(monitor.exposure.status).toBe(ExposureStatus.Pending);
+      expect(monitor.exposure.status).toBe(ExposureStatus.LoopbackOnly);
       expect(logger.messages("warn")).toEqual([
         expect.stringContaining("[guard] test: could not list upstream tools after 2 attempts"),
       ]);

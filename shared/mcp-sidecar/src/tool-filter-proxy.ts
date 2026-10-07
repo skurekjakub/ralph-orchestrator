@@ -84,6 +84,7 @@ export class ToolFilterProxy {
   private readonly sessions = new SessionListRequests();
   private readonly maxBodyBytes: number;
   private denied = 0;
+  private refusal: string | null = null;
 
   constructor(private readonly options: ToolFilterProxyOptions) {
     this.maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
@@ -119,6 +120,15 @@ export class ToolFilterProxy {
     return port;
   }
 
+  /**
+   * Stop serving the server: from now on every request is answered with HTTP 503 and a JSON-RPC
+   * error carrying `reason`, and open connections are dropped.
+   */
+  refuse(reason: string): void {
+    this.refusal = reason;
+    this.server.closeAllConnections();
+  }
+
   /** Stop listening and drop open connections, including long-lived SSE streams. */
   async stop(): Promise<void> {
     if (!this.server.listening) return;
@@ -132,6 +142,11 @@ export class ToolFilterProxy {
     const path = (req.url ?? "").split("?")[0];
     if (path !== MCP_PATH) {
       res.writeHead(404).end();
+      return;
+    }
+    if (this.refusal !== null) {
+      req.resume();
+      sendJson(res, 503, errorPayload(null, ProtocolErrorCode.InternalError, this.refusal));
       return;
     }
 

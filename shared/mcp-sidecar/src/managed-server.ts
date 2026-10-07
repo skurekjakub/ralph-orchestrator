@@ -6,7 +6,12 @@ import type { Logger } from "./logger";
 export enum ServerStatus {
   Starting = "starting",
   Running = "running",
+  /** Exited unexpectedly; a restart is scheduled. */
   Crashed = "crashed",
+  /** Exited unexpectedly with no restarts left. */
+  Failed = "failed",
+  /** Stopped for good because it is unsafe to serve; `lastError` says why. */
+  Refused = "refused",
   Stopped = "stopped",
 }
 
@@ -55,6 +60,8 @@ export interface ManagedServerOptions {
   logger: Logger;
   /** Called each time a (re)spawned process is considered running. */
   onRunning?: () => void;
+  /** Called after every status change. */
+  onStatusChange?: (status: ServerStatus) => void;
   maxRestarts?: number;
   restartDelayMs?: number;
   /** A process that stays alive this long without a startup log line is considered running. */
@@ -89,7 +96,7 @@ export class ManagedServer {
   /** Spawn the process. Spawn failures and exits are handled by the restart policy, never thrown. */
   start(): void {
     const { config, listen, logger } = this.options;
-    this.status = ServerStatus.Starting;
+    this.setStatus(ServerStatus.Starting);
 
     const { command, args } = buildLaunchCommand(config, listen);
     logger.info(
@@ -117,22 +124,21 @@ export class ManagedServer {
     });
 
     child.on("error", (err) => {
+      if (this.isFinal() || this.child !== child) return;
       logger.error(`[gateway] Failed to spawn ${config.name}: ${err.message}`);
-      this.status = ServerStatus.Crashed;
       this.lastError = err.message;
       this.child = null;
-      this.scheduleRestart();
+      this.handleExit();
     });
 
     // 'close' fires after stdio is flushed, so the final stderr line is logged before the crash report.
     child.on("close", (code, signal) => {
-      if (this.status === ServerStatus.Stopped || this.child !== child) return;
+      if (this.isFinal() || this.child !== child) return;
       logger.error(
         `[gateway] ${config.name} exited (pid=${child.pid}, code=${code}, signal=${signal}, lastError=${this.lastError ?? "none"})`,
       );
-      this.status = ServerStatus.Crashed;
       this.child = null;
-      this.scheduleRestart();
+      this.handleExit();
     });
 
     setTimeout(() => {
@@ -142,11 +148,15 @@ export class ManagedServer {
 
   /** Send SIGTERM and stop restarting. */
   stop(): void {
-    this.status = ServerStatus.Stopped;
-    if (this.child && !this.child.killed) {
-      this.options.logger.info(`[gateway] Stopping ${this.options.config.name}`);
-      this.child.kill("SIGTERM");
-    }
+    this.setStatus(ServerStatus.Stopped);
+    this.terminate();
+  }
+
+  /** Stop the process for good because serving it is unsafe, recording `reason` as its last error. */
+  refuse(reason: string): void {
+    this.lastError = reason;
+    this.setStatus(ServerStatus.Refused);
+    this.terminate();
   }
 
   /** Send SIGKILL to a process that ignored {@link stop}. */
@@ -154,24 +164,43 @@ export class ManagedServer {
     if (this.child && this.child.exitCode === null && this.child.signalCode === null) this.child.kill("SIGKILL");
   }
 
+  private terminate(): void {
+    if (this.child && !this.child.killed) {
+      this.options.logger.info(`[gateway] Stopping ${this.options.config.name}`);
+      this.child.kill("SIGTERM");
+    }
+  }
+
   private markRunning(child: ChildProcess): void {
     if (this.status !== ServerStatus.Starting || this.child !== child) return;
-    this.status = ServerStatus.Running;
+    this.setStatus(ServerStatus.Running);
     this.options.onRunning?.();
   }
 
-  private scheduleRestart(): void {
+  /** Whether the process was stopped on purpose, so exits must not restart it. */
+  private isFinal(): boolean {
+    return this.status === ServerStatus.Stopped || this.status === ServerStatus.Refused;
+  }
+
+  private handleExit(): void {
     const { config, logger } = this.options;
     if (this.restarts >= this.maxRestarts) {
       logger.error(`[gateway] ${config.name} exceeded max restarts (${this.maxRestarts}), giving up`);
+      this.setStatus(ServerStatus.Failed);
       return;
     }
     this.restarts++;
+    this.setStatus(ServerStatus.Crashed);
     logger.info(
       `[gateway] Restarting ${config.name} in ${this.restartDelayMs}ms (attempt ${this.restarts}/${this.maxRestarts})`,
     );
     setTimeout(() => {
-      if (this.status !== ServerStatus.Stopped) this.start();
+      if (!this.isFinal()) this.start();
     }, this.restartDelayMs);
+  }
+
+  private setStatus(status: ServerStatus): void {
+    this.status = status;
+    this.options.onStatusChange?.(status);
   }
 }

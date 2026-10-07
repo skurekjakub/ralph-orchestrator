@@ -20,7 +20,7 @@ export enum DriftStatus {
 
 /** Whether the server's upstream port is reachable from outside the sidecar. */
 export enum ExposureStatus {
-  /** Not checked yet, or not checkable because the server could not be reached. */
+  /** Not checked yet for the current server process. */
   Pending = "pending",
   LoopbackOnly = "loopback-only",
   /** The port accepts connections on a non-loopback address, so clients can bypass the proxy. */
@@ -55,6 +55,8 @@ export interface UpstreamMonitorOptions {
   retryDelayMs?: number;
   /** Timeout of each MCP request and TCP probe. */
   timeoutMs?: number;
+  /** Waits between listing attempts; defaults to a timer that does not keep the process alive. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 const DEFAULT_MAX_ATTEMPTS = 20;
@@ -63,8 +65,10 @@ const DEFAULT_TIMEOUT_MS = 10000;
 const MAX_LIST_PAGES = 100;
 
 /**
- * Checks a filtered server after each (re)start: lists its real tools to detect allowlist drift,
- * then probes whether its upstream port is reachable on a non-loopback address.
+ * Checks a filtered server after each (re)start: lists its real tools over loopback to detect
+ * allowlist drift, then probes whether its upstream port is reachable on a non-loopback address.
+ * The probe runs even when listing fails, because a server bound only to a non-loopback address
+ * fails the listing and is exactly the server that must not be fronted.
  * Findings are logged and kept for the health endpoint.
  */
 export class UpstreamMonitor {
@@ -75,22 +79,25 @@ export class UpstreamMonitor {
   private readonly maxAttempts: number;
   private readonly retryDelayMs: number;
   private readonly timeoutMs: number;
+  private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(private readonly options: UpstreamMonitorOptions) {
     this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     this.retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.sleep = options.sleep ?? ((ms) => delay(ms, undefined, { ref: false }));
   }
 
   /**
    * Run the checks for a freshly started server process, superseding any round still in progress.
-   * Never rejects: failures are recorded in {@link drift}.
+   * Never rejects: failures are recorded in {@link drift}. A superseded or cancelled round leaves the
+   * reports pending.
    */
   async check(): Promise<void> {
     const generation = ++this.generation;
     this.drift = pendingDrift();
     this.exposure = pendingExposure();
-    const { serverName, upstream, allowlist, logger } = this.options;
+    const { serverName, upstream, logger } = this.options;
     const url = new URL(`http://${upstream.host}:${upstream.port}${MCP_PATH}`);
 
     let toolNames: string[] | undefined;
@@ -100,7 +107,7 @@ export class UpstreamMonitor {
         toolNames = await listUpstreamToolNames(url, this.timeoutMs);
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
-        if (attempt < this.maxAttempts) await delay(this.retryDelayMs, undefined, { ref: false });
+        if (attempt < this.maxAttempts) await this.sleep(this.retryDelayMs);
       }
       if (generation !== this.generation) return;
     }
@@ -110,25 +117,8 @@ export class UpstreamMonitor {
       logger.warn(
         `[guard] ${serverName}: could not list upstream tools after ${this.maxAttempts} attempts: ${lastError}`,
       );
-      return;
-    }
-
-    const missingTools = allowlist.missingFrom(toolNames);
-    this.drift = {
-      status: missingTools.length > 0 ? DriftStatus.Drift : DriftStatus.Ok,
-      missingTools,
-      upstreamToolCount: toolNames.length,
-      checkedAt: now(),
-      error: null,
-    };
-    const allowed = allowlist.toArray().length - missingTools.length;
-    logger.info(
-      `[proxy] ${serverName}: upstream exposes ${toolNames.length} tool(s); ${allowed} allowlisted, ${toolNames.length - allowed} hidden`,
-    );
-    if (missingTools.length > 0) {
-      logger.warn(
-        `[guard] ${serverName}: allowlist drift: ${missingTools.join(", ")} not exposed by the server (fix "tools" in its mcp-server.json)`,
-      );
+    } else {
+      this.recordDrift(toolNames);
     }
 
     const addresses = await findExposedAddresses(upstream.port, this.timeoutMs);
@@ -148,6 +138,27 @@ export class UpstreamMonitor {
   /** Abandon any round in progress. */
   cancel(): void {
     this.generation++;
+  }
+
+  private recordDrift(toolNames: string[]): void {
+    const { serverName, allowlist, logger } = this.options;
+    const missingTools = allowlist.missingFrom(toolNames);
+    this.drift = {
+      status: missingTools.length > 0 ? DriftStatus.Drift : DriftStatus.Ok,
+      missingTools,
+      upstreamToolCount: toolNames.length,
+      checkedAt: now(),
+      error: null,
+    };
+    const allowed = allowlist.toArray().length - missingTools.length;
+    logger.info(
+      `[proxy] ${serverName}: upstream exposes ${toolNames.length} tool(s); ${allowed} allowlisted, ${toolNames.length - allowed} hidden`,
+    );
+    if (missingTools.length > 0) {
+      logger.warn(
+        `[guard] ${serverName}: allowlist drift: ${missingTools.join(", ")} not exposed by the server (fix "tools" in its mcp-server.json)`,
+      );
+    }
   }
 }
 
