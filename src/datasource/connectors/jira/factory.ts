@@ -19,7 +19,7 @@ import { JiraWorkItemPoller } from "./jira-poller";
 import { buildJqlFromProfiles } from "./jql-builder";
 
 /** The cradle of a JIRA data source's scope. */
-export type JiraSourceCradle = DataSourceCradle & {
+type JiraSourceCradle = DataSourceCradle & {
   jiraConnection: IJiraConnectionConfig;
   jiraClient: IJiraClient;
   excludeFields: string[];

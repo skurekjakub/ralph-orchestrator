@@ -19,8 +19,8 @@ const DEFAULT_PORT = 3100;
  * logs, and tool output to the local React dashboard.
  *
  * Historical log browsing is handled by the Vite plugin
- * (`dashboard-local/src/logApiPlugin.ts`) which reads `output/logs/`
- * directly — no orchestrator dependency required.
+ * (`dashboard-local/src/logApiPlugin.ts`), which reads `output/logs/`
+ * directly.
  */
 export class DashboardServer {
   private wss: WebSocketServer | null = null;

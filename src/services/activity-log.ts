@@ -51,7 +51,7 @@ export class ActivityLog implements IActivityLog {
   /**
    * @param opts.outputConfig Output config (reads `logDir`).
    * @param opts.rootDir The orchestrator checkout a relative `logDir` resolves against.
-   * @param opts.maxLines Ring buffer size (default 500).
+   * @param maxLines Ring buffer size.
    */
   constructor(
     {

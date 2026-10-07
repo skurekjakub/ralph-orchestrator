@@ -11,7 +11,7 @@ import {
 type Expand<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 /** Keys of deps object `D` that cradle `C` lacks (optional keys included) or provides with an incompatible type. */
-export type Unsatisfied<C, D> = Expand<{
+type Unsatisfied<C, D> = Expand<{
   [K in keyof D as K extends keyof C ? (C[K] extends D[K] ? never : K) : K]-?: D[K];
 }>;
 

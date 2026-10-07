@@ -13,10 +13,10 @@ export interface LogSourceCallbacks {
 }
 
 /** Path to the pre-tool invocation log inside the container. */
-export const PRE_TOOL_PATH = "/workspace/.ralph/logs/pre-tool.log";
+const PRE_TOOL_PATH = "/workspace/.ralph/logs/pre-tool.log";
 
 /** Path to the untruncated tool output log inside the container. */
-export const TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
+const TOOL_OUTPUT_PATH = "/workspace/.ralph/logs/tool-output.log";
 
 /**
  * Registers all standard log sources on a task's collector and starts streaming.
