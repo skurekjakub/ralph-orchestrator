@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { ServerType, type ServerConfig } from "./gateway-config.js";
-import type { Logger } from "./logger.js";
+import { ServerType, type ServerConfig } from "./gateway-config";
+import type { Logger } from "./logger";
 
 /** Lifecycle state of a server process. */
 export enum ServerStatus {

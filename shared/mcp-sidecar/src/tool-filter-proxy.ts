@@ -11,9 +11,9 @@ import {
 import type { AddressInfo } from "node:net";
 import { pipeline } from "node:stream";
 import { ErrorCode, type RequestId } from "@modelcontextprotocol/sdk/types.js";
-import type { Logger } from "./logger.js";
-import type { ListenAddress } from "./managed-server.js";
-import { SseEventFilter } from "./sse-filter.js";
+import type { Logger } from "./logger";
+import type { ListenAddress } from "./managed-server";
+import { SseEventFilter } from "./sse-filter";
 import {
   errorPayload,
   filterListToolsResponse,
@@ -21,7 +21,7 @@ import {
   responseIdKey,
   type JsonRpcErrorPayload,
   type ToolAllowlist,
-} from "./tool-policy.js";
+} from "./tool-policy";
 
 /** Path of the Streamable HTTP endpoint, on both the proxy and the upstream server. */
 export const MCP_PATH = "/mcp";

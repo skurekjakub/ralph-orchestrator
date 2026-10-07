@@ -3,10 +3,10 @@ import { networkInterfaces } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { Logger } from "./logger.js";
-import type { ListenAddress } from "./managed-server.js";
-import { MCP_PATH } from "./tool-filter-proxy.js";
-import type { ToolAllowlist } from "./tool-policy.js";
+import type { Logger } from "./logger";
+import type { ListenAddress } from "./managed-server";
+import { MCP_PATH } from "./tool-filter-proxy";
+import type { ToolAllowlist } from "./tool-policy";
 
 /** Whether the allowlist matches the tools the server really exposes. */
 export enum DriftStatus {

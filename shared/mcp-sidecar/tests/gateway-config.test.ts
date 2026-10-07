@@ -8,7 +8,7 @@ import {
   parseGatewayConfig,
   ServerType,
   UPSTREAM_PORT_OFFSET,
-} from "../src/gateway-config.js";
+} from "../src/gateway-config";
 
 function server(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return { name: "ado", type: "custom", port: 9101, command: "node", args: ["/opt/x.js"], env: {}, ...overrides };

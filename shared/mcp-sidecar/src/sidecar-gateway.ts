@@ -1,11 +1,11 @@
 import type { Server } from "node:http";
-import { HEALTH_PORT, type ResolvedGatewayConfig, type ResolvedServerConfig } from "./gateway-config.js";
-import { startHealthServer, toolFilterWarnings, type HealthReport, type ServerHealth } from "./health.js";
-import type { Logger } from "./logger.js";
-import { ManagedServer, ServerStatus, type ListenAddress, type ManagedServerOptions } from "./managed-server.js";
-import { ToolFilterProxy } from "./tool-filter-proxy.js";
-import { ToolAllowlist } from "./tool-policy.js";
-import { UpstreamMonitor, type UpstreamMonitorOptions } from "./upstream-monitor.js";
+import { HEALTH_PORT, type ResolvedGatewayConfig, type ResolvedServerConfig } from "./gateway-config";
+import { startHealthServer, toolFilterWarnings, type HealthReport, type ServerHealth } from "./health";
+import type { Logger } from "./logger";
+import { ManagedServer, ServerStatus, type ListenAddress, type ManagedServerOptions } from "./managed-server";
+import { ToolFilterProxy } from "./tool-filter-proxy";
+import { ToolAllowlist } from "./tool-policy";
+import { UpstreamMonitor, type UpstreamMonitorOptions } from "./upstream-monitor";
 
 /** Interface servers bind when the agent connects to them directly. */
 const PUBLIC_HOST = "0.0.0.0";

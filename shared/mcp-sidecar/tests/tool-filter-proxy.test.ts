@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { ToolFilterProxy } from "../src/tool-filter-proxy.js";
-import { ToolAllowlist } from "../src/tool-policy.js";
-import { createRecordingLogger, type RecordingLogger } from "./helpers/logger.js";
-import { connectClient, postRaw, readMessages, type ConnectedClient } from "./helpers/mcp-client.js";
-import { listen, PROGRESS_TOOL, startUpstream, UpstreamMode, type TestUpstream } from "./helpers/upstream.js";
+import { ToolFilterProxy } from "../src/tool-filter-proxy";
+import { ToolAllowlist } from "../src/tool-policy";
+import { createRecordingLogger, type RecordingLogger } from "./helpers/logger";
+import { connectClient, postRaw, readMessages, type ConnectedClient } from "./helpers/mcp-client";
+import { listen, PROGRESS_TOOL, startUpstream, UpstreamMode, type TestUpstream } from "./helpers/upstream";
 
 const ALLOWED = ["echo", PROGRESS_TOOL];
 const UPSTREAM_TOOLS = ["echo", PROGRESS_TOOL, "secret_tool"];

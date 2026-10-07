@@ -1,15 +1,15 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
-import { ToolAllowlist } from "../src/tool-policy.js";
+import { ToolAllowlist } from "../src/tool-policy";
 import {
   DriftStatus,
   ExposureStatus,
   listUpstreamToolNames,
   nonLoopbackAddresses,
   UpstreamMonitor,
-} from "../src/upstream-monitor.js";
-import { createRecordingLogger } from "./helpers/logger.js";
-import { listen, startUpstream, UpstreamMode, type UpstreamOptions } from "./helpers/upstream.js";
+} from "../src/upstream-monitor";
+import { createRecordingLogger } from "./helpers/logger";
+import { listen, startUpstream, UpstreamMode, type UpstreamOptions } from "./helpers/upstream";
 
 const FAST = { maxAttempts: 2, retryDelayMs: 1, timeoutMs: 2000 };
 

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/gateway.js",
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && esbuild src/gateway.ts --bundle --platform=node --format=esm --target=node24 --packages=external --outfile=dist/gateway.js",
     "start": "node dist/gateway.js",
     "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run"
@@ -19,7 +19,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.1",
-    "typescript": "^5.9.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
     "vitest": "^4.0.18"
   }
 }

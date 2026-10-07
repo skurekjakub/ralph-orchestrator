@@ -1,4 +1,4 @@
-import type { Logger } from "../../src/logger.js";
+import type { Logger } from "../../src/logger";
 
 /** A {@link Logger} that keeps every line for assertions instead of printing it. */
 export interface RecordingLogger extends Logger {

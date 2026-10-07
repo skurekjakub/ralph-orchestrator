@@ -9,9 +9,9 @@
  * Usage: node gateway.js <config-path>
  */
 
-import { loadGatewayConfig, type ResolvedGatewayConfig } from "./gateway-config.js";
-import { consoleLogger } from "./logger.js";
-import { SidecarGateway } from "./sidecar-gateway.js";
+import { loadGatewayConfig, type ResolvedGatewayConfig } from "./gateway-config";
+import { consoleLogger } from "./logger";
+import { SidecarGateway } from "./sidecar-gateway";
 
 const SHUTDOWN_GRACE_MS = 5000;
 

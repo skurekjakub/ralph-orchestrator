@@ -1,8 +1,8 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { Logger } from "./logger.js";
-import type { ListenAddress, ServerStatus } from "./managed-server.js";
-import { DriftStatus, ExposureStatus, type DriftReport, type ExposureReport } from "./upstream-monitor.js";
+import type { Logger } from "./logger";
+import type { ListenAddress, ServerStatus } from "./managed-server";
+import { DriftStatus, ExposureStatus, type DriftReport, type ExposureReport } from "./upstream-monitor";
 
 /** Tool-filter state of a server that has an allowlist. */
 export interface ToolFilterHealth {

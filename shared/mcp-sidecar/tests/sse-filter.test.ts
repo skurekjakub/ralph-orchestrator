@@ -1,7 +1,7 @@
 import { Readable } from "node:stream";
 import { text } from "node:stream/consumers";
 import { describe, expect, it } from "vitest";
-import { SseEventFilter, type SseDataRewriter } from "../src/sse-filter.js";
+import { SseEventFilter, type SseDataRewriter } from "../src/sse-filter";
 
 /** Push `chunks` through a filter and collect the output. */
 function run(chunks: (string | Buffer)[], rewrite: SseDataRewriter): Promise<string> {

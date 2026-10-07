@@ -7,7 +7,7 @@ import {
   responseIdKey,
   ToolAllowlist,
   type InboundVerdict,
-} from "../src/tool-policy.js";
+} from "../src/tool-policy";
 
 const allowlist = new ToolAllowlist(["echo", "search"]);
 

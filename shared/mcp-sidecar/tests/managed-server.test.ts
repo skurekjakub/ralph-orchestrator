@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ServerType, type ServerConfig } from "../src/gateway-config.js";
-import { buildLaunchCommand, ManagedServer, ServerStatus } from "../src/managed-server.js";
-import { createRecordingLogger } from "./helpers/logger.js";
+import { ServerType, type ServerConfig } from "../src/gateway-config";
+import { buildLaunchCommand, ManagedServer, ServerStatus } from "../src/managed-server";
+import { createRecordingLogger } from "./helpers/logger";
 
 const WAIT = { timeout: 4000, interval: 10 };
 
