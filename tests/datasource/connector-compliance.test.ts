@@ -13,7 +13,6 @@ import { supportsTransitions, supportsAttachments, type IDataSourceConnector } f
 import type { WorkItem, WorkItemComment, WorkItemTransition, WorkItemAttachment } from "../../src/datasource/types";
 import { createMockJiraClient } from "../helpers/mocks";
 import { makeIssue, makeComment } from "../helpers/factories";
-import type { IJiraClient } from "../../src/datasource/connectors/jira/jira-client";
 import type { JiraAttachment, JiraTransition } from "../../src/datasource/connectors/jira/jira-types";
 
 // ── Compliance test runner ────────────────────────────────────────────────────
@@ -166,7 +165,7 @@ describe("Connector compliance", () => {
   });
 
   function createJiraConnector(): IDataSourceConnector {
-    return new JiraConnector("jira-test", client as unknown as IJiraClient, []);
+    return new JiraConnector({ sourceKey: "jira-test", jiraClient: client, excludeFields: [], allowedUsers: [] });
   }
 
   runConnectorComplianceTests("JIRA", createJiraConnector, {

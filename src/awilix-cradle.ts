@@ -131,8 +131,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     strict: true,
   });
 
-  const { connectors, pollers } = buildDataSourceMaps(config);
-
   const w = wiring<OrchestratorCradle>();
   const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers">> = {
     rootDir: asValue(rootDir),
@@ -187,6 +185,7 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
       .singleton(),
   };
   container.register(root);
+  const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 
   return container.cradle;

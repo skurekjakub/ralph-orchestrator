@@ -31,12 +31,19 @@ export class JiraWorkItemPoller implements IWorkItemPoller {
   private running = false;
   private itemsCallback: (() => void) | null = null;
 
-  constructor(connector: IWorkItemSource, queries: readonly string[], pollIntervalMs: number, logger?: Logger) {
+  constructor(
+    {
+      connector,
+      queries,
+      pollIntervalMs,
+    }: { connector: IWorkItemSource; queries: readonly string[]; pollIntervalMs: number },
+    logger: Logger = consoleLogger,
+  ) {
     this.sourceKey = connector.sourceKey;
     this.connector = connector;
     this.queries = queries;
     this.pollIntervalMs = pollIntervalMs;
-    this.logger = logger ?? consoleLogger;
+    this.logger = logger;
   }
 
   start(): void {

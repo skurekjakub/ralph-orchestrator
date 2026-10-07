@@ -10,7 +10,7 @@ DATA_SOURCE_CONNECTORS → literal import() → factory self-registers → creat
 
 1. **Connector loading** — After `loadConfig()`, `AppStartup` imports each module listed in `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`), in order. Each entry names its module in a literal `import()`, so esbuild includes it in the `dist/index.js` bundle.
 2. **Self-registration** — Each factory module calls `registerDataSourceFactory(type, factory)` at top level, as a side effect of its import.
-3. **Connector creation** — When the DI container is built, `buildDataSourceMaps()` (`src/datasource/registry.ts`) iterates `config.dataSources`, looks up the registered factory for each entry's `type`, and calls it to create a connector + poller pair.
+3. **Connector creation** — `createCradle()` registers the root services, then calls `buildDataSourceMaps()` (`src/datasource/registry.ts`). It iterates `config.dataSources`, opens one awilix scope per entry holding the entry's `sourceKey` and `dataSourceConfig`, and calls the factory registered for the entry's `type` with that scope to build a connector + poller pair. This runs outside any resolution of the root container, because awilix refuses a scope's scoped registrations while a root singleton resolves.
 
 ## Adding a New Data Source
 
@@ -38,12 +38,11 @@ import type { WorkItem, WorkItemComment } from "../../types";
 export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
   readonly name = "My Source";
   readonly sourceKey: string;
+  private readonly connection: MyConnectionConfig;
 
-  constructor(
-    sourceKey: string,
-    private config: MyConnectionConfig,
-  ) {
+  constructor({ sourceKey, myConnection }: { sourceKey: string; myConnection: MyConnectionConfig }) {
     this.sourceKey = sourceKey;
+    this.connection = myConnection;
   }
 
   // IDataSourceIdentity
@@ -83,7 +82,7 @@ export class MyConnector implements IDataSourceConnector, ISupportsTransitions {
 }
 ```
 
-Put external API calls behind a client interface (as `IJiraClient` does for `JiraConnector`) so tests can mock it and calls can go through `withRetry` (`src/retry.ts`).
+The constructor takes one deps object whose keys are tokens of the data source's scope (see step 3). Put external API calls behind a client interface (as `IJiraClient` does for `JiraConnector`) so tests can mock it and calls can go through `withRetry` (`src/retry.ts`).
 
 ### 2. Implement a Poller
 
@@ -91,17 +90,18 @@ Create a class that implements `IWorkItemPoller` (from `src/datasource/poller.ts
 
 ```ts
 // src/datasource/connectors/my-source/my-poller.ts
+import type { IWorkItemSource } from "../../connector";
 import type { IWorkItemPoller } from "../../poller";
-import type { MyConnector } from "./my-connector";
 
 export class MyPoller implements IWorkItemPoller {
   readonly sourceKey: string;
+  private readonly connector: IWorkItemSource;
+  private readonly pollIntervalMs: number;
 
-  constructor(
-    private connector: MyConnector,
-    private intervalMs: number,
-  ) {
+  constructor({ connector, pollIntervalMs }: { connector: IWorkItemSource; pollIntervalMs: number }) {
     this.sourceKey = connector.sourceKey;
+    this.connector = connector;
+    this.pollIntervalMs = pollIntervalMs;
   }
 
   start() {
@@ -121,28 +121,45 @@ export class MyPoller implements IWorkItemPoller {
 
 ### 3. Create a Factory Module
 
-The factory module validates the connection config, creates the connector + poller, and registers itself. Define the connection schema in `src/config/schemas.ts` beside `jiraConnectionSchema`, so the connection is validated the same way the rest of `config.json` is.
+The factory receives the data source's awilix scope, typed `AwilixContainer<DataSourceCradle>` (`src/awilix-cradle-types.ts`): the root cradle (`profiles`, `logger`, …) plus the entry's `sourceKey` and `dataSourceConfig`. It declares its own cradle type on top of that, registers the values and classes it needs in the scope, and resolves the connector and poller there.
+
+- Register classes with `wiring<YourCradle>().service(...)` and derived values with `.factory(...)` (`src/di/registration.ts`). `tsc` then rejects a constructor whose deps the cradle doesn't provide, and a `Registrations<…>` object missing a token.
+- Make every registration `.scoped()`. A `.singleton()` on a scope throws, and `asFunction` defaults to transient, which awilix's strict mode refuses as the dependency of a scoped service.
+- A test-only constructor override (such as `JiraClient`'s `retryOptions`) stays an optional second positional parameter: the awilix proxy throws when a constructor reads a deps key the cradle lacks.
+
+Define the connection schema in `src/config/schemas.ts` beside `jiraConnectionSchema`, so the connection is validated the same way the rest of `config.json` is.
 
 ```ts
 // src/datasource/connectors/my-source/factory.ts
-import type { IAgentProfile, IDataSourceConfig } from "../../../config/types";
+import type { AwilixContainer } from "awilix";
+import type { DataSourceCradle } from "../../../awilix-cradle-types";
 import { myConnectionSchema } from "../../../config/schemas";
+import { wiring, type Registrations } from "../../../di/registration";
 import type { IDataSourceConnector } from "../../connector";
 import type { IWorkItemPoller } from "../../poller";
 import { registerDataSourceFactory } from "../../registry";
-import { MyConnector } from "./my-connector";
+import { MyConnector, type MyConnectionConfig } from "./my-connector";
 import { MyPoller } from "./my-poller";
 
-function createMyDataSource(
-  sourceKey: string,
-  dsConfig: IDataSourceConfig,
-  _profiles: readonly IAgentProfile[],
-  logger?: { info: (msg: string) => void },
-): { connector: IDataSourceConnector; poller: IWorkItemPoller } {
-  const conn = myConnectionSchema.parse(dsConfig.connection);
-  const connector = new MyConnector(sourceKey, conn);
-  const poller = new MyPoller(connector, dsConfig.pollIntervalMs);
-  logger?.info(`Data source "${sourceKey}" (My Source): poll ${dsConfig.pollIntervalMs / 1000}s`);
+type MySourceCradle = DataSourceCradle & {
+  myConnection: MyConnectionConfig;
+  pollIntervalMs: number;
+  connector: IDataSourceConnector;
+  poller: IWorkItemPoller;
+};
+
+function createMyDataSource(scope: AwilixContainer<DataSourceCradle>): {
+  connector: IDataSourceConnector;
+  poller: IWorkItemPoller;
+} {
+  const w = wiring<MySourceCradle>();
+  const registrations: Registrations<Omit<MySourceCradle, keyof DataSourceCradle>> = {
+    myConnection: w.factory(({ dataSourceConfig }) => myConnectionSchema.parse(dataSourceConfig.connection)).scoped(),
+    pollIntervalMs: w.factory(({ dataSourceConfig }) => dataSourceConfig.pollIntervalMs).scoped(),
+    connector: w.service(MyConnector).scoped(),
+    poller: w.service(MyPoller).scoped(),
+  };
+  const { connector, poller } = scope.register(registrations).cradle;
   return { connector, poller };
 }
 
@@ -205,7 +222,13 @@ A module whose import throws stops startup with `Failed to load data-source conn
 
 ## Built-in JIRA Connector
 
-The JIRA connector in `src/datasource/connectors/jira/` is the reference implementation. Its factory (`factory.ts`) parses the connection with `jiraConnectionSchema`, injects credentials from `.env`, builds `JiraClient`, `JiraConnector` and `JiraWorkItemPoller`, and registers the `"jira"` type.
+The JIRA connector in `src/datasource/connectors/jira/` is the reference implementation. Its factory (`factory.ts`) declares `JiraSourceCradle` and registers in the data source's scope:
+
+- `jiraConnection`: the connection parsed with `jiraConnectionSchema`, plus the credentials from `.env`;
+- `excludeFields` and `allowedUsers` from that connection, `pollIntervalMs` from the entry, and `queries` built from the profiles bound to the source;
+- `JiraClient`, `JiraConnector` and `JiraWorkItemPoller`.
+
+It resolves the connector and poller, and the module registers the `"jira"` type.
 
 ## Key Interfaces
 
@@ -218,6 +241,7 @@ The JIRA connector in `src/datasource/connectors/jira/` is the reference impleme
 | `WorkItem`             | `src/datasource/types.ts`     | Normalized work item DTO              |
 | `WorkItemComment`      | `src/datasource/types.ts`     | Normalized comment DTO                |
 | `DataSourceFactory`    | `src/datasource/registry.ts`  | Factory function signature            |
+| `DataSourceCradle`     | `src/awilix-cradle-types.ts`  | Cradle of a data source's scope       |
 | `IDataSourceConfig`    | `src/config/types.ts`         | Per-source config shape               |
 
 ## Config Schema
@@ -234,4 +258,4 @@ The `type` field is a plain string — not a closed enum. Any value is accepted 
 
 ## Credential Injection
 
-Data source credentials come from environment variables, not `config.json`. The loader passes `connection` through untouched; each factory resolves its own credentials. The JIRA factory (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`) reads `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the data source key uppercased with dashes replaced by underscores, and throws if either is missing. It merges them into the connection as `apiToken` and `email` when the connector is created at startup. Other connectors follow the same pattern, reading `process.env` in their factory function.
+Data source credentials come from environment variables, not `config.json`. The loader passes `connection` through untouched; each factory resolves its own credentials. The JIRA factory (`resolveJiraCredentials` in `src/datasource/connectors/jira/factory.ts`) reads `JIRA_PAT_<KEY>` and `JIRA_EMAIL_<KEY>`, where `<KEY>` is the data source key uppercased with dashes replaced by underscores, and throws if either is missing. Its `jiraConnection` registration merges them into the connection as `apiToken` and `email` when `createCradle()` builds the connector at startup. Other connectors follow the same pattern, reading `process.env` in their factory function.

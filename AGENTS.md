@@ -115,7 +115,7 @@ Config slices: `dataSources`, `outputConfig`, `dashboardConfig`, `profiles`, `pr
 
 - `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
 - Per-task objects (compose client, executors, `ContainerManager`, session runners) are built in `buildContainerFactory`.
-- Data-source connector factories build their own connector and poller.
+- Data-source connector factories register their classes in one awilix scope per data source and resolve the connector and poller there.
 - `PromptBuilder` is registered without an interface.
 
 Details: `docs/dev-doc/dependency-injection.md`.
@@ -155,7 +155,7 @@ Details: `docs/dev-doc/dependency-injection.md`.
   - On restart, active operations are marked `error`.
   - Each trigger is consumed once per `variantKey`.
   - `TriggerScanner` also persists `cache/trigger-cache.json` and skips issues whose `updated` timestamp hasn't changed. Clear the issue's entry there when re-testing triggers.
-- **Data-source connectors.** Connectors are built in: each lives under `src/datasource/connectors/<name>/`, and `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`) imports its factory module with a literal `import()`, so the bundle includes it. Each factory module calls `registerDataSourceFactory()` on import, then `buildDataSourceMaps()` (`src/datasource/registry.ts`) instantiates them. Guide: `docs/dev-doc/data-source-registration.md`.
+- **Data-source connectors.** Connectors are built in: each lives under `src/datasource/connectors/<name>/`, and `DATA_SOURCE_CONNECTORS` (`src/app-startup.ts`) imports its factory module with a literal `import()`, so the bundle includes it. Each factory module calls `registerDataSourceFactory()` on import, then `createCradle()` calls `buildDataSourceMaps()` (`src/datasource/registry.ts`), which hands each factory its data source's awilix scope. Guide: `docs/dev-doc/data-source-registration.md`.
 - **Stages and post-task hooks.**
   - Each variant has a `stages` array. Each stage has `agent`, `role`, `mode` (`container` | `local`) and optional `cli`, `skills`, `model`, `timeoutMs`, the Claude-only `effort`, and `requireResultBlock` (default true for variant stages, false for hook stages; a stage that requires a result fails with `FailureReason.MissingResultBlock` without one, also when Claude Code gives up on structured output that keeps failing the schema, `error_max_structured_output_retries`; see `resolveStatus`); `deriveStageProfile` applies the stage overrides.
   - `local` stages run on the host, each in a workspace of its own that `StageWorkspaceResolver` (`src/services/stage-workspace.ts`) lays out: `<outputDir>/hooks/<hook>/<role>/` for a hook stage, `<outputDir>/stages/<role>/` for a variant stage, holding the CLI's cwd (`work/`), a private CLI home (`home/`, where Claude Code finds its agents and skills; Copilot finds them in `work/.github/`) and its logs (`logs/`). A hook's stages share `<outputDir>/hooks/<hook>/artifacts` as `artifactDir`; a variant's local stage shares the container stages' artifacts. Nothing a host stage writes lands in this repo.

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { JiraClient, jiraApiBase } from "../../../../src/datasource/connectors/jira/jira-client";
 import { makeIssue, makeComment } from "../../../helpers/factories";
-import { createMockLogger } from "../../../helpers/mocks";
 import type { IJiraConnectionConfig } from "../../../../src/config/types";
 
 const mockConnection: IJiraConnectionConfig = {
@@ -13,7 +12,6 @@ const mockConnection: IJiraConnectionConfig = {
   apiToken: "test-token",
 };
 
-const mockLogger = createMockLogger();
 const KEY = "DF-1";
 
 /** Stub global fetch with an OK JSON response. */
@@ -56,7 +54,7 @@ describe("JiraClient", () => {
   let client: JiraClient;
 
   beforeEach(() => {
-    client = new JiraClient({ connection: mockConnection });
+    client = new JiraClient({ jiraConnection: mockConnection });
   });
 
   it("constructs correct auth header", () => {
@@ -121,7 +119,7 @@ describe("JiraClient", () => {
     it("throws on HTTP error", async () => {
       stubFetchError(401, "Unauthorized", "Bad token");
 
-      const retryClient = new JiraClient({ connection: mockConnection, logger: mockLogger }, { delayMs: 1 });
+      const retryClient = new JiraClient({ jiraConnection: mockConnection }, { delayMs: 1 });
       await expect(retryClient.searchIssues("project = DF")).rejects.toThrow("401");
     });
 
@@ -142,12 +140,11 @@ describe("JiraClient", () => {
           .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(mockResponse) }),
       );
 
-      const retryClient = new JiraClient({ connection: mockConnection, logger: mockLogger }, { delayMs: 1 });
+      const retryClient = new JiraClient({ jiraConnection: mockConnection }, { delayMs: 1 });
       const issues = await retryClient.searchIssues("project = DF");
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(issues).toHaveLength(1);
-      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining("failed (attempt 1/3)"));
     });
   });
 

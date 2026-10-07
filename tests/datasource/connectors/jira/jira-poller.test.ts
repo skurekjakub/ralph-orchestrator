@@ -23,7 +23,10 @@ describe("JiraWorkItemPoller", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     source = createMockSource();
-    poller = new JiraWorkItemPoller(source, ["jql1", "jql2"], 60_000, createSilentLogger());
+    poller = new JiraWorkItemPoller(
+      { connector: source, queries: ["jql1", "jql2"], pollIntervalMs: 60_000 },
+      createSilentLogger(),
+    );
   });
 
   afterEach(() => {

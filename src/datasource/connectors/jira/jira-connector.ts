@@ -9,7 +9,6 @@
 import type { IJiraClient } from "./jira-client";
 import type { IDataSourceConnector, ISupportsAttachments, ISupportsTransitions, SourceQuery } from "../../connector";
 import type { WorkItem, WorkItemComment, WorkItemAttachment, WorkItemTransition } from "../../types";
-import type { Logger } from "../../../logger";
 import {
   mapIssueToWorkItem,
   mapCommentToWorkItemComment,
@@ -45,20 +44,22 @@ export class JiraConnector implements IDataSourceConnector, ISupportsTransitions
   private readonly client: IJiraClient;
   private readonly excludeFields: string[];
   private readonly allowedUsers: readonly string[];
-  private readonly logger?: Logger;
 
-  constructor(
-    sourceKey: string,
-    client: IJiraClient,
-    excludeFields: string[] = [],
-    allowedUsers: readonly string[] = [],
-    logger?: Logger,
-  ) {
+  constructor({
+    sourceKey,
+    jiraClient,
+    excludeFields,
+    allowedUsers,
+  }: {
+    sourceKey: string;
+    jiraClient: IJiraClient;
+    excludeFields: string[];
+    allowedUsers: readonly string[];
+  }) {
     this.sourceKey = sourceKey;
-    this.client = client;
+    this.client = jiraClient;
     this.excludeFields = excludeFields;
     this.allowedUsers = allowedUsers;
-    this.logger = logger;
   }
 
   getAllowedUsers(): readonly string[] {

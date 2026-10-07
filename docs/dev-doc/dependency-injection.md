@@ -23,7 +23,7 @@ export class JiraClient implements IJiraClient {
 
 2. **The cradle factory is the composition root for services** — `src/awilix-cradle.ts` imports the concrete service classes (`TaskRunner`, `OperationLedger`, …) and registers them with awilix. Service code imports only the `I`-prefixed interfaces. Code outside the cradle that constructs concrete classes:
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
-   - Data source connector factories build their own connector and poller (`src/datasource/connectors/jira/factory.ts` creates `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`).
+   - Data source connector factories register their own classes in the data source's awilix scope and resolve the connector and poller there (`src/datasource/connectors/jira/factory.ts` registers `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`; see `docs/dev-doc/data-source-registration.md`).
    - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
    - `*Factory` classes and the per-task container factory build their products. `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`). `buildContainerFactory` in `awilix-cradle.ts` returns a `ContainerManagerFactory`: `create` builds a `ContainerManager` and its per-task collaborators (`ComposeClient`, `ContainerLogCollector`, `ContainerWorkspaceCleaner`, `ContinuationRunner`, `AgentSessionRunner`), `createLocalSession` builds a host stage's executor and session runner for `PostTaskHookRunner`, and `forceDown` tears a profile's stack down without a manager.
 
@@ -107,7 +107,7 @@ interface OrchestratorCradle {
 }
 ```
 
-`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It calls `buildDataSourceMaps(config)` to create the `connectors` and `pollers` maps through the registered data source factories, then registers:
+`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`

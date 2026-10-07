@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { JiraConnector } from "../../../../src/datasource/connectors/jira/jira-connector";
-import { createMockJiraClient, createSilentLogger, type Mocked } from "../../../helpers/mocks";
+import { createMockJiraClient, type Mocked } from "../../../helpers/mocks";
 import { makeIssue, makeComment } from "../../../helpers/factories";
 import type { IJiraClient } from "../../../../src/datasource/connectors/jira/jira-client";
 const PROJECT = "DF";
@@ -12,7 +12,7 @@ describe("JiraConnector", () => {
 
   beforeEach(() => {
     client = createMockJiraClient();
-    connector = new JiraConnector("jira", client as unknown as IJiraClient, [], [], createSilentLogger());
+    connector = new JiraConnector({ sourceKey: "jira", jiraClient: client, excludeFields: [], allowedUsers: [] });
   });
 
   it("exposes name and sourceKey", () => {

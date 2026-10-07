@@ -1,19 +1,34 @@
 /**
  * Jira data source factory.
  *
- * Creates a {@link JiraConnector} and {@link JiraWorkItemPoller} from config.
+ * Builds a {@link JiraConnector} and {@link JiraWorkItemPoller} in the data source's awilix scope.
  * Self-registers with the data source registry at import time.
  */
 
-import type { IDataSourceConfig, IJiraConnectionConfig, IAgentProfile } from "../../../config/types";
+import type { AwilixContainer } from "awilix";
+import type { IJiraConnectionConfig } from "../../../config/types";
+import type { DataSourceCradle } from "../../../awilix-cradle-types";
+import { wiring, type Registrations } from "../../../di/registration";
 import type { IDataSourceConnector } from "../../connector";
 import type { IWorkItemPoller } from "../../poller";
 import { registerDataSourceFactory } from "../../registry";
 import { jiraConnectionSchema } from "../../../config/schemas";
-import { JiraClient } from "./jira-client";
+import { JiraClient, type IJiraClient } from "./jira-client";
 import { JiraConnector } from "./jira-connector";
 import { JiraWorkItemPoller } from "./jira-poller";
 import { buildJqlFromProfiles } from "./jql-builder";
+
+/** The cradle of a JIRA data source's scope. */
+export type JiraSourceCradle = DataSourceCradle & {
+  jiraConnection: IJiraConnectionConfig;
+  jiraClient: IJiraClient;
+  excludeFields: string[];
+  allowedUsers: readonly string[];
+  queries: readonly string[];
+  pollIntervalMs: number;
+  connector: IDataSourceConnector;
+  poller: IWorkItemPoller;
+};
 
 /**
  * Resolve JIRA credentials from environment variables.
@@ -34,41 +49,36 @@ export function resolveJiraCredentials(sourceKey: string): { email: string; apiT
 }
 
 /**
- * Creates Jira connector + poller for a single data source entry.
+ * Builds the JIRA connector and poller of one data source in its scope.
  *
- * Validates the connection config with the JIRA schema and injects
- * credentials from environment variables.
+ * The connection is `dataSourceConfig.connection` validated with the JIRA schema, plus the credentials from
+ * the environment. The poller queries the projects of the profiles bound to the source.
  *
- * @param sourceKey - Key from `config.dataSources` map
- * @param dsConfig - Data source config (raw connection — validated + enriched here)
- * @param profiles - All profiles (filtered internally to those referencing this source)
- * @param logger - Optional logger for startup messages
+ * @throws ZodError when the connection fails the JIRA schema; Error when the source's credentials are unset.
  */
-export function createJiraDataSource(
-  sourceKey: string,
-  dsConfig: IDataSourceConfig,
-  profiles: readonly IAgentProfile[],
-  logger?: { info: (msg: string) => void },
-): { connector: IDataSourceConnector; poller: IWorkItemPoller } {
-  const rawConn = jiraConnectionSchema.parse(dsConfig.connection);
-  const creds = resolveJiraCredentials(sourceKey);
-  const conn: IJiraConnectionConfig = {
-    baseUrl: rawConn.baseUrl,
-    cloudId: rawConn.cloudId,
-    excludeFields: rawConn.excludeFields,
-    allowedUsers: rawConn.allowedUsers,
-    ...creds,
+export function createJiraDataSource(scope: AwilixContainer<DataSourceCradle>): {
+  connector: IDataSourceConnector;
+  poller: IWorkItemPoller;
+} {
+  const w = wiring<JiraSourceCradle>();
+  const registrations: Registrations<Omit<JiraSourceCradle, keyof DataSourceCradle>> = {
+    jiraConnection: w
+      .factory(({ sourceKey, dataSourceConfig }) => ({
+        ...jiraConnectionSchema.parse(dataSourceConfig.connection),
+        ...resolveJiraCredentials(sourceKey),
+      }))
+      .scoped(),
+    excludeFields: w.factory(({ jiraConnection }) => [...jiraConnection.excludeFields]).scoped(),
+    allowedUsers: w.factory(({ jiraConnection }) => jiraConnection.allowedUsers).scoped(),
+    queries: w
+      .factory(({ sourceKey, profiles }) => buildJqlFromProfiles(profiles.filter((p) => p.dataSource === sourceKey)))
+      .scoped(),
+    pollIntervalMs: w.factory(({ dataSourceConfig }) => dataSourceConfig.pollIntervalMs).scoped(),
+    jiraClient: w.service(JiraClient).scoped(),
+    connector: w.service(JiraConnector).scoped(),
+    poller: w.service(JiraWorkItemPoller).scoped(),
   };
-  const client = new JiraClient({ connection: conn });
-  const connector = new JiraConnector(sourceKey, client, [...conn.excludeFields], conn.allowedUsers);
-
-  const sourceProfiles = profiles.filter((p) => p.dataSource === sourceKey);
-  const queries = buildJqlFromProfiles(sourceProfiles);
-
-  const poller = new JiraWorkItemPoller(connector, queries, dsConfig.pollIntervalMs);
-
-  logger?.info(`Data source "${sourceKey}" (JIRA): ${queries.length} queries, poll ${dsConfig.pollIntervalMs / 1000}s`);
-
+  const { connector, poller } = scope.register(registrations).cradle;
   return { connector, poller };
 }
 

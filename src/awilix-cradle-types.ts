@@ -105,3 +105,6 @@ export interface OrchestratorCradle {
   // Optional
   heartbeat: IHeartbeatSender | null;
 }
+
+/** The cradle of one `dataSources` entry's scope: the root cradle plus the entry's key and config. */
+export type DataSourceCradle = OrchestratorCradle & { sourceKey: string; dataSourceConfig: IDataSourceConfig };

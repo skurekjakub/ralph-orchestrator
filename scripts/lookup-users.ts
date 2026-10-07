@@ -49,7 +49,7 @@ async function main() {
   }
 
   const conn = config.dataSources[selectedKey].connection as unknown as IJiraConnectionConfig;
-  const client = new JiraClient({ connection: conn });
+  const client = new JiraClient({ jiraConnection: conn });
 
   console.log(`Using data source "${selectedKey}"`);
   console.log(`Fetching comments for ${issueKey}...\n`);

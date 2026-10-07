@@ -56,6 +56,16 @@ describe("createCradle", () => {
     expect(cradle.logger).toBeDefined();
   });
 
+  it("fails with the JIRA credential error when a data source's PAT is unset", () => {
+    // Arrange
+    delete process.env.JIRA_PAT_TEST_SOURCE;
+
+    // Act & Assert
+    expect(() => createCradle(makeConfig(), { rootDir })).toThrow(
+      new Error('JIRA_PAT_TEST_SOURCE and JIRA_EMAIL_TEST_SOURCE must be set in .env for data source "test-source"'),
+    );
+  });
+
   it("returns dataSources and profiles from the config", () => {
     const config = makeConfig();
     const cradle = createCradle(config, { rootDir });

@@ -5,13 +5,15 @@
  * from config entries with different types, and that profiles are routed
  * to the correct data source by key.
  */
+import { asFunction, asValue, createContainer, InjectionMode, type AwilixContainer } from "awilix";
 import { describe, it, expect } from "vitest";
 import { registerDataSourceFactory, buildDataSourceMaps, type DataSourceFactory } from "../../src/datasource/registry";
 import { makeConfig, makeProfile, makeDataSourceConfig, makeWorkItem } from "../helpers/factories";
 import type { IDataSourceConnector } from "../../src/datasource/connector";
 import type { IWorkItemPoller } from "../../src/datasource/poller";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
-import type { IDataSourceConfig, IAgentProfile } from "../../src/config/types";
+import type { IAppConfig, IDataSourceConfig, IAgentProfile } from "../../src/config/types";
+import type { OrchestratorCradle } from "../../src/awilix-cradle-types";
 
 // ── Minimal stub connector + poller for test factories ────────────────────────
 
@@ -84,151 +86,168 @@ function uniqueType(base: string): string {
   return `${base}-${++testCounter}`;
 }
 
+/** A root container holding the config's profiles, the only root token the stub factories read. */
+function rootFor(config: IAppConfig): AwilixContainer<OrchestratorCradle> {
+  const root = createContainer<OrchestratorCradle>({ injectionMode: InjectionMode.PROXY, strict: true });
+  root.register({ profiles: asValue(config.profiles) });
+  return root;
+}
+
+/** A factory building stub connectors named `name` for the scope's source key. */
+function stubFactory(name: string, items: (sourceKey: string) => WorkItem[] = () => []): DataSourceFactory {
+  return (scope) => {
+    const { sourceKey } = scope.cradle;
+    return { connector: new StubConnector(sourceKey, name), poller: new StubPoller(sourceKey, items(sourceKey)) };
+  };
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("Multi-source integration", () => {
   describe("buildDataSourceMaps", () => {
     it("creates separate connector and poller per data source entry", () => {
+      // Arrange
       const typeA = uniqueType("source-a");
       const typeB = uniqueType("source-b");
-
-      const factoryA: DataSourceFactory = (key, _ds, _profiles) => ({
-        connector: new StubConnector(key, "Source A"),
-        poller: new StubPoller(key),
-      });
-      const factoryB: DataSourceFactory = (key, _ds, _profiles) => ({
-        connector: new StubConnector(key, "Source B"),
-        poller: new StubPoller(key),
-      });
-
-      registerDataSourceFactory(typeA, factoryA);
-      registerDataSourceFactory(typeB, factoryB);
-
-      const config = makeConfig([makeProfile({ dataSource: "first" }), makeProfile({ dataSource: "second" })]);
-      (config as any).dataSources = {
-        first: { ...makeDataSourceConfig(), type: typeA },
-        second: { ...makeDataSourceConfig(), type: typeB },
+      registerDataSourceFactory(typeA, stubFactory("Source A"));
+      registerDataSourceFactory(typeB, stubFactory("Source B"));
+      const config = {
+        ...makeConfig([makeProfile({ dataSource: "first" }), makeProfile({ dataSource: "second" })]),
+        dataSources: {
+          first: { ...makeDataSourceConfig(), type: typeA },
+          second: { ...makeDataSourceConfig(), type: typeB },
+        },
       };
 
-      const { connectors, pollers } = buildDataSourceMaps(config);
+      // Act
+      const { connectors, pollers } = buildDataSourceMaps(rootFor(config), config);
 
+      // Assert
       expect(connectors.size).toBe(2);
       expect(pollers.size).toBe(2);
-
       expect(connectors.get("first")!.name).toBe("Source A");
       expect(connectors.get("first")!.sourceKey).toBe("first");
       expect(connectors.get("second")!.name).toBe("Source B");
       expect(connectors.get("second")!.sourceKey).toBe("second");
-
       expect(pollers.get("first")!.sourceKey).toBe("first");
       expect(pollers.get("second")!.sourceKey).toBe("second");
     });
 
-    it("passes config and profiles to each factory", () => {
+    it("gives each factory a scope holding its entry's key and config over the root cradle", () => {
+      // Arrange
       const type = uniqueType("config-test");
-      const receivedArgs: { key: string; ds: IDataSourceConfig; profiles: readonly IAgentProfile[] }[] = [];
-
-      const factory: DataSourceFactory = (key, ds, profiles) => {
-        receivedArgs.push({ key, ds, profiles });
-        return {
-          connector: new StubConnector(key, "Test"),
-          poller: new StubPoller(key),
-        };
+      const received: { key: string; ds: IDataSourceConfig; profiles: readonly IAgentProfile[] }[] = [];
+      registerDataSourceFactory(type, (scope) => {
+        const { sourceKey, dataSourceConfig, profiles } = scope.cradle;
+        received.push({ key: sourceKey, ds: dataSourceConfig, profiles });
+        return { connector: new StubConnector(sourceKey, "Test"), poller: new StubPoller(sourceKey) };
+      });
+      const dsConfig = { ...makeDataSourceConfig(), type };
+      const config = {
+        ...makeConfig([makeProfile({ dataSource: "my-source" })]),
+        dataSources: { "my-source": dsConfig },
       };
 
-      registerDataSourceFactory(type, factory);
+      // Act
+      buildDataSourceMaps(rootFor(config), config);
 
-      const profile = makeProfile({ dataSource: "my-source" });
-      const dsConfig = { ...makeDataSourceConfig(), type };
-      const config = makeConfig([profile]);
-      (config as any).dataSources = { "my-source": dsConfig };
+      // Assert
+      expect(received).toHaveLength(1);
+      expect(received[0]!.key).toBe("my-source");
+      expect(received[0]!.ds).toBe(dsConfig);
+      expect(received[0]!.profiles).toBe(config.profiles);
+    });
 
-      buildDataSourceMaps(config);
+    it("builds each entry's scoped services in a scope of its own", () => {
+      // Arrange
+      const type = uniqueType("scoped");
+      registerDataSourceFactory(type, (scope) => {
+        const sourceScope = scope.register({
+          connector: asFunction(
+            ({ sourceKey }: { sourceKey: string }) => new StubConnector(sourceKey, "Scoped"),
+          ).scoped(),
+        });
+        const { connector, sourceKey } = sourceScope.cradle;
+        return { connector, poller: new StubPoller(sourceKey) };
+      });
+      const config = {
+        ...makeConfig(),
+        dataSources: { a: { ...makeDataSourceConfig(), type }, b: { ...makeDataSourceConfig(), type } },
+      };
 
-      expect(receivedArgs).toHaveLength(1);
-      expect(receivedArgs[0]!.key).toBe("my-source");
-      expect(receivedArgs[0]!.ds.type).toBe(type);
-      expect(receivedArgs[0]!.profiles).toHaveLength(1);
+      // Act
+      const { connectors } = buildDataSourceMaps(rootFor(config), config);
+
+      // Assert
+      expect(connectors.get("a")!.sourceKey).toBe("a");
+      expect(connectors.get("b")!.sourceKey).toBe("b");
     });
 
     it("throws when no factory registered for data source type", () => {
-      const config = makeConfig();
-      (config as any).dataSources = {
-        unknown: { ...makeDataSourceConfig(), type: "nonexistent-type" },
+      // Arrange
+      const config = {
+        ...makeConfig(),
+        dataSources: { unknown: { ...makeDataSourceConfig(), type: "nonexistent-type" } },
       };
 
-      expect(() => buildDataSourceMaps(config)).toThrow(
+      // Act & Assert
+      expect(() => buildDataSourceMaps(rootFor(config), config)).toThrow(
         /No factory registered for data source type "nonexistent-type"/,
       );
     });
 
     it("throws on duplicate factory registration", () => {
+      // Arrange
       const type = uniqueType("dupe-test");
-      const factory: DataSourceFactory = (key) => ({
-        connector: new StubConnector(key, "Test"),
-        poller: new StubPoller(key),
-      });
-
+      const factory = stubFactory("Test");
       registerDataSourceFactory(type, factory);
 
+      // Act & Assert
       expect(() => registerDataSourceFactory(type, factory)).toThrow(/already registered/);
     });
   });
 
   describe("profile routing by data source key", () => {
     it("each profile references the correct data source", () => {
+      // Arrange
       const typeA = uniqueType("route-a");
       const typeB = uniqueType("route-b");
-
-      registerDataSourceFactory(typeA, (key) => ({
-        connector: new StubConnector(key, "JIRA"),
-        poller: new StubPoller(key),
-      }));
-      registerDataSourceFactory(typeB, (key) => ({
-        connector: new StubConnector(key, "GitHub"),
-        poller: new StubPoller(key),
-      }));
-
+      registerDataSourceFactory(typeA, stubFactory("JIRA"));
+      registerDataSourceFactory(typeB, stubFactory("GitHub"));
       const profileA = makeProfile({ id: "docs", dataSource: "jira-prod" });
       const profileB = makeProfile({ id: "vscode", dataSource: "github-prod" });
-      const config = makeConfig([profileA, profileB]);
-      (config as any).dataSources = {
-        "jira-prod": { ...makeDataSourceConfig(), type: typeA },
-        "github-prod": { ...makeDataSourceConfig(), type: typeB },
+      const config = {
+        ...makeConfig([profileA, profileB]),
+        dataSources: {
+          "jira-prod": { ...makeDataSourceConfig(), type: typeA },
+          "github-prod": { ...makeDataSourceConfig(), type: typeB },
+        },
       };
 
-      const { connectors } = buildDataSourceMaps(config);
+      // Act
+      const { connectors } = buildDataSourceMaps(rootFor(config), config);
 
-      // Profile A should resolve to the JIRA-type connector
-      const connectorForA = connectors.get(profileA.dataSource);
-      expect(connectorForA).toBeDefined();
-      expect(connectorForA!.name).toBe("JIRA");
-
-      // Profile B should resolve to the GitHub-type connector
-      const connectorForB = connectors.get(profileB.dataSource);
-      expect(connectorForB).toBeDefined();
-      expect(connectorForB!.name).toBe("GitHub");
+      // Assert
+      expect(connectors.get(profileA.dataSource)!.name).toBe("JIRA");
+      expect(connectors.get(profileB.dataSource)!.name).toBe("GitHub");
     });
 
     it("multiple profiles can share one data source", () => {
+      // Arrange
       const type = uniqueType("shared-ds");
-
-      registerDataSourceFactory(type, (key) => ({
-        connector: new StubConnector(key, "Shared"),
-        poller: new StubPoller(key),
-      }));
-
-      const config = makeConfig([
-        makeProfile({ id: "docs", dataSource: "shared" }),
-        makeProfile({ id: "vscode", dataSource: "shared" }),
-      ]);
-      (config as any).dataSources = {
-        shared: { ...makeDataSourceConfig(), type },
+      registerDataSourceFactory(type, stubFactory("Shared"));
+      const config = {
+        ...makeConfig([
+          makeProfile({ id: "docs", dataSource: "shared" }),
+          makeProfile({ id: "vscode", dataSource: "shared" }),
+        ]),
+        dataSources: { shared: { ...makeDataSourceConfig(), type } },
       };
 
-      const { connectors, pollers } = buildDataSourceMaps(config);
+      // Act
+      const { connectors, pollers } = buildDataSourceMaps(rootFor(config), config);
 
-      // Only one connector and poller — both profiles share it
+      // Assert
       expect(connectors.size).toBe(1);
       expect(pollers.size).toBe(1);
       expect(connectors.get("shared")!.sourceKey).toBe("shared");
@@ -237,33 +256,32 @@ describe("Multi-source integration", () => {
 
   describe("poller isolation", () => {
     it("each poller drains items independently", () => {
+      // Arrange
       const type = uniqueType("drain-test");
-
       const itemsA = [makeWorkItem("A-1")];
       const itemsB = [makeWorkItem("B-1"), makeWorkItem("B-2")];
-
-      registerDataSourceFactory(type, (key) => ({
-        connector: new StubConnector(key, "Test"),
-        poller: new StubPoller(key, key === "source-a" ? itemsA : itemsB),
-      }));
-
-      const config = makeConfig();
-      (config as any).dataSources = {
-        "source-a": { ...makeDataSourceConfig(), type },
-        "source-b": { ...makeDataSourceConfig(), type },
+      registerDataSourceFactory(
+        type,
+        stubFactory("Test", (sourceKey) => (sourceKey === "source-a" ? itemsA : itemsB)),
+      );
+      const config = {
+        ...makeConfig(),
+        dataSources: {
+          "source-a": { ...makeDataSourceConfig(), type },
+          "source-b": { ...makeDataSourceConfig(), type },
+        },
       };
+      const { pollers } = buildDataSourceMaps(rootFor(config), config);
 
-      const { pollers } = buildDataSourceMaps(config);
-
+      // Act
       const drainA = pollers.get("source-a")!.drain();
       const drainB = pollers.get("source-b")!.drain();
 
+      // Assert
       expect(drainA).toHaveLength(1);
       expect(drainA[0]!.id).toBe("A-1");
       expect(drainB).toHaveLength(2);
       expect(drainB[0]!.id).toBe("B-1");
-
-      // Second drain returns empty (items already consumed)
       expect(pollers.get("source-a")!.drain()).toHaveLength(0);
       expect(pollers.get("source-b")!.drain()).toHaveLength(0);
     });

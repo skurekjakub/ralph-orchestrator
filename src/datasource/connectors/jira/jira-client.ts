@@ -1,5 +1,4 @@
 import type { IJiraConnectionConfig } from "../../../config/types";
-import type { Logger } from "../../../logger";
 import { withRetry, type RetryOptions } from "../../../retry";
 import type {
   JiraIssue,
@@ -44,24 +43,13 @@ export class JiraClient implements IJiraClient {
 
   private email: string;
   private apiToken: string;
-  private logger?: Logger;
   private retryOptions?: RetryOptions;
 
-  constructor(
-    {
-      connection,
-      logger,
-    }: {
-      connection: IJiraConnectionConfig;
-      logger?: Logger;
-    },
-    retryOptions?: RetryOptions,
-  ) {
-    this.email = connection.email;
-    this.apiToken = connection.apiToken;
-    this.logger = logger;
+  constructor({ jiraConnection }: { jiraConnection: IJiraConnectionConfig }, retryOptions?: RetryOptions) {
+    this.email = jiraConnection.email;
+    this.apiToken = jiraConnection.apiToken;
     this.retryOptions = retryOptions;
-    this.apiBase = jiraApiBase(connection);
+    this.apiBase = jiraApiBase(jiraConnection);
     this.authHeader = "Basic " + Buffer.from(`${this.email}:${this.apiToken}`).toString("base64");
   }
 
@@ -115,7 +103,7 @@ export class JiraClient implements IJiraClient {
       const data = await withRetry(
         () => this.request<JiraSearchResponse>("GET", `/search/jql?${params}`),
         `JIRA search (page ${allIssues.length})`,
-        this.logger,
+        undefined,
         this.retryOptions,
       );
       allIssues.push(...data.issues);
