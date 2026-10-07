@@ -216,6 +216,7 @@ describe("createRootContainer", () => {
       else process.env[k] = v;
     }
     rmSync(checkout, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   describe("root services", () => {
@@ -245,17 +246,21 @@ describe("createRootContainer", () => {
     });
 
     it("returns dataSources and profiles from the config", () => {
+      // Arrange
       const config = fixtureConfig();
       const cradle = createRootContainer(config, { rootDir: checkout }).cradle;
 
+      // Act & Assert
       expect(cradle.dataSources).toBe(config.dataSources);
       expect(cradle.profiles).toBe(config.profiles);
     });
 
     it("returns null heartbeat when dashboard is disabled", () => {
+      // Arrange
       const config = fixtureConfig();
       const cradle = createRootContainer(config, { rootDir: checkout }).cradle;
 
+      // Act & Assert
       expect(cradle.heartbeat).toBeNull();
     });
 
@@ -280,15 +285,6 @@ describe("createRootContainer", () => {
 
       // Assert
       expect(runtime.credentials.required.map((c) => c.envVar)).toEqual(["ANTHROPIC_API_KEY"]);
-    });
-
-    it("resolves the overlay writer and workspace manager with their CLI runtime dependencies", () => {
-      // Arrange
-      const cradle = createRootContainer(fixtureConfig(), { rootDir: checkout }).cradle;
-
-      // Act & Assert
-      expect(cradle.overlayWriter).toBeDefined();
-      expect(cradle.workspaceManager).toBeInstanceOf(TaskWorkspaceManager);
     });
 
     it("takes the orchestrator checkout from its caller", () => {

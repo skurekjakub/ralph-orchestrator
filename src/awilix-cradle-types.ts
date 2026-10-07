@@ -52,7 +52,7 @@ import type { DashboardServer } from "./services/dashboard-server";
  * checked against this type through `Registrations` (`src/di/registration.ts`).
  */
 export interface OrchestratorCradle {
-  /** The orchestrator checkout. */
+  /** The orchestrator checkout: the root of the profile build directories, `shared/` sources, `cache/` and the output directory. */
   rootDir: string;
   /** `cache/repos` under {@link rootDir}: one bare clone of each profile's `repoUrl`. */
   sourceReposDir: string;

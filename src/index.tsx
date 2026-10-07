@@ -9,10 +9,8 @@ async function main(): Promise<void> {
   const config = await startup.run();
   const { orchestrator, dashboardServer } = createRootContainer(config, { rootDir: process.cwd() }).cradle;
 
-  // Start the local WebSocket dashboard server
   dashboardServer.start();
 
-  // Wire real-time tool output streaming to the dashboard
   orchestrator.setTaskCallbacks({
     onToolOutput: (line) => dashboardServer.pushToolOutput(line),
     onPreToolUse: (line) => dashboardServer.pushPreToolUse(line),

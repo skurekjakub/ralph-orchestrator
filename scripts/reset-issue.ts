@@ -18,8 +18,7 @@
 import "dotenv/config";
 import { resolve } from "node:path";
 import { loadConfig } from "../src/config/loader";
-import { jiraConnectionSchema } from "../src/config/schemas";
-import { resolveJiraCredentials } from "../src/datasource/connectors/jira/factory";
+import { resolveJiraConnection } from "../src/datasource/connectors/jira/factory";
 import { RESET_PROFILE_ID, type ResetContext, type JiraEnv, type TaskDifficulty } from "./reset-testenv/types";
 import {
   fetchIssue,
@@ -70,8 +69,7 @@ function resolveJiraEnv(): JiraEnv {
   if (!profile) throw new Error(`Profile "${RESET_PROFILE_ID}" not found`);
   const source = config.dataSources[profile.dataSource];
   if (!source) throw new Error(`Data source "${profile.dataSource}" is not in config.json`);
-  const { baseUrl, cloudId } = jiraConnectionSchema.parse(source.connection);
-  return { ...resolveJiraCredentials(profile.dataSource), baseUrl, cloudId };
+  return resolveJiraConnection(profile.dataSource, source);
 }
 
 const ctx: ResetContext = {
