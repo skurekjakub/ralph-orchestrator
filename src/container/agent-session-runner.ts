@@ -13,11 +13,8 @@ export interface AgentSessionOptions {
   maxContinuations: number;
   /** Whether the continuation feature is globally enabled. */
   enableContinuation: boolean;
-  /**
-   * The stage's `requireResultBlock`: a run that ends without a result block fails, and only such a stage
-   * is continued. Absent means the block is not required.
-   */
-  requireResultBlock?: boolean;
+  /** The stage's `requireResultBlock`: a run that ends without a result block fails, and only such a stage is continued. */
+  requireResultBlock: boolean;
 }
 
 /** Public contract for running a single agent CLI session. */
@@ -78,7 +75,7 @@ export class AgentSessionRunner implements IAgentSessionRunner {
     opts: AgentSessionOptions,
   ): Promise<RalphResult> {
     const { text: prompt } = this.promptBuilder.build(workItem, context);
-    const requireResultBlock = opts.requireResultBlock ?? false;
+    const { requireResultBlock } = opts;
 
     const startTime = Date.now();
 

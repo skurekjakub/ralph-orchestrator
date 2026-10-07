@@ -51,7 +51,11 @@ describe("AgentSessionRunner", () => {
     const executor = createMockExecutor();
     const issue = makeWorkItem("DF-200");
 
-    await runner.run(executor, issue, undefined, { maxContinuations: 0, enableContinuation: false });
+    await runner.run(executor, issue, undefined, {
+      maxContinuations: 0,
+      enableContinuation: false,
+      requireResultBlock: false,
+    });
 
     expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(issue, undefined);
     expect(continuationRunner.run).toHaveBeenCalledWith(executor, "test prompt", issue, 0);
@@ -61,7 +65,11 @@ describe("AgentSessionRunner", () => {
     const executor = createMockExecutor();
     const context = { previousHandoff: "some handoff", comments: [], isRevision: false };
 
-    await runner.run(executor, makeWorkItem("DF-500"), context, { maxContinuations: 0, enableContinuation: false });
+    await runner.run(executor, makeWorkItem("DF-500"), context, {
+      maxContinuations: 0,
+      enableContinuation: false,
+      requireResultBlock: false,
+    });
 
     expect(vi.mocked(promptBuilder.build)).toHaveBeenCalledWith(expect.objectContaining({ id: "DF-500" }), context);
   });
@@ -81,6 +89,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-300"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     // Assert
@@ -102,6 +111,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-400"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     expect(result.taskId).toBe("DF-400");
@@ -126,6 +136,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-700"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     // Assert
@@ -137,6 +148,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-701"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     // Assert
@@ -163,15 +175,12 @@ describe("AgentSessionRunner", () => {
     expect(continuationRunner.run).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.anything(), 3);
   });
 
-  it.each([
-    ["waives the result block", false],
-    ["leaves the contract unset", undefined],
-  ])("passes 0 continuations when the stage %s", async (_label, requireResultBlock) => {
+  it("passes 0 continuations when the stage waives the result block", async () => {
     // Act
     await runner.run(createMockExecutor(), makeWorkItem("DF-602"), undefined, {
       maxContinuations: 3,
       enableContinuation: true,
-      requireResultBlock,
+      requireResultBlock: false,
     });
 
     // Assert
@@ -180,11 +189,7 @@ describe("AgentSessionRunner", () => {
 
   describe("result contract", () => {
     /** Runs the session runner over one CLI result whose agent text is `agentText`. */
-    async function runWith(
-      lastResult: Partial<ContainerExecResult>,
-      requireResultBlock: boolean | undefined,
-      agentText = "",
-    ) {
+    async function runWith(lastResult: Partial<ContainerExecResult>, requireResultBlock: boolean, agentText = "") {
       continuationRunner.run.mockResolvedValue({
         lastResult: makeExecResult(lastResult),
         combinedAgentText: agentText,
@@ -209,12 +214,9 @@ describe("AgentSessionRunner", () => {
       expect(result.agentText).toBe("All done, no block.");
     });
 
-    it.each([
-      ["waives the block", false],
-      ["leaves the contract unset, as hook stages do", undefined],
-    ])("completes a stage that %s on exit 0", async (_label, requireResultBlock) => {
+    it("completes a stage that waives the block, as hook stages do by default, on exit 0", async () => {
       // Act
-      const result = await runWith({}, requireResultBlock);
+      const result = await runWith({}, false);
 
       // Assert
       expect(result.status).toBe(TaskStatus.Completed);
@@ -270,6 +272,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-700"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     expect(result.status).toBe(TaskStatus.Error);
@@ -288,6 +291,7 @@ describe("AgentSessionRunner", () => {
     const result = await runner.run(createMockExecutor(), makeWorkItem("DF-800"), undefined, {
       maxContinuations: 0,
       enableContinuation: false,
+      requireResultBlock: false,
     });
 
     expect(result.status).toBe(TaskStatus.Partial);

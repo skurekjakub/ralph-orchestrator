@@ -679,6 +679,44 @@ describe("TaskRunner", () => {
       expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Finished"));
     });
 
+    it("runs each hook stage under its own result contract, without continuations", async () => {
+      // Arrange
+      const hookProfile = makeProfile({
+        id: PID,
+        postTaskHooks: [
+          {
+            name: "analysis",
+            stages: [
+              makeStage({ role: "a", mode: StageMode.Local, requireResultBlock: false }),
+              makeStage({ role: "b", mode: StageMode.Local, requireResultBlock: true }),
+            ],
+          },
+        ],
+      });
+      const { container } = createMockContainer();
+      const factory = createMockFactory(container);
+      const runner = new TaskRunner({
+        workspaceManager: createMockWorkspaceManager(),
+        resultWriter: createMockResultWriter(),
+        logger,
+        containerFactory: factory,
+        resources: createMockResources(),
+        issueManager: createMockIssueManager(),
+        profileSetup: createMockProfileSetupService(),
+        pipelineExecutor: createMockPipelineExecutor(),
+      });
+
+      // Act
+      await runner.run(makeTaskContext({ workItem: issue, profile: hookProfile, taskId }));
+
+      // Assert
+      const sessionRunner = vi.mocked(factory.createLocalSession).mock.results[0].value.sessionRunner;
+      expect(sessionRunner.run.mock.calls.map((call: unknown[]) => call[3])).toEqual([
+        { maxContinuations: 0, enableContinuation: false, requireResultBlock: false },
+        { maxContinuations: 0, enableContinuation: false, requireResultBlock: true },
+      ]);
+    });
+
     it("runs multiple stages within a single hook sequentially", async () => {
       const hookProfile = makeHookProfile({
         name: "analysis",

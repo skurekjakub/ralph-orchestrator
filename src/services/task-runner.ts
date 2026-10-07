@@ -284,6 +284,7 @@ export class TaskRunner implements ITaskRunner {
             {
               maxContinuations: 0,
               enableContinuation: false,
+              requireResultBlock: stage.requireResultBlock,
             },
           );
 

@@ -187,6 +187,7 @@ async function main() {
           {
             maxContinuations: 0,
             enableContinuation: false,
+            requireResultBlock: stage.requireResultBlock,
           },
         );
 
