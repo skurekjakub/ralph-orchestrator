@@ -88,7 +88,7 @@ function buildManager(maxContinuations: number, executor: ICliExecutor) {
 
   const executorFactory: ICliExecutorFactory = {
     create: vi.fn().mockResolvedValue(executor),
-    createLocal: vi.fn().mockReturnValue(executor),
+    createLocal: vi.fn().mockResolvedValue(executor),
   };
 
   return new ContainerManager({

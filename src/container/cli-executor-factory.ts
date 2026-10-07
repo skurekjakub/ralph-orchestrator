@@ -1,9 +1,10 @@
 import type { ICliRuntimeRegistry } from "../cli/cli-runtime";
+import { hostCliBinary } from "../cli/cli-versions";
 import { CliType, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { Logger } from "../logger";
 import type { IComposeClient } from "./compose-client";
 import type { IAgentCatalogProvider } from "./setup/agent-catalogs";
-import type { ContainerExecResult } from "./types";
+import type { ContainerExecResult, HostStageWorkspace } from "./types";
 import { ClaudeCodeExecutor } from "./cli-executors/claude-code-executor";
 import { CopilotExecutor } from "./cli-executors/copilot-executor";
 import { LocalCopilotExecutor } from "./cli-executors/local-copilot-executor";
@@ -38,28 +39,39 @@ export interface ICliExecutorFactory {
     cliLogger: Logger,
   ): Promise<ICliExecutor>;
   /**
-   * Executor for a `mode: "local"` stage, running on the host in `cwd`.
+   * Executor for a `mode: "local"` stage, running the pinned CLI the orchestrator installed
+   * (`node_modules/.bin/<cli>`) on the host in the stage's `workspace`.
    *
    * @param stageProfile The variant with the stage's overrides applied (`deriveStageProfile`).
    * @throws Error when the stage's CLI has no host executor.
    */
-  createLocal(stageProfile: IAgentProfile, stage: IStageConfig, cwd: string, cliLogger: Logger): ICliExecutor;
+  createLocal(
+    stageProfile: IAgentProfile,
+    stage: IStageConfig,
+    workspace: HostStageWorkspace,
+    cliLogger: Logger,
+  ): Promise<ICliExecutor>;
 }
 
 /** Dispatches on the stage's resolved CLI. */
 export class CliExecutorFactory implements ICliExecutorFactory {
   private readonly cliRuntimes: ICliRuntimeRegistry;
   private readonly agentCatalogs: IAgentCatalogProvider;
+  private readonly rootDir: string;
 
+  /** @param rootDir The orchestrator checkout, whose `node_modules/.bin` holds the CLIs host stages run. */
   constructor({
     cliRuntimes,
     agentCatalogs,
+    rootDir,
   }: {
     cliRuntimes: ICliRuntimeRegistry;
     agentCatalogs: IAgentCatalogProvider;
+    rootDir: string;
   }) {
     this.cliRuntimes = cliRuntimes;
     this.agentCatalogs = agentCatalogs;
+    this.rootDir = rootDir;
   }
 
   /** Claude Code takes the stage root's frontmatter name and the depth of its subagent graph from the agent catalog. */
@@ -88,10 +100,17 @@ export class CliExecutorFactory implements ICliExecutorFactory {
     }
   }
 
-  createLocal(stageProfile: IAgentProfile, stage: IStageConfig, cwd: string, cliLogger: Logger): ICliExecutor {
+  async createLocal(
+    stageProfile: IAgentProfile,
+    stage: IStageConfig,
+    workspace: HostStageWorkspace,
+    cliLogger: Logger,
+  ): Promise<ICliExecutor> {
+    const runtime = this.cliRuntimes.get(stage.cli);
+    const binary = hostCliBinary(this.rootDir, stage.cli);
     switch (stage.cli) {
       case CliType.Copilot:
-        return new LocalCopilotExecutor(stageProfile, cwd, cliLogger);
+        return new LocalCopilotExecutor({ profile: stageProfile, workspace, runtime, binary, logger: cliLogger });
       case CliType.Claude:
         throw new Error(`Stage "${stage.role}" runs cli "claude" on the host, but host stages run only Copilot CLI`);
     }

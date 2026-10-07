@@ -3,7 +3,9 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PostTaskHookRunner } from "../../src/services/post-task-hook-runner";
-import { StageMode, type IPostTaskHook } from "../../src/config/types";
+import { ClaudeAuthMode, StageMode, type IPostTaskHook } from "../../src/config/types";
+import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
+import { StageWorkspaceResolver } from "../../src/services/stage-workspace";
 import { TaskStatus, type ContainerManagerFactory, type RalphResult } from "../../src/container/types";
 import type { IAgentSessionRunner } from "../../src/container/agent-session-runner";
 import { makeProfile, makeResult, makeStage, makeTaskContext } from "../helpers/factories";
@@ -44,9 +46,13 @@ describe("PostTaskHookRunner", () => {
     const containerFactory: Mocked<ContainerManagerFactory> = {
       create: vi.fn(),
       forceDown: vi.fn(),
-      createLocalSession: vi.fn().mockReturnValue({ executor: createMockExecutor(), sessionRunner }),
+      createLocalSession: vi.fn().mockResolvedValue({ executor: createMockExecutor(), sessionRunner }),
     };
-    const runner = new PostTaskHookRunner({ logger, profileSetup, containerFactory });
+    const stageWorkspaces = new StageWorkspaceResolver({
+      cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+      rootDir: "/srv/ralph",
+    });
+    const runner = new PostTaskHookRunner({ logger, profileSetup, containerFactory, stageWorkspaces });
     return { runner, containerFactory, sessionRunner };
   }
 
@@ -54,7 +60,7 @@ describe("PostTaskHookRunner", () => {
     return makeTaskContext({ profile: makeProfile({ postTaskHooks: hooks }), outputDir });
   }
 
-  it("renders each stage with the hook's context, then runs it in a host session", async () => {
+  it("renders each stage with the hook's context into its workspace, then runs it there in a host session", async () => {
     // Arrange
     const { runner, containerFactory, sessionRunner } = createRunner();
     const analysis = hook("analysis", "analyzer");
@@ -66,17 +72,46 @@ describe("PostTaskHookRunner", () => {
 
     // Assert
     const hookOutputDir = join(outputDir, "hooks", "analysis");
-    expect(existsSync(hookOutputDir)).toBe(true);
-    expect(profileSetup.prepareForStage).toHaveBeenCalledExactlyOnceWith(ctx, {
-      stage: analysis.stages[0],
-      stageIndex: 0,
-      stageCount: 1,
-      previousStageRoles: [],
-      hook: { collectedLogs, name: "analysis", outputDir: hookOutputDir },
-    });
-    expect(containerFactory.createLocalSession).toHaveBeenCalledExactlyOnceWith(ctx.profile, analysis.stages[0]);
+    const workspace = expect.objectContaining({ stageDir: join(hookOutputDir, "analyzer") });
+    expect(profileSetup.prepareForStage).toHaveBeenCalledExactlyOnceWith(
+      ctx,
+      {
+        stage: analysis.stages[0],
+        stageIndex: 0,
+        stageCount: 1,
+        previousStageRoles: [],
+        hook: { collectedLogs, name: "analysis", outputDir: hookOutputDir },
+      },
+      workspace,
+    );
+    expect(containerFactory.createLocalSession).toHaveBeenCalledExactlyOnceWith(
+      ctx.profile,
+      analysis.stages[0],
+      workspace,
+    );
     expect(sessionRunner.run).toHaveBeenCalledOnce();
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("[hook:analysis] Finished"));
+  });
+
+  it("renders hook stages into their workspaces under the task's output dir, never the orchestrator's cwd", async () => {
+    // Arrange
+    const { runner } = createRunner();
+    const analysis = hook("analysis", "analyzer", "improver");
+
+    // Act
+    await runner.run(taskContext(analysis), [analysis], {});
+
+    // Assert
+    const workspaces = profileSetup.prepareForStage.mock.calls.map(([, , workspace]) => workspace);
+    expect(workspaces).toHaveLength(2);
+    for (const workspace of workspaces) {
+      for (const dir of [workspace.cwd, workspace.agentsOutDir, workspace.skillsOutDir, workspace.artifactDir]) {
+        expect(dir.startsWith(join(outputDir, "hooks", "analysis"))).toBe(true);
+        expect(dir.startsWith(process.cwd())).toBe(false);
+      }
+    }
+    expect(new Set(workspaces.map((workspace) => workspace.artifactDir)).size).toBe(1);
+    expect(existsSync(join(outputDir, "hooks", "analysis", "artifacts"))).toBe(true);
   });
 
   it("runs each stage under its own result contract, without continuations", async () => {

@@ -5,6 +5,7 @@ import type { IssueContext } from "../prompt/prompt";
 import type { Logger } from "../logger";
 import type { IProfileSetupService } from "./profile-setup-service";
 import type { TaskContext } from "./task-context";
+import type { IStageWorkspaceResolver } from "./stage-workspace";
 import { truncate } from "../util/text";
 
 /** Public contract for the multi-stage agent execution loop. */
@@ -24,8 +25,8 @@ export interface IAgentPipelineExecutor {
  * independently without needing all of TaskRunner's lifecycle concerns.
  *
  * Responsibilities:
- * - Iterating `ctx.profile.stages` sequentially
- * - Re-rendering agent/skill templates per stage (multi-stage pipelines only)
+ * - Iterating `ctx.profile.stages` sequentially, each in the workspace its mode resolves to
+ * - Re-rendering agent/skill templates per stage (multi-stage pipelines and local stages)
  * - Delegating execution to `container.executeWithExecutor()`
  * - Checking `ctx.signal` for cooperative abort at stage boundaries
  * - Collecting per-stage logs and merging into the final {@link RalphResult}
@@ -33,10 +34,20 @@ export interface IAgentPipelineExecutor {
 export class AgentPipelineExecutor implements IAgentPipelineExecutor {
   private readonly logger: Logger;
   private readonly profileSetup: IProfileSetupService;
+  private readonly stageWorkspaces: IStageWorkspaceResolver;
 
-  constructor({ logger, profileSetup }: { logger: Logger; profileSetup: IProfileSetupService }) {
+  constructor({
+    logger,
+    profileSetup,
+    stageWorkspaces,
+  }: {
+    logger: Logger;
+    profileSetup: IProfileSetupService;
+    stageWorkspaces: IStageWorkspaceResolver;
+  }) {
     this.logger = logger;
     this.profileSetup = profileSetup;
+    this.stageWorkspaces = stageWorkspaces;
   }
 
   async run(ctx: TaskContext, container: IContainerManager, issueContext: IssueContext): Promise<RalphResult> {
@@ -55,17 +66,23 @@ export class AgentPipelineExecutor implements IAgentPipelineExecutor {
         break;
       }
 
-      if (stages.length > 1) {
+      // A single container stage runs on what prepareForTask rendered; a local stage renders into its own workspace.
+      const workspace = this.stageWorkspaces.forStage(ctx, stage);
+      if (stages.length > 1 || workspace.mode === StageMode.Local) {
         this.logger.info(`${stageLabel}: rendering stage templates...`);
-        await this.profileSetup.prepareForStage(ctx, {
-          stage,
-          stageIndex: i,
-          stageCount: stages.length,
-          previousStageRoles: stageResults.map((r) => r.role),
-        });
+        await this.profileSetup.prepareForStage(
+          ctx,
+          {
+            stage,
+            stageIndex: i,
+            stageCount: stages.length,
+            previousStageRoles: stageResults.map((r) => r.role),
+          },
+          workspace,
+        );
       }
 
-      const executor = await container.createExecutorForStage(stage);
+      const executor = await container.createExecutorForStage(stage, workspace);
 
       const timeoutSec = Math.round((stage.timeoutMs ?? ctx.profile.timeoutMs) / 1000);
       this.logger.info(`${stageLabel}: executing ${stage.agent} for ${ctx.workItem.id} (timeout: ${timeoutSec}s)...`);

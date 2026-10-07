@@ -31,13 +31,15 @@ import type { IComposeOverlayWriter } from "../../src/container/setup/compose-ov
 import type { IProfileSetupService } from "../../src/services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "../../src/services/agent-pipeline-executor";
 import type { IPostTaskHookRunner } from "../../src/services/post-task-hook-runner";
+import type { IStageWorkspaceResolver } from "../../src/services/stage-workspace";
+import type { TaskContext } from "../../src/services/task-context";
 import type { ITaskResultWriter } from "../../src/services/task-result-writer";
 import type { IVcsSourceClient } from "../../src/services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "../../src/services/task-workspace-manager";
 import type { AppStartupDeps } from "../../src/app-startup";
 import type { RalphResult } from "../../src/container/types";
 import type { ICliExecutor } from "../../src/container/cli-executor-factory";
-import { CliType } from "../../src/config/types";
+import { CliType, StageMode, type IStageConfig } from "../../src/config/types";
 import { COPILOT_CONTAINER_LAYOUT } from "../../src/cli/copilot/copilot-layout";
 import { CliDebugLogKind, type ICliRuntime } from "../../src/cli/cli-runtime";
 import { modelPolicyFor } from "../../src/cli/model-catalog";
@@ -45,7 +47,7 @@ import { PlainTextDecoder } from "../../src/cli/plain-text-decoder";
 import type { ResultPromise } from "execa";
 import { once } from "node:events";
 import { PassThrough } from "node:stream";
-import { makeConfig, makeExecResult, makeResult } from "./factories";
+import { makeConfig, makeContainerWorkspace, makeExecResult, makeHostWorkspace, makeResult } from "./factories";
 
 // ── Mocked<T> utility type ──────────────────────────────────────────────────
 
@@ -228,6 +230,10 @@ export function createMockCliRuntime(
     mountsEachRenderedItem: false,
     egressDomains: [],
     workspaceMountTargets: [],
+    hostRenderDirs: vi.fn().mockImplementation(({ cliHomeDir }: { cliHomeDir: string }) => ({
+      agentsDir: `${cliHomeDir}/${cli}-agents`,
+      skillsDir: `${cliHomeDir}/${cli}-skills`,
+    })),
     composeContribution: vi.fn().mockReturnValue({ volumes: [], env: {} }),
     writeTaskArtifacts: vi.fn(),
     logSources: vi.fn().mockReturnValue({ sources: [], exports: [] }),
@@ -394,6 +400,31 @@ export function createMockWorkspaceManager(
   return {
     prepare: vi.fn().mockResolvedValue(undefined),
     cleanup: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/**
+ * Create a mock StageWorkspaceResolver: a container stage gets {@link makeContainerWorkspace}, a local stage the host
+ * workspace of `<outputDir>/stages/<role>`, a hook stage that of `<outputDir>/hooks/<hook>/<role>`.
+ */
+export function createMockStageWorkspaces(
+  overrides: Partial<Mocked<IStageWorkspaceResolver>> = {},
+): Mocked<IStageWorkspaceResolver> {
+  return {
+    forStage: vi
+      .fn()
+      .mockImplementation((ctx: TaskContext, stage: IStageConfig) =>
+        stage.mode === StageMode.Container
+          ? makeContainerWorkspace()
+          : makeHostWorkspace({ stageDir: `${ctx.outputDir}/stages/${stage.role}` }),
+      ),
+    forHookStage: vi.fn().mockImplementation((ctx: TaskContext, hookName: string, stage: IStageConfig) =>
+      makeHostWorkspace({
+        stageDir: `${ctx.outputDir}/hooks/${hookName}/${stage.role}`,
+        artifactDir: `${ctx.outputDir}/hooks/${hookName}/artifacts`,
+      }),
+    ),
     ...overrides,
   };
 }

@@ -37,6 +37,21 @@ export interface CliContainerLayout {
   readonly transcriptPath: string | null;
 }
 
+/** Where a CLI run on the host for one stage works and keeps its home. */
+export interface CliHostDirs {
+  /** The CLI's working directory. */
+  readonly cwd: string;
+  /** The CLI's private home directory. */
+  readonly cliHomeDir: string;
+}
+
+/** Where a CLI run on the host discovers the agent files and skills rendered for its stage. */
+export interface CliHostRenderDirs {
+  readonly agentsDir: string;
+  /** One sub-directory per skill. */
+  readonly skillsDir: string;
+}
+
 /** The task a CLI's container contribution and per-task artifacts are generated for. */
 export interface CliTaskInput {
   /** The matched variant; `skills` is the union of its stages' skills. */
@@ -114,6 +129,8 @@ export interface ICliRuntime {
    * `.ralph/` go into the workspace's git exclude.
    */
   readonly workspaceMountTargets: readonly string[];
+  /** Where the CLI, run on the host in `dirs.cwd` with its home at `dirs.cliHomeDir`, discovers agents and skills. */
+  hostRenderDirs(dirs: CliHostDirs): CliHostRenderDirs;
   /** Mounts and environment the CLI adds to the `app` service for one task. */
   composeContribution(input: CliTaskInput): ComposeContribution;
   /**

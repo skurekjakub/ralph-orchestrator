@@ -37,6 +37,7 @@ import type { IProfileSetupService } from "./services/profile-setup-service";
 import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor";
 import type { IVcsSourceClient } from "./services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "./services/task-workspace-manager";
+import type { IStageWorkspaceResolver } from "./services/stage-workspace";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -89,6 +90,7 @@ export interface OrchestratorCradle {
   overlayWriter: IComposeOverlayWriter;
   containerFactory: ContainerManagerFactory;
   workspaceManager: ITaskWorkspaceManager;
+  stageWorkspaces: IStageWorkspaceResolver;
   profileSetup: IProfileSetupService;
   pipelineExecutor: IAgentPipelineExecutor;
 

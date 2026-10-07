@@ -1,10 +1,19 @@
 import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { type ClaudeAuthMode, CliType } from "../../config/types";
 import { CaptureMode } from "../../container/log-collector";
 import { workspaceMountTarget } from "../../container/workspace-paths";
 import { agentsBuildDir } from "../../container/setup/build-paths";
 import type { Logger } from "../../logger";
-import type { CliLogSources, CliRunArtifacts, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
+import type {
+  CliHostDirs,
+  CliHostRenderDirs,
+  CliLogSources,
+  CliRunArtifacts,
+  CliTaskInput,
+  ComposeContribution,
+  ICliRuntime,
+} from "../cli-runtime";
 import { claudeCodeCredentials, type ICliCredentialPolicy } from "../credential-catalog";
 import { CLAUDE_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
@@ -63,6 +72,11 @@ export class ClaudeCodeRuntime implements ICliRuntime {
 
   constructor({ claudeAuth }: { claudeAuth: ClaudeAuthMode }) {
     this.credentials = claudeCodeCredentials(claudeAuth);
+  }
+
+  /** User-scope agents and skills of the home `CLAUDE_CONFIG_DIR` points at. */
+  hostRenderDirs({ cliHomeDir }: CliHostDirs): CliHostRenderDirs {
+    return { agentsDir: join(cliHomeDir, "agents"), skillsDir: join(cliHomeDir, "skills") };
   }
 
   /**

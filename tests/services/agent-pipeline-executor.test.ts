@@ -16,6 +16,7 @@ import {
   createMockExecutor,
   createMockLogger,
   createMockProfileSetupService,
+  createMockStageWorkspaces,
   createSilentLogger,
 } from "../helpers/mocks";
 import { CliType, StageMode } from "../../src/config/types";
@@ -66,12 +67,14 @@ function createExecutor(
   } = {},
 ) {
   const profileSetup = createMockProfileSetupService();
+  const stageWorkspaces = createMockStageWorkspaces();
   const pipeline = new AgentPipelineExecutor({
+    stageWorkspaces,
     logger: createSilentLogger(),
     profileSetup,
   });
   const container = createMockContainer(overrides.executeResult);
-  return { pipeline, profileSetup, container };
+  return { pipeline, profileSetup, container, stageWorkspaces };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -111,11 +114,47 @@ describe("AgentPipelineExecutor", () => {
     });
   });
 
+  describe("stage workspaces", () => {
+    it("creates a container stage's executor in the container workspace", async () => {
+      // Arrange
+      const { pipeline, container, stageWorkspaces } = createExecutor();
+      const ctx = makeTaskContext();
+
+      // Act
+      await pipeline.run(ctx, container, issueContext);
+
+      // Assert
+      const workspace = stageWorkspaces.forStage.mock.results[0].value;
+      expect(workspace.mode).toBe(StageMode.Container);
+      expect(container.createExecutorForStage).toHaveBeenCalledWith(ctx.profile.stages[0], workspace);
+    });
+
+    it("renders a single local stage into its own host workspace before creating its executor there", async () => {
+      // Arrange
+      const { pipeline, profileSetup, container, stageWorkspaces } = createExecutor();
+      const stage = makeStage({ role: "reviewer", mode: StageMode.Local });
+      const ctx = makeTaskContext({ profile: makeProfile({ stages: [stage] }), outputDir: "/out" });
+
+      // Act
+      await pipeline.run(ctx, container, issueContext);
+
+      // Assert
+      const workspace = stageWorkspaces.forStage.mock.results[0].value;
+      expect(workspace).toMatchObject({ mode: StageMode.Local, stageDir: "/out/stages/reviewer" });
+      expect(profileSetup.prepareForStage).toHaveBeenCalledWith(ctx, expect.objectContaining({ stage }), workspace);
+      expect(container.createExecutorForStage).toHaveBeenCalledWith(stage, workspace);
+    });
+  });
+
   describe("audit of Ralph's hooks", () => {
     it("warns and flags a container stage's session whose audit log has no session_start, without failing it", async () => {
       // Arrange
       const logger = createMockLogger();
-      const pipeline = new AgentPipelineExecutor({ logger, profileSetup: createMockProfileSetupService() });
+      const pipeline = new AgentPipelineExecutor({
+        logger,
+        profileSetup: createMockProfileSetupService(),
+        stageWorkspaces: createMockStageWorkspaces(),
+      });
       const container = createMockContainer({ sessionIds: ["s-1"] });
       vi.mocked(container.sessionStartAudited).mockResolvedValue(false);
       const ctx = makeTaskContext({ profile: makeProfile({ stages: [makeStage({ cli: CliType.Claude })] }) });

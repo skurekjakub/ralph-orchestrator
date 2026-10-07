@@ -6,7 +6,7 @@ import { CliExecutorFactory } from "../../src/container/cli-executor-factory";
 import { ClaudeCodeExecutor } from "../../src/container/cli-executors/claude-code-executor";
 import { CopilotExecutor } from "../../src/container/cli-executors/copilot-executor";
 import { LocalCopilotExecutor } from "../../src/container/cli-executors/local-copilot-executor";
-import { makeAgentSource, makeProfile, makeStage } from "../helpers/factories";
+import { makeAgentSource, makeHostWorkspace, makeProfile, makeStage } from "../helpers/factories";
 import { createMockAgentCatalogProvider, createMockCompose, createMockLogger, fakeCliProcess } from "../helpers/mocks";
 
 /** `ralph.root` (named `root`) spawns `writer`, which spawns `checker`. */
@@ -20,6 +20,7 @@ function createFactory() {
   const agentCatalogs = createMockAgentCatalogProvider(CATALOG);
   const factory = new CliExecutorFactory({
     cliRuntimes: createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+    rootDir: "/repo",
     agentCatalogs,
   });
   return { factory, agentCatalogs };
@@ -88,25 +89,25 @@ describe("CliExecutorFactory", () => {
   });
 
   describe("createLocal", () => {
-    it("creates a LocalCopilotExecutor for a host stage that runs Copilot", () => {
+    it("creates a LocalCopilotExecutor for a host stage that runs Copilot", async () => {
       // Arrange
       const { factory } = createFactory();
       const stage = makeStage({ mode: StageMode.Local, cli: CliType.Copilot });
 
       // Act
-      const executor = factory.createLocal(makeProfile(), stage, "/tmp/repo", createMockLogger());
+      const executor = await factory.createLocal(makeProfile(), stage, makeHostWorkspace(), createMockLogger());
 
       // Assert
       expect(executor).toBeInstanceOf(LocalCopilotExecutor);
     });
 
-    it("throws for a host stage that runs Claude Code", () => {
+    it("throws for a host stage that runs Claude Code", async () => {
       // Arrange
       const { factory } = createFactory();
       const stage = makeStage({ role: "scientist", mode: StageMode.Local, cli: CliType.Claude });
 
       // Act & Assert
-      expect(() => factory.createLocal(makeProfile(), stage, "/tmp/repo", createMockLogger())).toThrow(
+      await expect(factory.createLocal(makeProfile(), stage, makeHostWorkspace(), createMockLogger())).rejects.toThrow(
         'Stage "scientist" runs cli "claude" on the host',
       );
     });

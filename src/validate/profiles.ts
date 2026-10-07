@@ -15,7 +15,7 @@ import { profileFileSchema } from "../config/schemas";
 import type { IAgentProfile } from "../config/types";
 import { discoverSkills } from "../container/setup/skill-includes";
 import { validateAgentGraph } from "./agents";
-import { locateStages, validateStageClis } from "./stages";
+import { locateStages, validateHostStageRoles, validateStageClis } from "./stages";
 import type { ValidationCollector } from "./types";
 
 /**
@@ -124,6 +124,7 @@ export async function validateProfiles({ errors, warnings }: ValidationCollector
     });
 
     validateStageClis(profile, variants, prefix, errors);
+    validateHostStageRoles(variants, prefix, errors);
     await validateAgentGraph(variants, join(profilesDir, dirName, "agents"), prefix, errors);
 
     const { repoPat } = variants[0];

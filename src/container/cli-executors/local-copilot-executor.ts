@@ -1,66 +1,82 @@
-import { execa, ExecaError, type ResultPromise } from "execa";
-import { existsSync, readdirSync, symlinkSync, unlinkSync, mkdirSync, lstatSync } from "node:fs";
+import { execa, type ResultPromise } from "execa";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { CliType, type IAgentProfile } from "../../config/types";
-import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import type { ICliRuntime } from "../../cli/cli-runtime";
 import { githubMcpArgs } from "../../cli/copilot/copilot-args";
-import type { ContainerExecResult } from "../types";
+import { copilotAgentFileName } from "../../cli/copilot/copilot-agent-writer";
+import { hostCliEnv } from "../../cli/host-env";
+import { DEFAULT_COPILOT_MODEL } from "../../cli/model-catalog";
+import type { IAgentProfile } from "../../config/types";
 import type { Logger } from "../../logger";
 import type { ICliExecutor } from "../cli-executor-factory";
-import { StreamCapture } from "../stream-capture";
-import { agentsBuildDir, profileBuildPaths } from "../setup/build-paths";
-import { AGENT_SOURCE_SUFFIX } from "../../cli/agent-definition";
-import { copilotAgentFileName } from "../../cli/copilot/copilot-agent-writer";
+import type { ContainerExecResult, HostStageWorkspace } from "../types";
+import { executeCliCommand, killActiveProcess } from "./shared-exec";
+
+/** Dependencies of one host stage's Copilot CLI executor. */
+export interface LocalCopilotExecutorDeps {
+  /** The variant with the stage's overrides applied (`deriveStageProfile`): agent, model, timeout. */
+  readonly profile: IAgentProfile;
+  /** Where the stage runs; its agents and skills are already rendered into the workspace's `.github/`. */
+  readonly workspace: HostStageWorkspace;
+  /** The Copilot runtime: credentials and output decoder. */
+  readonly runtime: ICliRuntime;
+  /** The pinned Copilot CLI the orchestrator installed (`node_modules/.bin/copilot`). */
+  readonly binary: string;
+  readonly logger: Logger;
+}
 
 /**
- * Executes the Copilot CLI directly on the host machine (no Docker).
+ * Runs a `mode: "local"` stage with the Copilot CLI on the host, inside the stage's own workspace.
  *
- * Used for `mode: "local"` pipeline stages that run the CLI outside
- * the container — e.g. a reviewer stage that doesn't need Docker
- * infrastructure. Requires the `copilot` CLI to be installed and
- * available on `PATH`.
- *
- * The Copilot CLI discovers agents from `<cwd>/.github/agents/`. Since
- * rendered agent templates live in `profiles/<id>/.build/copilot/agents/`, this executor
- * symlinks them into the expected location before each invocation and
- * removes the symlinks afterwards.
+ * The CLI runs in `workspace.cwd`, where it discovers the stage's agents and skills in `.github/`, with its home
+ * (`--config-dir`) and debug logs in the workspace, so nothing it writes lands in the orchestrator checkout and
+ * the developer's own Copilot config, agents and MCP servers stay out. Its environment holds only `PATH`, `HOME`,
+ * `LANG` and `GH_TOKEN`: no other orchestrator secret reaches its tools.
  */
 export class LocalCopilotExecutor implements ICliExecutor {
   activeProcess: ResultPromise | null = null;
 
-  /** Copilot debug log directory, relative to `cwd`. */
-  private readonly logDir = ".ralph/logs/cli-debug";
+  private readonly profile: IAgentProfile;
+  private readonly workspace: HostStageWorkspace;
+  private readonly runtime: ICliRuntime;
+  private readonly binary: string;
+  private readonly logger: Logger;
 
-  /** Symlinks created by {@link deployAgents}, removed by {@link removeAgents}. */
-  private deployedLinks: string[] = [];
-
-  constructor(
-    private readonly profile: IAgentProfile,
-    private readonly cwd: string,
-    private readonly logger: Logger,
-  ) {}
-
-  killActive(): void {
-    if (this.activeProcess) {
-      try {
-        this.activeProcess.kill("SIGTERM");
-      } catch {
-        /* ignore */
-      }
-      this.activeProcess = null;
-    }
+  constructor({ profile, workspace, runtime, binary, logger }: LocalCopilotExecutorDeps) {
+    this.profile = profile;
+    this.workspace = workspace;
+    this.runtime = runtime;
+    this.binary = binary;
+    this.logger = logger;
   }
 
+  /** Kill the active copilot process if one is running. */
+  killActive(): void {
+    killActiveProcess(this);
+  }
+
+  /** Start a new session with `prompt`. */
   async run(prompt: string): Promise<ContainerExecResult> {
     return this.exec(["-p", prompt]);
   }
 
+  /** Resume the last session of the stage's CLI home with a continuation prompt. */
   async continueSession(prompt: string): Promise<ContainerExecResult> {
     return this.exec(["--continue", "--prompt", prompt]);
   }
 
-  private async exec(promptArgs: string[]): Promise<ContainerExecResult> {
-    this.deployAgents();
+  /**
+   * @throws Error when the stage root's agent was not rendered into the workspace.
+   */
+  private async exec(promptArgs: readonly string[]): Promise<ContainerExecResult> {
+    const { workspace } = this;
+    const rootAgentPath = join(workspace.agentsOutDir, copilotAgentFileName(this.profile.agentName));
+    if (!existsSync(rootAgentPath)) {
+      throw new Error(
+        `Rendered Copilot agent ${rootAgentPath} not found; the stage's agents must be rendered before it runs`,
+      );
+    }
+    for (const dir of [workspace.cwd, workspace.cliHomeDir, workspace.logDir]) mkdirSync(dir, { recursive: true });
 
     const args = [
       "--agent",
@@ -68,97 +84,29 @@ export class LocalCopilotExecutor implements ICliExecutor {
       "--model",
       this.profile.model ?? DEFAULT_COPILOT_MODEL,
       ...githubMcpArgs(this.profile.githubMcpTools),
+      "--config-dir",
+      workspace.cliHomeDir,
       "--log-level",
       "debug",
       "--log-dir",
-      this.logDir,
+      join(workspace.logDir, "cli-debug"),
       "--experimental",
       "--allow-all-tools",
       "--allow-all-paths",
       ...promptArgs,
     ];
+    const env = hostCliEnv(
+      process.env,
+      this.runtime.credentials.required.map(({ envVar }) => envVar),
+    );
 
-    let capture: StreamCapture | undefined;
-    try {
-      this.activeProcess = execa("copilot", args, {
-        cwd: this.cwd,
-        timeout: this.profile.timeoutMs,
-        reject: true,
-      });
-      capture = new StreamCapture(this.activeProcess, this.logger, "local-copilot");
-      const result = await this.activeProcess;
-      this.activeProcess = null;
-
-      return {
-        exitCode: result.exitCode ?? 0,
-        stdout: capture.stdout,
-        stderr: capture.stderr,
-        timedOut: false,
-        ...capture.outcome(),
-      };
-    } catch (err: unknown) {
-      this.activeProcess = null;
-
-      if (err instanceof ExecaError) {
-        return {
-          exitCode: err.exitCode ?? 1,
-          stdout: capture?.stdout ?? err.stdout ?? "",
-          stderr: capture?.stderr ?? err.stderr ?? "",
-          timedOut: err.timedOut ?? false,
-          ...(capture ? capture.outcome() : { agentText: "" }),
-        };
-      }
-
-      throw err;
-    } finally {
-      this.removeAgents();
-    }
-  }
-
-  /**
-   * Symlink the profile's rendered Copilot agents into `<cwd>/.github/agents/` so the Copilot CLI can
-   * discover them. Only creates symlinks for files that don't already exist at the destination.
-   *
-   * @throws Error when `<cwd>/profiles/<id>/.build/copilot/agents/` or the stage root's agent file in it is
-   *   missing.
-   */
-  private deployAgents(): void {
-    const buildDir = agentsBuildDir(profileBuildPaths(this.cwd, this.profile.id), CliType.Copilot);
-    const rootAgentPath = join(buildDir, copilotAgentFileName(this.profile.agentName));
-    if (!existsSync(rootAgentPath)) {
-      throw new Error(
-        `Rendered Copilot agent ${rootAgentPath} not found; the stage's agents must be rendered before it runs`,
-      );
-    }
-
-    const agentFiles = readdirSync(buildDir).filter((f) => f.endsWith(AGENT_SOURCE_SUFFIX));
-    const agentsDir = join(this.cwd, ".github", "agents");
-    mkdirSync(agentsDir, { recursive: true });
-
-    for (const file of agentFiles) {
-      const dest = join(agentsDir, file);
-      if (existsSync(dest)) continue;
-
-      const source = join(buildDir, file);
-      symlinkSync(source, dest);
-      this.deployedLinks.push(dest);
-    }
-
-    this.logger.info(`Deployed ${this.deployedLinks.length} agent symlink(s) to ${agentsDir}`);
-  }
-
-  /** Remove symlinks created by {@link deployAgents}. */
-  private removeAgents(): void {
-    for (const link of this.deployedLinks) {
-      try {
-        const stat = lstatSync(link, { throwIfNoEntry: false });
-        if (stat?.isSymbolicLink()) {
-          unlinkSync(link);
-        }
-      } catch {
-        /* best-effort cleanup */
-      }
-    }
-    this.deployedLinks = [];
+    return executeCliCommand({
+      spawn: () =>
+        execa(this.binary, args, { cwd: workspace.cwd, timeout: this.profile.timeoutMs, extendEnv: false, env }),
+      logger: this.logger,
+      tag: "local-copilot",
+      tracker: this,
+      decoder: this.runtime.createOutputDecoder(),
+    });
   }
 }

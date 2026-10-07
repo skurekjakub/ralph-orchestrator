@@ -21,14 +21,17 @@ import {
   makeWorkItem,
   makeTemplateContext,
   makeTaskContext,
+  makeContainerWorkspace,
+  makeHostWorkspace,
 } from "../helpers/factories";
+import type { AgentRenderTarget } from "../../src/cli/agent-file-writer";
 import { AgentDefinitionError } from "../../src/cli/agent-definition";
 import { AgentCatalog } from "../../src/cli/agent-catalog";
 import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
 import { COPILOT_TOOL_NAMES } from "../../src/cli/copilot/copilot-tools";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { AgentCatalogProvider } from "../../src/container/setup/agent-catalogs";
-import { ClaudeAuthMode, CliType, StageMode } from "../../src/config/types";
+import { ClaudeAuthMode, CliType, StageMode, type IStageConfig } from "../../src/config/types";
 
 const RUNTIMES = createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken);
 
@@ -356,24 +359,30 @@ describe("resolveMcpToolNames", () => {
 });
 
 describe("stageRenderTarget", () => {
-  it("targets the stage's CLI and root agent in the profile's build directory for that CLI", () => {
+  it("targets the stage's CLI and root agent in its workspace's agents directory", () => {
     // Arrange
     const stage = makeStage({ agent: "ralph.scientist", cli: CliType.Claude, mode: StageMode.Local });
+    const workspace = makeHostWorkspace();
 
     // Act
-    const target = stageRenderTarget("ralph-docs", stage, { prune: true });
+    const target = stageRenderTarget(stage, workspace, { prune: true });
 
     // Assert
     expect(target).toEqual({
       cli: CliType.Claude,
       rootAgentFileId: "ralph.scientist",
-      outDir: join(process.cwd(), "profiles", "ralph-docs", ".build", "claude", "agents"),
+      outDir: workspace.agentsOutDir,
       prune: true,
     });
   });
 });
 
 describe("AgentTemplateRenderer", () => {
+  /** The render target of `stage` in a container workspace whose agents directory is under the temp dir. */
+  function renderTarget(stage: IStageConfig, options: { prune: boolean }): AgentRenderTarget {
+    return stageRenderTarget(stage, makeContainerWorkspace({ agentsOutDir: join(tmpDir, "rendered-agents") }), options);
+  }
+
   /** A renderer over the profiles and shared/ under the temp cwd. */
   function renderer(): AgentTemplateRenderer {
     return new AgentTemplateRenderer({
@@ -397,7 +406,7 @@ describe("AgentTemplateRenderer", () => {
         body: "Repo: {{ repo }}, Revision: {{ isRevision }}, Key: {{ taskId }}",
       }),
     });
-    const target = stageRenderTarget("my-profile", makeStage({ agent: "ralph.root" }), { prune: true });
+    const target = renderTarget(makeStage({ agent: "ralph.root" }), { prune: true });
     const context = makeTemplateContext({
       profileId: "my-profile",
       repo: "/my/repo",
@@ -421,7 +430,7 @@ describe("AgentTemplateRenderer", () => {
       join(tmpDir, "shared", "mcp-servers", "jira", "mcp-server.json"),
       JSON.stringify({ name: "jira", command: "node", args: [], sidecarPort: 9100, tools: ["jira_add_comment"] }),
     );
-    const target = stageRenderTarget("mcp-profile", makeStage({ agent: "ralph.root", cli: CliType.Claude }), {
+    const target = renderTarget(makeStage({ agent: "ralph.root", cli: CliType.Claude }), {
       prune: true,
     });
 
@@ -438,11 +447,7 @@ describe("AgentTemplateRenderer", () => {
 
     // Act & Assert
     await expect(
-      renderer().render(
-        "my-profile",
-        makeTemplateContext(),
-        stageRenderTarget("my-profile", makeStage(), { prune: true }),
-      ),
+      renderer().render("my-profile", makeTemplateContext(), renderTarget(makeStage(), { prune: true })),
     ).rejects.toThrow(`Agent includes directory not found: ${join(tmpDir, "shared", "agent-includes")}`);
   });
 
@@ -453,11 +458,7 @@ describe("AgentTemplateRenderer", () => {
 
     // Act & Assert
     await expect(
-      renderer().render(
-        "empty-profile",
-        makeTemplateContext(),
-        stageRenderTarget("empty-profile", makeStage(), { prune: true }),
-      ),
+      renderer().render("empty-profile", makeTemplateContext(), renderTarget(makeStage(), { prune: true })),
     ).rejects.toThrow(/Profile empty-profile has no agents directory/);
   });
 
@@ -472,7 +473,7 @@ describe("AgentTemplateRenderer", () => {
       renderer().render(
         "legacy",
         makeTemplateContext(),
-        stageRenderTarget("legacy", makeStage({ agent: "ralph.root" }), { prune: true }),
+        renderTarget(makeStage({ agent: "ralph.root" }), { prune: true }),
       ),
     ).rejects.toBeInstanceOf(AgentDefinitionError);
   });
@@ -486,7 +487,7 @@ describe("AgentTemplateRenderer", () => {
     await renderer().render(
       "test-profile",
       makeTemplateContext(),
-      stageRenderTarget("test-profile", makeStage({ agent: "ralph.root" }), { prune: true }),
+      renderTarget(makeStage({ agent: "ralph.root" }), { prune: true }),
       logger,
     );
 
@@ -522,6 +523,7 @@ describe("buildTemplateContext", () => {
         workspacePath: "/ralph/cache/workspaces/DOC-500-1",
       }),
       RUNTIMES,
+      makeContainerWorkspace(),
     );
 
     expect(ctx.profileId).toBe("ralph-docs");
@@ -548,7 +550,7 @@ describe("buildTemplateContext", () => {
   });
 
   it("defaults optional fields to empty strings/arrays", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ isRevision: true }), RUNTIMES, makeContainerWorkspace());
 
     expect(ctx.model).toBe("");
     expect(ctx.taskType).toBe("");
@@ -563,7 +565,7 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-200", {
       description: "Hello world",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES, makeContainerWorkspace());
     expect(ctx.taskDescription).toBe("Hello world");
   });
 
@@ -571,7 +573,7 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-201", {
       description: "Plain text desc",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES, makeContainerWorkspace());
     expect(ctx.taskDescription).toBe("Plain text desc");
   });
 
@@ -579,19 +581,27 @@ describe("buildTemplateContext", () => {
     const issue = makeWorkItem("DOC-202", {
       updated: "2026-02-15T12:00:00.000+0000",
     });
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ workItem: issue }), RUNTIMES, makeContainerWorkspace());
     expect(ctx.taskCreated).toBe("2026-01-01T00:00:00.000+0000");
     expect(ctx.taskUpdated).toBe("2026-02-15T12:00:00.000+0000");
   });
 
   it("populates commentTrigger from profile match", () => {
     const profile = makeProfile({ match: { commentTrigger: "@ralph write" } });
-    const ctx = buildTemplateContext(makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }), RUNTIMES);
+    const ctx = buildTemplateContext(
+      makeTaskContext({ profile, workItem: makeWorkItem("DF-50") }),
+      RUNTIMES,
+      makeContainerWorkspace(),
+    );
     expect(ctx.commentTrigger).toBe("@ralph write");
   });
 
   it("derives taskProject from key prefix", () => {
-    const ctx = buildTemplateContext(makeTaskContext({ workItem: makeWorkItem("DOC-3143") }), RUNTIMES);
+    const ctx = buildTemplateContext(
+      makeTaskContext({ workItem: makeWorkItem("DOC-3143") }),
+      RUNTIMES,
+      makeContainerWorkspace(),
+    );
     expect(ctx.taskProject).toBe("DOC");
   });
 
@@ -599,12 +609,13 @@ describe("buildTemplateContext", () => {
     const ctx = buildTemplateContext(
       makeTaskContext({ triggerParams: { codesamples: "true", verbose: "true" } }),
       RUNTIMES,
+      makeContainerWorkspace(),
     );
     expect(ctx.triggerParams).toEqual({ codesamples: "true", verbose: "true" });
   });
 
   it("defaults triggerParams to empty object", () => {
-    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, makeContainerWorkspace());
     expect(ctx.triggerParams).toEqual({});
   });
 
@@ -612,13 +623,14 @@ describe("buildTemplateContext", () => {
     const ctx = buildTemplateContext(
       makeTaskContext({ triggerParams: { codesamples: "true", branch_name: "feature-xyz" } }),
       RUNTIMES,
+      makeContainerWorkspace(),
     );
     expect(ctx.triggerParams).toEqual({ codesamples: "true", branch_name: "feature-xyz" });
   });
 
   it("passes through a pre-built Record<string,string> without re-parsing", () => {
     const preBuilt = { flag: "true", ref: "refs/heads/main" };
-    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ triggerParams: preBuilt }), RUNTIMES, makeContainerWorkspace());
     expect(ctx.triggerParams).toEqual({ flag: "true", ref: "refs/heads/main" });
   });
 
@@ -629,7 +641,7 @@ describe("buildTemplateContext", () => {
         makeStage({ agent: "ralph.reviewer", role: "reviewer" }),
       ],
     });
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, makeContainerWorkspace());
     expect(ctx.stageRole).toBe("writer");
     expect(ctx.stageIndex).toBe(0);
     expect(ctx.stageCount).toBe(2);
@@ -646,7 +658,7 @@ describe("buildTemplateContext", () => {
     });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, {
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, makeContainerWorkspace(), {
       stage: reviewer,
       stageIndex: 1,
       stageCount: 3,
@@ -668,7 +680,7 @@ describe("buildTemplateContext", () => {
 
   it("computes isLastStage correctly from stageOverrides", () => {
     // Act
-    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, {
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, makeContainerWorkspace(), {
       stage: makeStage({ role: "editor" }),
       stageIndex: 2,
       stageCount: 3,
@@ -693,7 +705,7 @@ describe("buildTemplateContext", () => {
     const profile = makeProfile({ agentName: "ralph.ralph", model: "sonnet", stages: [makeStage({ skills: ["a"] })] });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, {
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, makeContainerWorkspace(), {
       stage: hookStage,
       stageIndex: 0,
       stageCount: 1,
@@ -710,12 +722,65 @@ describe("buildTemplateContext", () => {
     expect(ctx.stageMode).toBe(StageMode.Local);
   });
 
+  it("takes artifactDir from the stage's workspace", () => {
+    // Act
+    const container = buildTemplateContext(makeTaskContext(), RUNTIMES, makeContainerWorkspace());
+    const host = buildTemplateContext(
+      makeTaskContext(),
+      RUNTIMES,
+      makeHostWorkspace({ artifactDir: "/out/hooks/run-analysis/artifacts" }),
+    );
+
+    // Assert
+    expect(container.artifactDir).toBe(".ralph/tasks/DF-100/artifacts");
+    expect(host.artifactDir).toBe("/out/hooks/run-analysis/artifacts");
+  });
+
+  it("tells a hook stage the CLI the task's first stage ran and where the orchestrator's sources are", () => {
+    // Arrange
+    const profile = makeProfile({ stages: [makeStage({ cli: CliType.Claude })] });
+    const hookStage = makeStage({ agent: "ralph.scientist", role: "scientist", mode: StageMode.Local });
+
+    // Act
+    const ctx = buildTemplateContext(
+      makeTaskContext({ profile, outputDir: "/out" }),
+      RUNTIMES,
+      makeHostWorkspace({ orchestratorDir: "/srv/ralph" }),
+      {
+        stage: hookStage,
+        stageIndex: 0,
+        stageCount: 1,
+        previousStageRoles: [],
+        hook: { collectedLogs: {}, name: "run-analysis", outputDir: "/out/hooks/run-analysis" },
+      },
+    );
+
+    // Assert
+    expect(ctx.cli).toBe(CliType.Copilot);
+    expect(ctx.hook).toMatchObject({ cli: CliType.Claude, orchestratorDir: "/srv/ralph", taskOutputDir: "/out" });
+  });
+
+  it("leaves the hook fields empty outside post-task hooks", () => {
+    // Act
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, makeContainerWorkspace());
+
+    // Assert
+    expect(ctx.hook).toEqual({
+      taskOutputDir: "",
+      collectedLogs: {},
+      name: "",
+      outputDir: "",
+      cli: "",
+      orchestratorDir: "",
+    });
+  });
+
   it("takes the CLI and tool names from the first stage, not the profile default", () => {
     // Arrange
     const profile = makeProfile({ cli: CliType.Copilot, stages: [makeStage({ cli: CliType.Claude })] });
 
     // Act
-    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext({ profile }), RUNTIMES, makeContainerWorkspace());
 
     // Assert
     expect(ctx.cli).toBe(CliType.Claude);
@@ -724,7 +789,7 @@ describe("buildTemplateContext", () => {
 
   it("names Copilot tools for a Copilot stage", () => {
     // Act
-    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES);
+    const ctx = buildTemplateContext(makeTaskContext(), RUNTIMES, makeContainerWorkspace());
 
     // Assert
     expect(ctx.cliTools).toEqual(COPILOT_TOOL_NAMES);

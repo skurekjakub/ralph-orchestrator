@@ -167,11 +167,14 @@ function hookContext(profileId: string): TemplateContext {
     ...standardContext(profileId),
     stageRole: "analyzer",
     stageMode: "local",
+    artifactDir: "/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts",
     hook: {
       taskOutputDir: "/output/logs/DOC-100-1234567890000",
       collectedLogs: { audit: "audit.jsonl", transcript: "transcript.md" },
       name: "run-analysis",
       outputDir: "/output/logs/DOC-100-1234567890000/hooks/run-analysis",
+      cli: "claude",
+      orchestratorDir: "/srv/ralph-orchestrator",
     },
   });
 }
@@ -283,7 +286,9 @@ describe("agent template rendering (real files)", () => {
         const hookAgents = [...rendered].filter(([fileId]) => /run-analyzer|agent-improver/.test(fileId));
         expect(hookAgents.length).toBeGreaterThan(0);
         for (const [fileId, content] of hookAgents) {
-          expect(content, `${fileId} should interpolate artifactDir`).toContain(".ralph/tasks/DOC-100/artifacts");
+          expect(content, `${fileId} should interpolate artifactDir`).toContain(
+            "/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts",
+          );
           expect(content, `${fileId} should interpolate taskId`).toContain("DOC-100");
         }
       });
@@ -415,21 +420,21 @@ describe("shared agent includes (real files)", () => {
   it("renders post-hooks/run-analyzer with hook context", async () => {
     const rendered = await renderInclude("post-hooks/run-analyzer", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
-    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts");
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
   it("renders post-hooks/subagent-mapper with hook context", async () => {
     const rendered = await renderInclude("post-hooks/subagent-mapper", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
-    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts");
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 
   it("renders post-hooks/agent-improver with hook context", async () => {
     const rendered = await renderInclude("post-hooks/agent-improver", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
-    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts");
     // {% raw %} blocks should be consumed — literal Liquid tags preserved in output
     expect(rendered).not.toContain("{% raw %}");
     expect(rendered).not.toContain("{% endraw %}");
@@ -438,7 +443,7 @@ describe("shared agent includes (real files)", () => {
   it("renders post-hooks/run-synthesizer with hook context", async () => {
     const rendered = await renderInclude("post-hooks/run-synthesizer", hookContext("ralph-docs"));
     expect(rendered).toContain("DOC-100");
-    expect(rendered).toContain(".ralph/tasks/DOC-100/artifacts");
+    expect(rendered).toContain("/output/logs/DOC-100-1234567890000/hooks/run-analysis/artifacts");
     expect(rendered).toContain("/output/logs/DOC-100-1234567890000");
   });
 

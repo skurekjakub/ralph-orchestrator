@@ -6,7 +6,15 @@ import { agentFileMounts, skillDirMounts } from "../../container/setup/artifact-
 import { agentsBuildDir } from "../../container/setup/build-paths";
 import { COPILOT_SETTINGS_FILE, writeCopilotSettings } from "./copilot-settings";
 import type { Logger } from "../../logger";
-import type { CliLogSources, CliRunArtifacts, CliTaskInput, ComposeContribution, ICliRuntime } from "../cli-runtime";
+import type {
+  CliHostDirs,
+  CliHostRenderDirs,
+  CliLogSources,
+  CliRunArtifacts,
+  CliTaskInput,
+  ComposeContribution,
+  ICliRuntime,
+} from "../cli-runtime";
 import { COPILOT_CREDENTIALS } from "../credential-catalog";
 import { COPILOT_MODEL_POLICY } from "../model-catalog";
 import type { ICliOutputDecoder } from "../output-decoder";
@@ -38,6 +46,11 @@ export class CopilotRuntime implements ICliRuntime {
     workspaceMountTarget(COPILOT_CONTAINER_LAYOUT.agentsDir, true),
     workspaceMountTarget(COPILOT_CONTAINER_LAYOUT.skillsDir, true),
   ];
+
+  /** The repository-level `.github/agents/` and `.github/skills/` of the working directory. */
+  hostRenderDirs({ cwd }: CliHostDirs): CliHostRenderDirs {
+    return { agentsDir: join(cwd, ".github", "agents"), skillsDir: join(cwd, ".github", "skills") };
+  }
 
   /**
    * Points `COPILOT_HOME` at the layout's home and mounts the settings file, the audit hook config, and file

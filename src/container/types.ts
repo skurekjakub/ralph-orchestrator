@@ -33,29 +33,68 @@ export interface ContainerManagerFactory {
   create(profile: IAgentProfile, workspacePath: string): IContainerManager;
   /** Raw `docker compose down` fallback when the container reference is unavailable or stop failed. */
   forceDown(profile: IAgentProfile): Promise<void>;
-  /** Create a local executor + session runner pair for a hook stage (no container needed). */
+  /**
+   * Create the host executor and session runner of a post-task hook stage, which runs in `workspace` without a
+   * container.
+   *
+   * @throws Error when the stage's agent templates are invalid or lack the stage's agent.
+   */
   createLocalSession(
     profile: IAgentProfile,
     stage: IStageConfig,
-  ): { executor: ICliExecutor; sessionRunner: IAgentSessionRunner };
+    workspace: HostStageWorkspace,
+  ): Promise<{ executor: ICliExecutor; sessionRunner: IAgentSessionRunner }>;
 }
 
-/** Where one stage's CLI runs and where its rendered agents, skills and artifacts live. */
-export interface StageWorkspace {
-  readonly mode: StageMode;
-  /** CLI working directory: `/workspace` in the container, a per-stage directory under the task output dir on the host. */
+/** What every stage workspace holds: where the CLI runs and where its rendered agents, skills and artifacts live. */
+interface StageWorkspaceBase {
+  /** CLI working directory. */
   readonly cwd: string;
-  /** `artifactDir` template value: relative to `/workspace` in the container, absolute and shared by a hook's stages on the host. */
+  /** The `artifactDir` template value: where the stage's agents write their artifacts. */
   readonly artifactDir: string;
   /** Host directory receiving the stage's rendered agent files. */
   readonly agentsOutDir: string;
   /** Host directory receiving the stage's rendered skills. */
   readonly skillsOutDir: string;
-  /** CLI home directory for a host stage; absent for container stages, whose home is the runtime layout's `configDir`. */
-  readonly cliHomeDir?: string;
-  /** Host directories the agent may reach besides `cwd`; empty for container stages. */
+}
+
+/** The workspace of a `mode: "container"` stage: the task's workspace mounted at `/workspace`. */
+export interface ContainerStageWorkspace extends StageWorkspaceBase {
+  readonly mode: StageMode.Container;
+  /** `/workspace`. */
+  readonly cwd: string;
+  /** Relative to `/workspace`: `.ralph/tasks/<key>/artifacts`. */
+  readonly artifactDir: string;
+}
+
+/**
+ * The workspace of a `mode: "local"` stage on the host: a directory of its own under the task's output directory,
+ * holding its working directory, CLI home and logs, so nothing the stage's CLI writes lands in the orchestrator
+ * checkout.
+ */
+export interface HostStageWorkspace extends StageWorkspaceBase {
+  readonly mode: StageMode.Local;
+  /** The stage's own directory: `<outputDir>/hooks/<hook>/<role>` or `<outputDir>/stages/<role>`. */
+  readonly stageDir: string;
+  /** `<stageDir>/work`. */
+  readonly cwd: string;
+  /** Absolute. A hook's stages share theirs; a variant's local stage shares the container stages' artifacts. */
+  readonly artifactDir: string;
+  /** The stage's private CLI home (`CLAUDE_CONFIG_DIR`, Copilot `--config-dir`): `<stageDir>/home`. */
+  readonly cliHomeDir: string;
+  /** Where the CLI writes its debug log and the audit hooks their records: `<stageDir>/logs`. */
+  readonly logDir: string;
+  /** The orchestrator checkout, whose `profiles/` and `shared/` the stage may read. */
+  readonly orchestratorDir: string;
+  /**
+   * Directories the agent may reach besides `cwd`: the task's output directory, the task's workspace for a
+   * variant's stage, and the orchestrator's `profiles/` and `shared/`.
+   */
   readonly additionalDirs: readonly string[];
 }
+
+/** Where one stage's CLI runs and where its rendered agents, skills and artifacts live. */
+export type StageWorkspace = ContainerStageWorkspace | HostStageWorkspace;
 
 /** Final task status — from the agent's structured output or inferred from exit code. */
 export enum TaskStatus {

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { CliContainerLayout, ICliRuntime, ICliRuntimeRegistry } from "../cli/cli-runtime";
 import { type CliType, StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
 import type { WorkItem } from "../datasource/types";
-import { deriveStageProfile, type RalphResult } from "./types";
+import { deriveStageProfile, type RalphResult, type StageWorkspace } from "./types";
 import type { Logger } from "../logger";
 import type { IssueContext } from "../prompt/prompt";
 import type { IComposeClient } from "./compose-client";
@@ -61,8 +61,13 @@ export interface IContainerManager {
     workItem: WorkItem,
     context?: IssueContext,
   ): Promise<RalphResult>;
-  /** Create the executor of a pipeline stage's CLI. */
-  createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor>;
+  /**
+   * Create the executor of a pipeline stage's CLI, which runs in `workspace`: inside the container for a container
+   * stage, on the host for a local one.
+   *
+   * @throws Error when the stage's agent templates are invalid or lack the stage's agent.
+   */
+  createExecutorForStage(stage: IStageConfig, workspace: StageWorkspace): Promise<ICliExecutor>;
   /**
    * Whether the audit log holds a `session_start` record for `sessionId`, a session a container stage ran
    * with `cli`. A missing audit log holds none.
@@ -284,24 +289,18 @@ export class ContainerManager implements IContainerManager {
   }
 
   /**
-   * Create the executor of a pipeline stage's CLI.
-   *
-   * For `mode: "container"`, the executor runs the CLI inside the Docker container.
-   * For `mode: "local"`, it runs the CLI on the host in the orchestrator repo directory. The task's
-   * workspace path is available to the agent via the `{{ repo }}` template variable.
+   * For `mode: "container"`, the executor runs the CLI inside the Docker container. For `mode: "local"`, it runs
+   * the CLI on the host in the stage's own workspace; the task's workspace path is available to the agent via the
+   * `{{ repo }}` template variable.
    */
-  async createExecutorForStage(stage: IStageConfig): Promise<ICliExecutor> {
+  async createExecutorForStage(stage: IStageConfig, workspace: StageWorkspace): Promise<ICliExecutor> {
     const stageProfile = deriveStageProfile(this.profile, stage);
     this.logger.info(`Stage ${stage.role}: ${stage.cli} CLI (${stage.mode}), agent ${stage.agent}`);
-    switch (stage.mode) {
+    switch (workspace.mode) {
       case StageMode.Local:
-        return this.executorFactory.createLocal(stageProfile, stage, process.cwd(), this.containerLogger);
+        return this.executorFactory.createLocal(stageProfile, stage, workspace, this.containerLogger);
       case StageMode.Container:
         return this.executorFactory.create(this.compose, stageProfile, stage, this.containerLogger);
-      default: {
-        const _exhaustive: never = stage.mode;
-        throw new Error(`Unknown stage mode: ${_exhaustive}`);
-      }
     }
   }
 

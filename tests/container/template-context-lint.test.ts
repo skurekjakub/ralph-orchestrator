@@ -6,7 +6,7 @@ import { buildTemplateContext, type AgentSelf } from "../../src/container/setup/
 import { CLAUDE_TOOL_NAMES } from "../../src/cli/claude/claude-tools";
 import { createCliRuntimeRegistry } from "../../src/cli/supported-runtimes";
 import { ClaudeAuthMode } from "../../src/config/types";
-import { makeTaskContext } from "../helpers/factories";
+import { makeContainerWorkspace, makeTaskContext } from "../helpers/factories";
 
 /**
  * Extract the explicitly typed keys of {@link TemplateContext}.
@@ -161,7 +161,11 @@ const REPO_ROOT = join(import.meta.dirname, "..", "..");
 
 describe("Template context variable lint", () => {
   it("KNOWN_KEYS matches the actual keys produced by buildTemplateContext", () => {
-    const ctx = buildTemplateContext(makeTaskContext(), createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken));
+    const ctx = buildTemplateContext(
+      makeTaskContext(),
+      createCliRuntimeRegistry(ClaudeAuthMode.OAuthToken),
+      makeContainerWorkspace(),
+    );
     const runtimeKeys = new Set(Object.keys(ctx));
     const missing = [...runtimeKeys].filter((k) => !KNOWN_KEYS.has(k));
     const extra = [...KNOWN_KEYS].filter((k) => !runtimeKeys.has(k));

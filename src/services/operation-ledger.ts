@@ -3,7 +3,7 @@ import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { IOutputConfig } from "../config/types";
 import { TaskStatus } from "../container/types";
-import { assertSafeItemId } from "../util/safe-id";
+import { assertSafeName } from "../util/safe-id";
 
 /** Operation lifecycle state. See {@link VALID_TRANSITIONS} for the allowed edges. */
 export enum OperationStatus {
@@ -168,7 +168,7 @@ export class OperationLedger implements IOperationLedger {
       triggerParams?: string[];
     },
   ): string {
-    assertSafeItemId(issueKey);
+    assertSafeName(issueKey, "work item ID");
     const op: Operation = {
       id: randomUUID(),
       dataSource: opts.dataSource,
@@ -200,7 +200,7 @@ export class OperationLedger implements IOperationLedger {
       reason: string;
     },
   ): void {
-    assertSafeItemId(issueKey);
+    assertSafeName(issueKey, "work item ID");
     const op: Operation = {
       id: randomUUID(),
       dataSource: opts.dataSource,

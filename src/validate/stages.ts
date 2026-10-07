@@ -1,6 +1,7 @@
 import { modelPolicyFor } from "../cli/model-catalog";
 import type { ProfileFile } from "../config/schemas";
 import { CliType, StageMode, type IAgentProfile, type IStageConfig } from "../config/types";
+import { isSafeName } from "../util/safe-id";
 
 /** A resolved stage with its location in profile.json (`variants[0]/postTaskHooks[1]/stages[2]`). */
 export interface LocatedStage {
@@ -30,6 +31,24 @@ export function locateStages(variants: readonly IAgentProfile[]): LocatedStage[]
       })),
     ),
   ]);
+}
+
+/**
+ * Validate the role of every `mode: "local"` stage, variant and post-task hook stages alike: it names the stage's
+ * workspace directory on the host, so it must be a safe directory name.
+ *
+ * @param variants The profile's variants as `resolveProfileVariants` expands them.
+ * @param prefix Location prefix for messages (`profiles/<id>`).
+ */
+export function validateHostStageRoles(variants: readonly IAgentProfile[], prefix: string, errors: string[]): void {
+  for (const { stage, path } of locateStages(variants)) {
+    if (stage.mode === StageMode.Local && !isSafeName(stage.role)) {
+      errors.push(
+        `${prefix}/${path}: role ${JSON.stringify(stage.role)} names the stage's workspace directory on the host\n` +
+          "  Use letters, digits, _ and -, starting with a letter or digit",
+      );
+    }
+  }
 }
 
 /** The model a stage runs and where it is declared, or undefined when nothing sets one. */

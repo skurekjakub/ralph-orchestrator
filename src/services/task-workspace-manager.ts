@@ -7,7 +7,7 @@ import { type IAgentProfile, VcsProvider } from "../config/types";
 import { isSuccessfulStatus, type TaskStatus } from "../container/types";
 import type { Logger } from "../logger";
 import { toErrorMessage } from "../util/error";
-import { assertSafeItemId } from "../util/safe-id";
+import { assertSafeName } from "../util/safe-id";
 import { appendGitExclude, gitExcludePatterns } from "./git-exclude";
 import type { TaskContext } from "./task-context";
 
@@ -140,7 +140,7 @@ export class TaskWorkspaceManager implements ITaskWorkspaceManager {
    */
   async prepare(ctx: TaskContext): Promise<void> {
     const { profile, workspacePath } = ctx;
-    assertSafeItemId(ctx.workItem.id);
+    assertSafeName(ctx.workItem.id, "work item ID");
     const pat = process.env[profile.repoPat];
     if (!pat) throw new Error(`${profile.repoPat} must be set to clone ${profile.repoUrl} (profile "${profile.id}")`);
     if (existsSync(workspacePath)) throw new Error(`Workspace ${workspacePath} already exists`);

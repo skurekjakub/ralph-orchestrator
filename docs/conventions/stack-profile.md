@@ -95,7 +95,7 @@
   - JIRA text (description, comments, attachments, trigger params) reaching a
     prompt, path, shell argument, branch name or compose value unchecked →
     `PromptBuilder` for prompt text; explicit validation for everything else
-    (pattern: `assertSafeItemId` in `src/services/operation-ledger.ts`).
+    (pattern: `assertSafeName` in `src/util/safe-id.ts`).
   - A credential in the agent container env, a profile compose file or any
     committed file → `.env` + the sidecar's `gateway.json` (MCP `env`,
     `$variantEnv.*`).

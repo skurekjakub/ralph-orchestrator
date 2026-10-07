@@ -7,14 +7,14 @@ import type { Logger } from "../../logger";
 import { normalizeContent } from "../../prompt/normalizer";
 import { registerCustomTags } from "./liquid-tags";
 import type { TaskContext } from "../../services/task-context";
-import type { CliType, IStageConfig } from "../../config/types";
+import { StageMode, type CliType, type IStageConfig } from "../../config/types";
 import type { AgentCatalog } from "../../cli/agent-catalog";
 import type { AgentRenderTarget, IAgentFileWriter } from "../../cli/agent-file-writer";
 import type { ICliRuntimeRegistry } from "../../cli/cli-runtime";
 import type { CliToolNames } from "../../cli/cli-tools";
 import { syncDirectory } from "../../util/sync-dir";
+import type { StageWorkspace } from "../types";
 import type { IAgentCatalogProvider } from "./agent-catalogs";
-import { agentsBuildDir, profileBuildPaths } from "./build-paths";
 import { loadMcpManifest } from "./mcp-manifest";
 
 /**
@@ -106,7 +106,10 @@ export interface TemplateContext {
   /** Skill folder names deployed for this profile. */
   skills: readonly string[];
 
-  /** Path to the artifact directory for subagent output (e.g. `.ralph/tasks/DOC-123/artifacts`). */
+  /**
+   * The artifact directory for subagent output: `.ralph/tasks/DOC-123/artifacts` relative to `/workspace` for a
+   * container stage; absolute for a host stage, shared by all stages of one post-task hook.
+   */
   artifactDir: string;
 
   /** Role identifier for the current pipeline stage (e.g. `primary`, `reviewer`). */
@@ -137,6 +140,10 @@ export interface TemplateContext {
     name: string;
     /** Hook-specific output directory. */
     outputDir: string;
+    /** CLI the task's first stage ran (`copilot` or `claude`): the run the hook analyses. */
+    cli: string;
+    /** Absolute path of the orchestrator checkout, whose `profiles/` and `shared/` the hook's stages may read. */
+    orchestratorDir: string;
   };
 }
 
@@ -180,17 +187,20 @@ export type StageOverrides = {
  * its stages' skills, as rendered before the container starts. `cliTools` are the tool names of the
  * stage's CLI runtime.
  *
+ * @param workspace The workspace of the stage the context describes; `artifactDir` is its artifact directory.
  * @throws Error when no runtime is registered for the stage's CLI.
  */
 export function buildTemplateContext(
   ctx: TaskContext,
   cliRuntimes: ICliRuntimeRegistry,
+  workspace: StageWorkspace,
   stageOverrides?: StageOverrides,
 ): TemplateContext {
   const resolvedParams = Array.isArray(ctx.triggerParams) ? buildTriggerParams(ctx.triggerParams) : ctx.triggerParams;
   const stage = stageOverrides?.stage ?? ctx.profile.stages[0];
   const stageIndex = stageOverrides?.stageIndex ?? 0;
   const stageCount = stageOverrides?.stageCount ?? ctx.profile.stages.length;
+  const hook = stageOverrides?.hook;
 
   return {
     profileId: ctx.profile.id,
@@ -226,7 +236,7 @@ export function buildTemplateContext(
 
     skills: stageOverrides ? stage.skills : ctx.profile.skills,
 
-    artifactDir: `.ralph/tasks/${ctx.workItem.id}/artifacts`,
+    artifactDir: workspace.artifactDir,
 
     stageRole: stage.role,
     stageMode: stage.mode,
@@ -237,10 +247,12 @@ export function buildTemplateContext(
     previousStageRoles: stageOverrides?.previousStageRoles ?? [],
 
     hook: {
-      taskOutputDir: stageOverrides?.hook ? ctx.outputDir : "",
-      collectedLogs: stageOverrides?.hook?.collectedLogs ?? {},
-      name: stageOverrides?.hook?.name ?? "",
-      outputDir: stageOverrides?.hook?.outputDir ?? "",
+      taskOutputDir: hook ? ctx.outputDir : "",
+      collectedLogs: hook?.collectedLogs ?? {},
+      name: hook?.name ?? "",
+      outputDir: hook?.outputDir ?? "",
+      cli: hook ? ctx.profile.stages[0].cli : "",
+      orchestratorDir: hook && workspace.mode === StageMode.Local ? workspace.orchestratorDir : "",
     },
   };
 }
@@ -275,18 +287,16 @@ export function createTemplateEngine(roots: readonly string[]): Liquid {
 }
 
 /**
- * The render target of `stage`: its CLI, its root agent and the profile's build directory for that CLI
- * under the orchestrator's working directory.
+ * The render target of `stage`: its CLI, its root agent and its workspace's agents directory.
  *
  * @param options.prune Whether the render removes the files of agents the stage cannot reach.
  */
 export function stageRenderTarget(
-  profileId: string,
   stage: IStageConfig,
+  workspace: StageWorkspace,
   { prune }: { prune: boolean },
 ): AgentRenderTarget {
-  const outDir = agentsBuildDir(profileBuildPaths(process.cwd(), profileId), stage.cli);
-  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir, prune };
+  return { cli: stage.cli, rootAgentFileId: stage.agent, outDir: workspace.agentsOutDir, prune };
 }
 
 /**

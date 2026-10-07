@@ -1,14 +1,19 @@
-/** Work item ids name files and directories: a letter or digit first, then only word characters and `-`. */
-const SAFE_ID_RE = /^[A-Za-z0-9][\w-]*$/;
+/** Names that name files and directories: a letter or digit first, then only word characters and `-`. */
+const SAFE_NAME_RE = /^[A-Za-z0-9][\w-]*$/;
+
+/** Whether `name` is safe as a file or directory name: no path separator, no `..`, no leading dot. */
+export function isSafeName(name: string): boolean {
+  return SAFE_NAME_RE.test(name);
+}
 
 /**
- * Reject a work item id that is unsafe as a file or directory name, such as one carrying a path separator
- * or `..`.
+ * Reject a name that is unsafe as a file or directory name, such as one carrying a path separator or `..`.
  *
- * @throws Error when `id` does not match {@link SAFE_ID_RE}.
+ * @param what What the name is, for the error (`work item ID`, `stage role`).
+ * @throws Error when `name` is not {@link isSafeName safe}.
  */
-export function assertSafeItemId(id: string): void {
-  if (!SAFE_ID_RE.test(id)) {
-    throw new Error(`Unsafe work item ID for filesystem use: "${id}"`);
+export function assertSafeName(name: string, what: string): void {
+  if (!isSafeName(name)) {
+    throw new Error(`Unsafe ${what} for filesystem use: "${name}"`);
   }
 }

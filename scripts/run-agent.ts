@@ -98,7 +98,7 @@ async function main() {
     container.registerLogSources(taskId, taskId, outputDir);
     await container.setup();
 
-    const executor = await container.createExecutorForStage(stage);
+    const executor = await container.createExecutorForStage(stage, cradle.stageWorkspaces.forStage(ctx, stage));
     logger.info(`Executing ${stage.agent}...`);
     const result = await executor.run(prompt);
     logger.info(`Agent finished: exit=${result.exitCode}, timedOut=${result.timedOut}`);

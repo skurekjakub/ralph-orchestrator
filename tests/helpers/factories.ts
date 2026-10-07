@@ -16,7 +16,13 @@ import {
   type IStageConfig,
   VcsProvider,
 } from "../../src/config/types";
-import { TaskStatus, type ContainerExecResult, type RalphResult } from "../../src/container/types";
+import {
+  TaskStatus,
+  type ContainerExecResult,
+  type ContainerStageWorkspace,
+  type HostStageWorkspace,
+  type RalphResult,
+} from "../../src/container/types";
 import type { JiraIssue, JiraComment } from "../../src/datasource/connectors/jira/jira-types";
 import type { WorkItem, WorkItemComment } from "../../src/datasource/types";
 import type { CompletedTask } from "../../src/orchestrator-types";
@@ -327,7 +333,42 @@ export function makeTemplateContext(overrides: Partial<TemplateContext> = {}): T
       collectedLogs: {},
       name: "",
       outputDir: "",
+      cli: "",
+      orchestratorDir: "",
     },
+    ...overrides,
+  };
+}
+
+// ── Stage workspaces ─────────────────────────────────────────────────────────
+
+/** Create the workspace of a container stage of profile `ralph-default` running Copilot. */
+export function makeContainerWorkspace(overrides: Partial<ContainerStageWorkspace> = {}): ContainerStageWorkspace {
+  return {
+    mode: StageMode.Container,
+    cwd: "/workspace",
+    artifactDir: ".ralph/tasks/DF-100/artifacts",
+    agentsOutDir: "/repo/profiles/ralph-default/.build/copilot/agents",
+    skillsOutDir: "/repo/profiles/ralph-default/.build/skills",
+    ...overrides,
+  };
+}
+
+/** Create the host workspace of stage `stageDir` (default: the `scientist` stage of hook `run-analysis`). */
+export function makeHostWorkspace(overrides: Partial<HostStageWorkspace> = {}): HostStageWorkspace {
+  const outputDir = "/output/logs/DF-100-1234567890000";
+  const stageDir = overrides.stageDir ?? `${outputDir}/hooks/run-analysis/scientist`;
+  return {
+    mode: StageMode.Local,
+    stageDir,
+    cwd: `${stageDir}/work`,
+    artifactDir: `${outputDir}/hooks/run-analysis/artifacts`,
+    agentsOutDir: `${stageDir}/home/agents`,
+    skillsOutDir: `${stageDir}/home/skills`,
+    cliHomeDir: `${stageDir}/home`,
+    logDir: `${stageDir}/logs`,
+    orchestratorDir: "/repo",
+    additionalDirs: [outputDir, "/repo/profiles", "/repo/shared"],
     ...overrides,
   };
 }

@@ -571,6 +571,24 @@ describe("validateProfiles", () => {
       ]);
     });
 
+    it("rejects a host stage whose role is not a safe directory name, since it names the stage's workspace", async () => {
+      // Arrange
+      writeValidProfile("test", {
+        profileJson: profileWithStages([{ agent: "ralph", role: "primary/../x" }], {
+          hookStages: [{ agent: "ralph", role: "../analyzer", mode: "local" }],
+        }),
+      });
+      const c = collector();
+
+      // Act
+      await validateProfiles(c);
+
+      // Assert
+      expect(c.errors.filter((e) => e.includes("workspace directory"))).toEqual([
+        expect.stringContaining('variants[0]/postTaskHooks[0]/stages[0]: role "../analyzer" names'),
+      ]);
+    });
+
     it("rejects claude.loadRepoInstructions when no container stage runs claude", async () => {
       // Arrange
       writeValidProfile("test", {

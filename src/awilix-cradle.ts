@@ -39,6 +39,7 @@ import { createCliRuntimeRegistry } from "./cli/supported-runtimes";
 import { AgentCatalogProvider } from "./container/setup/agent-catalogs";
 import { profileBuildPaths } from "./container/setup/build-paths";
 import { repoCachePaths, TaskWorkspaceManager } from "./services/task-workspace-manager";
+import { StageWorkspaceResolver } from "./services/stage-workspace";
 
 /**
  * The compose client of a profile's stack, whose Squid mounts the profile's generated `squid.conf` and whose
@@ -107,9 +108,9 @@ function buildContainerFactory({
       const compose = buildComposeClient(profile, repoCachePaths(process.cwd()).workspacesDir);
       await compose.compose(["down", "--volumes", "--remove-orphans"]);
     },
-    createLocalSession: (profile, stage) => {
+    createLocalSession: async (profile, stage, workspace) => {
       const stageProfile = deriveStageProfile(profile, stage);
-      const executor = executorFactory.createLocal(stageProfile, stage, process.cwd(), containerLogger);
+      const executor = await executorFactory.createLocal(stageProfile, stage, workspace, containerLogger);
       const continuationRunner = new ContinuationRunner({ logger });
       const sessionRunner = new AgentSessionRunner({ continuationRunner, promptBuilder, logger });
       return { executor, sessionRunner };
@@ -168,7 +169,14 @@ export function createCradle(config: IAppConfig): OrchestratorCradle {
     logCollector: asClass(LogCollector).singleton(),
     promptBuilder: asClass(PromptBuilder).singleton(),
     agentCatalogs: asFunction(() => new AgentCatalogProvider({ rootDir: process.cwd() })).singleton(),
-    executorFactory: asClass(CliExecutorFactory).singleton(),
+    executorFactory: asFunction(
+      ({ cliRuntimes, agentCatalogs }: Pick<OrchestratorCradle, "cliRuntimes" | "agentCatalogs">) =>
+        new CliExecutorFactory({ cliRuntimes, agentCatalogs, rootDir: process.cwd() }),
+    ).singleton(),
+    stageWorkspaces: asFunction(
+      ({ cliRuntimes }: Pick<OrchestratorCradle, "cliRuntimes">) =>
+        new StageWorkspaceResolver({ cliRuntimes, rootDir: process.cwd() }),
+    ).singleton(),
     templateRenderer: asClass(AgentTemplateRenderer).singleton(),
     skillRenderer: asClass(SkillTemplateRenderer).singleton(),
     jitMcpConfig: asClass(JitMcpConfigWriter).singleton(),
