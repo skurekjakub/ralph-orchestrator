@@ -36,6 +36,10 @@ import type { IAgentPipelineExecutor } from "./services/agent-pipeline-executor"
 import type { IVcsSourceClient, IVcsSourceProviderClient } from "./services/vcs-source-client";
 import type { ITaskWorkspaceManager } from "./services/task-workspace-manager";
 import type { IStageWorkspaceResolver } from "./services/stage-workspace";
+import type { IComposeClient } from "./container/compose-client";
+import type { IContainerLogCollector } from "./container/log-collector";
+import type { IContainerWorkspaceCleaner } from "./container/workspace-cleaner";
+import type { IContainerManager } from "./container/manager";
 
 /**
  * Typed registration map for the orchestrator-level awilix container.
@@ -108,3 +112,20 @@ export interface OrchestratorCradle {
 
 /** The cradle of one `dataSources` entry's scope: the root cradle plus the entry's key and config. */
 export type DataSourceCradle = OrchestratorCradle & { sourceKey: string; dataSourceConfig: IDataSourceConfig };
+
+/** The values a task scope opens with: the variant the task runs and its workspace on the host. */
+export interface TaskValues {
+  profile: IAgentProfile;
+  workspacePath: string;
+}
+
+/** The cradle of one task's scope: the root cradle, the task's values and the task's container stack. */
+export type TaskCradle = OrchestratorCradle &
+  TaskValues & {
+    composeFiles: readonly string[];
+    squidConfPath: string;
+    compose: IComposeClient;
+    containerLogs: IContainerLogCollector;
+    workspaceCleaner: IContainerWorkspaceCleaner;
+    containerManager: IContainerManager;
+  };

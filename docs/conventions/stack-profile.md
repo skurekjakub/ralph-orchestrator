@@ -77,8 +77,9 @@
   - A consumer importing or `new`-ing a concrete service class → depend on its
     `I`-interface; register the class in `createCradle()`
     (`src/awilix-cradle.ts`) and add the token to `OrchestratorCradle`
-    (`src/awilix-cradle-types.ts`). Per-task objects belong in
-    `buildContainerFactory`.
+    (`src/awilix-cradle-types.ts`). A per-task object registers `.scoped()`
+    in `taskRegistrations` (`src/awilix-cradle.ts`), its token on
+    `TaskCradle`.
   - Constructor taking `IAppConfig` or positional deps → one destructured deps
     object of cradle tokens and config slices.
   - String-literal union for a fixed set → TS `enum`, with `z.enum` validating

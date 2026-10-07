@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ResultPromise } from "execa";
 import type { IComposeClient } from "./compose-client";
+import type { IOutputConfig } from "../config/types";
 import type { Logger } from "../logger";
 import { toErrorMessage } from "../util/error";
 
@@ -112,11 +113,20 @@ export class ContainerLogCollector implements IContainerLogCollector {
   private readonly logDir: string;
   private readonly logger: Logger;
 
-  constructor({ compose, logDir, logger }: { compose: IComposeClient; logDir: string; logger: Logger }) {
+  /** @param deps.outputConfig Its `logDir` receives one directory per task. */
+  constructor({
+    compose,
+    outputConfig,
+    logger,
+  }: {
+    compose: IComposeClient;
+    outputConfig: IOutputConfig;
+    logger: Logger;
+  }) {
     this.compose = compose;
-    this.logDir = logDir;
+    this.logDir = outputConfig.logDir;
     this.logger = logger;
-    mkdirSync(logDir, { recursive: true });
+    mkdirSync(this.logDir, { recursive: true });
   }
 
   /** Set the work item key used as the filename prefix. Must be called before {@link collectAll}. */

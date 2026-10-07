@@ -1,24 +1,6 @@
 import { execa, type ResultPromise } from "execa";
 import { sharedHooksDir } from "./setup/build-paths";
 
-/**
- * Configuration for the compose client — computed paths not available in `process.env`.
- *
- * Secrets like GH_TOKEN, ADO_PAT, JIRA_PAT, ANTHROPIC_API_KEY come
- * from `process.env` (loaded by dotenv). Container `environment:` declarations
- * live in the auto-generated compose overlay. This config only carries values
- * that are computed at runtime.
- */
-export interface ComposeEnvConfig {
-  /**
-   * Absolute host path of the task's workspace, its checkout of the target repository, interpolated as
-   * `TARGET_REPO_PATH` and mounted at `/workspace` in the agent container and the MCP sidecar.
-   */
-  workspacePath: string;
-  /** Absolute path to the profile-specific squid.conf (generated at startup from baseline + MCP proxy domains). */
-  squidConfPath: string;
-}
-
 /** Stdin for a `docker compose exec` command. */
 export interface ExecInputOptions {
   /** Text written to the command's stdin, which is then closed. */
@@ -49,7 +31,7 @@ export interface IComposeClient {
  * Low-level Docker Compose wrapper.
  *
  * All `docker compose` invocations go through this class, which handles:
- * - Compose file path resolution (base + security + resources overlay)
+ * - The `-f` arguments of the compose files it is given
  * - Environment variable injection (secrets, host paths) into the compose process
  * - The `compose` / `exec` / `down` primitives
  *
@@ -61,16 +43,32 @@ export class ComposeClient implements IComposeClient {
   /** Compose file `-f` args: ["-f", "base.yml", "-f", "security.yml", "-f", "overlay.yml", ...]. */
   private readonly fileArgs: string[];
 
-  constructor(composeFilePaths: string | string[], envConfig: ComposeEnvConfig) {
-    const paths = Array.isArray(composeFilePaths) ? composeFilePaths : [composeFilePaths];
-    this.fileArgs = paths.flatMap((p) => ["-f", p]);
+  /**
+   * @param deps.composeFiles The compose files, merged in order.
+   * @param deps.workspacePath Absolute host path of the task's workspace, its checkout of the target repository,
+   *   interpolated as `TARGET_REPO_PATH` and mounted at `/workspace` in the agent container and the MCP sidecar.
+   * @param deps.squidConfPath Absolute path of the profile's generated `squid.conf`, interpolated as `SQUID_CONF_PATH`.
+   * @param deps.rootDir The orchestrator checkout, whose `shared/hooks` is interpolated as `SHARED_HOOKS_PATH`.
+   */
+  constructor({
+    composeFiles,
+    workspacePath,
+    squidConfPath,
+    rootDir,
+  }: {
+    composeFiles: readonly string[];
+    workspacePath: string;
+    squidConfPath: string;
+    rootDir: string;
+  }) {
+    this.fileArgs = composeFiles.flatMap((p) => ["-f", p]);
 
     this.env = {
       ...(process.env as Record<string, string>),
       // Computed paths — not in .env, needed for volume mount interpolation.
-      TARGET_REPO_PATH: envConfig.workspacePath,
-      SHARED_HOOKS_PATH: sharedHooksDir(process.cwd()),
-      SQUID_CONF_PATH: envConfig.squidConfPath,
+      TARGET_REPO_PATH: workspacePath,
+      SHARED_HOOKS_PATH: sharedHooksDir(rootDir),
+      SQUID_CONF_PATH: squidConfPath,
       // Host UID/GID for sidecar build args — ensures the sidecar process owns
       // the bind-mounted workspace and can write to it without permission errors.
       HOST_UID: String(process.getuid?.() ?? 1000),

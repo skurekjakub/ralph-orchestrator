@@ -25,7 +25,7 @@ export class JiraClient implements IJiraClient {
    - `src/index.tsx` wires the top level: `AppStartup`, `Orchestrator` (`new Orchestrator(cradle)`, not registered in the cradle) and `DashboardServer`.
    - Data source connector factories register their own classes in the data source's awilix scope and resolve the connector and poller there (`src/datasource/connectors/jira/factory.ts` registers `JiraClient`, `JiraConnector`, `JiraWorkItemPoller`; see `docs/dev-doc/data-source-registration.md`).
    - `createCliRuntimeRegistry(claudeAuth)` (`src/cli/supported-runtimes.ts`) builds the `CliRuntimeRegistry` over `ClaudeCodeRuntime` and `CopilotRuntime`. The cradle registers its result as `cliRuntimes`; `AppStartup` builds its own for startup profile setup and calls `loadAgentCatalog` with its own root directory.
-   - `*Factory` classes and the per-task container factory build their products. `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`). `buildContainerFactory` in `awilix-cradle.ts` returns a `ContainerManagerFactory`: `create` builds a `ContainerManager` and its per-task collaborators (`ComposeClient`, `ContainerLogCollector`, `ContainerWorkspaceCleaner`, `ContinuationRunner`, `AgentSessionRunner`), `createLocalSession` builds a host stage's executor and session runner for `PostTaskHookRunner`, and `forceDown` tears a profile's stack down without a manager.
+   - `CliExecutorFactory` creates the container executors (`ClaudeCodeExecutor`, `CopilotExecutor`) and the host executors (`LocalClaudeCodeExecutor`, `LocalCopilotExecutor`).
 
 3. **No re-exports** — if a consumer needs the interface, import it directly from the file that defines it. Never re-export interfaces through barrel files or intermediaries.
 
@@ -107,11 +107,13 @@ interface OrchestratorCradle {
 }
 ```
 
-`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
+`createCradle(config, { rootDir })` in `awilix-cradle.ts` builds the container with `InjectionMode.PROXY` and `strict: true`. It registers the root tokens below, the scoped task registrations and `containerFactory`, then builds the `connectors` and `pollers` maps with `buildDataSourceMaps(container, config)`, which runs the registered data source factories in one scope per data source, and registers both maps with `asValue(...)`. The root tokens are:
 
 - config slices with `asValue(...)`
 - service classes with `asClass(X).singleton()`
-- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `containerFactory` (`buildContainerFactory`), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
+- values that need custom construction with `asFunction(...)` — the two loggers (created by `activityLog`), `vcsSourceClient`, `cliRuntimes` (`createCliRuntimeRegistry(claudeAuth)`), `executorFactory`, `stageWorkspaces` and `workspaceManager` (which take the orchestrator checkout, the `rootDir` token, or the `sourceReposDir` token under it), `textRedactor` (`HookRulesRedactor`), and `heartbeat` (`null` unless the dashboard is enabled)
+
+`containerFactory` is `createContainerManagerFactory(container)` (`src/container/container-manager-factory.ts`), registered with `asValue(...)`. Its `create` opens a task scope of the root container (`openTaskScope`) holding the task's `profile` and `workspacePath`, in which the `.scoped()` `taskRegistrations` resolve the task's `ContainerManager` and its `ComposeClient`, `ContainerLogCollector` and `ContainerWorkspaceCleaner`. `forceDown` resolves a task scope's compose client to tear a profile's stack down without a manager. `createLocalSession` builds a host stage's executor through `executorFactory` and returns it with the root `sessionRunner` for `PostTaskHookRunner`.
 
 The orchestrator and all services destructure their dependencies from the cradle — they never know which classes were instantiated.
 

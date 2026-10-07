@@ -148,8 +148,8 @@ export class ContainerManager implements IContainerManager {
     compose,
     cliRuntimes,
     executorFactory,
-    logs,
-    cleaner,
+    containerLogs,
+    workspaceCleaner,
     sessionRunner,
     logger,
     containerLogger,
@@ -160,8 +160,8 @@ export class ContainerManager implements IContainerManager {
     compose: IComposeClient;
     cliRuntimes: ICliRuntimeRegistry;
     executorFactory: ICliExecutorFactory;
-    logs: IContainerLogCollector;
-    cleaner: IContainerWorkspaceCleaner;
+    containerLogs: IContainerLogCollector;
+    workspaceCleaner: IContainerWorkspaceCleaner;
     sessionRunner: IAgentSessionRunner;
     logger: Logger;
     containerLogger?: Logger;
@@ -172,8 +172,8 @@ export class ContainerManager implements IContainerManager {
     this.logger = logger;
     this.containerLogger = containerLogger ?? logger;
     this.compose = compose;
-    this.logs = logs;
-    this.cleaner = cleaner;
+    this.logs = containerLogs;
+    this.cleaner = workspaceCleaner;
     this.executorFactory = executorFactory;
     this.sessionRunner = sessionRunner;
     this.enableContinuation = enableContinuation;

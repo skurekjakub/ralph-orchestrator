@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { createContainer, asValue, InjectionMode } from "awilix";
-import type { IAppConfig, IAgentProfile } from "./config/types";
-import type { OrchestratorCradle } from "./awilix-cradle-types";
+import type { IAppConfig } from "./config/types";
+import type { OrchestratorCradle, TaskCradle, TaskValues } from "./awilix-cradle-types";
 import { wiring, type Registrations } from "./di/registration";
-import { deriveStageProfile, type ContainerManagerFactory } from "./container/types";
+import { createContainerManagerFactory } from "./container/container-manager-factory";
 import { buildDataSourceMaps } from "./datasource/registry";
 import { LogCollector } from "./logs/collector";
 import { PromptBuilder } from "./prompt/prompt-builder";
@@ -21,7 +21,7 @@ import { HeartbeatSender } from "./services/heartbeat";
 import { OperationLedger } from "./services/operation-ledger";
 import { TriggerScanner } from "./services/trigger-scanner";
 import { ContainerManager } from "./container/manager";
-import { ComposeClient, type IComposeClient } from "./container/compose-client";
+import { ComposeClient } from "./container/compose-client";
 import { resolveComposeFiles } from "./container/setup/compose-files";
 import { AgentTemplateRenderer } from "./container/setup/agent-includes";
 import { ComposeOverlayWriter } from "./container/setup/compose-overlay-writer";
@@ -42,82 +42,29 @@ import { profileBuildPaths } from "./container/setup/build-paths";
 import { repoCachePaths, TaskWorkspaceManager } from "./services/task-workspace-manager";
 import { StageWorkspaceResolver } from "./services/stage-workspace";
 
-/**
- * The compose client of a profile's stack, whose Squid mounts the profile's generated `squid.conf` and whose
- * agent and sidecar mount `workspacePath` at `/workspace`.
- *
- * @throws Error when profile setup has not written the profile's `squid.conf`.
- */
-function buildComposeClient(profile: IAgentProfile, workspacePath: string, rootDir: string): IComposeClient {
-  const composeFiles = resolveComposeFiles(profile, rootDir);
-  const squidConfPath = join(profileBuildPaths(rootDir, profile.id).buildDir, "squid.conf");
-  if (!existsSync(squidConfPath)) {
-    throw new Error(`Profile squid.conf not found at ${squidConfPath}; profile setup has not run for ${profile.id}`);
-  }
-  return new ComposeClient(composeFiles, { workspacePath, squidConfPath });
-}
+const t = wiring<TaskCradle>();
+
+/** Scoped task registrations; `squidConfPath` throws when profile setup has not written the profile's squid.conf. */
+export const taskRegistrations: Registrations<Omit<TaskCradle, keyof OrchestratorCradle | keyof TaskValues>> = {
+  composeFiles: t.factory(({ profile, rootDir }) => resolveComposeFiles(profile, rootDir)).scoped(),
+  squidConfPath: t
+    .factory(({ profile, rootDir }) => {
+      const path = join(profileBuildPaths(rootDir, profile.id).buildDir, "squid.conf");
+      if (!existsSync(path)) {
+        throw new Error(`Profile squid.conf not found at ${path}; profile setup has not run for ${profile.id}`);
+      }
+      return path;
+    })
+    .scoped(),
+  compose: t.service(ComposeClient).scoped(),
+  containerLogs: t.service(ContainerLogCollector).scoped(),
+  workspaceCleaner: t.service(ContainerWorkspaceCleaner).scoped(),
+  containerManager: t.service(ContainerManager).scoped(),
+};
 
 /**
- * Builds the per-task ContainerManagerFactory.
- *
- * Declared as a named function so awilix resolves its parameter as a Pick of
- * OrchestratorCradle — it only touches the deps it declares, no others.
- */
-function buildContainerFactory({
-  rootDir,
-  outputConfig,
-  enableContinuation,
-  cliRuntimes,
-  executorFactory,
-  sessionRunner,
-  logger,
-  containerLogger,
-}: Pick<
-  OrchestratorCradle,
-  | "rootDir"
-  | "outputConfig"
-  | "enableContinuation"
-  | "cliRuntimes"
-  | "executorFactory"
-  | "sessionRunner"
-  | "logger"
-  | "containerLogger"
->): ContainerManagerFactory {
-  return {
-    create: (profile, workspacePath) => {
-      const compose = buildComposeClient(profile, workspacePath, rootDir);
-      const logs = new ContainerLogCollector({ compose, logDir: outputConfig.logDir, logger });
-      const cleaner = new ContainerWorkspaceCleaner({ compose, logger });
-      return new ContainerManager({
-        profile,
-        workspacePath,
-        compose,
-        cliRuntimes,
-        executorFactory,
-        logs,
-        cleaner,
-        sessionRunner,
-        logger,
-        containerLogger,
-        enableContinuation,
-      });
-    },
-    forceDown: async (profile) => {
-      // `down` never reads the workspace mount's source, but compose refuses to load a mount with an empty one.
-      const compose = buildComposeClient(profile, repoCachePaths(rootDir).workspacesDir, rootDir);
-      await compose.compose(["down", "--volumes", "--remove-orphans"]);
-    },
-    createLocalSession: async (profile, stage, workspace) => {
-      const stageProfile = deriveStageProfile(profile, stage);
-      const executor = await executorFactory.createLocal(stageProfile, stage, workspace, containerLogger);
-      return { executor, sessionRunner };
-    },
-  };
-}
-
-/**
- * Create the awilix DI container: register the root services, then build each data source's connector and poller
- * in a scope of its own.
+ * Create the awilix DI container: register the root services, the scoped task services and the container manager
+ * factory that opens their scopes, then build each data source's connector and poller in a scope of its own.
  *
  * The data-source scopes resolve here, together with the root services they depend on (`activityLog`, `logger`);
  * every other root service resolves on first access through the returned cradle.
@@ -137,7 +84,7 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
   });
 
   const w = wiring<OrchestratorCradle>();
-  const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers">> = {
+  const root: Registrations<Omit<OrchestratorCradle, "connectors" | "pollers" | "containerFactory">> = {
     rootDir: asValue(rootDir),
     sourceReposDir: asValue(repoCachePaths(rootDir).sourceReposDir),
 
@@ -172,7 +119,6 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
     stageWorkspaces: w.service(StageWorkspaceResolver).singleton(),
     templateRenderer: w.service(AgentTemplateRenderer).singleton(),
     overlayWriter: w.service(ComposeOverlayWriter).singleton(),
-    containerFactory: w.factory(buildContainerFactory).singleton(),
     workspaceManager: w.service(TaskWorkspaceManager).singleton(),
     profileSetup: w.service(ProfileSetupService).singleton(),
     pipelineExecutor: w.service(AgentPipelineExecutor).singleton(),
@@ -190,6 +136,8 @@ export function createCradle(config: IAppConfig, { rootDir }: { rootDir: string 
       .singleton(),
   };
   container.register(root);
+  container.register(taskRegistrations);
+  container.register({ containerFactory: asValue(createContainerManagerFactory(container)) });
   const { connectors, pollers } = buildDataSourceMaps(container, config);
   container.register({ connectors: asValue(connectors), pollers: asValue(pollers) });
 

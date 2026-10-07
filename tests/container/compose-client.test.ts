@@ -23,6 +23,7 @@ describe("ComposeClient", () => {
   const testConfig = {
     workspacePath: "/home/user/ralph/cache/workspaces/DF-100-1234567890000",
     squidConfPath: "/fake/squid.conf",
+    rootDir: "/home/user/ralph",
   };
 
   beforeEach(() => {
@@ -30,19 +31,21 @@ describe("ComposeClient", () => {
   });
 
   it("injects computed paths into compose environment", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    // Arrange
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
+
+    // Act
     client.compose(["config"]);
 
-    const callArgs = mockExeca.mock.calls[0];
-    const env = callArgs[2]?.env as Record<string, string>;
-
+    // Assert
+    const env = mockExeca.mock.calls[0][2]?.env as Record<string, string>;
     expect(env.TARGET_REPO_PATH).toBe("/home/user/ralph/cache/workspaces/DF-100-1234567890000");
-    expect(env.SHARED_HOOKS_PATH).toMatch(/shared\/hooks$/);
+    expect(env.SHARED_HOOKS_PATH).toBe("/home/user/ralph/shared/hooks");
     expect(env.SQUID_CONF_PATH).toBe("/fake/squid.conf");
   });
 
   it("passes compose file path to docker command", () => {
-    const client = new ComposeClient("/path/to/docker-compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/path/to/docker-compose.yml"] });
     client.compose(["up", "-d"]);
 
     const [cmd, args] = mockExeca.mock.calls[0];
@@ -54,7 +57,7 @@ describe("ComposeClient", () => {
   });
 
   it("exec prepends exec subcommand", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
     client.exec(["--user", "vscode", SVC_APP, "cat", "/file"]);
 
     const [, args] = mockExeca.mock.calls[0];
@@ -65,7 +68,7 @@ describe("ComposeClient", () => {
   });
 
   it("execWithTimeout passes timeout option", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
     client.execWithTimeout([SVC_APP, "echo", "hello"], 60000);
 
     const opts = mockExeca.mock.calls[0][2];
@@ -74,7 +77,7 @@ describe("ComposeClient", () => {
 
   it("execWithTimeout writes the given input to the command's stdin", () => {
     // Arrange
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
 
     // Act
     client.execWithTimeout(["-T", SVC_APP, "claude", "-p"], 60000, { input: "the prompt" });
@@ -85,7 +88,7 @@ describe("ComposeClient", () => {
 
   it("execWithTimeout leaves stdin alone without input", () => {
     // Arrange
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
 
     // Act
     client.execWithTimeout([SVC_APP, "echo"], 5000, {});
@@ -95,7 +98,7 @@ describe("ComposeClient", () => {
   });
 
   it("uses same env for compose, exec, and execWithTimeout", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
     client.compose(["config"]);
     client.exec([SVC_APP, "echo"]);
     client.execWithTimeout([SVC_APP, "echo"], 5000);
@@ -109,7 +112,7 @@ describe("ComposeClient", () => {
   });
 
   it("logs passes correct args for service log retrieval", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
     client.logs(SVC_SIDECAR);
 
     const [cmd, args] = mockExeca.mock.calls[0];
@@ -118,7 +121,7 @@ describe("ComposeClient", () => {
   });
 
   it("logs uses same env as compose and exec", () => {
-    const client = new ComposeClient("/fake/compose.yml", testConfig);
+    const client = new ComposeClient({ ...testConfig, composeFiles: ["/fake/compose.yml"] });
     client.compose(["config"]);
     client.logs(SVC_SIDECAR);
 

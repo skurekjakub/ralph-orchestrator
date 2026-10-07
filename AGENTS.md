@@ -116,7 +116,7 @@ A data-source connector's classes register in its own `factory.ts`, not in `crea
 `awilix-cradle.ts` is the composition root for services, but not the only place that constructs things:
 
 - `index.tsx` builds `AppStartup`, `Orchestrator` and `DashboardServer`.
-- Per-task objects (compose client, executors, `ContainerManager`, session runners) are built in `buildContainerFactory`.
+- `CliExecutorFactory` builds each stage's executor. The rest of a task's container stack (compose client, log collector, workspace cleaner, `ContainerManager`) resolves in a task scope that `createContainerManagerFactory` (`src/container/container-manager-factory.ts`) opens from the root container.
 - `PromptBuilder` is registered without an interface.
 
 Details: `docs/dev-doc/dependency-injection.md`.
