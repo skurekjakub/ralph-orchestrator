@@ -27,5 +27,6 @@
   },
   "promptAudit": {
     "mode": "warn"
-  }
+  },
+  "claudeAuth": "oauth-token"
 }
