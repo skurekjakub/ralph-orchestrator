@@ -8,6 +8,12 @@ import { toErrorMessage } from "../../util/error";
 export interface ClaudeSessionSettings {
   /** Empty texts leave commits and PRs without Claude Code attribution. */
   readonly attribution: { readonly commit: ""; readonly pr: "" };
+  /**
+   * Keeps every hook on: `--settings` outranks project and local settings, so a target repo's
+   * `.claude/settings.json` cannot switch Ralph's hooks off.
+   * https://code.claude.com/docs/en/hooks#disable-or-remove-hooks
+   */
+  readonly disableAllHooks: false;
   /** The audit hooks and the result gate. */
   readonly hooks: Readonly<Record<string, unknown>>;
 }
@@ -28,14 +34,15 @@ export function userSettingsPath(paths: ProfileBuildPaths): string {
 }
 
 /**
- * Settings for container sessions: Ralph's audit hooks and result gate, and no Claude Code attribution on
- * commits and PRs.
+ * Settings for container sessions: Ralph's audit hooks and result gate, which no project setting can turn
+ * off, and no Claude Code attribution on commits and PRs.
  *
  * @param hooks The content of `shared/hooks/claude/hooks.json`, embedded unchanged.
  */
 export function buildSessionSettings(hooks: Readonly<Record<string, unknown>>): ClaudeSessionSettings {
   return {
     attribution: { commit: "", pr: "" },
+    disableAllHooks: false,
     hooks,
   };
 }

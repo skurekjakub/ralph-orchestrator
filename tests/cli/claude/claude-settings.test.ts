@@ -11,13 +11,14 @@ const HOOKS = {
 };
 
 describe("buildSessionSettings", () => {
-  it("hides attribution, denies no tool and embeds the hooks unchanged", () => {
+  it("hides attribution, keeps every hook on and embeds the hooks unchanged", () => {
     // Act
     const settings = buildSessionSettings(HOOKS);
 
     // Assert
     expect(settings).toEqual({
       attribution: { commit: "", pr: "" },
+      disableAllHooks: false,
       hooks: HOOKS,
     });
     expect(settings.hooks).toBe(HOOKS);
@@ -89,7 +90,7 @@ describe("writeClaudeSettings", () => {
 
     // Assert
     const session = JSON.parse(readFileSync(join(paths.buildDir, "claude", "session-settings.json"), "utf-8"));
-    expect(session).toEqual({ attribution: { commit: "", pr: "" }, hooks: HOOKS });
+    expect(session).toEqual({ attribution: { commit: "", pr: "" }, disableAllHooks: false, hooks: HOOKS });
     expect(readFileSync(join(paths.buildDir, "claude", "user-settings.json"), "utf-8")).toBe("{}\n");
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("1 hook events"));
   });
