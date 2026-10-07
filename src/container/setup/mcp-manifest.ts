@@ -1,11 +1,20 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-/** MCP server types: "npm" for npx-based, "custom" for locally-built servers. */
+/** MCP server types: "npm" for stdio packages installed in the sidecar image, "custom" for locally built servers. */
 export enum McpServerType {
   Npm = "npm",
   Custom = "custom",
 }
+
+/** Port of the sidecar gateway's health endpoint, which no MCP server may use (the sidecar's `HEALTH_PORT`). */
+export const MCP_GATEWAY_HEALTH_PORT = 9000;
+
+/**
+ * Distance between a filtered custom server's `sidecarPort` and the loopback port the sidecar runs it on
+ * behind its tool-filter proxy (the sidecar's `UPSTREAM_PORT_OFFSET`).
+ */
+export const MCP_UPSTREAM_PORT_OFFSET = 10000;
 
 /** Schema for shared/mcp-servers/<name>/mcp-server.json manifests. */
 export interface McpServerManifest {
@@ -25,7 +34,7 @@ export interface McpServerManifest {
   /**
    * Enforced tool allowlist: the only tools of this server an agent can list or call. The sidecar's
    * tool-filter proxy enforces it for every CLI; Copilot also receives it as `tools` in `mcp-config.json`.
-   * Absent or empty means every tool the server exposes. Read it through {@link resolveToolAllowlist}.
+   * Required for npm servers. Absent on a custom server means every tool it exposes.
    */
   tools?: string[];
   /** Env var names that MUST be provided by profiles using this server (via mcpServers object entries). */
@@ -37,7 +46,8 @@ export interface McpServerManifest {
 /**
  * Load an MCP server manifest from `shared/mcp-servers/<name>/mcp-server.json`.
  *
- * @throws If the manifest file doesn't exist or is malformed.
+ * @throws If the manifest file doesn't exist or is malformed, including a `tools` list that is
+ *   empty, repeats a name or is missing on an npm server.
  */
 export function loadMcpManifest(mcpServersDir: string, serverName: string): McpServerManifest {
   const manifestPath = join(mcpServersDir, serverName, "mcp-server.json");
@@ -75,12 +85,22 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
   }
 
   if (raw.tools !== undefined) {
-    if (!Array.isArray(raw.tools) || raw.tools.some((t: unknown) => typeof t !== "string" || t === "")) {
-      throw new Error(`Invalid MCP server manifest at ${manifestPath}: tools must be an array of non-empty strings`);
+    if (
+      !Array.isArray(raw.tools) ||
+      raw.tools.length === 0 ||
+      raw.tools.some((t: unknown) => typeof t !== "string" || t === "")
+    ) {
+      throw new Error(
+        `Invalid MCP server manifest at ${manifestPath}: tools must be a non-empty array of non-empty strings`,
+      );
     }
     if (new Set(raw.tools).size !== raw.tools.length) {
       throw new Error(`Invalid MCP server manifest at ${manifestPath}: tools must not contain duplicates`);
     }
+  } else if (raw.type === McpServerType.Npm) {
+    throw new Error(
+      `Invalid MCP server manifest at ${manifestPath}: an npm server must list its tools, because the sidecar serves it only through its tool-filter proxy`,
+    );
   }
 
   if (raw.initScript !== undefined) {
@@ -102,12 +122,16 @@ export function loadMcpManifest(mcpServersDir: string, serverName: string): McpS
 }
 
 /**
- * The tool allowlist a server's manifest declares.
+ * The loopback port the sidecar runs a server on behind its tool-filter proxy.
  *
- * @returns The allowlisted tool names, or `undefined` when every tool is allowed (`tools` absent or empty).
+ * @returns `sidecarPort + MCP_UPSTREAM_PORT_OFFSET` for a custom server with a `tools` allowlist;
+ *   `undefined` for an unfiltered server (it listens on `sidecarPort`) and for an npm server (the
+ *   sidecar reaches it over stdio).
  */
-export function resolveToolAllowlist(manifest: McpServerManifest): string[] | undefined {
-  return manifest.tools && manifest.tools.length > 0 ? manifest.tools : undefined;
+export function upstreamPortOf(manifest: McpServerManifest): number | undefined {
+  return manifest.type === McpServerType.Custom && manifest.tools !== undefined
+    ? manifest.sidecarPort + MCP_UPSTREAM_PORT_OFFSET
+    : undefined;
 }
 
 /**

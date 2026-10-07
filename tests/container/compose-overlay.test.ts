@@ -12,7 +12,7 @@ describe("Compose Overlay", () => {
       mkdirSync(sidecarDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -146,7 +146,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -188,7 +188,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -230,7 +230,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -267,7 +267,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -287,7 +287,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -308,7 +308,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -331,7 +331,7 @@ describe("Compose Overlay", () => {
       const sidecarDir = join(mcpDir, "sidecar");
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -354,7 +354,7 @@ describe("Compose Overlay", () => {
       mkdirSync(buildDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,
@@ -376,7 +376,7 @@ describe("Compose Overlay", () => {
       mkdirSync(buildDir, { recursive: true });
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test"],
         sidecarPort: 9100,

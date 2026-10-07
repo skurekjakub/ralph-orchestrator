@@ -90,7 +90,7 @@ function writeMcpServer(name: string, sidecarPort: number, manifest: Record<stri
   mkdirSync(serverDir, { recursive: true });
   writeFileSync(
     join(serverDir, "mcp-server.json"),
-    JSON.stringify({ name, type: "npm", command: "npx", args: [], sidecarPort, ...manifest }),
+    JSON.stringify({ name, type: "custom", command: "node", args: [], sidecarPort, ...manifest }),
   );
 }
 
@@ -757,6 +757,72 @@ describe("validateProfiles", () => {
 
       // Assert
       expect(c.errors.some((e) => e.includes('MCP server "missing" not found'))).toBe(true);
+    });
+  });
+
+  describe("sidecar ports", () => {
+    function validateWithServers(...servers: [string, number, Record<string, unknown>?][]): string[] {
+      for (const [name, port, manifest] of servers) writeMcpServer(name, port, manifest);
+      writeValidProfile("test", {
+        profileJson: { ...profileWithStages([{ agent: "ralph", role: "primary" }]), mcpServers: [servers[0][0]] },
+      });
+      const c = collector();
+      validateProfiles(c);
+      return c.errors;
+    }
+
+    it("reports two servers on the same sidecarPort", () => {
+      // Act
+      const errors = validateWithServers(["jira", 9100], ["ado", 9100]);
+
+      // Assert
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain("MCP sidecar port 9100 is used by both");
+      expect(errors[0]).toContain('MCP server "jira"');
+      expect(errors[0]).toContain('MCP server "ado"');
+    });
+
+    it("reports a server on the port a filtered custom server's upstream uses", () => {
+      // Act
+      const errors = validateWithServers(["jira", 9100, { tools: ["jira_add_comment"] }], ["late", 19100]);
+
+      // Assert
+      expect(errors).toEqual([
+        expect.stringContaining(
+          'MCP sidecar port 19100 is used by both MCP server "late" and the upstream port of MCP server "jira" (sidecarPort + 10000)',
+        ),
+      ]);
+    });
+
+    it("reports a server on the gateway health port", () => {
+      // Act
+      const errors = validateWithServers(["jira", 9000]);
+
+      // Assert
+      expect(errors).toEqual([
+        expect.stringContaining(
+          'MCP sidecar port 9000 is used by both the sidecar health endpoint and MCP server "jira"',
+        ),
+      ]);
+    });
+
+    it("reports a filtered custom server whose upstream port would pass 65535", () => {
+      // Act
+      const errors = validateWithServers(["jira", 60000, { tools: ["jira_add_comment"] }]);
+
+      // Assert
+      expect(errors).toEqual([expect.stringContaining('MCP server "jira": sidecarPort 60000 leaves no room')]);
+    });
+
+    it.each([
+      ["an unfiltered custom server", { type: "custom" }],
+      ["an npm server, which the sidecar reaches over stdio", { type: "npm", tools: ["browser_navigate"] }],
+    ])("claims no upstream port for %s", (_label, manifest) => {
+      // Act
+      const errors = validateWithServers(["first", 9103, manifest], ["second", 19103]);
+
+      // Assert
+      expect(errors).toEqual([]);
     });
   });
 });

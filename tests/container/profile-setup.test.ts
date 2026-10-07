@@ -29,7 +29,7 @@ describe("Profile Setup", () => {
 
       writeManifest(mcpDir, "test-server", {
         name: "test-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "test-pkg"],
         sidecarPort: 9100,
@@ -237,21 +237,21 @@ describe("Profile Setup", () => {
 
       writeManifest(mcpDir, "server-a", {
         name: "server-a",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "a"],
         sidecarPort: 9100,
       });
       writeManifest(mcpDir, "server-b", {
         name: "server-b",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "b"],
         sidecarPort: 9101,
       });
       writeManifest(mcpDir, "server-c", {
         name: "server-c",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "c"],
         sidecarPort: 9102,
@@ -351,7 +351,7 @@ describe("Profile Setup", () => {
 
       writeManifest(mcpDir, "with-init", {
         name: "with-init",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "pkg"],
         sidecarPort: 9100,
@@ -386,7 +386,7 @@ describe("Profile Setup", () => {
 
       writeManifest(mcpDir, "plain-server", {
         name: "plain-server",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "pkg"],
         sidecarPort: 9100,
@@ -411,8 +411,20 @@ describe("Profile Setup", () => {
       const mcpDir = join(rootDir, "shared/mcp-servers");
       const profileDir = join(rootDir, "profiles/test-profile");
       mkdirSync(join(profileDir, "agents"), { recursive: true });
-      writeManifest(mcpDir, "server-a", { name: "server-a", type: "npm", command: "npx", args: [], sidecarPort: 9100 });
-      writeManifest(mcpDir, "server-b", { name: "server-b", type: "npm", command: "npx", args: [], sidecarPort: 9101 });
+      writeManifest(mcpDir, "server-a", {
+        name: "server-a",
+        type: "custom",
+        command: "npx",
+        args: [],
+        sidecarPort: 9100,
+      });
+      writeManifest(mcpDir, "server-b", {
+        name: "server-b",
+        type: "custom",
+        command: "npx",
+        args: [],
+        sidecarPort: 9101,
+      });
       writeFileSync(
         join(profileDir, "profile.json"),
         profileJson({
@@ -462,7 +474,7 @@ describe("Profile Setup", () => {
       const mcpDir = createTempDir();
       writeManifest(mcpDir, "server-a", {
         name: "server-a",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "a"],
         sidecarPort: 9100,
@@ -478,7 +490,7 @@ describe("Profile Setup", () => {
       const mcpDir = createTempDir();
       writeManifest(mcpDir, "with-init", {
         name: "with-init",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "pkg"],
         sidecarPort: 9100,
@@ -487,7 +499,7 @@ describe("Profile Setup", () => {
       writeFileSync(join(mcpDir, "with-init", "init.sh"), "#!/bin/bash\necho init");
       writeManifest(mcpDir, "no-init", {
         name: "no-init",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "pkg2"],
         sidecarPort: 9101,
@@ -505,7 +517,7 @@ describe("Profile Setup", () => {
       const mcpDir = createTempDir();
       writeManifest(mcpDir, "alpha", {
         name: "alpha",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: [],
         sidecarPort: 9100,
@@ -514,7 +526,7 @@ describe("Profile Setup", () => {
       writeFileSync(join(mcpDir, "alpha", "setup.sh"), "#!/bin/bash");
       writeManifest(mcpDir, "beta", {
         name: "beta",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: [],
         sidecarPort: 9101,

@@ -16,18 +16,24 @@ describe("MCP Config", () => {
 
   describe("generateMcpConfig", () => {
     it("generates URL-based config for npm-type servers", () => {
+      // Arrange
       writeManifest(tempDir, "playwright", {
         name: "playwright",
         type: "npm",
-        command: "npx",
-        args: ["@playwright/mcp"],
+        command: "playwright-mcp",
+        args: [],
         sidecarPort: 9103,
+        tools: ["browser_navigate"],
       });
 
+      // Act
       const config = generateMcpConfig(tempDir, ["playwright"]);
+
+      // Assert
       expect(config.mcpServers.playwright).toEqual({
         type: "http",
         url: "http://mcp-sidecar:9103/mcp",
+        tools: ["browser_navigate"],
       });
     });
 
@@ -56,44 +62,38 @@ describe("MCP Config", () => {
     });
 
     it("includes tool allowlist when manifest declares tools", () => {
+      // Arrange
       writeManifest(tempDir, "ado", {
         name: "ado",
-        type: "npm",
-        command: "npx",
-        args: ["-y", "@azure-devops/mcp"],
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
         sidecarPort: 9101,
         tools: ["ado_create_pull_request", "ado_list_pull_requests"],
       });
 
+      // Act
       const config = generateMcpConfig(tempDir, ["ado"]);
+
+      // Assert
       expect(config.mcpServers.ado.tools).toEqual(["ado_create_pull_request", "ado_list_pull_requests"]);
     });
 
-    it("omits tools field when manifest has no tools", () => {
-      writeManifest(tempDir, "playwright", {
-        name: "playwright",
-        type: "npm",
-        command: "npx",
-        args: ["@playwright/mcp"],
-        sidecarPort: 9103,
+    it("omits tools field when a custom server's manifest has no tools", () => {
+      // Arrange
+      writeManifest(tempDir, "web-fetch", {
+        name: "web-fetch",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        sidecarPort: 9104,
       });
 
-      const config = generateMcpConfig(tempDir, ["playwright"]);
-      expect(config.mcpServers.playwright.tools).toBeUndefined();
-    });
+      // Act
+      const config = generateMcpConfig(tempDir, ["web-fetch"]);
 
-    it("omits tools field when manifest has empty tools array", () => {
-      writeManifest(tempDir, "test-server", {
-        name: "test-server",
-        type: "npm",
-        command: "npx",
-        args: ["-y", "test"],
-        sidecarPort: 9200,
-        tools: [],
-      });
-
-      const config = generateMcpConfig(tempDir, ["test-server"]);
-      expect(config.mcpServers["test-server"].tools).toBeUndefined();
+      // Assert
+      expect(config.mcpServers["web-fetch"].tools).toBeUndefined();
     });
 
     it("does not include secrets in URL-mode config", () => {
@@ -142,24 +142,31 @@ describe("MCP Config", () => {
     });
 
     it("generates gateway config for npm server without secrets", () => {
+      // Arrange
       writeManifest(tempDir, "playwright", {
         name: "playwright",
         type: "npm",
-        command: "npx",
-        args: ["@playwright/mcp"],
+        command: "playwright-mcp",
+        args: ["--browser", "chromium"],
         sidecarPort: 9103,
+        tools: ["browser_navigate"],
       });
 
+      // Act
       const config = generateGatewayConfig(tempDir, ["playwright"]);
-      expect(config.servers).toHaveLength(1);
-      expect(config.servers[0]).toEqual({
-        name: "playwright",
-        type: "npm",
-        port: 9103,
-        command: "npx",
-        args: ["@playwright/mcp"],
-        env: {},
-      });
+
+      // Assert
+      expect(config.servers).toEqual([
+        {
+          name: "playwright",
+          type: "npm",
+          port: 9103,
+          command: "playwright-mcp",
+          args: ["--browser", "chromium"],
+          env: {},
+          allowedTools: ["browser_navigate"],
+        },
+      ]);
     });
 
     it("generates gateway config with multiple servers", () => {
@@ -214,6 +221,7 @@ describe("MCP Config", () => {
     });
 
     it("carries the manifest's tools as the enforced allowlist", () => {
+      // Arrange
       writeManifest(tempDir, "ado", {
         name: "ado",
         type: "custom",
@@ -225,8 +233,10 @@ describe("MCP Config", () => {
         tools: ["ado_create_pull_request", "ado_list_pull_requests"],
       });
 
+      // Act
       const config = generateGatewayConfig(tempDir, ["ado"], { ADO_PAT: "pat" });
 
+      // Assert
       expect(config.servers[0]).toEqual({
         name: "ado",
         type: "custom",
@@ -238,25 +248,25 @@ describe("MCP Config", () => {
       });
     });
 
-    it.each([
-      ["has no tools", {}],
-      ["has an empty tools array", { tools: [] }],
-    ])("omits allowedTools when the manifest %s, leaving every tool allowed", (_label, tools) => {
-      writeManifest(tempDir, "playwright", {
-        name: "playwright",
-        type: "npm",
-        command: "playwright-mcp",
-        args: [],
-        sidecarPort: 9103,
-        ...tools,
+    it("omits allowedTools when a custom server's manifest has no tools, leaving every tool allowed", () => {
+      // Arrange
+      writeManifest(tempDir, "web-fetch", {
+        name: "web-fetch",
+        type: "custom",
+        command: "node",
+        args: ["dist/bundle.js"],
+        sidecarPort: 9104,
       });
 
-      const config = generateGatewayConfig(tempDir, ["playwright"]);
+      // Act
+      const config = generateGatewayConfig(tempDir, ["web-fetch"]);
 
+      // Assert
       expect(config.servers[0]).not.toHaveProperty("allowedTools");
     });
 
     it("enforces in the sidecar exactly the allowlist Copilot receives in mcp-config.json", () => {
+      // Arrange
       writeManifest(tempDir, "jira", {
         name: "jira",
         type: "custom",
@@ -276,9 +286,11 @@ describe("MCP Config", () => {
       });
       const names = ["jira", "web-fetch"];
 
+      // Act
       const mcpConfig = generateMcpConfig(tempDir, names);
       const gateway = generateGatewayConfig(tempDir, names);
 
+      // Assert
       for (const entry of gateway.servers) {
         expect(entry.allowedTools).toEqual(mcpConfig.mcpServers[entry.name].tools);
       }
@@ -291,21 +303,21 @@ describe("MCP Config", () => {
     it("excludes manifests on disk that are not in the requested server list", () => {
       writeManifest(tempDir, "server-a", {
         name: "server-a",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "a"],
         sidecarPort: 9100,
       });
       writeManifest(tempDir, "server-b", {
         name: "server-b",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "b"],
         sidecarPort: 9101,
       });
       writeManifest(tempDir, "server-c", {
         name: "server-c",
-        type: "npm",
+        type: "custom",
         command: "npx",
         args: ["-y", "c"],
         sidecarPort: 9102,

@@ -4,8 +4,9 @@ import { join } from "node:path";
 import {
   loadMcpManifest,
   discoverMcpServers,
+  MCP_UPSTREAM_PORT_OFFSET,
   McpServerType,
-  resolveToolAllowlist,
+  upstreamPortOf,
 } from "../../src/container/setup/mcp-manifest";
 import { createTempDir, writeManifest } from "../helpers/mcp-fs";
 
@@ -28,6 +29,7 @@ describe("MCP Manifest", () => {
         command: "npx",
         args: ["-y", "test-package"],
         sidecarPort: 9100,
+        tools: ["a_tool"],
       });
 
       const manifest = loadMcpManifest(tempDir, "test-server");
@@ -91,6 +93,7 @@ describe("MCP Manifest", () => {
     });
 
     it("accepts a tools allowlist", () => {
+      // Arrange
       writeManifest(tempDir, "with-tools", {
         name: "with-tools",
         command: "node",
@@ -99,18 +102,39 @@ describe("MCP Manifest", () => {
         tools: ["a_tool", "b_tool"],
       });
 
-      expect(loadMcpManifest(tempDir, "with-tools").tools).toEqual(["a_tool", "b_tool"]);
+      // Act
+      const manifest = loadMcpManifest(tempDir, "with-tools");
+
+      // Assert
+      expect(manifest.tools).toEqual(["a_tool", "b_tool"]);
     });
 
     it.each([
-      ["is not an array", "a_tool", "tools must be an array of non-empty strings"],
-      ["names a non-string tool", ["a_tool", 7], "tools must be an array of non-empty strings"],
-      ["names an empty tool", ["a_tool", ""], "tools must be an array of non-empty strings"],
+      ["is not an array", "a_tool", "tools must be a non-empty array of non-empty strings"],
+      ["is empty, which would allow every tool", [], "tools must be a non-empty array of non-empty strings"],
+      ["names a non-string tool", ["a_tool", 7], "tools must be a non-empty array of non-empty strings"],
+      ["names an empty tool", ["a_tool", ""], "tools must be a non-empty array of non-empty strings"],
       ["repeats a tool", ["a_tool", "a_tool"], "tools must not contain duplicates"],
     ])("throws when tools %s", (_label, tools, message) => {
+      // Arrange
       writeManifest(tempDir, "bad-tools", { name: "bad-tools", command: "node", args: [], sidecarPort: 9100, tools });
 
+      // Act & Assert
       expect(() => loadMcpManifest(tempDir, "bad-tools")).toThrow(message);
+    });
+
+    it("throws for an npm server without tools, which the sidecar only serves through its tool filter", () => {
+      // Arrange
+      writeManifest(tempDir, "npm-open", {
+        name: "npm-open",
+        type: "npm",
+        command: "some-mcp",
+        args: [],
+        sidecarPort: 9100,
+      });
+
+      // Act & Assert
+      expect(() => loadMcpManifest(tempDir, "npm-open")).toThrow("an npm server must list its tools");
     });
 
     it("accepts valid initScript when file exists", () => {
@@ -172,16 +196,23 @@ describe("MCP Manifest", () => {
     });
   });
 
-  describe("resolveToolAllowlist", () => {
-    const base = { name: "s", description: "", type: McpServerType.Npm, command: "x", args: [], sidecarPort: 9100 };
+  describe("upstreamPortOf", () => {
+    const base = { name: "s", description: "", command: "x", args: [], sidecarPort: 9100 };
 
-    it("returns the declared tools", () => {
-      expect(resolveToolAllowlist({ ...base, tools: ["a_tool"] })).toEqual(["a_tool"]);
+    it("places a filtered custom server's upstream port at sidecarPort + the offset", () => {
+      // Act
+      const port = upstreamPortOf({ ...base, type: McpServerType.Custom, tools: ["a_tool"] });
+
+      // Assert
+      expect(port).toBe(9100 + MCP_UPSTREAM_PORT_OFFSET);
     });
 
-    it("returns undefined, allowing every tool, when tools is absent or empty", () => {
-      expect(resolveToolAllowlist(base)).toBeUndefined();
-      expect(resolveToolAllowlist({ ...base, tools: [] })).toBeUndefined();
+    it.each([
+      ["an unfiltered custom server", { type: McpServerType.Custom }],
+      ["an npm server, reached over stdio", { type: McpServerType.Npm, tools: ["a_tool"] }],
+    ])("gives %s no upstream port", (_label, overrides) => {
+      // Act & Assert
+      expect(upstreamPortOf({ ...base, ...overrides })).toBeUndefined();
     });
   });
 

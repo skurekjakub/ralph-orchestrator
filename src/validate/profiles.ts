@@ -3,7 +3,14 @@ import { resolve, join } from "node:path";
 import type { ZodError } from "zod";
 import { resolvePath } from "../util/path";
 import { toErrorMessage } from "../util/error";
-import { discoverMcpServers, loadMcpManifest, type McpServerManifest } from "../container/setup/mcp-manifest";
+import {
+  discoverMcpServers,
+  loadMcpManifest,
+  MCP_GATEWAY_HEALTH_PORT,
+  MCP_UPSTREAM_PORT_OFFSET,
+  upstreamPortOf,
+  type McpServerManifest,
+} from "../container/setup/mcp-manifest";
 import { resolveProfileVariants } from "../config/profile-variants";
 import { profileFileSchema } from "../config/schemas";
 import type { IAgentProfile } from "../config/types";
@@ -222,9 +229,9 @@ export interface VariantTriggerInfo {
 /**
  * Validate the MCP servers each variant runs: profile-level servers plus its own.
  *
- * Checks that every server exists in shared/mcp-servers/, that sidecarPort values are unique
- * across all servers, and that each variant's effective server config provides every
- * `requiredConfig` env var the manifest declares. A missing-config finding shared by several
+ * Checks that every server exists in shared/mcp-servers/, that no two servers share a sidecar
+ * port (see {@link validateSidecarPorts}), and that each variant's effective server config provides
+ * every `requiredConfig` env var the manifest declares. A missing-config finding shared by several
  * variants is reported once, naming them all.
  */
 function validateMcpServers(
@@ -237,24 +244,7 @@ function validateMcpServers(
   if (serverNames.length === 0) return;
 
   const available = discoverMcpServers(mcpServersDir);
-
-  const portMap = new Map<number, string>();
-  for (const serverName of available) {
-    try {
-      const manifest = loadMcpManifest(mcpServersDir, serverName);
-      const existing = portMap.get(manifest.sidecarPort);
-      if (existing) {
-        errors.push(
-          `MCP server "${serverName}" and "${existing}" both use sidecarPort ${manifest.sidecarPort}\n` +
-            `  Each server must have a unique sidecarPort`,
-        );
-      } else {
-        portMap.set(manifest.sidecarPort, serverName);
-      }
-    } catch {
-      // loadMcpManifest already validates — errors will surface at startup
-    }
-  }
+  validateSidecarPorts(mcpServersDir, available, errors);
 
   const manifests = new Map<string, McpServerManifest>();
   for (const serverName of serverNames) {
@@ -291,6 +281,54 @@ function validateMcpServers(
     errors.push(
       `${prefix}: MCP server "${server}" requires config [${missing.join(", ")}], missing for ${affected.join(", ")}\n` +
         `  Add an object entry in mcpServers (profile or variant level) with env: { ${missing.map((k) => `"${k}": "..."`).join(", ")} }`,
+    );
+  }
+}
+
+/**
+ * Check that the ports the sidecar opens never collide: the gateway health endpoint, every server's
+ * `sidecarPort`, and the loopback upstream port (`sidecarPort + MCP_UPSTREAM_PORT_OFFSET`) of each
+ * custom server with a `tools` allowlist, which must also be a valid port. Covers every server in
+ * shared/mcp-servers/, because a profile's effective set changes per variant. Manifests that fail to
+ * load are skipped here; startup reports them when it loads them.
+ */
+function validateSidecarPorts(mcpServersDir: string, serverNames: readonly string[], errors: string[]): void {
+  const maxPort = 65535;
+  const owners = new Map<number, string>([[MCP_GATEWAY_HEALTH_PORT, "the sidecar health endpoint"]]);
+  const claim = (port: number, owner: string): void => {
+    const existing = owners.get(port);
+    if (existing === undefined) {
+      owners.set(port, owner);
+      return;
+    }
+    errors.push(
+      `MCP sidecar port ${port} is used by both ${existing} and ${owner}\n` +
+        `  Pick a sidecarPort that is free and, for a custom server with tools, leaves sidecarPort + ${MCP_UPSTREAM_PORT_OFFSET} free too`,
+    );
+  };
+
+  const manifests: McpServerManifest[] = [];
+  for (const serverName of serverNames) {
+    try {
+      manifests.push(loadMcpManifest(mcpServersDir, serverName));
+    } catch {
+      continue;
+    }
+  }
+  for (const manifest of manifests) claim(manifest.sidecarPort, `MCP server "${manifest.name}"`);
+  for (const manifest of manifests) {
+    const upstreamPort = upstreamPortOf(manifest);
+    if (upstreamPort === undefined) continue;
+    if (upstreamPort > maxPort) {
+      errors.push(
+        `MCP server "${manifest.name}": sidecarPort ${manifest.sidecarPort} leaves no room for its upstream port ` +
+          `(${manifest.sidecarPort} + ${MCP_UPSTREAM_PORT_OFFSET} > ${maxPort})\n  Pick a sidecarPort of at most ${maxPort - MCP_UPSTREAM_PORT_OFFSET}`,
+      );
+      continue;
+    }
+    claim(
+      upstreamPort,
+      `the upstream port of MCP server "${manifest.name}" (sidecarPort + ${MCP_UPSTREAM_PORT_OFFSET})`,
     );
   }
 }

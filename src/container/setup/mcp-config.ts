@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { McpServerType, loadMcpManifest, resolveToolAllowlist } from "./mcp-manifest";
+import { McpServerType, loadMcpManifest } from "./mcp-manifest";
 
 /** MCP config entry for URL-based remote servers (Streamable HTTP). */
 interface McpConfigUrlEntry {
@@ -34,7 +34,7 @@ export function generateMcpConfig(
   for (const name of serverNames) {
     const manifest = loadMcpManifest(mcpServersDir, name);
 
-    const tools = resolveToolAllowlist(manifest);
+    const { tools } = manifest;
     servers[name] = {
       type: "http",
       url: `http://${MCP_SIDECAR_HOST}:${manifest.sidecarPort}/mcp`,
@@ -113,7 +113,7 @@ export function generateGatewayConfig(
       }
     }
 
-    const allowedTools = resolveToolAllowlist(manifest);
+    const allowedTools = manifest.tools;
     servers.push({
       name,
       type: manifest.type,
