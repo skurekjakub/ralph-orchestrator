@@ -50,13 +50,15 @@ context-window-chart-shared.ts  ← shared constants, colors, formatTokens(), bu
 - **Color constants** are named and centralized (`COLOR_GREEN`, `COLOR_PROMPT`, etc.), never hardcoded inline in multiple files.
 - **`formatTokens()`** for all token count display (1K/1.2M format).
 - **`formatMs()`** from `tool-timeline-shared.ts` for all duration display.
-- **Types** live in `src/components/log-browser/tool-timeline-types.ts` — add new interfaces there, not in component files.
+- **Types** live in `src/components/log-browser/tool-timeline-types.ts` — add new interfaces there, not in component files. The log API's file groups and the execution summary are typed in `src/types.ts`.
 - **Parsers** live in dedicated `*-parser.ts` files with matching `*-parser.test.ts` test files.
 - **Hooks** that fetch and parse data live in `use*.ts` files.
+- **Never fake a number a run's logs do not hold.** Claude Code run telemetry records no token usage, so token and context-window views show `UnavailableNotice` with `NO_TOKEN_USAGE_MESSAGE` (`tool-timeline-shared.ts`), and token totals are `null`, not `0`.
+- **`RunTelemetry` mirrors the orchestrator's `src/cli/telemetry/run-telemetry.ts`** at its schema version. `parseRunTelemetry` rejects any other version; bump both together.
 
 ## Testing
 
-- Use `vitest` + `@testing-library/react` for component tests. Shared test data lives in `src/test/factories.ts` and `src/test/fakes.ts`.
+- Use `vitest` + `@testing-library/react` for component tests. Shared test data lives in `src/test/factories.ts` and `src/test/fakes.ts`; whole log files live in `src/test/fixtures/` and are imported with `?raw`. `claude-run-telemetry.json` is what the orchestrator derives from its own Claude Code session fixtures (`tests/cli/claude/fixtures/claude-sessions/`).
 - Parser tests are pure unit tests (no DOM needed).
 - Each new component should have a corresponding `.test.tsx` file.
 - `npm test` runs only vitest. Run `npm run lint` and `npm run build` as well to validate changes.
@@ -64,18 +66,26 @@ context-window-chart-shared.ts  ← shared constants, colors, formatTokens(), bu
 
 ## Data Flow
 
+`logApiPlugin.ts` groups each task folder's files into `TaskLogFiles` (`src/types.ts`). A Claude Code run adds `claudeRunTelemetry` (`-claude-run-telemetry.json`), `claudeCliDebug` (`-claude-cli-debug.log`), `claudeTranscript` (`-claude-transcript.md`, only when Copilot stages took `transcript`) and `claudeSessions` (the `-claude-sessions/` export). Files a pipeline stage collected under its role (`-primary-cli-debug.log`) stay out of the group. The Timeline opens for a run with `pre-tool.log` or run telemetry.
+
 ```
-cli-debug.log (raw text)
+pre-tool.log, tool-output.log, cli-debug.log (Copilot), *-claude-run-telemetry.json
   → useToolTimelineData hook (fetches + parses)
-    → context-window-parser.ts (parseContextWindowEntries, parseAssistantUsageEntries)
-    → cli-debug-subagent-parser.ts (parseCliDebugTree → flattenTree)
-    → tool-log-timeline-parser.ts (buildTimeline)
+    → tool-log-timeline-parser.ts (buildTimeline; audit v2 toolKind/subagent/skill, else tool names)
+    → run-telemetry-parser.ts (Claude Code: subagents, measured call durations and results,
+                               or the whole timeline when pre-tool.log is missing)
+    → cli-debug-subagent-parser.ts (Copilot: parseCliDebugTree → flattenTree)
+    → context-window-parser.ts (Copilot: parseContextWindowEntries, parseAssistantUsageEntries)
   → ToolTimeline.tsx (orchestrates all timeline sections)
     → ToolTimelineSummary
+    → RunTelemetrySummary (Claude Code)
     → SubagentOverview
-    → ContextWindowChart → UtilizationChart, TokenCostOverlay, CumulativeTokenTracker
+    → ContextWindowChart → UtilizationChart, TokenCostOverlay, CumulativeTokenTracker (Copilot)
+      or UnavailableNotice (Claude Code)
     → ToolTimelineCallList
 ```
+
+The run explorer (`fractalLogPlugin.ts`, `FractalExplorer.tsx`) takes a Copilot `cli-debug.log` (`analyzeCliDebugLog`) or a `*-run-telemetry.json` (`analyzeRunTelemetry`, built on `run-telemetry-parser.ts`). For telemetry, Token Flow and the token parts of Node Detail and Summary show the not-available state.
 
 ## Adding New Visualizations
 

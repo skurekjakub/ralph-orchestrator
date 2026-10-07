@@ -218,6 +218,8 @@ A failed task's workspace stays until you delete it, so you can inspect what the
 
 Each task gets its own timestamped directory (`<key>-<startTs>/`). Collected files are named `<key>-<startTs>-<collectTs>-<sourceId>.<ext>`; in multi-stage pipelines the stage role is inserted before the source ID (`<key>-<startTs>-<collectTs>-<role>-<sourceId>.<ext>`). The per-task log streams container output in real-time — if the agent crashes mid-run, partial output is available immediately. The activity log (`activity-YYYY-MM-DD.log`) and container output log (`container-YYYY-MM-DD.log`) persist across tasks and restarts. Session transcripts are scrubbed of credentials with the audit hooks' rules (`shared/hooks/lib/redact.pl`, so the host needs perl) and attached to the JIRA issue. Handoff files are attached to the JIRA issue by Ralph directly.
 
+The local dashboard's Logs tab (`npm run dashboard`) lists each task directory as one run, with the summary's failure reason, CLI error, agent text and a warning for sessions Ralph's hooks did not run in. Its Timeline reads a Claude Code run's subagents and call durations from the run telemetry, and says that token and context-window charts are not available for Claude Code runs, since the telemetry records no token usage.
+
 The ledger lives at `<output.logDir>/history/<dataSource>/<issueKey>.json` (`output.logDir` defaults to `./output/logs`). Operation states move `pending → active | rejected | error` and `active → completed | error`.
 
 ## Documentation
@@ -239,7 +241,7 @@ The ledger lives at `<output.logDir>/history/<dataSource>/<issueKey>.json` (`out
 | `profiles/<id>/`   | Agent profiles: `profile.json`, Dockerfile, compose file, setup script, agent templates    |
 | `shared/`          | Security overlay, audit hooks, agent includes, skills, MCP servers, MCP sidecar            |
 | `scripts/`         | Operator and debugging scripts (`npm run validate`, `npm run agent`, `reset-testenv:*`, …) |
-| `dashboard-local/` | Local Vite dashboard for browsing run logs (`npm run dashboard`)                           |
+| `dashboard-local/` | Local Vite dashboard for browsing Copilot and Claude Code run logs (`npm run dashboard`)   |
 | `ralph-dashboard/` | Status dashboard (Next.js, receives heartbeats)                                            |
 | `ralphchives/`     | Ralphchives knowledge base stack (NodeBB, Neo4j, sync)                                     |
 | `docs/`            | User guide, design docs, research notes                                                    |

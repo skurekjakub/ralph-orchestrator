@@ -24,9 +24,10 @@ Key facts:
 
 - React + Vite app
 - Reads historical logs directly from `output/logs/`
-- Local API is implemented in `src/logApiPlugin.ts`
+- Local API is implemented in `src/logApiPlugin.ts`; it groups each task folder's files into `TaskLogFiles` (`src/types.ts`), Claude Code's run telemetry, debug log, transcript and session export included
 - Main log browser entrypoint is `src/components/LogBrowser.tsx`
 - Timeline UI lives under `src/components/log-browser/`
+- Claude Code runs are read from `*-claude-run-telemetry.json` (`run-telemetry-parser.ts`); Copilot runs from `cli-debug.log` (`cli-debug-subagent-parser.ts`, `context-window-parser.ts`). The telemetry holds no token usage, so token views show a "not available" state rather than zeros
 - Local conventions are in `dashboard-local/AGENTS.md`; read it before editing
 - `npm run dashboard` from the repo root starts the Vite dev server (port 3101)
 
